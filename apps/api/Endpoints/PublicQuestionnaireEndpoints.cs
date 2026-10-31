@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using ScreenHire.Api.Branding;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Applications;
@@ -49,6 +51,7 @@ internal static class PublicQuestionnaireEndpoints
         ScreenHireDbContext db,
         TenantContext tenant,
         QuestionnaireLinks links,
+        IOptions<DomainOptions> domains,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
@@ -59,7 +62,7 @@ internal static class PublicQuestionnaireEndpoints
 
         var status = found.StatusAt(time.GetUtcNow());
         return TypedResults.Ok(new PublicQuestionnaire(
-            found.Organization.ToPublic(),
+            await found.Organization.ToPublicAsync(db, domains.Value, cancellationToken),
             found.Job.Title,
             found.Questionnaire?.Name ?? found.Request.QuestionnaireName,
             status,
@@ -181,10 +184,10 @@ internal static class PublicQuestionnaireEndpoints
         FollowUpQuestionnaire? Questionnaire)
     {
         // Answered first, so a candidate who answered never reads "expired". Closed: the questionnaire left the workflow,
-        // or the job or the application ended, so the answers would go nowhere.
+        // or the job or the application ended (or the team kept the candidate in mind), so the answers would go nowhere.
         public PublicQuestionnaireStatus StatusAt(DateTimeOffset now) =>
             Request.IsCompleted ? PublicQuestionnaireStatus.Answered
-            : Questionnaire is null || Job.Status == JobStatus.Closed || Job.Workflow.FindStage(Application.CurrentStageId)?.Kind.IsTerminal() == true
+            : Questionnaire is null || Job.Status == JobStatus.Closed || Application.HasEnded(Job.Workflow.FindStage(Application.CurrentStageId))
                 ? PublicQuestionnaireStatus.Closed
             : Request.IsExpired(now) ? PublicQuestionnaireStatus.Expired
             : PublicQuestionnaireStatus.Open;

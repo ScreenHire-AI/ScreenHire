@@ -21,6 +21,7 @@ export interface ApplicationSummary {
   stage: ApplicationStage;
   submittedAt: string;
   stageEnteredAt: string;
+  lastActivityAt: string;
   jobTitle: string;
   source: ApplicationSource;
   tags: string[];
@@ -28,4 +29,8 @@ export interface ApplicationSummary {
   /** @nullable */
   slaDueAt?: string | null;
   rating?: null | ApplicationRating;
+  /** @nullable */
+  keptInMindAt?: string | null;
+  /** @nullable */
+  futureRolesUntil?: string | null;
 }

@@ -1,9 +1,29 @@
+import type { ApplicationTaskKind } from '@screenhire/api-client';
 import { createCompleteTask, createReopenTask } from '@screenhire/api-client/svelte-query';
 import { useQueryClient } from '@tanstack/svelte-query';
 import { SvelteMap } from 'svelte/reactivity';
 import { onDestroy } from 'svelte';
 import { describeError, invalidatePath } from '#lib/query.js';
 import { applicationsPath, tasksPath } from '#lib/realtime.js';
+
+/**
+ * Whether a person ticks a task off by hand: a to-do and a rejection review. A review and a requested scorecard are
+ * done where their work is done, when the scorecard is submitted (ADR-0017 decision 11), so they have no checkbox and
+ * the API refuses to tick them.
+ */
+export const completesByHand = (kind: ApplicationTaskKind): boolean => kind === 'Task' || kind === 'RejectionReview';
+
+/**
+ * Where a task's work is done, for My tasks: a requested scorecard opens the candidate's Scorecards tab with the sheet
+ * open on that scorecard; every other task opens the candidate's Overview, where Next steps has it.
+ */
+export function taskHref(task: { applicationId: string; kind: ApplicationTaskKind; scorecardTemplateId?: string | null }): string {
+  const candidate = `/applications/${task.applicationId}`;
+  return task.kind === 'Scorecard' && task.scorecardTemplateId ? `${candidate}?${scorecardLink(task.scorecardTemplateId)}` : candidate;
+}
+
+/** The query that opens the Scorecards tab with the fill-in sheet on one scorecard. */
+export const scorecardLink = (key: string): string => new URLSearchParams({ tab: 'scorecards', scorecard: key }).toString();
 
 /** How long a ticked task keeps its Undo (design system section 11, Task checkbox). */
 export const undoMilliseconds = 10_000;

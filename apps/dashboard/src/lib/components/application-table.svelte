@@ -24,6 +24,7 @@
   import { preferences } from '#lib/preferences.svelte.js';
   import { hasModifier, isTypingTarget } from '#lib/shortcuts.js';
   import { isOverdue } from '#lib/sla.js';
+  import { stageLabel } from '#lib/talent-pool.js';
   import { createTableSort, tableSortOptions, type TableSortState } from '#lib/table-sort.svelte.js';
 
   let {
@@ -47,6 +48,7 @@
       'stage',
       'source',
       'applied',
+      'lastActivity',
     ]),
   }: {
     applications: readonly ApplicationSummary[];
@@ -97,7 +99,7 @@
     {
       id: 'stage',
       header: 'Stage',
-      accessorFn: (application) => (stages ? attentionRank(application) : application.stage.name),
+      accessorFn: (application) => (stages ? attentionRank(application) : stageLabel(application)),
       sortFn: stages ? 'basic' : 'alphanumeric',
       // The rank is a number, which TanStack would sort descending first; attention comes first.
       sortDescFirst: false,
@@ -106,13 +108,17 @@
     { id: 'source', header: 'Source', accessorFn: (application) => sourceLabel(application.source), sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(sourceCell, row.original) },
     // Applied sorts, newest first: the order every candidate table opens on (L2).
     { id: 'applied', header: 'Applied', accessorFn: (application) => application.submittedAt, sortFn: 'basic', sortDescFirst: true, cell: ({ row }) => renderSnippet(appliedCell, row.original) },
+    // When anything last happened to the application, from the candidate or the team (the API's lastActivityAt), newest
+    // first. The integrity checks never move it.
+    { id: 'lastActivity', header: 'Last activity', accessorFn: (application) => application.lastActivityAt, sortFn: 'basic', sortDescFirst: true, cell: ({ row }) => renderSnippet(lastActivityCell, row.original) },
     ...(stages && moves?.allowed ? [{ id: 'move', header: () => renderSnippet(moveHeader, undefined), cell: ({ row }) => renderSnippet(moveCell, row.original) } satisfies CandidateColumn] : []),
   ]);
 
   // Overdue rows rank below every stage position, ordered by when they fell due; the rest rank by pipeline position.
   function attentionRank(application: ApplicationSummary): number {
     if (isOverdue(application, Date.now())) return Date.parse(application.slaDueAt!) - 1e15;
-    const position = stages?.findIndex((stage) => stage.id === application.stage.id) ?? -1;
+    // A candidate kept in mind has left the job, so they sort after every stage, with the endings.
+    const position = application.keptInMindAt ? -1 : (stages?.findIndex((stage) => stage.id === application.stage.id) ?? -1);
     return position < 0 ? Number.MAX_SAFE_INTEGER : position;
   }
 
@@ -124,8 +130,9 @@
   const selectColumn = 'sticky left-0 w-10 min-w-10 px-2 pointer-coarse:w-15 pointer-coarse:min-w-15';
   const nameColumn = 'sticky left-10 pointer-coarse:left-15';
   // Source is an optional column (section 8): it shows only where the table has room, so a job's pipeline beside its
-  // side column fits a laptop without scrolling sideways.
-  const optionalColumn = '@max-5xl/table:hidden';
+  // side column fits a laptop without scrolling sideways. The table across jobs has a Job column as well, so Source steps
+  // aside sooner there: with it, Candidates beside the full sidebar on a 1440px laptop was 19px too wide.
+  const optionalColumn = $derived(showJob ? '@max-6xl/table:hidden' : '@max-5xl/table:hidden');
   // While the table is scrolled sideways, the name column has an edge, so cells sliding under it do not show beside it.
   let scrolledSideways = $state(false);
   const nameEdge = 'after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border';
@@ -270,7 +277,7 @@
        pill (L1). -->
   <span class="flex min-w-0 items-center gap-1.5">
     <OverdueBadge dueAt={application.slaDueAt} />
-    <TruncatedText text={application.stage.name} class="max-w-48" />
+    <TruncatedText text={stageLabel(application)} class="max-w-48" />
   </span>
 {/snippet}
 
@@ -282,6 +289,10 @@
   <DateText at={application.submittedAt} class="text-muted-foreground" />
 {/snippet}
 
+{#snippet lastActivityCell(application: ApplicationSummary)}
+  <DateText at={application.lastActivityAt} class="text-muted-foreground" />
+{/snippet}
+
 {#snippet moveHeader()}
   <span class="sr-only">Move</span>
 {/snippet}
@@ -291,7 +302,7 @@
     <MoveToStage
       compact
       candidateName={application.candidateName}
-      currentStageId={application.stage.id}
+      currentStageId={application.keptInMindAt ? '' : application.stage.id}
       {stages}
       onmove={(stage) => moves.move(application, stage)}
     />
@@ -317,7 +328,7 @@
     {#snippet facts()}
       <!-- relative: above the item's link, so the due time's tooltip opens on tap. -->
       <OverdueBadge dueAt={application.slaDueAt} class="relative" />
-      <Badge variant="muted">{application.stage.name}</Badge>
+      <Badge variant="muted">{stageLabel(application)}</Badge>
       {#if showJob}
         <!-- relative: above the item's link, so the full title's tooltip opens on tap. -->
         <Badge variant="muted" class="relative max-w-full"><TruncatedText text={application.jobTitle} /></Badge>
@@ -387,7 +398,7 @@
                     (header.id === 'select' || header.id === 'candidate') && 'z-[1] bg-muted',
                     header.id === 'move' && 'w-10',
                     header.id === 'source' && optionalColumn,
-                    (header.id === 'applied' || header.id === 'move') && 'text-right',
+                    (header.id === 'applied' || header.id === 'lastActivity' || header.id === 'move') && 'text-right',
                   ]}
                 />
               {/each}
@@ -412,7 +423,7 @@
                       cell.column.id === 'candidate' && scrolledSideways && nameEdge,
                       // A stuck cell covers what scrolls under it, so it carries the row's tint itself.
                       (cell.column.id === 'select' || cell.column.id === 'candidate') && ['z-[1]', tinted ? 'bg-row-selected' : 'bg-card group-hover:bg-muted'],
-                      (cell.column.id === 'applied' || cell.column.id === 'move') && 'text-right',
+                      (cell.column.id === 'applied' || cell.column.id === 'lastActivity' || cell.column.id === 'move') && 'text-right',
                       cell.column.id === 'source' && optionalColumn,
                     ]}
                   >

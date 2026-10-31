@@ -1,0 +1,80 @@
+---
+// The page a candidate opens from the link in a talent pool invitation (docs/architecture/talent-pool.md), to stop the
+// employer keeping their details for future roles. One native form posted to the `talentPool` action, so it works with
+// JavaScript off and ships no script. The link is the candidate's alone: never cached, indexed or sent on.
+import { actions } from 'astro:actions';
+import CareersLayout from '../../../layouts/CareersLayout.astro';
+import { getPublicOrganization, getPublicTalentPoolStatus } from '../../../lib/api';
+import { basePath } from '../../../lib/host';
+import { isToken } from '../../../lib/questionnaire';
+
+const { organization, token } = Astro.params;
+const base = basePath(Astro.request, organization!);
+const result = Astro.getActionResult(actions.talentPool);
+if (result?.data?.outcome === 'stopped') {
+  return Astro.redirect(`${base}/talent-pool/stopped`, 303);
+}
+
+Astro.response.headers.set('Cache-Control', 'no-store');
+
+const response = isToken(token) ? await getPublicTalentPoolStatus(organization!, token) : null;
+const found = response?.status === 200 ? response.data : null;
+const employer = found?.organization ?? (await getPublicOrganization(organization!).then((r) => (r.status === 200 ? r.data : null)));
+if (!employer) {
+  return new Response(null, { status: 404 });
+}
+
+const status = !found || result?.data?.outcome === 'not-found' ? 'not-found' : found.kept ? 'kept' : 'stopped';
+Astro.response.status = status === 'not-found' ? 404 : 200;
+const formError = result?.data?.outcome === 'error' || result?.error ? 'Something went wrong on our side. Try again in a moment.' : undefined;
+
+const heading = {
+  'not-found': 'We could not find this link',
+  kept: `Stop ${employer.name} keeping your details?`,
+  stopped: `${employer.name} no longer keeps your details`,
+}[status];
+---
+
+<CareersLayout
+  title={`${heading} | ${employer.name}`}
+  description={`Your details and future roles at ${employer.name}.`}
+  organizationName={employer.name}
+  organizationSlug={employer.slug}
+  branding={employer.branding}
+  noindex
+>
+  <meta slot="head" name="referrer" content="no-referrer" />
+
+  <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{heading}</h1>
+
+  {status === 'not-found' && (
+    <p class="mt-3 text-candidate-body text-candidate-muted-foreground">
+      The link may be incomplete. Open it again from the email you received.
+    </p>
+  )}
+
+  {status === 'stopped' && (
+    <p class="mt-3 text-candidate-body text-candidate-muted-foreground">
+      {employer.name} will not invite you to apply for other roles. There is nothing more to do.
+    </p>
+  )}
+
+  {status === 'kept' && (
+    <form method="POST" action={actions.talentPool} class="mt-3 flex flex-col gap-4">
+      <input type="hidden" name="organization" value={employer.slug} />
+      <input type="hidden" name="token" value={token} />
+      <p class="text-candidate-body">
+        You said {employer.name} could keep your details for future roles. If you stop it, they will no longer invite you
+        to apply for other roles. Any application you have open stays as it is.
+      </p>
+      {formError && <p role="alert" class="text-sm font-semibold text-destructive">{formError}</p>}
+      <div class="mt-2 flex flex-col gap-3 sm:flex-row">
+        <button type="submit" class="button-primary">Stop keeping my details</button>
+      </div>
+    </form>
+  )}
+
+  <p class="mt-6 text-sm">
+    <a href={`${base}/privacy`} class="text-link">What we collect and why</a>
+  </p>
+</CareersLayout>

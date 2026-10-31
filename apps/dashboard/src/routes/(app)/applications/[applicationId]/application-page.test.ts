@@ -1,7 +1,17 @@
-import type { ApplicationDetail, ApplicationTaskEntry, CandidateEmailEntry, ApplicationTimelineEntry, JobDetail, ScorecardEntry, TeamMember } from '@screenhire/api-client';
+import type {
+  ApplicationDetail,
+  ApplicationTaskEntry,
+  CandidateEmailEntry,
+  ApplicationTimelineEntry,
+  JobDetail,
+  ScorecardEntry,
+  ScorecardTemplateSummary,
+  TeamMember,
+} from '@screenhire/api-client';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { apiStub, interviewer, jobId, stages, user, userAs } from '../../../../test-support/fixtures.js';
+import { apiStub, interviewer, jobId, roleCatalogue, stages, user, userAs } from '../../../../test-support/fixtures.js';
+import { expectNoAxeViolations } from '../../../../test-support/axe.js';
 import { botIntegrity, pendingIntegrity } from '../../../../test-support/integrity-fixtures.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 // After the fixtures: the mock below reads `user`.
@@ -577,6 +587,34 @@ describe('application page', () => {
     expect(within(tasks).getByRole('checkbox', { name: 'Mark done for Call the references.' })).toBeChecked();
   });
 
+  it('gives a review and a requested scorecard no checkbox: their row links to the Scorecards tab, for the person they are for', async () => {
+    stubApi({
+      [`GET /v1/applications/${applicationId}/tasks`]: () =>
+        Response.json([
+          { ...task, id: '01a157d4-0000-7000-8000-000000000330', kind: 'Review', note: 'Review this application.', assigneeUserId: user.id },
+          {
+            ...task,
+            id: '01a157d4-0000-7000-8000-000000000331',
+            kind: 'Scorecard',
+            note: 'Fill in the Interview scorecard.',
+            assigneeUserId: user.id,
+            scorecardTemplateId: 'interview',
+          },
+          { ...task, id: '01a157d4-0000-7000-8000-000000000332', kind: 'Scorecard', note: 'Fill in the Screening scorecard.', assigneeUserId: teammate, scorecardTemplateId: 'screening' },
+          task,
+        ]),
+    });
+    renderPage();
+    const tasks = await screen.findByRole('region', { name: 'Next steps' });
+
+    await within(tasks).findByText('Fill in the Interview scorecard.');
+    expect(within(tasks).getAllByRole('checkbox').map((box) => box.getAttribute('aria-label'))).toEqual(['Mark done for Call the references.']);
+    expect(within(tasks).getByRole('link', { name: 'Fill in: Fill in the Interview scorecard.' })).toHaveAttribute('href', '?tab=scorecards&scorecard=interview');
+    expect(within(tasks).getByRole('link', { name: 'Fill in: Review this application.' })).toHaveAttribute('href', '?tab=scorecards');
+    // Robin's request is Robin's to do.
+    expect(within(tasks).queryByRole('link', { name: 'Fill in: Fill in the Screening scorecard.' })).not.toBeInTheDocument();
+  });
+
   describe('ticking a task on Next steps', () => {
     const tick = 'Mark done for Call the references.';
     const undo = 'Undo, Call the references.';
@@ -749,6 +787,214 @@ describe('application page', () => {
     expect(declarations).toHaveTextContent('Asked for adjustments to the process');
   });
 
+  describe('talent pool', () => {
+    // "Today" is fixed so a permission is running or over without the wall clock.
+    const today = new Date('2026-10-30T12:00:00Z');
+    const running = '2027-03-15T12:00:00Z';
+    const over = '2026-10-01T12:00:00Z';
+    const keptAt = '2026-10-29T12:00:00Z';
+    const supportJobId = '01a157d4-0000-7000-8000-0000000009aa';
+    const otherApplicationId = '01a157d4-0000-7000-8000-000000000390';
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'], now: today });
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    /** The application as the API sends it for the case under test. */
+    const stubDetail = (patch: Partial<ApplicationDetail>, extra: Parameters<typeof apiStub>[0] = {}) =>
+      stubApi({ [`GET /v1/applications/${applicationId}`]: () => Response.json({ ...application, ...patch }), ...extra });
+
+    const openMoveMenu = async () => {
+      await fireEvent.pointerDown(await screen.findByRole('button', { name: 'Move to stage, Casey Morgan' }), { button: 0, pointerType: 'mouse' });
+      return screen.findByRole('menu');
+    };
+    const stagePill = async () => {
+      const band = (await screen.findByRole('heading', { level: 1, name: 'Casey Morgan' })).closest<HTMLElement>('[data-slot="header-band"]')!;
+      return within(band).getAllByRole('term').find((term) => term.textContent?.trim() === 'Stage')!.nextElementSibling!;
+    };
+
+    it('offers Keep in mind in Move to stage when the candidate allowed it and the permission still runs', async () => {
+      stubDetail({ futureRolesUntil: running, futureRolesGivenAt: '2026-10-20T09:00:00Z' });
+      renderPage();
+
+      const menu = await openMoveMenu();
+
+      expect(within(menu).getByRole('menuitem', { name: 'Keep in mind…' })).toBeInTheDocument();
+    });
+
+    it.each([
+      ['never gave permission', {}],
+      ['gave it and it has run out', { futureRolesUntil: over, futureRolesGivenAt: '2025-09-01T09:00:00Z' }],
+      ['gave it and took it back', { futureRolesUntil: null, futureRolesGivenAt: '2026-10-20T09:00:00Z' }],
+      ['were already kept in mind', { futureRolesUntil: running, keptInMindAt: keptAt }],
+      ['were rejected', { futureRolesUntil: running, stage: { id: 'rejected', name: 'Rejected', kind: 'Rejected' as const } }],
+    ])('leaves Keep in mind out of Move to stage for a candidate who %s', async (_case, patch) => {
+      stubDetail(patch);
+      renderPage();
+
+      const menu = await openMoveMenu();
+
+      expect(within(menu).getAllByRole('menuitem').length).toBeGreaterThan(0);
+      expect(within(menu).queryByRole('menuitem', { name: /Keep in mind/ })).toBeNull();
+    });
+
+    it('gives someone without Move candidates no Move to stage button, so no way to keep them in mind', async () => {
+      asRole('Viewer');
+      stubDetail({ futureRolesUntil: running });
+      renderPage();
+      await screen.findByRole('heading', { level: 1, name: 'Casey Morgan' });
+
+      expect(screen.queryByRole('button', { name: 'Move to stage, Casey Morgan' })).toBeNull();
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
+
+    it('keeps the candidate in mind from the sheet with a note, and announces it', async () => {
+      const post = vi.fn((init: RequestInit | undefined) => Response.json({ kept: 1, notAllowed: 0, alreadyEnded: 0 }));
+      stubDetail({ futureRolesUntil: running, futureRolesGivenAt: '2026-10-20T09:00:00Z' }, { 'POST /v1/talent-pool': post });
+      renderPage();
+
+      await fireEvent.click(within(await openMoveMenu()).getByRole('menuitem', { name: 'Keep in mind…' }));
+      const sheet = await screen.findByRole('dialog', { name: 'Keep Casey Morgan in mind' });
+      expect(sheet).toHaveTextContent('They leave this job without a rejection and stay in the talent pool until Mar 15, 2027.');
+      await fireEvent.input(within(sheet).getByLabelText('Why'), { target: { value: 'Strong systems thinking.' } });
+      await fireEvent.click(within(sheet).getByRole('button', { name: 'Keep in mind' }));
+
+      await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+      expect(JSON.parse(String(post.mock.calls[0]![0]!.body))).toEqual({ applicationIds: [applicationId], note: 'Strong systems thinking.' });
+      expect(await screen.findByText('Kept Casey Morgan in mind.', { selector: '[role="status"]' })).toBeInTheDocument();
+    });
+
+    it('says Kept in mind in the header where the stage was, and nothing about the pool until they are in it', async () => {
+      stubDetail({ keptInMindAt: keptAt, futureRolesUntil: running, inTalentPool: false });
+      renderPage();
+
+      expect(await stagePill()).toHaveTextContent('Kept in mind');
+      expect(screen.queryByText(/In the talent pool until/)).toBeNull();
+    });
+
+    it('says in the header when their permission in the talent pool ends', async () => {
+      stubDetail({ keptInMindAt: keptAt, futureRolesUntil: running, inTalentPool: true });
+      renderPage();
+
+      expect(await stagePill()).toHaveTextContent('Kept in mind');
+      expect(await screen.findByText('In the talent pool until Mar 15, 2027')).toBeInTheDocument();
+    });
+
+    it('marks no stage as current in Move to stage once they were kept in mind, and offers no second keep', async () => {
+      stubDetail({ keptInMindAt: keptAt, futureRolesUntil: running, inTalentPool: true });
+      renderPage();
+
+      const menu = await openMoveMenu();
+
+      expect(within(menu).queryByText('current')).toBeNull();
+      expect(within(menu).queryByRole('menuitem', { name: /Keep in mind/ })).toBeNull();
+    });
+
+    it('shows the stage name, not Kept in mind, for an application still in the job', async () => {
+      stubDetail({ futureRolesUntil: running });
+      renderPage();
+
+      expect(await stagePill()).toHaveTextContent('Screening');
+    });
+
+    describe('Future roles on the Application tab', () => {
+      it('says until when the candidate allowed it', async () => {
+        stubDetail({ futureRolesGivenAt: '2026-10-20T09:00:00Z', futureRolesUntil: running });
+        renderPage('application');
+
+        const declarations = await screen.findByRole('region', { name: 'Declarations' });
+
+        expect(declarations).toHaveTextContent('Future roles');
+        expect(declarations).toHaveTextContent('Allowed until Mar 15, 2027');
+      });
+
+      it('says they allowed it and then stopped', async () => {
+        stubDetail({ futureRolesGivenAt: '2026-10-20T09:00:00Z', futureRolesUntil: null });
+        renderPage('application');
+
+        expect(await screen.findByRole('region', { name: 'Declarations' })).toHaveTextContent('Allowed, then stopped');
+      });
+
+      it('shows no row at all when the candidate did not tick the box', async () => {
+        stubDetail({});
+        renderPage('application');
+
+        const declarations = await screen.findByRole('region', { name: 'Declarations' });
+
+        expect(declarations).not.toHaveTextContent('Future roles');
+      });
+    });
+
+    describe('Activity', () => {
+      it('words keeping in mind with its note, an invitation and leaving the pool for a job', async () => {
+        stubApi({
+          [`GET /v1/applications/${applicationId}/timeline`]: () =>
+            Response.json([
+              entry({ type: 'Submitted', toStageId: 'applied' }),
+              entry({ type: 'KeptInMind', occurredAt: '2026-10-20T12:00:00Z', actorUserId: user.id, note: 'Strong, wrong timing.' }),
+              entry({ type: 'InvitedToApply', occurredAt: '2026-10-21T12:00:00Z', actorUserId: user.id, otherJobId: supportJobId }),
+              entry({ type: 'LeftTalentPool', occurredAt: '2026-10-22T12:00:00Z', poolExit: 'AppliedAgain', otherJobId: supportJobId }),
+            ]),
+          'GET /v1/jobs': () => Response.json([{ id: supportJobId, title: 'Support Engineer' }]),
+        });
+        renderPage('activity');
+        const region = await screen.findByRole('region', { name: 'Activity' });
+
+        await within(region).findByText(/Left the talent pool: applied for Support Engineer/);
+        expect(lines(region)).toEqual([
+          expect.stringContaining('Left the talent pool: applied for Support Engineer'),
+          'Invited to apply for Support Engineer by you',
+          'Kept in mind: left the job without a rejection by you',
+          'Applied on the careers page, into Applied',
+        ]);
+        expect(within(region).getByText('"Strong, wrong timing."')).toBeInTheDocument();
+      });
+    });
+
+    describe('Other applications on Overview', () => {
+      const summaryOf = (id: string, jobId_: string, jobTitle: string, patch: Record<string, unknown> = {}) => ({
+        id,
+        jobId: jobId_,
+        candidateId,
+        candidateName: 'Casey Morgan',
+        stage: { id: 'applied', name: 'Applied', kind: 'Applied' },
+        submittedAt: '2026-10-28T09:00:00Z',
+        stageEnteredAt: '2026-10-28T09:00:00Z',
+        jobTitle,
+        source: 'CareersSite',
+        tags: [],
+        ...patch,
+      });
+      const thisOne = summaryOf(applicationId, supportJobId, 'Support Engineer');
+      const candidate = (applications: unknown[]) => ({ ...application.candidate, applications });
+
+      it('links to the candidate\'s other applications, with the stage as it reads now', async () => {
+        const other = summaryOf(otherApplicationId, jobId, 'Senior .NET Engineer', { keptInMindAt: keptAt, stage: { id: 'screening', name: 'Screening', kind: 'Screening' } });
+        stubApi({ [`GET /v1/candidates/${candidateId}`]: () => Response.json(candidate([thisOne, other])) });
+        renderPage();
+
+        const panel = await screen.findByRole('region', { name: 'Other applications' });
+
+        expect(within(panel).getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/applications/${otherApplicationId}`);
+        // The kept application read Screening when it was kept; the panel says it has left the job.
+        expect(panel).toHaveTextContent('Kept in mind');
+        expect(panel).not.toHaveTextContent('Screening');
+        expect(within(panel).queryByRole('link', { name: 'Support Engineer' })).toBeNull();
+      });
+
+      it('has no panel when the candidate has only this application', async () => {
+        stubApi({ [`GET /v1/candidates/${candidateId}`]: () => Response.json(candidate([thisOne])) });
+        renderPage();
+        await screen.findByRole('region', { name: 'Files' });
+
+        expect(screen.queryByRole('region', { name: 'Other applications' })).toBeNull();
+      });
+    });
+  });
+
   describe('scorecards', () => {
     // The job's copy of an interview scorecard; the application reached Interview (the timeline) and is back in Screening.
     const scoredJob = {
@@ -811,6 +1057,19 @@ describe('application page', () => {
       workflowVersion: 1,
       timelineEventId: '01a157d4-0000-7000-8000-000000000311',
       submittedAt: '2026-10-20T11:45:00Z',
+      scorecardTemplateId: 'interview',
+      scorecardName: 'Interview',
+    };
+    // The library: a built-in, the team's own, and an archived one the pickers leave out.
+    const library = [
+      { id: 'phone-screen', name: 'Phone screen', builtIn: true, questions: 2, ratingQuestions: 2, lastUpdated: { at: null, by: 'ScreenHire' }, archived: false },
+      { id: '01a157d4-0000-7000-8000-000000000320', name: 'Culture add', builtIn: false, questions: 1, ratingQuestions: 1, lastUpdated: { at: null, by: 'ScreenHire' }, archived: false },
+      { id: '01a157d4-0000-7000-8000-000000000321', name: 'Old screen', builtIn: false, questions: 1, ratingQuestions: 1, lastUpdated: { at: null, by: 'ScreenHire' }, archived: true },
+    ] as unknown as ScorecardTemplateSummary[];
+    // Robin's custom role fills in scorecards.
+    const roles = {
+      ...roleCatalogue,
+      roles: roleCatalogue.roles.map((role) => (role.role === 'Custom' ? { ...role, customRoleId: members[1].customRoleId } : role)),
     };
     // A v0.2 scorecard reads as it was given: labelled ratings, which never count toward the rating.
     const older: ScorecardEntry = {
@@ -887,9 +1146,12 @@ describe('application page', () => {
       renderPage('scorecards');
       const panel = await screen.findByRole('region', { name: 'Scorecards' });
 
-      await fireEvent.click(await within(panel).findByRole('button', { name: 'Fill scorecard' }));
-      const sheet = await screen.findByRole('dialog', { name: 'Fill scorecard' });
-      expect(sheet).toHaveTextContent('Stage: Interview');
+      await fireEvent.click(await within(panel).findByRole('button', { name: 'Fill in' }));
+      const sheet = await screen.findByRole('dialog', { name: 'Fill in a scorecard' });
+      // The candidate is in Screening, which has no scorecard, so nothing is chosen until the reviewer picks one.
+      const picker = within(sheet).getByRole('combobox', { name: 'Scorecard' });
+      expect(picker).toHaveValue('');
+      await fireEvent.change(picker, { target: { value: 'stage:interview' } });
       expect(within(sheet).queryByText(/integrity/i)).not.toBeInTheDocument();
       await fireEvent.click(within(sheet).getByRole('button', { name: 'Submit scorecard' }));
       await within(sheet).findByText('Choose a recommendation.');
@@ -908,10 +1170,11 @@ describe('application page', () => {
       await fireEvent.input(within(sheet).getByLabelText('Note for the team'), { target: { value: '  Good depth.  ' } });
       await fireEvent.click(within(sheet).getByRole('button', { name: 'Submit scorecard' }));
 
-      await within(panel).findByText('Scorecard for Interview saved.');
+      await within(panel).findByText('Interview scorecard saved.');
       const post = fetch.mock.calls.find(([url, init]) => String(url).endsWith('/scorecards') && init?.method === 'POST');
       expect(JSON.parse(String(post![1]!.body))).toEqual({
         stageId: 'interview',
+        scorecardTemplateId: null,
         answers: [
           { questionId: 'role_skills', rating: 4 },
           { questionId: 'problem_solving', rating: 10 },
@@ -924,15 +1187,67 @@ describe('application page', () => {
       });
     });
 
-    it('offers no Fill scorecard once you scored every reached stage, nor to a Viewer', async () => {
-      stubApi({
+    it('fills in a library scorecard, given at the stage the candidate is in, with its questions read when it is chosen', async () => {
+      const fetch = stubApi({
         [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob),
-        [`GET /v1/applications/${applicationId}/scorecards`]: () => Response.json([{ ...submitted, reviewerUserId: user.id }]),
+        'GET /v1/scorecard-templates': () => Response.json(library),
+        'GET /v1/scorecard-templates/phone-screen': () =>
+          Response.json({ ...library[0], questions: [{ id: 'role_requirements', type: 'Rating5', label: "Meets the role's requirements", required: true }] }),
+        [`POST /v1/applications/${applicationId}/scorecards`]: () => Response.json({ ...submitted, reviewerUserId: user.id }, { status: 201 }),
       });
       renderPage('scorecards');
       const panel = await screen.findByRole('region', { name: 'Scorecards' });
-      await within(panel).findByText('by you');
-      expect(within(panel).queryByRole('button', { name: 'Fill scorecard' })).not.toBeInTheDocument();
+
+      await fireEvent.click(await within(panel).findByRole('button', { name: 'Fill in' }));
+      const sheet = await screen.findByRole('dialog', { name: 'Fill in a scorecard' });
+      const picker = within(sheet).getByRole('combobox', { name: 'Scorecard' });
+      await waitFor(() => expect(within(picker).getByRole('option', { name: 'Phone screen' })).toBeInTheDocument());
+      expect(within(picker).queryByRole('option', { name: 'Old screen' })).not.toBeInTheDocument();
+      await fireEvent.change(picker, { target: { value: 'library:phone-screen' } });
+      const group = await within(sheet).findByRole('group', { name: /^Meets the role's requirements/ });
+      await fireEvent.click(within(group).getByRole('radio', { name: '4' }));
+      await fireEvent.click(within(within(sheet).getByRole('group', { name: /^Overall recommendation/ })).getByRole('radio', { name: 'Yes' }));
+      await fireEvent.click(within(sheet).getByRole('button', { name: 'Submit scorecard' }));
+
+      await within(panel).findByText('Phone screen scorecard saved.');
+      const post = fetch.mock.calls.find(([url, init]) => String(url).endsWith('/scorecards') && init?.method === 'POST');
+      expect(JSON.parse(String(post![1]!.body))).toEqual({
+        stageId: null,
+        scorecardTemplateId: 'phone-screen',
+        answers: [{ questionId: 'role_requirements', rating: 4 }],
+        recommendation: 'Yes',
+        note: null,
+      });
+    });
+
+    it("opens the sheet on the scorecard a link names: a teammate's request from My tasks", async () => {
+      stubApi({
+        [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob),
+        'GET /v1/scorecard-templates': () => Response.json(library),
+      });
+      page.url = new URL(`http://dashboard.test/applications/${applicationId}?tab=scorecards&scorecard=interview`);
+      render(WithQueryClient, { props: { component: Page, props: { params: { applicationId } } } });
+
+      const sheet = await screen.findByRole('dialog', { name: 'Fill in a scorecard' });
+      expect(within(sheet).getByRole('combobox', { name: 'Scorecard' })).toHaveValue('stage:interview');
+      expect(within(sheet).getByRole('group', { name: /^Skills the role needs/ })).toBeInTheDocument();
+      await expectNoAxeViolations(sheet);
+    });
+
+    it('offers Fill in to a role that fills in scorecards and Ask for one to a role that creates tasks, and neither to a Viewer', async () => {
+      stubApi({ [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob) });
+      renderPage('scorecards');
+      const panel = await screen.findByRole('region', { name: 'Scorecards' });
+      expect(await within(panel).findByRole('button', { name: 'Fill in' })).toBeInTheDocument();
+      expect(within(panel).getByRole('button', { name: 'Ask for one' })).toBeInTheDocument();
+      cleanup();
+
+      page.data.user = interviewer;
+      stubApi({ [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob) });
+      renderPage('scorecards');
+      const scored = await screen.findByRole('region', { name: 'Scorecards' });
+      expect(await within(scored).findByRole('button', { name: 'Fill in' })).toBeInTheDocument();
+      expect(within(scored).queryByRole('button', { name: 'Ask for one' })).not.toBeInTheDocument();
       cleanup();
 
       page.data.user = userAs('Viewer');
@@ -940,7 +1255,69 @@ describe('application page', () => {
       renderPage('scorecards');
       const viewed = await screen.findByRole('region', { name: 'Scorecards' });
       await within(viewed).findByText('No scorecards yet.');
-      expect(within(viewed).queryByRole('button', { name: 'Fill scorecard' })).not.toBeInTheDocument();
+      expect(within(viewed).queryByRole('button', { name: 'Fill in' })).not.toBeInTheDocument();
+      expect(within(viewed).queryByRole('button', { name: 'Ask for one' })).not.toBeInTheDocument();
+    });
+
+    it('says so when the reader has given every scorecard there is, with nothing to submit', async () => {
+      stubApi({
+        [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob),
+        [`GET /v1/applications/${applicationId}/scorecards`]: () => Response.json([{ ...submitted, reviewerUserId: user.id }]),
+        'GET /v1/scorecard-templates': () => Response.json([]),
+      });
+      renderPage('scorecards');
+      const panel = await screen.findByRole('region', { name: 'Scorecards' });
+      await within(panel).findByText('by you');
+
+      await fireEvent.click(within(panel).getByRole('button', { name: 'Fill in' }));
+      const sheet = await screen.findByRole('dialog', { name: 'Fill in a scorecard' });
+      await within(sheet).findByText('You have given every scorecard you can for this candidate at this stage.');
+      expect(within(sheet).queryByRole('button', { name: 'Submit scorecard' })).not.toBeInTheDocument();
+    });
+
+    it("asks a teammate who sees the job and fills in scorecards, on the current stage's scorecard by default", async () => {
+      const fetch = stubApi({
+        [`GET /v1/applications/${applicationId}`]: () => Response.json({ ...application, stage: { id: 'interview', name: 'Interview', kind: 'Interview' } }),
+        [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob),
+        [`GET /v1/jobs/${jobId}/hiring-team`]: () => Response.json([]),
+        'GET /v1/scorecard-templates': () => Response.json(library),
+        'GET /v1/organization/roles': () => Response.json(roles),
+        [`POST /v1/applications/${applicationId}/scorecard-requests`]: () =>
+          Response.json({ ...task, kind: 'Scorecard', assigneeUserId: teammate, scorecardTemplateId: 'interview' }, { status: 201 }),
+      });
+      renderPage('scorecards');
+      const panel = await screen.findByRole('region', { name: 'Scorecards' });
+
+      await fireEvent.click(await within(panel).findByRole('button', { name: 'Ask for one' }));
+      const sheet = await screen.findByRole('dialog', { name: 'Ask for a scorecard' });
+      const who = await within(sheet).findByRole('combobox', { name: 'Teammate' });
+      // Robin's role fills in scorecards and sees every job; the signed-in Owner is not offered to themselves.
+      await waitFor(() => expect(who).toHaveValue(teammate));
+      expect(within(who).queryByRole('option', { name: user.displayName })).not.toBeInTheDocument();
+      expect(within(sheet).getByRole('combobox', { name: 'Scorecard' })).toHaveValue('interview');
+      await fireEvent.input(within(sheet).getByLabelText('Note'), { target: { value: '  Focus on the pairing exercise.  ' } });
+      await expectNoAxeViolations(sheet);
+      await fireEvent.click(within(sheet).getByRole('button', { name: 'Ask' }));
+
+      await within(panel).findByText('Asked Robin Ashby for the Interview scorecard.');
+      const post = fetch.mock.calls.find(([url, init]) => String(url).endsWith('/scorecard-requests') && init?.method === 'POST');
+      expect(JSON.parse(String(post![1]!.body))).toEqual({ assigneeUserId: teammate, scorecardTemplateId: 'interview', note: 'Focus on the pairing exercise.' });
+    });
+
+    it('says why when nobody else who sees the job fills in scorecards', async () => {
+      stubApi({
+        [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob),
+        [`GET /v1/jobs/${jobId}/hiring-team`]: () => Response.json([]),
+        'GET /v1/scorecard-templates': () => Response.json(library),
+        'GET /v1/organization/roles': () => Response.json({ ...roles, roles: roles.roles.filter((role) => role.role !== 'Custom') }),
+      });
+      renderPage('scorecards');
+      const panel = await screen.findByRole('region', { name: 'Scorecards' });
+
+      await fireEvent.click(await within(panel).findByRole('button', { name: 'Ask for one' }));
+      const sheet = await screen.findByRole('dialog', { name: 'Ask for a scorecard' });
+      await within(sheet).findByText(/Nobody else on this job fills in scorecards/);
+      expect(within(sheet).queryByRole('button', { name: 'Ask' })).not.toBeInTheDocument();
     });
 
     it('records a scorecard in Activity by its stage, leaving the judgement to the Scorecards tab', async () => {

@@ -61,6 +61,15 @@ public enum ApplicationEventType
 
     /// <summary>A person or an API key gave the hiring team a task about the application. Automations' tasks show as their runs.</summary>
     TaskCreated,
+
+    /// <summary>A person kept the candidate in mind: they left the job without a rejection and joined the talent pool.</summary>
+    KeptInMind,
+
+    /// <summary>The candidate, kept in mind from this application, left the talent pool; <c>poolExit</c> says why.</summary>
+    LeftTalentPool,
+
+    /// <summary>A person invited the candidate, kept in mind from this application, to apply for another job.</summary>
+    InvitedToApply,
 }
 
 /// <summary>
@@ -86,6 +95,11 @@ public enum ApplicationEventType
 /// <see cref="ApplicationEventType.NoteDeleted"/>, the note (<see cref="ApplicationNote"/>), which holds the text. A
 /// note's text is never kept here; <c>note</c> is a stage move's note, or a created task's.
 /// <c>taskId</c>: For <see cref="ApplicationEventType.TaskCreated"/>, the task (<c>ApplicationTask</c>).
+/// <c>poolExit</c>: For <see cref="ApplicationEventType.LeftTalentPool"/>, why (<see cref="TalentPoolExit"/>).
+/// <c>otherJobId</c>, <c>otherApplicationId</c>: For <see cref="ApplicationEventType.InvitedToApply"/>, the job the
+/// candidate was invited to; for <see cref="ApplicationEventType.LeftTalentPool"/>, the job and application they were
+/// added to, or applied with. A <see cref="ApplicationEventType.KeptInMind"/> entry's <c>note</c> says why the team kept
+/// them, and is the talent pool's only copy of it.
 /// </remarks>
 public sealed record ApplicationEventData(
     string? FromStageId = null,
@@ -106,4 +120,7 @@ public sealed record ApplicationEventData(
     Guid? QuestionnaireRequestId = null,
     Guid? NoteId = null,
     Guid? EmailId = null,
-    Guid? TaskId = null);
+    Guid? TaskId = null,
+    string? PoolExit = null,
+    Guid? OtherJobId = null,
+    Guid? OtherApplicationId = null);

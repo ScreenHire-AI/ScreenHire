@@ -2,6 +2,7 @@ import type {
   AiAssistanceLevel,
   AiUseDeclaration,
   AiUsePolicy,
+  ApplicationSource,
   ApplicationSummary,
   AuthenticityLevel,
   DismissReason,
@@ -64,6 +65,20 @@ export const checkKinds: readonly { category: SignalCategory; title: string; alw
   { category: 'Document', title: 'Files', always: false },
   { category: 'Behavioural', title: 'Form activity', always: false },
 ];
+
+/**
+ * The kinds of check that had nothing to look at, by how the application arrived. A candidate a recruiter added by hand
+ * came through no careers form, so the API stored no network address, session or form telemetry for them
+ * (`ApplicationSubmission.SubmitAsync`): Network and Automation did not run, and Form activity had nothing to measure.
+ * It goes by the source alone, the same for everyone added by hand. A careers applicant's checks are never marked this
+ * way, so nothing here tells an assistive-technology opt-out apart (CLAUDE.md non-negotiable 4).
+ */
+export function uncheckedCategories(source: ApplicationSource | undefined): SignalCategory[] {
+  return source === 'Recruiter' ? ['Network', 'Automation'] : [];
+}
+
+/** The one quiet line a hand-added candidate's authenticity result carries about the checks that could not run. */
+export const addedByHandNote = 'Added by hand, so the network, automation and form activity checks had nothing to look at.';
 
 /** One kind of check: the reasons it found that count toward the level. */
 export interface CheckSummary {

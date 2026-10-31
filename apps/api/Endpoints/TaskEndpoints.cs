@@ -11,8 +11,10 @@ using Wolverine.EntityFrameworkCore;
 namespace ScreenHire.Api.Endpoints;
 
 /// <summary>
-/// The tasks automations make (AssignReviewer, CreateTask, QueueForRejectionReview) across the organization's
-/// applications: the dashboard's My tasks. Session only, because "mine" needs a person. Tenant-scoped by the query
+/// The tasks automations and people make (AssignReviewer, CreateTask, QueueForRejectionReview, a requested scorecard)
+/// across the organization's applications: the dashboard's My tasks. A to-do and a rejection review are ticked off here;
+/// a review and a requested scorecard are done when the scorecard is submitted (ADR-0017 decision 11), so these routes
+/// refuse them with a 409. Session only, because "mine" needs a person. Tenant-scoped by the query
 /// filter and row-level security: another organization's task is a 404. Completing a task, or reopening it with Undo,
 /// changes nothing about the application; a rejection review is decided by moving the candidate (workflow-engine.md §2,
 /// guardrail 2).
@@ -29,10 +31,12 @@ internal static class TaskEndpoints
         group.MapPost("/{taskId:guid}/complete", CompleteTask).WithName("CompleteTask")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.CompleteTasks)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/{taskId:guid}/reopen", ReopenTask).WithName("ReopenTask")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.CompleteTasks)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         return app;
     }
@@ -66,7 +70,7 @@ internal static class TaskEndpoints
             join candidate in db.Candidates on application.CandidateId equals candidate.Id
             select new TaskListItem(
                 task.Id, task.ApplicationId, application.JobId, candidate.FullName, job.Title, task.Kind, task.Note, task.AssigneeUserId,
-                task.AutomationRunId, task.CreatedAt, task.CompletedAt, task.CompletedByUserId))
+                task.AutomationRunId, task.CreatedAt, task.CompletedAt, task.CompletedByUserId, task.ScorecardTemplateId))
             .ToListAsync(cancellationToken);
         return TypedResults.Ok(rows);
     }
@@ -74,7 +78,7 @@ internal static class TaskEndpoints
     // Anyone who can change hiring data may mark any of the organization's tasks done, the assignee's included: the
     // team shares the work. A task that is done already stays as it was and raises nothing, including one someone else
     // completed between this request's read and its save (CompletedAt is a concurrency token).
-    private static async Task<Results<Ok<ApplicationTaskEntry>, NotFound>> CompleteTask(
+    private static async Task<Results<Ok<ApplicationTaskEntry>, NotFound, ProblemHttpResult>> CompleteTask(
         Guid taskId,
         IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
@@ -86,6 +90,11 @@ internal static class TaskEndpoints
         if (task is null || tenant.UserId is not { } userId)
         {
             return TypedResults.NotFound();
+        }
+
+        if (!task.CompletesByHand)
+        {
+            return DoneWhereTheWorkIs();
         }
 
         var now = time.GetUtcNow();
@@ -112,7 +121,7 @@ internal static class TaskEndpoints
     // Undo after ticking a task: anyone who may complete tasks may open one again. A task that is open already stays as
     // it is and raises nothing, including one reopened between this request's read and its save (CompletedAt is a
     // concurrency token, as for completing).
-    private static async Task<Results<Ok<ApplicationTaskEntry>, NotFound>> ReopenTask(
+    private static async Task<Results<Ok<ApplicationTaskEntry>, NotFound, ProblemHttpResult>> ReopenTask(
         Guid taskId,
         IDbContextOutbox<ScreenHireDbContext> outbox,
         TimeProvider time,
@@ -123,6 +132,12 @@ internal static class TaskEndpoints
         if (task is null)
         {
             return TypedResults.NotFound();
+        }
+
+        // A submitted scorecard is final, so a review or request it finished stays done.
+        if (!task.CompletesByHand)
+        {
+            return DoneWhereTheWorkIs();
         }
 
         if (task.Reopen())
@@ -143,4 +158,10 @@ internal static class TaskEndpoints
 
         return TypedResults.Ok(task.ToEntry());
     }
+
+    private static ProblemHttpResult DoneWhereTheWorkIs() =>
+        TypedResults.Problem(
+            title: "Done when its scorecard is submitted",
+            detail: "A review or a requested scorecard is done when the scorecard is submitted, not by ticking it.",
+            statusCode: StatusCodes.Status409Conflict);
 }

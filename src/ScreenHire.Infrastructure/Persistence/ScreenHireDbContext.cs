@@ -13,6 +13,7 @@ using ScreenHire.Domain.History;
 using ScreenHire.Domain.Integrity;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.TalentPool;
 using ScreenHire.Domain.Webhooks;
 using ScreenHire.Infrastructure.Identity;
 using ScreenHire.Infrastructure.Tenancy;
@@ -94,6 +95,8 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<ApplicationFile> ApplicationFiles => Set<ApplicationFile>();
 
+    public DbSet<BrandImage> BrandImages => Set<BrandImage>();
+
     public DbSet<AutomationRun> AutomationRuns => Set<AutomationRun>();
 
     public DbSet<AutomationActionRun> AutomationActionRuns => Set<AutomationActionRun>();
@@ -140,6 +143,10 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     public DbSet<MagicLinkToken> MagicLinkTokens => Set<MagicLinkToken>();
 
     public DbSet<QuestionnaireRequest> QuestionnaireRequests => Set<QuestionnaireRequest>();
+
+    public DbSet<TalentPoolEntry> TalentPoolEntries => Set<TalentPoolEntry>();
+
+    public DbSet<TalentPoolSettings> TalentPoolSettings => Set<TalentPoolSettings>();
 
     /// <summary>
     /// The ASP.NET Core Data Protection key ring the API and the worker share (<see cref="DataProtectionRegistration"/>).

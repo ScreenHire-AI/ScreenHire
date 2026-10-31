@@ -3,7 +3,7 @@
   import { onDestroy } from 'svelte';
   import { SvelteMap } from 'svelte/reactivity';
   import TaskList, { type TaskRow } from '#lib/components/task-list.svelte';
-  import { undoMilliseconds } from '#lib/tasks.svelte.js';
+  import { completesByHand, undoMilliseconds } from '#lib/tasks.svelte.js';
 
   // Tasks ticked in place: each stays ticked with Undo for 10 seconds, then reads as done. Nothing is saved, so this
   // keeps its own timers rather than createTaskCompletion, which calls the API.
@@ -31,6 +31,10 @@
     clearTimeout(ticked.get(taskId)?.timer);
     ticked.delete(taskId);
   }
+
+  // A review or a requested scorecard for the reader is done on the Scorecards tab, so its row ends in a Fill in link.
+  const work = (task: TaskRow) =>
+    completesByHand(task.kind) || (task.assigneeUserId !== null && task.assigneeUserId !== 'u1') ? undefined : { href: '#scorecard', label: 'Fill in' };
 </script>
 
 <TaskList
@@ -41,4 +45,5 @@
   oncomplete={complete}
   onundo={undo}
   undoable={(taskId) => ticked.get(taskId)?.timer !== undefined}
+  {work}
 />

@@ -32,7 +32,7 @@ sources:
 Anything people edit says who updated it last and how long ago, and its History sheet lists every change in plain
 words (design system T6). This doc is how that is recorded and read. History covers configuration only: hiring
 templates, email templates, scorecard templates, jobs, custom roles and the organization's settings today: its name,
-its brand colour and its integrity settings, each with a history of its own (`/v1/organization/history`,
+its branding and its integrity settings, each with a history of its own (`/v1/organization/history`,
 `/branding/history`, `/integrity-settings/history`). Built-in roles never change, so they have no history. A webhook
 endpoint has none either: its row holds the signing secret, which the allow-list keeps out (Secrets, below), so its page
 shows when it was added and when its secret was last rotated instead. It never holds
@@ -71,7 +71,9 @@ owner-run seeder, the design-time factory and the test contexts write no history
 `ITenantContext`: `UserId` for a signed-in member, `ApiKeyId` (set by `TenantResolutionMiddleware`) for a key.
 
 An edit that skips the change tracker (`ExecuteUpdate`, `ExecuteDelete`, raw SQL) is not recorded. Tracked objects
-change through the tracker; the email template endpoints delete through it for this reason.
+change through the tracker; the email template endpoints delete through it for this reason. The one deliberate
+exception is a data migration that changes markup and not anyone's words: `ConvertPlainTextToRichText` turned plain-text
+email bodies and descriptions into paragraphs and lists ([rich text](rich-text.md)), and History does not show it.
 
 ## How the lines read
 
@@ -87,7 +89,10 @@ The describers in `src/ScreenHire.Domain/History` are pure functions from the en
   edit compares against ScreenHire's wording, and deleting its row reads "restored the original wording". Archiving a
   template of the team's own reads "archived the template" (or "the scorecard"), and restoring it "restored the
   template from the archive" (`Archive.Line`), so each moves Last updated. A job's
-  description is sanitized HTML, so `RichTextToPlain` turns it to text first. A time, such as when a posting expires,
+  description and an email template's message are rich text, sanitized HTML, so `RichTextToPlain` turns them to text
+  first: a blank line between blocks, list items marked, and a link's address after its text. When the HTML changed
+  but the text did not (bold, a heading, a list), the line is "changed the formatting of the description" or "of the
+  message", with no before and after. A time, such as when a posting expires,
   is an `Instant` detail in ISO 8601, which the browser formats.
 - Bookkeeping makes no line: `updated_at`, workflow and publish counters, the row version.
 
@@ -148,7 +153,7 @@ of the dashboard names people (`personName`: "you", the current name, "a former 
 1. Add a `ChangeSubjectKind` value.
 2. Add one line to `TrackedKinds.All`: the entity, its subject id and its describer. A describer that needs only the
    entity before and after is a plain function; reuse `DefinitionChanges` for questions. One entity can feed two
-   histories (the organization row: its name and its brand colour), one line each, when each describer returns no
+   histories (the organization row: its name and its branding), one line each, when each describer returns no
    lines for the other's changes.
 3. Add a `GET .../{id}/history` route in the kind's area with `ChangeHistoryRoutes`, after the area's own visibility
    check.

@@ -10,10 +10,10 @@
   import { z } from 'zod';
   import FailureText from '#lib/components/failure-text.svelte';
   import Panel from '#lib/components/panel.svelte';
+  import RichTextEditor from '#lib/components/rich-text-editor.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
-  import { Textarea } from '#lib/components/ui/textarea/index.js';
   import { selectClass } from '#lib/components/workflow/controls.js';
   import { locales } from '#lib/dates.js';
   import { employmentLabel } from '#lib/format.js';
@@ -24,8 +24,6 @@
     closingDate,
     closingInstant,
     currencyOptions,
-    descriptionBody,
-    descriptionText,
     periodOptions,
     periodValues,
     salaryBody,
@@ -36,6 +34,7 @@
   } from '#lib/job-form.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
+  import { isBlank } from '#lib/rich-text.js';
 
   // "Edit details": the job's posting content after it was created (PUT /v1/jobs/{id}), on the form template. The
   // workflow has its own page. An open job's edit is live on the careers page at once; boards get it when the job is
@@ -69,14 +68,13 @@
       const issue = (path: string, message: string) => context.addIssue({ code: 'custom', path: [path], message });
       checkWhere(value, issue);
       checkSalary(value, issue);
-      if (!value.description.trim()) issue('description', 'Add a description: candidates and boards need one.');
+      if (isBlank(value.description)) issue('description', 'Add a description: candidates and boards need one.');
     });
 
-  // What the form started from, so an untouched description keeps the job's own HTML.
-  let original = { html: '', text: '' };
+  // The editor writes the description only when the text changes, so an untouched one goes back as the job's own HTML.
+  let descriptionEditor = $state<ReturnType<typeof RichTextEditor> | null>(null);
 
   function fieldsOf(detail: JobDetail) {
-    original = { html: detail.description, text: descriptionText(detail.description) };
     return {
       title: detail.title,
       department: detail.department ?? '',
@@ -87,7 +85,7 @@
       currency: detail.salary?.currency ?? 'GBP',
       period: detail.salary?.period ?? 'Year',
       closingDate: closingDate(detail.validThrough),
-      description: original.text,
+      description: detail.description,
     };
   }
 
@@ -114,7 +112,7 @@
             workplaceType: value.workplaceType || job.workplaceType,
             salary: salaryBody(value),
             validThrough: closingInstant(value.closingDate, job.validThrough),
-            description: descriptionBody(value.description, original),
+            description: value.description,
           },
         });
         onsaved?.(job.status === 'Open' ? 'Saved. The careers page shows it now; publish again to update the boards.' : 'Saved.');
@@ -221,9 +219,15 @@
       </Field.Field>
 
       <Field.Field data-invalid={$errors.description ? true : undefined}>
-        <Field.Label for="job-description">Description</Field.Label>
-        <Textarea id="job-description" name="description" rows={10} bind:value={$form.description} aria-invalid={$errors.description ? 'true' : undefined} aria-describedby={describedBy('job-description-error', $errors.description, 'job-description-hint')} />
-        <Field.Description id="job-description-hint">A blank line starts a paragraph. "- " starts a list item.</Field.Description>
+        <Field.Label id="job-description-label" for="job-description" onclick={() => descriptionEditor?.focus()}>Description</Field.Label>
+        <RichTextEditor
+          bind:this={descriptionEditor}
+          bind:value={$form.description}
+          id="job-description"
+          labelledBy="job-description-label"
+          describedBy={describedBy('job-description-error', $errors.description)}
+          invalid={!!$errors.description}
+        />
         <Field.Error id="job-description-error" errors={$errors.description?.map((message) => ({ message }))} />
       </Field.Field>
 

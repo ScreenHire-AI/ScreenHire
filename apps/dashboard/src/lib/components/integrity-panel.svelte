@@ -12,6 +12,7 @@
   import {
     undoIntegrityReasonExplanation,
     type AiAssistanceAssessmentView,
+    type ApplicationSource,
     type AuthenticityAssessmentView,
     type ExplainReason,
     type IntegritySignalView,
@@ -32,6 +33,7 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import {
+    addedByHandNote,
     aiAssistanceLevels,
     aiAssistanceOrder,
     aiPolicyLabels,
@@ -45,6 +47,7 @@
     explainReasonLabels,
     refetchAfterReview,
     reviewerName,
+    uncheckedCategories,
     type AssessmentKind,
     type LevelView,
   } from '#lib/integrity.js';
@@ -57,7 +60,10 @@
   // check that found them, each expanding to its evidence and counter-evidence. It decides nothing. Marking a reason
   // explained and dismissing are a person's and go in the review log (`ReviewLog`); explaining every reason changes no
   // level, and only a dismissal sets an assessment aside. Nothing here rejects anyone or shows a score.
-  let { applicationId }: { applicationId: string } = $props();
+  // `source`: how the application arrived. A candidate added by hand had no careers form, so the checks that read one
+  // say they had nothing to look at instead of "Nothing found" (uncheckedCategories).
+  let { applicationId, source }: { applicationId: string; source?: ApplicationSource } = $props();
+  const unchecked = $derived(uncheckedCategories(source));
 
   const queryClient = useQueryClient();
   // IntegrityAssessed refetches it live (#lib/realtime.ts).
@@ -272,7 +278,7 @@
             {#each group.signals as signal (signal.id)}{@render signalItem(signal, group.key === 'context', review)}{/each}
           </ul>
         {:else}
-          <p class="px-3 pb-2.5 pl-13 text-muted-foreground @3xl:py-2.5 @3xl:pl-3">Nothing found</p>
+          <p class="px-3 pb-2.5 pl-13 text-muted-foreground @3xl:py-2.5 @3xl:pl-3">{unchecked.includes(group.key as SignalCategory) ? 'Not checked' : 'Nothing found'}</p>
         {/if}
       </li>
     {/each}
@@ -322,6 +328,8 @@
       {:else}
         <p data-summary class="max-w-measure text-muted-foreground">{view.summary} <span data-next-step>{view.nextStep}</span></p>
       {/if}
+
+      {#if kind === 'authenticity' && unchecked.length > 0}<p class="max-w-measure text-muted-foreground" data-not-checked>{addedByHandNote}</p>{/if}
 
       {#if groups.length > 0}{@render groupList(groups, level, { assessmentId: view.id, open: concern })}{/if}
 

@@ -694,6 +694,41 @@
         }
       }
     },
+    "/v1/public/organizations/{organizationSlug}/branding/images/{imageId}": {
+      "get": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "GetPublicBrandImage",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "imageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Not Found"
+          },
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/v1/public/organizations/{organizationSlug}/jobs/{jobId}/questions/{questionId}/uploads": {
       "post": {
         "tags": [
@@ -1066,6 +1101,85 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/talent-pool/{token}": {
+      "get": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "GetPublicTalentPoolStatus",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicTalentPoolStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "StopKeepingDetails",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
           },
           "429": {
             "description": "Too Many Requests"
@@ -2740,6 +2854,94 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApplicationDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{jobId}/applications/resume-uploads": {
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "CreateResumeUpload",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadTicket"
                 }
               }
             }
@@ -4738,6 +4940,222 @@
         ]
       }
     },
+    "/v1/organization/branding/contrast": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "CheckBrandingContrast",
+        "parameters": [
+          {
+            "name": "brandColor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "secondColor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandingContrast"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/branding/images": {
+      "post": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "CreateBrandImageUpload",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrandImageUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadTicket"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/branding/images/{imageId}/verify": {
+      "post": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "VerifyBrandImageUpload",
+        "parameters": [
+          {
+            "name": "imageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandingImage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/branding/images/{imageId}": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "GetBrandImage",
+        "parameters": [
+          {
+            "name": "imageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandingImage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/organization/integrity-settings": {
       "get": {
         "tags": [
@@ -4807,6 +5225,149 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/talent-pool-settings": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "GetOrganizationTalentPoolSettings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationTalentPoolSettings"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "UpdateOrganizationTalentPoolSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTalentPoolSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationTalentPoolSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/talent-pool-settings/history": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "GetOrganizationTalentPoolSettingsHistory",
+        "parameters": [
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -6355,6 +6916,16 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Unauthorized"
           }
@@ -6399,6 +6970,16 @@
           },
           "403": {
             "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6514,6 +7095,94 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ScorecardEntry"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/applications/{applicationId}/scorecard-requests": {
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "RequestScorecard",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestScorecardRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationTaskEntry"
                 }
               }
             }
@@ -8235,6 +8904,335 @@
         ]
       }
     },
+    "/v1/talent-pool": {
+      "get": {
+        "tags": [
+          "Talent pool"
+        ],
+        "operationId": "ListTalentPool",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TalentPoolList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Talent pool"
+        ],
+        "operationId": "KeepInMind",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeepInMindRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KeptInMind"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/talent-pool/{candidateId}/remove": {
+      "post": {
+        "tags": [
+          "Talent pool"
+        ],
+        "operationId": "RemoveFromTalentPool",
+        "parameters": [
+          {
+            "name": "candidateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveFromTalentPoolRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/talent-pool/invitations/preview": {
+      "post": {
+        "tags": [
+          "Talent pool"
+        ],
+        "operationId": "PreviewTalentPoolInvitation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvitationPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailPreview"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/talent-pool/invitations": {
+      "post": {
+        "tags": [
+          "Talent pool"
+        ],
+        "operationId": "InviteToApply",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteToApplyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationsQueued"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/talent-pool/applications": {
+      "post": {
+        "tags": [
+          "Talent pool"
+        ],
+        "operationId": "AddFromTalentPool",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddFromTalentPoolRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddedFromTalentPool"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/schemas/hiring-template-definition.json": {
       "get": {
         "tags": [
@@ -8272,6 +9270,53 @@
             "description": "OK"
           }
         }
+      }
+    },
+    "/v1/search": {
+      "get": {
+        "tags": [
+          "Search"
+        ],
+        "operationId": "Search",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResults"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
       }
     }
   },
@@ -8316,6 +9361,48 @@
           }
         },
         "description": "A tag to add to an application. Tags compare ignoring case; conditions read them as `application.tags`."
+      },
+      "AddedFromTalentPool": {
+        "required": [
+          "applicationIds",
+          "skipped"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "skipped": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "The new applications, one per candidate added, and how many were skipped because they had already applied to the\r\njob. Each new application carries the candidate's permission for future roles from the one they were kept from."
+      },
+      "AddFromTalentPoolRequest": {
+        "required": [
+          "candidateIds",
+          "jobId"
+        ],
+        "type": "object",
+        "properties": {
+          "candidateIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "description": "Adds these candidates from the talent pool to `jobId`, which must not be closed."
       },
       "AddIntegrityNoteRequest": {
         "required": [
@@ -8689,6 +9776,31 @@
                 "$ref": "#/components/schemas/ApplicationRating"
               }
             ]
+          },
+          "keptInMindAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "futureRolesUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "futureRolesGivenAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "inTalentPool": {
+            "type": "boolean",
+            "default": false
           }
         },
         "description": "One application: the candidate, the job, where it is in the job's workflow, its tags, the candidate's\r\ndeclarations, answers and files."
@@ -8728,7 +9840,10 @@
           "QuestionnaireCompleted",
           "NoteEdited",
           "NoteDeleted",
-          "TaskCreated"
+          "TaskCreated",
+          "KeptInMind",
+          "LeftTalentPool",
+          "InvitedToApply"
         ]
       },
       "ApplicationFileSummary": {
@@ -9010,6 +10125,7 @@
           "stage",
           "submittedAt",
           "stageEnteredAt",
+          "lastActivityAt",
           "jobTitle",
           "source",
           "tags"
@@ -9039,6 +10155,10 @@
             "format": "date-time"
           },
           "stageEnteredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastActivityAt": {
             "type": "string",
             "format": "date-time"
           },
@@ -9080,6 +10200,20 @@
                 "$ref": "#/components/schemas/ApplicationRating"
               }
             ]
+          },
+          "keptInMindAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "futureRolesUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         },
         "description": "An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself."
@@ -9143,15 +10277,22 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "scorecardTemplateId": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "Something a person should do about an application: a review, a to-do, or a rejection to decide on."
+        "description": "Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\r\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\r\nticked off by hand."
       },
       "ApplicationTaskKind": {
         "enum": [
           "Review",
           "Task",
-          "RejectionReview"
+          "RejectionReview",
+          "Scorecard"
         ]
       },
       "ApplicationTimelineEntry": {
@@ -9300,6 +10441,30 @@
             "format": "uuid"
           },
           "taskId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "poolExit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TalentPoolExit"
+              }
+            ]
+          },
+          "otherJobId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "otherApplicationId": {
             "type": [
               "null",
               "string"
@@ -9940,6 +11105,112 @@
         },
         "description": "A board an organization may post to, and what it can promise (docs/architecture/job-distribution.md §1)."
       },
+      "BrandImageKind": {
+        "enum": [
+          "Logo",
+          "Favicon",
+          "SharingImage"
+        ],
+        "description": "What a brand image is for, which decides its limits (BrandImageRules)."
+      },
+      "BrandImageUploadRequest": {
+        "required": [
+          "kind",
+          "fileName",
+          "sizeBytes"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/BrandImageKind"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "Asks for a link to upload one brand image of `kind`: a PNG or JPEG of `sizeBytes`."
+      },
+      "BrandingContrast": {
+        "required": [
+          "brandColor",
+          "secondColor"
+        ],
+        "type": "object",
+        "properties": {
+          "brandColor": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ColorContrast"
+              }
+            ]
+          },
+          "secondColor": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ColorContrast"
+              }
+            ]
+          }
+        },
+        "description": "The contrast check of the colours asked about, each null when it was not asked: whether every pair the colour is\r\nused in reaches WCAG 2.2 AA, the text colour that goes on it, the pairs, and the nearest passing shade when it fails."
+      },
+      "BrandingImage": {
+        "required": [
+          "id",
+          "kind",
+          "scanStatus",
+          "contentType",
+          "width",
+          "height",
+          "sizeBytes",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/BrandImageKind"
+          },
+          "scanStatus": {
+            "$ref": "#/components/schemas/MalwareScanStatus"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "height": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "An uploaded brand image. `scanStatus` is the malware scan's: a Pending or Infected image cannot be saved or\r\nserved. `url` is its public address on the careers board, null until it may be served."
+      },
       "CandidateDetail": {
         "required": [
           "id",
@@ -10085,6 +11356,45 @@
         },
         "description": "The candidate of an application a person or an API key adds."
       },
+      "CandidateSearchHit": {
+        "required": [
+          "applicationId",
+          "candidateId",
+          "candidateName",
+          "email",
+          "jobId",
+          "jobTitle",
+          "stage"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "candidateName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/ApplicationStage"
+          }
+        },
+        "description": "A candidate whose name or email matched, on one of their applications: the record to open."
+      },
       "CandidateSummary": {
         "required": [
           "id",
@@ -10190,6 +11500,47 @@
         ],
         "description": "How the screen shows a detail's values."
       },
+      "ColorContrast": {
+        "required": [
+          "color",
+          "passes",
+          "textColor",
+          "pairs",
+          "suggestion",
+          "problems"
+        ],
+        "type": "object",
+        "properties": {
+          "color": {
+            "type": "string"
+          },
+          "passes": {
+            "type": "boolean"
+          },
+          "textColor": {
+            "type": "string"
+          },
+          "pairs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContrastPairCheck"
+            }
+          },
+          "suggestion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "One colour's check. `problems` says each failing pair in words, as a refused save does."
+      },
       "ComparedText": {
         "required": [
           "label",
@@ -10284,6 +11635,48 @@
         },
         "description": "The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\r\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans."
       },
+      "ContrastPairCheck": {
+        "required": [
+          "name",
+          "foreground",
+          "background",
+          "ratio",
+          "minimum",
+          "passes"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "$ref": "#/components/schemas/ContrastPairName"
+          },
+          "foreground": {
+            "type": "string"
+          },
+          "background": {
+            "type": "string"
+          },
+          "ratio": {
+            "type": "number",
+            "format": "double"
+          },
+          "minimum": {
+            "type": "number",
+            "format": "double"
+          },
+          "passes": {
+            "type": "boolean"
+          }
+        },
+        "description": "One pair: `ratio` is cut down to one decimal, so a failing pair never reads as its minimum."
+      },
+      "ContrastPairName": {
+        "enum": [
+          "ButtonText",
+          "Links",
+          "HeaderText"
+        ],
+        "description": "The pairs of colours the branding check measures (docs/design/design-system.md section 18)."
+      },
       "CounterEvidence": {
         "required": [
           "explanation"
@@ -10353,6 +11746,13 @@
               "null",
               "string"
             ]
+          },
+          "resumeUploadId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         },
         "description": "A recruiter adds an application by hand, for a candidate who applied another way. The candidate is matched by email\r\nwithin the organization and created if new. The public apply flow is the careers site's."
@@ -10553,7 +11953,7 @@
             "format": "date-time"
           }
         },
-        "description": "A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\r\nversion's workflow, and every field left out here takes the template's posting default. Without a slug, one is made\r\nfrom the title."
+        "description": "A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\r\nversion's workflow, and every field left out here takes the template's posting default. Without a slug, one is made\r\nfrom the title. The description is rich text as HTML, kept to the dashboard editor's elements (p, br, strong, em, h2,\r\nh3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text\r\nworks too: a blank line starts a paragraph and lines starting with \"- \" make a list."
       },
       "CreateRoleRequest": {
         "required": [
@@ -10945,6 +12345,10 @@
           },
           "archived": {
             "type": "boolean"
+          },
+          "invitationOnly": {
+            "type": "boolean",
+            "default": false
           }
         },
         "description": "One email template. Built-in templates have ScreenHire's ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name."
@@ -10995,9 +12399,13 @@
           "questionnaireOnly": {
             "type": "boolean",
             "default": false
+          },
+          "invitationOnly": {
+            "type": "boolean",
+            "default": false
           }
         },
-        "description": "A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.\r\n`questionnaireOnly`: only the follow-up questions email has it."
+        "description": "A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.\r\n`questionnaireOnly`: only the follow-up questions email has it. `invitationOnly`: only the talent pool\r\ninvitation has it."
       },
       "EmploymentType": {
         "enum": [
@@ -11122,6 +12530,16 @@
           }
         },
         "description": "A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads."
+      },
+      "HeadingFont": {
+        "enum": [
+          "Inter",
+          "Montserrat",
+          "Nunito",
+          "Fraunces",
+          "PlayfairDisplay",
+          null
+        ]
       },
       "HiringTeamMember": {
         "required": [
@@ -12037,6 +13455,24 @@
         },
         "description": "Accepts the invitation whose token an emailed link carries, signing in as the invited address."
       },
+      "InvitationPreviewRequest": {
+        "required": [
+          "candidateId",
+          "jobId"
+        ],
+        "type": "object",
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "description": "The invitation as `candidateId` would receive it, for `jobId`."
+      },
       "InvitationRequest": {
         "required": [
           "email",
@@ -12076,6 +13512,45 @@
           }
         },
         "description": "Invites a person by email to join the organization with a role: a built-in one, or Custom with its id. They join with\r\n`jobAccess`, All when it is left out."
+      },
+      "InvitationsQueued": {
+        "required": [
+          "queued",
+          "skipped"
+        ],
+        "type": "object",
+        "properties": {
+          "queued": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "skipped": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "How many invitations were queued, and how many candidates were skipped: no longer in the pool, or already applied to\r\nthe job. Each sent invitation appears in Messages and in the Activity of the application they were kept from."
+      },
+      "InviteToApplyRequest": {
+        "required": [
+          "candidateIds",
+          "jobId"
+        ],
+        "type": "object",
+        "properties": {
+          "candidateIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "description": "Invites these candidates from the talent pool to apply for `jobId`, an open job."
       },
       "JobAccess": {
         "enum": [
@@ -12610,6 +14085,27 @@
         },
         "description": "A pay range. At least one of decimal? JobSalary.Min and decimal? JobSalary.Max is set; string JobSalary.Currency is ISO 4217."
       },
+      "JobSearchHit": {
+        "required": [
+          "id",
+          "title",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          }
+        },
+        "description": "A job whose title matched."
+      },
       "JobSnapshot": {
         "required": [
           "title",
@@ -12887,6 +14383,51 @@
           }
         },
         "description": "One published version of a job, without its content."
+      },
+      "KeepInMindRequest": {
+        "required": [
+          "applicationIds"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Keeps the candidates of these applications in mind: each leaves its job without a rejection and joins the talent pool.\r\n`note` says why, once for all of them. Only an open application whose candidate gave permission for future roles\r\non its form can be kept."
+      },
+      "KeptInMind": {
+        "required": [
+          "kept",
+          "notAllowed",
+          "alreadyEnded"
+        ],
+        "type": "object",
+        "properties": {
+          "kept": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "notAllowed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "alreadyEnded": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "What happened: `kept` joined the pool; `notAllowed` have no permission for future roles (they never gave it,\r\nit ran out or they took it back); `alreadyEnded` were hired, rejected, withdrawn or kept in mind already."
       },
       "Knockout": {
         "required": [
@@ -13284,8 +14825,11 @@
       "OrganizationBranding": {
         "required": [
           "brandColor",
-          "palette",
-          "brandAdjusted",
+          "secondColor",
+          "headingFont",
+          "logo",
+          "favicon",
+          "sharingImage",
           "lastUpdated"
         ],
         "type": "object",
@@ -13296,24 +14840,57 @@
               "string"
             ]
           },
-          "palette": {
+          "secondColor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "headingFont": {
             "oneOf": [
               {
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/PublicBranding"
+                "$ref": "#/components/schemas/HeadingFont"
               }
             ]
           },
-          "brandAdjusted": {
-            "type": "boolean"
+          "logo": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BrandingImage"
+              }
+            ]
+          },
+          "favicon": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BrandingImage"
+              }
+            ]
+          },
+          "sharingImage": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BrandingImage"
+              }
+            ]
           },
           "lastUpdated": {
             "$ref": "#/components/schemas/LastUpdate"
           }
         },
-        "description": "The organization's careers-page branding. `palette` is what careers pages use, derived from\r\n`brandColor` and contrast-checked (docs/design/design-system.md §7); both are null without a brand colour.\r\n`brandAdjusted` means the colour was darkened so text on it stays readable. `lastUpdated` is the brand\r\ncolour's last change (\"by ScreenHire\" while it is ScreenHire's default); its history is `/branding/history`."
+        "description": "The organization's branding (docs/architecture/branding.md): the brand colour (buttons and links), the second colour\r\n(the header band of its careers pages and emails), the heading font and the images in use, each null for\r\nScreenHire's default. `lastUpdated` is the branding's last change (\"by ScreenHire\" while it is all the\r\ndefault); its history is `/branding/history`."
       },
       "OrganizationIntegritySettings": {
         "required": [
@@ -13391,6 +14968,33 @@
           "Custom"
         ],
         "description": "The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text."
+      },
+      "OrganizationTalentPoolSettings": {
+        "required": [
+          "permissionMonths",
+          "minMonths",
+          "maxMonths",
+          "lastUpdated"
+        ],
+        "type": "object",
+        "properties": {
+          "permissionMonths": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "minMonths": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxMonths": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastUpdated": {
+            "$ref": "#/components/schemas/LastUpdate"
+          }
+        },
+        "description": "The organization's talent pool settings (docs/architecture/talent-pool.md). `permissionMonths` is how long a\r\ncandidate's permission to keep their details for future roles lasts from when they gave it: 12 by default, from\r\n`minMonths` to `maxMonths`. A permission ends at the shorter of the period when it was given and this one.\r\n`lastUpdated` is the settings' last change (\"by ScreenHire\" while they are the default); their history is\r\n`/talent-pool-settings/history`."
       },
       "PageTelemetryInput": {
         "required": [
@@ -13641,7 +15245,8 @@
           "aiUsePolicy",
           "uploads",
           "turnstileSiteKey",
-          "telemetry"
+          "telemetry",
+          "talentPoolMonths"
         ],
         "type": "object",
         "properties": {
@@ -13671,9 +15276,13 @@
           },
           "telemetry": {
             "$ref": "#/components/schemas/PublicTelemetrySettings"
+          },
+          "talentPoolMonths": {
+            "type": "integer",
+            "format": "int32"
           }
         },
-        "description": "Everything the careers apply page needs for one open job. The resume question comes first\r\n(ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured.\r\n`telemetry` is a new telemetry session for the form; the page keeps the first one it gets."
+        "description": "Everything the careers apply page needs for one open job. The resume question comes first\r\n(ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured.\r\n`telemetry` is a new telemetry session for the form; the page keeps the first one it gets.\r\n`talentPoolMonths` is how long the organization keeps a candidate's details for future roles if they say so,\r\nwhich the form's \"Keep my details for future roles\" box tells them."
       },
       "PublicApplicationReceipt": {
         "required": [
@@ -13785,33 +15394,118 @@
                 "$ref": "#/components/schemas/TelemetrySnapshotInput"
               }
             ]
+          },
+          "keepForFutureRoles": {
+            "type": "boolean",
+            "default": false
           }
         },
         "description": "A candidate's application from the careers page. The candidate is matched by email within the organization and\r\ncreated if new; an existing candidate's details are never changed by a public submission."
       },
-      "PublicBranding": {
+      "PublicBrandImage": {
         "required": [
-          "brand",
-          "onBrand",
-          "brandText",
-          "brandUi"
+          "id",
+          "contentType",
+          "width",
+          "height",
+          "url"
         ],
         "type": "object",
         "properties": {
-          "brand": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "contentType": {
             "type": "string"
           },
-          "onBrand": {
-            "type": "string"
+          "width": {
+            "type": "integer",
+            "format": "int32"
           },
-          "brandText": {
-            "type": "string"
+          "height": {
+            "type": "integer",
+            "format": "int32"
           },
-          "brandUi": {
+          "url": {
             "type": "string"
           }
         },
-        "description": "The careers-page colours derived from the organization's brand colour, each contrast-checked on the server\r\n(docs/design/design-system.md §7): `brand` fills, `onBrand` is text on it (4.5:1), `brandText` is\r\nbrand-coloured text on the page (4.5:1) and `brandUi` is borders and focus rings (3:1). All `#rrggbb`."
+        "description": "A brand image as a public page links it: `url` is the same for every page, email and person."
+      },
+      "PublicBranding": {
+        "required": [
+          "colors",
+          "header",
+          "headingFont",
+          "logo",
+          "favicon",
+          "sharingImage"
+        ],
+        "type": "object",
+        "properties": {
+          "colors": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicPalette"
+              }
+            ]
+          },
+          "header": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicHeaderColors"
+              }
+            ]
+          },
+          "headingFont": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/HeadingFont"
+              }
+            ]
+          },
+          "logo": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicBrandImage"
+              }
+            ]
+          },
+          "favicon": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicBrandImage"
+              }
+            ]
+          },
+          "sharingImage": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicBrandImage"
+              }
+            ]
+          }
+        },
+        "description": "An organization's branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\r\nfor ScreenHire's default. `colors` come from the brand colour; `header` is the band in the second colour,\r\nwith white or ink text on it; image `url`s are absolute addresses on the careers board."
       },
       "PublicCandidateInput": {
         "required": [
@@ -13840,6 +15534,22 @@
           }
         },
         "description": "The candidate as the apply form asks: a first name, an optional last name, the email and an optional phone."
+      },
+      "PublicHeaderColors": {
+        "required": [
+          "background",
+          "foreground"
+        ],
+        "type": "object",
+        "properties": {
+          "background": {
+            "type": "string"
+          },
+          "foreground": {
+            "type": "string"
+          }
+        },
+        "description": "The header band: its fill, the second colour, and the white or ink text on it. Both `#rrggbb`."
       },
       "PublicJob": {
         "required": [
@@ -13966,7 +15676,8 @@
           "organizationName",
           "organizationSlug",
           "jobs",
-          "url"
+          "url",
+          "branding"
         ],
         "type": "object",
         "properties": {
@@ -13986,17 +15697,10 @@
             "type": "string"
           },
           "branding": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/PublicBranding"
-              }
-            ]
+            "$ref": "#/components/schemas/PublicBranding"
           }
         },
-        "description": "The public careers listing for one organization. `url` is the board's careers page; `branding` is null when it\r\nhas no brand colour."
+        "description": "The public careers listing for one organization. `url` is the board's careers page; `branding` is its\r\nbranding, each part null for ScreenHire's."
       },
       "PublicOrganization": {
         "required": [
@@ -14013,17 +15717,34 @@
             "type": "string"
           },
           "branding": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/PublicBranding"
-              }
-            ]
+            "$ref": "#/components/schemas/PublicBranding"
           }
         },
-        "description": "An organization as its careers pages show it."
+        "description": "An organization as its careers pages show it, with its branding (each part null for ScreenHire's)."
+      },
+      "PublicPalette": {
+        "required": [
+          "brand",
+          "onBrand",
+          "brandText",
+          "brandUi"
+        ],
+        "type": "object",
+        "properties": {
+          "brand": {
+            "type": "string"
+          },
+          "onBrand": {
+            "type": "string"
+          },
+          "brandText": {
+            "type": "string"
+          },
+          "brandUi": {
+            "type": "string"
+          }
+        },
+        "description": "The careers-page colours from the brand colour (docs/design/design-system.md section 18): `brand` fills,\r\n`onBrand` is text on it, `brandText` is links on the page and `brandUi` is borders and focus rings.\r\nA colour saved since the contrast check passes as it is, so all three are the colour itself; an older one is darkened\r\nuntil it passes. All `#rrggbb`."
       },
       "PublicQuestion": {
         "required": [
@@ -14154,6 +15875,22 @@
           "Closed"
         ],
         "description": "Whether a follow-up questionnaire's link can still be answered: `Answered` once the candidate sent their answers,\r\n`Expired` after the link's time ran out, `Closed` when the questionnaire, the job or the application is no\r\nlonger open."
+      },
+      "PublicTalentPoolStatus": {
+        "required": [
+          "organization",
+          "kept"
+        ],
+        "type": "object",
+        "properties": {
+          "organization": {
+            "$ref": "#/components/schemas/PublicOrganization"
+          },
+          "kept": {
+            "type": "boolean"
+          }
+        },
+        "description": "The page a candidate opens from the link in an invitation to stop being kept. `kept`: the organization still\r\nkeeps their details for future roles; false once they stopped it, or it ran out."
       },
       "PublicTelemetrySettings": {
         "required": [
@@ -14344,6 +16081,39 @@
           "StrongYes"
         ],
         "description": "A reviewer's overall recommendation for the stage. Automations test it as `reviewer.recommendation`."
+      },
+      "RemoveFromTalentPoolRequest": {
+        "type": "object",
+        "properties": {
+          "candidateAsked": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "description": "Takes the candidate out of the talent pool. `candidateAsked`: they asked to be removed, so their permission for\r\nfuture roles is withdrawn too, and they cannot be kept again until they give it on a new application."
+      },
+      "RequestScorecardRequest": {
+        "required": [
+          "assigneeUserId",
+          "scorecardTemplateId"
+        ],
+        "type": "object",
+        "properties": {
+          "assigneeUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "scorecardTemplateId": {
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Ask a teammate for a scorecard: a Scorecard task assigned to them, done when they submit that scorecard for the\r\napplication."
       },
       "RoleCatalogue": {
         "required": [
@@ -14633,7 +16403,9 @@
           "note",
           "workflowVersion",
           "timelineEventId",
-          "submittedAt"
+          "submittedAt",
+          "scorecardTemplateId",
+          "scorecardName"
         ],
         "type": "object",
         "properties": {
@@ -14687,9 +16459,21 @@
           "submittedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "scorecardTemplateId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "scorecardName": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "One reviewer's scorecard for one stage: an answer to each question as it was asked, and an overall recommendation.\r\nIts rating answers make the candidate's rating (`ApplicationRating`, ADR-0013); nothing else on it does."
+        "description": "One reviewer's scorecard, given while the application was in a stage: an answer to each question as it was asked, and\r\nan overall recommendation.\r\nIts rating answers make the candidate's rating (`ApplicationRating`, ADR-0013); nothing else on it does."
       },
       "ScorecardQuestion": {
         "required": [
@@ -14849,6 +16633,28 @@
           }
         },
         "description": "A scorecard in the organization's library: a built-in (`builtIn`, ScreenHire's and read only) or one of its own.\r\nA hiring template's stage names it by `id` (`scorecardTemplateId`); a job keeps its own copy."
+      },
+      "SearchResults": {
+        "required": [
+          "candidates",
+          "jobs"
+        ],
+        "type": "object",
+        "properties": {
+          "candidates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CandidateSearchHit"
+            }
+          },
+          "jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobSearchHit"
+            }
+          }
+        },
+        "description": "What a search found among the candidates and jobs the reader sees: candidates by name or email, one hit per\r\napplication, and jobs by title. Each list is short and starts with names or titles that begin with the search."
       },
       "SendEmailsRequest": {
         "required": [
@@ -15184,7 +16990,10 @@
         "type": "object",
         "properties": {
           "stageId": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "answers": {
             "type": "array",
@@ -15200,9 +17009,15 @@
               "null",
               "string"
             ]
+          },
+          "scorecardTemplateId": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "A reviewer's scorecard for a stage the application has reached and whose workflow stage has a scorecard. Each\r\nreviewer gives one per stage: the same submission again returns the stored one, a different one is a 409."
+        "description": "A reviewer's scorecard. Name one of two: `stageId`, a stage the application has reached whose workflow stage\r\nhas a scorecard (the job's own copy), or `scorecardTemplateId`, a library scorecard given at the stage the\r\napplication is in now. Each reviewer gives one per stage and scorecard: the same submission again returns the stored\r\none, a different one is a 409."
       },
       "SwitchOrganizationRequest": {
         "required": [
@@ -15216,6 +17031,136 @@
           }
         },
         "description": "Makes another of the signed-in user's organizations the one they work in."
+      },
+      "TalentPoolExit": {
+        "enum": [
+          "Expired",
+          "Removed",
+          "CandidateAsked",
+          "AddedToJob",
+          "AppliedAgain",
+          "BackInJob",
+          "KeptFromAnotherJob",
+          null
+        ]
+      },
+      "TalentPoolList": {
+        "required": [
+          "permissionMonths",
+          "people"
+        ],
+        "type": "object",
+        "properties": {
+          "permissionMonths": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "people": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TalentPoolMember"
+            }
+          }
+        },
+        "description": "The organization's talent pool (docs/architecture/talent-pool.md): the candidates the team kept in mind, whose\r\npermission for future roles still holds. `permissionMonths` is the organization's period now."
+      },
+      "TalentPoolMember": {
+        "required": [
+          "candidateId",
+          "candidateName",
+          "email",
+          "applicationId",
+          "jobId",
+          "jobTitle",
+          "note",
+          "tags",
+          "keptAt",
+          "keptByUserId",
+          "permissionEndsAt",
+          "lastInvitedJobId",
+          "lastInvitedJobTitle",
+          "lastInvitedAt",
+          "appliedJobIds"
+        ],
+        "type": "object",
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "candidateName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "keptAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "keptByUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "permissionEndsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastInvitedJobId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "lastInvitedJobTitle": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lastInvitedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "appliedJobIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "description": "One candidate in the talent pool."
       },
       "TaskListItem": {
         "required": [
@@ -15289,6 +17234,12 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "scorecardTemplateId": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "description": "A task in a list across applications (My tasks): the task, and the candidate and job it is about."
@@ -15507,9 +17458,46 @@
               "null",
               "string"
             ]
+          },
+          "secondColor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "headingFont": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/HeadingFont"
+              }
+            ]
+          },
+          "logoId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "faviconId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "sharingImageId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         },
-        "description": "Sets the brand colour (`#rrggbb`), or clears it with null to use ScreenHire's default."
+        "description": "Replaces the whole branding. Colours are `#rrggbb` and must pass the contrast check\r\n(`/branding/contrast`); each image id is one of the organization's uploads of that kind that passed its scan.\r\nNull is ScreenHire's default, or no image."
       },
       "UpdateEmailTemplateRequest": {
         "required": [
@@ -15653,7 +17641,7 @@
             "format": "date-time"
           }
         },
-        "description": "Replaces a job's posting content. A published job keeps its slug; a closed job cannot change."
+        "description": "Replaces a job's posting content. A published job keeps its slug; a closed job cannot change. The description is rich\r\ntext, as on CreateJobRequest."
       },
       "UpdateJobWorkflowRequest": {
         "required": [
@@ -15724,6 +17712,19 @@
           }
         },
         "description": "An own scorecard's name and questions, replaced whole. Jobs that copied it keep their copy."
+      },
+      "UpdateTalentPoolSettingsRequest": {
+        "required": [
+          "permissionMonths"
+        ],
+        "type": "object",
+        "properties": {
+          "permissionMonths": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "Sets how long a candidate's permission for future roles lasts, in whole months from 6 to 24."
       },
       "UpdateWebhookEndpointRequest": {
         "required": [
@@ -16277,7 +18278,13 @@
       "name": "Email"
     },
     {
+      "name": "Talent pool"
+    },
+    {
       "name": "Schemas"
+    },
+    {
+      "name": "Search"
     }
   ]
 }

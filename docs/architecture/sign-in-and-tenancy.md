@@ -328,7 +328,8 @@ ADR-0015. Each job has a hiring team, `jobs.hiring_team`, the membership ids of 
 job access is `All` or `HiringTeamOnly` (`organization_members.job_access`); Owners and Admins see all jobs whatever it
 says (`JobAccessRules.SeesAllJobs`). A member on Only jobs they're on sees a job, its applications and everything under
 them, only while they are on its team; another job is a 404 like another organization's, and lists, Tasks, saved views,
-search and live updates leave it out. Existing members and new invitations start at All jobs.
+search (`GET /v1/search`, the dashboard's Ctrl K, signed-in people only, which starts from applications so a candidate
+shows only through a job the reader sees) and live updates leave it out. Existing members and new invitations start at All jobs.
 
 `apps/api/Endpoints/HiringTeamEndpoints.cs`, session only (a team decides who sees a job's candidates, which API keys do
 not change):
@@ -405,7 +406,8 @@ Two layers, so one mistake is not a breach.
    is append-only: `screenhire_app` has no `UPDATE` or `DELETE` on it ([change-history.md](change-history.md)).
 
    Job access (migration `AddJobAccess`, ADR-0015) adds a `job_scope` policy, `AS RESTRICTIVE` and `TO screenhire_app`,
-   to `jobs` and every table under a job or an application. Restrictive policies are ANDed with `tenant_isolation`, so
+   to `jobs` and every table under a job or an application (since then, `talent_pool_entries` too, in `AddTalentPool`:
+   a member on Only jobs they're on sees the people kept in mind from their own jobs). Restrictive policies are ANDed with `tenant_isolation`, so
    they only narrow it. `jobs` shows a row when `app.job_scope` is `all` or `app.member_id` is in `hiring_team`; the
    others ask `app_sees_job` or `app_sees_application`, or their parent row. `candidates` and `change_records` keep
    tenant-only policies: a candidate is one row across jobs and is found by email when they apply again, so the API
