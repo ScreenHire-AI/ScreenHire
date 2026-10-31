@@ -109,7 +109,7 @@ describe('toasts in the tray', () => {
     expect(ids(tray)).toEqual([]);
   });
 
-  it('keeps toasts until dismissed when the person turned Close on their own off', () => {
+  it('keeps toasts until dismissed when the person turned Close automatically off', () => {
     const tray = new Notifications({ covered: () => false, closeToasts: () => false });
     tray.toast(toast('toast'));
     vi.advanceTimersByTime(toastLifetime * 3);

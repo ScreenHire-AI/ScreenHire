@@ -96,4 +96,29 @@ describe('teammate toasts', () => {
 
     expect(shown).toEqual([]);
   });
+
+  it('shows nothing once disposed, waiting changes and changes still being read alike', async () => {
+    const source = sources();
+    let readCandidate: () => void = () => {};
+    source.application.mockImplementationOnce(
+      (id: string) =>
+        new Promise((resolve) => {
+          readCandidate = () => resolve({ id, candidate: { fullName: 'Taylor Brook' }, jobTitle: 'Platform Engineer', stage: { id: 'interview', name: 'Interview', kind: 'Interview' } });
+        }),
+    );
+    const toasts = new TeammateToasts(source, (toast) => shown.push(toast));
+    await toasts.receive(moved(1));
+    await vi.advanceTimersByTimeAsync(groupWindow);
+    await toasts.receive(moved(2));
+    await toasts.receive(mentioned);
+
+    toasts.dispose();
+    readCandidate();
+    await vi.advanceTimersByTimeAsync(groupWindow * 2);
+    await toasts.receive(moved(3));
+    await vi.advanceTimersByTimeAsync(groupWindow);
+
+    expect(shown).toEqual([]);
+    expect(vi.getTimerCount()).toBe(0);
+  });
 });

@@ -39,8 +39,6 @@
   setQueryClientContext(queryClient);
   const live = startLiveUpdates(queryClient);
 
-  // A NotifyTeam action shows in the tray. TeamNotified carries ids only, so the tray reads the application and the run
-  // (for the action's note) through the API first; an application this person cannot read shows nothing.
   // The person's settings for teammates' changes, kept fresh in the cache so a toast follows a change in the sheet.
   let closeToasts = true;
   const notifications = new Notifications({ closeToasts: () => closeToasts });
@@ -70,6 +68,8 @@
     (toast) => notifications.toast(toast),
   );
   const stopToasting = live.onEvent((event) => void teammateToasts.receive(event));
+  // A NotifyTeam action shows in the tray. TeamNotified carries ids only, so the tray reads the application and the run
+  // (for the action's note) through the API first; an application this person cannot read shows nothing.
   // A note that mentions this person shows in their tray only: the event reaches the whole organization, ids only. A
   // deleted note takes its card with it, so the card never links to a note that is gone.
   const stopNotifying = live.onEvent((event) => {
@@ -165,7 +165,14 @@
 </Sidebar.Provider>
 
 <NotificationTray items={notifications.items} ondismiss={(id) => notifications.dismiss(id)} onhold={(reason, held) => notifications.hold(reason, held)} />
-<NotificationSettingsSheet bind:open={notificationsOpen} onsaved={(sentence) => (announcement = sentence)} />
+<!-- A save re-reads the settings, so Close automatically applies to the toasts already showing, not only the next. -->
+<NotificationSettingsSheet
+  bind:open={notificationsOpen}
+  onsaved={(sentence) => {
+    announcement = sentence;
+    void readSettings();
+  }}
+/>
 <p role="status" class="sr-only">{announcement}</p>
 <CommandPalette bind:open={paletteOpen} />
 <ShortcutsDialog bind:open={shortcutsOpen} />

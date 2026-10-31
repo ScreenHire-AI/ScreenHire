@@ -10,6 +10,7 @@
   import * as Sheet from '#lib/components/ui/sheet/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { Switch } from '#lib/components/ui/switch/index.js';
+  import { toastLifetime } from '#lib/notifications.svelte.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { cn } from '#lib/utils.js';
 
@@ -116,8 +117,8 @@
 
           <div class="flex items-start justify-between gap-4">
             <div class="flex flex-col gap-0.5">
-              <Label for="notifications-close">Close on their own</Label>
-              <span id="notifications-close-description" class="text-caption text-muted-foreground">After 8 seconds, unless you point at or focus one.</span>
+              <Label for="notifications-close">Close automatically</Label>
+              <span id="notifications-close-description" class="text-caption text-muted-foreground">After {toastLifetime / 1000} seconds</span>
             </div>
             <Switch id="notifications-close" bind:checked={closeToasts} aria-describedby="notifications-close-description" />
           </div>

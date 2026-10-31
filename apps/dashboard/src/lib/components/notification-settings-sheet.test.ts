@@ -38,7 +38,7 @@ describe('notifications sheet', () => {
     await fireEvent.click(screen.getByRole('switch', { name: 'Show toasts' }));
 
     await fireEvent.click(screen.getByRole('switch', { name: 'Moves' }));
-    await fireEvent.click(screen.getByRole('switch', { name: 'Close on their own' }));
+    await fireEvent.click(screen.getByRole('switch', { name: 'Close automatically' }));
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(onsaved).toHaveBeenCalledWith('Your notification settings were saved.'));

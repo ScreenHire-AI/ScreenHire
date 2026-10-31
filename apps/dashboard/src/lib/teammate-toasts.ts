@@ -38,9 +38,11 @@ export class TeammateToasts {
   readonly #sources: TeammateToastSources;
   readonly #show: (toast: Toast) => void;
   readonly #pending = new Map<string, Pending>();
-  // Notes that mentioned this person, by application and author, while they could still be waiting here.
-  readonly #mentions = new Set<string>();
+  // Notes that mentioned this person, by application and author, while they could still be waiting here, each with the
+  // timer that forgets it.
+  readonly #mentions = new Map<string, ReturnType<typeof setTimeout>>();
   #count = 0;
+  #disposed = false;
 
   constructor(sources: TeammateToastSources, show: (toast: Toast) => void) {
     this.#sources = sources;
@@ -53,8 +55,8 @@ export class TeammateToasts {
     if (event.type === 'TeammateMentioned') {
       if (event.data.mentionedUserId === me && event.data.authorUserId) {
         const key = `${event.data.applicationId}:${event.data.authorUserId}`;
-        this.#mentions.add(key);
-        setTimeout(() => this.#mentions.delete(key), groupWindow * 2);
+        clearTimeout(this.#mentions.get(key));
+        this.#mentions.set(key, setTimeout(() => this.#mentions.delete(key), groupWindow * 2));
       }
       return;
     }
@@ -67,9 +69,13 @@ export class TeammateToasts {
     }
   }
 
+  /** Stops every timer; a change still being read when the shell goes away shows nothing. */
   dispose(): void {
+    this.#disposed = true;
     for (const pending of this.#pending.values()) clearTimeout(pending.timer);
     this.#pending.clear();
+    for (const timer of this.#mentions.values()) clearTimeout(timer);
+    this.#mentions.clear();
   }
 
   async #context(userId: string | undefined) {
@@ -80,6 +86,7 @@ export class TeammateToasts {
   }
 
   #hold(change: TeammateChange): void {
+    if (this.#disposed) return;
     const key = groupKey(change);
     const pending = this.#pending.get(key);
     if (pending) {
@@ -106,11 +113,12 @@ export class TeammateToasts {
         const memberId = members.find((member) => member.userId === this.#sources.userId())?.id;
         const jobs = memberId ? await this.#sources.memberJobs(memberId) : [];
         const jobTitle = jobs.find((job) => job.id === first.jobId)?.title;
-        this.#show(groupToastFor(id, first.kind, first.jobId, changes.length, actorName, jobTitle));
+        if (!this.#disposed) this.#show(groupToastFor(id, first.kind, first.jobId, changes.length, actorName, jobTitle));
         return;
       }
 
-      this.#show(toastFor(id, first, { actorName, ...(await this.#facts(first)) }));
+      const facts = await this.#facts(first);
+      if (!this.#disposed) this.#show(toastFor(id, first, { actorName, ...facts }));
     } catch {
       // The record is gone or hidden now, or the network failed: the change stays where it happened.
     }

@@ -31,7 +31,7 @@ export const isToast = (item: TrayItem): item is Toast & { toast: true } => item
 export type Hold = 'pointer' | 'focus';
 
 export interface NotificationsOptions {
-  /** Whether toasts close on their own (the person's Close on their own setting). */
+  /** Whether toasts close on their own (the person's Close automatically setting). */
   closeToasts?: () => boolean;
   /** Whether something covers the tray now: an open sheet or dialog draws over it, so a toast waits beneath one. */
   covered?: () => boolean;
@@ -47,8 +47,8 @@ const modalOpen = () => typeof document !== 'undefined' && document.querySelecto
  * nothing holds it: the pointer or the focus in the tray, a hidden tab, or a sheet or dialog over it. It lives in this
  * tab only: the event that raised it is gone after a reload, and the change stays in Activity or History.
  */
-// Our own layer rather than svelte-sonner: the tray already owns the corner with its cards, and a second stack there
-// would overlap them.
+// Our own countdown rather than shadcn-svelte's Sonner toasts (not installed): the tray already owns the corner with its
+// cards and shares one limit of three with them, and a second stack there would overlap them.
 export class Notifications {
   items = $state<TrayItem[]>([]);
 
