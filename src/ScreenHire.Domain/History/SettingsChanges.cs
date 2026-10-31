@@ -1,6 +1,7 @@
 using System.Globalization;
 using ScreenHire.Domain.Integrity;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.TalentPool;
 
 namespace ScreenHire.Domain.History;
 
@@ -64,4 +65,16 @@ public static class SettingsChanges
 
         return lines;
     }
+
+    /// <param name="before">The settings before the save; null on the first save, which compares with the default.</param>
+    /// <param name="after">The settings after the save.</param>
+    public static IReadOnlyList<ChangeLine> TalentPool(TalentPoolSettings? before, TalentPoolSettings? after)
+    {
+        var was = TalentPoolSettings.MonthsOf(before);
+        return after is null || was == after.PermissionMonths
+            ? []
+            : [ChangeLine.Of($"changed how long permission for future roles lasts from {Months(was)} to ", Months(after.PermissionMonths))];
+    }
+
+    private static string Months(int months) => string.Create(CultureInfo.InvariantCulture, $"{months} months");
 }

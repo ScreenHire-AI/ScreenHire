@@ -20,7 +20,7 @@ internal static class DemoCandidates
 
     public static IReadOnlyList<DemoCandidate> All { get; } =
     [
-        new(ProductDesigner, [new("interview")], Person(
+        new(ProductDesigner, [new("interview")], KeepForFutureRoles: true, Applicant: Person(
             "priya-natarajan", "Priya", "Natarajan", "priya.natarajan@example.com", "+44 20 7946 0311", "192.0.2.31", 17,
             "Priya Natarajan\nProduct designer, nine years. Research-led work on booking and payments products.\nI run design critiques and pair with engineers on prototypes.",
             DesignerAnswers(
@@ -51,7 +51,7 @@ internal static class DemoCandidates
             "marcus-lindqvist", "Marcus", "Lindqvist", "marcus.lindqvist@example.org", "+44 20 7946 0344", "192.0.2.34", 15,
             "Marcus Lindqvist\nFrontend engineer, six years. Svelte, TypeScript and design systems.\nI maintain a component library used by four product teams.",
             FrontendAnswers("six_to_nine", "production", "yes", "https://code.example.org/marcus-lindqvist/component-library", "Three months"))),
-        new(FrontendEngineer, [new("interview")], Person(
+        new(FrontendEngineer, [new("interview")], KeepForFutureRoles: true, Applicant: Person(
             "hannah-okoro", "Hannah", "Okoro", "hannah.okoro@example.com", "+44 117 496 0355", "192.0.2.35", 11,
             "Hannah Okoro\nFull-stack developer leaning frontend: SvelteKit, Node and Postgres.",
             FrontendAnswers("three_to_five", "production", "yes", "https://hannah-okoro.example.org/projects/booking-calendar", "One month"))),
@@ -85,6 +85,14 @@ internal static class DemoCandidates
                 "lena-fischer", "Lena", "Fischer", "lena.fischer@example.com", "+44 20 7946 0400", "192.0.2.40", 10,
                 "Lena Fischer\nTechnical support lead, eight years in SaaS for hospitality.",
                 EngineerAnswers("six_to_nine", "https://lena-fischer.example.org/support-playbook", "Three months"))),
+        new(SupportEngineer,
+            [new("screening"), new("technical"), new("interview")],
+            KeepForFutureRoles: true,
+            KeptInMindNote: "Close second to Nadia. Clear runbooks and calm on the incident exercise; think of her for the next support opening.",
+            Applicant: Person(
+                "grace-adeyemi", "Grace", "Adeyemi", "grace.adeyemi@example.org", "+44 117 496 0411", "192.0.2.41", 15,
+                "Grace Adeyemi\nSupport engineer, three years in a payroll software team.\nI built our first on-call handbook.",
+                EngineerAnswers("three_to_five", "https://grace-adeyemi.example.org/on-call-handbook", "One month"))),
     ];
 
     // Answers to every question of the candidate's job: the "Software engineer" template's for the .NET and support jobs,
@@ -140,7 +148,12 @@ internal static class DemoCandidates
 }
 
 /// <summary>An applicant to one of Brightwater's jobs and the moves a recruiter made, in order, each with an optional note.</summary>
-internal sealed record DemoCandidate(string JobSlug, IReadOnlyList<DemoMove> Moves, SyntheticApplicant Applicant)
+/// <remarks>
+/// <c>KeepForFutureRoles</c>: they ticked "Keep my details for future roles" when they applied. <c>KeptInMindNote</c>:
+/// after the moves, the team kept them in mind with this note, so the talent pool has someone in it.
+/// </remarks>
+internal sealed record DemoCandidate(
+    string JobSlug, IReadOnlyList<DemoMove> Moves, SyntheticApplicant Applicant, bool KeepForFutureRoles = false, string? KeptInMindNote = null)
 {
     /// <summary>The stage the candidate ends in: the last move's, or "applied" when nobody moved them.</summary>
     public string StageId => Moves.Count == 0 ? "applied" : Moves[^1].StageId;

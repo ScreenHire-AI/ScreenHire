@@ -16,7 +16,7 @@ namespace ScreenHire.Testing;
 public static class SyntheticApplications
 {
     /// <summary>The careers notice version the submissions say the applicant saw (NOTICE_VERSION in apps/careers/src/lib/apply.ts).</summary>
-    public const string PrivacyNoticeVersion = "2026-10-23.1";
+    public const string PrivacyNoticeVersion = "2026-10-30.1";
 
     /// <summary>
     /// Applies to a published job of the organization with this slug and returns the application's id: the applicant's

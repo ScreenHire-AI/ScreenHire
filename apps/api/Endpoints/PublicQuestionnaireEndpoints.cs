@@ -181,10 +181,10 @@ internal static class PublicQuestionnaireEndpoints
         FollowUpQuestionnaire? Questionnaire)
     {
         // Answered first, so a candidate who answered never reads "expired". Closed: the questionnaire left the workflow,
-        // or the job or the application ended, so the answers would go nowhere.
+        // or the job or the application ended (or the team kept the candidate in mind), so the answers would go nowhere.
         public PublicQuestionnaireStatus StatusAt(DateTimeOffset now) =>
             Request.IsCompleted ? PublicQuestionnaireStatus.Answered
-            : Questionnaire is null || Job.Status == JobStatus.Closed || Job.Workflow.FindStage(Application.CurrentStageId)?.Kind.IsTerminal() == true
+            : Questionnaire is null || Job.Status == JobStatus.Closed || Application.HasEnded(Job.Workflow.FindStage(Application.CurrentStageId))
                 ? PublicQuestionnaireStatus.Closed
             : Request.IsExpired(now) ? PublicQuestionnaireStatus.Expired
             : PublicQuestionnaireStatus.Open;

@@ -5,6 +5,7 @@ using ScreenHire.Api.Content;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Endpoints;
 using ScreenHire.Api.Hiring;
+using ScreenHire.Application.TalentPool;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Jobs;
@@ -49,8 +50,9 @@ internal static class ApplicationReads
         var found = await (filter.Limit is { } limit ? ordered.Take(limit) : ordered).ToListAsync(cancellationToken);
         var integrity = await IntegritySummariesAsync(user, db, [.. found.Select(r => r.Application.Id)], cancellationToken);
         var ratings = await RatingReads.ForAsync(db, [.. found.Select(r => r.Application.Id)], tenant.UserId, cancellationToken);
+        var poolMonths = await TalentPoolMembership.MonthsAsync(db, cancellationToken);
         return [.. found.Select(r => r.Application.ToSummary(
-            r.Job, r.Candidate, integrity.GetValueOrDefault(r.Application.Id), ratings.GetValueOrDefault(r.Application.Id)))];
+            r.Job, r.Candidate, poolMonths, integrity.GetValueOrDefault(r.Application.Id), ratings.GetValueOrDefault(r.Application.Id)))];
     }
 
     /// <summary>One application with its candidate, files and follow-ups, or null when the reader cannot see it.</summary>
@@ -66,6 +68,8 @@ internal static class ApplicationReads
         ITenantContext tenant, ScreenHireDbContext db, JobApplication application, Job job, Candidate candidate, CancellationToken cancellationToken) =>
         application.ToDetail(
             job, candidate, await FilesOfAsync(db, application.Id, cancellationToken), await FollowUpsOfAsync(db, application.Id, cancellationToken),
+            await TalentPoolMembership.MonthsAsync(db, cancellationToken),
+            await db.TalentPoolEntries.AnyAsync(e => e.ApplicationId == application.Id, cancellationToken),
             await RatingReads.ForAsync(db, application.Id, tenant.UserId, cancellationToken));
 
     /// <summary>

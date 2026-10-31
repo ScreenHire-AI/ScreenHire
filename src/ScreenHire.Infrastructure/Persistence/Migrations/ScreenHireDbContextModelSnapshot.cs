@@ -520,6 +520,18 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(40)")
                         .HasColumnName("current_stage_id");
 
+                    b.Property<DateTimeOffset?>("FutureRolesConsentGivenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("future_roles_consent_given_at");
+
+                    b.Property<int?>("FutureRolesConsentMonths")
+                        .HasColumnType("integer")
+                        .HasColumnName("future_roles_consent_months");
+
+                    b.Property<DateTimeOffset?>("FutureRolesWithdrawnAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("future_roles_withdrawn_at");
+
                     b.Property<bool>("HoneypotFilled")
                         .HasColumnType("boolean")
                         .HasColumnName("honeypot_filled");
@@ -527,6 +539,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("JobId")
                         .HasColumnType("uuid")
                         .HasColumnName("job_id");
+
+                    b.Property<DateTimeOffset?>("KeptInMindAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("kept_in_mind_at");
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
@@ -2859,6 +2875,82 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("ScreenHire.Domain.TalentPool.TalentPoolEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("application_id");
+
+                    b.Property<Guid>("CandidateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("candidate_id");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("job_id");
+
+                    b.Property<DateTimeOffset>("KeptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("kept_at");
+
+                    b.Property<Guid?>("KeptByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("kept_by_user_id");
+
+                    b.Property<Guid>("KeptEventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("kept_event_id");
+
+                    b.Property<DateTimeOffset?>("LastInvitedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_invited_at");
+
+                    b.Property<Guid?>("LastInvitedJobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("last_invited_job_id");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_talent_pool_entries");
+
+                    b.HasIndex("OrganizationId", "ApplicationId")
+                        .HasDatabaseName("ix_talent_pool_entries_organization_id_application_id");
+
+                    b.HasIndex("OrganizationId", "CandidateId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_talent_pool_entries_organization_id_candidate_id");
+
+                    b.ToTable("talent_pool_entries", (string)null);
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.TalentPool.TalentPoolSettings", b =>
+                {
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<int>("PermissionMonths")
+                        .HasColumnType("integer")
+                        .HasColumnName("permission_months");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("OrganizationId")
+                        .HasName("pk_talent_pool_settings");
+
+                    b.ToTable("talent_pool_settings", (string)null);
+                });
+
             modelBuilder.Entity("ScreenHire.Domain.Webhooks.WebhookDelivery", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3684,6 +3776,35 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasPrincipalKey("OrganizationId", "Id")
                         .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("fk_organization_members_custom_roles_organization_id_custom_ro");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.TalentPool.TalentPoolEntry", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Applications.JobApplication", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "ApplicationId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_talent_pool_entries_applications_organization_id_applicatio");
+
+                    b.HasOne("ScreenHire.Domain.Candidates.Candidate", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "CandidateId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_talent_pool_entries_candidates_organization_id_candidate_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.TalentPool.TalentPoolSettings", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
+                        .WithOne()
+                        .HasForeignKey("ScreenHire.Domain.TalentPool.TalentPoolSettings", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_talent_pool_settings_organizations_organization_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Webhooks.WebhookDelivery", b =>

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using ScreenHire.Api.Applications;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Application.TalentPool;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Infrastructure.Integrity;
@@ -123,6 +124,7 @@ internal static class PublicJobEndpoints
             new PublicUploadSettings(uploads.MaxBytes, uploads.Origin),
             turnstile.SiteKey,
             new PublicTelemetrySettings(
-                telemetry.Issue(job.OrganizationId, job.Id, time.GetUtcNow()), TelemetrySessions.DeviceCheckFor(job, integrity.Value))));
+                telemetry.Issue(job.OrganizationId, job.Id, time.GetUtcNow()), TelemetrySessions.DeviceCheckFor(job, integrity.Value)),
+            await TalentPoolMembership.MonthsAsync(db, cancellationToken)));
     }
 }

@@ -22,4 +22,7 @@ export const ApplicationEventType = {
   NoteEdited: 'NoteEdited',
   NoteDeleted: 'NoteDeleted',
   TaskCreated: 'TaskCreated',
+  KeptInMind: 'KeptInMind',
+  LeftTalentPool: 'LeftTalentPool',
+  InvitedToApply: 'InvitedToApply',
 } as const;

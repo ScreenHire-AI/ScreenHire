@@ -462,7 +462,7 @@ internal static class EmailEndpoints
         foreach (var row in rows)
         {
             var stage = row.Job.Workflow.FindStage(row.Application.CurrentStageId);
-            if (ApplicationEmails.Skips(request.TemplateId, stage))
+            if (ApplicationEmails.Skips(request.TemplateId, row.Application, stage))
             {
                 skipped++;
                 continue;

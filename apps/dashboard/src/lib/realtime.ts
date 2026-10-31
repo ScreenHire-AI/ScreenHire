@@ -16,6 +16,7 @@ export const candidatesPath = '/v1/candidates';
 export const templatesPath = '/v1/templates';
 export const tasksPath = '/v1/tasks';
 export const membersPath = '/v1/organization/members';
+export const talentPoolPath = '/v1/talent-pool';
 
 /**
  * Which queries each tenant event makes stale, as API paths. Add a line when a page shows what an event changes.
@@ -55,6 +56,9 @@ export const invalidations: InvalidationMap = {
   ApplicationTaskReopened: [jobsPath, applicationsPath, candidatesPath, tasksPath],
   AutomationRunFinished: [applicationsPath, tasksPath],
   IntegrityAssessed: [jobsPath, applicationsPath, candidatesPath],
+  // Keeping someone in mind ends their application in every list; leaving the pool, or an invitation, changes the pool
+  // and the kept application's page.
+  TalentPoolChanged: [talentPoolPath, jobsPath, applicationsPath, candidatesPath],
 };
 
 export interface LiveUpdates {

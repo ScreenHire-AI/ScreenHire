@@ -103,7 +103,8 @@ public sealed class QuestionnaireLinks(IDataProtectionProvider dataProtection, I
 public static class QuestionnaireLinkRegistration
 {
     /// <summary>
-    /// The link signer and the careers settings it builds URLs from. The API and the worker both need them. Data
+    /// The link signers (follow-up questionnaires and the talent pool's link to stop being kept) and the careers settings
+    /// they build URLs from. The API and the worker both need them. Data
     /// Protection is added too, so any host that runs the automation handlers can resolve the signer; the API and the
     /// worker also call <c>AddScreenHireDataProtection</c>, which keeps the shared key ring in Postgres.
     /// </summary>
@@ -113,6 +114,7 @@ public static class QuestionnaireLinkRegistration
         services.AddDataProtection();
         services.AddOptions<CareersSiteOptions>().BindConfiguration(CareersSiteOptions.Section);
         services.TryAddSingleton<QuestionnaireLinks>();
+        services.TryAddSingleton<TalentPool.TalentPoolLinks>();
         return services;
     }
 }

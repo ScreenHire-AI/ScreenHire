@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Applications;
+using ScreenHire.Application.TalentPool;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Integrity;
@@ -103,6 +104,17 @@ internal static class ApplicationSubmission
 
         await outbox.PublishAsync(new ApplicationSubmitted(
             application.OrganizationId, application.Id, job.Id, application.CurrentStageId, submitted.Id, now));
+
+        // A candidate in the talent pool who applies again, or whom a person adds to a job, is back in a job: they leave
+        // the pool, and the application they were kept from names this one (docs/architecture/talent-pool.md). A member on
+        // Only jobs they're on cannot see an entry kept from another job, so adding such a candidate by hand leaves it.
+        if (await TalentPoolMembership.LeaveForNewApplicationAsync(
+                db, candidate.Id, application,
+                application.Source == ApplicationSource.CareersSite ? TalentPoolExit.AppliedAgain : TalentPoolExit.AddedToJob,
+                now, actorUserId, cancellationToken) is { } left)
+        {
+            await outbox.PublishAsync(left);
+        }
 
         foreach (var upload in files)
         {

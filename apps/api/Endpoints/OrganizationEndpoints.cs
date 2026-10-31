@@ -9,6 +9,7 @@ using ScreenHire.Api.Contracts;
 using ScreenHire.Domain.History;
 using ScreenHire.Domain.Integrity;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.TalentPool;
 using ScreenHire.Infrastructure.Integrity.Llm;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Persistence.History;
@@ -17,7 +18,8 @@ using ScreenHire.Infrastructure.Tenancy;
 namespace ScreenHire.Api.Endpoints;
 
 /// <summary>
-/// The signed-in user's organization: its name, its careers-page branding and its integrity settings. Saving a brand colour derives and checks the
+/// The signed-in user's organization: its name, its careers-page branding, its integrity settings and its talent pool
+/// settings (how long a candidate's permission for future roles lasts). Saving a brand colour derives and checks the
 /// palette on the server (design-system §7); a colour that fails a contrast minimum is darkened, never refused, so only a
 /// malformed colour is a 400. Each settings page has its history (design system T6): the name, the brand colour and the
 /// integrity settings, readable by every member like the settings themselves.
@@ -44,6 +46,14 @@ internal static class OrganizationEndpoints
         group.MapGet("/integrity-settings", GetIntegritySettings).WithName("GetOrganizationIntegritySettings")
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPut("/integrity-settings", UpdateIntegritySettings).WithName("UpdateOrganizationIntegritySettings")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.EditSettings)
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/talent-pool-settings", GetTalentPoolSettings).WithName("GetOrganizationTalentPoolSettings")
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/talent-pool-settings/history", GetTalentPoolSettingsHistory).WithName("GetOrganizationTalentPoolSettingsHistory")
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapPut("/talent-pool-settings", UpdateTalentPoolSettings).WithName("UpdateOrganizationTalentPoolSettings")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditSettings)
             .Produces(StatusCodes.Status401Unauthorized);
@@ -100,6 +110,66 @@ internal static class OrganizationEndpoints
     private static Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> GetIntegritySettingsHistory(
         Guid? before, int? limit, ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
         HistoryAsync(ChangeSubjectKind.IntegritySettings, before, limit, db, tenant, cancellationToken);
+
+    private static Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> GetTalentPoolSettingsHistory(
+        Guid? before, int? limit, ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
+        HistoryAsync(ChangeSubjectKind.TalentPoolSettings, before, limit, db, tenant, cancellationToken);
+
+    private static async Task<Ok<OrganizationTalentPoolSettings>> GetTalentPoolSettings(ScreenHireDbContext db, CancellationToken cancellationToken)
+    {
+        var settings = await db.TalentPoolSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+        return TypedResults.Ok(await ToTalentPoolSettingsAsync(db, settings, cancellationToken));
+    }
+
+    // Upserts the organization's row, as the integrity settings do. A shorter period applies to every permission at once
+    // (the daily sweep takes out whoever it ends for); a longer one never extends a permission already given.
+    private static async Task<Results<Ok<OrganizationTalentPoolSettings>, ValidationProblem>> UpdateTalentPoolSettings(
+        UpdateTalentPoolSettingsRequest request, ScreenHireDbContext db, ITenantContext tenant, TimeProvider time, CancellationToken cancellationToken)
+    {
+        if (!TalentPoolSettings.IsAllowed(request.PermissionMonths))
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem(
+                "permissionMonths", $"Permission lasts from {TalentPoolSettings.MinMonths} to {TalentPoolSettings.MaxMonths} months."));
+        }
+
+        var now = time.GetUtcNow();
+        var settings = await db.TalentPoolSettings.SingleOrDefaultAsync(cancellationToken);
+        if (settings is null)
+        {
+            settings = new TalentPoolSettings { OrganizationId = tenant.OrganizationId!.Value };
+            db.TalentPoolSettings.Add(settings);
+        }
+
+        settings.PermissionMonths = request.PermissionMonths;
+        settings.UpdatedAt = now;
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (exception.IsUniqueViolation())
+        {
+            // Two first saves at once: the other created the row, and this one is applied on top of it (last write wins).
+            db.Entry(settings).State = EntityState.Detached;
+            settings = await db.TalentPoolSettings.SingleAsync(cancellationToken);
+            settings.PermissionMonths = request.PermissionMonths;
+            settings.UpdatedAt = now;
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        return TypedResults.Ok(await ToTalentPoolSettingsAsync(db, settings, cancellationToken));
+    }
+
+    private static async Task<OrganizationTalentPoolSettings> ToTalentPoolSettingsAsync(
+        ScreenHireDbContext db, TalentPoolSettings? settings, CancellationToken cancellationToken)
+    {
+        var last = settings is null
+            ? null
+            : await ChangeHistoryQueries.LastAsync(db, ChangeSubjectKind.TalentPoolSettings, SubjectId(settings.OrganizationId), cancellationToken);
+        // No row is ScreenHire's default, which nobody in the organization has changed.
+        var lastUpdated = settings is null ? LastUpdate.ByScreenHire(null) : LastUpdate.From(last, settings.UpdatedAt);
+        return new OrganizationTalentPoolSettings(
+            TalentPoolSettings.MonthsOf(settings), TalentPoolSettings.MinMonths, TalentPoolSettings.MaxMonths, lastUpdated);
+    }
 
     private static async Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> HistoryAsync(
         ChangeSubjectKind kind, Guid? before, int? limit, ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken)

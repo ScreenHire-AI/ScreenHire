@@ -40,6 +40,10 @@ public sealed record ApplicationStage(string Id, string Name, StageKind Kind);
 /// application (ADR-0011). <c>slaDueAt</c> is when the application passes its stage's time limit: overdue from then
 /// on, which measures the hiring team's delay and never counts against the candidate. Null when the stage has no limit.
 /// <c>rating</c> is the candidate's rating as the reader may see it (<c>ApplicationRating</c>).
+/// <c>keptInMindAt</c>: when the team kept the candidate in mind, which ended the application without a rejection; the
+/// stage is where they were. <c>futureRolesUntil</c>: when the candidate's permission to keep their details for future
+/// roles, given on this application's form, runs out; null without one, or once withdrawn. Only an application with one
+/// can be kept in mind (docs/architecture/talent-pool.md).
 /// </remarks>
 public sealed record ApplicationSummary(
     Guid Id,
@@ -54,7 +58,9 @@ public sealed record ApplicationSummary(
     IReadOnlyList<string> Tags,
     IntegritySummary? Integrity = null,
     DateTimeOffset? SlaDueAt = null,
-    ApplicationRating? Rating = null);
+    ApplicationRating? Rating = null,
+    DateTimeOffset? KeptInMindAt = null,
+    DateTimeOffset? FutureRolesUntil = null);
 
 /// <summary>
 /// The candidate's rating (ADR-0013 decision 13): one to five stars averaged from people's scorecards. Each rating answer
@@ -99,6 +105,9 @@ public enum RatingState
 /// upload id of one of <c>files</c>. <c>followUps</c> are the follow-up questionnaires automations sent, oldest first,
 /// with their answers once the candidate gave them. <c>slaDueAt</c> is when the application passes its stage's time
 /// limit, as on <c>ApplicationSummary</c>. <c>rating</c> is the candidate's rating as the reader may see it.
+/// <c>keptInMindAt</c>, <c>futureRolesUntil</c>: as on <c>ApplicationSummary</c>. <c>futureRolesGivenAt</c>: when the
+/// candidate said "Keep my details for future roles" on this application's form (or the application it came from);
+/// null when they did not. <c>inTalentPool</c>: the candidate is in the talent pool, kept in mind from this application.
 /// </remarks>
 public sealed record ApplicationDetail(
     Guid Id,
@@ -118,7 +127,11 @@ public sealed record ApplicationDetail(
     IReadOnlyList<ApplicationFileSummary> Files,
     IReadOnlyList<ApplicationFollowUp> FollowUps,
     DateTimeOffset? SlaDueAt = null,
-    ApplicationRating? Rating = null);
+    ApplicationRating? Rating = null,
+    DateTimeOffset? KeptInMindAt = null,
+    DateTimeOffset? FutureRolesUntil = null,
+    DateTimeOffset? FutureRolesGivenAt = null,
+    bool InTalentPool = false);
 
 /// <summary>
 /// A follow-up questionnaire sent to the candidate. Until it is answered, <c>questions</c> and <c>answers</c> are empty;
@@ -158,6 +171,9 @@ public sealed record ApplicationFileSummary(
 /// <c>noteEditedAt</c>: For <c>NoteAdded</c>, when the note's text last changed; null if it never did.
 /// <c>taskId</c>: For <c>TaskCreated</c>, the task, as the application's tasks list it.
 /// <c>actorApiKeyName</c>: The name of the API key in <c>actorApiKeyId</c>, so a key's notes show who wrote them.
+/// <c>poolExit</c>: For <c>LeftTalentPool</c>, why the candidate left the talent pool. <c>otherJobId</c>,
+/// <c>otherApplicationId</c>: For <c>InvitedToApply</c>, the job they were invited to; for <c>LeftTalentPool</c>, the job
+/// and application they were added to or applied with. For <c>KeptInMind</c>, <c>note</c> says why the team kept them.
 /// </remarks>
 public sealed record ApplicationTimelineEntry(
     Guid Id,
@@ -181,7 +197,10 @@ public sealed record ApplicationTimelineEntry(
     DateTimeOffset? NoteEditedAt = null,
     string? ActorApiKeyName = null,
     Guid? EmailId = null,
-    Guid? TaskId = null);
+    Guid? TaskId = null,
+    TalentPoolExit? PoolExit = null,
+    Guid? OtherJobId = null,
+    Guid? OtherApplicationId = null);
 
 /// <summary>A note as it stands: its latest text, its author and when it was written and last edited.</summary>
 /// <remarks>
@@ -247,26 +266,35 @@ internal static class ApplicationMappings
 
     /// <summary>
     /// When the application passes the time limit of its stage in <paramref name="job"/>'s current workflow, or null.
-    /// The screens compare it with their own clock, so an application turns overdue on screen without an event.
+    /// The screens compare it with their own clock, so an application turns overdue on screen without an event. Null for
+    /// an application the team kept in mind: it has left the job, so nothing is overdue.
     /// </summary>
     public static DateTimeOffset? SlaDueAt(this JobApplication application, Job job) =>
-        job.Workflow.FindStage(application.CurrentStageId)?.SlaDueAt(application.StageEnteredAt);
+        application.KeptInMindAt is null ? job.Workflow.FindStage(application.CurrentStageId)?.SlaDueAt(application.StageEnteredAt) : null;
 
+    /// <summary>The application in a list; <paramref name="poolMonths"/> is the organization's talent pool permission period.</summary>
     public static ApplicationSummary ToSummary(
-        this JobApplication application, Job job, Candidate candidate, IntegritySummary? integrity = null, ApplicationRating? rating = null) =>
+        this JobApplication application, Job job, Candidate candidate, int poolMonths, IntegritySummary? integrity = null,
+        ApplicationRating? rating = null) =>
         new(application.Id, application.JobId, application.CandidateId, candidate.FullName, application.StageIn(job),
             application.SubmittedAt, application.StageEnteredAt, job.Title, application.Source, application.Tags, integrity,
-            application.SlaDueAt(job), rating ?? ApplicationRating.NotRated);
+            application.SlaDueAt(job), rating ?? ApplicationRating.NotRated, application.KeptInMindAt,
+            application.FutureRolesUntil(poolMonths));
 
+    /// <summary>
+    /// The application on its own; <paramref name="poolMonths"/> is the organization's talent pool permission period, and
+    /// <paramref name="inTalentPool"/> says whether the candidate is in the pool, kept in mind from this application.
+    /// </summary>
     public static ApplicationDetail ToDetail(
         this JobApplication application, Job job, Candidate candidate, IReadOnlyList<ApplicationFile> files,
-        IReadOnlyList<QuestionnaireRequest> followUps, ApplicationRating? rating = null) =>
+        IReadOnlyList<QuestionnaireRequest> followUps, int poolMonths, bool inTalentPool, ApplicationRating? rating = null) =>
         new(application.Id, application.JobId, job.Title, candidate.ToSummary(), application.StageIn(job),
             application.WorkflowVersion, application.AccommodationRequested, application.AiUseDeclaration,
             application.AiUseDetails, application.SubmittedAt, application.StageEnteredAt, application.Tags,
             application.Source,
             application.Answers, [.. files.Select(f => f.ToSummary())], [.. followUps.Select(f => f.ToFollowUp())], application.SlaDueAt(job),
-            rating ?? ApplicationRating.NotRated);
+            rating ?? ApplicationRating.NotRated, application.KeptInMindAt, application.FutureRolesUntil(poolMonths),
+            application.FutureRolesConsentGivenAt, inTalentPool);
 
     public static ApplicationFollowUp ToFollowUp(this QuestionnaireRequest request) =>
         new(request.Id, request.QuestionnaireId, request.QuestionnaireName, request.FirstSentAt, request.LastSentAt, request.ExpiresAt,
@@ -285,7 +313,8 @@ internal static class ApplicationMappings
         return new(entry.Id, entry.Type, entry.OccurredAt, entry.ActorUserId, entry.Data.FromStageId, entry.Data.ToStageId,
             added ? note?.Text : entry.Data.Note, entry.Data.Tag, entry.Data.AutomationRunId, entry.Data.ApiKeyId, entry.Data.ScorecardId,
             entry.Data.StageId, entry.Data.Recommendation, entry.Data.EmailTemplateId, entry.Data.EmailSubject, entry.Data.QuestionnaireId,
-            entry.Data.QuestionnaireRequestId, entry.Data.NoteId, added ? note?.EditedAt : null, apiKeyName, entry.Data.EmailId, entry.Data.TaskId);
+            entry.Data.QuestionnaireRequestId, entry.Data.NoteId, added ? note?.EditedAt : null, apiKeyName, entry.Data.EmailId, entry.Data.TaskId,
+            Enum.TryParse<TalentPoolExit>(entry.Data.PoolExit, out var exit) ? exit : null, entry.Data.OtherJobId, entry.Data.OtherApplicationId);
     }
 
     public static ApplicationNoteDetail ToDetail(this ApplicationNote note) =>

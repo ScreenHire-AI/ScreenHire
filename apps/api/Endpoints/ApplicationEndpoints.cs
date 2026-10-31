@@ -7,6 +7,7 @@ using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Applications;
+using ScreenHire.Application.TalentPool;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Jobs;
@@ -141,7 +142,8 @@ internal static class ApplicationEndpoints
         }
 
         var (application, candidate) = created;
-        return TypedResults.Created($"/v1/applications/{application.Id}", application.ToDetail(job, candidate, [], []));
+        return TypedResults.Created(
+            $"/v1/applications/{application.Id}", await ApplicationReads.DetailOfAsync(tenant, db, application, job, candidate, cancellationToken));
     }
 
     private static async Task<Results<Ok<ApplicationDetail>, NotFound>> GetApplication(
@@ -375,10 +377,11 @@ internal static class ApplicationEndpoints
             .ToListAsync(cancellationToken);
         var integrity = await ApplicationReads.IntegritySummariesAsync(user, db, [.. rows.Select(r => r.Application.Id)], cancellationToken);
         var ratings = await RatingReads.ForAsync(db, [.. rows.Select(r => r.Application.Id)], tenant.UserId, cancellationToken);
+        var poolMonths = await TalentPoolMembership.MonthsAsync(db, cancellationToken);
         return TypedResults.Ok(new CandidateDetail(
             candidate.Id, candidate.FullName, candidate.Email, candidate.Phone, candidate.CreatedAt,
             [.. rows.Select(r => r.Application.ToSummary(
-                r.Job, candidate, integrity.GetValueOrDefault(r.Application.Id), ratings.GetValueOrDefault(r.Application.Id)))],
+                r.Job, candidate, poolMonths, integrity.GetValueOrDefault(r.Application.Id), ratings.GetValueOrDefault(r.Application.Id)))],
             candidate.FirstName, candidate.LastName));
     }
 }
