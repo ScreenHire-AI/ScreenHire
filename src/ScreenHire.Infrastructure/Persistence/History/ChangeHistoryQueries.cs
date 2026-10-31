@@ -3,8 +3,11 @@ using ScreenHire.Domain.History;
 
 namespace ScreenHire.Infrastructure.Persistence.History;
 
-/// <summary>When an object last changed and who changed it: a member, an API key, or neither (ScreenHire).</summary>
-public sealed record ChangeStamp(DateTimeOffset At, Guid? UserId, Guid? ApiKeyId);
+/// <summary>
+/// When an object last changed and who changed it: a member, an API key, or neither (ScreenHire). <c>Created</c>: that
+/// change created the object, so nothing has changed it since.
+/// </summary>
+public sealed record ChangeStamp(DateTimeOffset At, Guid? UserId, Guid? ApiKeyId, bool Created = false);
 
 /// <summary>Reads of the change history, through the tenant filter and row-level security like every tenant read.</summary>
 public static class ChangeHistoryQueries
@@ -56,9 +59,9 @@ public static class ChangeHistoryQueries
         var newest = records.GroupBy(r => r.SubjectId).Select(g => g.Max(r => r.Sequence));
         var rows = await records
             .Where(r => newest.Contains(r.Sequence))
-            .Select(r => new { r.SubjectId, r.OccurredAt, r.ActorUserId, r.ActorApiKeyId })
+            .Select(r => new { r.SubjectId, r.OccurredAt, r.ActorUserId, r.ActorApiKeyId, r.Created })
             .ToListAsync(cancellationToken);
-        return rows.ToDictionary(r => r.SubjectId, r => new ChangeStamp(r.OccurredAt, r.ActorUserId, r.ActorApiKeyId), StringComparer.Ordinal);
+        return rows.ToDictionary(r => r.SubjectId, r => new ChangeStamp(r.OccurredAt, r.ActorUserId, r.ActorApiKeyId, r.Created), StringComparer.Ordinal);
     }
 
     /// <summary>The newest change of one object, or null when it has none.</summary>

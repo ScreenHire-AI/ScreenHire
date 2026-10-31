@@ -1498,6 +1498,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("actor_user_id");
 
+                    b.Property<bool>("Created")
+                        .HasColumnType("boolean")
+                        .HasColumnName("created");
+
                     b.Property<string>("Lines")
                         .IsRequired()
                         .HasColumnType("jsonb")

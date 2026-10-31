@@ -35,13 +35,13 @@ internal static class ScorecardTemplateMappings
 
     public static ScorecardTemplateSummary ToSummary(this ScorecardTemplate scorecard, ChangeStamp? lastChange) =>
         new(scorecard.Key, scorecard.Name, false, scorecard.Questions.Count, RatingQuestions(scorecard.Questions),
-            LastUpdate.From(lastChange, scorecard.UpdatedAt), scorecard.ArchivedAt is not null);
+            LastUpdate.From(lastChange, scorecard.CreatedAt, scorecard.UpdatedAt), scorecard.ArchivedAt is not null);
 
     public static ScorecardTemplateDetail ToDetail(this BuiltInScorecard scorecard) =>
         new(scorecard.Id, scorecard.Name, true, null, scorecard.Questions, LastUpdate.ByScreenHire(null), false);
 
     public static ScorecardTemplateDetail ToDetail(this ScorecardTemplate scorecard, ChangeStamp? lastChange) =>
-        new(scorecard.Key, scorecard.Name, false, scorecard.CopiedFrom, scorecard.Questions, LastUpdate.From(lastChange, scorecard.UpdatedAt),
+        new(scorecard.Key, scorecard.Name, false, scorecard.CopiedFrom, scorecard.Questions, LastUpdate.From(lastChange, scorecard.CreatedAt, scorecard.UpdatedAt),
             scorecard.ArchivedAt is not null);
 
     private static int RatingQuestions(IReadOnlyList<ScorecardQuestion> questions) =>

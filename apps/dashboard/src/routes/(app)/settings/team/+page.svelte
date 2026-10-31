@@ -9,6 +9,7 @@
   import {
     ApiError,
     createCreateInvitation,
+    createGetTeamLastUpdate,
     createListApiKeys,
     createListInvitations,
     createListRoles,
@@ -16,6 +17,7 @@
     createRemoveMember,
     createRevokeApiKey,
     createRevokeInvitation,
+    getGetTeamHistoryQueryOptions,
   } from '@screenhire/api-client/svelte-query';
   import { CreateInvitationBody } from '@screenhire/api-client/zod';
   import { useQueryClient } from '@tanstack/svelte-query';
@@ -37,6 +39,7 @@
   import DateText from '#lib/components/date-text.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import HistoryFact from '#lib/components/history-fact.svelte';
   import MemberAccessSheet from '#lib/components/member-access-sheet.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -60,7 +63,7 @@
   import { page } from '$app/state';
   import { can, seesAllJobs } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
-  import { assignableRoles, mayAssign, mayGiveJobAccess, roleFromKey, roleKey, seesAllJobsWith } from '#lib/settings.js';
+  import { assignableRoles, mayAssign, mayGiveJobAccess, roleFromKey, roleKey, seesAllJobsWith, teamPath } from '#lib/settings.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import { cn } from '#lib/utils.js';
   import type { PageProps } from './$types';
@@ -71,7 +74,8 @@
   // Owners manage everyone and Admins everyone but Owners. Your own row has no actions: handing over is done by another
   // owner. Invite opens a sheet that describes each role from the API's catalogue and starts at Viewer, the least access
   // (design system section 21). Each member also sees All jobs or Only jobs they're on (ADR-0015): Jobs says which, and
-  // Edit access changes the role and the job access together in one sheet.
+  // Edit access changes the role and the job access together in one sheet. The title's row has Last updated and History
+  // for every change to the team (design system T6, S8).
   let { data }: PageProps = $props();
 
   const membersPath = '/v1/organization/members';
@@ -81,15 +85,18 @@
   const sidebar = Sidebar.useSidebar();
   const members = createListTeamMembers();
   const invitations = createListInvitations();
-  const remove = createRemoveMember(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, membersPath) } }));
-  const revoke = createRevokeInvitation(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, invitationsPath) } }));
+  const lastUpdate = createGetTeamLastUpdate();
+  // Every change here is also a line in the team's history (`/v1/organization/team`).
+  const changed = (path: string) => Promise.all([invalidatePath(queryClient, path), invalidatePath(queryClient, teamPath)]);
+  const remove = createRemoveMember(() => ({ mutation: { onSettled: () => changed(membersPath) } }));
+  const revoke = createRevokeInvitation(() => ({ mutation: { onSettled: () => changed(invitationsPath) } }));
   // Removing a member offers to revoke the API keys they created (ADR-0011): a key outlives its creator otherwise. Only
   // for a role that manages API keys; anyone else's removal leaves the keys to someone who does.
   const mayRevokeKeys = $derived(can(data.user, 'ManageApiKeys'));
   const keys = createListApiKeys(() => ({ query: { enabled: mayRevokeKeys } }));
   const revokeKey = createRevokeApiKey(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, '/v1/organization/api-keys') } }));
   const catalogue = createListRoles();
-  const invite = createCreateInvitation(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, invitationsPath) } }));
+  const invite = createCreateInvitation(() => ({ mutation: { onSettled: () => changed(invitationsPath) } }));
 
   const actor = $derived(data.user?.organization?.permissions ?? []);
   const actorSeesAllJobs = $derived(seesAllJobs(data.user));
@@ -309,7 +316,7 @@
     title="Team"
     count={members.isSuccess ? memberList.length : undefined}
     countLabel={memberList.length === 1 ? 'member' : 'members'}
-    actions={sidebar.isMobile ? undefined : inviteButton}
+    actions={bandActions}
   />
 
   <SettingsMenu>
@@ -445,6 +452,12 @@
     <ActionBar>{@render inviteButton()}</ActionBar>
   {/if}
 </main>
+
+<!-- On a phone, Invite moves to the bar at the bottom and the title's row keeps Last updated (section 8). -->
+{#snippet bandActions()}
+  {#if lastUpdate.data}<HistoryFact value={lastUpdate.data.data} name="Team" page={(before) => getGetTeamHistoryQueryOptions({ before })} />{/if}
+  {#if !sidebar.isMobile}{@render inviteButton()}{/if}
+{/snippet}
 
 {#snippet inviteButton()}
   <Button size="lg" onclick={() => (inviting = true)}><UserPlusIcon aria-hidden="true" />Invite</Button>

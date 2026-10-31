@@ -4,7 +4,15 @@
   import KeyRoundIcon from '@lucide/svelte/icons/key-round';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import type { ApiKeyScope, ApiKeySummary, HttpValidationProblemDetails } from '@screenhire/api-client';
-  import { ApiError, createCreateApiKey, createGetMeta, createListApiKeys, createRevokeApiKey } from '@screenhire/api-client/svelte-query';
+  import {
+    ApiError,
+    createCreateApiKey,
+    createGetApiKeysLastUpdate,
+    createGetMeta,
+    createListApiKeys,
+    createRevokeApiKey,
+    getGetApiKeysHistoryQueryOptions,
+  } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import {
     createSortedRowModel,
@@ -24,6 +32,7 @@
   import DateText from '#lib/components/date-text.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import HistoryFact from '#lib/components/history-fact.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
@@ -54,12 +63,15 @@
   // Organization API keys for the hiring API (ADR-0011), on the list template. A new key is shown once, in a dialog,
   // and kept nowhere else; the list shows only its first characters. Revoking is for good. Under the keys, a panel says
   // what the API is for, how to call it and where its reference is (design system section 21). The API's public origin
-  // comes from the API itself (ScreenHire:Domains:ApiHost through /v1/meta), never from a host written here.
+  // comes from the API itself (ScreenHire:Domains:ApiHost through /v1/meta), never from a host written here. The title's
+  // row has Last updated and History: every key created and revoked, by whom (design system T6, S8). Invalidating the
+  // keys' path refreshes both, since they live under it.
   const keysPath = '/v1/organization/api-keys';
 
   const queryClient = useQueryClient();
   const sidebar = Sidebar.useSidebar();
   const keys = createListApiKeys();
+  const lastUpdate = createGetApiKeysLastUpdate();
   // gcTime 0: the response holds the token, so the mutation cache drops it as soon as the page goes, dialog open or not.
   const create = createCreateApiKey(() => ({ mutation: { gcTime: 0, onSettled: () => invalidatePath(queryClient, keysPath) } }));
   const revoke = createRevokeApiKey(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, keysPath) } }));
@@ -158,7 +170,7 @@
     title="API keys"
     count={keys.isSuccess ? list.length : undefined}
     countLabel={list.length === 1 ? 'key' : 'keys'}
-    actions={sidebar.isMobile ? undefined : createButton}
+    actions={bandActions}
   />
 
   <SettingsMenu>
@@ -275,6 +287,12 @@
     <ActionBar>{@render createButton()}</ActionBar>
   {/if}
 </main>
+
+<!-- On a phone, Create key moves to the bar at the bottom and the title's row keeps Last updated (section 8). -->
+{#snippet bandActions()}
+  {#if lastUpdate.data}<HistoryFact value={lastUpdate.data.data} name="API keys" page={(before) => getGetApiKeysHistoryQueryOptions({ before })} />{/if}
+  {#if !sidebar.isMobile}{@render createButton()}{/if}
+{/snippet}
 
 {#snippet createButton()}
   <Button size="lg" onclick={() => (creating = true)}><PlusIcon aria-hidden="true" />Create key</Button>

@@ -14,7 +14,8 @@ namespace ScreenHire.IntegrationTests;
 /// <summary>
 /// Change history through the running API (docs/architecture/change-history.md): an edit of a tracked object records
 /// who made it, when and what changed, in the same save; each object's history pages newest first; another
-/// organization's history is a 404; the table is append-only; and no secret ever reaches it.
+/// organization's history is a 404; the table is append-only; and no secret ever reaches it. The Team and API keys pages
+/// have one history each, and an object nothing has changed since it was created says Created.
 /// </summary>
 public sealed class ChangeHistoryTests(AppHostFixture fixture)
 {
@@ -180,6 +181,22 @@ public sealed class ChangeHistoryTests(AppHostFixture fixture)
         {
             ["subject"] = "We have your application", ["body"] = "Thanks.",
         })).Expect(HttpStatusCode.OK);
+        (await theirs.PostAsync("/v1/organization/api-keys", new JsonObject
+        {
+            ["name"] = "Their key", ["scopes"] = new JsonArray("Read"),
+        })).Expect(HttpStatusCode.Created);
+        (await theirs.PostAsync("/v1/organization/invitations", new JsonObject
+        {
+            ["email"] = ApiSession.NewEmail("their-invitee"), ["role"] = "Viewer",
+        })).Expect(HttpStatusCode.Created);
+
+        (await ours.GetAsync("/v1/organization/api-keys/history")).Expect(HttpStatusCode.OK).Count("entries").Should().Be(0);
+        var ourKeys = (await ours.GetAsync("/v1/organization/api-keys/last-update")).Expect(HttpStatusCode.OK);
+        ourKeys.At("created").GetBoolean().Should().BeTrue("their key is not a change to ours");
+        ourKeys.At("by").ValueKind.Should().Be(JsonValueKind.Null);
+        var ourTeam = (await ours.GetAsync("/v1/organization/team/history")).Expect(HttpStatusCode.OK);
+        ourTeam.Count("entries").Should().Be(1, "only our own creation, not their invitation");
+        ourTeam.Id("entries.0.userId").Should().Be(ours.UserId);
 
         (await ours.GetAsync($"/v1/jobs/{job}/history")).Expect(HttpStatusCode.NotFound);
         (await ours.GetAsync($"/v1/templates/{template}/history")).Expect(HttpStatusCode.NotFound);
@@ -195,16 +212,27 @@ public sealed class ChangeHistoryTests(AppHostFixture fixture)
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         await using var receiver = await WebhookReceiver.StartAsync(Ct);
-        var token = (await owner.PostAsync("/v1/organization/api-keys", new JsonObject
+        var created = (await owner.PostAsync("/v1/organization/api-keys", new JsonObject
         {
             ["name"] = "Secret check", ["scopes"] = new JsonArray("Read", "Write"),
-        })).Expect(HttpStatusCode.Created).Text("token");
+        })).Expect(HttpStatusCode.Created);
+        var token = created.Text("token");
+        var prefix = created.Text("key.prefix");
+        (await owner.PostAsync($"/v1/organization/api-keys/{created.Id("key.id")}/revoke")).Expect(HttpStatusCode.OK);
         var endpoint = (await owner.PostAsync("/v1/webhooks", new JsonObject
         {
             ["url"] = receiver.Url.ToString(), ["events"] = new JsonArray("job.published"), ["description"] = "Secret check",
         })).Expect(HttpStatusCode.Created);
         var secret = endpoint.Text("signingSecret");
         var rotated = (await owner.PostAsync($"/v1/webhooks/{endpoint.Id("endpoint.id")}/rotate-secret")).Expect(HttpStatusCode.OK).Text("signingSecret");
+
+        // An invitation sent, one replaced by a second to the same address, and one revoked: three token hashes.
+        var invitee = ApiSession.NewEmail("secret-check");
+        (await owner.PostAsync("/v1/organization/invitations", new JsonObject { ["email"] = invitee, ["role"] = "Viewer" })).Expect(HttpStatusCode.Created);
+        var invitationToken = await fixture.Mailpit.WaitForInvitationTokenAsync(invitee, Ct);
+        var replacing = (await owner.PostAsync("/v1/organization/invitations", new JsonObject { ["email"] = invitee, ["role"] = "Recruiter" }))
+            .Expect(HttpStatusCode.Created);
+        (await owner.DeleteAsync($"/v1/organization/invitations/{replacing.Id()}")).Expect(HttpStatusCode.NoContent);
 
         var job = await owner.CreateJobAsync(Samples.RemoteJob("Secret check"));
         await owner.PublishJobAsync(job.Id());
@@ -218,13 +246,20 @@ public sealed class ChangeHistoryTests(AppHostFixture fixture)
         tenant.SetOrganization(owner.OrganizationId);
         await using var db = await fixture.CreateDbContextAsync(tenant, Ct);
         var hashes = await db.ApiKeys.Select(k => k.SecretHash).ToListAsync(Ct);
+        var tokenHashes = await db.OrganizationInvitations.Select(i => i.TokenHash).ToListAsync(Ct);
+        tokenHashes.Should().HaveCount(2);
         var records = await db.ChangeRecords.ToListAsync(Ct);
-        records.Should().NotBeEmpty();
-        records.Select(r => r.SubjectKind).Should().OnlyContain(k => k == ChangeSubjectKind.Job || k == ChangeSubjectKind.HiringTemplate || k == ChangeSubjectKind.EmailTemplate);
+        records.Select(r => r.SubjectKind).Should().OnlyContain(k =>
+            k == ChangeSubjectKind.Job || k == ChangeSubjectKind.HiringTemplate || k == ChangeSubjectKind.EmailTemplate
+            || k == ChangeSubjectKind.Team || k == ChangeSubjectKind.ApiKeys);
+        records.Select(r => r.SubjectKind).Should().Contain([ChangeSubjectKind.Team, ChangeSubjectKind.ApiKeys]);
         var stored = JsonSerializer.Serialize(records.Select(r => r.Lines), JsonColumns.SerializerOptions);
-        foreach (var value in new[] { token, secret, rotated }.Concat(hashes))
+        var served = (await owner.GetAsync("/v1/organization/api-keys/history")).Expect(HttpStatusCode.OK).Body.GetRawText()
+            + (await owner.GetAsync("/v1/organization/team/history")).Expect(HttpStatusCode.OK).Body.GetRawText();
+        foreach (var value in new[] { token, prefix, secret, rotated, invitationToken }.Concat(hashes).Concat(tokenHashes))
         {
             stored.Should().NotContain(value);
+            served.Should().NotContain(value);
         }
     }
 
@@ -239,6 +274,118 @@ public sealed class ChangeHistoryTests(AppHostFixture fixture)
 
         (await update.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
         (await delete.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
+    }
+
+    [Fact]
+    public async Task The_team_page_records_invitations_joins_role_and_job_access_changes_and_removals()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var other = await fixture.SignedInWithOrganizationAsync();
+        var started = (await owner.GetAsync("/v1/organization/team/last-update")).Expect(HttpStatusCode.OK);
+        started.At("created").GetBoolean().Should().BeTrue("nothing has changed the team since onboarding created it");
+        started.Text("by").Should().Be("Member");
+        started.Id("userId").Should().Be(owner.UserId);
+
+        var revokedAddress = ApiSession.NewEmail("revoked");
+        var revoked = (await owner.PostAsync("/v1/organization/invitations", new JsonObject { ["email"] = revokedAddress, ["role"] = "Recruiter" }))
+            .Expect(HttpStatusCode.Created);
+        (await owner.DeleteAsync($"/v1/organization/invitations/{revoked.Id()}")).Expect(HttpStatusCode.NoContent);
+        var joinerAddress = ApiSession.NewEmail("joiner");
+        using var joiner = await fixture.InviteAndJoinAsync(owner, "Viewer", joinerAddress);
+        var memberId = await owner.MemberIdAsync(joiner.UserId);
+        (await owner.PutAsync($"/v1/organization/members/{memberId}/role", new JsonObject { ["role"] = "Recruiter" })).Expect(HttpStatusCode.OK);
+        (await owner.PutAsync($"/v1/organization/members/{memberId}/job-access", new JsonObject { ["jobAccess"] = "HiringTeamOnly" }))
+            .Expect(HttpStatusCode.OK);
+        (await owner.DeleteAsync($"/v1/organization/members/{memberId}")).Expect(HttpStatusCode.NoContent);
+
+        var history = (await owner.GetAsync("/v1/organization/team/history")).Expect(HttpStatusCode.OK);
+        var entries = history.Body.GetProperty("entries").EnumerateArray().ToList();
+        entries.Select(e => e.At("lines.0.text").GetString()).Should().Equal(
+            $"removed {joinerAddress} from the team",
+            $"changed {joinerAddress}'s jobs from All jobs to Only jobs they're on",
+            $"changed {joinerAddress}'s role from Viewer to Recruiter",
+            "joined the team as Viewer",
+            $"invited {joinerAddress} as Viewer",
+            $"revoked the invitation to {revokedAddress}",
+            $"invited {revokedAddress} as Recruiter",
+            "created the team");
+        entries[3].At("userId").GetGuid().Should().Be(joiner.UserId, "the person who accepted joined");
+        entries.Where((_, i) => i != 3).Should().OnlyContain(e => e.At("userId").GetGuid() == owner.UserId);
+        entries[0].At("lines.0.parts.1.strong").GetBoolean().Should().BeTrue("the member is the thing that changed");
+        entries[2].At("lines.0.details.0.before").GetString().Should().Be("Viewer");
+
+        var last = (await owner.GetAsync("/v1/organization/team/last-update")).Expect(HttpStatusCode.OK);
+        last.At("created").GetBoolean().Should().BeFalse();
+        last.Id("userId").Should().Be(owner.UserId);
+        (await other.GetAsync("/v1/organization/team/history")).Expect(HttpStatusCode.OK).Count("entries").Should().Be(1, "only its own creation");
+
+        using var viewer = await fixture.InviteAndJoinAsync(owner, "Viewer");
+        (await viewer.GetAsync("/v1/organization/team/history")).Expect(HttpStatusCode.Forbidden);
+        (await viewer.GetAsync("/v1/organization/team/last-update")).Expect(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task The_api_keys_page_records_who_created_and_revoked_each_key_with_its_name_and_access()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var untouched = (await owner.GetAsync("/v1/organization/api-keys/last-update")).Expect(HttpStatusCode.OK);
+        untouched.At("created").GetBoolean().Should().BeTrue("the organization began with no keys");
+        untouched.At("by").ValueKind.Should().Be(JsonValueKind.Null);
+        (await owner.GetAsync("/v1/organization/api-keys/history")).Expect(HttpStatusCode.OK).Count("entries").Should().Be(0);
+
+        var key = (await owner.PostAsync("/v1/organization/api-keys", new JsonObject
+        {
+            ["name"] = "Payroll sync", ["scopes"] = new JsonArray("Read", "Write"),
+        })).Expect(HttpStatusCode.Created);
+        using (var client = KeyClient(key.Text("token")))
+        {
+            using var response = await client.GetAsync("/v1/jobs", Ct);
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        (await owner.PostAsync($"/v1/organization/api-keys/{key.Id("key.id")}/revoke")).Expect(HttpStatusCode.OK);
+
+        var history = (await owner.GetAsync("/v1/organization/api-keys/history")).Expect(HttpStatusCode.OK);
+        history.Body.GetProperty("entries").EnumerateArray().Select(e => e.At("lines.0.text").GetString())
+            .Should().Equal(["revoked the key Payroll sync", "created the key Payroll sync"], "using a key records nothing");
+        history.Text("entries.1.lines.0.details.0.label").Should().Be("Access");
+        history.Text("entries.1.lines.0.details.0.after").Should().Be("Read and write");
+        history.Body.GetProperty("entries").EnumerateArray().Should().OnlyContain(e => e.At("userId").GetGuid() == owner.UserId);
+
+        var last = (await owner.GetAsync("/v1/organization/api-keys/last-update")).Expect(HttpStatusCode.OK);
+        last.Text("by").Should().Be("Member");
+        last.At("created").GetBoolean().Should().BeFalse("adding a key changes the page; it does not create it");
+
+        using var viewer = await fixture.InviteAndJoinAsync(owner, "Viewer");
+        (await viewer.GetAsync("/v1/organization/api-keys/history")).Expect(HttpStatusCode.Forbidden);
+        (await viewer.GetAsync("/v1/organization/api-keys/last-update")).Expect(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task An_object_nothing_has_changed_since_it_was_created_says_created_until_its_first_change()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var job = await owner.CreateJobAsync(Samples.RemoteJob("Data Engineer"));
+        job.At("lastUpdated.created").GetBoolean().Should().BeTrue();
+        job.Id("lastUpdated.userId").Should().Be(owner.UserId);
+        var template = await owner.CreateTemplateAsync("Technical interview");
+        template.At("lastUpdated.created").GetBoolean().Should().BeTrue();
+
+        (await owner.PutAsync($"/v1/jobs/{job.Id()}", Samples.RemoteJob("Senior Data Engineer"))).Expect(HttpStatusCode.OK);
+        var edited = (await owner.GetAsync($"/v1/jobs/{job.Id()}")).Expect(HttpStatusCode.OK);
+        edited.At("lastUpdated.created").GetBoolean().Should().BeFalse();
+        edited.Text("lastUpdated.by").Should().Be("Member");
+
+        var organization = (await owner.GetAsync("/v1/organization")).Expect(HttpStatusCode.OK);
+        organization.At("lastUpdated.created").GetBoolean().Should().BeTrue("nobody has renamed it");
+        organization.At("lastUpdated.by").ValueKind.Should().Be(JsonValueKind.Null, "creating the organization is not a change on its page");
+
+        (await owner.PutAsync($"/v1/email-templates/{EmailTemplateIds.StageChange}", new JsonObject
+        {
+            ["subject"] = "An update for {{ jobTitle }}", ["body"] = "Hi {{ candidateName }}",
+        })).Expect(HttpStatusCode.OK);
+        (await owner.GetAsync($"/v1/email-templates/{EmailTemplateIds.StageChange}")).Expect(HttpStatusCode.OK)
+            .At("lastUpdated.created").GetBoolean().Should().BeFalse("a built-in's first edit is an edit of ScreenHire's wording");
     }
 
     // An integrator's client: the key in the Authorization header, no cookies and no antiforgery header.
