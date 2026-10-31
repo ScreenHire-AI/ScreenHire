@@ -332,9 +332,9 @@ another's.
 | Job | Runs | Timeout |
 |---|---|---|
 | `checks` | `pnpm verify:dotnet`, `pnpm verify:contract`, `pnpm check`, `pnpm -r build`, Vitest for every package but the dashboard, and `dotnet test --project tests/ScreenHire.UnitTests`. Every step runs even when an earlier one failed, and the last step fails the job if any did, so a run reports every broken check at once | 20 min |
-| `vitest` (3 shards) | The dashboard's Vitest suite with Vitest's own `--shard`. No .NET | 15 min |
-| `integration` (4 shards) | `tests/ScreenHire.IntegrationTests` on the runner's Docker Engine, one AppHost per shard | 25 min |
-| `e2e` (4 shards) | `pnpm -r build`, then `tests/ScreenHire.E2E` with Playwright's Chromium, one AppHost per shard | 25 min |
+| `vitest` (2 shards) | The dashboard's Vitest suite with Vitest's own `--shard`. No .NET | 15 min |
+| `integration` (8 shards) | `tests/ScreenHire.IntegrationTests` on the runner's Docker Engine, one AppHost per shard | 25 min |
+| `e2e` (8 shards) | `pnpm -r build`, then `tests/ScreenHire.E2E` with Playwright's Chromium, one AppHost per shard | 25 min |
 | `lighthouse` | `pnpm verify:lighthouse` on the marketing build, only when the change touches `apps/marketing`, `packages/ui` or `pnpm-lock.yaml` (otherwise a notice says so). Report-only: a budget miss is a warning, the job stays green, and it is not in the gate, because shared runners have no LCP baseline yet | 20 min |
 | `gate` (`Gate`) | Nothing but a check that `checks` and every shard of `vitest`, `integration` and `e2e` succeeded. It runs even when they fail (`always()`), so a skipped or cancelled job never reads as a pass. It is the one check branch protection requires | 5 min |
 
@@ -346,7 +346,7 @@ splits a .NET test project by class:
 
 A class stays whole because a class fixture can boot a stack of its own (`DevelopmentDemoFixture`). A shard with no
 class fails rather than run everything. Shards are balanced by test count, not time, as Playwright's are. After a
-build, `node scripts/test-shard.mjs tests/ScreenHire.E2E 2 4` prints what CI's second end-to-end shard runs.
+build, `node scripts/test-shard.mjs tests/ScreenHire.E2E 2 8` prints what CI's second end-to-end shard runs.
 
 Meziantou.ShardedTest does the same per test, but it has no licence (ADR-0008), and it builds a VSTest `--filter`,
 which `dotnet test` on this platform does not take. Each Aspire shard boots its own AppHost, about a minute, so a shard

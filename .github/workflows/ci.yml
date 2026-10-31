@@ -116,8 +116,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
-        shards: [3]
+        shard: [1, 2]
+        shards: [2]
     steps:
       - name: Check out
         uses: actions/checkout@v7
@@ -136,8 +136,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
-        shards: [4]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        shards: [8]
     steps:
       - name: Check out
         uses: actions/checkout@v7
@@ -154,7 +154,18 @@ jobs:
         run: |
           node scripts/test-shard.mjs tests/ScreenHire.IntegrationTests "$SHARD" "$SHARDS" > "$RUNNER_TEMP/shard.args"
           mapfile -t filters < "$RUNNER_TEMP/shard.args"
-          dotnet test --project tests/ScreenHire.IntegrationTests --no-build "${filters[@]}"
+          dotnet test --project tests/ScreenHire.IntegrationTests --no-build "${filters[@]}" \
+            --show-slowest-tests 15 --report-xunit-ctrf --report-xunit-ctrf-filename "integration-$SHARD.ctrf.json"
+      # Every shard's test durations (CTRF), kept even when it passes: they show where the time goes, and
+      # scripts/test-shard.mjs balances the shards on them.
+      - name: Upload test durations
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: durations-integration-${{ matrix.shard }}
+          path: TestResults/*.ctrf.json
+          retention-days: 7
+          if-no-files-found: ignore
       # The fixture writes every resource's console log here (docs/process/testing.md, "AppHostFixture").
       - name: Upload resource logs
         if: ${{ failure() || cancelled() }}
@@ -174,8 +185,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
-        shards: [4]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        shards: [8]
     steps:
       - name: Check out
         uses: actions/checkout@v7
@@ -196,7 +207,16 @@ jobs:
         run: |
           node scripts/test-shard.mjs tests/ScreenHire.E2E "$SHARD" "$SHARDS" > "$RUNNER_TEMP/shard.args"
           mapfile -t filters < "$RUNNER_TEMP/shard.args"
-          dotnet test --project tests/ScreenHire.E2E --no-build "${filters[@]}"
+          dotnet test --project tests/ScreenHire.E2E --no-build "${filters[@]}" \
+            --show-slowest-tests 15 --report-xunit-ctrf --report-xunit-ctrf-filename "e2e-$SHARD.ctrf.json"
+      - name: Upload test durations
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: durations-e2e-${{ matrix.shard }}
+          path: TestResults/*.ctrf.json
+          retention-days: 7
+          if-no-files-found: ignore
       # Resource logs, plus a full-page screenshot of every failed test (TestResults/screenshots).
       - name: Upload resource logs and screenshots
         if: ${{ failure() || cancelled() }}
