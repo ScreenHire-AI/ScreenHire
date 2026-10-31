@@ -89,10 +89,10 @@ Authors check their screens against this list, and the `design-review` agent rep
 - **A4** Icon-only buttons have an `aria-label` and a tooltip.
 - **A5** Links go somewhere: another page, tab or record, as underlined text; navigation and a table row's name
   underline on hover. Buttons do something: act, or open a sheet, a menu or a dialog. A link never opens a sheet on the
-  page it sits on (a link to a record may arrive with the sheet for its work open there, as a requested scorecard's
-  does), and a button never navigates, with one exception: a page's own action that opens another page to do it (New job, Edit,
+  page it sits on, and a button never navigates, with one exception: a page's own action that opens another page to do it (New job, Edit,
   Cancel on a form, Back) is an outline or primary button that renders as a link (`<a>`), because it starts that
-  action. A menu item that opens a page is a link inside the menu. Badges, pills and counts are never clickable,
+  action. A link to a record may arrive with the sheet for its work open there, as a requested scorecard's does. A
+  menu item that opens a page is a link inside the menu. Badges, pills and counts are never clickable,
   except a count button in a header (T4).
 - **A6** A button with a text label has a border or a fill, never bare coloured text, and its label starts with a verb
   (Mark done, not Complete). An icon button (More, Close) may be bare, with its label in a tooltip (A4). A sortable
