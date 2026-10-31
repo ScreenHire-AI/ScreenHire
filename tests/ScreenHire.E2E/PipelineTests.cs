@@ -94,8 +94,8 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.SetViewportSizeAsync(DesignWidth, DesignHeight);
         await SignInAsync(Page, scene.Email);
         await GoToJobAsync(Page, scene.JobId);
-        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Distribution") }).ClickAsync();
-        var distribution = Page.GetByRole(AriaRole.Region, new() { Name = "Distribution" });
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Postings") }).ClickAsync();
+        var distribution = Page.GetByRole(AriaRole.Region, new() { Name = "Postings" });
         await Expect(Board(Page, "sandbox")).ToContainTextAsync("Sandbox board");
         await Expect(Board(Page, "sandbox")).ToContainTextAsync("Not posted to this board.");
         await ExpectNoAccessibilityViolationsAsync();
@@ -107,7 +107,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Board(Page, "sandbox")).ToContainTextAsync("Live: the board confirmed the job shows.", WaitForBoard);
         (await SandboxListingsAsync(scene.Slug)).Should().Contain(scene.JobId.ToString(), "the sandbox board lists the job");
         // The tab's count says how many boards the job is on, here all of them.
-        await Expect(Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Distribution posted on (\\d+) of \\1 boards$") })).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Postings posted on (\\d+) of \\1 boards$") })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-distribution-live-light");
 
@@ -416,7 +416,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
     }
 
     private static ILocator Board(IPage page, string boardId) =>
-        page.GetByRole(AriaRole.Region, new() { Name = "Distribution" }).Locator($"[data-board='{boardId}']");
+        page.GetByRole(AriaRole.Region, new() { Name = "Postings" }).Locator($"[data-board='{boardId}']");
 
     // Select, name, then the two verification columns (status first, T2) and Rating, then Stage.
     private static ILocator StageCellOf(IPage page, string candidate) =>

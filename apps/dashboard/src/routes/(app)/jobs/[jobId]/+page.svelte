@@ -101,21 +101,22 @@
 
   // The job's peer views (section 21): the work area first, then Distribution, whose count says how many boards the job
   // is on (E2). The tab is in the address, so a link reaches it and a reload keeps it.
-  const tab = $derived((page.shallow?.url ?? page.url).searchParams.get('tab') === 'distribution' ? 'distribution' : 'candidates');
+  // Postings was called Distribution: its old address (?tab=distribution) still opens it.
+  const tab = $derived(['postings', 'distribution'].includes((page.shallow?.url ?? page.url).searchParams.get('tab') ?? '') ? 'postings' : 'candidates');
   const sections = $derived.by((): RecordTab[] => {
     const counts = postingCounts(rows);
     return [
       { value: 'candidates', label: 'Candidates', count: applications.isSuccess ? all.length : undefined },
       boards.data
-        ? { value: 'distribution', label: 'Distribution', count: counts.posted, of: counts.total, countLabel: `posted on ${counts.posted} of ${counts.total} boards` }
-        : { value: 'distribution', label: 'Distribution' },
+        ? { value: 'postings', label: 'Postings', count: counts.posted, of: counts.total, countLabel: `posted on ${counts.posted} of ${counts.total} boards` }
+        : { value: 'postings', label: 'Postings' },
     ];
   });
 
   // A tab is a view of the same page, so switching only changes the address (shallow), keeping the page's state.
   function showTab(next: string) {
     const url = new URL(page.url.href);
-    if (next === 'distribution') url.searchParams.set('tab', next);
+    if (next === 'postings') url.searchParams.set('tab', next);
     else url.searchParams.delete('tab');
     void goto(url, { shallow: true, replace: true, state: page.state });
   }
@@ -290,7 +291,7 @@
       <div class={['flex w-full flex-col gap-4 px-4 py-6 md:px-6', boardFills && 'min-h-0 flex-1']}>
         <Tabs.Content value="candidates" class={['flex flex-col gap-4', boardFills && 'min-h-0']}>
           {#each problems as problem (problem.kind)}
-            <Notice href="?tab=distribution" link="Fix on Distribution">{problem.text}</Notice>
+            <Notice href="?tab=postings" link="Fix on Postings">{problem.text}</Notice>
           {/each}
           <JobPipeline
             bind:view
@@ -303,16 +304,16 @@
             {moves}
           />
         </Tabs.Content>
-        <Tabs.Content value="distribution">
+        <Tabs.Content value="postings">
           {#if boards.data}
             <DistributionPanel job={detail} boards={boards.data.data} />
           {:else if boards.isError}
-            <Panel title="Distribution">
+            <Panel title="Postings">
               <QueryError message={describeError(boards.error, 'Could not load the job boards')} onretry={() => boards.refetch()} inset />
             </Panel>
           {:else}
             <!-- Rows of the panel's shape: a board's name, then its state (E1). -->
-            <Panel title="Distribution" flush>
+            <Panel title="Postings" flush>
               <div aria-hidden="true" class="flex flex-col">
                 {#each [0, 1] as row (row)}
                   <div class="flex flex-col gap-2 border-b border-border-subtle px-4.5 py-3 last:border-0 max-md:px-4">

@@ -120,7 +120,7 @@ describe('pipeline board', () => {
     expect(within(closed).getByRole('heading').textContent?.replace(/\s+/g, ' ').trim()).toBe('Closed 1');
   });
 
-  it('adds a kept candidate to Closed beside those who were hired or rejected', async () => {
+  it('adds a kept candidate to Closed beside those who were hired or rejected, in a row of their own so the rows add up', async () => {
     const rows = [
       { ...applications[0]!, stage: { id: 'hired', name: 'Hired', kind: 'Hired' as const } },
       { ...applications[1]!, keptInMindAt: '2026-10-20T11:00:00Z' },
@@ -132,6 +132,7 @@ describe('pipeline board', () => {
     await screen.findByRole('list', { name: 'Applied stage' });
     const closed = screen.getByRole('region', { name: /^Closed/ });
     expect(within(closed).getByRole('heading').textContent?.replace(/\s+/g, ' ').trim()).toBe('Closed 2');
+    expect(closed.querySelector('[data-kept-in-mind]')).toHaveTextContent(/^Kept in mind\s*1$/);
   });
 
   it('says nothing on a calm card, and shows only what needs a look (section 21)', async () => {

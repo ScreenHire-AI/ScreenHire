@@ -79,7 +79,7 @@ describe('visibleSettingsSections', () => {
 
   it('shows a custom role the pages its permissions open', () => {
     const keeper: CurrentUser = { ...interviewer, organization: { ...interviewer.organization!, permissions: ['ViewHiring', 'ManageApiKeys'] } };
-    expect(labels(keeper)).toEqual(['API keys', 'MCP server']);
+    expect(labels(keeper)).toEqual(['MCP server', 'API keys']);
   });
 
   it('finds the page a path belongs to', () => {
