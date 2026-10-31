@@ -15,6 +15,18 @@ public sealed record OrganizationIntegritySettings(bool LlmConsistencyCheck, lon
 public sealed record UpdateIntegritySettingsRequest(bool LlmConsistencyCheck, long? MonthlyTokenBudget = null);
 
 /// <summary>
+/// The organization's talent pool settings (docs/architecture/talent-pool.md). <c>permissionMonths</c> is how long a
+/// candidate's permission to keep their details for future roles lasts from when they gave it: 12 by default, from
+/// <c>minMonths</c> to <c>maxMonths</c>. A permission ends at the shorter of the period when it was given and this one.
+/// <c>lastUpdated</c> is the settings' last change ("by ScreenHire" while they are the default); their history is
+/// <c>/talent-pool-settings/history</c>.
+/// </summary>
+public sealed record OrganizationTalentPoolSettings(int PermissionMonths, int MinMonths, int MaxMonths, LastUpdate LastUpdated);
+
+/// <summary>Sets how long a candidate's permission for future roles lasts, in whole months from 6 to 24.</summary>
+public sealed record UpdateTalentPoolSettingsRequest(int PermissionMonths);
+
+/// <summary>
 /// The signed-in user's organization. <c>slug</c> names its careers pages and public API routes and does not change after
 /// onboarding; <c>careersUrl</c> is its careers board on the configured careers domain. <c>lastUpdated</c> is the name's
 /// last change, or when the organization was made; its history is <c>/v1/organization/history</c>.

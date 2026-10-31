@@ -66,7 +66,10 @@
   const templateId = untrack(() => template?.id);
   const usable = $derived(
     variables.filter(
-      (variable) => (!variable.rejectOnly || template?.rejectOnly) && (!variable.questionnaireOnly || template?.questionnaireOnly),
+      (variable) =>
+        (!variable.rejectOnly || template?.rejectOnly) &&
+        (!variable.questionnaireOnly || template?.questionnaireOnly) &&
+        (!variable.invitationOnly || template?.invitationOnly),
     ),
   );
 

@@ -15,6 +15,8 @@ import type { PublicUploadSettings } from './publicUploadSettings.ts';
  * Everything the careers apply page needs for one open job. The resume question comes first
  * (ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured.
  * `telemetry` is a new telemetry session for the form; the page keeps the first one it gets.
+ * `talentPoolMonths` is how long the organization keeps a candidate's details for future roles if they say so,
+ * which the form's "Keep my details for future roles" box tells them.
  */
 export interface PublicApplicationForm {
   organization: PublicOrganization;
@@ -25,4 +27,5 @@ export interface PublicApplicationForm {
   /** @nullable */
   turnstileSiteKey: string | null;
   telemetry: PublicTelemetrySettings;
+  talentPoolMonths: number;
 }

@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Email to candidates"
-description: "Organization email templates in Liquid with a rich-text body over fixed variables, the email composer (a template or a blank email changed for one send, previewed with the candidate's details), each email kept as it went for Messages, sending through the worker, the rules that the rejection email goes only with Reject and the follow-up questions email only with SendQuestionnaire, and what is not built (replies, an inbox)."
+description: "Organization email templates in Liquid with a rich-text body over fixed variables, the email composer (a template or a blank email changed for one send, previewed with the candidate's details), each email kept as it went for Messages, sending through the worker, the rules that the rejection email goes only with Reject, the follow-up questions email only with SendQuestionnaire and the talent pool invitation only with Invite to apply, and what is not built (replies, an inbox)."
 tags: [email, templates, liquid]
 sources:
   - resource: src/ScreenHire.Domain/Hiring/EmailTemplate.cs
@@ -40,8 +40,8 @@ appears in the application's Activity and the candidate's Messages. Candidates c
 There are two kinds, both listed by `GET /v1/email-templates` and edited on the Templates page's Emails tab
 (`/templates/emails/{id}`; the old `/settings/email-templates` addresses redirect there):
 
-- **Built-in.** `application-received`, `stage-change`, `questionnaire-request` and `application-rejected`
-  (`EmailTemplateIds`). ScreenHire's
+- **Built-in.** `application-received`, `stage-change`, `questionnaire-request`, `application-rejected` and
+  `talent-pool-invitation` (`EmailTemplateIds`). ScreenHire's
   wording lives in `src/ScreenHire.Infrastructure/Email/Templates` (`{id}.subject.liquid`, `{id}.body.liquid`). An
   organization that edits one gets an `email_templates` row with `built_in_id` set; deleting the row restores
   ScreenHire's wording: the dashboard calls this Reset to original, and asks first. A built-in keeps its name and is
@@ -145,8 +145,13 @@ update `application_emails`, and a copy goes with its application. Every member 
 - **The follow-up questions email goes only with `SendQuestionnaire`.** Its link is made for one questionnaire request,
   so it cannot be sent by hand or by `SendEmail`: the API and the validator refuse it, the worker drops it, and the
   dashboard never offers it. The organization may reword it, but it must keep the link.
-- **`stage-change` never goes to an ended application.** "Moved to the next step: Rejected" would be a rejection no
-  `Reject` action guarded. The API skips such applications in a send; the worker checks again when it sends.
+- **The talent pool invitation goes only with Invite to apply** ([talent pool](talent-pool.md)). It must use
+  `{{ jobLink }}` (the job's careers page; `{{ jobTitle }}` is that job here) and `{{ removeLink }}` (the candidate's
+  signed link to stop being kept), which only it may use. The worker renders it, so its kept copy says "[the
+  candidate's link, not kept in this copy]" in place of the remove link. It cannot be sent by hand or by `SendEmail`,
+  and the composer never offers it (`invitationOnly`).
+- **`stage-change` never goes to an ended application,** nor to one the team kept in mind. "Moved to the next step:
+  Rejected" would be a rejection no `Reject` action guarded. The API skips such applications in a send; the worker checks again when it sends.
 - **No bulk email picked by integrity signals.** On the candidates list and a job's pipeline, Email for a selection is
   hidden while an integrity filter or an integrity saved view picked the rows, as bulk moves to an ending stage are
   (ADR-0004, `bulkMoveStages`). One candidate at a time, from their page, is a person's decision.

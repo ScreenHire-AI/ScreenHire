@@ -23,6 +23,11 @@ scorecard by hand. My tasks links a requested scorecard to the Scorecards tab wi
 task to the candidate. A requested scorecard holds back the rating and the others' scorecards until it is given, as a
 review does ([workflow engine](architecture/workflow-engine.md#8-the-engine-v1)).
 
+**The talent pool** has its own design doc, [architecture/talent-pool.md](architecture/talent-pool.md): keeping a
+candidate in mind, the permission for future roles from the apply form, the pool, invitations, the link to stop being
+kept and the daily expiry. The apply flow, email, messaging, workflow engine, sign-in and tenancy, design system,
+roadmap and status docs point to it.
+
 **The owner reviewed the v0.3 build** ([ADR-0017](adr/0017-design-system-v0-3-owner-review.md)) and the dashboard
 changed with it. The candidate page has no details rail: who they are and where they stand is one meta line in the
 header, with the authenticity level as their status beside the name, and Overview is a grid of panels. The feature

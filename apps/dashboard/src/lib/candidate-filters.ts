@@ -1,5 +1,6 @@
 import type { ApplicationSummary } from '@screenhire/api-client';
 import type { FilterOption } from '#lib/components/filter-menu.svelte';
+import { stageLabel } from '#lib/talent-pool.js';
 
 /** Every job the applications are for, by title, each with how many applications it has. */
 export function jobOptions(applications: readonly ApplicationSummary[]): FilterOption[] {
@@ -13,7 +14,7 @@ export function jobOptions(applications: readonly ApplicationSummary[]): FilterO
 }
 
 // The order a pipeline runs in, so the Stage menu reads like one (custom stages go before the endings).
-const kindOrder = ['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Custom', 'Offer', 'Hired', 'Rejected', 'Withdrawn'];
+const kindOrder = ['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Custom', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'KeptInMind'];
 
 /**
  * The stages of the picked jobs (every job's when none is picked), by name, so "Screening" in two jobs is one choice,
@@ -23,7 +24,9 @@ export function stageOptions(applications: readonly ApplicationSummary[], jobIds
   const stages = new Map<string, FilterOption & { rank: number }>();
   for (const application of applications) {
     if (jobIds.length > 0 && !jobIds.includes(application.jobId)) continue;
-    const { name, kind } = application.stage;
+    // A candidate kept in mind is under "Kept in mind", after the endings, never under the stage they left from.
+    const name = stageLabel(application);
+    const kind = application.keptInMindAt ? 'KeptInMind' : application.stage.kind;
     const stage = stages.get(name) ?? { value: name, label: name, count: 0, rank: kindOrder.indexOf(kind) };
     stage.count = (stage.count ?? 0) + 1;
     stages.set(name, stage);

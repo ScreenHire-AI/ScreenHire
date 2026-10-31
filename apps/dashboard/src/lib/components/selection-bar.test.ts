@@ -5,7 +5,7 @@ import { stages } from '../../test-support/fixtures.js';
 import WithTooltips from '../../test-support/with-tooltips.svelte';
 import SelectionBar from './selection-bar.svelte';
 
-function renderBar(props: Partial<{ onemail: () => void }> = {}) {
+function renderBar(props: Partial<{ onemail: () => void; onkeep: () => void }> = {}) {
   const handlers = { onmove: vi.fn(), onclear: vi.fn() };
   const view = render(WithTooltips, { props: { component: SelectionBar, props: { count: 2, stages, ...handlers, ...props } } });
   return { ...view, ...handlers };
@@ -38,5 +38,24 @@ describe('selection bar', () => {
     renderBar();
 
     expect(screen.queryByRole('button', { name: /^Email/ })).toBeNull();
+  });
+
+  it('offers Keep in mind for the selection when the page passes onkeep, named with the count for screen readers', async () => {
+    const onkeep = vi.fn();
+    const { container } = renderBar({ onkeep });
+    const bar = screen.getByRole('region', { name: 'Selected candidates' });
+
+    const keep = within(bar).getByRole('button', { name: 'Keep in mind, 2 selected' });
+    expect(keep).toHaveTextContent('Keep in mind');
+    await expectNoAxeViolations(container);
+    await fireEvent.click(keep);
+
+    expect(onkeep).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers no Keep in mind when the page leaves it out, as it does under an integrity filter or without Move candidates (ADR-0004)', () => {
+    renderBar();
+
+    expect(screen.queryByRole('button', { name: /in mind/ })).toBeNull();
   });
 });

@@ -10,6 +10,7 @@ using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Endpoints;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.Branding;
+using ScreenHire.Application.TalentPool;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Integrity;
 using ScreenHire.Application.Jobs;
@@ -17,6 +18,7 @@ using ScreenHire.Application.Templates;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Domain.TalentPool;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Content;
 using ScreenHire.Infrastructure.Email;
@@ -93,7 +95,7 @@ internal sealed partial class DevelopmentDemo(
     public const string ClosedJobSlug = DemoCandidates.SupportEngineer;
 
     /// <summary>The careers notice version the demo applicants "saw" (NOTICE_VERSION in apps/careers/src/lib/apply.ts).</summary>
-    public const string PrivacyNoticeVersion = "2026-10-23.1";
+    public const string PrivacyNoticeVersion = "2026-10-30.1";
 
     /// <summary>The seeded open jobs that get the candidate emails, and the boards each is posted to (null: every board).</summary>
     public static IReadOnlyList<(string Slug, IReadOnlyList<string>? Boards)> OpenJobs { get; } =
@@ -179,18 +181,20 @@ internal sealed partial class DevelopmentDemo(
         var applicants = 0;
         foreach (var applicant in SyntheticApplicants.All)
         {
-            applicants += await TryAsync(() => ApplyAsync(SyntheticApplicantsJobSlug, applicant, moves: [], stoppingToken), stoppingToken) ? 1 : 0;
+            applicants += await TryAsync(() => ApplyAsync(SyntheticApplicantsJobSlug, applicant, moves: [], keepForFutureRoles: false, stoppingToken), stoppingToken) ? 1 : 0;
         }
 
         var candidates = 0;
         foreach (var candidate in DemoCandidates.All)
         {
-            candidates += await TryAsync(() => ApplyAsync(candidate.JobSlug, candidate.Applicant, candidate.Moves, stoppingToken), stoppingToken) ? 1 : 0;
+            candidates += await TryAsync(
+                () => ApplyAsync(candidate.JobSlug, candidate.Applicant, candidate.Moves, candidate.KeepForFutureRoles, stoppingToken), stoppingToken) ? 1 : 0;
         }
 
         await TryAsync(() => SeedNotesAsync(stoppingToken), stoppingToken);
         await TryAsync(() => SeedScorecardsAsync(stoppingToken), stoppingToken);
         await TryAsync(() => SeedOneOffEmailAsync(stoppingToken), stoppingToken);
+        await TryAsync(() => SeedTalentPoolAsync(stoppingToken), stoppingToken);
         await TryAsync(() => CloseAsync(ClosedJobSlug, stoppingToken), stoppingToken);
         LogSeeded(logger, applicants, candidates);
     }
@@ -928,7 +932,8 @@ internal sealed partial class DevelopmentDemo(
 
     // Submits one applicant through the careers submission path, then makes `moves` in order as Brightwater's Owner.
     // False when they had already applied or the job is not open.
-    private async Task<bool> ApplyAsync(string jobSlug, SyntheticApplicant applicant, IReadOnlyList<DemoMove> moves, CancellationToken cancellationToken)
+    private async Task<bool> ApplyAsync(
+        string jobSlug, SyntheticApplicant applicant, IReadOnlyList<DemoMove> moves, bool keepForFutureRoles, CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
         if (await BeginAsync(scope, cancellationToken) is not { } step)
@@ -952,7 +957,8 @@ internal sealed partial class DevelopmentDemo(
             [new ApplicationAnswer(resumeQuestion.Id, upload.UploadId.ToString()), .. applicant.Answers],
             PrivacyNoticeVersion,
             applicant.HoneypotFilled,
-            BotCheckResult.NotChecked);
+            BotCheckResult.NotChecked,
+            keepForFutureRoles ? new FutureRolesConsent(step.Now, await TalentPoolMembership.MonthsAsync(db, cancellationToken)) : null);
         var created = await ApplicationSubmission.SubmitAsync(
             step.Outbox, job, new ApplicationSubmission.CandidateDetails(applicant.FirstName, applicant.LastName, applicant.Email, applicant.Phone),
             new ApplicationDeclarations(false, applicant.AiUseDeclaration, applicant.AiUseDetails),
@@ -971,6 +977,43 @@ internal sealed partial class DevelopmentDemo(
         }
 
         return true;
+    }
+
+    // The demo candidates the team kept in mind (DemoCandidates.KeptInMindNote), through the same domain methods as the
+    // talent pool's keep, so the pool has someone in it. One already kept, or no longer open, is left alone.
+    private async Task SeedTalentPoolAsync(CancellationToken cancellationToken)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        if (await BeginAsync(scope, cancellationToken) is not { Owner: { } avery } step)
+        {
+            return;
+        }
+
+        var db = step.Outbox.DbContext;
+        var months = await TalentPoolMembership.MonthsAsync(db, cancellationToken);
+        foreach (var candidate in DemoCandidates.All.Where(c => c.KeptInMindNote is not null))
+        {
+            var email = Domain.Candidates.Candidate.Normalize(candidate.Applicant.Email);
+            var application = await (
+                from a in db.Applications
+                join c in db.Candidates on a.CandidateId equals c.Id
+                where c.NormalizedEmail == email
+                select a).SingleOrDefaultAsync(cancellationToken);
+            var job = application is null ? null : await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == application.JobId, cancellationToken);
+            var stage = job?.Workflow.FindStage(application!.CurrentStageId);
+            if (application is null || application.HasEnded(stage) || !application.AllowsFutureRoles(months, step.Now))
+            {
+                continue;
+            }
+
+            var kept = application.KeepInMind(stage, months, step.Now, avery, candidate.KeptInMindNote);
+            var entry = TalentPoolEntry.For(application, kept);
+            db.ApplicationEvents.Add(kept);
+            db.TalentPoolEntries.Add(entry);
+            await step.Outbox.PublishAsync(TalentPoolMembership.Changed(entry, step.Now));
+        }
+
+        await step.Outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
     }
 
     // Makes `moves` in order as Brightwater's Owner, in a scope of its own like the dashboard's move request: an outbox

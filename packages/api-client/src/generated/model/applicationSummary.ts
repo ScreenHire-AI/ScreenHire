@@ -29,4 +29,8 @@ export interface ApplicationSummary {
   /** @nullable */
   slaDueAt?: string | null;
   rating?: null | ApplicationRating;
+  /** @nullable */
+  keptInMindAt?: string | null;
+  /** @nullable */
+  futureRolesUntil?: string | null;
 }

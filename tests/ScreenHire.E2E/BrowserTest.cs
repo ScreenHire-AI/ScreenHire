@@ -132,10 +132,17 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
 
     private static async Task CheckAsync(IPage page)
     {
-        // Colours ease when the theme switches; axe measuring mid-transition reports contrast between two themes.
-        // CSS transitions only: an endless animation (a skeleton's pulse) would never finish.
+        // Colours ease when the theme switches or a button's state changes (disabled fades to half opacity); axe measuring
+        // mid-transition reports a contrast no one sees. Two frames first, so a state change the page has just made has
+        // started its transition, then every transition in flight. CSS transitions only: an endless animation (a
+        // skeleton's pulse) would never finish.
         await page.EvaluateAsync(
-            "() => Promise.all(document.getAnimations().filter(a => a instanceof CSSTransition).map(a => a.finished.catch(() => undefined)))");
+            """
+            async () => {
+              for (let frame = 0; frame < 2; frame++) await new Promise(resolve => requestAnimationFrame(() => resolve()));
+              await Promise.all(document.getAnimations().filter(a => a instanceof CSSTransition).map(a => a.finished.catch(() => undefined)));
+            }
+            """);
         // A frame sandboxed with no permissions (an email preview) runs no scripts, so axe could never answer from inside
         // it and the run would wait forever. Its element, title included, is still checked from the page.
         var context = new AxeRunContext { Exclude = [new AxeSelector("iframe[sandbox='']")] };
