@@ -182,6 +182,8 @@ shows, `LastUpdated` with `lead` starts with its verb ("Created 2 hours ago by A
    colour), one line each, when each describer returns no lines for the other's changes. A row that holds a secret is
    tracked through a view, a record of the values its lines need (`Track<T, TView>`), never the entity itself.
 3. Add a `GET .../{id}/history` route in the kind's area with `ChangeHistoryRoutes`, after the area's own visibility
-   check.
-4. Put `lastUpdated` on its read contracts with `ChangeHistoryQueries.LastAsync` and `LastUpdate.From`.
+   check. A kind whose subject is the organization itself (Team, API keys) has no id in its route: use
+   `ChangeHistoryRoutes.OrganizationPageAsync` and `OrganizationLastUpdateAsync` for `.../history` and `.../last-update`.
+4. Put `lastUpdated` on its read contracts with `ChangeHistoryQueries.LastAsync` and `LastUpdate.From`, or
+   `LastUpdate.FromChange` for a row people only change and never create.
 5. On its page, the Last updated fact and the History sheet; run `pnpm generate:api`.
