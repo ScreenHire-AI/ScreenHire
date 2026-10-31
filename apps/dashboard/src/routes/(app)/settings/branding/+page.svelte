@@ -201,8 +201,10 @@
           <p class="sr-only" role="status">Loading the branding…</p>
         </Panel>
         <Panel title="Heading font">
-          <div aria-hidden="true" class="grid gap-2 sm:grid-cols-2">
-            {#each Array.from({ length: 6 }, (_, index) => index) as index (index)}<Skeleton class="h-14 w-full" />{/each}
+          <div aria-hidden="true" class="@container">
+            <div class="grid gap-2 @md:grid-cols-2">
+              {#each Array.from({ length: 6 }, (_, index) => index) as index (index)}<Skeleton class="h-14 w-full" />{/each}
+            </div>
           </div>
         </Panel>
         <Panel title="Images">
