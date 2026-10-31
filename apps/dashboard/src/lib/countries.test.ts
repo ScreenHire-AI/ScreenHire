@@ -21,7 +21,8 @@ describe('countries', () => {
   });
 
   it("keeps a job's own code that is not on the list", () => {
-    expect(countryOptions(['en'], ['xk']).some((option) => option.value === 'XK')).toBe(true);
+    expect(countryOptions(['en'], ['XK']).filter((option) => option.value === 'XK')).toHaveLength(1);
+    expect(countryOptions(['en'], ['GB']).filter((option) => option.value === 'GB')).toHaveLength(1);
     expect(countryName(['en'], 'QM')).toBe('QM');
   });
 

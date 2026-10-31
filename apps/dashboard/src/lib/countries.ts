@@ -48,7 +48,8 @@ export function countryName(locales: readonly string[], code: string): string {
 export function countryOptions(locales: readonly string[], current: readonly string[] = []): CountryOption[] {
   const names = new Intl.DisplayNames([...locales], { type: 'region', fallback: 'code' });
   const codes = new Set(countryCodes);
-  for (const code of current) if (code) codes.add(code.toUpperCase());
+  // As stored, so the option's value matches the form's value exactly (the API only takes upper case anyway).
+  for (const code of current) if (code) codes.add(code);
   return [...codes]
     .map((code) => ({ value: code, label: names.of(code) ?? code }))
     .toSorted((a, b) => a.label.localeCompare(b.label, [...locales]));
