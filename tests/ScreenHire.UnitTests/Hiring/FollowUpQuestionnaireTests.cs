@@ -150,9 +150,9 @@ public sealed class FollowUpQuestionnaireTests
     [Fact]
     public void A_signal_driven_automation_may_not_send_a_questionnaire()
     {
-        var direct = Automation("direct", new AutomationTrigger(TriggerType.IntegrityAssessed),
+        var direct = Automation("direct", new AutomationTrigger(TriggerType.VerificationAssessed),
             [new AutomationAction(ActionType.SendQuestionnaire, QuestionnaireId: "availability")]);
-        var tagger = Automation("tagger", new AutomationTrigger(TriggerType.IntegrityAssessed), [new AutomationAction(ActionType.AddTag, Tag: "flagged")]);
+        var tagger = Automation("tagger", new AutomationTrigger(TriggerType.VerificationAssessed), [new AutomationAction(ActionType.AddTag, Tag: "flagged")]);
         var laundered = Automation("laundered", new AutomationTrigger(TriggerType.Manual), [new AutomationAction(ActionType.SendQuestionnaire, QuestionnaireId: "availability")]) with
         {
             Conditions = new AutomationConditions(ConditionMatch.All, [new AutomationCondition(FactSchema.Tags, ConditionOperator.Contains, "flagged")]),

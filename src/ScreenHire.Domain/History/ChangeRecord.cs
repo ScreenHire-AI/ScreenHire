@@ -22,8 +22,8 @@ public enum ChangeSubjectKind
     /// <summary>The organization's brand colour, on Settings, Branding.</summary>
     Branding,
 
-    /// <summary>The organization's integrity settings, on Settings, Verification.</summary>
-    IntegritySettings,
+    /// <summary>The organization's verification settings, on Settings, Verification.</summary>
+    VerificationSettings,
 
     /// <summary>The organization's team, on Settings, Team: members' roles and job access, joins, removals and invitations.</summary>
     Team,

@@ -1,5 +1,5 @@
 using ScreenHire.Application.Distribution;
-using ScreenHire.Application.Integrity.Content;
+using ScreenHire.Application.Verification.Content;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;

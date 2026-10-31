@@ -5,7 +5,7 @@
   import { tick, type Snippet } from 'svelte';
   import { get } from 'svelte/store';
   import DateText from '#lib/components/date-text.svelte';
-  import IntegrityChip from '#lib/components/integrity-chip.svelte';
+  import VerificationChip from '#lib/components/verification-chip.svelte';
   import Rating from '#lib/components/rating.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
@@ -19,7 +19,7 @@
   import { candidateRowHeight, candidateTableFeatures, type CandidateColumn } from '#lib/candidate-table.js';
   import { initials, sourceLabel } from '#lib/format.js';
   import { IsMobile } from '#lib/hooks/is-mobile.svelte.js';
-  import { chipOf } from '#lib/integrity.js';
+  import { chipOf } from '#lib/verification.js';
   import type { Moves } from '#lib/moves.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { hasModifier, isTypingTarget } from '#lib/shortcuts.js';
@@ -64,7 +64,7 @@
     /** With `moves`: the job's stages, for each row's "Move" menu. */
     stages?: readonly WorkflowStage[];
     moves?: Moves;
-    /** Columns right after Candidate (status first, T2): the slot the integrity columns fill (#lib/candidate-table.ts). */
+    /** Columns right after Candidate (status first, T2): the slot the verification columns fill (#lib/candidate-table.ts). */
     extraColumns?: readonly CandidateColumn[];
     /** The keyboard cursor's row (J / K), tinted; the job page shows it in its side panel. */
     activeId?: string | null;
@@ -88,13 +88,13 @@
     { id: 'select', header: () => renderSnippet(selectHeader, undefined), cell: ({ row }) => renderSnippet(selectCell, row.original) },
     // Every column sorts (L2); text columns by their words, A to Z first.
     { id: 'candidate', header: 'Candidate', accessorFn: (application) => application.candidateName, sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(candidateCell, row.original) },
-    // Status first, right after the name (T2): the integrity columns, then the facts.
+    // Status first, right after the name (T2): the verification columns, then the facts.
     ...extraColumns,
     ...(showJob
       ? [{ id: 'job', header: 'Job', accessorFn: (application) => application.jobTitle, sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(jobCell, row.original) } satisfies CandidateColumn]
       : []),
     // On a job's table the Stage column sorts by attention: overdue rows first, the longest overdue at the top, then the
-    // rest in pipeline order. Overdue is the team's own delay (section 3.2), so the order never leans on integrity output.
+    // rest in pipeline order. Overdue is the team's own delay (section 3.2), so the order never leans on verification output.
     // Across jobs there is no one pipeline order, so it sorts by the stage's name.
     {
       id: 'stage',
@@ -109,7 +109,7 @@
     // Applied sorts, newest first: the order every candidate table opens on (L2).
     { id: 'applied', header: 'Applied', accessorFn: (application) => application.submittedAt, sortFn: 'basic', sortDescFirst: true, cell: ({ row }) => renderSnippet(appliedCell, row.original) },
     // When anything last happened to the application, from the candidate or the team (the API's lastActivityAt), newest
-    // first. The integrity checks never move it.
+    // first. The verification checks never move it.
     { id: 'lastActivity', header: 'Last activity', accessorFn: (application) => application.lastActivityAt, sortFn: 'basic', sortDescFirst: true, cell: ({ row }) => renderSnippet(lastActivityCell, row.original) },
     ...(stages && moves?.allowed ? [{ id: 'move', header: () => renderSnippet(moveHeader, undefined), cell: ({ row }) => renderSnippet(moveCell, row.original) } satisfies CandidateColumn] : []),
   ]);
@@ -310,11 +310,11 @@
 {/snippet}
 
 {#snippet listItem(application: ApplicationSummary)}
-  {@const authenticity = chipOf(application.integrity, 'authenticity')}
-  {@const ai = chipOf(application.integrity, 'aiAssistance')}
+  {@const authenticity = chipOf(application.verification, 'authenticity')}
+  {@const ai = chipOf(application.verification, 'aiAssistance')}
   <ListItem href={`/applications/${application.id}`} title={application.candidateName}>
     {#snippet status()}
-      <IntegrityChip
+      <VerificationChip
         kind="authenticity"
         compact
         level={authenticity?.level ?? null}
@@ -334,7 +334,7 @@
         <Badge variant="muted" class="relative max-w-full"><TruncatedText text={application.jobTitle} /></Badge>
       {/if}
       {#if ai && ai.level.rank > 0}
-        <IntegrityChip kind="aiAssistance" compact level={ai.level} reasons={ai.reasons} dismissed={ai.dismissed} />
+        <VerificationChip kind="aiAssistance" compact level={ai.level} reasons={ai.reasons} dismissed={ai.dismissed} />
       {/if}
       {#if application.rating?.state === 'Rated' || application.rating?.state === 'AfterYourScorecard'}
         <!-- relative: above the item's link, so the count's or "After yours"'s tooltip opens on tap. -->

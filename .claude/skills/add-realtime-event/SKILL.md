@@ -26,7 +26,7 @@ handled and drops it.
   the dashboard can say who did it and never tells people about their own changes (realtime.md, "Who made a change").
   A member added to an existing event goes last with a null default, so envelopes already queued still deserialize.
 - Every signed-in member of the organization receives the payload in their browser. Carry ids, statuses and times,
-  never names, emails, answers or integrity evidence. The client refetches anything else through the REST API, which
+  never names, emails, answers or verification evidence. The client refetches anything else through the REST API, which
   applies its own authorization.
 - The record's name is its `type` on the wire. It must be unique among events; `ScreenHireMessaging.TenantEventTypes`
   fails at startup otherwise.

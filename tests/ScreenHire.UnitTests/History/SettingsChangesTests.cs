@@ -1,11 +1,11 @@
 using ScreenHire.Domain.History;
-using ScreenHire.Domain.Integrity;
+using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Organizations;
 
 namespace ScreenHire.UnitTests.History;
 
 /// <summary>
-/// The settings pages' history lines (change-history.md): the organization's name, its brand colour and its integrity
+/// The settings pages' history lines (change-history.md): the organization's name, its brand colour and its verification
 /// settings, each only when it changed.
 /// </summary>
 public sealed class SettingsChangesTests
@@ -69,14 +69,14 @@ public sealed class SettingsChangesTests
     }
 
     [Fact]
-    public void The_integrity_settings_name_each_change_and_compare_a_first_save_with_the_defaults()
+    public void The_verification_settings_name_each_change_and_compare_a_first_save_with_the_defaults()
     {
-        var on = new IntegritySettings { LlmConsistencyCheckEnabled = true, MonthlyTokenBudget = 250_000 };
-        var off = new IntegritySettings { LlmConsistencyCheckEnabled = false, MonthlyTokenBudget = null };
+        var on = new VerificationSettings { LlmConsistencyCheckEnabled = true, MonthlyTokenBudget = 250_000 };
+        var off = new VerificationSettings { LlmConsistencyCheckEnabled = false, MonthlyTokenBudget = null };
 
-        Sentences(SettingsChanges.Integrity(null, on)).Should().Equal("turned on the consistency check", "set the monthly token budget to 250,000");
-        Sentences(SettingsChanges.Integrity(on, off)).Should().Equal("turned off the consistency check", "went back to ScreenHire's default token budget");
-        SettingsChanges.Integrity(null, off).Should().BeEmpty("saving the defaults changes nothing");
+        Sentences(SettingsChanges.Verification(null, on)).Should().Equal("turned on the consistency check", "set the monthly token budget to 250,000");
+        Sentences(SettingsChanges.Verification(on, off)).Should().Equal("turned off the consistency check", "went back to ScreenHire's default token budget");
+        SettingsChanges.Verification(null, off).Should().BeEmpty("saving the defaults changes nothing");
     }
 
     private static Organization Organization(string name, string? brandColor = null)

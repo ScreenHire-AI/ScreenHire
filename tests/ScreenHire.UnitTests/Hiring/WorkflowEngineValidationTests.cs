@@ -4,7 +4,7 @@ namespace ScreenHire.UnitTests.Hiring;
 
 /// <summary>
 /// The validator rules the workflow engine added: the typed facts schema, the email templates, the kinds the engine does
-/// not run yet, and the guardrails stated as the brief states them (an integrity condition with Reject is refused).
+/// not run yet, and the guardrails stated as the brief states them (a verification condition with Reject is refused).
 /// </summary>
 public sealed class WorkflowEngineValidationTests
 {
@@ -17,12 +17,12 @@ public sealed class WorkflowEngineValidationTests
     private static readonly Question Experience = new("experience", QuestionType.Number, "Years of experience");
 
     [Fact]
-    public void An_integrity_condition_with_reject_is_refused_at_save()
+    public void An_verification_condition_with_reject_is_refused_at_save()
     {
         var workflow = Workflow(automations:
         [
-            new("reject-on-integrity", "Reject on integrity", new AutomationTrigger(TriggerType.IntegrityAssessed),
-                Rules(new AutomationCondition("integrity.authenticity", ConditionOperator.EqualTo, "VerificationRecommended")),
+            new("reject-on-verification", "Reject on verification", new AutomationTrigger(TriggerType.VerificationAssessed),
+                Rules(new AutomationCondition("verification.authenticity", ConditionOperator.EqualTo, "VerificationRecommended")),
                 [new AutomationAction(ActionType.Reject, Reason: "Looks automated")],
                 AllowAutoReject: true),
         ]);
@@ -34,12 +34,12 @@ public sealed class WorkflowEngineValidationTests
     [Theory]
     [InlineData(ActionType.Reject)]
     [InlineData(ActionType.QueueForRejectionReview)]
-    public void An_integrity_condition_may_not_even_queue_a_rejection(ActionType type)
+    public void An_verification_condition_may_not_even_queue_a_rejection(ActionType type)
     {
         var workflow = Workflow(automations:
         [
-            new("a", "A", new AutomationTrigger(TriggerType.IntegrityAssessed),
-                Rules(new AutomationCondition("integrity.aiAssistance", ConditionOperator.In, Values: ["SomeIndicators", "StrongIndicators"])),
+            new("a", "A", new AutomationTrigger(TriggerType.VerificationAssessed),
+                Rules(new AutomationCondition("verification.aiAssistance", ConditionOperator.In, Values: ["SomeIndicators", "StrongIndicators"])),
                 [new AutomationAction(type, Reason: "AI use")]),
         ]);
 
@@ -89,7 +89,7 @@ public sealed class WorkflowEngineValidationTests
     [Theory]
     [InlineData(TriggerType.ApplicationSubmitted)]
     [InlineData(TriggerType.QuestionnaireCompleted)]
-    [InlineData(TriggerType.IntegrityAssessed)]
+    [InlineData(TriggerType.VerificationAssessed)]
     [InlineData(TriggerType.ReviewerDecision)]
     [InlineData(TriggerType.Manual)]
     public void The_v1_triggers_without_a_stage_are_accepted(TriggerType type)
@@ -153,8 +153,8 @@ public sealed class WorkflowEngineValidationTests
     {
         var workflow = Workflow(automations:
         [
-            new("tagger", "Tagger", new AutomationTrigger(TriggerType.IntegrityAssessed),
-                Rules(new AutomationCondition("integrity.authenticity", ConditionOperator.EqualTo, "ReviewSuggested")),
+            new("tagger", "Tagger", new AutomationTrigger(TriggerType.VerificationAssessed),
+                Rules(new AutomationCondition("verification.authenticity", ConditionOperator.EqualTo, "ReviewSuggested")),
                 [new AutomationAction(ActionType.AddTag, Tag: "1")]),
             new("queue", "Queue", new AutomationTrigger(TriggerType.QuestionnaireCompleted),
                 Rules(new AutomationCondition("application.tags", ConditionOperator.In, Values: ["1.0"])),
@@ -173,10 +173,10 @@ public sealed class WorkflowEngineValidationTests
     [InlineData("answers.experience", ConditionOperator.GreaterThan, "five", "value")]
     [InlineData("application.tags", ConditionOperator.GreaterThan, "x", "operator")]
     [InlineData("application.hoursInStage", ConditionOperator.Contains, "4", "operator")]
-    [InlineData("integrity.authenticity", ConditionOperator.GreaterThanOrEqual, "ReviewSuggested", "operator")]
+    [InlineData("verification.authenticity", ConditionOperator.GreaterThanOrEqual, "ReviewSuggested", "operator")]
     public void Conditions_fit_the_type_of_their_fact(string fact, ConditionOperator op, string value, string member)
     {
-        // AddTag is safe even for an integrity fact, so the only error is the condition's.
+        // AddTag is safe even for a verification fact, so the only error is the condition's.
         var workflow = Workflow([WorkAuthorization, Shifts, Experience],
         [
             new("a", "A", new AutomationTrigger(TriggerType.QuestionnaireCompleted), Rules(new AutomationCondition(fact, op, value)),

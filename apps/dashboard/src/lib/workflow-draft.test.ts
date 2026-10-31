@@ -11,7 +11,7 @@ const workflow = (screening: string): HiringWorkflow => ({
     { id: 'screening', name: screening, kind: 'Screening' },
   ],
   questionnaire: { questions: [] },
-  integrityPolicy: { aiUse: 'Allowed' },
+  verificationPolicy: { aiUse: 'Allowed' },
   automations: [],
 });
 

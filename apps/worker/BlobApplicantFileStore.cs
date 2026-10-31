@@ -1,7 +1,7 @@
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.Configuration;
 using ScreenHire.Application.Applications;
-using ScreenHire.Application.Integrity.Content;
+using ScreenHire.Application.Verification.Content;
 
 namespace ScreenHire.Worker;
 

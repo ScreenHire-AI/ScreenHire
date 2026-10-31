@@ -8,7 +8,7 @@ tags: [adr, integrity, legal]
 
 - **Status:** Accepted (2026-10-18)
 - **Deciders:** Owner
-- **Research:** `docs/research/legal.md`, `docs/research/competitors.md` · **Design:** `docs/architecture/integrity-engine.md`
+- **Research:** `docs/research/legal.md`, `docs/research/competitors.md` · **Design:** `docs/architecture/verification-engine.md`
 
 ## Context
 The owner wants every signal from first visit to submitted questionnaire used to flag whether an applicant is human,

@@ -13,7 +13,7 @@ public static class SystemTemplates
 
     public static readonly Guid SoftwareEngineerVersion1 = new("0199e8a0-0000-7000-8000-000000000101");
 
-    /// <summary>Version 1 with its integrity automation's level names corrected (migration <c>AddSoftwareEngineerTemplateVersion2</c>).</summary>
+    /// <summary>Version 1 with its verification automation's level names corrected (migration <c>AddSoftwareEngineerTemplateVersion2</c>).</summary>
     public static readonly Guid SoftwareEngineerVersion2 = new("0199e8a0-0000-7000-8000-000000000102");
 
     /// <summary>Version 2 with default scorecards on Screening, Technical exercise and Interviews (migration <c>AddScorecards</c>).</summary>
@@ -21,6 +21,9 @@ public static class SystemTemplates
 
     /// <summary>Version 3 with its right-to-work automation firing on the application (migration <c>AddFollowUpQuestionnaires</c>).</summary>
     public static readonly Guid SoftwareEngineerVersion4 = new("0199e8a0-0000-7000-8000-000000000104");
+
+    /// <summary>Version 4 with its verification automation's name and tag saying verification (migration <c>RenameIntegrityToVerification</c>, ADR-0019).</summary>
+    public static readonly Guid SoftwareEngineerVersion5 = new("0199e8a0-0000-7000-8000-000000000105");
 
     public static readonly Guid HourlyRole = new("0199e8a0-0000-7000-8000-000000000002");
 

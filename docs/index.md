@@ -13,7 +13,7 @@ Read the lines below, open the folder or doc whose line answers the question, an
 
 ## How it is built
 
-* [Architecture](architecture/index.md) - Each subsystem: integrity, workflows and webhooks, job distribution, messaging, real-time updates, sign-in and tenancy, the MCP server for AI assistants, email to candidates, reports, the careers apply flow, the embeddable careers widget, and the talent pool.
+* [Architecture](architecture/index.md) - Each subsystem: verification, workflows and webhooks, job distribution, messaging, real-time updates, sign-in and tenancy, the MCP server for AI assistants, email to candidates, reports, the careers apply flow, the embeddable careers widget, and the talent pool.
 * [Design](design/index.md) - The design system, the one source of truth for every screen, with the review checklist.
 * [Decisions](adr/index.md) - The architecture decision records and their status: the decision log.
 

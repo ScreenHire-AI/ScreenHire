@@ -4,16 +4,16 @@ using ScreenHire.Domain.Organizations;
 namespace ScreenHire.Api.Contracts;
 
 /// <summary>
-/// The organization's integrity settings. <c>llmConsistencyCheck</c> turns on the LLM consistency check, which sends the
+/// The organization's verification settings. <c>llmConsistencyCheck</c> turns on the LLM consistency check, which sends the
 /// resume, answers and any LinkedIn export to the deployment's model provider; it is off until an admin turns it on.
 /// <c>monthlyTokenBudget</c> caps the tokens it may use per calendar month (UTC); null uses the deployment's default.
 /// <c>tokensUsedThisMonth</c> is what the check has used so far this month. <c>lastUpdated</c> is the settings' last
-/// change ("by ScreenHire" while they are the defaults); their history is <c>/integrity-settings/history</c>.
+/// change ("by ScreenHire" while they are the defaults); their history is <c>/verification-settings/history</c>.
 /// </summary>
-public sealed record OrganizationIntegritySettings(bool LlmConsistencyCheck, long? MonthlyTokenBudget, long TokensUsedThisMonth, LastUpdate LastUpdated);
+public sealed record OrganizationVerificationSettings(bool LlmConsistencyCheck, long? MonthlyTokenBudget, long TokensUsedThisMonth, LastUpdate LastUpdated);
 
 /// <summary>Turns the LLM consistency check on or off and sets its monthly token budget (null for the deployment's default).</summary>
-public sealed record UpdateIntegritySettingsRequest(bool LlmConsistencyCheck, long? MonthlyTokenBudget = null);
+public sealed record UpdateVerificationSettingsRequest(bool LlmConsistencyCheck, long? MonthlyTokenBudget = null);
 
 /// <summary>
 /// The organization's talent pool settings (docs/architecture/talent-pool.md). <c>permissionMonths</c> is how long a

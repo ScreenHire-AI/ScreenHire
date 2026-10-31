@@ -1,6 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using ScreenHire.Application.Integrity;
+using ScreenHire.Application.Verification;
 
 namespace ScreenHire.IntegrationTests.TalentPool;
 
@@ -242,8 +242,8 @@ public sealed class TalentPoolKeepTests(AppHostFixture fixture)
         var (target, _) = await world.OpenJobAsync("Solutions Engineer");
         var cleared = await fixture.ApplyAsync(world.Slug, job, SyntheticApplicants.GenuineHuman, Ct, keepForFutureRoles: true);
         var flagged = await fixture.ApplyAsync(world.Slug, job, SyntheticApplicants.Bot, Ct, keepForFutureRoles: true);
-        (await IntegritySupport.AssessedAsync(world.Owner, flagged)).Text("authenticity.level").Should().Be("VerificationRecommended");
-        (await IntegritySupport.AssessedAsync(world.Owner, cleared)).Text("authenticity.level").Should().Be("NoConcerns");
+        (await VerificationSupport.AssessedAsync(world.Owner, flagged)).Text("authenticity.level").Should().Be("VerificationRecommended");
+        (await VerificationSupport.AssessedAsync(world.Owner, cleared)).Text("authenticity.level").Should().Be("NoConcerns");
 
         var kept = (await world.KeepAsync([flagged, cleared])).Expect(HttpStatusCode.OK);
 

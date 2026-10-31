@@ -10,7 +10,7 @@ using ScreenHire.Infrastructure.Tenancy;
 namespace ScreenHire.Api.Endpoints;
 
 /// <summary>
-/// Telemetry ingest for the careers apply form (integrity-engine.md §10.2): the page's module sends cumulative
+/// Telemetry ingest for the careers apply form (verification-engine.md §10.2): the page's module sends cumulative
 /// snapshots of session aggregates with <c>navigator.sendBeacon</c> to the careers server, which forwards them here.
 /// Anonymous, like the rest of the apply flow, and bound to the session token the application form carried.
 /// </summary>

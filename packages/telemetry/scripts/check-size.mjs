@@ -1,4 +1,4 @@
-// The size budget (integrity-engine.md §5): the telemetry module ships at most 5 KB brotli-compressed. Runs after
+// The size budget (verification-engine.md §5): the telemetry module ships at most 5 KB brotli-compressed. Runs after
 // `vite build`, so `pnpm -r build` and therefore `pnpm verify` fail when the module outgrows it.
 import { readFileSync } from 'node:fs';
 import { brotliCompressSync, constants } from 'node:zlib';

@@ -12,7 +12,7 @@
 
   // The candidate's rating (design system section 11, Rating): five stars filled to the tenth, the number, and how many
   // scorecards it comes from. With the scorecards it opens to each one and its part of the rating. It averages people's
-  // rating answers only, never integrity output, AI signals or the stage, and no automation reads it (ADR-0013). A
+  // rating answers only, never verification output, AI signals or the stage, and no automation reads it (ADR-0013). A
   // reviewer with their own scorecard to give reads "Rating after your scorecard": the API leaves the number out.
   let {
     rating,

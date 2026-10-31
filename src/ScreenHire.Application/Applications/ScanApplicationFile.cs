@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using ScreenHire.Application.Integrity.Content;
+using ScreenHire.Application.Verification.Content;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Infrastructure.Persistence;

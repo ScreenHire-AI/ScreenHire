@@ -11,7 +11,7 @@ import type { TimeToHire } from './timeToHire.ts';
 /**
  * The Reports page (docs/architecture/reports.md): the funnel, time to hire and sources for the jobs the person can see,
  * between two instants. All three come from one snapshot, so their numbers agree. Nothing here reads verification
- * (integrity) results.
+ * (verification) results.
  */
 export interface HiringReport {
   from: string;

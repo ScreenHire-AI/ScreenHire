@@ -1,0 +1,513 @@
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
+using ScreenHire.Application.Verification;
+using ScreenHire.Domain.Applications;
+using ScreenHire.Domain.Verification;
+using ScreenHire.Infrastructure.Persistence;
+using ScreenHire.Infrastructure.Tenancy;
+using ScreenHire.IntegrationTests.Messaging;
+using Wolverine;
+
+namespace ScreenHire.IntegrationTests;
+
+/// <summary>
+/// The verification engine end to end (docs/architecture/verification-engine.md): a careers submission becomes two assessments
+/// readable through the API, with reason codes, evidence, a summary and a next step; reviewers dismiss and add notes,
+/// and every action is in the audit log; raw network data expires; the tables are tenant-scoped and append-only. The
+/// applicants are the synthetic ones the golden files use, submitted over HTTP the way the careers server does, with
+/// their address in <c>X-Forwarded-For</c> (the API trusts it from loopback).
+/// </summary>
+public sealed class VerificationTests(AppHostFixture fixture)
+{
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task A_bot_submission_is_assessed_with_reasons_evidence_a_summary_and_a_next_step()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        var (slug, jobId) = await OpenJobAsync(tenant);
+        var applicationId = await ApplyAsync(slug, jobId, SyntheticApplicants.Bot);
+
+        var verification = await AssessedAsync(tenant, applicationId);
+
+        verification.Text("status").Should().Be("Assessed");
+        var authenticity = verification.At("authenticity");
+        authenticity.GetProperty("level").GetString().Should().Be("VerificationRecommended");
+        authenticity.GetProperty("reasonCodes").EnumerateArray().Select(c => c.GetString()).Should().Contain(
+            [SignalCatalogue.Honeypot, SignalCatalogue.Webdriver, SignalCatalogue.DatacenterIp, SignalCatalogue.DisposableEmail, SignalCatalogue.SubmitVelocity]);
+        authenticity.GetProperty("summary").GetString().Should().StartWith("6 observations from network, identity and automation checks");
+        authenticity.GetProperty("nextStep").GetString().Should().Contain("not a reason to reject");
+        authenticity.GetProperty("rulesetVersion").GetString().Should().Be(VerificationRuleset.Version);
+        var datacenter = authenticity.GetProperty("signals").EnumerateArray().Single(s => s.GetProperty("code").GetString() == SignalCatalogue.DatacenterIp);
+        datacenter.GetProperty("countsTowardLevel").GetBoolean().Should().BeTrue();
+        datacenter.GetProperty("evidence").EnumerateArray().Should().Contain(e =>
+            e.GetProperty("kind").GetString() == "Fact" && e.GetProperty("value").GetString() == "Example Cloud Hosting (AS64497)");
+
+        var ai = verification.At("aiAssistance");
+        ai.GetProperty("level").GetString().Should().Be("NotIndicated");
+        ai.GetProperty("policy").GetString().Should().Be("AllowedWithDisclosure");
+
+        // Evidence, not verdicts: no score, no percentage, and never the raw address.
+        var raw = verification.Body.GetRawText();
+        raw.Should().NotContainEquivalentOf("score").And.NotContain("%").And.NotContain(SyntheticApplicants.Bot.IpAddress);
+
+        // The level reaches the list's chips and the timeline the workflow engine reads.
+        var list = await tenant.GetAsync($"/v1/jobs/{jobId}/applications");
+        list.At("0.verification.authenticity").GetString().Should().Be("VerificationRecommended");
+        var timeline = await tenant.GetAsync($"/v1/applications/{applicationId}/timeline");
+        timeline.Body.EnumerateArray().Select(e => e.GetProperty("type").GetString()).Should().Contain("VerificationAssessed");
+    }
+
+    [Fact]
+    public async Task A_genuine_applicant_has_no_concerns_and_their_raw_network_data_is_stored_to_expire()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        var (slug, jobId) = await OpenJobAsync(tenant);
+        var applicationId = await ApplyAsync(slug, jobId, SyntheticApplicants.GenuineHuman);
+
+        var verification = await SettledAsync(tenant, applicationId);
+
+        verification.Text("authenticity.level").Should().Be("NoConcerns");
+        verification.At("authenticity.reasonCodes").GetArrayLength().Should().Be(0);
+        verification.Text("authenticity.nextStep").Should().Be("No action needed.");
+
+        await using var db = await TenantDbAsync(tenant.OrganizationId);
+        var observation = await db.SubmissionObservations.SingleAsync(o => o.ApplicationId == applicationId, Ct);
+        observation.IpAddress.Should().Be(SyntheticApplicants.GenuineHuman.IpAddress);
+        observation.UserAgent.Should().Be(SyntheticApplicants.GenuineHuman.UserAgent);
+        observation.DeviceHash.Should().HaveLength(64).And.NotContain("robin", "the fingerprint is stored only as an organization-salted hash");
+        observation.ExpiresAt.Should().BeCloseTo(observation.ObservedAt.AddDays(30), TimeSpan.FromSeconds(1));
+        (await db.VerificationAnalyzerRuns.Where(r => r.ApplicationId == applicationId).Select(r => r.Analyzer).ToListAsync(Ct))
+            .Should().BeEquivalentTo(VerificationSupport.Analyzers);
+    }
+
+    [Fact]
+    public async Task An_application_farm_shares_details_within_the_organization()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        var (slug, jobId) = await OpenJobAsync(tenant);
+        await ApplyAsync(slug, jobId, SyntheticApplicants.ApplicationFarm[0]);
+        var second = await ApplyAsync(slug, jobId, SyntheticApplicants.ApplicationFarm[1]);
+
+        var verification = await AssessedAsync(tenant, second);
+
+        verification.Text("authenticity.level").Should().Be("VerificationRecommended");
+        var duplicate = verification.At("authenticity.signals").EnumerateArray().Single(s => s.GetProperty("code").GetString() == SignalCatalogue.DuplicateInOrganization);
+        duplicate.GetProperty("weight").GetString().Should().Be("High");
+        duplicate.GetProperty("evidence").EnumerateArray().Select(e => e.GetProperty("label").GetString())
+            .Should().Contain(["Same device", "Same resume file", "Same phone number", "Same email address (ignoring a plus tag)"]);
+    }
+
+    [Fact]
+    public async Task Reviewers_dismiss_with_a_reason_and_add_notes_and_every_action_is_logged()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        var (slug, jobId) = await OpenJobAsync(tenant);
+        var bot = await ApplyAsync(slug, jobId, SyntheticApplicants.Bot);
+        var genuine = await ApplyAsync(slug, jobId, SyntheticApplicants.GenuineHuman);
+        var verification = await AssessedAsync(tenant, bot);
+        var assessmentId = verification.Id("authenticity.id");
+        var dismiss = $"/v1/applications/{bot}/verification/assessments/{assessmentId}/dismiss";
+
+        (await tenant.PostAsync(dismiss, new JsonObject { ["reason"] = "Other" })).Expect(HttpStatusCode.BadRequest)
+            .ProblemKeys().Should().Equal("note");
+        var dismissed = (await tenant.PostAsync(dismiss, new JsonObject { ["reason"] = "VerifiedOutsideScreenHire", ["note"] = "Video call on Monday." }))
+            .Expect(HttpStatusCode.OK);
+        (await tenant.PostAsync(dismiss, new JsonObject { ["reason"] = "FalsePositive" })).Expect(HttpStatusCode.Conflict);
+        var noted = (await tenant.PostAsync($"/v1/applications/{bot}/verification/notes", new JsonObject { ["note"] = "Asked for references." }))
+            .Expect(HttpStatusCode.OK);
+        (await tenant.PostAsync($"/v1/applications/{bot}/verification/request-verification")).Expect(HttpStatusCode.Conflict);
+
+        dismissed.Text("authenticity.dismissal.reason").Should().Be("VerifiedOutsideScreenHire");
+        dismissed.Id("authenticity.dismissal.actorUserId").Should().Be(tenant.UserId);
+        dismissed.Text("authenticity.level").Should().Be("VerificationRecommended", "dismissing records a decision; it never rewrites the evidence");
+        var log = noted.At("reviewLog").EnumerateArray().ToList();
+        log.Select(e => e.GetProperty("type").GetString()).Should().Equal("Dismissed", "NoteAdded");
+        log[0].GetProperty("assessmentKind").GetString().Should().Be("Authenticity");
+        log[1].GetProperty("note").GetString().Should().Be("Asked for references.");
+        noted.At("requestVerification.available").GetBoolean().Should().BeFalse();
+
+        // Nothing to dismiss at the lowest level.
+        var clear = await AssessedAsync(tenant, genuine);
+        (await tenant.PostAsync(
+            $"/v1/applications/{genuine}/verification/assessments/{clear.Id("authenticity.id")}/dismiss", new JsonObject { ["reason"] = "FalsePositive" }))
+            .Expect(HttpStatusCode.Conflict);
+
+        // Two reviewers at once can both pass the endpoint's check; the database still keeps one dismissal.
+        await using var db = await TenantDbAsync(tenant.OrganizationId);
+        var assessment = await db.VerificationAssessments.AsNoTracking().SingleAsync(a => a.Id == assessmentId, Ct);
+        db.VerificationReviewActions.Add(VerificationReviewAction.Dismiss(assessment, DismissReason.FalsePositive, null, tenant.UserId, DateTimeOffset.UtcNow));
+        var second = () => db.SaveChangesAsync(Ct);
+        (await second.Should().ThrowAsync<DbUpdateException>()).WithInnerException<PostgresException>()
+            .Which.SqlState.Should().Be(PostgresErrorCodes.UniqueViolation);
+    }
+
+    [Fact]
+    public async Task Reviewers_mark_each_reason_explained_and_undo_their_own_and_explaining_decides_nothing()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var recruiter = await fixture.InviteAndJoinAsync(owner, "Recruiter");
+        using var viewer = await fixture.InviteAndJoinAsync(owner, "Viewer");
+        var (slug, jobId) = await OpenJobAsync(owner);
+        var bot = await ApplyAsync(slug, jobId, SyntheticApplicants.Bot);
+        var verification = await AssessedAsync(owner, bot);
+        var assessmentId = verification.Id("authenticity.id");
+        var reasons = verification.At("authenticity.signals").EnumerateArray()
+            .Where(s => s.GetProperty("countsTowardLevel").GetBoolean()).Select(s => s.GetProperty("id").GetGuid()).ToList();
+        reasons.Should().HaveCountGreaterThan(1);
+        var first = reasons[0];
+        var before = await ListedAsync(owner, jobId, bot);
+        string Reason(Guid signalId, string action) => $"/v1/applications/{bot}/verification/assessments/{assessmentId}/signals/{signalId}/{action}";
+        static JsonElement SignalOf(ApiResult result, Guid signalId) =>
+            result.At("authenticity.signals").EnumerateArray().Single(s => s.GetProperty("id").GetGuid() == signalId);
+
+        (await owner.PostAsync(Reason(first, "explain"), new JsonObject { ["reason"] = "Other" })).Expect(HttpStatusCode.BadRequest)
+            .ProblemKeys().Should().Equal("note");
+        (await viewer.PostAsync(Reason(first, "explain"), new JsonObject { ["reason"] = "ExpectedForRole" })).Expect(HttpStatusCode.Forbidden);
+        (await owner.PostAsync(Reason(Guid.CreateVersion7(), "explain"), new JsonObject { ["reason"] = "ExpectedForRole" })).Expect(HttpStatusCode.NotFound);
+        // A reason of one assessment is not a reason of the other.
+        (await owner.PostAsync(
+            $"/v1/applications/{bot}/verification/assessments/{verification.Id("aiAssistance.id")}/signals/{first}/explain",
+            new JsonObject { ["reason"] = "ExpectedForRole" })).Expect(HttpStatusCode.NotFound);
+
+        var explained = (await owner.PostAsync(Reason(first, "explain"), new JsonObject { ["reason"] = "ExpectedForRole", ["note"] = "Remote role." }))
+            .Expect(HttpStatusCode.OK);
+        var explanation = SignalOf(explained, first).GetProperty("explained");
+        explanation.GetProperty("reason").GetString().Should().Be("ExpectedForRole");
+        explanation.GetProperty("note").GetString().Should().Be("Remote role.");
+        explanation.GetProperty("actorUserId").GetGuid().Should().Be(owner.UserId);
+        explained.Text("authenticity.level").Should().Be("VerificationRecommended", "explaining a reason never changes the level");
+        explained.At("authenticity.dismissal").ValueKind.Should().Be(JsonValueKind.Null);
+        var entry = explained.At("reviewLog").EnumerateArray().Single();
+        entry.GetProperty("type").GetString().Should().Be("ReasonExplained");
+        entry.GetProperty("signalId").GetGuid().Should().Be(first);
+        entry.GetProperty("signalTitle").GetString().Should().Be(SignalOf(explained, first).GetProperty("title").GetString());
+        entry.GetProperty("explainReason").GetString().Should().Be("ExpectedForRole");
+
+        (await recruiter.PostAsync(Reason(first, "explain"), new JsonObject { ["reason"] = "KnownFalsePositive" })).Expect(HttpStatusCode.Conflict);
+        (await recruiter.PostAsync(Reason(first, "undo-explanation"))).Expect(HttpStatusCode.Forbidden).Text("title").Should().Be("Author only");
+        var undone = (await owner.PostAsync(Reason(first, "undo-explanation"))).Expect(HttpStatusCode.OK);
+        SignalOf(undone, first).GetProperty("explained").ValueKind.Should().Be(JsonValueKind.Null);
+        undone.At("reviewLog").EnumerateArray().Select(e => e.GetProperty("type").GetString()).Should().Equal("ReasonExplained", "ExplanationUndone");
+        (await owner.PostAsync(Reason(first, "undo-explanation"))).Expect(HttpStatusCode.Conflict);
+
+        // Every reason that counts explained still decides nothing: the level, the list's chips (which filters and saved
+        // views read) and the stage stay as they were, until a person dismisses.
+        var last = undone;
+        foreach (var reason in reasons)
+        {
+            last = (await recruiter.PostAsync(Reason(reason, "explain"), new JsonObject { ["reason"] = "KnownFalsePositive" })).Expect(HttpStatusCode.OK);
+        }
+
+        reasons.Should().AllSatisfy(r => SignalOf(last, r).GetProperty("explained").ValueKind.Should().Be(JsonValueKind.Object));
+        last.Text("authenticity.level").Should().Be("VerificationRecommended");
+        last.At("authenticity.dismissal").ValueKind.Should().Be(JsonValueKind.Null);
+        var after = await ListedAsync(owner, jobId, bot);
+        after.GetProperty("verification").GetRawText().Should().Be(before.GetProperty("verification").GetRawText());
+        after.GetProperty("verification").GetProperty("authenticityDismissed").GetBoolean().Should().BeFalse("only a dismissal takes a candidate out of To review");
+        after.GetProperty("stage").GetRawText().Should().Be(before.GetProperty("stage").GetRawText());
+
+        // Once dismissed, the explanations are part of the record: nothing more to explain or undo.
+        (await owner.PostAsync($"/v1/applications/{bot}/verification/assessments/{assessmentId}/dismiss", new JsonObject { ["reason"] = "FalsePositive" }))
+            .Expect(HttpStatusCode.OK);
+        (await recruiter.PostAsync(Reason(first, "undo-explanation"))).Expect(HttpStatusCode.Conflict).Text("title").Should().Be("Already dismissed");
+    }
+
+    [Fact]
+    public async Task Another_organization_sees_and_changes_nothing()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        using var other = await fixture.SignedInWithOrganizationAsync();
+        var (slug, jobId) = await OpenJobAsync(tenant);
+        var applicationId = await ApplyAsync(slug, jobId, SyntheticApplicants.Bot);
+        var verification = await AssessedAsync(tenant, applicationId);
+
+        (await other.GetAsync($"/v1/applications/{applicationId}/verification")).Expect(HttpStatusCode.NotFound);
+        (await other.PostAsync(
+            $"/v1/applications/{applicationId}/verification/assessments/{verification.Id("authenticity.id")}/dismiss",
+            new JsonObject { ["reason"] = "FalsePositive" })).Expect(HttpStatusCode.NotFound);
+        (await other.PostAsync($"/v1/applications/{applicationId}/verification/notes", new JsonObject { ["note"] = "x" })).Expect(HttpStatusCode.NotFound);
+        var reason = $"/v1/applications/{applicationId}/verification/assessments/{verification.Id("authenticity.id")}/signals/{verification.Id("authenticity.signals.0.id")}";
+        (await other.PostAsync($"{reason}/explain", new JsonObject { ["reason"] = "KnownFalsePositive" })).Expect(HttpStatusCode.NotFound);
+        (await other.PostAsync($"{reason}/undo-explanation")).Expect(HttpStatusCode.NotFound);
+
+        await using var theirs = await TenantDbAsync(other.OrganizationId);
+        (await theirs.VerificationSignals.AnyAsync(s => s.ApplicationId == applicationId, Ct)).Should().BeFalse();
+        (await theirs.VerificationAssessments.AnyAsync(a => a.ApplicationId == applicationId, Ct)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Duplicates_are_never_matched_across_organizations()
+    {
+        using var first = await fixture.SignedInWithOrganizationAsync();
+        using var second = await fixture.SignedInWithOrganizationAsync();
+        var (firstSlug, firstJob) = await OpenJobAsync(first);
+        var (secondSlug, secondJob) = await OpenJobAsync(second);
+        await ApplyAsync(firstSlug, firstJob, SyntheticApplicants.ApplicationFarm[0]);
+        var other = await ApplyAsync(secondSlug, secondJob, SyntheticApplicants.ApplicationFarm[1]);
+
+        var verification = await AssessedAsync(second, other);
+
+        verification.At("authenticity.signals").EnumerateArray().Select(s => s.GetProperty("code").GetString())
+            .Should().NotContain(SignalCatalogue.DuplicateInOrganization, "the same device, file and phone at another employer is not a match");
+    }
+
+    [Fact]
+    public async Task Row_level_security_itself_hides_and_refuses_another_organizations_verification_rows()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        using var other = await fixture.SignedInWithOrganizationAsync();
+        var (slug, jobId) = await OpenJobAsync(tenant);
+        var applicationId = await ApplyAsync(slug, jobId, SyntheticApplicants.Bot);
+        await SettledAsync(tenant, applicationId);
+        (await tenant.PostAsync($"/v1/applications/{applicationId}/verification/notes", new JsonObject { ["note"] = "Checked the references." }))
+            .Expect(HttpStatusCode.OK);
+        string[] tables =
+        [
+            "verification_analyzer_runs", "verification_signals", "verification_assessments", "verification_review_actions", "submission_observations",
+            "application_documents", "consistency_checks",
+        ];
+
+        // Raw SQL as the application role, past the EF query filter: only the policies stand in the way.
+        foreach (var table in tables)
+        {
+            (await CountAsync(tenant.OrganizationId, $"SELECT count(*) FROM {table} WHERE application_id = @id", applicationId)).Should().BeGreaterThan(0, table);
+            (await CountAsync(other.OrganizationId, $"SELECT count(*) FROM {table} WHERE application_id = @id", applicationId)).Should().Be(0, table);
+        }
+
+        var forged = () => CountAsync(
+            other.OrganizationId,
+            "INSERT INTO verification_review_actions (id, organization_id, application_id, type, note, actor_user_id, occurred_at) " +
+            "VALUES (gen_random_uuid(), @organization, @id, 'NoteAdded', 'x', gen_random_uuid(), now()) RETURNING 1",
+            applicationId, tenant.OrganizationId);
+        (await forged.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
+    }
+
+    [Fact]
+    public async Task With_the_assistive_technology_switch_no_timing_is_stored_and_the_honeypot_does_not_count()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        var (slug, jobId) = await OpenJobAsync(tenant);
+        var applicationId = await ApplyAsync(slug, jobId, SyntheticApplicants.Bot, accommodation: true);
+
+        var verification = await AssessedAsync(tenant, applicationId);
+
+        await using var db = await TenantDbAsync(tenant.OrganizationId);
+        (await db.SubmissionObservations.SingleAsync(o => o.ApplicationId == applicationId, Ct)).FormStartedAt.Should().BeNull();
+        var codes = verification.At("authenticity.signals").EnumerateArray().Select(s => s.GetProperty("code").GetString()).ToList();
+        codes.Should().NotContain(SignalCatalogue.SubmitVelocity).And.NotContain(SignalCatalogue.Honeypot);
+        verification.Body.GetRawText().Should().NotContainEquivalentOf("accommodation").And.NotContainEquivalentOf("assistive");
+    }
+
+    [Fact]
+    public async Task The_verification_api_offers_no_reject_action()
+    {
+        using var client = fixture.CreateHttpClient("api");
+
+        var document = await client.GetFromJsonAsync<JsonElement>("/openapi/v1.json", Ct);
+
+        var routes = document.GetProperty("paths").EnumerateObject().Where(p => p.Name.Contains("/verification", StringComparison.Ordinal)).ToList();
+        routes.Should().NotBeEmpty();
+        routes.Should().AllSatisfy(r => r.Name.Should().NotContainEquivalentOf("reject"));
+        routes.SelectMany(r => r.Value.EnumerateObject()).Select(o => o.Value.GetProperty("operationId").GetString())
+            .Should().NotContain(id => id!.Contains("Reject", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task A_recruiter_added_application_is_assessed_without_any_network_data()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        var (_, jobId) = await OpenJobAsync(tenant);
+        var applicationId = (await tenant.CreateApplicationAsync(jobId, "dana.frost@example.com", "Dana Frost")).Id();
+
+        var verification = await AssessedAsync(tenant, applicationId);
+
+        verification.Text("authenticity.level").Should().Be("NoConcerns");
+        await using var db = await TenantDbAsync(tenant.OrganizationId);
+        (await db.SubmissionObservations.AnyAsync(o => o.ApplicationId == applicationId, Ct)).Should().BeFalse("a recruiter's own address is never recorded for a candidate");
+        (await db.VerificationAnalyzerRuns.SingleAsync(r => r.ApplicationId == applicationId && r.Analyzer == "network", Ct))
+            .Note.Should().Be("No network address was recorded for this application.");
+    }
+
+    [Fact]
+    public async Task Raw_network_data_is_deleted_once_its_retention_ends_and_the_signals_stay()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        var (slug, jobId) = await OpenJobAsync(tenant);
+        var applicationId = await ApplyAsync(slug, jobId, SyntheticApplicants.Bot);
+        await AssessedAsync(tenant, applicationId);
+
+        // The sender stays up until the purge is seen: disposing it drops its private schema, and with it any envelope
+        // not yet on the shared queue.
+        await using var sender = await MessagingHost.StartPublisherToAppHostQueuesAsync(fixture, Ct);
+        // What the daily sweep sends for this organization, 31 days on.
+        await sender.Services.GetRequiredService<IMessageBus>()
+            .PublishAsync(new PurgeOrganizationVerificationData(tenant.OrganizationId, DateTimeOffset.UtcNow.AddDays(31)));
+
+        await WolverineStore.WaitUntilAsync(
+            async () =>
+            {
+                await using var db = await TenantDbAsync(tenant.OrganizationId);
+                return !await db.SubmissionObservations.AnyAsync(o => o.ApplicationId == applicationId, Ct);
+            },
+            "the worker to purge the expired observation",
+            Ct);
+        await using var after = await TenantDbAsync(tenant.OrganizationId);
+        (await after.VerificationSignals.CountAsync(s => s.ApplicationId == applicationId, Ct)).Should().BeGreaterThan(0);
+    }
+
+    [Fact]
+    public async Task Running_the_pipeline_again_changes_nothing_and_only_a_new_analyzer_version_runs()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        var (slug, jobId) = await OpenJobAsync(tenant);
+        var applicationId = await ApplyAsync(slug, jobId, SyntheticApplicants.Bot);
+        await SettledAsync(tenant, applicationId);
+        await using var db = await TenantDbAsync(tenant.OrganizationId);
+        var ran = await db.VerificationAnalyzerRuns.AsNoTracking().Where(r => r.ApplicationId == applicationId)
+            .Select(r => new { r.Analyzer, r.AnalyzerVersion }).ToListAsync(Ct);
+        var before = await RecordAsync(db, applicationId);
+
+        // A redelivery: the analyzer versions that already ran. Each stand-in fails the test if the pipeline calls it.
+        IVerificationAnalyzer[] same = [.. ran.Select(r => new StandInAnalyzer(r.Analyzer, r.AnalyzerVersion))];
+        var redelivered = await new VerificationPipeline(db, same, TimeProvider.System).RunAsync(applicationId, Ct);
+        await db.SaveChangesAsync(Ct);
+
+        redelivered.Should().BeEmpty("nothing changed, so there is no new assessment to announce");
+        (await RecordAsync(db, applicationId)).Should().Be(before);
+
+        // A new analyzer runs alone. Reporting nothing, it leaves the assessments as they were.
+        var quiet = new StandInAnalyzer("review-probe", 1, AnalyzerResult.Nothing("Nothing to report."));
+        var afterQuiet = await new VerificationPipeline(db, [.. same, quiet], TimeProvider.System).RunAsync(applicationId, Ct);
+        await db.SaveChangesAsync(Ct);
+
+        quiet.Calls.Should().Be(1);
+        afterQuiet.Should().BeEmpty();
+        (await RecordAsync(db, applicationId)).Should().Be(before with { Runs = before.Runs + 1 });
+
+        // Its next version runs once more. A new signal at the same level is stored as a new assessment but not
+        // announced: the bot's authenticity is already at the top level, so the workflow engine is not asked again.
+        var observed = new ObservedSignal(SignalCatalogue.Inconsistency, SignalConfidence.Medium, [SignalEvidence.Fact("Probe", "A test observation.")]);
+        var bumped = new StandInAnalyzer("review-probe", 2, new AnalyzerResult([observed]));
+        var afterBump = await new VerificationPipeline(db, [.. same, quiet, bumped], TimeProvider.System).RunAsync(applicationId, Ct);
+        await db.SaveChangesAsync(Ct);
+
+        quiet.Calls.Should().Be(1);
+        bumped.Calls.Should().Be(1);
+        afterBump.Should().BeEmpty("the levels did not change");
+        var stored = await RecordAsync(db, applicationId);
+        stored.Runs.Should().Be(before.Runs + 2);
+        stored.Signals.Should().Be(before.Signals + 1);
+        stored.Assessments.Should().BeGreaterThan(before.Assessments);
+        stored.Timeline.Should().Be(before.Timeline);
+
+        // A signal that changes a level is announced: a second, independent content category behind the bot's hidden
+        // instructions raises AI assistance, so the timeline, the live update and the workflow engine hear of it.
+        var duplicate = new ObservedSignal(SignalCatalogue.NearDuplicateAnswer, SignalConfidence.High, [SignalEvidence.Fact("Probe", "A test observation.")]);
+        var raising = new StandInAnalyzer("review-probe", 3, new AnalyzerResult([duplicate]));
+        var afterRaise = await new VerificationPipeline(db, [.. same, quiet, bumped, raising], TimeProvider.System).RunAsync(applicationId, Ct);
+        await db.SaveChangesAsync(Ct);
+
+        afterRaise.OfType<VerificationAssessed>().Should().ContainSingle().Which.AiAssistance.Should().NotBe(AiAssistanceLevel.NotIndicated);
+        afterRaise.OfType<Application.Automations.RunAutomations>().Should().ContainSingle();
+        (await RecordAsync(db, applicationId)).Timeline.Should().Be(before.Timeline + 1);
+    }
+
+    [Fact]
+    public async Task The_application_role_cannot_change_the_record_or_touch_the_signal_network()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        var (slug, jobId) = await OpenJobAsync(tenant);
+        var applicationId = await ApplyAsync(slug, jobId, SyntheticApplicants.Bot);
+        await SettledAsync(tenant, applicationId);
+        await using var db = await TenantDbAsync(tenant.OrganizationId);
+
+        var update = () => db.VerificationAssessments.Where(a => a.ApplicationId == applicationId)
+            .ExecuteUpdateAsync(s => s.SetProperty(a => a.Level, "NoConcerns"), Ct);
+        var delete = () => db.VerificationSignals.Where(s => s.ApplicationId == applicationId).ExecuteDeleteAsync(Ct);
+        var network = () => db.SignalNetworkEntries.CountAsync(Ct);
+        // What a file said is a record too: extraction writes it once and nothing rewrites or removes it.
+        var rewrite = () => db.ApplicationDocuments.Where(d => d.ApplicationId == applicationId)
+            .ExecuteUpdateAsync(s => s.SetProperty(d => d.Text, "edited"), Ct);
+        var forget = () => db.ConsistencyChecks.Where(c => c.ApplicationId == applicationId).ExecuteDeleteAsync(Ct);
+
+        (await update.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
+        (await delete.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
+        (await network.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
+        (await rewrite.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
+        (await forget.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
+    }
+
+    // A published remote job with the default workflow, in the tenant's organization, and the organization's slug.
+    private Task<(string Slug, Guid JobId)> OpenJobAsync(Tenant tenant) => VerificationSupport.OpenJobAsync(fixture, tenant);
+
+    private Task<Guid> ApplyAsync(string slug, Guid jobId, SyntheticApplicant applicant, bool accommodation = false) =>
+        VerificationSupport.ApplyAsync(fixture, slug, jobId, applicant, accommodation);
+
+    private static Task<ApiResult> AssessedAsync(Tenant tenant, Guid applicationId) => VerificationSupport.AssessedAsync(tenant, applicationId);
+
+    // Every analyzer has run, content forensics included, so row counts no longer change underneath a test.
+    private Task<ApiResult> SettledAsync(Tenant tenant, Guid applicationId) => VerificationSupport.SettledAsync(fixture, tenant, applicationId);
+
+    // One scalar statement as the application role with the organization as tenant, in a transaction like the API's.
+    private async Task<long> CountAsync(Guid organizationId, string sql, Guid applicationId, Guid? organization = null)
+    {
+        await using var connection = new NpgsqlConnection(await fixture.GetAppConnectionStringAsync(Ct));
+        await connection.OpenAsync(Ct);
+        await using var transaction = await connection.BeginTransactionAsync(Ct);
+        await using (var setTenant = new NpgsqlCommand("SELECT set_config('app.tenant_id', @tenant, true), set_config('app.job_scope', 'all', true)", connection, transaction))
+        {
+            setTenant.Parameters.AddWithValue("tenant", organizationId.ToString());
+            await setTenant.ExecuteNonQueryAsync(Ct);
+        }
+
+        await using var command = new NpgsqlCommand(sql, connection, transaction);
+        command.Parameters.AddWithValue("id", applicationId);
+        if (organization is { } value)
+        {
+            command.Parameters.AddWithValue("organization", value);
+        }
+
+        var result = Convert.ToInt64(await command.ExecuteScalarAsync(Ct), System.Globalization.CultureInfo.InvariantCulture);
+        await transaction.RollbackAsync(Ct);
+        return result;
+    }
+
+    // One application as the job's candidate list shows it: its stage and the chips that filters and saved views read.
+    private static async Task<JsonElement> ListedAsync(Tenant tenant, Guid jobId, Guid applicationId) =>
+        (await tenant.GetAsync($"/v1/jobs/{jobId}/applications")).Expect(HttpStatusCode.OK).Body.EnumerateArray()
+            .Single(a => a.GetProperty("id").GetGuid() == applicationId);
+
+    private Task<ScreenHireDbContext> TenantDbAsync(Guid organizationId) => VerificationSupport.TenantDbAsync(fixture, organizationId);
+
+    // What the pipeline has written for one application.
+    private static async Task<PipelineRecord> RecordAsync(ScreenHireDbContext db, Guid applicationId) => new(
+        await db.VerificationAnalyzerRuns.CountAsync(r => r.ApplicationId == applicationId, Ct),
+        await db.VerificationSignals.CountAsync(s => s.ApplicationId == applicationId, Ct),
+        await db.VerificationAssessments.CountAsync(a => a.ApplicationId == applicationId, Ct),
+        await db.ApplicationEvents.CountAsync(e => e.ApplicationId == applicationId && e.Type == ApplicationEventType.VerificationAssessed, Ct));
+
+    private sealed record PipelineRecord(int Runs, int Signals, int Assessments, int Timeline);
+
+    // An analyzer with a given name and version. Without a result it must never run.
+    private sealed class StandInAnalyzer(string name, int version, AnalyzerResult? result = null) : IVerificationAnalyzer
+    {
+        public string Name => name;
+
+        public int Version => version;
+
+        public int Calls { get; private set; }
+
+        public Task<AnalyzerResult> AnalyzeAsync(VerificationContext context, CancellationToken cancellationToken)
+        {
+            Calls++;
+            return result is null
+                ? Task.FromException<AnalyzerResult>(new InvalidOperationException($"{name} version {version} already ran and must not run again."))
+                : Task.FromResult(result);
+        }
+    }
+}

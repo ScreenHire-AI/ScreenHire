@@ -14,6 +14,7 @@ public sealed class SystemTemplateTests(AppHostFixture fixture)
         { SystemTemplates.SoftwareEngineer, SystemTemplates.SoftwareEngineerVersion2, 2, "Software engineer" },
         { SystemTemplates.SoftwareEngineer, SystemTemplates.SoftwareEngineerVersion3, 3, "Software engineer" },
         { SystemTemplates.SoftwareEngineer, SystemTemplates.SoftwareEngineerVersion4, 4, "Software engineer" },
+        { SystemTemplates.SoftwareEngineer, SystemTemplates.SoftwareEngineerVersion5, 5, "Software engineer" },
         { SystemTemplates.HourlyRole, SystemTemplates.HourlyRoleVersion1, 1, "Hourly role" },
         { SystemTemplates.HourlyRole, SystemTemplates.HourlyRoleVersion2, 2, "Hourly role" },
         { SystemTemplates.HourlyRole, SystemTemplates.HourlyRoleVersion3, 3, "Hourly role" },
@@ -34,6 +35,27 @@ public sealed class SystemTemplateTests(AppHostFixture fixture)
         definition.Should().NotBeNull();
         DefinitionValidator.Validate(definition).Should().BeEmpty();
         definition!.Workflow.Stages[0].Kind.Should().Be(StageKind.Applied);
+    }
+
+    // Version 5 is version 4 with its verification automation saying verification (ADR-0019). Its id stays, because
+    // automation ids feed idempotency keys, and every earlier version reads the renamed trigger and facts.
+    [Fact]
+    public async Task Version_5_names_its_verification_automation_and_tag_for_verification_and_keeps_its_id()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+
+        var four = (await recruiter.GetAsync($"/v1/templates/{SystemTemplates.SoftwareEngineer}/versions/4")).Expect(HttpStatusCode.OK);
+        var five = (await recruiter.GetAsync($"/v1/templates/{SystemTemplates.SoftwareEngineer}/versions/5")).Expect(HttpStatusCode.OK);
+
+        five.Text("definition.workflow.automations.1.id").Should().Be("integrity_review");
+        five.Text("definition.workflow.automations.1.name").Should().Be("Ask a reviewer to look at verification findings");
+        five.Text("definition.workflow.automations.1.actions.1.tag").Should().Be("verification-review");
+        five.Text("definition.workflow.automations.1.trigger.type").Should().Be("VerificationAssessed");
+        four.Text("definition.workflow.automations.1.trigger.type").Should().Be("VerificationAssessed");
+        four.Text("definition.workflow.automations.1.name").Should().Be("Ask a reviewer to look at integrity findings", "a published version keeps its words");
+        five.At("definition.workflow.verificationPolicy").ValueKind.Should().Be(JsonValueKind.Object);
+        five.At("definition.workflow.automations.1.conditions.rules").EnumerateArray().Select(r => r.GetProperty("fact").GetString())
+            .Should().OnlyContain(fact => fact!.StartsWith("verification.", StringComparison.Ordinal));
     }
 
     // Every stored version names built-in scorecards (migration AddScorecardTemplates) and holds no copy of their questions.

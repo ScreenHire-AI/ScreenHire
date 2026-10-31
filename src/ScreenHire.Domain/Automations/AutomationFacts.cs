@@ -15,7 +15,7 @@ namespace ScreenHire.Domain.Automations;
 /// use invariant digits, and a file answer is its upload id. <c>source</c>: Where the application came from, an
 /// <see cref="ApplicationSource"/> name (<c>CareersSite</c>, <c>Recruiter</c>).
 /// <c>hoursInStage</c>: Whole hours between entering the current stage and the trigger.
-/// <c>integrityAuthenticity</c>, <c>integrityAiAssistance</c>: Level names from the integrity engine's latest
+/// <c>verificationAuthenticity</c>, <c>verificationAiAssistance</c>: Level names from the verification engine's latest
 /// assessment (<c>NoConcerns</c>, <c>ReviewSuggested</c>, ...). <c>verificationResult</c>: From the verification step,
 /// once it exists. <c>reviewerRecommendation</c>: For a <see cref="TriggerType.ReviewerDecision"/> trigger only, the
 /// submitted scorecard's recommendation (<c>StrongNo</c>, <c>No</c>, <c>Yes</c>, <c>StrongYes</c>).
@@ -25,8 +25,8 @@ public sealed record AutomationFacts(
     IReadOnlyList<string> Tags,
     string? Source = null,
     int? HoursInStage = null,
-    string? IntegrityAuthenticity = null,
-    string? IntegrityAiAssistance = null,
+    string? VerificationAuthenticity = null,
+    string? VerificationAiAssistance = null,
     string? VerificationResult = null,
     string? ReviewerRecommendation = null)
 {
@@ -90,8 +90,8 @@ public sealed record AutomationFacts(
 
         int? hoursInStage = entries.Count == 0 ? null : (int)Math.Max(0, Math.Floor((occurredAt - entries[^1].OccurredAt).TotalHours));
 
-        // The integrity levels as the latest assessment before the trigger left them.
-        var integrity = seen.LastOrDefault(e => e.Type == ApplicationEventType.IntegrityAssessed)?.Data;
+        // The verification levels as the latest assessment before the trigger left them.
+        var verification = seen.LastOrDefault(e => e.Type == ApplicationEventType.VerificationAssessed)?.Data;
 
         // A reviewer decision is the scorecard its trigger entry records, and no other: a different trigger has no
         // recommendation, so a condition on it reads one reviewer's judgement at the moment it was given.
@@ -108,7 +108,7 @@ public sealed record AutomationFacts(
 
         return new AutomationFacts(
             answers, tags, Source: sources?.Source, HoursInStage: hoursInStage,
-            IntegrityAuthenticity: integrity?.AuthenticityLevel, IntegrityAiAssistance: integrity?.AiAssistanceLevel,
+            VerificationAuthenticity: verification?.AuthenticityLevel, VerificationAiAssistance: verification?.AiAssistanceLevel,
             ReviewerRecommendation: decision);
     }
 
@@ -127,8 +127,8 @@ public sealed record AutomationFacts(
             FactSchema.Tags => Tags ?? [],
             FactSchema.Source => One(Source),
             FactSchema.HoursInStage => HoursInStage is { } hours ? [hours.ToString(System.Globalization.CultureInfo.InvariantCulture)] : [],
-            FactSchema.IntegrityAuthenticity => One(IntegrityAuthenticity),
-            FactSchema.IntegrityAiAssistance => One(IntegrityAiAssistance),
+            FactSchema.VerificationAuthenticity => One(VerificationAuthenticity),
+            FactSchema.VerificationAiAssistance => One(VerificationAiAssistance),
             FactSchema.VerificationResult => One(VerificationResult),
             FactSchema.ReviewerRecommendation => One(ReviewerRecommendation),
             _ => [],

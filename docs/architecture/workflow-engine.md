@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Workflow Engine: Per-Job Hiring Workflows from User-Defined Templates"
-description: "Hiring templates and per-job workflow definitions: stages, scorecards, follow-up questionnaires, automations with triggers, conditions and actions, the guardrail that integrity never rejects, the execution model, the builder, webhook subscriptions with signed deliveries, and what the v1 engine runs."
+description: "Hiring templates and per-job workflow definitions: stages, scorecards, follow-up questionnaires, automations with triggers, conditions and actions, the guardrail that verification never rejects, the execution model, the builder, webhook subscriptions with signed deliveries, and what the v1 engine runs."
 tags: [workflow, automations, webhooks, scorecards, questionnaires]
 sources:
   - resource: src/ScreenHire.Domain/Hiring/HiringWorkflow.cs
@@ -98,7 +98,7 @@ Organization
  ├─ HiringTemplate (versioned)          ← user-defined, reusable
  │    ├─ WorkflowDefinition             stages + automations
  │    ├─ Questionnaire                  screening questions (+ knockouts, honeypots)
- │    ├─ IntegrityPolicy                AI-use policy, step-up rules, telemetry jurisdiction defaults
+ │    ├─ VerificationPolicy                AI-use policy, step-up rules, telemetry jurisdiction defaults
  │    ├─ PostingDefaults                target boards, duration, sponsorship defaults
  │    └─ JobContentDefaults             description blocks, benefits, EEO/legal boilerplate
  └─ Job
@@ -136,12 +136,12 @@ builder's "time limit") measures the hiring team's delay, never the candidate: s
 
 | Part | Examples |
 |---|---|
-| **Triggers** | `ApplicationSubmitted`, `StageEntered(stage)`, `StageExited(stage)`, `QuestionnaireCompleted(questionnaire)`, `IntegrityAssessed`, `VerificationCompleted`, `ReviewerDecision`, `TimeElapsed(since: stageEntered, duration)`, `SlaBreached(stage?)`, `CandidateReplied`, `InterviewScheduled`, `Manual` |
-| **Conditions** | Expression over application facts: answers (`answers.work_authorization == "yes"`), tags, source board, location, integrity levels (`integrity.authenticity >= ReviewSuggested`), a reviewer's recommendation, time in stage. Combinators `all/any/not`. |
+| **Triggers** | `ApplicationSubmitted`, `StageEntered(stage)`, `StageExited(stage)`, `QuestionnaireCompleted(questionnaire)`, `VerificationAssessed`, `VerificationCompleted`, `ReviewerDecision`, `TimeElapsed(since: stageEntered, duration)`, `SlaBreached(stage?)`, `CandidateReplied`, `InterviewScheduled`, `Manual` |
+| **Conditions** | Expression over application facts: answers (`answers.work_authorization == "yes"`), tags, source board, location, verification levels (`verification.authenticity >= ReviewSuggested`), a reviewer's recommendation, time in stage. Combinators `all/any/not`. |
 | **Actions** | `SendEmail(template)`, `SendQuestionnaire(questionnaire)`, `RequestVerification(provider)`, `MoveToStage(stage)`, `AddTag`, `AssignReviewer`, `NotifyTeam`, `ScheduleInterview(link)`, `CreateTask`, `CallWebhook(url)`, `QueueForRejectionReview(reason)`, `Reject(reason, emailTemplate)` |
 
 ### Guardrails enforced by the engine (product-legal policy, see ADR-0004)
-1. **Integrity-derived conditions can never drive `Reject`.** Any automation whose condition references `integrity.*`
+1. **Verification-derived conditions can never drive `Reject`.** Any automation whose condition references `verification.*`
    (or any signal) may only use routing/step-up actions (`RequestVerification`, `AssignReviewer`, `AddTag`,
    `MoveToStage` into a non-terminal review stage). The validator rejects such definitions at save time.
 2. **Knockouts** (objective, candidate-declared eligibility like work authorisation, required licence) may use `Reject`,
@@ -151,7 +151,7 @@ builder's "time limit") measures the hiring team's delay, never the candidate: s
 4. Accommodation: if the candidate requested accommodation, automations referencing timing/telemetry facts are skipped.
    `SlaBreached` is the exception, and the reason is section 8.
 5. **Keep in mind is a person's action only** ([talent pool](talent-pool.md)): no automation action keeps a candidate in
-   mind, so no condition, integrity or otherwise, can take someone out of a job that way. An application kept in mind
+   mind, so no condition, verification or otherwise, can take someone out of a job that way. An application kept in mind
    has ended like one in a Hired, Rejected or Withdrawn stage: actions skip it and its stage's timers do nothing.
 
 ## 3. Execution model
@@ -200,7 +200,7 @@ form controls. The validation result is a status badge beside the page title.
   (`scorecard-builder.svelte`), or through `/v1/scorecard-templates`. An archived scorecard leaves the picker unless the
   stage already names it. A stage that ends the application offers no
   scorecard. Automations whose trigger
-  has no stage (an arriving application, the integrity checks, a manual run, any stage's time limit) sit in a "Whole
+  has no stage (an arriving application, the verification checks, a manual run, any stage's time limit) sit in a "Whole
   workflow" panel under the stages. "A stage's time limit passes" offers the stages that have one, and only the four reminder actions. The drawer's forms offer only the triggers and actions v1 runs, and the facts
   and operators `FactSchema` allows.
 - **Graph:** @xyflow/svelte, rebuilt from the workflow on every change by `toGraph` (`#lib/workflow-graph.ts`): a
@@ -248,11 +248,11 @@ form controls. The validation result is a status badge beside the page title.
   objective eligibility check, never AI use or an accommodation). The automation form offers "Send a questionnaire" and
   the "questionnaire answered" trigger's picker only when the workflow has a follow-up to name. A version that cannot be
   edited reads its questions as content, with the same switch.
-- **Simulate:** a sample application's answers, tags, source, hours in stage and integrity levels through
+- **Simulate:** a sample application's answers, tags, source, hours in stage and verification levels through
   `POST /v1/workflows/simulate`, unsaved changes included.
 
 Every change is checked with `POST /v1/workflows/validate` after a short pause, and each message shows on the control
-its path names, so the guardrail refusal of an integrity-driven rejection appears on that action. A draft that does
+its path names, so the guardrail refusal of a verification-driven rejection appears on that action. A draft that does
 not validate cannot be saved, so the editor holds unsaved work in the page and asks before leaving it. The editor lists
 the open problems in a "Problems to fix" panel above every tab; a read-only view lists a stored version's in a
 "Problems" panel. Saving with no changes sends nothing, because each save of a job's workflow is a new version.
@@ -307,15 +307,15 @@ its first attempt.
 |---|---|---|
 | `application.submitted` | `ApplicationSubmitted` | `applicationId`, `jobId`, `stageId` |
 | `application.moved` | `ApplicationMoved` | `applicationId`, `jobId`, `fromStageId`, `toStageId` |
-| `integrity.assessed` | `IntegrityAssessed` | `applicationId`, `jobId`, `authenticity`, `aiAssistance` (levels), `rulesetVersion` |
+| `verification.assessed` | `VerificationAssessed` | `applicationId`, `jobId`, `authenticity`, `aiAssistance` (levels), `rulesetVersion` |
 | `automation.failed` | `AutomationRunFinished` with status `Failed` or `Blocked` | `applicationId`, `jobId`, `automationId`, `runId`, `status` |
 | `job.published` | `JobPublished` | `jobId`, `version`, `jobVersionId` |
 | `job.closed` | `JobClosed` | `jobId` |
 
 The body is `{"id", "type", "occurredAt", "organizationId", "data"}`: ids and facts, never names, emails, resume text,
-answers or integrity evidence. An integrator reads anything else through the API with its own credentials.
-`integrity.assessed` carries the categorical levels only (ADR-0004), the same output the dashboard shows. It is a
-notification for routing a review. ScreenHire never acts on it, and the rule that integrity signals never drive
+answers or verification evidence. An integrator reads anything else through the API with its own credentials.
+`verification.assessed` carries the categorical levels only (ADR-0004), the same output the dashboard shows. It is a
+notification for routing a review. ScreenHire never acts on it, and the rule that verification signals never drive
 rejection binds ScreenHire's own code. An integrator that rejects automatically on this event goes against the
 product's guidance, and that decision is the customer's responsibility under GDPR Art. 22, NYC LL144 and the other
 rules in docs/research/legal.md. The integrator docs and terms must say so.
@@ -394,8 +394,8 @@ The data model and API from the jobs and templates task, and the engine that run
   or withdrawn stage: a hiring template's stage names a library scorecard (`scorecardTemplateId`, a built-in's id or a
   uuid) and holds no copy, and a job's stage holds its copy, 1 to 20 questions with unique ids. A condition on the
   candidate's rating (`application.rating`, `rating`, `scorecard.*` and the like) is refused outright, whatever the
-  trigger or action: no automation acts on the rating (ADR-0013). An automation that uses an `integrity.*` or `verification.*` fact, or an
-  `IntegrityAssessed` or `VerificationCompleted` trigger, may only request verification, assign a reviewer, add a tag
+  trigger or action: no automation acts on the rating (ADR-0013). An automation that uses an `verification.*` or `verification.*` fact, or an
+  `VerificationAssessed` or `VerificationCompleted` trigger, may only request verification, assign a reviewer, add a tag
   or move to a screening, assessment, verification or interview stage. The same holds at one remove, across the whole
   workflow: an automation that reads a tag such an automation adds, or fires on a stage it moves applications into,
   counts as signal-driven too, so a signal cannot be laundered through a tag or a stage. Once any signal-driven
@@ -406,7 +406,7 @@ The data model and API from the jobs and templates task, and the engine that run
   template version validates it again, so a draft saved under older rules cannot go live.
 - **What the validator cannot check:** a question's meaning, a scorecard question's included. It refuses scorecard
   questions, guidance and options that name personality, emotion, honesty and the like (whole words, so "data
-  integrity" passes), but that is a backstop: a scorecard asks about the job, and the builder's note and review of
+  verification" passes), but that is a backstop: a scorecard asks about the job, and the builder's note and review of
   the built-ins hold that line.
   A knockout question must be an objective eligibility check (right
   to work, a required licence). A knockout on AI use or on needing an accommodation would reject candidates for
@@ -441,7 +441,7 @@ The data model and API from the jobs and templates task, and the engine that run
   `POST /v1/jobs/{jobId}/applications/resume-uploads` (Add candidates), which issues a create-only upload link for the
   job's resume question as the careers form's uploads get ([apply flow](apply-flow.md) §3); the careers apply flow is
   its own task. A hand-added application stores no notice, network or session data or telemetry. Every list's
-  `lastActivityAt` is the latest of its submission, its timeline entries except `IntegrityAssessed`, and its finished
+  `lastActivityAt` is the latest of its submission, its timeline entries except `VerificationAssessed`, and its finished
   tasks (`ApplicationActivity`), read in the list's own query.
 - **Events** through the outbox: `JobPublished` (with the job version), `JobClosed`, `ApplicationSubmitted`,
   `ApplicationMoved` (both carrying the timeline event id, the engine's idempotency key) and
@@ -457,8 +457,8 @@ Code: `src/ScreenHire.Domain/Automations` (facts, evaluator, run records) and `s
 worker handlers, which write and send nothing when the job has no matching automation. `TimeElapsed` is a scheduled
 `RunAutomations` message, due `afterHours` after the stage entry it counts from; when it fires it does nothing if the
 application has left that stage entry, which is how leaving the stage cancels it. `Manual` is
-`POST /v1/applications/{id}/automations/{automationId}/run`; an optional `Idempotency-Key` header makes a retried request reuse its run. The integrity
-engine publishes `RunAutomations(IntegrityAssessed)` whenever an assessment changes, keyed on the `IntegrityAssessed`
+`POST /v1/applications/{id}/automations/{automationId}/run`; an optional `Idempotency-Key` header makes a retried request reuse its run. The verification
+engine publishes `RunAutomations(VerificationAssessed)` whenever an assessment changes, keyed on the `VerificationAssessed`
 timeline entry it appends. Submitting a scorecard publishes `RunAutomations(ReviewerDecision)` keyed on its
 `ScorecardSubmitted` timeline entry (below). `SlaBreached` is a scheduled `RunAutomations` message like `TimeElapsed`
 (below). Answering a follow-up questionnaire publishes
@@ -493,17 +493,17 @@ none.
 
 **Facts snapshot.** `AutomationFacts.FromTimeline` rebuilds the facts from the append-only timeline as it stood at the
 trigger event (tags from `TagAdded` entries, hours in stage from the last stage entry), so a late or replayed evaluation
-sees what the first one saw. The snapshot and every rule's result are stored on the run. Integrity levels come from
-the latest `IntegrityAssessed` entry at or before the trigger. `reviewer.recommendation` is the recommendation of the
+sees what the first one saw. The snapshot and every rule's result are stored on the run. Verification levels come from
+the latest `VerificationAssessed` entry at or before the trigger. `reviewer.recommendation` is the recommendation of the
 scorecard whose entry fired a ReviewerDecision trigger, and absent on every other trigger. `answers.{id}` holds the
 apply form's answers on every trigger, and a follow-up questionnaire's once its `QuestionnaireCompleted` entry is among
 the entries the snapshot reads, so follow-up answers count only for triggers after they arrive. `application.source` is
 `CareersSite` or `Recruiter`. The facts schema
-(`FactSchema`) gives every fact a type and the operators that type allows; integrity levels take equality only. The integrity engine's level names are `NoConcerns`, `ReviewSuggested` and
-`VerificationRecommended` for `integrity.authenticity`, and `NotIndicated`, `SomeIndicators` and `StrongIndicators` for
-`integrity.aiAssistance`. The validator does not check them yet: version 1 of the "Software engineer" system template
-compares `integrity.aiAssistance` with `ReviewSuggested`, and validating names would block jobs copied from it.
-Version 2 corrects the condition (integrity-engine.md §10.9).
+(`FactSchema`) gives every fact a type and the operators that type allows; verification levels take equality only. The verification engine's level names are `NoConcerns`, `ReviewSuggested` and
+`VerificationRecommended` for `verification.authenticity`, and `NotIndicated`, `SomeIndicators` and `StrongIndicators` for
+`verification.aiAssistance`. The validator does not check them yet: version 1 of the "Software engineer" system template
+compares `verification.aiAssistance` with `ReviewSuggested`, and validating names would block jobs copied from it.
+Version 2 corrects the condition (verification-engine.md §10.9).
 
 **Runs and actions.** Every triggered automation gets an `automation_runs` row, unique on
 `(application, automation, event)`, whether it matched or not: that row is the audit record (guardrail 3) and the
@@ -616,7 +616,7 @@ scorecard then asks for a required overall `Recommendation` (strong no, no, yes,
   Only its conditions may test `reviewer.recommendation` (EqualTo, In or Exists, on the recommendation names).
 - Only a person submits a scorecard. An API key gets 403, and a Viewer gets 403 as on every write. Both may read
   scorecards.
-- Integrity output never feeds a scorecard. The sheet shows only the questions, and no automation action writes one. A
+- Verification output never feeds a scorecard. The sheet shows only the questions, and no automation action writes one. A
   reviewer's "strong no" can queue a rejection review but never reject: only an opted-in knockout rejects.
 
 **The candidate's rating** (ADR-0013 decision 13, `RatingRule`) is one to five stars from people's scorecards:
@@ -631,7 +631,7 @@ scorecard then asks for a required overall `Recommendation` (strong no, no, yes,
 - A scorecard with no answered rating question counts for nothing, and so does a v0.2 scorecard: its labels (Not
   demonstrated to Strongly demonstrated) were never numbers. Until one counts, the candidate is "Not rated yet". v0.2
   scorecards still read as they were given.
-- It averages people's judgements about the work only: never integrity results, AI signals or the stage, which is a
+- It averages people's judgements about the work only: never verification results, AI signals or the stage, which is a
   decision already made. It is worked out on every read (`RatingReads`) and never stored.
 - No automation reads it: `DefinitionValidator` refuses a condition on it with the reason.
 - A reviewer sees it only after giving their own (`ReviewerGate`). A reviewer is a member with an open Review task
@@ -727,7 +727,7 @@ evaluator for one trigger and lists each triggered automation's outcome, rule re
   guardrail it shadows in step. Only the breach itself is promised to run for a candidate with an accommodation: a
   chained automation with a timing condition or a `TimeElapsed` trigger is skipped as guardrail 4 says, which drops a
   reminder and never harms anyone.
-- The candidates page offers no bulk email on the Overdue view, as on an integrity view: a "not moving forward"
+- The candidates page offers no bulk email on the Overdue view, as on a verification view: a "not moving forward"
   email to every overdue candidate would count the team's delay against them. One candidate at a time is still a
   person's decision.
 - The validator checks only that an `emailTemplate` is a built-in id or a Guid, because it also runs in the worker,
@@ -736,7 +736,7 @@ evaluator for one trigger and lists each triggered automation's outcome, rule re
 - A `QuestionnaireCompleted` trigger's questionnaire is optional, not required as a stage trigger's stage is: the
   system templates' versions before `AddFollowUpQuestionnaires` carry a bare one, and a required id would make the
   engine block every automation of each job copied from them.
-- Follow-up answers are not integrity-analysed: the integrity engine reads the apply form only. A follow-up asks what
+- Follow-up answers are not verification-analysed: the verification engine reads the apply form only. A follow-up asks what
   the hiring team needs after a person or an automation chose to ask, and nothing in it is a signal.
 - Follow-up questionnaires take no file questions, so their page needs no upload island and works without JavaScript.
 - `SendQuestionnaire` stays off the list of actions a signal-driven automation may use: asking a candidate for more

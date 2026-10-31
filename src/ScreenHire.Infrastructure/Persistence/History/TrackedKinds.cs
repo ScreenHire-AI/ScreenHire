@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.History;
-using ScreenHire.Domain.Integrity;
+using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Domain.TalentPool;
@@ -35,7 +35,7 @@ public static class TrackedKinds
         // its own, and a save that changes only one of them records nothing for the other.
         Track<Organization>(ChangeSubjectKind.Organization, o => o.Id.ToString("D"), SettingsChanges.Name),
         Track<Organization>(ChangeSubjectKind.Branding, o => o.Id.ToString("D"), SettingsChanges.Branding),
-        Track<IntegritySettings>(ChangeSubjectKind.IntegritySettings, s => s.OrganizationId.ToString("D"), SettingsChanges.Integrity),
+        Track<VerificationSettings>(ChangeSubjectKind.VerificationSettings, s => s.OrganizationId.ToString("D"), SettingsChanges.Verification),
         Track<TalentPoolSettings>(ChangeSubjectKind.TalentPoolSettings, s => s.OrganizationId.ToString("D"), SettingsChanges.TalentPool),
 
         // The Team page's one history. Its first member arrives with the organization, and that save creates the team.

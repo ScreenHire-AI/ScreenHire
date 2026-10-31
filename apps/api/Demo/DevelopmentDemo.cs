@@ -12,7 +12,7 @@ using ScreenHire.Application.Applications;
 using ScreenHire.Application.Branding;
 using ScreenHire.Application.TalentPool;
 using ScreenHire.Application.Distribution;
-using ScreenHire.Application.Integrity;
+using ScreenHire.Application.Verification;
 using ScreenHire.Application.Jobs;
 using ScreenHire.Application.Templates;
 using ScreenHire.Domain.Applications;
@@ -22,7 +22,7 @@ using ScreenHire.Domain.TalentPool;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Content;
 using ScreenHire.Infrastructure.Email;
-using ScreenHire.Infrastructure.Integrity;
+using ScreenHire.Infrastructure.Verification;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
@@ -56,7 +56,7 @@ namespace ScreenHire.Api.Demo;
 /// only the jobs he is on, which is "Senior .NET Engineer" alone, so signing in as Robin shows job access at work.</item>
 /// <item>The synthetic applicants (<see cref="SyntheticApplicants"/>) apply to "Senior .NET Engineer" through the same
 /// submission path as the careers form, with their network and session details, so the worker's assessments show every
-/// integrity level.</item>
+/// verification level.</item>
 /// <item>The people in <see cref="DemoCandidates"/> apply to their jobs, answering every question of their job, and are
 /// moved through their stages, with notes. Support Engineer's people applied and moved in the weeks before, and one of
 /// them was added by a recruiter, so Reports has hires, a time to hire and two sources to show.</item>
@@ -489,7 +489,7 @@ internal sealed partial class DevelopmentDemo(
         }
 
         var source = await db.HiringTemplateVersions.AsNoTracking()
-            .SingleAsync(v => v.Id == SystemTemplates.SoftwareEngineerVersion4, cancellationToken);
+            .SingleAsync(v => v.Id == SystemTemplates.SoftwareEngineerVersion5, cancellationToken);
         var definition = source.Definition with
         {
             Workflow = source.Definition.Workflow with { Automations = [.. source.Definition.Workflow.Automations, .. CandidateEmails] },
@@ -975,7 +975,7 @@ internal sealed partial class DevelopmentDemo(
             new SubmissionSession(
                 applicant.IpAddress, applicant.UserAgent, applicant.DeviceFingerprint,
                 [.. applicant.PageTimes().Select(p => new PageTimeInput(p.Page, p.Seconds))], applicant.AutomationMarkers),
-            step.Services.GetRequiredService<IOptions<IntegrityOptions>>().Value,
+            step.Services.GetRequiredService<IOptions<VerificationOptions>>().Value,
             Telemetry(applicant));
         if (created is not (var application, _))
         {

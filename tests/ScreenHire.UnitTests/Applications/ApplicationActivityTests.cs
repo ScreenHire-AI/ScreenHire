@@ -14,8 +14,8 @@ public sealed class ApplicationActivityTests
     }
 
     [Fact]
-    public void The_integrity_engine_never_moves_last_activity() =>
-        ApplicationActivity.CountedTypes.Should().NotContain(ApplicationEventType.IntegrityAssessed);
+    public void The_verification_engine_never_moves_last_activity() =>
+        ApplicationActivity.CountedTypes.Should().NotContain(ApplicationEventType.VerificationAssessed);
 
     [Fact]
     public void Last_activity_is_the_latest_of_the_submission_the_timeline_and_finished_tasks()

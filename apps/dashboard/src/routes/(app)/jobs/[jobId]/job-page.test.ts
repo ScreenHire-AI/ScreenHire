@@ -25,7 +25,7 @@ const job = {
   location: 'Remote (GB, IE)',
   salary: { min: 70000, max: 90000, currency: 'GBP', period: 'Year' },
   validThrough: null,
-  workflow: { stages, questionnaire: { questions: [] }, integrityPolicy: { aiUse: 'Allowed' }, automations: [] },
+  workflow: { stages, questionnaire: { questions: [] }, verificationPolicy: { aiUse: 'Allowed' }, automations: [] },
   workflowVersion: 1,
   template: null,
   publishedVersion: 1,

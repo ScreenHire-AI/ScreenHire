@@ -23,7 +23,7 @@ namespace ScreenHire.Api.Endpoints;
 /// Reviewers' scorecards on an application (workflow-engine.md §8). Tenant-scoped like every hiring route: another
 /// organization's application or scorecard is a 404. Submitting raises the ReviewerDecision trigger once, through the
 /// outbox, in the transaction that stores the scorecard. A scorecard holds a person's judgement of the job's questions;
-/// it never shows or takes integrity output, and no automation it fires may reject (DefinitionValidator). A reviewer who
+/// it never shows or takes verification output, and no automation it fires may reject (DefinitionValidator). A reviewer who
 /// still has their own scorecard to give reads only their own here (ADR-0013, <c>RatingReads</c>). Asking a teammate for a
 /// scorecard is <c>ApplicationChanges.RequestScorecardAsync</c>; submitting it finishes their task.
 /// </summary>
@@ -48,7 +48,7 @@ internal static class ScorecardEndpoints
     }
 
     // Every scorecard on the application, oldest first, with who gave it. A key reads them too: they are the hiring
-    // team's judgements, not integrity evidence. A reviewer with their own scorecard still to give reads only their own,
+    // team's judgements, not verification evidence. A reviewer with their own scorecard still to give reads only their own,
     // so the others cannot anchor them (ADR-0013); the application's rating says AfterYourScorecard meanwhile.
     private static async Task<Results<Ok<List<ScorecardEntry>>, NotFound>> ListApplicationScorecards(
         Guid applicationId, ITenantContext tenant, ScreenHireDbContext db, CancellationToken cancellationToken)

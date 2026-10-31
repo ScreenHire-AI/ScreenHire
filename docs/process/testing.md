@@ -21,7 +21,7 @@ the only CI for now ([`/verify`](../../.claude/skills/verify/SKILL.md)); a suite
 
 | Tier | Where | Use it for | Needs |
 |---|---|---|---|
-| .NET unit | `tests/ScreenHire.UnitTests` (xUnit v3 + AwesomeAssertions) | Domain rules (`Job` lifecycle and versions, template versioning, the definition validator and its guardrails, the integrity ruleset), the integrity analyzers with local fakes, golden files of the synthetic applicants' assessments, pure API logic (mappings, validation, the workflow diff, sanitizing), and the repository tooling in `Tooling/`: the MCP approvals, and the process guard and docs bundle checks, which run their `scripts/*.mjs` with Node. The API grants it `InternalsVisibleTo`. | Node for `Tooling/` |
+| .NET unit | `tests/ScreenHire.UnitTests` (xUnit v3 + AwesomeAssertions) | Domain rules (`Job` lifecycle and versions, template versioning, the definition validator and its guardrails, the verification ruleset), the verification analyzers with local fakes, golden files of the synthetic applicants' assessments, pure API logic (mappings, validation, the workflow diff, sanitizing), and the repository tooling in `Tooling/`: the MCP approvals, and the process guard and docs bundle checks, which run their `scripts/*.mjs` with Node. The API grants it `InternalsVisibleTo`. | Node for `Tooling/` |
 | Vitest | next to the code as `*.test.ts`: `apps/dashboard` (Svelte 5 components on jsdom with @testing-library/svelte, including the shared question components in the questionnaire preview; pages and query-backed components render inside `src/test-support/with-query-client.svelte` with `fetch` stubbed (it also gives them the sidebar's context and a tooltip provider), anything else with a tooltip inside `with-tooltips.svelte`, the signed-in frame (sidebar, top bar, shortcuts dialog) inside `shell-harness.svelte`, a workflow's tabs with the builder or the read-only view inside `workflow-harness.svelte`, with `stubViewport` in `viewport.ts` setting the window width the media queries see, and `expectNoAxeViolations` in `src/test-support/axe.ts` runs axe for WCAG 2.2 A/AA on each component), `packages/api-client` (the fetch mutator), `packages/realtime` (the SignalR client, event schemas against the C# contract file), `apps/careers` (`src/lib`: formatting, the apply flow's state and checks, tenant hosts, the brand stylesheet; `src/components`: the shared question components rendered through Astro's container API with the Svelte renderer, on the server as the apply page uses them and as a `client:load` island), `apps/marketing` (JSON-LD builders, page registry, pricing, the post-build checks in `scripts/`) | Frontend logic and component rendering with fixed data | Nothing |
 | Aspire integration | `tests/ScreenHire.IntegrationTests` | Endpoints, persistence, data rules (tenant scoping, status filters), messaging (outbox, worker handlers, retries, dead letters), anything that needs Postgres | Docker |
 | End-to-end | `tests/ScreenHire.E2E` (Microsoft.Playwright for .NET on xUnit v3, axe) | User journeys in a real browser against the whole stack: rendered content, JSON-LD, no-JS public pages, accessibility | Docker, Chromium, `pnpm -r build` |
@@ -165,7 +165,7 @@ There is no reset between tests and no Respawn. Instead:
   so they never pass for a sign-in link.
 - **Careers applicants.** `fixture.ApplyAsync(slug, jobId, applicant, ct)` (`SyntheticApplications` in
   `tests/ScreenHire.Testing`) submits one of the synthetic applicants (`SyntheticApplicants`) to a published job the
-  way the careers server does, with its address, session and resume, so the integrity engine assesses it. Integration
+  way the careers server does, with its address, session and resume, so the verification engine assesses it. Integration
   and end-to-end tests both use it.
 
 ### Messaging tests (`tests/ScreenHire.IntegrationTests/Messaging`)
@@ -229,7 +229,7 @@ which retries until its timeout. Status codes alone are not an end-to-end assert
 it (Dev SSO sign-in and onboarding, a job from a template, publish to the careers page and the sandbox board, a genuine
 candidate and a bot applying on the careers site while the job is open, their levels and evidence arriving live, a move
 that sends the stage-change email to Mailpit, and the teardown). The other classes go deep on each step; this one
-proves the steps connect, so a change that breaks the hand-off between two areas fails here. It keeps the integrity
+proves the steps connect, so a change that breaks the hand-off between two areas fails here. It keeps the verification
 levels deterministic in a browser: the genuine candidate's browser runs no JavaScript, so Playwright's automation
 markers and the device check never reach the API, and the bot uses Playwright's browser as it is.
 
@@ -240,7 +240,7 @@ Two unit tests compare output with files in the repository, and fail with the co
 | Test | File | Rewrite with |
 |---|---|---|
 | `RealtimeContractTests` | `packages/realtime/contract/events.json` | `UPDATE_REALTIME_CONTRACT=1 dotnet test --project tests/ScreenHire.UnitTests --filter-class "*RealtimeContractTests"` |
-| `IntegrityGoldenTests` | `tests/ScreenHire.UnitTests/Integrity/Golden/*.json` | `UPDATE_INTEGRITY_GOLDEN=1 dotnet test --project tests/ScreenHire.UnitTests --filter-class "*IntegrityGoldenTests"` |
+| `VerificationGoldenTests` | `tests/ScreenHire.UnitTests/Verification/Golden/*.json` | `UPDATE_VERIFICATION_GOLDEN=1 dotnet test --project tests/ScreenHire.UnitTests --filter-class "*VerificationGoldenTests"` |
 
 Read the diff before committing a rewrite: it is the review of what changed for a person reading the output.
 

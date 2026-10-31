@@ -4,9 +4,9 @@ using ScreenHire.Application.Applications;
 using ScreenHire.Application.TalentPool;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
-using ScreenHire.Domain.Integrity;
+using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Jobs;
-using ScreenHire.Infrastructure.Integrity;
+using ScreenHire.Infrastructure.Verification;
 using ScreenHire.Infrastructure.Persistence;
 using Wolverine.EntityFrameworkCore;
 
@@ -65,7 +65,7 @@ internal static class ApplicationSubmission
         Guid? actorUserId,
         CancellationToken cancellationToken,
         SubmissionSession? session = null,
-        IntegrityOptions? integrity = null,
+        VerificationOptions? verification = null,
         TelemetryBinding? telemetry = null,
         Guid? actorApiKeyId = null,
         bool commit = true)
@@ -86,7 +86,7 @@ internal static class ApplicationSubmission
         }
 
         // Drafts saved to finish this application go with it (apply-flow.md §7), in the same save. The one saved last tells
-        // the integrity engine which answers came from an earlier sitting.
+        // the verification engine which answers came from an earlier sitting.
         var drafts = await db.ApplicationDrafts.Where(d => d.JobId == job.Id && d.Email == email).ToListAsync(cancellationToken);
         db.ApplicationDrafts.RemoveRange(drafts);
         var draft = drafts.OrderByDescending(d => d.UpdatedAt).FirstOrDefault();
@@ -108,14 +108,14 @@ internal static class ApplicationSubmission
         db.ApplicationEvents.Add(submitted);
         if (session is not null && application.Source == ApplicationSource.CareersSite)
         {
-            db.SubmissionObservations.Add(session.ToObservation(application, integrity ?? new IntegrityOptions(), now, draft));
+            db.SubmissionObservations.Add(session.ToObservation(application, verification ?? new VerificationOptions(), now, draft));
         }
 
         // Before the outbox flush publishes ApplicationSubmitted: the behavioural analyzer runs once and must find them.
         if (telemetry is not null && application.Source == ApplicationSource.CareersSite)
         {
             await TelemetrySessions.BindToApplicationAsync(
-                db, application.Id, job, telemetry, application.AccommodationRequested, now, integrity ?? new IntegrityOptions(), cancellationToken);
+                db, application.Id, job, telemetry, application.AccommodationRequested, now, verification ?? new VerificationOptions(), cancellationToken);
         }
 
         await outbox.PublishAsync(new ApplicationSubmitted(
@@ -177,7 +177,7 @@ internal static class ApplicationSubmission
 internal sealed record ApplicationDeclarations(bool AccommodationRequested, AiUseDeclaration AiUseDeclaration, string? AiUseDetails);
 
 /// <summary>
-/// What the careers form's submission arrived with, for the integrity engine: the candidate's address and browser, the
+/// What the careers form's submission arrived with, for the verification engine: the candidate's address and browser, the
 /// device fingerprint, the active seconds on each page and the automation markers the page reported. Only for
 /// careers-site applications, collected after the notice (CLAUDE.md non-negotiable 4).
 /// </summary>
@@ -193,7 +193,7 @@ internal sealed record SubmissionSession(
     /// <paramref name="draft"/> is the draft the application was finished from, if any: the API, not the page, says
     /// which answers it carried over.
     /// </summary>
-    public SubmissionObservation ToObservation(JobApplication application, IntegrityOptions options, DateTimeOffset now, ApplicationDraft? draft = null)
+    public SubmissionObservation ToObservation(JobApplication application, VerificationOptions options, DateTimeOffset now, ApplicationDraft? draft = null)
     {
         var key = KeyedHashing.ParseKey(options.DeviceHashKey);
         var measured = !application.AccommodationRequested;

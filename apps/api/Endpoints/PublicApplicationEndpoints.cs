@@ -9,7 +9,7 @@ using ScreenHire.Application.TalentPool;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
-using ScreenHire.Infrastructure.Integrity;
+using ScreenHire.Infrastructure.Verification;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
@@ -29,7 +29,7 @@ namespace ScreenHire.Api.Endpoints;
 /// of another organization is not found (404), so nothing is written across tenants.
 /// </para>
 /// <para>
-/// Integrity signals never refuse a submission (CLAUDE.md non-negotiable 2): the honeypot and the bot challenge are
+/// Verification signals never refuse a submission (CLAUDE.md non-negotiable 2): the honeypot and the bot challenge are
 /// recorded on the application, and knockout answers are stored like any other.
 /// </para>
 /// </remarks>
@@ -163,7 +163,7 @@ internal static class PublicApplicationEndpoints
         TurnstileVerifier turnstile,
         TelemetrySessions telemetry,
         IValidator<TelemetrySnapshotInput> telemetryValidator,
-        IOptions<IntegrityOptions> integrity,
+        IOptions<VerificationOptions> verification,
         HttpContext http,
         TimeProvider time,
         CancellationToken cancellationToken)
@@ -190,7 +190,7 @@ internal static class PublicApplicationEndpoints
             .GroupBy(e => $"answers.{e.QuestionId}")
             .ToDictionary(g => g.Key, g => g.Select(e => e.Message).ToArray());
 
-        if (job.Workflow.IntegrityPolicy.AiUse.RequiresDeclaration() && request.AiUseDeclaration == AiUseDeclaration.NotProvided)
+        if (job.Workflow.VerificationPolicy.AiUse.RequiresDeclaration() && request.AiUseDeclaration == AiUseDeclaration.NotProvided)
         {
             errors["aiUseDeclaration"] = ["Tell us whether you used AI tools for this application."];
         }
@@ -221,8 +221,8 @@ internal static class PublicApplicationEndpoints
             return TypedResults.ValidationProblem(errors);
         }
 
-        // The device check's footing where the job is (integrity-engine.md §3): the page is not trusted to have asked.
-        var fingerprint = TelemetrySessions.DeviceCheckFor(job, integrity.Value) switch
+        // The device check's footing where the job is (verification-engine.md §3): the page is not trusted to have asked.
+        var fingerprint = TelemetrySessions.DeviceCheckFor(job, verification.Value) switch
         {
             DeviceCheckBasis.Notice => request.DeviceFingerprint,
             DeviceCheckBasis.Consent when request.DeviceCheckConsent => request.DeviceFingerprint,
@@ -250,7 +250,7 @@ internal static class PublicApplicationEndpoints
             new ApplicationDeclarations(request.AccommodationRequested, request.AiUseDeclaration, request.AiUseDetails),
             intake, files, now, actorUserId: null, cancellationToken,
             new SubmissionSession(remoteAddress, request.UserAgent, fingerprint, request.PageTimes, request.AutomationMarkers),
-            integrity.Value,
+            verification.Value,
             binding);
         if (submitted is not { } created)
         {

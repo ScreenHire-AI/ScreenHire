@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { ApplicationDetail, ApplicationTimelineEntry, Automation, Permission, Question, TeamMember } from '@screenhire/api-client';
-  import { createGetApplicationIntegrity, createListApplicationTasks } from '@screenhire/api-client/svelte-query';
+  import { createGetApplicationVerification, createListApplicationTasks } from '@screenhire/api-client/svelte-query';
   import ApplicationTags from '#lib/components/application-tags.svelte';
   import ActivityPanel from '#lib/components/candidate/activity-panel.svelte';
   import AnswersPanel from '#lib/components/candidate/answers-panel.svelte';
@@ -14,14 +14,14 @@
   import TaskList, { type TaskRow } from '#lib/components/task-list.svelte';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import type { ActivityNames } from '#lib/activity.js';
-  import { authenticityLevels } from '#lib/integrity.js';
+  import { authenticityLevels } from '#lib/verification.js';
   import { describeError } from '#lib/query.js';
   import { completesByHand, createTaskCompletion, scorecardLink } from '#lib/tasks.svelte.js';
 
   // A candidate's Overview (design system section 22): a grid of panels that uses the width. On the left, what needs you
-  // now (Next steps: the application's tasks and, when the integrity level needs a look, its suggested next step) and the
+  // now (Next steps: the application's tasks and, when the verification level needs a look, its suggested next step) and the
   // last five things anyone did with a box for a note; on the right, the files, the tags and the answers. One column when
-  // the page is narrow. The integrity step links to its reasons and is never a reason to reject on its own (ADR-0004).
+  // the page is narrow. The verification step links to its reasons and is never a reason to reject on its own (ADR-0004).
   let {
     detail,
     timeline,
@@ -55,13 +55,13 @@
 
   // AutomationRunFinished and task completions refetch them live (#lib/realtime.ts).
   const tasks = createListApplicationTasks(() => detail.id);
-  // Shared with the Integrity tab: one query.
-  const integrity = createGetApplicationIntegrity(() => detail.id);
+  // Shared with the Verification tab: one query.
+  const verification = createGetApplicationVerification(() => detail.id);
   const completion = createTaskCompletion(() => currentUserId);
 
-  const authenticity = $derived(integrity.data?.data.authenticity);
+  const authenticity = $derived(verification.data?.data.authenticity);
   const level = $derived(authenticity ? authenticityLevels[authenticity.level] : undefined);
-  const integrityStep = $derived(authenticity && level && level.rank > 0 && !authenticity.dismissal ? { view: authenticity, level } : undefined);
+  const verificationStep = $derived(authenticity && level && level.rank > 0 && !authenticity.dismissal ? { view: authenticity, level } : undefined);
   const taskRows = $derived(completion.withHeld(tasks.data?.data.toReversed() ?? []));
 
   // A review or a requested scorecard is done on the Scorecards tab, by the person it is for (anyone, for a review for
@@ -100,21 +100,21 @@
       />
       <FailureText message={completion.failure} />
     {/if}
-    {#if integrityStep}
+    {#if verificationStep}
       <!-- One row, as a task is: the level's icon, the step, who suggested it, and the link to the reasons on the right.
            The caveat shows once: the Verification step already says it, the Review step does not (ADR-0004). -->
-      <div class="flex items-start gap-3 border-t border-border-subtle pt-3" data-integrity-step>
-        <span class="grid size-7 shrink-0 place-items-center"><StatusIcon status={integrityStep.level.status} class="size-5" /></span>
+      <div class="flex items-start gap-3 border-t border-border-subtle pt-3" data-verification-step>
+        <span class="grid size-7 shrink-0 place-items-center"><StatusIcon status={verificationStep.level.status} class="size-5" /></span>
         <div class="flex min-w-0 flex-1 flex-col gap-0.5 pt-1">
-          <p class="max-w-measure font-semibold">{integrityStep.view.nextStep}</p>
+          <p class="max-w-measure font-semibold">{verificationStep.view.nextStep}</p>
           <p class="max-w-measure text-muted-foreground">
-            {integrityStep.level.label} by the checks.{#if !/reject/i.test(integrityStep.view.nextStep)}{' '}Not a reason to reject on its own.{/if}
+            {verificationStep.level.label} by the checks.{#if !/reject/i.test(verificationStep.view.nextStep)}{' '}Not a reason to reject on its own.{/if}
           </p>
         </div>
         <a href="?tab=verification" class="inline-flex min-h-6 shrink-0 items-center pt-1 font-semibold text-primary underline underline-offset-2 pointer-coarse:min-h-11">See the reasons</a>
       </div>
     {/if}
-    {#if !tasks.isPending && !tasks.isError && taskRows.length === 0 && !integrityStep}
+    {#if !tasks.isPending && !tasks.isError && taskRows.length === 0 && !verificationStep}
       <p class="text-muted-foreground">Nothing needs you right now.</p>
     {/if}
     <p role="status" class="sr-only">{completion.announcement}</p>

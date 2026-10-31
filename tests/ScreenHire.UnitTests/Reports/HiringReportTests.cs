@@ -20,7 +20,7 @@ public sealed class HiringReportTests
     [Fact]
     public void Verification_custom_and_the_stages_that_end_an_application_without_a_hire_have_no_row()
     {
-        // A verification step is where integrity conditions route candidates, so counting it would be verification data.
+        // A verification step is where verification conditions route candidates, so counting it would be verification data.
         HiringReportReads.FunnelKinds.Should().NotContain([StageKind.Verification, StageKind.Custom, StageKind.Rejected, StageKind.Withdrawn]);
     }
 

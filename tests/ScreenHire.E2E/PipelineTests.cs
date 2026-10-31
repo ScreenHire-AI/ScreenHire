@@ -418,7 +418,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
     private static ILocator Board(IPage page, string boardId) =>
         page.GetByRole(AriaRole.Region, new() { Name = "Distribution" }).Locator($"[data-board='{boardId}']");
 
-    // Select, name, then the two integrity columns (status first, T2) and Rating, then Stage.
+    // Select, name, then the two verification columns (status first, T2) and Rating, then Stage.
     private static ILocator StageCellOf(IPage page, string candidate) =>
         page.GetByRole(AriaRole.Row).Filter(new() { Has = page.GetByRole(AriaRole.Link, new() { Name = candidate, Exact = true }) })
             .GetByRole(AriaRole.Cell).Nth(5);

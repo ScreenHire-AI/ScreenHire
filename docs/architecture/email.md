@@ -153,8 +153,8 @@ update `application_emails`, and a copy goes with its application. Every member 
   and the composer never offers it (`invitationOnly`).
 - **`stage-change` never goes to an ended application,** nor to one the team kept in mind. "Moved to the next step:
   Rejected" would be a rejection no `Reject` action guarded. The API skips such applications in a send; the worker checks again when it sends.
-- **No bulk email picked by integrity signals.** On the candidates list and a job's pipeline, Email for a selection is
-  hidden while an integrity filter or an integrity saved view picked the rows, as bulk moves to an ending stage are
+- **No bulk email picked by verification signals.** On the candidates list and a job's pipeline, Email for a selection is
+  hidden while a verification filter or a verification saved view picked the rows, as bulk moves to an ending stage are
   (ADR-0004, `bulkMoveStages`). One candidate at a time, from their page, is a person's decision.
 - **People only.** The email routes take no API key, the Messages list and the kept copies included. Owners and admins
   change templates and test them; owners, admins and recruiters send; viewers read templates and kept emails and send

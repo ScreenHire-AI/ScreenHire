@@ -1,5 +1,5 @@
 using System.Globalization;
-using ScreenHire.Domain.Integrity;
+using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Domain.TalentPool;
 
@@ -10,7 +10,7 @@ namespace ScreenHire.Domain.History;
 /// from Brightwater to <b>Brightwater Studio</b>") and the questions per page ("changed questions per page from 8 to
 /// <b>10</b>") and the sites that may embed the careers page ("let <b>https://www.example.com</b> embed the careers
 /// page"), all on the Organization page, the branding ("changed the brand colour from #1f4e5a to
-/// <b>#2b2788</b>", "replaced the logo") and the integrity settings ("turned on <b>the consistency check</b>"). Creating the organization is not
+/// <b>#2b2788</b>", "replaced the logo") and the verification settings ("turned on <b>the consistency check</b>"). Creating the organization is not
 /// a change anyone made on these pages, so it records nothing.
 /// </summary>
 public static class SettingsChanges
@@ -101,7 +101,7 @@ public static class SettingsChanges
 
     /// <param name="before">The settings before the save; null on the first save, which compares with the defaults.</param>
     /// <param name="after">The settings after the save.</param>
-    public static IReadOnlyList<ChangeLine> Integrity(IntegritySettings? before, IntegritySettings? after)
+    public static IReadOnlyList<ChangeLine> Verification(VerificationSettings? before, VerificationSettings? after)
     {
         if (after is null)
         {

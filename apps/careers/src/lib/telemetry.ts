@@ -1,5 +1,5 @@
 // What the careers server accepts from the telemetry module (packages/telemetry) before passing it to the API: one
-// snapshot shape, strict, so nothing but counts and known ids travels on (integrity-engine.md §10.2). The API checks it
+// snapshot shape, strict, so nothing but counts and known ids travels on (verification-engine.md §10.2). The API checks it
 // all again, including the field ids against the job's questions.
 import type { TelemetrySnapshotInput } from '@screenhire/api-client';
 import { AUTOMATION_MARKERS, MAX_FIELDS } from '@screenhire/telemetry';

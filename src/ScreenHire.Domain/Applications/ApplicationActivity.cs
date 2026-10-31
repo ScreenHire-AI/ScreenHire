@@ -7,7 +7,7 @@ namespace ScreenHire.Domain.Applications;
 /// timeline entry.
 /// </summary>
 /// <remarks>
-/// <see cref="ApplicationEventType.IntegrityAssessed"/> does not count: it is the engine's work, not the candidate's or
+/// <see cref="ApplicationEventType.VerificationAssessed"/> does not count: it is the engine's work, not the candidate's or
 /// the team's, and an API key never learns that an assessment ran or when (ADR-0011), which a last-activity time that
 /// moved with it would tell. Every event type is in exactly one of the two sets; a unit test holds that, so a new type
 /// is a decision.
@@ -36,11 +36,11 @@ public static class ApplicationActivity
     ];
 
     /// <summary>
-    /// The timeline entries that leave it as it is: the integrity engine's, and the candidate leaving the talent pool,
+    /// The timeline entries that leave it as it is: the verification engine's, and the candidate leaving the talent pool,
     /// which the daily expiry sweep writes with nobody involved, and whose other causes (a move back, a new application)
     /// come with an entry that counts.
     /// </summary>
-    public static readonly ApplicationEventType[] NotCounted = [ApplicationEventType.IntegrityAssessed, ApplicationEventType.LeftTalentPool];
+    public static readonly ApplicationEventType[] NotCounted = [ApplicationEventType.VerificationAssessed, ApplicationEventType.LeftTalentPool];
 
     /// <summary>
     /// The application's last activity: the latest counted timeline entry or finished task, and never earlier than when it

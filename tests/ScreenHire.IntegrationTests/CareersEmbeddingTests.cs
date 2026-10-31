@@ -2,7 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
-using ScreenHire.Application.Integrity;
+using ScreenHire.Application.Verification;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Infrastructure.Tenancy;
 
@@ -83,7 +83,7 @@ public sealed class CareersEmbeddingTests(AppHostFixture fixture)
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         (await owner.PutAsync("/v1/organization/embedding", Sites("https://www.example.com"))).Expect(HttpStatusCode.OK);
-        var (slug, jobId) = await IntegritySupport.OpenJobAsync(fixture, owner);
+        var (slug, jobId) = await VerificationSupport.OpenJobAsync(fixture, owner);
         using var client = fixture.CreateHttpClient("api");
 
         var organization = await client.GetFromJsonAsync<JsonElement>($"/v1/public/organizations/{slug}/", Ct);
@@ -115,7 +115,7 @@ public sealed class CareersEmbeddingTests(AppHostFixture fixture)
         using var first = await fixture.SignedInWithOrganizationAsync();
         using var second = await fixture.SignedInWithOrganizationAsync();
         (await first.PutAsync("/v1/organization/embedding", Sites("https://www.example.com"))).Expect(HttpStatusCode.OK);
-        var (slug, jobId) = await IntegritySupport.OpenJobAsync(fixture, second);
+        var (slug, jobId) = await VerificationSupport.OpenJobAsync(fixture, second);
 
         (await second.PutAsync("/v1/organization/embedding", Sites("https://jobs.example.org"))).Expect(HttpStatusCode.OK);
         var applied = await fixture.ApplyAsync(slug, jobId, SyntheticApplicants.GenuineHuman, Ct, embedOrigin: "https://www.example.com");

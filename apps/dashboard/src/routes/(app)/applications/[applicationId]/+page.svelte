@@ -8,7 +8,7 @@
   import {
     ApiError,
     createGetApplication,
-    createGetApplicationIntegrity,
+    createGetApplicationVerification,
     createGetApplicationTimeline,
     createGetJob,
     createListApplicationScorecards,
@@ -35,7 +35,7 @@
   import EmailComposerSheet from '#lib/components/email-composer-sheet.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
-  import IntegrityPanel from '#lib/components/integrity-panel.svelte';
+  import VerificationPanel from '#lib/components/verification-panel.svelte';
   import KeepInMindSheet from '#lib/components/keep-in-mind-sheet.svelte';
   import MetaItem from '#lib/components/meta-item.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
@@ -60,7 +60,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
   import { visibleEntries, type ActivityNames } from '#lib/activity.js';
-  import { authenticityLevels } from '#lib/integrity.js';
+  import { authenticityLevels } from '#lib/verification.js';
   import { createMoves } from '#lib/moves.svelte.js';
   import { formatDate } from '#lib/dates.js';
   import { siteName } from '#lib/format.js';
@@ -98,8 +98,8 @@
   const application = createGetApplication(() => params.applicationId);
   const timeline = createGetApplicationTimeline(() => params.applicationId);
   const scorecards = createListApplicationScorecards(() => params.applicationId);
-  // The Integrity tab's marker; the tab shares the query.
-  const integrity = createGetApplicationIntegrity(() => params.applicationId);
+  // The Verification tab's marker; the tab shares the query.
+  const verification = createGetApplicationVerification(() => params.applicationId);
   // Names the people in Activity, notes and mentions.
   const team = createListTeamMembers();
   const members = $derived(team.data?.data);
@@ -207,9 +207,9 @@
     if (choice) fillIn(choice.value);
   });
 
-  // A count on each tab where one fits (E2). When the authenticity level needs a look, Integrity's count is the signals
+  // A count on each tab where one fits (E2). When the authenticity level needs a look, Verification's count is the signals
   // behind it, in the same grey as every tab, and the level is the candidate's status beside the name (W7).
-  const authenticity = $derived(integrity.data?.data.authenticity);
+  const authenticity = $derived(verification.data?.data.authenticity);
   const attention = $derived.by(() => {
     if (!authenticity || authenticity.dismissal) return undefined;
     const level = authenticityLevels[authenticity.level];
@@ -420,7 +420,7 @@
           </Tabs.Content>
           <Tabs.Content value="verification" class="flex min-w-0 flex-col gap-5">
             {#if tab === 'verification'}
-              <IntegrityPanel applicationId={detail.id} source={detail.source} />
+              <VerificationPanel applicationId={detail.id} source={detail.source} />
               <ReviewLog applicationId={detail.id} />
             {/if}
           </Tabs.Content>

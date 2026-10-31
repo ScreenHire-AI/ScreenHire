@@ -153,7 +153,7 @@
       </Panel>
     {:else}
       <Panel title="AI use while applying">
-        <p>{aiUseLabels[workflow.integrityPolicy.aiUse]}</p>
+        <p>{aiUseLabels[workflow.verificationPolicy.aiUse]}</p>
       </Panel>
       <Panel title="Screening questions" count={questions.length}>
         {#if questions.length === 0}

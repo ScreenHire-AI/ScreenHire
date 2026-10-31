@@ -16,7 +16,7 @@ const workflow: HiringWorkflow = {
     { id: 'rejected', name: 'Not progressing', kind: 'Rejected' },
   ],
   questionnaire: { questions: [] },
-  integrityPolicy: { aiUse: 'AllowedWithDisclosure' },
+  verificationPolicy: { aiUse: 'AllowedWithDisclosure' },
   automations: [],
 };
 

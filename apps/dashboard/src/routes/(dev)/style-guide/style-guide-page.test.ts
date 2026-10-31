@@ -77,7 +77,7 @@ const panels: Record<string, string[]> = {
   'Email composer': ['Email composer'],
   'Add candidate sheet': ['Add candidate sheet'],
   'Live indicator': ['Live indicator'],
-  'Integrity chip and panel': ['Integrity chip and evidence'],
+  'Verification chip and panel': ['Verification chip and evidence'],
   Tabs: ['Tabs'],
   Notice: ['Notice'],
   'Expandable row': ['Expandable row'],

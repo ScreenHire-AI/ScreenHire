@@ -17,11 +17,11 @@ public sealed class TemplatesApiTests(AppHostFixture fixture)
         var byName = Enumerable.Range(0, 2).ToDictionary(i => list.Text($"{i}.name"), i => list.At($"{i}"));
         byName.Keys.Should().BeEquivalentTo("Software engineer", "Hourly role");
         byName["Software engineer"].GetProperty("id").GetGuid().Should().Be(SystemTemplates.SoftwareEngineer);
-        byName["Software engineer"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.SoftwareEngineerVersion4);
+        byName["Software engineer"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.SoftwareEngineerVersion5);
         byName["Hourly role"].GetProperty("id").GetGuid().Should().Be(SystemTemplates.HourlyRole);
         byName["Hourly role"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.HourlyRoleVersion3);
         byName.Values.Should().OnlyContain(t => t.GetProperty("isSystem").GetBoolean());
-        byName["Software engineer"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(4);
+        byName["Software engineer"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(5);
         byName["Hourly role"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(3);
     }
 
@@ -114,11 +114,11 @@ public sealed class TemplatesApiTests(AppHostFixture fixture)
     [Theory]
     [InlineData("Reject")]
     [InlineData("QueueForRejectionReview")]
-    public async Task An_integrity_signal_cannot_drive_a_rejection(string actionType)
+    public async Task An_verification_signal_cannot_drive_a_rejection(string actionType)
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
         var action = new JsonObject { ["type"] = actionType, ["reason"] = "Not a fit" };
-        var definition = Samples.DefinitionWith(Samples.IntegrityAutomation(action));
+        var definition = Samples.DefinitionWith(Samples.VerificationAutomation(action));
 
         var create = await recruiter.PostAsync("/v1/templates", new JsonObject { ["name"] = "Auto reject", ["definition"] = definition.DeepClone() });
         var draft = await recruiter.CreateTemplateAsync("Draft to edit");
@@ -130,22 +130,22 @@ public sealed class TemplatesApiTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task An_integrity_signal_may_still_route_a_candidate_for_review()
+    public async Task An_verification_signal_may_still_route_a_candidate_for_review()
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
         var action = new JsonObject { ["type"] = "AddTag", ["tag"] = "needs-review" };
 
         var created = await recruiter.PostAsync(
-            "/v1/templates", new JsonObject { ["name"] = "Routing", ["definition"] = Samples.DefinitionWith(Samples.IntegrityAutomation(action)) });
+            "/v1/templates", new JsonObject { ["name"] = "Routing", ["definition"] = Samples.DefinitionWith(Samples.VerificationAutomation(action)) });
 
         created.Expect(HttpStatusCode.Created);
     }
 
     [Fact]
-    public async Task A_tag_added_by_an_integrity_driven_automation_cannot_launder_the_signal_into_another_automation()
+    public async Task A_tag_added_by_an_verification_driven_automation_cannot_launder_the_signal_into_another_automation()
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
-        JsonObject AddTag() => Samples.IntegrityAutomation(new JsonObject { ["type"] = "AddTag", ["tag"] = "needs-review" });
+        JsonObject AddTag() => Samples.VerificationAutomation(new JsonObject { ["type"] = "AddTag", ["tag"] = "needs-review" });
 
         var laundered = await recruiter.PostAsync(
             "/v1/templates", new JsonObject { ["name"] = "Laundering", ["definition"] = Samples.DefinitionWith(AddTag(), Samples.EmailOnTag("needs-review")) });

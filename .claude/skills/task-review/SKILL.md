@@ -32,7 +32,7 @@ its dimension. Tell each to read the changed files in full, report findings as `
 (blocker / major / minor), the evidence and the fix, and to change nothing.
 
 In the same parallel batch, launch the specialists (`.claude/agents/`), each given the diff range and the brief:
-`tenant-isolation-guard` and `integrity-guardrails` always (each says `NOT APPLICABLE` when the diff does not touch
+`tenant-isolation-guard` and `verification-guardrails` always (each says `NOT APPLICABLE` when the diff does not touch
 its area), `licence-check` when `Directory.Packages.props` or a `package.json` changed, `migration-safety` when
 `src/ScreenHire.Infrastructure/Persistence/` or `src/ScreenHire.Domain/` changed, and `design-review` when
 `apps/dashboard/`, `apps/careers/`, `apps/marketing/` or `packages/ui/` changed (it holds screens to
@@ -48,7 +48,7 @@ this session, use `general-purpose` with the contents of `.claude/agents/<name>.
 2. **Non-negotiables and security** (CLAUDE.md, ADR-0004/0005, `docs/research/legal.md`):
    - tenant isolation: `OrganizationId` on every tenant row, named query filters, RLS, no cross-tenant reads;
    - authorization on every non-public endpoint;
-   - integrity output as categorical levels with reasons and evidence, never scores or auto-reject, no
+   - verification output as categorical levels with reasons and evidence, never scores or auto-reject, no
      emotion or biometric inference;
    - notice before collection, telemetry aggregates only;
    - no LinkedIn or third-party scraping;
@@ -80,7 +80,7 @@ drive a browser, so you take the screenshots and measurements and it judges them
    - each changed route under `apps/dashboard/src/routes/`, as its URL without the `(group)` folders. Fill a
      `[param]` from a link on the page above it with `kangentic_browser_query_all` and `includeHtml`: for `[jobId]`
      the `href` of "Senior .NET Engineer" among `a[href^="/jobs/"]` on `/` (the seeded job with candidates and
-     integrity chips, as `/preview` step 5 finds it); for `[applicationId]` the first `a[href^="/applications/"]` on
+     verification chips, as `/preview` step 5 finds it); for `[applicationId]` the first `a[href^="/applications/"]` on
      that job's page; for `[templateId]` the first `a[href^="/templates/"]` on `/templates`. If no link matches,
      skip the page and say so in the findings table. Leave `(auth)` routes to the code review: the signed-in pane
      redirects away from them;

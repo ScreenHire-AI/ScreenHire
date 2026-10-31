@@ -138,7 +138,7 @@
       <Panel title="AI use while applying">
         {@render followUpsErrors()}
         <div class="flex max-w-form flex-col gap-1.5">
-          <select class={selectClass} aria-label="AI use while applying" aria-describedby="ai-use-note" bind:value={workflow.integrityPolicy.aiUse}>
+          <select class={selectClass} aria-label="AI use while applying" aria-describedby="ai-use-note" bind:value={workflow.verificationPolicy.aiUse}>
             {#each Object.entries(aiUseLabels) as [policy, label] (policy)}<option value={policy}>{label}</option>{/each}
           </select>
           <p id="ai-use-note" class="text-muted-foreground">Candidates see this before they start, and no automation uses their answer.</p>

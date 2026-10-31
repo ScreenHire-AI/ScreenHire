@@ -161,9 +161,9 @@ API keys (Owners and Admins) manages keys in a session, on the dashboard's Setti
   authorization policy, whose scheme `SessionOrApiKey` forwards to the key handler when the request has an
   `Authorization` header and to the cookie otherwise. A request is judged by one credential: a bad key with a good
   cookie is 401. Every other route keeps the cookie-only default and fallback policies, so a key gets 401 on sign-in,
-  onboarding, key management, organization settings, integrity review, automations, distribution and the hub.
-- **No integrity output.** Application and candidate reads send a key `integrity: null`, and the application
-  timeline leaves out `IntegrityAssessed` entries (ADR-0011): levels and reason codes are for the person reviewing
+  onboarding, key management, organization settings, verification review, automations, distribution and the hub.
+- **No verification output.** Application and candidate reads send a key `verification: null`, and the application
+  timeline leaves out `VerificationAssessed` entries (ADR-0011): levels and reason codes are for the person reviewing
   (ADR-0004), not for another system to reject on. The MCP server returns none either.
 - **The MCP server** at `/v1/mcp` lets a team's AI assistant use the hiring API with a key, and only a key: its own
   `mcp` policy authenticates the `ApiKey` scheme alone, so a session cookie gets 401 there
@@ -251,7 +251,7 @@ permissions (`RolePermissions.Summarize`), so it always says what the role allow
 
 The dashboard follows the same permissions (`apps/dashboard/src/lib/permissions.ts`). **Settings** is one sidebar item
 for anyone whose role has a settings permission; it opens the Settings menu (Organization, Team, Roles, Branding,
-Integrity, API keys and Webhooks, under `/settings/*`; email templates are on the Templates page, and their old
+Verification, API keys and Webhooks, under `/settings/*`; email templates are on the Templates page, and their old
 `/settings/email-templates` addresses redirect there), each page
 behind its permission (`settingsSections` in `apps/dashboard/src/lib/settings.ts`), and the command palette lists the
 same pages. The settings layout tells anyone who opens another page by its address that their role cannot change it.
@@ -383,8 +383,8 @@ Two layers, so one mistake is not a breach.
    request carries. `job_versions` and `application_events` are append-only: `screenhire_app` has no `UPDATE` or
    `DELETE` on them. `application_scorecards` (migration `AddScorecards`) is the same: a submitted scorecard is final.
 
-   The integrity tables (migration `AddIntegrityEngine`) follow the same pattern. `integrity_analyzer_runs`,
-   `integrity_signals`, `integrity_assessments` and `integrity_review_actions` are append-only for audit;
+   The verification tables (migration `AddVerificationEngine`) follow the same pattern. `verification_analyzer_runs`,
+   `verification_signals`, `verification_assessments` and `verification_review_actions` are append-only for audit;
    `submission_observations` refuses `UPDATE` but allows `DELETE`, which the retention sweep needs. The sweep walks every
    organization in turn, like `ReportOpenJobs`. `signal_network_entries` is the one cross-tenant table: row-level
    security with no policy and no grant to `screenhire_app`, so the application role cannot touch it while the Signal

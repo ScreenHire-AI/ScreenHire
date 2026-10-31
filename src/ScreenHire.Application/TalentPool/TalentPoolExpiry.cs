@@ -10,7 +10,7 @@ namespace ScreenHire.Application.TalentPool;
 /// <summary>
 /// The daily sweep that takes people out of the talent pool once their permission has run out
 /// (docs/architecture/talent-pool.md). It has no tenant of its own, and row-level security shows the worker no tenant rows
-/// without one, so it fans out one <see cref="ExpireOrganizationTalentPool"/> per organization, as the integrity data
+/// without one, so it fans out one <see cref="ExpireOrganizationTalentPool"/> per organization, as the verification data
 /// purge does.
 /// </summary>
 public sealed record ExpireTalentPool;

@@ -22,7 +22,7 @@
 //                               turns on the local sandbox board, a fake that must never reach real tenants;
 //                               GoogleIndexing:Mode is Off unless set (Local is the fake); in Google mode the key comes
 //                               from the secret parameter google-indexing-service-account-key, never from these keys.
-//   Integrity:Llm:*             the consistency check's model (ScreenHire.Infrastructure LlmOptions), forwarded to the
+//   Verification:Llm:*             the consistency check's model (ScreenHire.Infrastructure LlmOptions), forwarded to the
 //                               worker. The worker's Development settings use the deterministic fake model; Provider
 //                               None turns the check into "unavailable"; in Anthropic mode the key comes from the secret
 //                               parameter anthropic-api-key, never from these keys.
@@ -103,10 +103,10 @@ if (persistData)
     mailpit.WithDataVolume(VolumeNameGenerator.Generate(mailpit, "data"));
 }
 
-// The key the API hashes candidates' device fingerprints with, per organization (ScreenHire:Integrity:DeviceHashKey).
+// The key the API hashes candidates' device fingerprints with, per organization (ScreenHire:Verification:DeviceHashKey).
 // Generated locally and kept in the AppHost's user secrets like other generated parameters; production sets its own.
 var deviceHashKey = builder.AddParameter(
-    "integrity-device-hash-key", new GenerateParameterDefault { MinLength = 32, Special = false }, secret: true);
+    "verification-device-hash-key", new GenerateParameterDefault { MinLength = 32, Special = false }, secret: true);
 
 // The API's `http` launch profile only: its `https` profile would add a fixed https://localhost:7080 that nothing uses
 // and that collides when two stacks run side by side.
@@ -116,7 +116,7 @@ var api = builder.AddProject<Projects.ScreenHire_Api>("api", launchProfileName: 
     .WithReference(appDatabase)
     .WithReference(mailpit).WaitFor(mailpit)
     .WithReference(blobs).WaitFor(blobs)
-    .WithEnvironment("ScreenHire__Integrity__DeviceHashKey", deviceHashKey)
+    .WithEnvironment("ScreenHire__Verification__DeviceHashKey", deviceHashKey)
     // Kestrel only listens after the Development migrate-and-seed, and with Demo on /health stays unhealthy until the demo
     // data is in, so a healthy API has its schema and its data. Everything that waits for it (worker, frontends, test
     // fixtures) starts after that, not when the process starts.
@@ -225,28 +225,28 @@ if (string.Equals(settings["Distribution:GoogleIndexing:Mode"], "Google", String
     worker.WithEnvironment("ScreenHire__Distribution__GoogleIndexing__ServiceAccountKeyJson", googleKey);
 }
 
-foreach (var (key, value) in settings.GetSection("Integrity:Llm").AsEnumerable(makePathsRelative: true))
+foreach (var (key, value) in settings.GetSection("Verification:Llm").AsEnumerable(makePathsRelative: true))
 {
     // The API key is a secret: it goes through the parameter below, never as plain configuration.
     if (value is not null && !key.StartsWith("Anthropic", StringComparison.OrdinalIgnoreCase))
     {
-        worker.WithEnvironment($"ScreenHire__Integrity__Llm__{key.Replace(":", "__", StringComparison.Ordinal)}", value);
+        worker.WithEnvironment($"ScreenHire__Verification__Llm__{key.Replace(":", "__", StringComparison.Ordinal)}", value);
     }
 }
 
-// Anthropic's API key for the consistency check (integrity-engine.md §10.10), only in Anthropic mode: a secret parameter,
+// Anthropic's API key for the consistency check (verification-engine.md §10.10), only in Anthropic mode: a secret parameter,
 // set with `dotnet user-secrets set Parameters:anthropic-api-key "<key>"` in apps/apphost or by the deployment's secret
 // store. In the default modes there is no parameter, so nothing asks for a key.
-if (string.Equals(settings["Integrity:Llm:Provider"], "Anthropic", StringComparison.OrdinalIgnoreCase))
+if (string.Equals(settings["Verification:Llm:Provider"], "Anthropic", StringComparison.OrdinalIgnoreCase))
 {
     var anthropicKey = builder.AddParameter("anthropic-api-key", secret: true);
-    worker.WithEnvironment("ScreenHire__Integrity__Llm__Anthropic__ApiKey", anthropicKey);
+    worker.WithEnvironment("ScreenHire__Verification__Llm__Anthropic__ApiKey", anthropicKey);
 }
 
 // The local demo's data (the API's DevelopmentDemo, docs/operations/local-demo.md): Brightwater's template, jobs on every
 // board, a draft and a closed job, the synthetic applicants and candidates in every stage, once the API starts. Only for
 // `pnpm dev` by default: the test stacks make their own data and treat Brightwater as the seeder leaves it, and the
-// startup burst of submissions delayed a later live update in the end-to-end tests (integrity-engine.md §10.9).
+// startup burst of submissions delayed a later live update in the end-to-end tests (verification-engine.md §10.9).
 if (demo)
 {
     api.WithEnvironment("ScreenHire__Demo__Enabled", "true");

@@ -11,7 +11,7 @@ UK/EU. It sets itself apart by **detecting AI-generated, fraudulent and bot appl
 evidence**, by **per-job workflows built from user-defined templates**, by a **public API**, and by **in-house
 one-click job posting and teardown**.
 
-> Positioning (from research): *an integrity layer from first click to first day that recruiters and candidates can
+> Positioning (from research): *a verification layer from first click to first day that recruiters and candidates can
 > both understand, at GoHire prices.*
 
 **Why it exists:** the owner's team hires on gohire.io (mainly .NET developer roles), and fake / AI-generated
@@ -34,7 +34,7 @@ docs. The layout follows the Open Knowledge Format ([ADR-0012](adr/0012-docs-ope
 | Run the product and give the five-minute demo | [Run ScreenHire locally](operations/local-demo.md) |
 | Know what is built, what is faked and what the owner still has to do | [MVP status](status.md) |
 | Know what comes next | [Roadmap](roadmap.md) |
-| Change a subsystem (integrity, workflows, distribution, sign-in, messaging, email, the apply flow) | [Architecture](architecture/index.md), then the ADRs it names |
+| Change a subsystem (verification, workflows, distribution, sign-in, messaging, email, the apply flow) | [Architecture](architecture/index.md), then the ADRs it names |
 | Build or review a screen | [Design system](design/design-system.md), section 2 is the review checklist |
 | Know why a technology or rule was chosen | [Decisions](adr/index.md) and the [research](research/index.md) behind them |
 | Write or run tests, or move a task through the board | [Process](process/index.md) |

@@ -2,19 +2,19 @@
   import { untrack } from 'svelte';
   import type { ApplicationSummary, WorkflowStage } from '@screenhire/api-client';
   import JobPipeline from '#lib/components/job-pipeline.svelte';
-  import { noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
+  import { noVerificationFilter, type VerificationFilter } from '#lib/verification.js';
   import { createMoves } from '#lib/moves.svelte.js';
 
-  // The job page's pipeline wiring without the rest of the page: the moves every control shares and the integrity filter
+  // The job page's pipeline wiring without the rest of the page: the moves every control shares and the verification filter
   // and view the page binds. Render inside with-query-client.svelte.
   let {
     stages,
     applications,
-    integrityFilter: initialFilter = { ...noIntegrityFilter },
-  }: { stages: WorkflowStage[]; applications: ApplicationSummary[]; integrityFilter?: IntegrityFilter } = $props();
+    verificationFilter: initialFilter = { ...noVerificationFilter },
+  }: { stages: WorkflowStage[]; applications: ApplicationSummary[]; verificationFilter?: VerificationFilter } = $props();
 
   const moves = createMoves();
-  let integrityFilter = $state<IntegrityFilter>(untrack(() => ({ ...initialFilter })));
+  let verificationFilter = $state<VerificationFilter>(untrack(() => ({ ...initialFilter })));
   let view = $state<'table' | 'board'>('table');
 </script>
 
@@ -26,6 +26,6 @@
   error={null}
   onretry={() => {}}
   {moves}
-  bind:integrityFilter
+  bind:verificationFilter
   bind:view
 />

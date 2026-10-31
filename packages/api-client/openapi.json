@@ -4189,12 +4189,12 @@
         ]
       }
     },
-    "/v1/applications/{applicationId}/integrity": {
+    "/v1/applications/{applicationId}/verification": {
       "get": {
         "tags": [
-          "Integrity"
+          "Verification"
         ],
-        "operationId": "GetApplicationIntegrity",
+        "operationId": "GetApplicationVerification",
         "parameters": [
           {
             "name": "applicationId",
@@ -4212,7 +4212,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApplicationIntegrity"
+                  "$ref": "#/components/schemas/ApplicationVerification"
                 }
               }
             }
@@ -4231,12 +4231,12 @@
         ]
       }
     },
-    "/v1/applications/{applicationId}/integrity/assessments/{assessmentId}/dismiss": {
+    "/v1/applications/{applicationId}/verification/assessments/{assessmentId}/dismiss": {
       "post": {
         "tags": [
-          "Integrity"
+          "Verification"
         ],
-        "operationId": "DismissIntegrityAssessment",
+        "operationId": "DismissVerificationAssessment",
         "parameters": [
           {
             "name": "applicationId",
@@ -4261,7 +4261,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/DismissIntegrityAssessmentRequest"
+                "$ref": "#/components/schemas/DismissVerificationAssessmentRequest"
               }
             }
           },
@@ -4273,7 +4273,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApplicationIntegrity"
+                  "$ref": "#/components/schemas/ApplicationVerification"
                 }
               }
             }
@@ -4322,112 +4322,12 @@
         ]
       }
     },
-    "/v1/applications/{applicationId}/integrity/assessments/{assessmentId}/signals/{signalId}/explain": {
+    "/v1/applications/{applicationId}/verification/assessments/{assessmentId}/signals/{signalId}/explain": {
       "post": {
         "tags": [
-          "Integrity"
+          "Verification"
         ],
-        "operationId": "ExplainIntegrityReason",
-        "parameters": [
-          {
-            "name": "applicationId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "assessmentId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "signalId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ExplainIntegrityReasonRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApplicationIntegrity"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      }
-    },
-    "/v1/applications/{applicationId}/integrity/assessments/{assessmentId}/signals/{signalId}/undo-explanation": {
-      "post": {
-        "tags": [
-          "Integrity"
-        ],
-        "operationId": "UndoIntegrityReasonExplanation",
+        "operationId": "ExplainVerificationReason",
         "parameters": [
           {
             "name": "applicationId",
@@ -4457,13 +4357,113 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExplainVerificationReasonRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApplicationIntegrity"
+                  "$ref": "#/components/schemas/ApplicationVerification"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/applications/{applicationId}/verification/assessments/{assessmentId}/signals/{signalId}/undo-explanation": {
+      "post": {
+        "tags": [
+          "Verification"
+        ],
+        "operationId": "UndoVerificationReasonExplanation",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "assessmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "signalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationVerification"
                 }
               }
             }
@@ -4502,12 +4502,12 @@
         ]
       }
     },
-    "/v1/applications/{applicationId}/integrity/notes": {
+    "/v1/applications/{applicationId}/verification/notes": {
       "post": {
         "tags": [
-          "Integrity"
+          "Verification"
         ],
-        "operationId": "AddIntegrityNote",
+        "operationId": "AddVerificationNote",
         "parameters": [
           {
             "name": "applicationId",
@@ -4523,7 +4523,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AddIntegrityNoteRequest"
+                "$ref": "#/components/schemas/AddVerificationNoteRequest"
               }
             }
           },
@@ -4535,7 +4535,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApplicationIntegrity"
+                  "$ref": "#/components/schemas/ApplicationVerification"
                 }
               }
             }
@@ -4574,10 +4574,10 @@
         ]
       }
     },
-    "/v1/applications/{applicationId}/integrity/request-verification": {
+    "/v1/applications/{applicationId}/verification/request-verification": {
       "post": {
         "tags": [
-          "Integrity"
+          "Verification"
         ],
         "operationId": "RequestIdentityVerification",
         "parameters": [
@@ -5086,12 +5086,12 @@
         ]
       }
     },
-    "/v1/organization/integrity-settings/history": {
+    "/v1/organization/verification-settings/history": {
       "get": {
         "tags": [
           "Organization"
         ],
-        "operationId": "GetOrganizationIntegritySettingsHistory",
+        "operationId": "GetOrganizationVerificationSettingsHistory",
         "parameters": [
           {
             "name": "before",
@@ -5512,19 +5512,19 @@
         ]
       }
     },
-    "/v1/organization/integrity-settings": {
+    "/v1/organization/verification-settings": {
       "get": {
         "tags": [
           "Organization"
         ],
-        "operationId": "GetOrganizationIntegritySettings",
+        "operationId": "GetOrganizationVerificationSettings",
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OrganizationIntegritySettings"
+                  "$ref": "#/components/schemas/OrganizationVerificationSettings"
                 }
               }
             }
@@ -5543,12 +5543,12 @@
         "tags": [
           "Organization"
         ],
-        "operationId": "UpdateOrganizationIntegritySettings",
+        "operationId": "UpdateOrganizationVerificationSettings",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateIntegritySettingsRequest"
+                "$ref": "#/components/schemas/UpdateVerificationSettingsRequest"
               }
             }
           },
@@ -5560,7 +5560,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OrganizationIntegritySettings"
+                  "$ref": "#/components/schemas/OrganizationVerificationSettings"
                 }
               }
             }
@@ -10485,7 +10485,7 @@
         },
         "description": "Adds these candidates from the talent pool to `jobId`, which must not be closed."
       },
-      "AddIntegrityNoteRequest": {
+      "AddVerificationNoteRequest": {
         "required": [
           "note"
         ],
@@ -10502,7 +10502,7 @@
             "format": "uuid"
           }
         },
-        "description": "Adds a note to the integrity audit log, about one assessment (`assessmentId`) or the application as a whole."
+        "description": "Adds a note to the verification audit log, about one assessment (`assessmentId`) or the application as a whole."
       },
       "AiAssistanceAssessmentView": {
         "required": [
@@ -10543,7 +10543,7 @@
           "signals": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/IntegritySignalView"
+              "$ref": "#/components/schemas/VerificationSignalView"
             }
           },
           "rulesetVersion": {
@@ -10559,7 +10559,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/IntegrityDismissal"
+                "$ref": "#/components/schemas/VerificationDismissal"
               }
             ]
           },
@@ -10918,7 +10918,7 @@
           "Submitted",
           "StageChanged",
           "TagAdded",
-          "IntegrityAssessed",
+          "VerificationAssessed",
           "TagRemoved",
           "NoteAdded",
           "ScorecardSubmitted",
@@ -11040,67 +11040,6 @@
         },
         "description": "A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes."
       },
-      "ApplicationIntegrity": {
-        "required": [
-          "applicationId",
-          "status",
-          "authenticity",
-          "aiAssistance",
-          "reviewLog",
-          "requestVerification",
-          "consistencyCheck"
-        ],
-        "type": "object",
-        "properties": {
-          "applicationId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "status": {
-            "$ref": "#/components/schemas/IntegrityStatus"
-          },
-          "authenticity": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/AuthenticityAssessmentView"
-              }
-            ]
-          },
-          "aiAssistance": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/AiAssistanceAssessmentView"
-              }
-            ]
-          },
-          "reviewLog": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/IntegrityReviewEntry"
-            }
-          },
-          "requestVerification": {
-            "$ref": "#/components/schemas/IntegrityActionAvailability"
-          },
-          "consistencyCheck": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/ConsistencyCheckView"
-              }
-            ]
-          }
-        },
-        "description": "An application's integrity: two separate assessments, each a categorical level with reason codes, the signals and\r\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\r\nor percentage anywhere in it, and nothing here decides anything: every action is a person's, and every action is in\r\n`reviewLog`."
-      },
       "ApplicationNoteDetail": {
         "required": [
           "id",
@@ -11174,7 +11113,7 @@
             "default": 0
           }
         },
-        "description": "The candidate's rating (ADR-0013 decision 13): one to five stars averaged from people's scorecards. Each rating answer\r\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\r\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\r\ndecimal. It is people's judgement of the work only: never integrity results, AI signals or the stage. No automation\r\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\r\nthey give it, so it cannot anchor them."
+        "description": "The candidate's rating (ADR-0013 decision 13): one to five stars averaged from people's scorecards. Each rating answer\r\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\r\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\r\ndecimal. It is people's judgement of the work only: never verification results, AI signals or the stage. No automation\r\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\r\nthey give it, so it cannot anchor them."
       },
       "ApplicationSource": {
         "enum": [
@@ -11261,13 +11200,13 @@
               "type": "string"
             }
           },
-          "integrity": {
+          "verification": {
             "oneOf": [
               {
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/IntegritySummary"
+                "$ref": "#/components/schemas/VerificationSummary"
               }
             ]
           },
@@ -11567,6 +11506,67 @@
         },
         "description": "One entry of an application's timeline, oldest first. Members that do not apply to the type are null."
       },
+      "ApplicationVerification": {
+        "required": [
+          "applicationId",
+          "status",
+          "authenticity",
+          "aiAssistance",
+          "reviewLog",
+          "requestVerification",
+          "consistencyCheck"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/VerificationStatus"
+          },
+          "authenticity": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AuthenticityAssessmentView"
+              }
+            ]
+          },
+          "aiAssistance": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AiAssistanceAssessmentView"
+              }
+            ]
+          },
+          "reviewLog": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VerificationReviewEntry"
+            }
+          },
+          "requestVerification": {
+            "$ref": "#/components/schemas/VerificationActionAvailability"
+          },
+          "consistencyCheck": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ConsistencyCheckView"
+              }
+            ]
+          }
+        },
+        "description": "An application's verification: two separate assessments, each a categorical level with reason codes, the signals and\r\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\r\nor percentage anywhere in it, and nothing here decides anything: every action is a person's, and every action is in\r\n`reviewLog`."
+      },
       "ApplyTemplateUpdateRequest": {
         "required": [
           "templateVersionId",
@@ -11621,7 +11621,7 @@
           "signals": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/IntegritySignalView"
+              "$ref": "#/components/schemas/VerificationSignalView"
             }
           },
           "rulesetVersion": {
@@ -11637,7 +11637,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/IntegrityDismissal"
+                "$ref": "#/components/schemas/VerificationDismissal"
               }
             ]
           }
@@ -11650,7 +11650,7 @@
           "ReviewSuggested",
           "VerificationRecommended"
         ],
-        "description": "Authenticity levels, lowest first (integrity-engine.md §2)."
+        "description": "Authenticity levels, lowest first (verification-engine.md §2)."
       },
       "Automation": {
         "required": [
@@ -11696,7 +11696,7 @@
             "default": false
           }
         },
-        "description": "Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of an integrity\r\nsignal (ADR-0004)."
+        "description": "Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\r\nsignal (ADR-0004)."
       },
       "AutomationAction": {
         "required": [
@@ -11841,7 +11841,7 @@
             "default": false
           }
         },
-        "description": "One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `integrity.authenticity`, `integrity.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`."
+        "description": "One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`."
       },
       "AutomationConditions": {
         "required": [
@@ -11894,13 +11894,13 @@
             ],
             "format": "int32"
           },
-          "integrityAuthenticity": {
+          "verificationAuthenticity": {
             "type": [
               "null",
               "string"
             ]
           },
-          "integrityAiAssistance": {
+          "verificationAiAssistance": {
             "type": [
               "null",
               "string"
@@ -13285,9 +13285,18 @@
           "Notice",
           "Consent"
         ],
-        "description": "On which footing the careers page may compute a device fingerprint (docs/research/legal.md, \"Device / browser\r\nfingerprint\"; integrity-engine.md §3). ePrivacy Art. 5(3) needs consent for fingerprinting unless it is strictly\r\nnecessary, and data protection authorities differ on whether fraud prevention is, so the basis is configuration per\r\ncountry rather than code."
+        "description": "On which footing the careers page may compute a device fingerprint (docs/research/legal.md, \"Device / browser\r\nfingerprint\"; verification-engine.md §3). ePrivacy Art. 5(3) needs consent for fingerprinting unless it is strictly\r\nnecessary, and data protection authorities differ on whether fraud prevention is, so the basis is configuration per\r\ncountry rather than code."
       },
-      "DismissIntegrityAssessmentRequest": {
+      "DismissReason": {
+        "enum": [
+          "VerifiedOutsideScreenHire",
+          "ExplainedByCandidate",
+          "FalsePositive",
+          "Other"
+        ],
+        "description": "Why a reviewer dismissed an assessment."
+      },
+      "DismissVerificationAssessmentRequest": {
         "required": [
           "reason"
         ],
@@ -13304,15 +13313,6 @@
           }
         },
         "description": "Sets an assessment aside. A reason is required; `Other` also needs a note."
-      },
-      "DismissReason": {
-        "enum": [
-          "VerifiedOutsideScreenHire",
-          "ExplainedByCandidate",
-          "FalsePositive",
-          "Other"
-        ],
-        "description": "Why a reviewer dismissed an assessment."
       },
       "EditApplicationNoteRequest": {
         "required": [
@@ -13527,7 +13527,16 @@
         ],
         "description": "How a piece of evidence renders, so the dashboard can show any signal without code of its own per signal."
       },
-      "ExplainIntegrityReasonRequest": {
+      "ExplainReason": {
+        "enum": [
+          "ConfirmedWithCandidate",
+          "ExpectedForRole",
+          "KnownFalsePositive",
+          "Other"
+        ],
+        "description": "Why a reviewer marked a reason explained."
+      },
+      "ExplainVerificationReasonRequest": {
         "required": [
           "reason"
         ],
@@ -13544,15 +13553,6 @@
           }
         },
         "description": "Marks one reason explained. A reason is required; `Other` also needs a note."
-      },
-      "ExplainReason": {
-        "enum": [
-          "ConfirmedWithCandidate",
-          "ExpectedForRole",
-          "KnownFalsePositive",
-          "Other"
-        ],
-        "description": "Why a reviewer marked a reason explained."
       },
       "FieldTelemetryInput": {
         "required": [
@@ -13702,7 +13702,7 @@
             }
           }
         },
-        "description": "The Reports page (docs/architecture/reports.md): the funnel, time to hire and sources for the jobs the person can see,\r\nbetween two instants. All three come from one snapshot, so their numbers agree. Nothing here reads verification\r\n(integrity) results."
+        "description": "The Reports page (docs/architecture/reports.md): the funnel, time to hire and sources for the jobs the person can see,\r\nbetween two instants. All three come from one snapshot, so their numbers agree. Nothing here reads verification\r\n(verification) results."
       },
       "HiringTeamMember": {
         "required": [
@@ -14011,7 +14011,7 @@
         "required": [
           "stages",
           "questionnaire",
-          "integrityPolicy",
+          "verificationPolicy",
           "automations"
         ],
         "type": "object",
@@ -14025,8 +14025,8 @@
           "questionnaire": {
             "$ref": "#/components/schemas/Questionnaire"
           },
-          "integrityPolicy": {
-            "$ref": "#/components/schemas/IntegrityPolicy"
+          "verificationPolicy": {
+            "$ref": "#/components/schemas/VerificationPolicy"
           },
           "automations": {
             "type": "array",
@@ -14044,7 +14044,7 @@
             }
           }
         },
-        "description": "What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.",
+        "description": "What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.",
         "externalDocs": {
           "description": "JSON Schema: Hiring workflow",
           "url": "/v1/schemas/hiring-workflow.json"
@@ -14233,378 +14233,6 @@
             }
           }
         }
-      },
-      "IntegrityActionAvailability": {
-        "required": [
-          "available",
-          "reason"
-        ],
-        "type": "object",
-        "properties": {
-          "available": {
-            "type": "boolean"
-          },
-          "reason": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        },
-        "description": "Whether an action is offered, and why not when it is not."
-      },
-      "IntegrityAssessmentKind": {
-        "enum": [
-          "Authenticity",
-          "AiAssistance",
-          null
-        ]
-      },
-      "IntegrityDismissal": {
-        "required": [
-          "actionId",
-          "reason",
-          "note",
-          "actorUserId",
-          "actorName",
-          "dismissedAt"
-        ],
-        "type": "object",
-        "properties": {
-          "actionId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "reason": {
-            "$ref": "#/components/schemas/DismissReason"
-          },
-          "note": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "actorUserId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "actorName": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "dismissedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "description": "A reviewer set an assessment aside. `actorName` is the reviewer's display name, when they have one."
-      },
-      "IntegrityPolicy": {
-        "required": [
-          "aiUse"
-        ],
-        "type": "object",
-        "properties": {
-          "aiUse": {
-            "$ref": "#/components/schemas/AiUsePolicy"
-          }
-        },
-        "description": "The template's integrity settings (ADR-0004). Only the AI-use policy exists so far."
-      },
-      "IntegrityReasonExplanation": {
-        "required": [
-          "actionId",
-          "reason",
-          "note",
-          "actorUserId",
-          "actorName",
-          "explainedAt"
-        ],
-        "type": "object",
-        "properties": {
-          "actionId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "reason": {
-            "$ref": "#/components/schemas/ExplainReason"
-          },
-          "note": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "actorUserId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "actorName": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "explainedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "description": "A reviewer marked one reason explained. `actorName` is the reviewer's display name, when they have one."
-      },
-      "IntegrityReviewActionType": {
-        "enum": [
-          "Dismissed",
-          "NoteAdded",
-          "ReasonExplained",
-          "ExplanationUndone"
-        ]
-      },
-      "IntegrityReviewEntry": {
-        "required": [
-          "id",
-          "type",
-          "assessmentKind",
-          "assessmentId",
-          "dismissReason",
-          "note",
-          "actorUserId",
-          "actorName",
-          "occurredAt",
-          "signalId",
-          "signalTitle",
-          "explainReason"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "type": {
-            "$ref": "#/components/schemas/IntegrityReviewActionType"
-          },
-          "assessmentKind": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/IntegrityAssessmentKind"
-              }
-            ]
-          },
-          "assessmentId": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "uuid"
-          },
-          "dismissReason": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/DismissReason"
-              }
-            ]
-          },
-          "note": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "actorUserId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "actorName": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "occurredAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "signalId": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "uuid"
-          },
-          "signalTitle": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "explainReason": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/ExplainReason"
-              }
-            ]
-          }
-        },
-        "description": "One entry of the integrity audit log, oldest first."
-      },
-      "IntegritySignalView": {
-        "required": [
-          "id",
-          "code",
-          "title",
-          "category",
-          "weight",
-          "confidence",
-          "countsTowardLevel",
-          "contextOnly",
-          "accessibilitySensitive",
-          "explanation",
-          "evidence",
-          "counterEvidence",
-          "source",
-          "sourceVersion",
-          "observedAt",
-          "informational",
-          "llm",
-          "explained"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "code": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "category": {
-            "$ref": "#/components/schemas/SignalCategory"
-          },
-          "weight": {
-            "$ref": "#/components/schemas/SignalWeight"
-          },
-          "confidence": {
-            "$ref": "#/components/schemas/SignalConfidence"
-          },
-          "countsTowardLevel": {
-            "type": "boolean"
-          },
-          "contextOnly": {
-            "type": "boolean"
-          },
-          "accessibilitySensitive": {
-            "type": "boolean"
-          },
-          "explanation": {
-            "type": "string"
-          },
-          "evidence": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SignalEvidence"
-            }
-          },
-          "counterEvidence": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CounterEvidence"
-            }
-          },
-          "source": {
-            "type": "string"
-          },
-          "sourceVersion": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "observedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "informational": {
-            "type": "boolean"
-          },
-          "llm": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/LlmProvenance"
-              }
-            ]
-          },
-          "explained": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/IntegrityReasonExplanation"
-              }
-            ]
-          }
-        },
-        "description": "One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers."
-      },
-      "IntegrityStatus": {
-        "enum": [
-          "Pending",
-          "Assessed"
-        ]
-      },
-      "IntegritySummary": {
-        "required": [
-          "authenticity",
-          "authenticityReasons",
-          "authenticityDismissed",
-          "aiAssistance",
-          "aiAssistanceReasons",
-          "aiAssistanceDismissed"
-        ],
-        "type": "object",
-        "properties": {
-          "authenticity": {
-            "$ref": "#/components/schemas/AuthenticityLevel"
-          },
-          "authenticityReasons": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "authenticityDismissed": {
-            "type": "boolean"
-          },
-          "aiAssistance": {
-            "$ref": "#/components/schemas/AiAssistanceLevel"
-          },
-          "aiAssistanceReasons": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "aiAssistanceDismissed": {
-            "type": "boolean"
-          }
-        },
-        "description": "The integrity chips for an application in a list: each current level and its reason codes (shown as \"3 reasons\"), and\r\nwhether a reviewer dismissed it. Null on the summary until the application is assessed."
       },
       "InvitationAcceptance": {
         "required": [
@@ -15700,7 +15328,7 @@
             "type": "string"
           }
         },
-        "description": "Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names."
+        "description": "Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names."
       },
       "MagicLinkRequest": {
         "required": [
@@ -16109,35 +15737,6 @@
         },
         "description": "The organization's branding (docs/architecture/branding.md): the brand colour (buttons and links), the second colour\r\n(the header band of its careers pages and emails), the heading font and the images in use, each null for\r\nScreenHire's default. `lastUpdated` is the branding's last change (\"by ScreenHire\" while it is all the\r\ndefault); its history is `/branding/history`."
       },
-      "OrganizationIntegritySettings": {
-        "required": [
-          "llmConsistencyCheck",
-          "monthlyTokenBudget",
-          "tokensUsedThisMonth",
-          "lastUpdated"
-        ],
-        "type": "object",
-        "properties": {
-          "llmConsistencyCheck": {
-            "type": "boolean"
-          },
-          "monthlyTokenBudget": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int64"
-          },
-          "tokensUsedThisMonth": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "lastUpdated": {
-            "$ref": "#/components/schemas/LastUpdate"
-          }
-        },
-        "description": "The organization's integrity settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the\r\nresume, answers and any LinkedIn export to the deployment's model provider; it is off until an admin turns it on.\r\n`monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment's default.\r\n`tokensUsedThisMonth` is what the check has used so far this month. `lastUpdated` is the settings' last\r\nchange (\"by ScreenHire\" while they are the defaults); their history is `/integrity-settings/history`."
-      },
       "OrganizationProfile": {
         "required": [
           "id",
@@ -16224,6 +15823,35 @@
           }
         },
         "description": "The organization's talent pool settings (docs/architecture/talent-pool.md). `permissionMonths` is how long a\r\ncandidate's permission to keep their details for future roles lasts from when they gave it: 12 by default, from\r\n`minMonths` to `maxMonths`. A permission ends at the shorter of the period when it was given and this one.\r\n`lastUpdated` is the settings' last change (\"by ScreenHire\" while they are the default); their history is\r\n`/talent-pool-settings/history`."
+      },
+      "OrganizationVerificationSettings": {
+        "required": [
+          "llmConsistencyCheck",
+          "monthlyTokenBudget",
+          "tokensUsedThisMonth",
+          "lastUpdated"
+        ],
+        "type": "object",
+        "properties": {
+          "llmConsistencyCheck": {
+            "type": "boolean"
+          },
+          "monthlyTokenBudget": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "tokensUsedThisMonth": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "lastUpdated": {
+            "$ref": "#/components/schemas/LastUpdate"
+          }
+        },
+        "description": "The organization's verification settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the\r\nresume, answers and any LinkedIn export to the deployment's model provider; it is off until an admin turns it on.\r\n`monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment's default.\r\n`tokensUsedThisMonth` is what the check has used so far this month. `lastUpdated` is the settings' last\r\nchange (\"by ScreenHire\" while they are the defaults); their history is `/verification-settings/history`."
       },
       "PageTelemetryInput": {
         "required": [
@@ -16320,7 +15948,7 @@
           "CompleteTasks",
           "EmailCandidates",
           "FillInScorecards",
-          "ReviewIntegrity",
+          "ReviewVerification",
           "RunAutomations",
           "EditHiringTemplates",
           "EditEmailTemplates",
@@ -17328,7 +16956,7 @@
             "$ref": "#/components/schemas/DeviceCheckBasis"
           }
         },
-        "description": "What the careers page's telemetry module may do on this form (integrity-engine.md §3): `sessionToken` binds its\r\nsnapshots to one way through the form, and `deviceCheck` is the footing for the device fingerprint where the job\r\nis (`Off`, `Notice`, or `Consent`, which needs the candidate's tick)."
+        "description": "What the careers page's telemetry module may do on this form (verification-engine.md §3): `sessionToken` binds its\r\nsnapshots to one way through the form, and `deviceCheck` is the footing for the device fingerprint where the job\r\nis (`Off`, `Notice`, or `Consent`, which needs the candidate's tick)."
       },
       "PublicUploadSettings": {
         "required": [
@@ -18199,7 +17827,7 @@
           "Document",
           "Content"
         ],
-        "description": "Independent kinds of evidence. A level above the lowest needs two of them (integrity-engine.md §2), so that one noisy\r\nsource, such as a corporate VPN, cannot raise a level by itself."
+        "description": "Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\r\nsource, such as a corporate VPN, cannot raise a level by itself."
       },
       "SignalConfidence": {
         "enum": [
@@ -19218,7 +18846,7 @@
           "StageEntered",
           "StageExited",
           "QuestionnaireCompleted",
-          "IntegrityAssessed",
+          "VerificationAssessed",
           "VerificationCompleted",
           "ReviewerDecision",
           "TimeElapsed",
@@ -19346,25 +18974,6 @@
           }
         },
         "description": "Replaces a draft version's definition."
-      },
-      "UpdateIntegritySettingsRequest": {
-        "required": [
-          "llmConsistencyCheck"
-        ],
-        "type": "object",
-        "properties": {
-          "llmConsistencyCheck": {
-            "type": "boolean"
-          },
-          "monthlyTokenBudget": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int64"
-          }
-        },
-        "description": "Turns the LLM consistency check on or off and sets its monthly token budget (null for the deployment's default)."
       },
       "UpdateJobRequest": {
         "required": [
@@ -19587,6 +19196,25 @@
         },
         "description": "Sets how long a candidate's permission for future roles lasts, in whole months from 6 to 24."
       },
+      "UpdateVerificationSettingsRequest": {
+        "required": [
+          "llmConsistencyCheck"
+        ],
+        "type": "object",
+        "properties": {
+          "llmConsistencyCheck": {
+            "type": "boolean"
+          },
+          "monthlyTokenBudget": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          }
+        },
+        "description": "Turns the LLM consistency check on or off and sets its monthly token budget (null for the deployment's default)."
+      },
       "UpdateWebhookEndpointRequest": {
         "required": [
           "url",
@@ -19753,6 +19381,378 @@
           }
         },
         "description": "A workflow to check, as the builder holds it before saving."
+      },
+      "VerificationActionAvailability": {
+        "required": [
+          "available",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Whether an action is offered, and why not when it is not."
+      },
+      "VerificationAssessmentKind": {
+        "enum": [
+          "Authenticity",
+          "AiAssistance",
+          null
+        ]
+      },
+      "VerificationDismissal": {
+        "required": [
+          "actionId",
+          "reason",
+          "note",
+          "actorUserId",
+          "actorName",
+          "dismissedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "actionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/DismissReason"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actorUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "actorName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "dismissedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "A reviewer set an assessment aside. `actorName` is the reviewer's display name, when they have one."
+      },
+      "VerificationPolicy": {
+        "required": [
+          "aiUse"
+        ],
+        "type": "object",
+        "properties": {
+          "aiUse": {
+            "$ref": "#/components/schemas/AiUsePolicy"
+          }
+        },
+        "description": "The template's verification settings (ADR-0004). Only the AI-use policy exists so far."
+      },
+      "VerificationReasonExplanation": {
+        "required": [
+          "actionId",
+          "reason",
+          "note",
+          "actorUserId",
+          "actorName",
+          "explainedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "actionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/ExplainReason"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actorUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "actorName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "explainedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "A reviewer marked one reason explained. `actorName` is the reviewer's display name, when they have one."
+      },
+      "VerificationReviewActionType": {
+        "enum": [
+          "Dismissed",
+          "NoteAdded",
+          "ReasonExplained",
+          "ExplanationUndone"
+        ]
+      },
+      "VerificationReviewEntry": {
+        "required": [
+          "id",
+          "type",
+          "assessmentKind",
+          "assessmentId",
+          "dismissReason",
+          "note",
+          "actorUserId",
+          "actorName",
+          "occurredAt",
+          "signalId",
+          "signalTitle",
+          "explainReason"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "$ref": "#/components/schemas/VerificationReviewActionType"
+          },
+          "assessmentKind": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/VerificationAssessmentKind"
+              }
+            ]
+          },
+          "assessmentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "dismissReason": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DismissReason"
+              }
+            ]
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actorUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "actorName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "signalId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "signalTitle": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "explainReason": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExplainReason"
+              }
+            ]
+          }
+        },
+        "description": "One entry of the verification audit log, oldest first."
+      },
+      "VerificationSignalView": {
+        "required": [
+          "id",
+          "code",
+          "title",
+          "category",
+          "weight",
+          "confidence",
+          "countsTowardLevel",
+          "contextOnly",
+          "accessibilitySensitive",
+          "explanation",
+          "evidence",
+          "counterEvidence",
+          "source",
+          "sourceVersion",
+          "observedAt",
+          "informational",
+          "llm",
+          "explained"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/SignalCategory"
+          },
+          "weight": {
+            "$ref": "#/components/schemas/SignalWeight"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/SignalConfidence"
+          },
+          "countsTowardLevel": {
+            "type": "boolean"
+          },
+          "contextOnly": {
+            "type": "boolean"
+          },
+          "accessibilitySensitive": {
+            "type": "boolean"
+          },
+          "explanation": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SignalEvidence"
+            }
+          },
+          "counterEvidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CounterEvidence"
+            }
+          },
+          "source": {
+            "type": "string"
+          },
+          "sourceVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "informational": {
+            "type": "boolean"
+          },
+          "llm": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LlmProvenance"
+              }
+            ]
+          },
+          "explained": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/VerificationReasonExplanation"
+              }
+            ]
+          }
+        },
+        "description": "One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers."
+      },
+      "VerificationStatus": {
+        "enum": [
+          "Pending",
+          "Assessed"
+        ]
+      },
+      "VerificationSummary": {
+        "required": [
+          "authenticity",
+          "authenticityReasons",
+          "authenticityDismissed",
+          "aiAssistance",
+          "aiAssistanceReasons",
+          "aiAssistanceDismissed"
+        ],
+        "type": "object",
+        "properties": {
+          "authenticity": {
+            "$ref": "#/components/schemas/AuthenticityLevel"
+          },
+          "authenticityReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "authenticityDismissed": {
+            "type": "boolean"
+          },
+          "aiAssistance": {
+            "$ref": "#/components/schemas/AiAssistanceLevel"
+          },
+          "aiAssistanceReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "aiAssistanceDismissed": {
+            "type": "boolean"
+          }
+        },
+        "description": "The verification chips for an application in a list: each current level and its reason codes (shown as \"3 reasons\"), and\r\nwhether a reviewer dismissed it. Null on the summary until the application is assessed."
       },
       "WebhookDeliveryEntry": {
         "required": [
@@ -20103,7 +20103,7 @@
       "name": "Candidates"
     },
     {
-      "name": "Integrity"
+      "name": "Verification"
     },
     {
       "name": "Distribution"

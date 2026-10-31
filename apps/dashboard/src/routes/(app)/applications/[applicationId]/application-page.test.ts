@@ -12,13 +12,13 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiStub, interviewer, jobId, roleCatalogue, stages, user, userAs } from '../../../../test-support/fixtures.js';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
-import { botIntegrity, pendingIntegrity } from '../../../../test-support/integrity-fixtures.js';
+import { botVerification, pendingVerification } from '../../../../test-support/verification-fixtures.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 // After the fixtures: the mock below reads `user`.
 import { page } from '$app/state';
 import Page from './+page.svelte';
 
-// superforms (the integrity panel's dialogs) reads `navigating` too.
+// superforms (the verification panel's dialogs) reads `navigating` too.
 vi.mock('$app/state', () => ({ page: { data: { user }, url: new URL('http://dashboard.test/') }, navigating: { to: null } }));
 
 const applicationId = '01a157d4-0000-7000-8000-000000000300';
@@ -151,7 +151,7 @@ const entry = (overrides: Partial<ApplicationTimelineEntry>): ApplicationTimelin
 
 const timeline: ApplicationTimelineEntry[] = [
   entry({ type: 'Submitted', toStageId: 'applied' }),
-  entry({ type: 'IntegrityAssessed', occurredAt: '2026-10-20T09:01:00Z' }),
+  entry({ type: 'VerificationAssessed', occurredAt: '2026-10-20T09:01:00Z' }),
   entry({ type: 'StageChanged', occurredAt: '2026-10-20T10:00:00Z', actorUserId: teammate, fromStageId: 'applied', toStageId: 'screening', note: 'Strong portfolio.' }),
   entry({ type: 'TagAdded', occurredAt: '2026-10-20T10:05:00Z', tag: 'fast-track', automationRunId: '01a157d4-0000-7000-8000-000000000306' }),
   entry({ type: 'StageChanged', occurredAt: '2026-10-20T11:00:00Z', actorUserId: user.id, fromStageId: 'screening', toStageId: 'interview' }),
@@ -178,7 +178,7 @@ const reads = {
   [`GET /v1/applications/${applicationId}/automation-runs`]: () => Response.json([]),
   [`GET /v1/applications/${applicationId}/scorecards`]: () => Response.json([]),
   [`GET /v1/jobs/${jobId}`]: () => Response.json(job),
-  [`GET /v1/applications/${applicationId}/integrity`]: () => Response.json({ ...pendingIntegrity(), applicationId }),
+  [`GET /v1/applications/${applicationId}/verification`]: () => Response.json({ ...pendingVerification(), applicationId }),
   [`GET /v1/candidates/${candidateId}/emails`]: () => Response.json([]),
   'GET /v1/organization/members': () => Response.json(members),
 };
@@ -225,7 +225,7 @@ const lines = (region: HTMLElement) => within(region).getAllByRole('listitem').m
 
 describe('application page', () => {
   it('has the same six tabs in the same order, with counts, and the signals on Verification when the level needs a look', async () => {
-    stubApi({ [`GET /v1/applications/${applicationId}/integrity`]: () => Response.json({ ...botIntegrity(), applicationId }) });
+    stubApi({ [`GET /v1/applications/${applicationId}/verification`]: () => Response.json({ ...botVerification(), applicationId }) });
     renderPage();
 
     const tabs = await screen.findByRole('tablist', { name: 'Candidate sections' });
@@ -289,8 +289,8 @@ describe('application page', () => {
     expect(panels).toEqual(['Next steps', 'Automations', 'Activity', 'Files', 'Tags', 'Answers']);
   });
 
-  it('shows the integrity next step on Overview when the level needs a look, never as a reason to reject', async () => {
-    stubApi({ [`GET /v1/applications/${applicationId}/integrity`]: () => Response.json({ ...botIntegrity(), applicationId }) });
+  it('shows the verification next step on Overview when the level needs a look, never as a reason to reject', async () => {
+    stubApi({ [`GET /v1/applications/${applicationId}/verification`]: () => Response.json({ ...botVerification(), applicationId }) });
     renderPage();
     const steps = await screen.findByRole('region', { name: 'Next steps' });
 
@@ -1152,7 +1152,7 @@ describe('application page', () => {
       const picker = within(sheet).getByRole('combobox', { name: 'Scorecard' });
       expect(picker).toHaveValue('');
       await fireEvent.change(picker, { target: { value: 'stage:interview' } });
-      expect(within(sheet).queryByText(/integrity/i)).not.toBeInTheDocument();
+      expect(within(sheet).queryByText(/verification/i)).not.toBeInTheDocument();
       await fireEvent.click(within(sheet).getByRole('button', { name: 'Submit scorecard' }));
       await within(sheet).findByText('Choose a recommendation.');
       expect(within(sheet).getByText('Answer this question.')).toBeInTheDocument();

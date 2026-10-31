@@ -8,17 +8,17 @@ import type {
   AddApplicationNoteRequest,
   AddApplicationTagRequest,
   AddFromTalentPoolRequest,
-  AddIntegrityNoteRequest,
+  AddVerificationNoteRequest,
   AddedFromTalentPool,
   ApiKeySummary,
   ApiMeta,
   ApplicationDetail,
   ApplicationEmailDraft,
-  ApplicationIntegrity,
   ApplicationNoteDetail,
   ApplicationSummary,
   ApplicationTaskEntry,
   ApplicationTimelineEntry,
+  ApplicationVerification,
   ApplyTemplateUpdateRequest,
   AutomationIssue,
   AutomationRunEntry,
@@ -46,14 +46,14 @@ import type {
   CreatedApiKey,
   CurrentUser,
   CustomRoleDetail,
-  DismissIntegrityAssessmentRequest,
+  DismissVerificationAssessmentRequest,
   EditApplicationNoteRequest,
   EmailPreview,
   EmailTemplateDraft,
   EmailTemplateEntry,
   EmailTemplateList,
   EmailsQueued,
-  ExplainIntegrityReasonRequest,
+  ExplainVerificationReasonRequest,
   GetApiKeysHistoryParams,
   GetEmailTemplateHistoryParams,
   GetHiringReportParams,
@@ -61,8 +61,8 @@ import type {
   GetJobHistoryParams,
   GetOrganizationBrandingHistoryParams,
   GetOrganizationHistoryParams,
-  GetOrganizationIntegritySettingsHistoryParams,
   GetOrganizationTalentPoolSettingsHistoryParams,
+  GetOrganizationVerificationSettingsHistoryParams,
   GetRoleHistoryParams,
   GetScorecardTemplateHistoryParams,
   GetTeamHistoryParams,
@@ -104,9 +104,9 @@ import type {
   MyOrganization,
   OnboardingRequest,
   OrganizationBranding,
-  OrganizationIntegritySettings,
   OrganizationProfile,
   OrganizationTalentPoolSettings,
+  OrganizationVerificationSettings,
   PendingInvitation,
   ProblemDetails,
   PublicApplicationDraft,
@@ -155,7 +155,6 @@ import type {
   UpdateEmailTemplateRequest,
   UpdateHiringTemplateRequest,
   UpdateHiringTemplateVersionRequest,
-  UpdateIntegritySettingsRequest,
   UpdateJobRequest,
   UpdateJobWorkflowRequest,
   UpdateNotificationSettingsRequest,
@@ -165,6 +164,7 @@ import type {
   UpdateSlackAccountRequest,
   UpdateSlackChannelRequest,
   UpdateTalentPoolSettingsRequest,
+  UpdateVerificationSettingsRequest,
   UpdateWebhookEndpointRequest,
   UploadRequest,
   UploadTicket,
@@ -4367,41 +4367,41 @@ export const getCandidate = async (candidateId: string, options?: Parameters<typ
 
 
 
-export type getApplicationIntegrityResponse200 = {
-  data: ApplicationIntegrity
+export type getApplicationVerificationResponse200 = {
+  data: ApplicationVerification
   status: 200
 }
 
-export type getApplicationIntegrityResponse401 = {
+export type getApplicationVerificationResponse401 = {
   data: void
   status: 401
 }
 
-export type getApplicationIntegrityResponse404 = {
+export type getApplicationVerificationResponse404 = {
   data: void
   status: 404
 }
 
-export type getApplicationIntegrityResponseSuccess = (getApplicationIntegrityResponse200) & {
+export type getApplicationVerificationResponseSuccess = (getApplicationVerificationResponse200) & {
   headers: Headers;
 };
-export type getApplicationIntegrityResponseError = (getApplicationIntegrityResponse401 | getApplicationIntegrityResponse404) & {
+export type getApplicationVerificationResponseError = (getApplicationVerificationResponse401 | getApplicationVerificationResponse404) & {
   headers: Headers;
 };
 
-export type getApplicationIntegrityResponse = (getApplicationIntegrityResponseSuccess | getApplicationIntegrityResponseError)
+export type getApplicationVerificationResponse = (getApplicationVerificationResponseSuccess | getApplicationVerificationResponseError)
 
-export const getGetApplicationIntegrityUrl = (applicationId: string,) => {
-
-
+export const getGetApplicationVerificationUrl = (applicationId: string,) => {
 
 
-  return `/v1/applications/${applicationId}/integrity`
+
+
+  return `/v1/applications/${applicationId}/verification`
 }
 
-export const getApplicationIntegrity = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getApplicationIntegrityResponse> => {
+export const getApplicationVerification = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getApplicationVerificationResponse> => {
 
-  return apiFetch<getApplicationIntegrityResponse>(getGetApplicationIntegrityUrl(applicationId),
+  return apiFetch<getApplicationVerificationResponse>(getGetApplicationVerificationUrl(applicationId),
   {
     ...options,
     method: 'GET'
@@ -4412,57 +4412,57 @@ export const getApplicationIntegrity = async (applicationId: string, options?: P
 
 
 
-export type dismissIntegrityAssessmentResponse200 = {
-  data: ApplicationIntegrity
+export type dismissVerificationAssessmentResponse200 = {
+  data: ApplicationVerification
   status: 200
 }
 
-export type dismissIntegrityAssessmentResponse400 = {
+export type dismissVerificationAssessmentResponse400 = {
   data: HttpValidationProblemDetails
   status: 400
 }
 
-export type dismissIntegrityAssessmentResponse401 = {
+export type dismissVerificationAssessmentResponse401 = {
   data: void
   status: 401
 }
 
-export type dismissIntegrityAssessmentResponse403 = {
+export type dismissVerificationAssessmentResponse403 = {
   data: ProblemDetails
   status: 403
 }
 
-export type dismissIntegrityAssessmentResponse404 = {
+export type dismissVerificationAssessmentResponse404 = {
   data: void
   status: 404
 }
 
-export type dismissIntegrityAssessmentResponse409 = {
+export type dismissVerificationAssessmentResponse409 = {
   data: ProblemDetails
   status: 409
 }
 
-export type dismissIntegrityAssessmentResponseSuccess = (dismissIntegrityAssessmentResponse200) & {
+export type dismissVerificationAssessmentResponseSuccess = (dismissVerificationAssessmentResponse200) & {
   headers: Headers;
 };
-export type dismissIntegrityAssessmentResponseError = (dismissIntegrityAssessmentResponse400 | dismissIntegrityAssessmentResponse401 | dismissIntegrityAssessmentResponse403 | dismissIntegrityAssessmentResponse404 | dismissIntegrityAssessmentResponse409) & {
+export type dismissVerificationAssessmentResponseError = (dismissVerificationAssessmentResponse400 | dismissVerificationAssessmentResponse401 | dismissVerificationAssessmentResponse403 | dismissVerificationAssessmentResponse404 | dismissVerificationAssessmentResponse409) & {
   headers: Headers;
 };
 
-export type dismissIntegrityAssessmentResponse = (dismissIntegrityAssessmentResponseSuccess | dismissIntegrityAssessmentResponseError)
+export type dismissVerificationAssessmentResponse = (dismissVerificationAssessmentResponseSuccess | dismissVerificationAssessmentResponseError)
 
-export const getDismissIntegrityAssessmentUrl = (applicationId: string,
+export const getDismissVerificationAssessmentUrl = (applicationId: string,
     assessmentId: string,) => {
 
 
 
 
-  return `/v1/applications/${applicationId}/integrity/assessments/${assessmentId}/dismiss`
+  return `/v1/applications/${applicationId}/verification/assessments/${assessmentId}/dismiss`
 }
 
-export const dismissIntegrityAssessment = async (applicationId: string,
+export const dismissVerificationAssessment = async (applicationId: string,
     assessmentId: string,
-    dismissIntegrityAssessmentRequest: DismissIntegrityAssessmentRequest, options?: Parameters<typeof apiFetch>[1]): Promise<dismissIntegrityAssessmentResponse> => {
+    dismissVerificationAssessmentRequest: DismissVerificationAssessmentRequest, options?: Parameters<typeof apiFetch>[1]): Promise<dismissVerificationAssessmentResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -4478,70 +4478,70 @@ export const dismissIntegrityAssessment = async (applicationId: string,
     }
     return headers;
   };
-return apiFetch<dismissIntegrityAssessmentResponse>(getDismissIntegrityAssessmentUrl(applicationId,assessmentId),
+return apiFetch<dismissVerificationAssessmentResponse>(getDismissVerificationAssessmentUrl(applicationId,assessmentId),
   {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(dismissIntegrityAssessmentRequest)
+    body: JSON.stringify(dismissVerificationAssessmentRequest)
   }
 );}
 
 
 
-export type explainIntegrityReasonResponse200 = {
-  data: ApplicationIntegrity
+export type explainVerificationReasonResponse200 = {
+  data: ApplicationVerification
   status: 200
 }
 
-export type explainIntegrityReasonResponse400 = {
+export type explainVerificationReasonResponse400 = {
   data: HttpValidationProblemDetails
   status: 400
 }
 
-export type explainIntegrityReasonResponse401 = {
+export type explainVerificationReasonResponse401 = {
   data: void
   status: 401
 }
 
-export type explainIntegrityReasonResponse403 = {
+export type explainVerificationReasonResponse403 = {
   data: ProblemDetails
   status: 403
 }
 
-export type explainIntegrityReasonResponse404 = {
+export type explainVerificationReasonResponse404 = {
   data: void
   status: 404
 }
 
-export type explainIntegrityReasonResponse409 = {
+export type explainVerificationReasonResponse409 = {
   data: ProblemDetails
   status: 409
 }
 
-export type explainIntegrityReasonResponseSuccess = (explainIntegrityReasonResponse200) & {
+export type explainVerificationReasonResponseSuccess = (explainVerificationReasonResponse200) & {
   headers: Headers;
 };
-export type explainIntegrityReasonResponseError = (explainIntegrityReasonResponse400 | explainIntegrityReasonResponse401 | explainIntegrityReasonResponse403 | explainIntegrityReasonResponse404 | explainIntegrityReasonResponse409) & {
+export type explainVerificationReasonResponseError = (explainVerificationReasonResponse400 | explainVerificationReasonResponse401 | explainVerificationReasonResponse403 | explainVerificationReasonResponse404 | explainVerificationReasonResponse409) & {
   headers: Headers;
 };
 
-export type explainIntegrityReasonResponse = (explainIntegrityReasonResponseSuccess | explainIntegrityReasonResponseError)
+export type explainVerificationReasonResponse = (explainVerificationReasonResponseSuccess | explainVerificationReasonResponseError)
 
-export const getExplainIntegrityReasonUrl = (applicationId: string,
+export const getExplainVerificationReasonUrl = (applicationId: string,
     assessmentId: string,
     signalId: string,) => {
 
 
 
 
-  return `/v1/applications/${applicationId}/integrity/assessments/${assessmentId}/signals/${signalId}/explain`
+  return `/v1/applications/${applicationId}/verification/assessments/${assessmentId}/signals/${signalId}/explain`
 }
 
-export const explainIntegrityReason = async (applicationId: string,
+export const explainVerificationReason = async (applicationId: string,
     assessmentId: string,
     signalId: string,
-    explainIntegrityReasonRequest: ExplainIntegrityReasonRequest, options?: Parameters<typeof apiFetch>[1]): Promise<explainIntegrityReasonResponse> => {
+    explainVerificationReasonRequest: ExplainVerificationReasonRequest, options?: Parameters<typeof apiFetch>[1]): Promise<explainVerificationReasonResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -4557,66 +4557,66 @@ export const explainIntegrityReason = async (applicationId: string,
     }
     return headers;
   };
-return apiFetch<explainIntegrityReasonResponse>(getExplainIntegrityReasonUrl(applicationId,assessmentId,signalId),
+return apiFetch<explainVerificationReasonResponse>(getExplainVerificationReasonUrl(applicationId,assessmentId,signalId),
   {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(explainIntegrityReasonRequest)
+    body: JSON.stringify(explainVerificationReasonRequest)
   }
 );}
 
 
 
-export type undoIntegrityReasonExplanationResponse200 = {
-  data: ApplicationIntegrity
+export type undoVerificationReasonExplanationResponse200 = {
+  data: ApplicationVerification
   status: 200
 }
 
-export type undoIntegrityReasonExplanationResponse401 = {
+export type undoVerificationReasonExplanationResponse401 = {
   data: void
   status: 401
 }
 
-export type undoIntegrityReasonExplanationResponse403 = {
+export type undoVerificationReasonExplanationResponse403 = {
   data: ProblemDetails
   status: 403
 }
 
-export type undoIntegrityReasonExplanationResponse404 = {
+export type undoVerificationReasonExplanationResponse404 = {
   data: void
   status: 404
 }
 
-export type undoIntegrityReasonExplanationResponse409 = {
+export type undoVerificationReasonExplanationResponse409 = {
   data: ProblemDetails
   status: 409
 }
 
-export type undoIntegrityReasonExplanationResponseSuccess = (undoIntegrityReasonExplanationResponse200) & {
+export type undoVerificationReasonExplanationResponseSuccess = (undoVerificationReasonExplanationResponse200) & {
   headers: Headers;
 };
-export type undoIntegrityReasonExplanationResponseError = (undoIntegrityReasonExplanationResponse401 | undoIntegrityReasonExplanationResponse403 | undoIntegrityReasonExplanationResponse404 | undoIntegrityReasonExplanationResponse409) & {
+export type undoVerificationReasonExplanationResponseError = (undoVerificationReasonExplanationResponse401 | undoVerificationReasonExplanationResponse403 | undoVerificationReasonExplanationResponse404 | undoVerificationReasonExplanationResponse409) & {
   headers: Headers;
 };
 
-export type undoIntegrityReasonExplanationResponse = (undoIntegrityReasonExplanationResponseSuccess | undoIntegrityReasonExplanationResponseError)
+export type undoVerificationReasonExplanationResponse = (undoVerificationReasonExplanationResponseSuccess | undoVerificationReasonExplanationResponseError)
 
-export const getUndoIntegrityReasonExplanationUrl = (applicationId: string,
+export const getUndoVerificationReasonExplanationUrl = (applicationId: string,
     assessmentId: string,
     signalId: string,) => {
 
 
 
 
-  return `/v1/applications/${applicationId}/integrity/assessments/${assessmentId}/signals/${signalId}/undo-explanation`
+  return `/v1/applications/${applicationId}/verification/assessments/${assessmentId}/signals/${signalId}/undo-explanation`
 }
 
-export const undoIntegrityReasonExplanation = async (applicationId: string,
+export const undoVerificationReasonExplanation = async (applicationId: string,
     assessmentId: string,
-    signalId: string, options?: Parameters<typeof apiFetch>[1]): Promise<undoIntegrityReasonExplanationResponse> => {
+    signalId: string, options?: Parameters<typeof apiFetch>[1]): Promise<undoVerificationReasonExplanationResponse> => {
 
-  return apiFetch<undoIntegrityReasonExplanationResponse>(getUndoIntegrityReasonExplanationUrl(applicationId,assessmentId,signalId),
+  return apiFetch<undoVerificationReasonExplanationResponse>(getUndoVerificationReasonExplanationUrl(applicationId,assessmentId,signalId),
   {
     ...options,
     method: 'POST'
@@ -4627,50 +4627,50 @@ export const undoIntegrityReasonExplanation = async (applicationId: string,
 
 
 
-export type addIntegrityNoteResponse200 = {
-  data: ApplicationIntegrity
+export type addVerificationNoteResponse200 = {
+  data: ApplicationVerification
   status: 200
 }
 
-export type addIntegrityNoteResponse400 = {
+export type addVerificationNoteResponse400 = {
   data: HttpValidationProblemDetails
   status: 400
 }
 
-export type addIntegrityNoteResponse401 = {
+export type addVerificationNoteResponse401 = {
   data: void
   status: 401
 }
 
-export type addIntegrityNoteResponse403 = {
+export type addVerificationNoteResponse403 = {
   data: ProblemDetails
   status: 403
 }
 
-export type addIntegrityNoteResponse404 = {
+export type addVerificationNoteResponse404 = {
   data: void
   status: 404
 }
 
-export type addIntegrityNoteResponseSuccess = (addIntegrityNoteResponse200) & {
+export type addVerificationNoteResponseSuccess = (addVerificationNoteResponse200) & {
   headers: Headers;
 };
-export type addIntegrityNoteResponseError = (addIntegrityNoteResponse400 | addIntegrityNoteResponse401 | addIntegrityNoteResponse403 | addIntegrityNoteResponse404) & {
+export type addVerificationNoteResponseError = (addVerificationNoteResponse400 | addVerificationNoteResponse401 | addVerificationNoteResponse403 | addVerificationNoteResponse404) & {
   headers: Headers;
 };
 
-export type addIntegrityNoteResponse = (addIntegrityNoteResponseSuccess | addIntegrityNoteResponseError)
+export type addVerificationNoteResponse = (addVerificationNoteResponseSuccess | addVerificationNoteResponseError)
 
-export const getAddIntegrityNoteUrl = (applicationId: string,) => {
-
-
+export const getAddVerificationNoteUrl = (applicationId: string,) => {
 
 
-  return `/v1/applications/${applicationId}/integrity/notes`
+
+
+  return `/v1/applications/${applicationId}/verification/notes`
 }
 
-export const addIntegrityNote = async (applicationId: string,
-    addIntegrityNoteRequest: AddIntegrityNoteRequest, options?: Parameters<typeof apiFetch>[1]): Promise<addIntegrityNoteResponse> => {
+export const addVerificationNote = async (applicationId: string,
+    addVerificationNoteRequest: AddVerificationNoteRequest, options?: Parameters<typeof apiFetch>[1]): Promise<addVerificationNoteResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -4686,12 +4686,12 @@ export const addIntegrityNote = async (applicationId: string,
     }
     return headers;
   };
-return apiFetch<addIntegrityNoteResponse>(getAddIntegrityNoteUrl(applicationId),
+return apiFetch<addVerificationNoteResponse>(getAddVerificationNoteUrl(applicationId),
   {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(addIntegrityNoteRequest)
+    body: JSON.stringify(addVerificationNoteRequest)
   }
 );}
 
@@ -4724,7 +4724,7 @@ export const getRequestIdentityVerificationUrl = (applicationId: string,) => {
 
 
 
-  return `/v1/applications/${applicationId}/integrity/request-verification`
+  return `/v1/applications/${applicationId}/verification/request-verification`
 }
 
 export const requestIdentityVerification = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<requestIdentityVerificationResponse> => {
@@ -5241,36 +5241,36 @@ export const getOrganizationBrandingHistory = async (params?: GetOrganizationBra
 
 
 
-export type getOrganizationIntegritySettingsHistoryResponse200 = {
+export type getOrganizationVerificationSettingsHistoryResponse200 = {
   data: HistoryPage
   status: 200
 }
 
-export type getOrganizationIntegritySettingsHistoryResponse400 = {
+export type getOrganizationVerificationSettingsHistoryResponse400 = {
   data: HttpValidationProblemDetails
   status: 400
 }
 
-export type getOrganizationIntegritySettingsHistoryResponse401 = {
+export type getOrganizationVerificationSettingsHistoryResponse401 = {
   data: void
   status: 401
 }
 
-export type getOrganizationIntegritySettingsHistoryResponse404 = {
+export type getOrganizationVerificationSettingsHistoryResponse404 = {
   data: void
   status: 404
 }
 
-export type getOrganizationIntegritySettingsHistoryResponseSuccess = (getOrganizationIntegritySettingsHistoryResponse200) & {
+export type getOrganizationVerificationSettingsHistoryResponseSuccess = (getOrganizationVerificationSettingsHistoryResponse200) & {
   headers: Headers;
 };
-export type getOrganizationIntegritySettingsHistoryResponseError = (getOrganizationIntegritySettingsHistoryResponse400 | getOrganizationIntegritySettingsHistoryResponse401 | getOrganizationIntegritySettingsHistoryResponse404) & {
+export type getOrganizationVerificationSettingsHistoryResponseError = (getOrganizationVerificationSettingsHistoryResponse400 | getOrganizationVerificationSettingsHistoryResponse401 | getOrganizationVerificationSettingsHistoryResponse404) & {
   headers: Headers;
 };
 
-export type getOrganizationIntegritySettingsHistoryResponse = (getOrganizationIntegritySettingsHistoryResponseSuccess | getOrganizationIntegritySettingsHistoryResponseError)
+export type getOrganizationVerificationSettingsHistoryResponse = (getOrganizationVerificationSettingsHistoryResponseSuccess | getOrganizationVerificationSettingsHistoryResponseError)
 
-export const getGetOrganizationIntegritySettingsHistoryUrl = (params?: GetOrganizationIntegritySettingsHistoryParams,) => {
+export const getGetOrganizationVerificationSettingsHistoryUrl = (params?: GetOrganizationVerificationSettingsHistoryParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -5282,12 +5282,12 @@ export const getGetOrganizationIntegritySettingsHistoryUrl = (params?: GetOrgani
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/v1/organization/integrity-settings/history?${stringifiedParams}` : `/v1/organization/integrity-settings/history`
+  return stringifiedParams.length > 0 ? `/v1/organization/verification-settings/history?${stringifiedParams}` : `/v1/organization/verification-settings/history`
 }
 
-export const getOrganizationIntegritySettingsHistory = async (params?: GetOrganizationIntegritySettingsHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationIntegritySettingsHistoryResponse> => {
+export const getOrganizationVerificationSettingsHistory = async (params?: GetOrganizationVerificationSettingsHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationVerificationSettingsHistoryResponse> => {
 
-  return apiFetch<getOrganizationIntegritySettingsHistoryResponse>(getGetOrganizationIntegritySettingsHistoryUrl(params),
+  return apiFetch<getOrganizationVerificationSettingsHistoryResponse>(getGetOrganizationVerificationSettingsHistoryUrl(params),
   {
     ...options,
     method: 'GET'
@@ -5697,36 +5697,36 @@ export const getBrandImage = async (imageId: string, options?: Parameters<typeof
 
 
 
-export type getOrganizationIntegritySettingsResponse200 = {
-  data: OrganizationIntegritySettings
+export type getOrganizationVerificationSettingsResponse200 = {
+  data: OrganizationVerificationSettings
   status: 200
 }
 
-export type getOrganizationIntegritySettingsResponse401 = {
+export type getOrganizationVerificationSettingsResponse401 = {
   data: void
   status: 401
 }
 
-export type getOrganizationIntegritySettingsResponseSuccess = (getOrganizationIntegritySettingsResponse200) & {
+export type getOrganizationVerificationSettingsResponseSuccess = (getOrganizationVerificationSettingsResponse200) & {
   headers: Headers;
 };
-export type getOrganizationIntegritySettingsResponseError = (getOrganizationIntegritySettingsResponse401) & {
+export type getOrganizationVerificationSettingsResponseError = (getOrganizationVerificationSettingsResponse401) & {
   headers: Headers;
 };
 
-export type getOrganizationIntegritySettingsResponse = (getOrganizationIntegritySettingsResponseSuccess | getOrganizationIntegritySettingsResponseError)
+export type getOrganizationVerificationSettingsResponse = (getOrganizationVerificationSettingsResponseSuccess | getOrganizationVerificationSettingsResponseError)
 
-export const getGetOrganizationIntegritySettingsUrl = () => {
-
-
+export const getGetOrganizationVerificationSettingsUrl = () => {
 
 
-  return `/v1/organization/integrity-settings`
+
+
+  return `/v1/organization/verification-settings`
 }
 
-export const getOrganizationIntegritySettings = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationIntegritySettingsResponse> => {
+export const getOrganizationVerificationSettings = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationVerificationSettingsResponse> => {
 
-  return apiFetch<getOrganizationIntegritySettingsResponse>(getGetOrganizationIntegritySettingsUrl(),
+  return apiFetch<getOrganizationVerificationSettingsResponse>(getGetOrganizationVerificationSettingsUrl(),
   {
     ...options,
     method: 'GET'
@@ -5737,44 +5737,44 @@ export const getOrganizationIntegritySettings = async ( options?: Parameters<typ
 
 
 
-export type updateOrganizationIntegritySettingsResponse200 = {
-  data: OrganizationIntegritySettings
+export type updateOrganizationVerificationSettingsResponse200 = {
+  data: OrganizationVerificationSettings
   status: 200
 }
 
-export type updateOrganizationIntegritySettingsResponse400 = {
+export type updateOrganizationVerificationSettingsResponse400 = {
   data: HttpValidationProblemDetails
   status: 400
 }
 
-export type updateOrganizationIntegritySettingsResponse401 = {
+export type updateOrganizationVerificationSettingsResponse401 = {
   data: void
   status: 401
 }
 
-export type updateOrganizationIntegritySettingsResponse403 = {
+export type updateOrganizationVerificationSettingsResponse403 = {
   data: ProblemDetails
   status: 403
 }
 
-export type updateOrganizationIntegritySettingsResponseSuccess = (updateOrganizationIntegritySettingsResponse200) & {
+export type updateOrganizationVerificationSettingsResponseSuccess = (updateOrganizationVerificationSettingsResponse200) & {
   headers: Headers;
 };
-export type updateOrganizationIntegritySettingsResponseError = (updateOrganizationIntegritySettingsResponse400 | updateOrganizationIntegritySettingsResponse401 | updateOrganizationIntegritySettingsResponse403) & {
+export type updateOrganizationVerificationSettingsResponseError = (updateOrganizationVerificationSettingsResponse400 | updateOrganizationVerificationSettingsResponse401 | updateOrganizationVerificationSettingsResponse403) & {
   headers: Headers;
 };
 
-export type updateOrganizationIntegritySettingsResponse = (updateOrganizationIntegritySettingsResponseSuccess | updateOrganizationIntegritySettingsResponseError)
+export type updateOrganizationVerificationSettingsResponse = (updateOrganizationVerificationSettingsResponseSuccess | updateOrganizationVerificationSettingsResponseError)
 
-export const getUpdateOrganizationIntegritySettingsUrl = () => {
-
-
+export const getUpdateOrganizationVerificationSettingsUrl = () => {
 
 
-  return `/v1/organization/integrity-settings`
+
+
+  return `/v1/organization/verification-settings`
 }
 
-export const updateOrganizationIntegritySettings = async (updateIntegritySettingsRequest: UpdateIntegritySettingsRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateOrganizationIntegritySettingsResponse> => {
+export const updateOrganizationVerificationSettings = async (updateVerificationSettingsRequest: UpdateVerificationSettingsRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateOrganizationVerificationSettingsResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -5790,12 +5790,12 @@ export const updateOrganizationIntegritySettings = async (updateIntegritySetting
     }
     return headers;
   };
-return apiFetch<updateOrganizationIntegritySettingsResponse>(getUpdateOrganizationIntegritySettingsUrl(),
+return apiFetch<updateOrganizationVerificationSettingsResponse>(getUpdateOrganizationVerificationSettingsUrl(),
   {
     ...options,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(updateIntegritySettingsRequest)
+    body: JSON.stringify(updateVerificationSettingsRequest)
   }
 );}
 

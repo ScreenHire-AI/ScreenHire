@@ -9,7 +9,7 @@ namespace ScreenHire.UnitTests.Hiring;
 /// <summary>
 /// Scorecards and the reviewer decision (workflow-engine.md §8): what a scorecard may ask, how answers of each kind are
 /// checked and kept, how the ReviewerDecision trigger and the <c>reviewer.recommendation</c> fact are checked, and that
-/// the integrity guardrail still holds when a person's decision sits between a signal and an action.
+/// the verification guardrail still holds when a person's decision sits between a signal and an action.
 /// </summary>
 public sealed class ScorecardTests
 {
@@ -165,7 +165,7 @@ public sealed class ScorecardTests
     }
 
     // No automation acts on the candidate's rating (ADR-0013): a condition on it is refused with the reason, whatever the
-    // trigger or the action, the way an integrity signal may never drive a rejection.
+    // trigger or the action, the way a verification signal may never drive a rejection.
     [Theory]
     [InlineData("application.rating", TriggerType.ReviewerDecision)]
     [InlineData("candidate.rating", TriggerType.StageEntered)]
@@ -203,13 +203,13 @@ public sealed class ScorecardTests
     }
 
     [Fact]
-    public void An_integrity_condition_on_a_reviewer_decision_may_not_queue_a_rejection()
+    public void An_verification_condition_on_a_reviewer_decision_may_not_queue_a_rejection()
     {
         var workflow = Workflow(new Automation("a", "A", new AutomationTrigger(TriggerType.ReviewerDecision),
             new AutomationConditions(ConditionMatch.All,
             [
                 new AutomationCondition(FactSchema.ReviewerRecommendation, ConditionOperator.EqualTo, "No"),
-                new AutomationCondition(FactSchema.IntegrityAuthenticity, ConditionOperator.EqualTo, "VerificationRecommended"),
+                new AutomationCondition(FactSchema.VerificationAuthenticity, ConditionOperator.EqualTo, "VerificationRecommended"),
             ]),
             [new AutomationAction(ActionType.QueueForRejectionReview, Reason: "No")]));
 
@@ -225,8 +225,8 @@ public sealed class ScorecardTests
     public void A_reviewer_decision_after_a_signal_move_may_not_queue_a_rejection(string? stageId)
     {
         var workflow = Workflow(
-            new Automation("route", "Route", new AutomationTrigger(TriggerType.IntegrityAssessed),
-                new AutomationConditions(ConditionMatch.All, [new AutomationCondition(FactSchema.IntegrityAuthenticity, ConditionOperator.EqualTo, "ReviewSuggested")]),
+            new Automation("route", "Route", new AutomationTrigger(TriggerType.VerificationAssessed),
+                new AutomationConditions(ConditionMatch.All, [new AutomationCondition(FactSchema.VerificationAuthenticity, ConditionOperator.EqualTo, "ReviewSuggested")]),
                 [new AutomationAction(ActionType.MoveToStage, StageId: "interview")]),
             new Automation("no", "No", new AutomationTrigger(TriggerType.ReviewerDecision, stageId),
                 new AutomationConditions(ConditionMatch.All, [new AutomationCondition(FactSchema.ReviewerRecommendation, ConditionOperator.EqualTo, "StrongNo")]),

@@ -64,11 +64,11 @@ public sealed class ChangeHistoryTests(AppHostFixture fixture)
         using var other = await fixture.SignedInWithOrganizationAsync();
         var name = (await owner.GetAsync("/v1/organization")).Expect(HttpStatusCode.OK).Text("name");
         (await owner.GetAsync("/v1/organization/branding")).Expect(HttpStatusCode.OK).Text("lastUpdated.by").Should().Be("ScreenHire", "the default colour");
-        (await owner.GetAsync("/v1/organization/integrity-settings")).Expect(HttpStatusCode.OK).Text("lastUpdated.by").Should().Be("ScreenHire", "the defaults");
+        (await owner.GetAsync("/v1/organization/verification-settings")).Expect(HttpStatusCode.OK).Text("lastUpdated.by").Should().Be("ScreenHire", "the defaults");
 
         (await owner.PutAsync("/v1/organization", new JsonObject { ["name"] = $"{name} Studio" })).Expect(HttpStatusCode.OK);
         (await owner.PutAsync("/v1/organization/branding", new JsonObject { ["brandColor"] = "#1f4e5a" })).Expect(HttpStatusCode.OK);
-        (await owner.PutAsync("/v1/organization/integrity-settings", new JsonObject { ["llmConsistencyCheck"] = true, ["monthlyTokenBudget"] = 250000 }))
+        (await owner.PutAsync("/v1/organization/verification-settings", new JsonObject { ["llmConsistencyCheck"] = true, ["monthlyTokenBudget"] = 250000 }))
             .Expect(HttpStatusCode.OK);
 
         var renamed = (await owner.GetAsync("/v1/organization/history")).Expect(HttpStatusCode.OK);
@@ -77,11 +77,11 @@ public sealed class ChangeHistoryTests(AppHostFixture fixture)
         var branding = (await owner.GetAsync("/v1/organization/branding/history")).Expect(HttpStatusCode.OK);
         branding.Count("entries").Should().Be(1);
         branding.Text("entries.0.lines.0.text").Should().Be("set the brand colour to #1f4e5a");
-        var integrity = (await owner.GetAsync("/v1/organization/integrity-settings/history")).Expect(HttpStatusCode.OK);
-        integrity.Text("entries.0.lines.0.text").Should().Be("turned on the consistency check");
-        integrity.Text("entries.0.lines.1.text").Should().Be("set the monthly token budget to 250,000");
+        var verification = (await owner.GetAsync("/v1/organization/verification-settings/history")).Expect(HttpStatusCode.OK);
+        verification.Text("entries.0.lines.0.text").Should().Be("turned on the consistency check");
+        verification.Text("entries.0.lines.1.text").Should().Be("set the monthly token budget to 250,000");
 
-        foreach (var path in new[] { "/v1/organization", "/v1/organization/branding", "/v1/organization/integrity-settings" })
+        foreach (var path in new[] { "/v1/organization", "/v1/organization/branding", "/v1/organization/verification-settings" })
         {
             var read = (await owner.GetAsync(path)).Expect(HttpStatusCode.OK);
             read.Text("lastUpdated.by").Should().Be("Member", path);

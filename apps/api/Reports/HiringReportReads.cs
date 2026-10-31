@@ -19,7 +19,7 @@ internal static class HiringReportReads
 {
     /// <summary>
     /// The funnel's rows in order: the stage kinds every pipeline moves through. Verification has no row, because
-    /// integrity conditions route candidates into it and a count of it would be verification data (ADR-0004); Custom has
+    /// verification conditions route candidates into it and a count of it would be verification data (ADR-0004); Custom has
     /// no fixed place; Rejected and Withdrawn end an application without moving it on. An application that passed through
     /// one of those counts at the rows it reached around it.
     /// </summary>

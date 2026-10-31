@@ -1,8 +1,8 @@
 using ScreenHire.Api.Demo;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
-using ScreenHire.Domain.Integrity;
-using ScreenHire.UnitTests.Integrity;
+using ScreenHire.Domain.Verification;
+using ScreenHire.UnitTests.Verification;
 
 namespace ScreenHire.UnitTests.Demo;
 
@@ -30,8 +30,8 @@ public sealed class DevelopmentDemoTests
     {
         [DemoCandidates.ProductDesigner] = QuestionnaireOf(DemoCandidates.ProductDesigner),
         [DemoCandidates.FrontendEngineer] = QuestionnaireOf(DemoCandidates.FrontendEngineer),
-        [DemoCandidates.SeniorDotnetEngineer] = IntegrityHarness.SoftwareEngineerQuestions,
-        [DemoCandidates.SupportEngineer] = IntegrityHarness.SoftwareEngineerQuestions,
+        [DemoCandidates.SeniorDotnetEngineer] = VerificationHarness.SoftwareEngineerQuestions,
+        [DemoCandidates.SupportEngineer] = VerificationHarness.SoftwareEngineerQuestions,
     };
 
     [Fact]
@@ -128,8 +128,8 @@ public sealed class DevelopmentDemoTests
         // One organization for all of them, in order, so a shared device, address, file or answer would show as a
         // duplicate. The harness has one job, so it asks every demo job's questions; a shared id (experience, notice
         // period) keeps the "Software engineer" wording, which comes first.
-        var harness = new IntegrityHarness(
-            [.. IntegrityHarness.SoftwareEngineerQuestions.Concat(QuestionsByJob.Values.SelectMany(q => q)).DistinctBy(q => q.Id)]);
+        var harness = new VerificationHarness(
+            [.. VerificationHarness.SoftwareEngineerQuestions.Concat(QuestionsByJob.Values.SelectMany(q => q)).DistinctBy(q => q.Id)]);
 
         foreach (var candidate in DemoCandidates.All)
         {

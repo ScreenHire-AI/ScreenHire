@@ -178,7 +178,7 @@ public sealed class AutomationEvaluatorTests
         AutomationEvaluator.Evaluate(slow, facts, accommodationRequested: false, []).Outcome.Should().Be(EvaluationOutcome.Matched);
     }
 
-    // Telemetry facts arrive with the integrity engine; the skip already covers their prefix.
+    // Telemetry facts arrive with the verification engine; the skip already covers their prefix.
     [Fact]
     public void An_accommodation_skips_automations_that_use_telemetry()
     {
@@ -205,7 +205,7 @@ public sealed class AutomationEvaluatorTests
     [InlineData("answers.missing", ConditionOperator.Exists, null, false, false)]
     [InlineData("answers.missing", ConditionOperator.Exists, null, true, true)]
     [InlineData("application.tags", ConditionOperator.Contains, "refer", false, true)]
-    [InlineData("integrity.authenticity", ConditionOperator.EqualTo, "ReviewSuggested", false, false)]
+    [InlineData("verification.authenticity", ConditionOperator.EqualTo, "ReviewSuggested", false, false)]
     public void Rules_read_facts_by_type(string fact, ConditionOperator op, string? value, bool negate, bool expected)
     {
         var facts = new AutomationFacts(

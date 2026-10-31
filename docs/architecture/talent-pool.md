@@ -166,7 +166,7 @@ out (GDPR Art. 7(3)).
 ## Expiry
 
 `ExpireTalentPool` runs daily at 03:47 UTC in the worker and fans out one `ExpireOrganizationTalentPool` per
-organization, like the integrity data purge ([messaging](messaging.md)). It removes each entry whose permission has run
+organization, like the verification data purge ([messaging](messaging.md)). It removes each entry whose permission has run
 out, with `LeftTalentPool(Expired)`. The kept application stays as it is: it has ended, and its data follows the
 organization's normal retention.
 

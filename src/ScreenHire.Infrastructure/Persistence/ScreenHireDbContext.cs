@@ -10,7 +10,7 @@ using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Distribution;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.History;
-using ScreenHire.Domain.Integrity;
+using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Domain.Slack;
@@ -104,13 +104,13 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<ApplicationTask> ApplicationTasks => Set<ApplicationTask>();
 
-    public DbSet<IntegrityAnalyzerRun> IntegrityAnalyzerRuns => Set<IntegrityAnalyzerRun>();
+    public DbSet<VerificationAnalyzerRun> VerificationAnalyzerRuns => Set<VerificationAnalyzerRun>();
 
-    public DbSet<IntegritySignal> IntegritySignals => Set<IntegritySignal>();
+    public DbSet<VerificationSignal> VerificationSignals => Set<VerificationSignal>();
 
-    public DbSet<IntegrityAssessment> IntegrityAssessments => Set<IntegrityAssessment>();
+    public DbSet<VerificationAssessment> VerificationAssessments => Set<VerificationAssessment>();
 
-    public DbSet<IntegrityReviewAction> IntegrityReviewActions => Set<IntegrityReviewAction>();
+    public DbSet<VerificationReviewAction> VerificationReviewActions => Set<VerificationReviewAction>();
 
     public DbSet<SubmissionObservation> SubmissionObservations => Set<SubmissionObservation>();
 
@@ -122,7 +122,7 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<ConsistencyCheck> ConsistencyChecks => Set<ConsistencyCheck>();
 
-    public DbSet<IntegritySettings> IntegritySettings => Set<IntegritySettings>();
+    public DbSet<VerificationSettings> VerificationSettings => Set<VerificationSettings>();
 
     public DbSet<EmailTemplate> EmailTemplates => Set<EmailTemplate>();
 

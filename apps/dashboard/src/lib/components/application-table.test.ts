@@ -3,11 +3,11 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { createRawSnippet } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { candidateColumns } from '#lib/candidate-table.js';
-import { integrityColumns } from '#lib/integrity-columns.js';
+import { verificationColumns } from '#lib/verification-columns.js';
 import type { Moves } from '#lib/moves.svelte.js';
 import { preferences } from '#lib/preferences.svelte.js';
 import { applications, stages } from '../../test-support/fixtures.js';
-import { summary } from '../../test-support/integrity-fixtures.js';
+import { summary } from '../../test-support/verification-fixtures.js';
 import { stubViewport } from '../../test-support/viewport.js';
 import WithTooltips from '../../test-support/with-tooltips.svelte';
 import ApplicationTable from './application-table.svelte';
@@ -60,10 +60,10 @@ describe('candidate table', () => {
 
   it('says nothing for AI assistance on a calm row, and keeps the words for screen readers (section 21)', () => {
     const rows = [
-      { ...applications[0]!, integrity: summary() },
-      { ...applications[1]!, integrity: summary({ aiAssistance: 'SomeIndicators', aiAssistanceReasons: ['A'] }) },
+      { ...applications[0]!, verification: summary() },
+      { ...applications[1]!, verification: summary({ aiAssistance: 'SomeIndicators', aiAssistanceReasons: ['A'] }) },
     ];
-    render(WithTooltips, { props: { component: ApplicationTable, props: { applications: rows, extraColumns: integrityColumns } } });
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications: rows, extraColumns: verificationColumns } } });
 
     const aiCell = (name: string) => within(rowOf(name)).getAllByRole('cell')[3]!;
     expect(aiCell('Casey Morgan').querySelector('[data-calm]')).toHaveClass('sr-only');
@@ -80,7 +80,7 @@ describe('candidate table', () => {
     expect(within(rowOf('Casey Morgan')).getByRole('link', { name: 'Senior .NET Engineer' })).toBeInTheDocument();
   });
 
-  it('puts extra columns, such as the integrity ones, right after the candidate', () => {
+  it('puts extra columns, such as the verification ones, right after the candidate', () => {
     const level = createRawSnippet((name: () => string) => ({ render: () => `<span>Level for ${name()}</span>` }));
     const extraColumns = [
       candidateColumns.display({ id: 'authenticity', header: 'Authenticity', cell: ({ row }) => renderSnippet(level, row.original.candidateName) }),
@@ -91,13 +91,13 @@ describe('candidate table', () => {
     expect(within(rowOf('Jordan Lee')).getByText('Level for Jordan Lee')).toBeInTheDocument();
   });
 
-  it('shows the integrity chips and sorts by level, highest first, with pending rows last either way', async () => {
+  it('shows the verification chips and sorts by level, highest first, with pending rows last either way', async () => {
     const rows = [
-      { ...applications[0]!, integrity: summary({ aiAssistance: 'SomeIndicators', aiAssistanceReasons: ['CNT_TEMPLATED_ANSWER'] }) },
-      { ...applications[1]!, integrity: null },
-      { ...applications[2]!, integrity: summary({ authenticity: 'VerificationRecommended', authenticityReasons: ['A', 'B'] }) },
+      { ...applications[0]!, verification: summary({ aiAssistance: 'SomeIndicators', aiAssistanceReasons: ['CNT_TEMPLATED_ANSWER'] }) },
+      { ...applications[1]!, verification: null },
+      { ...applications[2]!, verification: summary({ authenticity: 'VerificationRecommended', authenticityReasons: ['A', 'B'] }) },
     ];
-    render(WithTooltips, { props: { component: ApplicationTable, props: { applications: rows, extraColumns: integrityColumns } } });
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications: rows, extraColumns: verificationColumns } } });
     const names = () => dataRows().map((row) => within(row).getAllByRole('link')[0]!.textContent);
     const header = () => screen.getByRole('columnheader', { name: /Authenticity/ });
 
@@ -184,11 +184,11 @@ describe('candidate table', () => {
 
   it("remembers the person's sort for the table named by sortId", async () => {
     const rows = [
-      { ...applications[0]!, integrity: summary({ aiAssistance: 'SomeIndicators', aiAssistanceReasons: ['CNT_TEMPLATED_ANSWER'] }) },
-      { ...applications[1]!, integrity: null },
-      { ...applications[2]!, integrity: summary({ authenticity: 'VerificationRecommended', authenticityReasons: ['A', 'B'] }) },
+      { ...applications[0]!, verification: summary({ aiAssistance: 'SomeIndicators', aiAssistanceReasons: ['CNT_TEMPLATED_ANSWER'] }) },
+      { ...applications[1]!, verification: null },
+      { ...applications[2]!, verification: summary({ authenticity: 'VerificationRecommended', authenticityReasons: ['A', 'B'] }) },
     ];
-    const props = { applications: rows, extraColumns: integrityColumns, sortId: 'job-candidates' };
+    const props = { applications: rows, extraColumns: verificationColumns, sortId: 'job-candidates' };
     const first = render(WithTooltips, { props: { component: ApplicationTable, props } });
 
     await fireEvent.click(screen.getByRole('button', { name: 'Authenticity' }));
@@ -257,7 +257,7 @@ describe('candidate table', () => {
   });
 
   it('keeps the checkbox and name columns stuck to the left while the table scrolls sideways (section 8)', () => {
-    render(WithTooltips, { props: { component: ApplicationTable, props: { applications, showJob: true, extraColumns: integrityColumns } } });
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications, showJob: true, extraColumns: verificationColumns } } });
     const header = (name: string) => screen.getAllByRole('columnheader').find((cell) => cell.textContent?.trim() === name)!;
 
     for (const cell of [header(''), ...within(rowOf('Casey Morgan')).getAllByRole('cell').slice(0, 1)]) {
@@ -271,8 +271,8 @@ describe('candidate table', () => {
   it('turns rows into two-line list items on a phone, status first and facts as pills (section 8)', () => {
     stubViewport(390);
     const rows = [
-      { ...applications[0]!, integrity: summary({ authenticity: 'ReviewSuggested', authenticityReasons: ['A', 'B'] }) },
-      { ...applications[1]!, integrity: summary({}) },
+      { ...applications[0]!, verification: summary({ authenticity: 'ReviewSuggested', authenticityReasons: ['A', 'B'] }) },
+      { ...applications[1]!, verification: summary({}) },
     ];
     render(WithTooltips, { props: { component: ApplicationTable, props: { applications: rows, showJob: true, label: 'Candidates' } } });
 
@@ -281,10 +281,10 @@ describe('candidate table', () => {
     expect(items.map((item) => within(item).getAllByRole('link')[0]!.textContent)).toEqual(['Casey Morgan', 'Jordan Lee']);
     expect(within(items[0]!).getByRole('link', { name: 'Casey Morgan' })).toHaveAttribute('href', `/applications/${applications[0]!.id}`);
     // Attention gets a filled badge and a count pill; a calm level stays quiet (T3, T4).
-    const casey = items[0]!.querySelector('[data-integrity-chip="authenticity"]')!;
+    const casey = items[0]!.querySelector('[data-verification-chip="authenticity"]')!;
     expect(casey.querySelector('[data-slot="badge"]')).toHaveClass('bg-status-review-soft');
     expect(casey).toHaveTextContent('2');
-    expect(items[1]!.querySelector('[data-integrity-chip="authenticity"]')).toHaveAttribute('data-quiet');
+    expect(items[1]!.querySelector('[data-verification-chip="authenticity"]')).toHaveAttribute('data-quiet');
     expect(within(items[1]!).getByText('Screening')).toHaveAttribute('data-slot', 'badge');
     expect(within(items[0]!).getByText('Oct 20, 2026')).toBeInTheDocument();
   });
@@ -354,19 +354,19 @@ describe('candidate table', () => {
 describe('candidate table on a phone', () => {
   it('shows each application as a list item: authenticity first, the name as the link, facts as pills', () => {
     stubViewport(360);
-    const rows = [{ ...applications[0]!, integrity: summary({ authenticity: 'ReviewSuggested' }) }, applications[1]!];
+    const rows = [{ ...applications[0]!, verification: summary({ authenticity: 'ReviewSuggested' }) }, applications[1]!];
     render(WithTooltips, { props: { component: ApplicationTable, props: { applications: rows, label: 'Candidates for Senior .NET Engineer', showJob: true } } });
 
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
     const items = within(screen.getByRole('list', { name: 'Candidates for Senior .NET Engineer' })).getAllByRole('listitem');
     expect(items).toHaveLength(2);
     expect(within(items[0]!).getByRole('link', { name: 'Casey Morgan' })).toHaveAttribute('href', `/applications/${applications[0]!.id}`);
-    expect(items[0]!.querySelector('[data-integrity-chip="authenticity"]')).toHaveAttribute('data-level', 'Review suggested');
+    expect(items[0]!.querySelector('[data-verification-chip="authenticity"]')).toHaveAttribute('data-level', 'Review suggested');
     expect(items[0]).toHaveTextContent('Applied');
     expect(items[0]).toHaveTextContent('Senior .NET Engineer');
     // The canvas's phone item has no source pill; the source is a column on wider screens and on the application page.
     expect(items[0]).toHaveTextContent('Oct 20, 2026');
-    expect(items[1]!.querySelector('[data-integrity-chip="authenticity"]')).toHaveAttribute('data-level', 'pending');
+    expect(items[1]!.querySelector('[data-verification-chip="authenticity"]')).toHaveAttribute('data-level', 'pending');
   });
 
   it('says why when there is nothing to show', () => {

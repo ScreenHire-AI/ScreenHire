@@ -43,7 +43,7 @@ public sealed class HiringTenantIsolationTests(AppHostFixture fixture)
     private static string WithoutAssessment(ApiResult timeline)
     {
         var entries = JsonNode.Parse(timeline.Body.GetRawText())!.AsArray();
-        foreach (var entry in entries.Where(e => e!["type"]!.GetValue<string>() == "IntegrityAssessed").ToList())
+        foreach (var entry in entries.Where(e => e!["type"]!.GetValue<string>() == "VerificationAssessed").ToList())
         {
             entries.Remove(entry);
         }

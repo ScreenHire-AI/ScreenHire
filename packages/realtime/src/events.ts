@@ -113,7 +113,7 @@ export const realtimeEventSchemas = {
   }),
   // Levels only, never evidence: the dashboard reads the assessment itself through the API. Enums are the C#
   // AuthenticityLevel and AiAssistanceLevel.
-  IntegrityAssessed: z.object({
+  VerificationAssessed: z.object({
     organizationId: id,
     applicationId: id,
     jobId: id,

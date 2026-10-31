@@ -12,7 +12,7 @@ namespace ScreenHire.Application.Webhooks;
 /// <summary>
 /// The daily sweep of webhook delivery logs: finished deliveries older than
 /// <see cref="WebhookOptions.DeliveryRetention"/> go. It has no tenant of its own, so it fans out one
-/// <see cref="PurgeOrganizationWebhookDeliveries"/> per organization, as the integrity retention sweep does.
+/// <see cref="PurgeOrganizationWebhookDeliveries"/> per organization, as the verification retention sweep does.
 /// </summary>
 public sealed record PurgeExpiredWebhookDeliveries;
 

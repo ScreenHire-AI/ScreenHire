@@ -2,7 +2,7 @@ import type { ApplicationRating, ScorecardAnswerEntry, ScorecardQuestionType } f
 
 // Scorecards in words and numbers (design system sections 11 and 21, workflow-engine.md section 8). The API works out
 // the candidate's rating and each scorecard's part of it; this module only says them. The rating averages people's
-// rating answers only, never integrity output, AI signals or the stage, and no automation reads it (ADR-0013).
+// rating answers only, never verification output, AI signals or the stage, and no automation reads it (ADR-0013).
 
 /** The answer kinds the candidate's rating averages. */
 export const ratingKinds: readonly ScorecardQuestionType[] = ['Rating5', 'Rating10', 'RatingYesNo'];

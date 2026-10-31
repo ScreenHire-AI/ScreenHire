@@ -109,7 +109,7 @@ app.MapPublicTelemetryEndpoints();
 app.MapJobEndpoints();
 app.MapTemplateEndpoints();
 app.MapApplicationEndpoints();
-app.MapIntegrityEndpoints();
+app.MapVerificationEndpoints();
 app.MapDistributionEndpoints();
 app.MapPublicDistributionEndpoints();
 app.MapOrganizationEndpoints();

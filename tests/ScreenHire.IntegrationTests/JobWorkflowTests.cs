@@ -144,11 +144,11 @@ public sealed class JobWorkflowTests(AppHostFixture fixture)
     [Theory]
     [InlineData("Reject")]
     [InlineData("QueueForRejectionReview")]
-    public async Task An_integrity_signal_cannot_drive_a_rejection_in_a_jobs_workflow(string actionType)
+    public async Task An_verification_signal_cannot_drive_a_rejection_in_a_jobs_workflow(string actionType)
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
         var job = await recruiter.CreateJobAsync(Samples.RemoteJob("Guardrail"));
-        var automation = Samples.IntegrityAutomation(new JsonObject { ["type"] = actionType, ["reason"] = "Not a fit" });
+        var automation = Samples.VerificationAutomation(new JsonObject { ["type"] = actionType, ["reason"] = "Not a fit" });
         automation["conditions"]!["rules"]![0]!["value"] = "VerificationRecommended";
         var workflow = WorkflowOf(job);
         workflow["automations"] = new JsonArray(automation);
@@ -167,7 +167,7 @@ public sealed class JobWorkflowTests(AppHostFixture fixture)
     // Publishing refuses such a version, so it is written as the owner: it stands for one published before the
     // guardrail tightened. Applying it must be refused all the same.
     [Fact]
-    public async Task A_template_update_whose_integrity_signal_drives_a_rejection_is_refused()
+    public async Task A_template_update_whose_verification_signal_drives_a_rejection_is_refused()
     {
         var ct = TestContext.Current.CancellationToken;
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
@@ -175,7 +175,7 @@ public sealed class JobWorkflowTests(AppHostFixture fixture)
         var job = await CreateTemplateJobAsync(recruiter, version1);
         var version2 = await PublishVersion2Async(recruiter, templateId, "screening", "Phone screen");
         var definition = await Samples.DefinitionOfAsync(recruiter, templateId, 2);
-        var automation = Samples.IntegrityAutomation(new JsonObject { ["type"] = "Reject", ["reason"] = "Not a fit" });
+        var automation = Samples.VerificationAutomation(new JsonObject { ["type"] = "Reject", ["reason"] = "Not a fit" });
         automation["conditions"]!["rules"]![0]!["value"] = "VerificationRecommended";
         definition["workflow"]!["automations"] = new JsonArray(automation);
         await using (var connection = new Npgsql.NpgsqlConnection(await fixture.GetOwnerConnectionStringAsync(ct)))
@@ -199,12 +199,12 @@ public sealed class JobWorkflowTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task An_integrity_signal_may_still_route_a_candidate_for_review_in_a_jobs_workflow()
+    public async Task An_verification_signal_may_still_route_a_candidate_for_review_in_a_jobs_workflow()
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
         var job = await recruiter.CreateJobAsync(Samples.RemoteJob("Routing"));
         var workflow = WorkflowOf(job);
-        workflow["automations"] = new JsonArray(Samples.IntegrityAutomation(new JsonObject { ["type"] = "AddTag", ["tag"] = "needs-review" }));
+        workflow["automations"] = new JsonArray(Samples.VerificationAutomation(new JsonObject { ["type"] = "AddTag", ["tag"] = "needs-review" }));
 
         var update = await recruiter.PutAsync($"/v1/jobs/{job.Id()}/workflow", WorkflowRequest(workflow, 1));
 

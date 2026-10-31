@@ -6,7 +6,7 @@
  */
 
 /**
- * Which prompt and models produced an LLM-derived signal, for audit (integrity-engine.md §5). The model ids are the
+ * Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the
  * ones the provider reported serving, not the configured names.
  */
 export interface LlmProvenance {

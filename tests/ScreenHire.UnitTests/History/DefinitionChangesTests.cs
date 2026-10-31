@@ -178,7 +178,7 @@ public sealed class DefinitionChangesTests
         var before = HiringTemplateDefinition.Default;
         var after = before with
         {
-            Workflow = before.Workflow with { IntegrityPolicy = new IntegrityPolicy(AiUsePolicy.NotAllowed) },
+            Workflow = before.Workflow with { VerificationPolicy = new VerificationPolicy(AiUsePolicy.NotAllowed) },
             PostingDefaults = new PostingDefaults(Department: "Engineering", Description: "<p>We build <b>booking</b> software.</p><ul><li>C#</li></ul>"),
         };
 

@@ -48,7 +48,7 @@
   import HeaderBand from '#lib/components/header-band.svelte';
   import HistorySheet from '#lib/components/history-sheet.svelte';
   import IconButton from '#lib/components/icon-button.svelte';
-  import IntegrityChip from '#lib/components/integrity-chip.svelte';
+  import VerificationChip from '#lib/components/verification-chip.svelte';
   import LastUpdated from '#lib/components/last-updated.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import LiveIndicator from '#lib/components/live-indicator.svelte';
@@ -104,7 +104,7 @@
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { formatDate, hour, day, minute } from '#lib/dates.js';
   import { applyFormKinds, scorecardKinds } from '#lib/form-builder.js';
-  import { aiAssistanceLevels, aiAssistanceOrder, authenticityLevels, authenticityOrder } from '#lib/integrity.js';
+  import { aiAssistanceLevels, aiAssistanceOrder, authenticityLevels, authenticityOrder } from '#lib/verification.js';
   import { mentionToken, type PickedMention } from '#lib/mentions.js';
   import type { TrayItem } from '#lib/notifications.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
@@ -1192,14 +1192,14 @@
         </Panel>
       </div>
 
-      <Panel title="Integrity chip and evidence">
+      <Panel title="Verification chip and evidence">
         <div class="flex flex-col gap-4">
           <div class="flex flex-wrap gap-2">
-            {#each Object.values(authenticityLevels) as level (level.label)}<IntegrityChip kind="authenticity" {level} />{/each}
-            <IntegrityChip kind="authenticity" level={null} compact />
+            {#each Object.values(authenticityLevels) as level (level.label)}<VerificationChip kind="authenticity" {level} />{/each}
+            <VerificationChip kind="authenticity" level={null} compact />
           </div>
           <div class="flex flex-wrap gap-2">
-            {#each Object.values(aiAssistanceLevels) as level (level.label)}<IntegrityChip kind="aiAssistance" {level} />{/each}
+            {#each Object.values(aiAssistanceLevels) as level (level.label)}<VerificationChip kind="aiAssistance" {level} />{/each}
           </div>
           <LevelScale levels={authenticityOrder.map((id) => authenticityLevels[id])} current={authenticityLevels.VerificationRecommended} name="Authenticity" />
           <LevelScale levels={aiAssistanceOrder.map((id) => aiAssistanceLevels[id])} current={aiAssistanceLevels.NotIndicated} name="AI assistance" />

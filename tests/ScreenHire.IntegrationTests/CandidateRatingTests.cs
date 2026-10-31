@@ -4,8 +4,8 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using AwesomeAssertions.Execution;
 using Microsoft.EntityFrameworkCore;
-using ScreenHire.Application.Integrity;
-using ScreenHire.Domain.Integrity;
+using ScreenHire.Application.Verification;
+using ScreenHire.Domain.Verification;
 using ScreenHire.IntegrationTests.Automations;
 using ScreenHire.IntegrationTests.Messaging;
 using static ScreenHire.IntegrationTests.ScorecardSupport;
@@ -16,7 +16,7 @@ namespace ScreenHire.IntegrationTests;
 /// The candidate's rating (ADR-0013 decision 13, workflow-engine.md section 8): one to five from people's rating answers
 /// and nothing else, on the application, the job's list, the all-applications list and the candidate. It is hidden from a
 /// member who has an open Review task of their own to answer, and from the other scorecards, the recommendations on the
-/// timeline and the reviewer decision's facts, until they submit. No automation condition may read it, and an integrity
+/// timeline and the reviewer decision's facts, until they submit. No automation condition may read it, and a verification
 /// result never changes it.
 /// </summary>
 public sealed class CandidateRatingTests(AppHostFixture fixture)
@@ -242,24 +242,24 @@ public sealed class CandidateRatingTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task An_integrity_result_never_changes_the_rating()
+    public async Task An_verification_result_never_changes_the_rating()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
-        var (slug, jobId) = await IntegritySupport.OpenJobAsync(fixture, owner);
-        var application = await IntegritySupport.ApplyAsync(fixture, slug, jobId, SyntheticApplicants.Bot);
-        await IntegritySupport.SettledAsync(fixture, owner, application);
+        var (slug, jobId) = await VerificationSupport.OpenJobAsync(fixture, owner);
+        var application = await VerificationSupport.ApplyAsync(fixture, slug, jobId, SyntheticApplicants.Bot);
+        await VerificationSupport.SettledAsync(fixture, owner, application);
         var candidate = (await owner.GetAsync($"/v1/applications/{application}")).Id("candidate.id");
         (await owner.PostAsync($"/v1/applications/{application}/move", new JsonObject { ["toStageId"] = "interview" })).Expect(HttpStatusCode.OK);
         (await owner.PostAsync(Scorecards(application), Submission("interview", "Yes", InterviewRatings(4, 5, 5)))).Expect(HttpStatusCode.Created);
         var ratingBefore = await RatingsAsync(owner.GetAsync, jobId, application, candidate);
-        var integrityBefore = (await owner.GetAsync($"/v1/applications/{application}/integrity")).Expect(HttpStatusCode.OK).Body.GetRawText();
+        var verificationBefore = (await owner.GetAsync($"/v1/applications/{application}/verification")).Expect(HttpStatusCode.OK).Body.GetRawText();
 
         // A new analyzer reports two more signals, which raises the AI assistance level: the assessment really changes.
         var announced = await RunProbeAnalyzersAsync(owner.OrganizationId, application);
 
-        var integrityAfter = (await owner.GetAsync($"/v1/applications/{application}/integrity")).Expect(HttpStatusCode.OK).Body.GetRawText();
-        announced.OfType<IntegrityAssessed>().Should().ContainSingle().Which.AiAssistance.Should().NotBe(AiAssistanceLevel.NotIndicated);
-        integrityAfter.Should().NotBe(integrityBefore, "a new assessment was recorded");
+        var verificationAfter = (await owner.GetAsync($"/v1/applications/{application}/verification")).Expect(HttpStatusCode.OK).Body.GetRawText();
+        announced.OfType<VerificationAssessed>().Should().ContainSingle().Which.AiAssistance.Should().NotBe(AiAssistanceLevel.NotIndicated);
+        verificationAfter.Should().NotBe(verificationBefore, "a new assessment was recorded");
         ratingBefore.Values.Should().OnlyContain(r => r == "Rated 4.7 x1");
         (await RatingsAsync(owner.GetAsync, jobId, application, candidate)).Should().BeEquivalentTo(ratingBefore);
     }
@@ -378,27 +378,27 @@ public sealed class CandidateRatingTests(AppHostFixture fixture)
     // Records two new assessments in the application as the worker would, with analyzers the pipeline has not run before.
     private async Task<IReadOnlyList<object>> RunProbeAnalyzersAsync(Guid organizationId, Guid application)
     {
-        await using var db = await IntegritySupport.TenantDbAsync(fixture, organizationId);
-        var ran = await db.IntegrityAnalyzerRuns.AsNoTracking().Where(r => r.ApplicationId == application)
+        await using var db = await VerificationSupport.TenantDbAsync(fixture, organizationId);
+        var ran = await db.VerificationAnalyzerRuns.AsNoTracking().Where(r => r.ApplicationId == application)
             .Select(r => new { r.Analyzer, r.AnalyzerVersion }).ToListAsync(Ct);
-        IIntegrityAnalyzer[] already = [.. ran.Select(r => new ProbeAnalyzer(r.Analyzer, r.AnalyzerVersion, null))];
+        IVerificationAnalyzer[] already = [.. ran.Select(r => new ProbeAnalyzer(r.Analyzer, r.AnalyzerVersion, null))];
         var inconsistency = new ObservedSignal(SignalCatalogue.Inconsistency, SignalConfidence.Medium, [SignalEvidence.Fact("Probe", "A test observation.")]);
         var duplicate = new ObservedSignal(SignalCatalogue.NearDuplicateAnswer, SignalConfidence.High, [SignalEvidence.Fact("Probe", "A test observation.")]);
-        IIntegrityAnalyzer[] added = [new ProbeAnalyzer("rating-probe-a", 1, new AnalyzerResult([inconsistency])), new ProbeAnalyzer("rating-probe-b", 1, new AnalyzerResult([duplicate]))];
+        IVerificationAnalyzer[] added = [new ProbeAnalyzer("rating-probe-a", 1, new AnalyzerResult([inconsistency])), new ProbeAnalyzer("rating-probe-b", 1, new AnalyzerResult([duplicate]))];
 
-        var messages = await new IntegrityPipeline(db, [.. already, .. added], TimeProvider.System).RunAsync(application, Ct);
+        var messages = await new VerificationPipeline(db, [.. already, .. added], TimeProvider.System).RunAsync(application, Ct);
         await db.SaveChangesAsync(Ct);
         return [.. messages.Cast<object>()];
     }
 
     // An analyzer with a name and version. Without a result it must never run: it stands for one that already ran.
-    private sealed class ProbeAnalyzer(string name, int version, AnalyzerResult? result) : IIntegrityAnalyzer
+    private sealed class ProbeAnalyzer(string name, int version, AnalyzerResult? result) : IVerificationAnalyzer
     {
         public string Name => name;
 
         public int Version => version;
 
-        public Task<AnalyzerResult> AnalyzeAsync(IntegrityContext context, CancellationToken cancellationToken) =>
+        public Task<AnalyzerResult> AnalyzeAsync(VerificationContext context, CancellationToken cancellationToken) =>
             result is null
                 ? Task.FromException<AnalyzerResult>(new InvalidOperationException($"{name} version {version} already ran and must not run again."))
                 : Task.FromResult(result);

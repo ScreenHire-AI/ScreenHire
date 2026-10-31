@@ -8,7 +8,7 @@ tags: [adr, integrity, signal-network, legal]
 
 - **Status:** Accepted with gate (2026-10-18)
 - **Deciders:** Owner
-- **Design:** `docs/architecture/integrity-engine.md` §6
+- **Design:** `docs/architecture/verification-engine.md` §6
 
 ## Context
 Fraud rings and auto-apply farms hit many employers at once; per-employer detection misses them. The owner wants

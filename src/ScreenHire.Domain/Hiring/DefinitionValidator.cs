@@ -8,7 +8,7 @@ namespace ScreenHire.Domain.Hiring;
 public sealed record DefinitionError(string Path, string Message);
 
 /// <summary>
-/// Structural validation of hiring template definitions and job workflows, plus the integrity guardrails that no saved
+/// Structural validation of hiring template definitions and job workflows, plus the verification guardrails that no saved
 /// definition may break (ADR-0004, workflow-engine.md §2). The API runs it before saving; the workflow engine can run
 /// it again before executing. Request bodies arrive through a serializer that does not enforce nullability, so every
 /// member is checked for null here.
@@ -39,7 +39,7 @@ public static partial class DefinitionValidator
         [TriggerType.InterviewScheduled] = "Interview scheduling is not available yet; this trigger cannot be used yet.",
     };
 
-    // What an automation that uses an integrity or verification signal may do: route and step up, never reject
+    // What an automation that uses a verification signal may do: route and step up, never reject
     // (workflow-engine.md §2, guardrail 1). MoveToStage is further limited to SignalSafeStages. SendQuestionnaire is
     // not here: asking a candidate for more because a signal fired would act on the signal as a finding about them.
     private static readonly HashSet<ActionType> SignalSafeActions =
@@ -104,13 +104,13 @@ public static partial class DefinitionValidator
         var questions = ValidateQuestionnaire(workflow.Questionnaire, Join(path, "questionnaire"), errors);
         var followUps = ValidateFollowUps(workflow.FollowUpQuestionnaires, Join(path, "followUpQuestionnaires"), questions, errors);
 
-        if (workflow.IntegrityPolicy is null)
+        if (workflow.VerificationPolicy is null)
         {
-            errors.Add(new(Join(path, "integrityPolicy"), "An integrity policy is required."));
+            errors.Add(new(Join(path, "verificationPolicy"), "A verification policy is required."));
         }
-        else if (!Enum.IsDefined(workflow.IntegrityPolicy.AiUse))
+        else if (!Enum.IsDefined(workflow.VerificationPolicy.AiUse))
         {
-            errors.Add(new(Join(path, "integrityPolicy.aiUse"), "Unknown AI-use policy."));
+            errors.Add(new(Join(path, "verificationPolicy.aiUse"), "Unknown AI-use policy."));
         }
 
         ValidateAutomations(workflow.Automations, Join(path, "automations"), new(stages, questions, followUps), errors);
@@ -585,13 +585,13 @@ public static partial class DefinitionValidator
         }
     }
 
-    // An integrity or verification signal drives the automation directly: its trigger or a fact it reads.
+    // A verification signal drives the automation directly: its trigger or a fact it reads.
     private static bool DrivenBySignal(Automation automation) =>
-        automation.Trigger?.Type is TriggerType.IntegrityAssessed or TriggerType.VerificationCompleted
+        automation.Trigger?.Type is TriggerType.VerificationAssessed or TriggerType.VerificationCompleted
         || automation.Conditions?.Rules?.Any(rule => rule is not null && FactSchema.IsSignal(rule.Fact)) == true;
 
     /// <summary>
-    /// The automations something can drive, directly or at one remove. For integrity and verification signals, directly
+    /// The automations something can drive, directly or at one remove. For verification signals, directly
     /// means a signal trigger or a signal fact; for an SLA breach, the SlaBreached trigger. At one remove: a condition on a tag that a signal-driven automation adds, or a stage
     /// trigger on a stage one moves applications into, or any StageExited trigger once one moves applications at all
     /// (the stage a move leaves is wherever the application is when the action runs, which no definition can know).
@@ -967,7 +967,7 @@ public static partial class DefinitionValidator
     }
 
     /// <summary>
-    /// The non-negotiables (ADR-0004, workflow-engine.md §2): an automation driven by an integrity or verification signal
+    /// The non-negotiables (ADR-0004, workflow-engine.md §2): an automation driven by a verification signal
     /// may only route or step up, and only an opted-in knockout automation may reject without a person.
     /// </summary>
     private static void ValidateGuardrails(
