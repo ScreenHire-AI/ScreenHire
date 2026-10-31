@@ -325,6 +325,7 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
             ("/settings/api-keys", "API keys"),
             ("/settings/webhooks", "Webhooks"),
             ("/settings/mcp-server", "MCP server"),
+            ("/settings/slack", "Slack"),
             ("/settings/webhooks/new", "Add endpoint"),
             ($"/settings/webhooks/{endpointId}", "Applicant sync"),
             ($"/settings/webhooks/{endpointId}/edit", "Edit endpoint"),

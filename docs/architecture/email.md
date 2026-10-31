@@ -159,6 +159,8 @@ job, links to the note on the candidate's Activity tab (`ScreenHire:Domains:AppH
 worker too), and never quotes the note, so candidate details stay in ScreenHire. The mention's row records the send,
 so a redelivered message sends nothing; a mention removed, a note deleted, a person who left, or one who no longer sees
 the job (ADR-0015) before the worker gets to it gets no email. A note can mention only someone who sees the candidate.
+Someone who linked their Slack account also gets the mention as a Slack direct message, its own message beside this
+one, so a failing email never holds it up ([slack.md](slack.md)).
 
 ## Not built
 

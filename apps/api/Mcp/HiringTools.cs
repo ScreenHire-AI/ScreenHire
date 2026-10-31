@@ -8,6 +8,7 @@ using ModelContextProtocol.Server;
 using ScreenHire.Api.Applications;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Hiring;
+using ScreenHire.Application.Slack;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
@@ -28,6 +29,7 @@ internal sealed class HiringTools(
     ScreenHireDbContext db,
     IDbContextOutbox<ScreenHireDbContext> outbox,
     ITenantContext tenant,
+    SlackAccess slack,
     TimeProvider time,
     IValidator<MoveApplicationRequest> moveValidator,
     IValidator<AddApplicationNoteRequest> noteValidator,
@@ -94,7 +96,7 @@ internal sealed class HiringTools(
     {
         McpResults.Require(user, Permission.AddNotesAndTags);
         var result = await ApplicationChanges.AddNoteAsync(
-            applicationId, new(note), noteValidator, outbox, tenant, user, time, cancellationToken);
+            applicationId, new(note), noteValidator, outbox, tenant, user, slack, time, cancellationToken);
         return McpResults.ValueOf<ApplicationTimelineEntry>(result.Result, NoApplication).ToMcp();
     }
 
@@ -141,7 +143,7 @@ internal sealed class HiringTools(
     {
         McpResults.Require(user, Permission.CreateTasks);
         var result = await ApplicationChanges.CreateTaskAsync(
-            applicationId, new(note, assigneeUserId), taskValidator, outbox, tenant, user, time, cancellationToken);
+            applicationId, new(note, assigneeUserId), taskValidator, outbox, tenant, user, slack, time, cancellationToken);
         return McpResults.ValueOf<ApplicationTaskEntry>(result.Result, NoApplication).ToMcp();
     }
 

@@ -21,7 +21,7 @@ const recruiterPermissions: Permission[] = [
 export const ownerPermissions: Permission[] = [
   'ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'DeleteAnyNote', 'CreateTasks', 'CompleteTasks',
   'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates',
-  'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners',
+  'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageIntegrations', 'ManageTeam', 'ManageOwners',
 ];
 
 /** What each built-in role has, as the API's catalogue says (RolePermissions.cs). */

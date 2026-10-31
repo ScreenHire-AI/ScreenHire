@@ -183,3 +183,33 @@ Content-Type: application/json
 X-XSRF-TOKEN: {{xsrf}}
 
 { "organizationId": "00000000-0000-0000-0000-000000000000" }
+
+###
+
+# Slack (docs/architecture/slack.md): the member's view, and the channel picker for someone who manages integrations.
+GET {{api}}/v1/slack
+
+###
+
+GET {{api}}/v1/slack/channels
+
+###
+
+PUT {{api}}/v1/slack/channel
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "channelId": "C0SBHIRING", "events": ["ApplicationSubmitted", "JobPublished"] }
+
+###
+
+PUT {{api}}/v1/slack/account
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "mentions": true, "tasks": false }
+
+###
+
+# Sandbox mode only: what the local sandbox workspace received.
+GET {{api}}/v1/slack/sandbox/messages

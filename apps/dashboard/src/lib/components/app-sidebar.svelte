@@ -1,11 +1,13 @@
 <script lang="ts">
-  import type { CurrentUser } from '@screenhire/api-client';
+  import type { CurrentUser, SlackStatus } from '@screenhire/api-client';
   import ChevronsUpDownIcon from '@lucide/svelte/icons/chevrons-up-down';
   import SettingsIcon from '@lucide/svelte/icons/settings';
   import type { Attachment } from 'svelte/attachments';
   import { SvelteSet } from 'svelte/reactivity';
+  import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import LogoMark from '#lib/components/logo-mark.svelte';
+  import SlackAccountSheet from '#lib/components/slack-account-sheet.svelte';
   import StatusIcon from '#lib/components/status-icon.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
@@ -16,6 +18,7 @@
   import { savedViews } from '#lib/saved-views.js';
   import { signOutAndRedirect } from '#lib/session.js';
   import { visibleSettingsSections } from '#lib/settings.js';
+  import { slackFailure } from '#lib/slack.js';
   import { getShell, sections } from '#lib/shell.js';
 
   // The app's navigation (design system sections 8 and 9): the full sidebar, the icon rail or the phone sheet, as the
@@ -23,10 +26,13 @@
   let {
     user,
     viewCounts,
+    slack,
   }: {
     user: CurrentUser | null;
     /** Applications in each saved view, by view id; missing while the list loads. */
     viewCounts: Readonly<Record<string, number | undefined>>;
+    /** Slack for this person (`GET /v1/slack`), for the Slack account item in their menu; missing while it loads. */
+    slack?: SlackStatus;
   } = $props();
 
   const sidebar = Sidebar.useSidebar();
@@ -34,6 +40,23 @@
   const rail = $derived(sidebar.state === 'collapsed' && !sidebar.isMobile);
   const currentView = $derived(page.url.pathname === '/candidates' ? page.url.searchParams.get('view') : null);
   const settingsPages = $derived(visibleSettingsSections(user));
+
+  // Each person's own Slack account, in their menu while the organization's workspace is connected (docs/architecture/slack.md).
+  const slackStatus = $derived(slack);
+  const slackConnected = $derived(Boolean(slackStatus?.available && slackStatus.workspace));
+  let slackOpen = $state(false);
+  let slackOutcome = $state('');
+  // Linking comes back to the page it started on with ?slack-account=: the sheet opens to show how it went, and the
+  // parameter leaves the address so a reload does not repeat it.
+  $effect(() => {
+    const outcome = page.url.searchParams.get('slack-account');
+    if (outcome === null) return;
+    slackOutcome = slackFailure(outcome) ?? '';
+    slackOpen = true;
+    const url = new URL(page.url.href);
+    url.searchParams.delete('slack-account');
+    void goto(url, { replace: true, reset: false });
+  });
 
   // A link in the phone sheet closes it, so the page it opens is not hidden behind the sheet.
   const closeSheet = () => sidebar.setOpenMobile(false);
@@ -241,6 +264,10 @@
                 checked={preferences.shortcutsEnabled}
                 onCheckedChange={(checked) => preferences.setShortcutsEnabled(checked)}>Single-key shortcuts</DropdownMenu.CheckboxItem
               >
+              {#if slackConnected}
+                <DropdownMenu.Separator />
+                <DropdownMenu.Item onSelect={() => ((slackOutcome = ''), (slackOpen = true))}>Slack account</DropdownMenu.Item>
+              {/if}
               <DropdownMenu.Separator />
               <DropdownMenu.Item onSelect={signOutAndRedirect}>Sign out</DropdownMenu.Item>
             </DropdownMenu.Content>
@@ -250,3 +277,7 @@
     {/if}
   </Sidebar.Footer>
 </Sidebar.Root>
+
+{#if slackStatus?.available}
+  <SlackAccountSheet bind:open={slackOpen} status={slackStatus} outcome={slackOutcome} />
+{/if}

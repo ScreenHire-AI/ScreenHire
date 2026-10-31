@@ -324,6 +324,9 @@ internal static class TeamEndpoints
         }
 
         db.OrganizationMembers.Remove(member);
+
+        // Their Slack account goes with them: no direct message reaches someone who left.
+        await db.SlackAccountLinks.Where(l => l.UserId == member.UserId).ExecuteDeleteAsync(cancellationToken);
         db.MembershipEvents.Add(new MembershipEvent
         {
             OrganizationId = member.OrganizationId,

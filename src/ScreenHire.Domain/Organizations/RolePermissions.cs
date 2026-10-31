@@ -30,6 +30,7 @@ public enum Permission
     ManageOwners,
     DeleteAnyNote,
     CreateTasks,
+    ManageIntegrations,
 }
 
 /// <summary>The groups the Roles page shows permissions in.</summary>
@@ -88,6 +89,8 @@ public static class RolePermissions
         new(Permission.ManageApiKeys, PermissionGroup.Organization, "Manage API keys", "Create, see and revoke API keys."),
         new(Permission.ManageWebhooks, PermissionGroup.Organization, "Manage webhooks",
             "Add, change and remove webhook endpoints, and replay deliveries."),
+        new(Permission.ManageIntegrations, PermissionGroup.Organization, "Manage integrations",
+            "Connect Slack, choose its channel and what it posts there, and disconnect it."),
         new(Permission.ManageTeam, PermissionGroup.Organization, "Manage the team",
             "Invite people, change roles and remove members, except Owners, and make roles."),
         new(Permission.ManageOwners, PermissionGroup.Organization, "Manage Owners",
@@ -114,12 +117,12 @@ public static class RolePermissions
     /// reach the whole organization's jobs, so a member on Only jobs they're on making one would see past their own
     /// limit.
     /// </summary>
-    public static IReadOnlySet<Permission> NeedsAllJobs { get; } = new HashSet<Permission>([Permission.ManageApiKeys, Permission.ManageWebhooks]);
+    public static IReadOnlySet<Permission> NeedsAllJobs { get; } = new HashSet<Permission>([Permission.ManageApiKeys, Permission.ManageWebhooks, Permission.ManageIntegrations]);
 
     private static readonly Permission[] Administration =
     [
         Permission.DeleteAnyNote, Permission.EditEmailTemplates, Permission.EditSettings, Permission.ManageApiKeys, Permission.ManageWebhooks,
-        Permission.ManageTeam,
+        Permission.ManageIntegrations, Permission.ManageTeam,
     ];
 
     /// <summary>The built-in roles, most access first.</summary>
@@ -128,7 +131,7 @@ public static class RolePermissions
         new(OrganizationRole.Owner, "Everything, including making and removing other Owners.",
             new HashSet<Permission>([.. Reading, .. HiringWrites, .. Administration, Permission.ManageOwners])),
         new(OrganizationRole.Admin,
-            "Everything a Recruiter does, plus settings, email templates, API keys, webhooks and the team.",
+            "Everything a Recruiter does, plus settings, email templates, API keys, webhooks, Slack and the team.",
             new HashSet<Permission>([.. Reading, .. HiringWrites, .. Administration])),
         new(OrganizationRole.Recruiter,
             "Works the jobs: moves candidates, writes notes and emails, fills in scorecards, edits jobs and hiring templates.",

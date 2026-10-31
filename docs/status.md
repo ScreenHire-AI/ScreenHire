@@ -29,6 +29,7 @@ What comes next, in order, is the [roadmap](roadmap.md).
 | Team | Members with roles, email invitations that expire and work once, role changes and removal with the last Owner protected, a membership log, switching between organizations | #38 |
 | Roles and permissions | The server checks permissions, not role names, on every route; custom roles copied from a built-in or custom role, edited on their own page with History, deleted only when nobody has them; nobody gives more access than their own role has; Owner-only permissions stay with Owners; API keys capped by their creator ([ADR-0014](adr/0014-permissions-and-custom-roles.md)) | the custom roles task |
 | API access | Organization API keys on the hiring API (jobs, applications, candidates, templates): read or read and write, shown once, a per-key rate limit, revocable ([ADR-0011](adr/0011-api-keys-for-integrators.md)) | #37 |
+| Slack | An Owner or Admin connects the workspace from Settings > Slack and picks a channel and the events posted there (a new application, a candidate moved, an automation that failed, a job published); each person links their own account from their menu for their mentions and tasks as direct messages; messages name the candidate and the job and link to them, and never carry verification output ([Slack](architecture/slack.md)) | the Slack task |
 | MCP server | A team's AI assistant at `/v1/mcp`, signed in with an API key: find jobs and candidates, read an application with the candidate's words marked, add notes, tags and tasks, move a candidate to a stage; Read keys see only the reads; no integrity output ([MCP server](architecture/mcp-server.md)) | the MCP server task |
 | Hiring | Jobs with versions, hiring templates (system and your own), candidates, applications, the pipeline | #9 |
 | Workflows | Automations with guardrails (no integrity-driven rejection), simulate and validate, transactional email, signed webhooks | #10 |
@@ -61,6 +62,7 @@ hidden rather than an error.
 | LLM | A deterministic fake model for the consistency check; with no provider the check records "unavailable"; off per organization by default |
 | Job boards | A sandbox push board (Development only) and the feeds; Google Indexing has a local fake and is off unless set; Indeed is flags only |
 | Webhook receivers | `WebhookReceiver` in `tests/ScreenHire.Testing`, a local server, so no test needs the internet |
+| Slack | The sandbox workspace behind `ISlackClient` (Development only, on in the test stacks); with no Slack app configured, Settings > Slack says it is not set up |
 | IP data | Configured ranges for the RFC 5737 documentation addresses; an ip2asn file and a Tor exit list are optional and absent |
 | Storage, bot challenge, malware scan | Azurite; Turnstile unconfigured (recorded as "not checked", the honeypot still works); `NoMalwareScanner`, which records every file as "not scanned" |
 | Built, flagged off | The cross-employer Signal Network, off until legal review (ADR-0005) |
@@ -82,6 +84,12 @@ brackets.
   #38, #42). Candidate replies and an inbox need that provider to route inbound mail (#42). Set a production
   `ScreenHire:Webhooks:SigningKey` for the API and the worker; without it creating or rotating a webhook endpoint
   returns 503 and deliveries are skipped (#10, #36).
+- **Slack.** Create the Slack app at api.slack.com: bot scopes `chat:write`, `chat:write.public`, `channels:read`,
+  `groups:read` and `im:write`; Sign in with Slack with `openid` and `profile`; the redirect URL
+  `{AppOrigin}/v1/slack/oauth/callback`; public distribution, so other workspaces can add it; token rotation off; the App
+  Home's Messages tab on. Put its client id in `ScreenHire:Slack:ClientId` and its secret in the `slack-client-secret`
+  parameter. Before real tenants connect, add Slack to the sub-processor list, and list the app in the Slack
+  Marketplace if it is to be found there (the Slack task).
 - **Integrators.** Integrator docs and terms must carry the `integrity.assessed` guidance on automated rejection
   (GDPR Art. 22, NYC LL144 and the other rules in [legal](research/legal.md)); no integrator docs exist yet (#36).
 - **LLM.** Set `ScreenHire:Integrity:Llm:Provider=Anthropic` and the `anthropic-api-key` secret, then replace the
