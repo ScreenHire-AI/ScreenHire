@@ -118,6 +118,20 @@ public sealed class OrganizationBrandingTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task Verifying_an_upload_that_was_already_kept_returns_it_as_it_is()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var id = await TicketAndPutAsync(owner, "Logo", "logo.png", Png(200, 50));
+
+        var first = (await owner.PostAsync($"/v1/organization/branding/images/{id}/verify")).Expect(HttpStatusCode.OK);
+        var again = (await owner.PostAsync($"/v1/organization/branding/images/{id}/verify")).Expect(HttpStatusCode.OK);
+
+        again.Text("id").Should().Be(first.Text("id"));
+        again.At("width").GetInt32().Should().Be(200);
+        again.At("height").GetInt32().Should().Be(50);
+    }
+
+    [Fact]
     public async Task Files_that_are_not_a_fitting_png_or_jpeg_are_refused_and_removed()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();

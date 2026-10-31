@@ -104,6 +104,9 @@ describe('branding page', () => {
 
     expect(await screen.findByRole('radio', { name: /Bricolage Grotesque/ })).toBeChecked();
     expect(screen.getByText('No logo')).toBeInTheDocument();
+    // An empty brand colour is ScreenHire's; an empty second colour is no header band at all.
+    expect(screen.getByLabelText('Brand colour')).toHaveAttribute('placeholder', "ScreenHire's");
+    expect(screen.getByLabelText('Second colour')).toHaveAttribute('placeholder', 'None');
   });
 
   it('says which pair a colour fails and fills in the nearest passing shade', async () => {
