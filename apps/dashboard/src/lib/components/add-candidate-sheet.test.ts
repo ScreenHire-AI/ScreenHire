@@ -64,6 +64,8 @@ describe('Add candidate sheet', () => {
     expect(await within(sheet()).findByText('Choose a job.')).toBeInTheDocument();
     expect(within(sheet()).getByText('Enter a first name.')).toBeInTheDocument();
     expect(within(sheet()).getByText('Enter an email address.')).toBeInTheDocument();
+    // One message for an empty address, not a second one about its format.
+    expect(within(sheet()).queryByText('Enter a valid email address.')).toBeNull();
     expect(calls.filter((call) => call.startsWith('POST'))).toEqual([]);
     await expectNoAxeViolations();
   });
@@ -77,7 +79,7 @@ describe('Add candidate sheet', () => {
 
     expect(within(sheet()).queryByLabelText('Job')).toBeNull();
     expect(within(sheet()).getByText(`They join ${preset.title} in its first stage.`)).toBeInTheDocument();
-    await fill(sheet(), { 'First name': ' Jordan ', 'Last name': 'Lee', Email: 'jordan.lee@example.com', Phone: '' });
+    await fill(sheet(), { 'First name': ' Jordan ', 'Last name (optional)': 'Lee', Email: 'jordan.lee@example.com', 'Phone (optional)': '' });
     await fireEvent.click(within(sheet()).getByRole('button', { name: 'Add candidate' }));
 
     await waitFor(() => expect(bodies).toEqual([
@@ -101,7 +103,7 @@ describe('Add candidate sheet', () => {
 
     await fill(sheet(), { 'First name': 'Jordan', Email: 'jordan.lee@example.com' });
     const file = new File(['%PDF-1.7'], 'jordan-lee.pdf', { type: 'application/pdf' });
-    await fireEvent.change(within(sheet()).getByLabelText('Resume'), { target: { files: [file] } });
+    await fireEvent.change(within(sheet()).getByLabelText('Resume (optional)'), { target: { files: [file] } });
     await fireEvent.click(within(sheet()).getByRole('button', { name: 'Add candidate' }));
 
     await waitFor(() => expect(calls).toEqual([`POST ${createPath}/resume-uploads`, `PUT ${ticket.uploadUrl}`, `POST ${createPath}`]));
@@ -129,7 +131,7 @@ describe('Add candidate sheet', () => {
     const email = within(sheet()).getByLabelText('Email');
     await waitFor(() => expect(email).toHaveAttribute('aria-invalid', 'true'));
     expect(document.getElementById(email.getAttribute('aria-describedby')!)).toHaveTextContent('Enter a real address.');
-    const resume = within(sheet()).getByLabelText('Resume');
+    const resume = within(sheet()).getByLabelText('Resume (optional)');
     expect(document.getElementById(resume.getAttribute('aria-describedby')!)).toHaveTextContent('This file is not a PDF or DOCX file.');
   });
 

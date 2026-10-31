@@ -3,6 +3,7 @@
   import { keepPreviousData } from '@tanstack/svelte-query';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
+  import FailureText from '#lib/components/failure-text.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import * as Command from '#lib/components/ui/command/index.js';
@@ -23,6 +24,8 @@
   /** How long typing has to pause before the palette searches. */
   const debounceMs = 200;
   const minLength = 2;
+  /** The API refuses a longer search (`SearchEndpoints.MaxLength`), so the input stops there. */
+  const maxLength = 100;
   let text = $state('');
   let term = $state('');
   $effect(() => {
@@ -39,9 +42,10 @@
   });
 
   const searching = $derived(open && term.length >= minLength);
+  // No live event refreshes a search, so a term typed again asks again: a candidate added a moment ago turns up.
   const search = createSearch(
     () => ({ q: term }),
-    () => ({ query: { enabled: searching, placeholderData: keepPreviousData, staleTime: 30_000 } }),
+    () => ({ query: { enabled: searching, placeholderData: keepPreviousData, staleTime: 0 } }),
   );
   const found = $derived(searching ? search.data?.data : undefined);
   // Typing has not paused yet, or the answer is on its way: "Nothing matches" would be premature.
@@ -57,6 +61,7 @@
   <!-- aria-controls: the combobox role requires it, and bits-ui does not set it. -->
   <Command.Input
     bind:value={text}
+    maxlength={maxLength}
     placeholder="Search jobs, candidates and actions…"
     aria-label="Search jobs, candidates and actions"
     aria-controls="command-palette-results"
@@ -109,7 +114,7 @@
       </Command.Group>
     {/if}
     {#if searching && search.isError}
-      <p role="status" class="px-3 py-2 text-muted-foreground">Could not search jobs and candidates. Try again.</p>
+      <FailureText role="status" class="px-3 py-2" message="Could not search jobs and candidates. Try again." />
     {:else if waiting && !found}
       <Command.Loading class="px-3 py-2 text-muted-foreground">Searching…</Command.Loading>
     {/if}

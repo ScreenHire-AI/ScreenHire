@@ -128,8 +128,9 @@
   const selectColumn = 'sticky left-0 w-10 min-w-10 px-2 pointer-coarse:w-15 pointer-coarse:min-w-15';
   const nameColumn = 'sticky left-10 pointer-coarse:left-15';
   // Source is an optional column (section 8): it shows only where the table has room, so a job's pipeline beside its
-  // side column fits a laptop without scrolling sideways.
-  const optionalColumn = '@max-5xl/table:hidden';
+  // side column fits a laptop without scrolling sideways. The table across jobs has a Job column as well, so Source steps
+  // aside sooner there: with it, Candidates beside the full sidebar on a 1440px laptop was 19px too wide.
+  const optionalColumn = $derived(showJob ? '@max-6xl/table:hidden' : '@max-5xl/table:hidden');
   // While the table is scrolled sideways, the name column has an edge, so cells sliding under it do not show beside it.
   let scrolledSideways = $state(false);
   const nameEdge = 'after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border';

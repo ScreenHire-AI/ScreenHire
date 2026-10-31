@@ -58,6 +58,19 @@ describe('command palette', () => {
     await waitFor(() => expect(searches).toEqual(['/v1/search?q=cm.h']));
   });
 
+  it('stops at the length the API takes, and asks again for a term typed a second time', async () => {
+    const { searches, input } = renderPalette();
+    expect(input).toHaveAttribute('maxlength', '100');
+
+    await fireEvent.input(input, { target: { value: 'cm' } });
+    await waitFor(() => expect(searches).toEqual(['/v1/search?q=cm']));
+    await fireEvent.input(input, { target: { value: 'cmx' } });
+    await waitFor(() => expect(searches).toHaveLength(2));
+    // No live event refreshes a search, so the earlier answer is not reused: someone added since then turns up.
+    await fireEvent.input(input, { target: { value: 'cm' } });
+    await waitFor(() => expect(searches).toEqual(['/v1/search?q=cm', '/v1/search?q=cmx', '/v1/search?q=cm']));
+  });
+
   it('shows a candidate the server found by email, and a job, and opens what is chosen', async () => {
     const { palette, input } = renderPalette();
 

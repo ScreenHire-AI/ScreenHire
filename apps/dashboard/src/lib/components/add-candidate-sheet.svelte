@@ -53,7 +53,8 @@
     jobId: z.string().min(1, 'Choose a job.'),
     firstName: z.string().trim().min(1, 'Enter a first name.').max(100, 'Keep the first name to 100 characters or fewer.'),
     lastName: z.string().trim().max(100, 'Keep the last name to 100 characters or fewer.'),
-    email: z.string().trim().min(1, 'Enter an email address.').max(320, 'Keep the address to 320 characters or fewer.').email('Enter a valid email address.'),
+    // An empty address gets one message, not "Enter a valid email address." under it too.
+    email: z.string().trim().min(1, { message: 'Enter an email address.', abort: true }).max(320, 'Keep the address to 320 characters or fewer.').email('Enter a valid email address.'),
     phone: z.string().trim().max(50, 'Keep the phone number to 50 characters or fewer.'),
     resume: z.string(),
   });
@@ -134,7 +135,7 @@
     </Sheet.Header>
     <!-- The enctype only satisfies superforms, which refuses a form with a file input without it; in SPA mode the form
          never posts, and the resume goes to storage on its own (onUpdate). -->
-    <form method="POST" enctype="multipart/form-data" use:enhance novalidate class="@container flex flex-col gap-5 px-4 pb-4" data-add-candidate>
+    <form method="POST" enctype="multipart/form-data" use:enhance novalidate class="flex flex-col gap-5 px-4 pb-4" data-add-candidate>
       {#if !job}
         <Field.Field data-invalid={$errors.jobId ? true : undefined}>
           <Field.Label for="add-candidate-job">Job</Field.Label>
@@ -153,7 +154,7 @@
           <Field.Error id="add-candidate-job-error" errors={$errors.jobId?.map((message) => ({ message }))} />
         </Field.Field>
       {/if}
-      <div class="flex flex-col gap-5 @md:grid @md:grid-cols-2 @md:gap-3">
+      <div class="flex flex-col gap-5">
         <Field.Field data-invalid={$errors.firstName ? true : undefined}>
           <Field.Label for="add-candidate-first">First name</Field.Label>
           <Input
@@ -169,7 +170,7 @@
           <Field.Error id="add-candidate-first-error" errors={$errors.firstName?.map((message) => ({ message }))} />
         </Field.Field>
         <Field.Field data-invalid={$errors.lastName ? true : undefined}>
-          <Field.Label for="add-candidate-last">Last name</Field.Label>
+          <Field.Label for="add-candidate-last">Last name <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
           <Input
             id="add-candidate-last"
             name="lastName"
@@ -198,7 +199,7 @@
         <Field.Error id="add-candidate-email-error" errors={$errors.email?.map((message) => ({ message }))} />
       </Field.Field>
       <Field.Field data-invalid={$errors.phone ? true : undefined}>
-        <Field.Label for="add-candidate-phone">Phone</Field.Label>
+        <Field.Label for="add-candidate-phone">Phone <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
         <Input
           id="add-candidate-phone"
           name="phone"
@@ -212,7 +213,7 @@
         <Field.Error id="add-candidate-phone-error" errors={$errors.phone?.map((message) => ({ message }))} />
       </Field.Field>
       <Field.Field data-invalid={$errors.resume ? true : undefined}>
-        <Field.Label for="add-candidate-resume">Resume</Field.Label>
+        <Field.Label for="add-candidate-resume">Resume <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
         <Input
           bind:ref={fileInput}
           id="add-candidate-resume"
