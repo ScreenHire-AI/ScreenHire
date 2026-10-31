@@ -215,8 +215,11 @@ internal static partial class CiWorkflow
         _ => [],
     };
 
-    /// <summary><c>secrets.NAME</c> or <c>secrets['NAME']</c> in an expression.</summary>
-    [GeneratedRegex(@"\bsecrets\s*[.\[]")]
+    /// <summary>
+    /// <c>secrets.NAME</c>, <c>secrets['NAME']</c> or <c>toJSON(secrets)</c> in an expression, or <c>secrets: inherit</c>
+    /// on a reusable-workflow call.
+    /// </summary>
+    [GeneratedRegex(@"\bsecrets\s*[.\[)]|\bsecrets\s*:\s*inherit\b")]
     private static partial Regex SecretReference();
 
     [GeneratedRegex(@"(?:AddContainer\(\s*[^,()]+,|WithImage\()\s*""(?<image>[^""]+)""\s*,\s*""(?<tag>[^""]+)""\s*\)")]

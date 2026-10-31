@@ -116,7 +116,7 @@ public class AppHostFixture : IAsyncLifetime
             ],
             startup.Token);
         WithoutTelemetryExport(builder);
-        WithoutSqlLogging(builder);
+        WithTestLogLevels(builder);
         Configure(builder);
         app = await builder.BuildAsync(startup.Token);
         watcher = WatchResourcesAsync(app, watching.Token);
@@ -154,8 +154,10 @@ public class AppHostFixture : IAsyncLifetime
     // CopyLogAsync, on runners that also host Postgres, the browser and the tests. Commands that fail still log, at
     // Warning and above. `pnpm dev` keeps them, for the Aspire dashboard.
     // The API's request log goes the other way, on: one line per request with its path, status and time ("Request
-    // finished ... in 31234 ms"), so a test that waits out a slow request names the request in api.log.
-    private static void WithoutSqlLogging(IDistributedApplicationTestingBuilder builder)
+    // finished ... in 31234 ms"), so a test that waits out a slow request names the request in api.log. The line holds
+    // the query string too, and CI uploads api.log as a public artifact on failure. That is fine only because test
+    // stacks hold fictional data; turn it off before any route carries a token or an email in its URL.
+    private static void WithTestLogLevels(IDistributedApplicationTestingBuilder builder)
     {
         foreach (var project in builder.Resources.OfType<ProjectResource>())
         {

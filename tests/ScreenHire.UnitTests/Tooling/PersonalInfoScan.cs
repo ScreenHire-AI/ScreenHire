@@ -41,6 +41,7 @@ internal static partial class PersonalInfoScan
         ("aws access key", AwsKey()),
         ("github token", GitHubToken()),
         ("slack token", SlackToken()),
+        ("slack token", SlackAppToken()),
         ("private key", PrivateKey()),
         ("google api key", GoogleKey()),
         ("jwt", Jwt()),
@@ -174,6 +175,7 @@ internal static partial class PersonalInfoScan
         var domain = address[(at + 1)..].ToLowerInvariant();
         return IsReservedHost(domain)
             || domain == "users.noreply.github.com"
+            || (local == "git" && domain == "github.com") // an SSH clone URL, git@github.com:owner/repo.git
             || (local.Equals("noreply", StringComparison.OrdinalIgnoreCase) && domain is "github.com" or "anthropic.com");
     }
 
@@ -242,6 +244,10 @@ internal static partial class PersonalInfoScan
     /// <summary>A Slack token as Slack issues one: its type, then a numeric id. A fixture such as xoxb-fictional is not.</summary>
     [GeneratedRegex(@"\bxox[abprs]-\d{6,}-[A-Za-z0-9-]{10,}")]
     private static partial Regex SlackToken();
+
+    /// <summary>A Slack app-level token (<c>xapp-</c>) or a refresh token (<c>xoxe-</c>, <c>xoxe.xoxp-</c>).</summary>
+    [GeneratedRegex(@"\b(?:xapp|xoxe(?:\.xox[bp])?)-\d-[A-Za-z0-9-]{20,}")]
+    private static partial Regex SlackAppToken();
 
     [GeneratedRegex(@"-----BEGIN [A-Z ]*PRIVATE KEY-----")]
     private static partial Regex PrivateKey();

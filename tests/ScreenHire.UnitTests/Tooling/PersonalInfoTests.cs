@@ -36,6 +36,8 @@ public sealed class PersonalInfoTests
         { "github token", "ghp_" + new string('c', 36) },
         { "github token", "github_pat_" + new string('d', 40) },
         { "slack token", "xoxb-" + "1234567890-1234567890123-" + new string('s', 24) },
+        { "slack token", "xapp-" + "1-A0123456789-1234567890123-" + new string('a', 32) },
+        { "slack token", "xoxe.xoxp-" + "1-" + new string('t', 40) },
         { "private key", "-----BEGIN " + "RSA PRIVATE KEY-----" },
         { "google api key", "AIza" + new string('e', 35) },
         { "jwt", "eyJ" + new string('f', 20) + ".eyJ" + new string('g', 20) + "." + new string('h', 12) },
@@ -63,6 +65,7 @@ public sealed class PersonalInfoTests
     [InlineData("avery@brightwater.example.com, x@careers.example.org, a@b.example.net, c@d.example, e@f.test, g@h.invalid, i@j.localhost")]
     [InlineData("12345+bot@users.noreply.github.com, noreply@github.com, noreply@anthropic.com")]
     [InlineData("icon@2x.png")]
+    [InlineData("git clone " + "git" + "@" + "github.com:Octo-Cat/ScreenHire.git")]
     [InlineData("Bearer xoxb-fictional-token")]
     [InlineData("https://user:secret@hooks.example.com/in and http://admin:admin@localhost:8080/")]
     [InlineData("Password={appRolePassword};Password=$PASSWORD;Password=<secret>")]

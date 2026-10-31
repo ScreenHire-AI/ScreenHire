@@ -208,7 +208,8 @@ public static class ScreenHireMessaging
         opts.Policies.UseDurableLocalQueues();
         opts.Policies.AutoApplyTransactions();
 
-        // Analyses of one application run one at a time; different applications still run side by side. The submission
+        // Analyses of one application run one at a time; different applications still run side by side, up to five at once
+        // per message type (two that hash to one slot wait for each other). The submission
         // and each content stage as it lands all ask for one, often within milliseconds, and two at once both inserted
         // the same analyzer run: the second failed on the unique index and waited out a retry (1 s, then 5 s) before
         // finding the run there, which delayed the assessment people watch arrive live. Wolverine's partitioned

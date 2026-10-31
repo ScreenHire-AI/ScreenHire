@@ -42,6 +42,8 @@ public sealed class CiWorkflowTests
     [InlineData("name: Gate\n", "name: Required\n", "not 'Gate'")]
     [InlineData("DOTNET_NOLOGO: 'true'", "DOTNET_NOLOGO: ${{ secrets.NUGET_TOKEN }}", "reads a secret")]
     [InlineData("DOTNET_NOLOGO: 'true'", "DOTNET_NOLOGO: ${{ secrets['NUGET_TOKEN'] }}", "reads a secret")]
+    [InlineData("DOTNET_NOLOGO: 'true'", "DOTNET_NOLOGO: ${{ toJSON(secrets) }}", "reads a secret")]
+    [InlineData("DOTNET_NOLOGO: 'true'", "secrets: inherit", "reads a secret")]
     [InlineData("caddy:2.10.2-alpine", "caddy:2.10.3-alpine", "pulls caddy:2.10.3-alpine, which AppHost.cs does not run")]
     [InlineData("    ghcr.io/navikt/mock-oauth2-server:6.1.2\n", "", "runs ghcr.io/navikt/mock-oauth2-server:6.1.2, which")]
     public void A_broken_rule_in_the_workflow_is_reported(string needle, string replacement, string expected)
