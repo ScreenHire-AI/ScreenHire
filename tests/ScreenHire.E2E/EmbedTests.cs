@@ -53,6 +53,7 @@ public sealed class EmbedTests(E2EFixture fixture) : BrowserTest(fixture)
                 }
             }
         };
+        await ApplySteps.RecordBeaconsAsync(Page);
         await Page.GotoAsync($"{partner}/careers");
 
         // The frame shows the board in the organization's branding, as tall as the page inside it.
@@ -72,6 +73,9 @@ public sealed class EmbedTests(E2EFixture fixture) : BrowserTest(fixture)
             frame, "kai.ward@example.com", javaScript: true,
             $"{scene.CareersUrl}/jobs/{scene.JobSlug}/applied?embed={Uri.EscapeDataString(partner)}", () => Task.CompletedTask);
         Page.Url.Should().Be($"{partner}/careers", "the company's page stayed where it was");
+        // The candidate switched assistive technology on, inside the frame as on the careers site: what was counted is
+        // dropped, and no beacon is ever sent (CLAUDE.md non-negotiable 4).
+        (await ApplySteps.TelemetryBeaconsAsync(frame)).Should().BeEmpty();
         IResponse[] answered;
         lock (careersResponses)
         {

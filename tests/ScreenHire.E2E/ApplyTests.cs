@@ -274,29 +274,9 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
             appliedUrl ?? new Uri(Fixture.GetEndpoint("careers"), $"/{organization.Slug}/jobs/engineer/applied").ToString(),
             ExpectNoAccessibilityViolationsAsync);
 
-    // Records every navigator.sendBeacon call the pages make, in sessionStorage so it survives the steps' navigations.
-    // Playwright's network events miss a beacon sent while its page unloads, so the record is taken where the page sends.
-    private async Task RecordBeaconsAsync() => await Page.AddInitScriptAsync("""
-        (() => {
-          const send = navigator.sendBeacon.bind(navigator);
-          navigator.sendBeacon = (url, body) => {
-            const log = JSON.parse(sessionStorage.getItem('test:beacons') ?? '[]');
-            log.push({ url: String(url), body: String(body) });
-            sessionStorage.setItem('test:beacons', JSON.stringify(log));
-            return send(url, body);
-          };
-        })();
-        """);
+    private Task RecordBeaconsAsync() => ApplySteps.RecordBeaconsAsync(Page);
 
-    // The bodies of the telemetry beacons recorded so far in this tab.
-    private async Task<List<string>> TelemetryBeaconsAsync()
-    {
-        var json = await Page.EvaluateAsync<string>("() => sessionStorage.getItem('test:beacons') ?? '[]'");
-        var log = JsonSerializer.Deserialize<List<BeaconCall>>(json, JsonSerializerOptions.Web)!;
-        return [.. log.Where(call => call.Url.Contains("/telemetry?", StringComparison.Ordinal)).Select(call => call.Body)];
-    }
-
-    private sealed record BeaconCall(string Url, string Body);
+    private Task<List<string>> TelemetryBeaconsAsync() => ApplySteps.TelemetryBeaconsAsync(Page.MainFrame);
 
     // Waits until the organization has at least `count` telemetry snapshots stored.
     private async Task StoredSnapshotsAsync(Guid organizationId, int count)

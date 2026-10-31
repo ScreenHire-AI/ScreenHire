@@ -109,5 +109,22 @@ public sealed class CareersEmbeddingTests(AppHostFixture fixture)
             .Should().BeTrue("the Verification checks see a widget application as they see any careers-page one");
     }
 
+    [Fact]
+    public async Task One_organization_list_never_reaches_another()
+    {
+        using var first = await fixture.SignedInWithOrganizationAsync();
+        using var second = await fixture.SignedInWithOrganizationAsync();
+        (await first.PutAsync("/v1/organization/embedding", Sites("https://www.example.com"))).Expect(HttpStatusCode.OK);
+        var (slug, jobId) = await IntegritySupport.OpenJobAsync(fixture, second);
+
+        (await second.PutAsync("/v1/organization/embedding", Sites("https://jobs.example.org"))).Expect(HttpStatusCode.OK);
+        var applied = await fixture.ApplyAsync(slug, jobId, SyntheticApplicants.GenuineHuman, Ct, embedOrigin: "https://www.example.com");
+
+        Origins((await first.GetAsync("/v1/organization")).Expect(HttpStatusCode.OK).At("embedOrigins"))
+            .Should().Equal(["https://www.example.com"], "the second organization's save changes only its own list");
+        (await second.GetAsync($"/v1/applications/{applied}")).Expect(HttpStatusCode.OK).At("sourceSite").ValueKind
+            .Should().Be(JsonValueKind.Null, "a site listed by another organization is not this one's");
+    }
+
     private static IEnumerable<string> Origins(JsonElement array) => array.EnumerateArray().Select(o => o.GetString()!);
 }

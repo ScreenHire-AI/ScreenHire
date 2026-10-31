@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 
 namespace ScreenHire.E2E;
 
@@ -73,4 +74,31 @@ internal static class ApplySteps
     }
 
     public static ILocator ErrorSummary(IFrame frame) => frame.Locator("#error-summary");
+
+    /// <summary>
+    /// Records every navigator.sendBeacon call the pages make, in every frame, in each frame's sessionStorage so it survives
+    /// the steps' navigations. Playwright's network events miss a beacon sent while its page unloads, so the record is taken
+    /// where the page sends.
+    /// </summary>
+    public static Task RecordBeaconsAsync(IPage page) => page.AddInitScriptAsync("""
+        (() => {
+          const send = navigator.sendBeacon.bind(navigator);
+          navigator.sendBeacon = (url, body) => {
+            const log = JSON.parse(sessionStorage.getItem('test:beacons') ?? '[]');
+            log.push({ url: String(url), body: String(body) });
+            sessionStorage.setItem('test:beacons', JSON.stringify(log));
+            return send(url, body);
+          };
+        })();
+        """);
+
+    /// <summary>The bodies of the telemetry beacons <paramref name="frame"/>'s pages have sent so far.</summary>
+    public static async Task<List<string>> TelemetryBeaconsAsync(IFrame frame)
+    {
+        var json = await frame.EvaluateAsync<string>("() => sessionStorage.getItem('test:beacons') ?? '[]'");
+        var log = JsonSerializer.Deserialize<List<BeaconCall>>(json, JsonSerializerOptions.Web)!;
+        return [.. log.Where(call => call.Url.Contains("/telemetry?", StringComparison.Ordinal)).Select(call => call.Body)];
+    }
+
+    private sealed record BeaconCall(string Url, string Body);
 }
