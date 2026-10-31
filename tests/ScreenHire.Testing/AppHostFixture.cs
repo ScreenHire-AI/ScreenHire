@@ -153,12 +153,17 @@ public class AppHostFixture : IAsyncLifetime
     // console output: one integration run wrote about 58,000 commands, 80 MB through DCP, Aspire's log service and
     // CopyLogAsync, on runners that also host Postgres, the browser and the tests. Commands that fail still log, at
     // Warning and above. `pnpm dev` keeps them, for the Aspire dashboard.
+    // The API's request log goes the other way, on: one line per request with its path, status and time ("Request
+    // finished ... in 31234 ms"), so a test that waits out a slow request names the request in api.log.
     private static void WithoutSqlLogging(IDistributedApplicationTestingBuilder builder)
     {
         foreach (var project in builder.Resources.OfType<ProjectResource>())
         {
             project.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
-                context.EnvironmentVariables["Logging__LogLevel__Microsoft.EntityFrameworkCore.Database.Command"] = "Warning"));
+            {
+                context.EnvironmentVariables["Logging__LogLevel__Microsoft.EntityFrameworkCore.Database.Command"] = "Warning";
+                context.EnvironmentVariables["Logging__LogLevel__Microsoft.AspNetCore.Hosting.Diagnostics"] = "Information";
+            }));
         }
     }
 
