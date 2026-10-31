@@ -62,6 +62,9 @@ public sealed partial class TalentPoolTests(E2EFixture fixture) : BrowserTest(fi
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Invite to apply" }).ClickAsync();
         var invite = Page.GetByRole(AriaRole.Dialog, new() { Name = "Invite Casey Morgan to apply" });
         await invite.GetByLabel("Job").SelectOptionAsync(new SelectOptionValue { Label = scene.Second.Title });
+        // Choosing a job re-renders the email's preview, which moves the sheet's buttons: wait for the chosen job's email
+        // before pressing Send, or the click can land where the button was.
+        await Expect(invite.GetByText($"would like you to apply for {scene.Second.Title}")).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await invite.GetByRole(AriaRole.Button, new() { Name = "Send invitation" }).ClickAsync();
         await Expect(invite).ToBeHiddenAsync();
