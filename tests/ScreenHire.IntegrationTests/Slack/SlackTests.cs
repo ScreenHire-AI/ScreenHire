@@ -152,6 +152,34 @@ public sealed class SlackTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_role_with_manage_integrations_on_only_their_own_jobs_cannot_manage_the_workspace()
+    {
+        // A channel post reaches everyone in the channel, about every job, so managing it needs all jobs (ADR-0015).
+        // Owners and members always see every job; a custom role with the permission may not.
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var roleId = (await owner.PostAsync("/v1/organization/roles", new JsonObject { ["name"] = "Integrations", ["copyFrom"] = "Viewer" }))
+            .Expect(HttpStatusCode.Created).Id();
+        (await owner.PutAsync($"/v1/organization/roles/{roleId}", new JsonObject
+        {
+            ["name"] = "Integrations", ["permissions"] = new JsonArray("ViewHiring", "ManageIntegrations"),
+        })).Expect(HttpStatusCode.OK);
+        using var member = await fixture.InviteAndJoinAsync(owner, "Viewer", jobAccess: "HiringTeamOnly");
+        await owner.GiveRoleAsync(member, roleId);
+
+        (await member.PostAsync("/v1/slack/install")).Expect(HttpStatusCode.Forbidden).Text("title").Should().Be("Needs all jobs");
+        await ConnectAsync(owner);
+        (await member.GetAsync("/v1/slack/channels")).Expect(HttpStatusCode.Forbidden).Text("title").Should().Be("Needs all jobs");
+        (await member.PutAsync("/v1/slack/channel", ChannelBody(Hiring, AllEvents))).Expect(HttpStatusCode.Forbidden);
+        (await member.PostAsync("/v1/slack/test")).Expect(HttpStatusCode.Forbidden);
+        (await member.DeleteAsync("/v1/slack")).Expect(HttpStatusCode.Forbidden);
+
+        var seen = (await member.GetAsync("/v1/slack")).Expect(HttpStatusCode.OK);
+        seen.Text("workspace.teamName").Should().Be("ScreenHire sandbox");
+        seen.At("settings").ValueKind.Should().Be(JsonValueKind.Null);
+        (await owner.GetAsync("/v1/slack")).At("workspace").ValueKind.Should().Be(JsonValueKind.Object, "the refused calls changed nothing");
+    }
+
+    [Fact]
     public async Task The_channel_must_be_one_slack_lists_and_the_app_can_post_to()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
