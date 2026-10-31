@@ -341,16 +341,41 @@ another's.
 xUnit and Microsoft Testing Platform have no shard option, so [`scripts/test-shard.mjs`](../../scripts/test-shard.mjs)
 splits a .NET test project by class:
 - it lists the built project's tests (`dotnet test --list-tests`);
-- it gives each class, whole, to the shard with the fewest tests so far, largest class first;
+- it weighs each class by its measured seconds in [`tests/shard-durations.json`](../../tests/shard-durations.json), or,
+  for a class with no measurement, by its test count times the median seconds per test;
+- it gives each class, whole, to the lightest shard, heaviest class first;
 - it prints one shard's `--filter-class` arguments.
 
 A class stays whole because a class fixture can boot a stack of its own (`DevelopmentDemoFixture`). A shard with no
-class fails rather than run everything. Shards are balanced by test count, not time, as Playwright's are. After a
-build, `node scripts/test-shard.mjs tests/ScreenHire.E2E 2 8` prints what CI's second end-to-end shard runs.
+class fails rather than run everything. After a build, `node scripts/test-shard.mjs tests/ScreenHire.E2E 2 8` prints
+what CI's second end-to-end shard runs.
+
+Every Aspire shard writes xUnit's CTRF report (`TestResults/*.ctrf.json`, uploaded as `durations-<suite>-<shard>` on
+every run) and prints its 15 slowest tests. When the shards drift apart, refresh the measurements from a green run:
+
+```
+gh run download <run-id> -p "durations-*" -D TestResults/durations
+node scripts/test-shard.mjs --record TestResults/durations > tests/shard-durations.json
+```
+
+A stale file still splits correctly, only less evenly, and a new class gets its estimate until the next refresh.
 
 Meziantou.ShardedTest does the same per test, but it has no licence (ADR-0008), and it builds a VSTest `--filter`,
-which `dotnet test` on this platform does not take. Each Aspire shard boots its own AppHost, about a minute, so a shard
-is worth adding while its tests run well past that. Raise a matrix's `shard` list and `shards` value together.
+which `dotnet test` on this platform does not take. Each Aspire shard boots its own AppHost, about 40 s, so a shard is
+worth adding while its tests run well past that. Raise a matrix's `shard` list and `shards` value together.
+
+Three settings make each shard faster without changing what it proves:
+- **Test-only builds** (`TEST_BUILD_FLAGS`): no analyzers, no code-style enforcement and no build-time OpenAPI
+  document, about a third less compile time. `checks` builds with all of them and warnings as errors.
+- **Every test in parallel** (`TEST_PARALLEL_FLAGS`, xUnit's `--parallel all`): tests in one class run side by side.
+  Within one class xUnit otherwise runs tests one after another, so a shard's floor was its slowest whole class. The
+  aggressive scheduler (`--parallel-algorithm aggressive`) gained nothing more and failed five load-sensitive
+  end-to-end tests, so CI keeps the default one. The collections that
+  must run alone say `DisableParallelization`, which `all` honors. Local runs keep xUnit's defaults, because the dev
+  machine runs several gates at once.
+- **No SQL in the test stacks' logs**: `AppHostFixture` sets `Microsoft.EntityFrameworkCore.Database.Command` to
+  Warning for the API and the worker. Logging every command was 80 MB of console output per integration stack; failed
+  commands still log.
 
 Every job runs on `ubuntu-24.04`, pinned, and sets up through
 [`.github/actions/setup`](../../.github/actions/setup/action.yml):
@@ -360,8 +385,9 @@ Every job runs on `ubuntu-24.04`, pinned, and sets up through
 - `dotnet aspire setup`, which lays out the Aspire CLI's bundle (DCP and the dashboard) under `~/.aspire`. The AppHost
   sets `AspireUseCliBundle=true` and reads DCP from there, as on a dev machine;
 - for `vitest`, none of the .NET steps;
-- for `e2e` and `lighthouse`, `pnpm e2e:install`, with Playwright's browsers cached on the `Microsoft.Playwright`
-  version.
+- for `e2e` and `lighthouse`, Playwright's browsers cached on the `Microsoft.Playwright` version. The `e2e` job
+  installs Chromium with `node scripts/install-browsers.mjs --no-build` after its test-only build, `lighthouse` with
+  `pnpm e2e:install`.
 
 The integration and end-to-end jobs pull the AppHost's container images (`APPHOST_IMAGES` in the workflow) before
 the tests, so the pulls do not count against the fixture's 3-minute start. DCP builds its own small container-tunnel
@@ -385,6 +411,22 @@ The first runs found two differences from the Windows dev machine. Both were fix
   The test stack has no dashboard, but Aspire's testing builder still pointed every service's telemetry exporter at
   `localhost:4317`, with retries on, so the worker spent its shutdown retrying exports and the restart test's stop
   timed out. `AppHostFixture` now clears `OTEL_EXPORTER_OTLP_ENDPOINT` in the test stacks, so no exporter is added.
+
+### What each speed-up saved
+
+Measured on the dev machine on 2026-10-31, one configuration at a time with nothing else of this task running, each
+change added to the ones above it. Every run passed every test unless the table says otherwise.
+
+| Change | Integration (622 tests) | End-to-end (111 tests) |
+|---|---|---|
+| Before | 177 s | 100 s |
+| No SQL in the test stacks' logs (`AppHostFixture`) | 158 s | |
+| Analyses and consistency checks ordered per application (messaging.md, "Ordering") | 155 s | 99 s (1 failure, below) |
+| `--parallel all` | 143 s | 88 s |
+| `--parallel all --parallel-algorithm aggressive` | 144 s | 84 s, 5 failures: not used |
+
+So the two suites went from 277 s to 231 s, 17% less, before sharding. On CI the same changes apply to every shard,
+and the test-only build flags take about a third off each shard's compile on top.
 
 ### Reading a failed run
 
@@ -458,6 +500,8 @@ What failed the gate with no change, and the cause that was fixed, so the next f
 | 2026-10-31 | After merging `main` (which brought `AppHostFixture.WaitUntilWorkerListensAsync`) into the reports branch, the realtime and email tests above passed in the full gate, and 3 of 1775 end-to-end tests failed instead: `CandidateNotesTests` and `TalentPoolTests` waited 5 s for the Jobs heading after signing in, and `ScorecardRequestTests` found the "Ask for a scorecard" sheet's Scorecard list still empty. All three, with `ReportsTests`, passed 5 of 5 alone straight after, and the next full gate passed 1775 of 1775. The gate after that failed 1 of 1775: `IntegrityPanelTests` waited 60 s for Alex Reed's authenticity chip to leave No concerns, and passed alone straight after | Not proven. Each failure is a first load that did not finish inside its wait while the integration and end-to-end stacks ran side by side, and none of the three touches Reports. If the sign-in wait recurs on a quiet machine, check how long the dashboard's first `GET /v1/auth/me` takes in the end-to-end stack's API log. |
 | 2026-10-31 | On the verification branch, seven full gate runs failed in different places while other worktrees ran their stacks: 32, then 7, then 3 integration tests waiting on the worker (automations, realtime, the integrity pipeline); one run stopped by Claude Code for low memory with about 5 GB free; one with 4 dashboard Vitest workers exiting at start with Windows' 0xC0000142; and two with 5 and 27 end-to-end tests on a blank page, the first page's heading missing within 5 s while the API logged 2,000 to 3,800 lines a second as every end-to-end test signed in at once beside the integration suite. Every failing test passed alone straight after, and the next gate, with no other stacks on the machine, passed 1894 of 1894 | Not proven beyond load. The realtime trio stopped failing once `main`'s `WaitUntilWorkerListensAsync` was merged. The end-to-end failures all fell in the first 30 s of the project's run, so if they recur on a quiet machine, check whether the fixture should let the API settle before the first sign-ins, and keep `TestResults/logs` first |
 | 2026-10-31 | On the verification rename branch, one full gate run failed 1 of 2003: `DistributionTests.The_indexing_dispatcher_sends_queued_notifications_and_google_never_reaches_closed` waited 60 s for the Google posting to reach Submitted. The test publishes the dispatch message itself, so the worker's once-a-minute cron is not what it waits on. The whole `DistributionTests` class passed alone straight after (10 of 10), and the gate run before the code review commits passed 2001 of 2001. Other worktrees' stacks were running beside it | Not proven beyond load on the worker's queue, like the rows above. Nothing in the rename touches distribution. If it recurs on a quiet machine, read the worker's log for the `SyncJobPosting` command of that job before changing the 60 s wait |
+
+| 2026-10-31 | 1 of 111 failed in a local end-to-end benchmark run: `ApplyTests.Candidate_applies_with_JavaScript_turned_off` timed out after 30 s on the navigation that submits the form without JavaScript (`ApplyTests.cs`, the `ApplyAsync` step). The same code passed it in the next two full end-to-end runs | Not proven. It is the careers-server symptom of the 2026-10-22 row: a navigation to the Node server that never answers. The run's resource logs were overwritten by the runs after it. If it recurs, keep `TestResults/logs` and check whether the careers process was alive and whether the API saw the submission |
 
 ## Gate time
 

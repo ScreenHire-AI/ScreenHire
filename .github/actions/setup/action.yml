@@ -1,7 +1,7 @@
 name: Set up the toolchain
 description: >-
   pnpm, Node, the .NET SDK, the workspace's packages, the repo-local .NET tools and the Aspire CLI bundle (DCP and
-  the dashboard), with the pnpm store and NuGet packages cached. With playwright set, also Playwright's Chromium.
+  the dashboard), with the pnpm store and NuGet packages cached. With playwright set, also the cache of Playwright's Chromium.
   Every job in ci.yml uses it after its checkout, so the jobs set up the same way a dev machine does.
 
 inputs:
@@ -9,7 +9,7 @@ inputs:
     description: Set up .NET, the repo-local tools and the Aspire bundle ('true' or 'false'). Vitest-only jobs skip it.
     default: 'true'
   playwright:
-    description: Install the Chromium the end-to-end tests and Lighthouse drive ('true' or 'false').
+    description: Restore the cached Chromium the end-to-end tests and Lighthouse drive ('true' or 'false'); the job installs it.
     default: 'false'
 
 runs:
@@ -80,10 +80,3 @@ runs:
       with:
         path: ~/.cache/ms-playwright
         key: ${{ runner.os }}-playwright-${{ steps.playwright.outputs.version }}
-
-    # pnpm e2e:install builds tests/ScreenHire.E2E and runs the Playwright driver bundled with the NuGet package, as on
-    # a dev machine. No install-deps: the ubuntu-24.04 image already has Chromium's system libraries.
-    - name: Install Playwright's Chromium
-      if: ${{ inputs.playwright == 'true' }}
-      shell: bash
-      run: pnpm e2e:install

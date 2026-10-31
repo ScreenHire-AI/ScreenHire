@@ -116,6 +116,7 @@ public class AppHostFixture : IAsyncLifetime
             ],
             startup.Token);
         WithoutTelemetryExport(builder);
+        WithoutSqlLogging(builder);
         Configure(builder);
         app = await builder.BuildAsync(startup.Token);
         watcher = WatchResourcesAsync(app, watching.Token);
@@ -145,6 +146,19 @@ public class AppHostFixture : IAsyncLifetime
         {
             resource.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
                 context.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = ""));
+        }
+    }
+
+    // EF Core logs every SQL command it runs at Information. In a test stack that is most of the API's and the worker's
+    // console output: one integration run wrote about 58,000 commands, 80 MB through DCP, Aspire's log service and
+    // CopyLogAsync, on runners that also host Postgres, the browser and the tests. Commands that fail still log, at
+    // Warning and above. `pnpm dev` keeps them, for the Aspire dashboard.
+    private static void WithoutSqlLogging(IDistributedApplicationTestingBuilder builder)
+    {
+        foreach (var project in builder.Resources.OfType<ProjectResource>())
+        {
+            project.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
+                context.EnvironmentVariables["Logging__LogLevel__Microsoft.EntityFrameworkCore.Database.Command"] = "Warning"));
         }
     }
 

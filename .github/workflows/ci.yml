@@ -47,6 +47,18 @@ env:
     axllent/mailpit:v1.31.2
     ghcr.io/navikt/mock-oauth2-server:6.1.2
     caddy:2.10.2-alpine
+  # How the test shards build: no analyzers, no code-style enforcement and no build-time OpenAPI document, about a
+  # third less compile time. The checks job builds with all of them and warnings as errors, so nothing goes unchecked,
+  # and the API's runtime OpenAPI document is unchanged (its XML-comment generator is a source generator, not an
+  # analyzer).
+  TEST_BUILD_FLAGS: -p:RunAnalyzers=false -p:EnforceCodeStyleInBuild=false -p:OpenApiGenerateDocuments=false
+  # How the Aspire shards run their tests: every test in parallel, its class included (xUnit's `all` mode), with xUnit's
+  # default scheduler. Measured on the dev machine (docs/process/testing.md, "Time"), `all` took the integration suite
+  # from 155 to 143 s and the end-to-end suite from 99 to 88 s with every test passing; the aggressive scheduler gained
+  # nothing more and failed five load-sensitive end-to-end tests. The tests already isolate their data by organization;
+  # the collections that must run alone (WorkerLifecycle, DevelopmentDemoRun) say DisableParallelization, which `all`
+  # honors. Local runs keep xUnit's defaults, because the dev machine runs several gates at once.
+  TEST_PARALLEL_FLAGS: --parallel all
 
 jobs:
   # Build with warnings as errors, the API contract, type checks, the frontend builds, the small Vitest suites and the
@@ -146,7 +158,7 @@ jobs:
       - name: Pull the AppHost's container images
         run: printf '%s\n' $APPHOST_IMAGES | xargs -P 5 -n 1 docker pull -q
       - name: Build the integration tests
-        run: dotnet build tests/ScreenHire.IntegrationTests
+        run: dotnet build tests/ScreenHire.IntegrationTests $TEST_BUILD_FLAGS
       - name: Integration tests (shard ${{ matrix.shard }}/${{ matrix.shards }})
         env:
           SHARD: ${{ matrix.shard }}
@@ -154,7 +166,7 @@ jobs:
         run: |
           node scripts/test-shard.mjs tests/ScreenHire.IntegrationTests "$SHARD" "$SHARDS" > "$RUNNER_TEMP/shard.args"
           mapfile -t filters < "$RUNNER_TEMP/shard.args"
-          dotnet test --project tests/ScreenHire.IntegrationTests --no-build "${filters[@]}" \
+          dotnet test --project tests/ScreenHire.IntegrationTests --no-build "${filters[@]}" $TEST_PARALLEL_FLAGS \
             --show-slowest-tests 15 --report-xunit-ctrf --report-xunit-ctrf-filename "integration-$SHARD.ctrf.json"
       # Every shard's test durations (CTRF), kept even when it passes: they show where the time goes, and
       # scripts/test-shard.mjs balances the shards on them.
@@ -199,7 +211,11 @@ jobs:
       - name: Frontend builds (pnpm -r build)
         run: pnpm -r build
       - name: Build the end-to-end tests
-        run: dotnet build tests/ScreenHire.E2E
+        run: dotnet build tests/ScreenHire.E2E $TEST_BUILD_FLAGS
+      # The Chromium revision the built Microsoft.Playwright driver wants, from the cache when it holds it. No
+      # install-deps: the ubuntu-24.04 image already has Chromium's system libraries.
+      - name: Install Playwright's Chromium
+        run: node scripts/install-browsers.mjs --no-build
       - name: End-to-end tests (shard ${{ matrix.shard }}/${{ matrix.shards }})
         env:
           SHARD: ${{ matrix.shard }}
@@ -207,7 +223,7 @@ jobs:
         run: |
           node scripts/test-shard.mjs tests/ScreenHire.E2E "$SHARD" "$SHARDS" > "$RUNNER_TEMP/shard.args"
           mapfile -t filters < "$RUNNER_TEMP/shard.args"
-          dotnet test --project tests/ScreenHire.E2E --no-build "${filters[@]}" \
+          dotnet test --project tests/ScreenHire.E2E --no-build "${filters[@]}" $TEST_PARALLEL_FLAGS \
             --show-slowest-tests 15 --report-xunit-ctrf --report-xunit-ctrf-filename "e2e-$SHARD.ctrf.json"
       - name: Upload test durations
         if: ${{ !cancelled() }}
@@ -262,6 +278,9 @@ jobs:
         uses: ./.github/actions/setup
         with:
           playwright: 'true'
+      - name: Install Playwright's Chromium
+        if: ${{ steps.changes.outputs.marketing == 'true' }}
+        run: pnpm e2e:install
       - name: Build the marketing site
         if: ${{ steps.changes.outputs.marketing == 'true' }}
         run: pnpm --filter @screenhire/marketing build

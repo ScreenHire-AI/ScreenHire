@@ -57,6 +57,28 @@ public sealed class TestShardTests : IDisposable
     }
 
     [Fact]
+    public void Measured_seconds_outweigh_test_counts()
+    {
+        // ShellTests has 1 test but 300 s measured, so it is the heaviest and gets shard 1 alone. JobsTests (20 s for 4
+        // tests, 5 s each) and TeamTests (4 s for 2 tests) are measured; WorkerTests is not, so it weighs its 2 tests
+        // times the median measured seconds per test (5, 2 and 300 per test: 5), 10 s.
+        var durations = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllText(durations, """
+                { "Sample.Tests.ShellTests": 300, "Sample.Tests.JobsTests": 20, "Sample.Tests.TeamTests": 4 }
+                """);
+
+            Classes(Run(1, 2, durations)).Should().Equal("Sample.Tests.ShellTests");
+            Classes(Run(2, 2, durations)).Should().Equal("Sample.Tests.JobsTests", "Sample.Tests.Messaging.WorkerTests", "Sample.Tests.TeamTests");
+        }
+        finally
+        {
+            File.Delete(durations);
+        }
+    }
+
+    [Fact]
     public void A_shard_with_no_class_fails_instead_of_running_everything()
     {
         var (exitCode, output, error) = Start(5, 5);
@@ -66,9 +88,9 @@ public sealed class TestShardTests : IDisposable
         error.Should().Contain("Shard 5/5 has no test class");
     }
 
-    private string Run(int shard, int shards)
+    private string Run(int shard, int shards, string? durations = null)
     {
-        var (exitCode, output, error) = Start(shard, shards);
+        var (exitCode, output, error) = Start(shard, shards, durations);
         exitCode.Should().Be(0, error);
         return output;
     }
@@ -81,10 +103,11 @@ public sealed class TestShardTests : IDisposable
         return [.. lines.Where((_, index) => index % 2 == 1)];
     }
 
-    private (int ExitCode, string Output, string Error) Start(int shard, int shards)
+    private (int ExitCode, string Output, string Error) Start(int shard, int shards, string? durations = null)
     {
+        string[] weights = durations is null ? [] : ["--durations", durations];
         var start = new ProcessStartInfo("node",
-            [RepositoryFiles.PathTo("scripts", "test-shard.mjs"), "--list", listFile, $"{shard}", $"{shards}"])
+            [RepositoryFiles.PathTo("scripts", "test-shard.mjs"), "--list", listFile, .. weights, $"{shard}", $"{shards}"])
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,
