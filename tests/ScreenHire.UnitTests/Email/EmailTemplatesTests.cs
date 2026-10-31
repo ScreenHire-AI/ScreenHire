@@ -194,6 +194,29 @@ public sealed class EmailTemplatesTests
             .Should().ContainSingle().Which.Message.Should().Be("A link's address cannot hold a variable.");
     }
 
+    // An address in the text becomes a link as it sends, so a variable inside one would carry the candidate's details off
+    // to another site just as an href would.
+    [Theory]
+    [InlineData("<p>See https://example.com/?name={{ firstName }}</p>")]
+    [InlineData("<p>See https://example.com/{{firstName}}/profile</p>")]
+    public void An_address_in_the_text_cannot_hold_a_variable_either(string body)
+    {
+        Templates.Validate(null, new("Hi", body))
+            .Should().ContainSingle().Which.Message.Should().Be("A link's address cannot hold a variable.");
+    }
+
+    [Fact]
+    public void An_address_a_candidate_typed_stays_text()
+    {
+        var email = Templates.Render(
+            new EmailTemplateContent("Hi", "<p>Hi {{ candidateName }}, read https://example.com/faq</p>"),
+            "sam@example.com",
+            Sam with { CandidateName = "https://phish.example.org/login" });
+
+        email.HtmlBody.Should().Contain("<p>Hi https://phish.example.org/login, read <a href=\"https://example.com/faq\"")
+            .And.NotContain("href=\"https://phish.example.org");
+    }
+
     [Fact]
     public void Every_built_in_template_is_already_sanitized()
     {

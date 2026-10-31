@@ -134,4 +134,29 @@ public sealed class RichTextTests
             "Next steps\n\nHi Jordan,\nthanks.\n\n- One\n- Two\n\n1. First\n2. Second\n\n"
             + "Read our FAQ (https://example.com/faq) or https://example.com/q, https://example.com/q and a@example.com.");
     }
+
+    // A request may carry tens of thousands of characters. Markup nested as deep as that allows must still sanitize, not
+    // overflow the stack and take the API down with it.
+    [Fact]
+    public void Markup_nested_as_deep_as_a_request_allows_still_sanitizes()
+    {
+        var deep = string.Concat(Enumerable.Repeat("<em>", 12_000)) + "x &lt; y";
+
+        RichText.Sanitize(deep).Should().Be("<p>x &lt; y</p>");
+        RichText.IsBlank(deep).Should().BeFalse();
+        RichText.IsBlank(string.Concat(Enumerable.Repeat("<em>", 12_000)) + "&nbsp;").Should().BeTrue();
+    }
+
+    // History's regex-only converter in Domain and the email's text part read the same stored HTML, so a change shows in
+    // History as the candidate reads it (docs/architecture/rich-text.md).
+    [Theory]
+    [InlineData("<h2>Next steps</h2><p>Hi Jordan,<br>thanks.</p><ul><li>One</li><li>Two</li></ul><ol><li>First</li><li>Second</li></ol>")]
+    [InlineData("<p>Read <a href=\"https://example.com/faq\" rel=\"nofollow noopener noreferrer\">our FAQ</a> or <a href=\"https://example.com/q\" rel=\"nofollow noopener noreferrer\">https://example.com/q</a>.</p>")]
+    [InlineData("<p>Tom &amp; Jerry &lt;3 <strong>bold</strong> and <em>italic</em></p><h3>Perks</h3><p>{{ firstName }}</p>")]
+    public void History_reads_the_html_as_the_text_part_does(string html)
+    {
+        var canonical = RichText.Sanitize(html);
+
+        ScreenHire.Domain.History.RichTextToPlain.Convert(canonical).Should().Be(RichText.ToPlainText(canonical));
+    }
 }
