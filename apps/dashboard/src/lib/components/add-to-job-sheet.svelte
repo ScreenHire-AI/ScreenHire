@@ -86,7 +86,7 @@
     </Sheet.Header>
     <form novalidate class="flex flex-col gap-4 px-4 pb-4" {onsubmit}>
       {#if targets.length === 0}
-        <p class="text-muted-foreground">Every job is closed. Create one first.</p>
+        <p class="text-muted-foreground">Every job is closed. Create one from <a href="/" class="inline-flex min-h-6 items-center underline underline-offset-2 pointer-coarse:min-h-11">Jobs</a> first.</p>
       {:else}
         <Field.Field>
           <Field.Label for="add-job">Job</Field.Label>

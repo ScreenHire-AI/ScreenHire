@@ -9,7 +9,7 @@
   import { can } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { applicationsPath, candidatesPath, jobsPath, talentPoolPath } from '#lib/realtime.js';
-  import { canKeepInMind } from '#lib/talent-pool.js';
+  import { canKeepInMind, keepBatchSize } from '#lib/talent-pool.js';
   import { cn } from '#lib/utils.js';
 
   // Confirms "Close & remove everywhere", the destructive menu item on the jobs list and the job page (design system A2).
@@ -46,8 +46,11 @@
     if (!jobId) return;
     failure = '';
     try {
-      if (alsoKeep && keepable.length > 0) {
-        await keep.mutateAsync({ data: { applicationIds: keepable.map((application) => application.id) } });
+      // In batches, so a job with more candidates than one request takes still closes. A batch that fails stops the
+      // close; the ones kept stay kept, and closing again keeps the rest.
+      const ids = alsoKeep ? keepable.map((application) => application.id) : [];
+      for (let start = 0; start < ids.length; start += keepBatchSize) {
+        await keep.mutateAsync({ data: { applicationIds: ids.slice(start, start + keepBatchSize) } });
       }
       await close.mutateAsync({ jobId });
       open = false;

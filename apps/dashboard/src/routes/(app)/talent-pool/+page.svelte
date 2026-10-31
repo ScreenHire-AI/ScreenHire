@@ -100,6 +100,32 @@
     getRowId: (person) => person.candidateId,
   });
   const sorted = $derived(table.getRowModel().rows.map((row) => row.original));
+
+  // A table wider than its panel (a tablet) scrolls sideways inside it, and the checkbox and name columns stay put (design
+  // system section 8), as on the template list. A stuck cell holds the name's row-covering link, so while the table
+  // overflows the link covers the name cell only; while it fits, the whole row is the link (section 9).
+  let tableElement = $state<HTMLTableElement | null>(null);
+  let overflowing = $state(false);
+  let scrolledSideways = $state(false);
+  $effect(() => {
+    const scroller = tableElement?.parentElement;
+    if (!tableElement || !scroller) return;
+    const element = tableElement;
+    const measure = () => (overflowing = element.offsetWidth > scroller.clientWidth + 1);
+    const onscroll = () => (scrolledSideways = scroller.scrollLeft > 0);
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    observer.observe(scroller);
+    measure();
+    scroller.addEventListener('scroll', onscroll);
+    return () => {
+      observer.disconnect();
+      scroller.removeEventListener('scroll', onscroll);
+    };
+  });
+  const selectColumn = 'w-10 min-w-10 px-2 pointer-coarse:w-15 pointer-coarse:min-w-15';
+  const stuckSelect = $derived(overflowing ? 'sticky left-0 z-10' : 'relative z-10');
+  const stuckName = $derived(overflowing ? ['sticky left-10 z-[1] pointer-coarse:left-15', scrolledSideways && 'after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border'] : '');
   const href = (person: TalentPoolMember) => `/applications/${person.applicationId}`;
 
   // A selection, for inviting or adding several at once. Only the rows on screen count.
@@ -204,7 +230,11 @@
         <div class="flex justify-end border-b border-border-subtle px-4 py-2"><SortMenu {table} /></div>
         <ul>
           {#each sorted as person (person.candidateId)}
+            <!-- The row's menu is the phone's only way to invite, add or remove: the record page has none of them. -->
             <ListItem href={href(person)} title={person.candidateName}>
+              {#snippet actions()}
+                {#if mayInvite || mayAdd || mayRemove}{@render personMenu(person)}{/if}
+              {/snippet}
               {#snippet facts()}
                 <Badge variant="muted">{person.jobTitle}</Badge>
                 {#each person.tags as tag (tag)}<Badge variant="muted">{tag}</Badge>{/each}
@@ -215,16 +245,16 @@
         </ul>
       {:else}
         <div class="overflow-x-auto">
-          <Table.Root aria-label="Talent pool">
+          <Table.Root aria-label="Talent pool" bind:ref={tableElement}>
             <Table.Header>
               {#each table.getHeaderGroups() as group (group.id)}
                 <Table.Row class="bg-muted hover:bg-muted">
-                  <Table.Head class="w-10 px-2">
+                  <Table.Head class={[selectColumn, overflowing && 'sticky left-0 z-[1] bg-muted']}>
                     <label class="inline-grid size-6 cursor-pointer place-items-center pointer-coarse:size-11">
                       <input type="checkbox" class="size-4 accent-primary" aria-label="Select everyone shown" checked={allSelected} onchange={toggleAll} />
                     </label>
                   </Table.Head>
-                  {#each group.headers as header (header.id)}<SortHeader {header} />{/each}
+                  {#each group.headers as header (header.id)}<SortHeader {header} class={header.id === 'candidate' && overflowing ? [stuckName, 'bg-muted'] : undefined} />{/each}
                   <Table.Head class="w-12 pr-4.5"><span class="sr-only">Actions</span></Table.Head>
                 </Table.Row>
               {/each}
@@ -232,8 +262,9 @@
             <Table.Body>
               {#each sorted as person (person.candidateId)}
                 <!-- The whole row is the link to the application they were kept from (design system section 9). -->
-                <Table.Row class="relative h-12">
-                  <Table.Cell class="relative z-10 w-10 px-2">
+                <!-- A stuck cell covers what scrolls under it, so it carries the row's hover tint itself. -->
+                <Table.Row class="group relative h-12 hover:bg-muted">
+                  <Table.Cell class={[selectColumn, stuckSelect, overflowing && 'bg-card group-hover:bg-muted']}>
                     <label class="inline-grid size-6 cursor-pointer place-items-center pointer-coarse:size-11">
                       <input
                         type="checkbox"
@@ -244,7 +275,7 @@
                       />
                     </label>
                   </Table.Cell>
-                  <Table.Cell class="max-w-56">
+                  <Table.Cell class={['max-w-56', stuckName, overflowing && 'bg-card group-hover:bg-muted']}>
                     <span class="flex min-w-0">
                       <TruncatedText text={person.candidateName} href={href(person)} class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline" />
                     </span>
@@ -253,7 +284,10 @@
                     <span class="flex min-w-0"><TruncatedText text={person.note ?? ''} /></span>
                     {#if !person.note}<span class="sr-only">No note</span>{/if}
                   </Table.Cell>
-                  <Table.Cell class="max-w-40"><span class="flex min-w-0"><TruncatedText text={person.tags.join(', ')} /></span></Table.Cell>
+                  <Table.Cell class="max-w-40">
+                    <span class="flex min-w-0"><TruncatedText text={person.tags.join(', ')} /></span>
+                    {#if person.tags.length === 0}<span class="sr-only">No tags</span>{/if}
+                  </Table.Cell>
                   <Table.Cell class="max-w-48"><span class="flex min-w-0"><TruncatedText text={person.jobTitle} /></span></Table.Cell>
                   <Table.Cell class="whitespace-nowrap text-muted-foreground"><span class="relative"><DateText at={person.keptAt} /></span></Table.Cell>
                   <Table.Cell class="whitespace-nowrap"><span class="relative"><DateText at={person.permissionEndsAt} /></span></Table.Cell>

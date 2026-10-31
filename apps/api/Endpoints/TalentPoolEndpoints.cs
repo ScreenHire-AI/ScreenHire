@@ -218,18 +218,31 @@ internal static class TalentPoolEndpoints
     }
 
     // The invitation as the candidate would receive it, in the organization's wording now, with the job's real link. The
-    // link to stop being kept is made only when the worker sends it, so the preview shows what the team's copy says.
+    // link to stop being kept is made only when the worker sends it, so the preview shows what the team's copy says. Only
+    // for someone this member sees in the pool with a permission that holds, as the invitation itself: the entry's job
+    // scope keeps the preview from showing the address of a candidate from a job they don't see.
     private static async Task<Results<Ok<EmailPreview>, NotFound>> PreviewInvitation(
         InvitationPreviewRequest request,
         ScreenHireDbContext db,
         EmailTemplates renderer,
         EmailTemplateStore store,
         IOptions<DomainOptions> domains,
+        TimeProvider time,
         CancellationToken cancellationToken)
     {
-        var candidate = await db.Candidates.AsNoTracking().SingleOrDefaultAsync(c => c.Id == request.CandidateId, cancellationToken);
+        var months = await TalentPoolMembership.MonthsAsync(db, cancellationToken);
+        var keptFrom = await db.TalentPoolEntries.AsNoTracking()
+            .Where(e => e.CandidateId == request.CandidateId)
+            .Join(db.Applications, e => e.ApplicationId, a => a.Id, (e, a) => a)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (keptFrom is null || !keptFrom.AllowsFutureRoles(months, time.GetUtcNow()))
+        {
+            return TypedResults.NotFound();
+        }
+
+        var candidate = await db.Candidates.AsNoTracking().SingleAsync(c => c.Id == request.CandidateId, cancellationToken);
         var job = await db.Jobs.AsNoTracking().SingleOrDefaultAsync(j => j.Id == request.JobId, cancellationToken);
-        if (candidate is null || job is null)
+        if (job is null)
         {
             return TypedResults.NotFound();
         }
@@ -319,11 +332,15 @@ internal static class TalentPoolEndpoints
 
         var now = time.GetUtcNow();
         var (members, skipped) = await MembersAsync(db, request.CandidateIds, job.Id, now, cancellationToken);
+        var keptFromIds = members.Select(m => m.ApplicationId).ToList();
+        var keptFromById = await db.Applications.AsNoTracking().Where(a => keptFromIds.Contains(a.Id)).ToDictionaryAsync(a => a.Id, cancellationToken);
+        var memberCandidateIds = members.Select(m => m.CandidateId).ToList();
+        var candidates = await db.Candidates.AsNoTracking().Where(c => memberCandidateIds.Contains(c.Id)).ToDictionaryAsync(c => c.Id, cancellationToken);
         var added = new List<Guid>();
         foreach (var member in members)
         {
-            var keptFrom = await db.Applications.AsNoTracking().SingleAsync(a => a.Id == member.ApplicationId, cancellationToken);
-            var candidate = await db.Candidates.AsNoTracking().SingleAsync(c => c.Id == member.CandidateId, cancellationToken);
+            var keptFrom = keptFromById[member.ApplicationId];
+            var candidate = candidates[member.CandidateId];
             var submitted = await ApplicationSubmission.SubmitAsync(
                 outbox, job, new ApplicationSubmission.CandidateDetails(candidate.FirstName, candidate.LastName, candidate.Email, candidate.Phone),
                 new ApplicationDeclarations(false, AiUseDeclaration.NotProvided, null),

@@ -98,7 +98,7 @@
     </Sheet.Header>
     <form novalidate class="flex flex-col gap-4 px-4 pb-4" {onsubmit}>
       {#if openJobs.length === 0}
-        <p class="text-muted-foreground">No job is open. Post one first, then invite people to it.</p>
+        <p class="text-muted-foreground">No job is open. Post one from <a href="/" class="inline-flex min-h-6 items-center underline underline-offset-2 pointer-coarse:min-h-11">Jobs</a>, then invite people to it.</p>
       {:else}
         <Field.Field>
           <Field.Label for="invite-job">Job</Field.Label>

@@ -7,6 +7,9 @@ import { isTerminal } from '#lib/workflow.js';
  * `keptInMindAt` as well as the stage's kind, through these helpers.
  */
 
+/** The most applications one keep request takes (KeepInMindRequestValidator.MaxApplications in the API). */
+export const keepBatchSize = 200;
+
 /** What a kept application shows where its stage would: it has left the job. */
 export const keptInMindLabel = 'Kept in mind';
 

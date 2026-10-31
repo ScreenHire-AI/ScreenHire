@@ -138,7 +138,7 @@
               <span class="text-muted-foreground">months</span>
             </div>
             <Field.Description id="permission-months-hint">
-              From when a candidate ticks "Keep my details for future roles", {min} to {max} months. Then they leave the pool.
+              {min} to {max} months from when the candidate allowed it.
             </Field.Description>
             <Field.Error id="permission-months-error" errors={$errors.permissionMonths?.map((message) => ({ message }))} />
           </Field.Field>
