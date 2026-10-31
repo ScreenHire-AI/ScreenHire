@@ -53,6 +53,7 @@ import type {
   EmailTemplateEntry,
   EmailTemplateList,
   EmailsQueued,
+  GetApiKeysHistoryParams,
   GetEmailTemplateHistoryParams,
   GetHiringTemplateHistoryParams,
   GetJobHistoryParams,
@@ -62,6 +63,7 @@ import type {
   GetOrganizationTalentPoolSettingsHistoryParams,
   GetRoleHistoryParams,
   GetScorecardTemplateHistoryParams,
+  GetTeamHistoryParams,
   HiringTeamMember,
   HiringTeamRequest,
   HiringTemplateDetail,
@@ -85,6 +87,7 @@ import type {
   JobVersionSummary,
   KeepInMindRequest,
   KeptInMind,
+  LastUpdate,
   ListJobBoardJobsParams,
   ListTasksParams,
   ListWebhookDeliveriesParams,
@@ -5714,6 +5717,118 @@ export const listMembershipLog = async ( options?: Parameters<typeof apiFetch>[1
 
 
 
+export type getTeamHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getTeamHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getTeamHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getTeamHistoryResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getTeamHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getTeamHistoryResponseSuccess = (getTeamHistoryResponse200) & {
+  headers: Headers;
+};
+export type getTeamHistoryResponseError = (getTeamHistoryResponse400 | getTeamHistoryResponse401 | getTeamHistoryResponse403 | getTeamHistoryResponse404) & {
+  headers: Headers;
+};
+
+export type getTeamHistoryResponse = (getTeamHistoryResponseSuccess | getTeamHistoryResponseError)
+
+export const getGetTeamHistoryUrl = (params?: GetTeamHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/team/history?${stringifiedParams}` : `/v1/organization/team/history`
+}
+
+export const getTeamHistory = async (params?: GetTeamHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getTeamHistoryResponse> => {
+
+  return apiFetch<getTeamHistoryResponse>(getGetTeamHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getTeamLastUpdateResponse200 = {
+  data: LastUpdate
+  status: 200
+}
+
+export type getTeamLastUpdateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getTeamLastUpdateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getTeamLastUpdateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getTeamLastUpdateResponseSuccess = (getTeamLastUpdateResponse200) & {
+  headers: Headers;
+};
+export type getTeamLastUpdateResponseError = (getTeamLastUpdateResponse401 | getTeamLastUpdateResponse403 | getTeamLastUpdateResponse404) & {
+  headers: Headers;
+};
+
+export type getTeamLastUpdateResponse = (getTeamLastUpdateResponseSuccess | getTeamLastUpdateResponseError)
+
+export const getGetTeamLastUpdateUrl = () => {
+
+
+
+
+  return `/v1/organization/team/last-update`
+}
+
+export const getTeamLastUpdate = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getTeamLastUpdateResponse> => {
+
+  return apiFetch<getTeamLastUpdateResponse>(getGetTeamLastUpdateUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
 export type changeMemberRoleResponse200 = {
   data: TeamMember
   status: 200
@@ -6631,6 +6746,118 @@ return apiFetch<createApiKeyResponse>(getCreateApiKeyUrl(),
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(createApiKeyRequest)
+  }
+);}
+
+
+
+export type getApiKeysHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getApiKeysHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getApiKeysHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getApiKeysHistoryResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getApiKeysHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getApiKeysHistoryResponseSuccess = (getApiKeysHistoryResponse200) & {
+  headers: Headers;
+};
+export type getApiKeysHistoryResponseError = (getApiKeysHistoryResponse400 | getApiKeysHistoryResponse401 | getApiKeysHistoryResponse403 | getApiKeysHistoryResponse404) & {
+  headers: Headers;
+};
+
+export type getApiKeysHistoryResponse = (getApiKeysHistoryResponseSuccess | getApiKeysHistoryResponseError)
+
+export const getGetApiKeysHistoryUrl = (params?: GetApiKeysHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/api-keys/history?${stringifiedParams}` : `/v1/organization/api-keys/history`
+}
+
+export const getApiKeysHistory = async (params?: GetApiKeysHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getApiKeysHistoryResponse> => {
+
+  return apiFetch<getApiKeysHistoryResponse>(getGetApiKeysHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getApiKeysLastUpdateResponse200 = {
+  data: LastUpdate
+  status: 200
+}
+
+export type getApiKeysLastUpdateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getApiKeysLastUpdateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getApiKeysLastUpdateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getApiKeysLastUpdateResponseSuccess = (getApiKeysLastUpdateResponse200) & {
+  headers: Headers;
+};
+export type getApiKeysLastUpdateResponseError = (getApiKeysLastUpdateResponse401 | getApiKeysLastUpdateResponse403 | getApiKeysLastUpdateResponse404) & {
+  headers: Headers;
+};
+
+export type getApiKeysLastUpdateResponse = (getApiKeysLastUpdateResponseSuccess | getApiKeysLastUpdateResponseError)
+
+export const getGetApiKeysLastUpdateUrl = () => {
+
+
+
+
+  return `/v1/organization/api-keys/last-update`
+}
+
+export const getApiKeysLastUpdate = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getApiKeysLastUpdateResponse> => {
+
+  return apiFetch<getApiKeysLastUpdateResponse>(getGetApiKeysLastUpdateUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
   }
 );}
 

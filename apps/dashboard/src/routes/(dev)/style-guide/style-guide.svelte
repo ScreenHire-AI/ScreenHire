@@ -893,7 +893,16 @@
               <Fact label="Last updated">
                 <LastUpdated value={{ at: null, by: 'ScreenHire' }} members={sampleTeam} currentUserId="u1" />
               </Fact>
+              <Fact label="Created">
+                <LastUpdated value={{ at: ago(2 * 60 * minute), by: 'Member', userId: 'u2', created: true }} members={sampleTeam} currentUserId="u1" />
+              </Fact>
             </dl>
+          </figure>
+          <figure class="mt-4 flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">On a settings page's title row, where no label shows, it starts with its verb</figcaption>
+            <p class="text-muted-foreground">
+              <LastUpdated value={{ at: ago(2 * 60 * minute), by: 'Member', userId: 'u2', created: true }} lead members={sampleTeam} currentUserId="u1" />
+            </p>
           </figure>
           <HistorySheet
             bind:open={historyOpen}
