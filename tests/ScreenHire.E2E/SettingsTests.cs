@@ -208,9 +208,11 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GetByLabel("Favicon", new() { Exact = true }).SetInputFilesAsync(new FilePayload { Name = "icon.png", MimeType = "image/png", Buffer = TestPng.Solid(64, 64) });
         await Page.GetByLabel("Sharing image", new() { Exact = true })
             .SetInputFilesAsync(new FilePayload { Name = "share.png", MimeType = "image/png", Buffer = TestPng.Solid(1200, 630) });
-        await Expect(Page.GetByText("400 by 100 pixels")).ToBeVisibleAsync();
-        await Expect(Page.GetByText("1200 by 630 pixels")).ToBeVisibleAsync();
-        await Expect(Page.GetByText("64 by 64 pixels")).ToBeVisibleAsync();
+        // Each shows its size once the worker has scanned it, a step the worker's queue answers.
+        var scanned = new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 };
+        await Expect(Page.GetByText("400 by 100 pixels")).ToBeVisibleAsync(scanned);
+        await Expect(Page.GetByText("1200 by 630 pixels")).ToBeVisibleAsync(scanned);
+        await Expect(Page.GetByText("64 by 64 pixels")).ToBeVisibleAsync(scanned);
         var save = Page.GetByRole(AriaRole.Button, new() { Name = "Save branding" });
         await Expect(save).ToBeEnabledAsync();
         await save.ClickAsync();
