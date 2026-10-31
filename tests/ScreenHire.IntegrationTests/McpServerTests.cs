@@ -110,7 +110,7 @@ public sealed class McpServerTests(AppHostFixture fixture)
         }
 
         var timeline = (await owner.GetAsync($"/v1/applications/{application}/timeline")).Expect(HttpStatusCode.OK);
-        timeline.Body.EnumerateArray().Select(e => e.GetProperty("type").GetString()).Should().Equal("Submitted");
+        ShouldHoldNothingTheAssistantDid(timeline);
         (await owner.GetAsync($"/v1/applications/{application}")).Text("stage.id").Should().Be("applied");
     }
 
@@ -140,7 +140,7 @@ public sealed class McpServerTests(AppHostFixture fixture)
             .Should().Contain("No application");
 
         var timeline = (await theirs.GetAsync($"/v1/applications/{theirApplication}/timeline")).Expect(HttpStatusCode.OK);
-        timeline.Body.EnumerateArray().Select(e => e.GetProperty("type").GetString()).Should().Equal("Submitted");
+        ShouldHoldNothingTheAssistantDid(timeline);
     }
 
     [Fact]
@@ -190,5 +190,13 @@ public sealed class McpServerTests(AppHostFixture fixture)
         using var withGarbage = new HttpClient(new SocketsHttpHandler { UseCookies = false });
         withGarbage.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "shk_not_a_key");
         (await McpSupport.InitializeStatusAsync(withGarbage, endpoint)).Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    // Nothing the assistant tried got through: no move, tag, note or task. The application's own submission is there, and the
+    // worker's verification result may or may not have landed by now, so it is allowed.
+    private static void ShouldHoldNothingTheAssistantDid(ApiResult timeline)
+    {
+        var types = timeline.Body.EnumerateArray().Select(e => e.GetProperty("type").GetString()).ToList();
+        types.Should().Contain("Submitted").And.OnlyContain(type => type == "Submitted" || type == "IntegrityAssessed");
     }
 }
