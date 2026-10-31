@@ -169,6 +169,58 @@ describe('job pipeline', () => {
     expect(within(selectionBar()).queryByRole('button', { name: /^Email/ })).toBeNull();
   });
 
+  it('offers Keep in mind for the ticked rows, and none while an integrity filter picked them (ADR-0004)', async () => {
+    const { unmount } = renderPipeline();
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
+    expect(within(selectionBar()).getByRole('button', { name: 'Keep 1 selected in mind' })).toBeInTheDocument();
+    unmount();
+
+    // The fixtures have no assessment yet, so the Pending filter shows every row.
+    renderPipeline({ integrityFilter: { authenticity: 'Pending', aiAssistance: null } });
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
+    expect(within(selectionBar()).getByRole('button', { name: 'Move 1 selected…' })).toBeInTheDocument();
+    expect(within(selectionBar()).queryByRole('button', { name: /in mind/ })).toBeNull();
+  });
+
+  it('keeps the ticked applications in mind from the sheet, with one note for all of them', async () => {
+    const post = vi.fn((init: RequestInit | undefined) => Response.json({ kept: 2, notAllowed: 0, alreadyEnded: 0 }));
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'POST /v1/talent-pool': post })));
+    renderPipeline();
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Sam Taylor' }));
+
+    await fireEvent.click(within(selectionBar()).getByRole('button', { name: 'Keep 2 selected in mind' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Keep 2 in mind' });
+    await fireEvent.input(within(sheet).getByLabelText('Why'), { target: { value: 'Both strong.' } });
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Keep in mind' }));
+
+    await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(String(post.mock.calls[0]![0]!.body))).toEqual({
+      applicationIds: [applications[0]!.id, applications[2]!.id],
+      note: 'Both strong.',
+    });
+    // The selection clears and the page announces the result.
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Selected candidates' })).toBeNull());
+    expect(screen.getByText('Kept 2 in mind.', { selector: '[role="status"]' })).toBeInTheDocument();
+  });
+
+  it('leaves a candidate kept in mind out of their stage in the Stage menu and its filter', async () => {
+    // Jordan Lee was in Screening when kept in mind, so Screening has nobody left.
+    render(WithQueryClient, {
+      props: {
+        component: JobPipelineHarness,
+        props: { stages, applications: applications.map((application) => (application.candidateName === 'Jordan Lee' ? { ...application, keptInMindAt: '2026-10-20T11:00:00Z' } : application)) },
+      },
+    });
+
+    await fireEvent.pointerDown(within(filters()).getByRole('button', { name: 'Stage: All' }), { button: 0, pointerType: 'mouse' });
+    const items = (await screen.findAllByRole('menuitemradio')).map((item) => item.textContent?.replace(/\s+/g, ' ').trim());
+    expect(items).toEqual([`All ${applications.length}`, 'Applied 2', 'Screening 0', 'Interview 0', 'Offer 0']);
+    await fireEvent.click(screen.getByRole('menuitemradio', { name: /^Screening/ }));
+
+    expect(screen.getByText('No candidates match these filters.')).toBeInTheDocument();
+  });
+
   it('keeps the board when its empty state clears a search', async () => {
     renderPipeline();
     await fireEvent.click(within(panelHeader()).getByRole('button', { name: 'Board' }));

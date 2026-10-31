@@ -128,10 +128,8 @@
               <Input
                 id="permission-months"
                 name="permissionMonths"
-                type="number"
                 inputmode="numeric"
-                min={min}
-                max={max}
+                autocomplete="off"
                 class="w-24 tabular-nums"
                 bind:value={$form.permissionMonths}
                 aria-invalid={$errors.permissionMonths ? 'true' : undefined}

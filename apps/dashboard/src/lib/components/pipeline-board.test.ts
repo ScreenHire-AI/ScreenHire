@@ -106,6 +106,34 @@ describe('pipeline board', () => {
     expect(screen.queryByRole('listitem', { name: /^Jordan Lee,/ })).toBeNull();
   });
 
+  it('draws a candidate kept in mind in no stage column, and counts them in Closed (docs/architecture/talent-pool.md)', async () => {
+    // Jordan Lee was in Screening when the team kept them in mind: the stage is where they stood, not where they are.
+    const rows = [applications[0]!, { ...applications[1]!, keptInMindAt: '2026-10-20T11:00:00Z' }, applications[2]!];
+    stubApi({ rows });
+    renderBoard(withEnds);
+
+    await screen.findByRole('list', { name: 'Applied stage' });
+    expect(screen.queryByRole('listitem', { name: /^Jordan Lee,/ })).toBeNull();
+    expect(screen.getByRole('heading', { name: /^Screening/ }).textContent?.replace(/\s+/g, ' ').trim()).toBe('Screening 0');
+    expect(screen.getByRole('heading', { name: /^Applied/ }).textContent?.replace(/\s+/g, ' ').trim()).toBe('Applied 2');
+    const closed = screen.getByRole('region', { name: /^Closed/ });
+    expect(within(closed).getByRole('heading').textContent?.replace(/\s+/g, ' ').trim()).toBe('Closed 1');
+  });
+
+  it('adds a kept candidate to Closed beside those who were hired or rejected', async () => {
+    const rows = [
+      { ...applications[0]!, stage: { id: 'hired', name: 'Hired', kind: 'Hired' as const } },
+      { ...applications[1]!, keptInMindAt: '2026-10-20T11:00:00Z' },
+      applications[2]!,
+    ];
+    stubApi({ rows });
+    renderBoard(withEnds);
+
+    await screen.findByRole('list', { name: 'Applied stage' });
+    const closed = screen.getByRole('region', { name: /^Closed/ });
+    expect(within(closed).getByRole('heading').textContent?.replace(/\s+/g, ' ').trim()).toBe('Closed 2');
+  });
+
   it('says nothing on a calm card, and shows only what needs a look (section 21)', async () => {
     const rows = [
       { ...applications[0]!, integrity: summary() },
