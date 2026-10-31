@@ -10,7 +10,7 @@
   "scripts": {
     "build": "vite build && node scripts/check-size.mjs",
     "check": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run --fsModuleCachePath=node_modules/.vitest-cache"
   },
   "devDependencies": {
     "fast-check": "^3.23.2",

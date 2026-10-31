@@ -13,6 +13,10 @@ namespace ScreenHire.IntegrationTests;
 /// </summary>
 public sealed class McpServerTests(AppHostFixture fixture)
 {
+    // The worker assesses each new application on its own time, so its entry may or may not be on the timeline when a
+    // test reads it; what the key did or could not do is the rest.
+    private const string Assessed = "IntegrityAssessed";
+
     private static readonly string[] ReadTools = ["find_candidates", "find_jobs", "get_application"];
 
     private static readonly string[] WriteTools = ["add_note", "add_tag", "create_task", "move_to_stage", "remove_tag"];
@@ -75,9 +79,7 @@ public sealed class McpServerTests(AppHostFixture fixture)
         (await owner.GetAsync("/v1/tasks?scope=Team")).Body.EnumerateArray().Select(t => t.GetProperty("id").GetGuid()).Should().Contain(task.GetProperty("id").GetGuid());
         var keyId = key.Id("key.id");
         var changes = (await owner.GetAsync($"/v1/applications/{application}/timeline")).Expect(HttpStatusCode.OK).Body.EnumerateArray()
-            // The changes under the key. The submission and the worker's verification result (which lands whenever the
-            // worker gets to it) are the system's, with no actor.
-            .Where(e => e.GetProperty("type").GetString() is not ("Submitted" or "IntegrityAssessed"))
+            .Where(e => e.GetProperty("type").GetString() is not ("Submitted" or Assessed))
             .Select(e => (e.GetProperty("type").GetString(), e.GetProperty("actorApiKeyId").GetGuid(), e.GetProperty("actorUserId").ValueKind))
             .ToList();
         changes.Should().Equal(
@@ -112,7 +114,7 @@ public sealed class McpServerTests(AppHostFixture fixture)
         }
 
         var timeline = (await owner.GetAsync($"/v1/applications/{application}/timeline")).Expect(HttpStatusCode.OK);
-        ShouldHoldNothingTheAssistantDid(timeline);
+        timeline.Body.EnumerateArray().Select(e => e.GetProperty("type").GetString()).Where(type => type != Assessed).Should().Equal("Submitted");
         (await owner.GetAsync($"/v1/applications/{application}")).Text("stage.id").Should().Be("applied");
     }
 
@@ -142,7 +144,7 @@ public sealed class McpServerTests(AppHostFixture fixture)
             .Should().Contain("No application");
 
         var timeline = (await theirs.GetAsync($"/v1/applications/{theirApplication}/timeline")).Expect(HttpStatusCode.OK);
-        ShouldHoldNothingTheAssistantDid(timeline);
+        timeline.Body.EnumerateArray().Select(e => e.GetProperty("type").GetString()).Where(type => type != Assessed).Should().Equal("Submitted");
     }
 
     [Fact]
@@ -192,13 +194,5 @@ public sealed class McpServerTests(AppHostFixture fixture)
         using var withGarbage = new HttpClient(new SocketsHttpHandler { UseCookies = false });
         withGarbage.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "shk_not_a_key");
         (await McpSupport.InitializeStatusAsync(withGarbage, endpoint)).Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    // Nothing the assistant tried got through: no move, tag, note or task. The application's own submission is there, and the
-    // worker's verification result may or may not have landed by now, so it is allowed.
-    private static void ShouldHoldNothingTheAssistantDid(ApiResult timeline)
-    {
-        var types = timeline.Body.EnumerateArray().Select(e => e.GetProperty("type").GetString()).ToList();
-        types.Should().Contain("Submitted").And.OnlyContain(type => type == "Submitted" || type == "IntegrityAssessed");
     }
 }

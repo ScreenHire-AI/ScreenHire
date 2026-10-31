@@ -38,9 +38,11 @@ public static class JobChanges
 
         if (before.Description != after.Description)
         {
-            lines.Add(ChangeLine.Plain(
-                "changed the description",
-                [new("Description", RichTextToPlain.Convert(before.Description), RichTextToPlain.Convert(after.Description), ChangeValueKind.Paragraphs)]));
+            // Bold, a heading or a list changes the HTML but not the words, and before and after would read the same.
+            var (was, now) = (RichTextToPlain.Convert(before.Description), RichTextToPlain.Convert(after.Description));
+            lines.Add(was == now
+                ? ChangeLine.Plain("changed the formatting of the description")
+                : ChangeLine.Plain("changed the description", [new("Description", was, now, ChangeValueKind.Paragraphs)]));
         }
 
         switch (before.Department, after.Department)

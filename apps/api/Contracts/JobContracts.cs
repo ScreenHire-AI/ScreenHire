@@ -1,6 +1,7 @@
 using FluentValidation;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Infrastructure.Content;
 using ScreenHire.Infrastructure.Persistence.History;
 
 namespace ScreenHire.Api.Contracts;
@@ -95,7 +96,9 @@ public sealed record JobTemplateSource(
 /// <summary>
 /// A new job. With <c>templateVersionId</c> (a published version of an own or system template), the job copies that
 /// version's workflow, and every field left out here takes the template's posting default. Without a slug, one is made
-/// from the title.
+/// from the title. The description is rich text as HTML, kept to the dashboard editor's elements (p, br, strong, em, h2,
+/// h3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text
+/// works too: a blank line starts a paragraph and lines starting with "- " make a list.
 /// </summary>
 public sealed record CreateJobRequest(
     string Title,
@@ -110,7 +113,10 @@ public sealed record CreateJobRequest(
     SalaryRequest? Salary = null,
     DateTimeOffset? ValidThrough = null);
 
-/// <summary>Replaces a job's posting content. A published job keeps its slug; a closed job cannot change.</summary>
+/// <summary>
+/// Replaces a job's posting content. A published job keeps its slug; a closed job cannot change. The description is rich
+/// text, as on <see cref="CreateJobRequest"/>.
+/// </summary>
 public sealed record UpdateJobRequest(
     string Title,
     EmploymentType EmploymentType,
@@ -267,7 +273,7 @@ internal sealed class JobPublishValidator : AbstractValidator<JobSnapshot>
 {
     public JobPublishValidator()
     {
-        RuleFor(j => j.Description).NotEmpty().WithMessage("Add a description before publishing.");
+        RuleFor(j => j.Description).Must(description => !RichText.IsBlank(description)).WithMessage("Add a description before publishing.");
         RuleFor(j => j.Locations).NotEmpty().When(j => j.WorkplaceType != WorkplaceType.Remote)
             .WithMessage("An on-site or hybrid job needs a location before publishing.");
         RuleFor(j => j.ApplicantLocationRequirements).NotEmpty().When(j => j.WorkplaceType == WorkplaceType.Remote)
