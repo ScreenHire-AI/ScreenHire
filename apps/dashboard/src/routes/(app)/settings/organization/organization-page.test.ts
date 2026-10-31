@@ -19,6 +19,7 @@ const organization: OrganizationProfile = {
   homeRegion: 'eu',
   careersUrl: 'https://jobs.brightwater.example.com',
   createdAt: '2026-09-01T09:00:00Z',
+  questionsPerPage: 8,
 };
 
 function renderPage(routes: Parameters<typeof apiStub>[0] = {}) {
@@ -89,9 +90,33 @@ describe('organization settings page', () => {
 
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
-    await waitFor(() => expect(bodies).toEqual([{ name: 'Brightwater Labs' }]));
+    await waitFor(() => expect(bodies).toEqual([{ name: 'Brightwater Labs', questionsPerPage: 8 }]));
     await waitFor(() => expect(navigation.invalidateAll).toHaveBeenCalledOnce());
     expect(await screen.findByText('Saved.')).toBeInTheDocument();
+  });
+
+  it('saves the questions per page a questionnaire without sections splits into', async () => {
+    const bodies = renderPage();
+    const field = (await screen.findByLabelText('Questions per page')) as HTMLInputElement;
+    await waitFor(() => expect(field.value).toBe('8'));
+    expect(screen.getByText('When a questionnaire has no sections, candidates see this many questions a page.')).toBeInTheDocument();
+
+    await fireEvent.input(field, { target: { value: '12' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(bodies).toEqual([{ name: 'Brightwater Studio', questionsPerPage: 12 }]));
+  });
+
+  it('keeps the questions per page from 1 to 50 and sends nothing outside that', async () => {
+    const bodies = renderPage();
+    const field = (await screen.findByLabelText('Questions per page')) as HTMLInputElement;
+    await waitFor(() => expect(field.value).toBe('8'));
+
+    await fireEvent.input(field, { target: { value: '80' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Choose from 1 to 50 questions a page.')).toBeInTheDocument();
+    expect(bodies).toEqual([]);
   });
 
   it('asks for a name and sends nothing when it is empty', async () => {

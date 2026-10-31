@@ -134,7 +134,8 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
         var observation = await db.SubmissionObservations.SingleAsync(o => o.ApplicationId == application.Id, Ct);
         observation.DeviceHash.Should().NotBeNullOrEmpty();
         observation.AutomationMarkers.Should().Contain("webdriver");
-        observation.FormStartedAt.Should().NotBeNull();
+        // The time on each page the careers server measured, for submit velocity: one entry per step of this form.
+        observation.PageTimes.Select(p => p.Page).Should().Equal("details", "page-1", "review");
     }
 
     [Fact]
@@ -291,7 +292,7 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
 
         await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" }).ClickAsync();
 
-        await Expect(Page.Locator("[aria-current='step']")).ToContainTextAsync("QUESTIONS");
+        await Expect(Page.Locator("#step-heading")).ToHaveTextAsync("Questions");
         await Page.GetByRole(AriaRole.Group, new() { Name = "Do you have the right to work in the country this job is in?" })
             .GetByLabel("Yes").CheckAsync();
         await Page.GetByRole(AriaRole.Group, new() { Name = "How many years have you worked as a software engineer?" })
@@ -300,7 +301,7 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
         await ExpectNoAccessibilityViolationsAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to review" }).ClickAsync();
 
-        await Expect(Page.Locator("[aria-current='step']")).ToContainTextAsync("REVIEW");
+        await Expect(Page.Locator("#step-heading")).ToHaveTextAsync("Review and send");
         await Expect(Page.GetByRole(AriaRole.Main)).ToContainTextAsync("Casey CV.pdf");
         await Expect(Page.GetByRole(AriaRole.Main)).ToContainTextAsync("3 to 5");
         // The job wants AI use disclosed: sending without an answer asks for one.
@@ -397,7 +398,7 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
         // journeys switch assistive technology on, so no form timing is kept (CLAUDE.md non-negotiable 4).
         var observation = await db.SubmissionObservations.SingleAsync(o => o.ApplicationId == application.Id, Ct);
         observation.UserAgent.Should().Contain("Chrome");
-        observation.FormStartedAt.Should().BeNull();
+        observation.PageTimes.Should().BeEmpty();
         observation.IpAddress.Should().NotBeNullOrEmpty();
     }
 

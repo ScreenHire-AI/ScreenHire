@@ -6,8 +6,11 @@
  */
 
 /**
- * Renames the organization. Its slug, and so its careers address, stays as it is.
+ * Renames the organization and, when given, sets its questions per page (1 to 50); null keeps it. Its slug, and so its
+ * careers address, stays as it is.
  */
 export interface UpdateOrganizationRequest {
   name: string;
+  /** @nullable */
+  questionsPerPage?: number | null;
 }

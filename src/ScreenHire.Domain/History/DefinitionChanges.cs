@@ -194,6 +194,8 @@ public static class DefinitionChanges
                 {
                     lines.Add(ChangeLine.Of("reordered the questions of ", b.Name));
                 }
+
+                Sections(a.Sections, b.Sections, $" of {b.Name}", lines);
             });
 
         Match(
@@ -207,6 +209,29 @@ public static class DefinitionChanges
         {
             lines.Add(ChangeLine.Plain("reordered the questions"));
         }
+
+        Sections(before.Questionnaire.Sections, after.Questionnaire.Sections, "", lines);
+    }
+
+    // A questionnaire's named pages: added, removed, renamed, or holding other questions. `of` names a follow-up
+    // questionnaire (" of Availability"), empty for the apply form.
+    private static void Sections(IReadOnlyList<QuestionSection>? before, IReadOnlyList<QuestionSection>? after, string of, List<ChangeLine> lines)
+    {
+        Match(
+            before ?? [], after ?? [], s => s.Id,
+            added: s => lines.Add(ChangeLine.Of("added the section ", s.Name, of)),
+            removed: s => lines.Add(ChangeLine.Of("removed the section ", s.Name, of)),
+            kept: (a, b) =>
+            {
+                if (a.Name != b.Name)
+                {
+                    lines.Add(ChangeLine.Of($"renamed the section from {a.Name} to ", b.Name, of));
+                }
+                else if (!a.QuestionIds.SequenceEqual(b.QuestionIds, StringComparer.Ordinal))
+                {
+                    lines.Add(ChangeLine.Of("changed the questions in the section ", b.Name, of));
+                }
+            });
     }
 
     private static IEnumerable<Question> AllQuestions(HiringWorkflow workflow) =>

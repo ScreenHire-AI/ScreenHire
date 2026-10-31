@@ -156,6 +156,8 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<QuestionnaireRequest> QuestionnaireRequests => Set<QuestionnaireRequest>();
 
+    public DbSet<ApplicationDraft> ApplicationDrafts => Set<ApplicationDraft>();
+
     public DbSet<TalentPoolEntry> TalentPoolEntries => Set<TalentPoolEntry>();
 
     public DbSet<TalentPoolSettings> TalentPoolSettings => Set<TalentPoolSettings>();

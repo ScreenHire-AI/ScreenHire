@@ -12,7 +12,10 @@ namespace ScreenHire.Api.Applications;
 
 internal static class ApplySetup
 {
-    /// <summary>The careers apply flow: upload links, the bot challenge, telemetry sessions, request validators and the rate limits.</summary>
+    /// <summary>
+    /// The careers apply flow: upload links, the bot challenge, telemetry sessions, saved drafts, request validators and
+    /// the rate limits.
+    /// </summary>
     public static IHostApplicationBuilder AddScreenHireApply(this IHostApplicationBuilder builder)
     {
         var services = builder.Services;
@@ -25,8 +28,10 @@ internal static class ApplySetup
         services.AddSingleton<ApplicantUploads>();
         services.AddSingleton<TelemetrySessions>();
         services.AddQuestionnaireLinks();
+        services.AddSingleton<ApplicationDrafts>();
         services.AddHttpClient<TurnstileVerifier>();
         services.AddSingleton<IValidator<PublicApplicationRequest>, PublicApplicationRequestValidator>();
+        services.AddSingleton<IValidator<PublicApplicationDraftRequest>, PublicApplicationDraftRequestValidator>();
         services.AddSingleton<IValidator<UploadRequest>, UploadRequestValidator>();
         services.AddSingleton<IValidator<TelemetrySnapshotInput>, TelemetrySnapshotInputValidator>();
 

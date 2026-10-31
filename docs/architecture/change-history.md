@@ -183,8 +183,8 @@ shows, `LastUpdated` with `lead` starts with its verb ("Created 2 hours ago by A
 1. Add a `ChangeSubjectKind` value.
 2. Add one line to `TrackedKinds.All`: the entity, its subject id and its describer, and `creates` when adding the
    entity creates the object. A describer that needs only the entity before and after is a plain function; reuse
-   `DefinitionChanges` for questions. One entity can feed two histories (the organization row: its name and its
-   branding), one line each, when each describer returns no lines for the other's changes. A row that holds a secret is
+   `DefinitionChanges` for questions. One entity can feed two histories (the organization row: its name and questions per
+   page, and its branding), one line each, when each describer returns no lines for the other's changes. A row that holds a secret is
    tracked through a view, a record of the values its lines need (`Track<T, TView>`), never the entity itself.
 3. Add a `GET .../{id}/history` route in the kind's area with `ChangeHistoryRoutes`, after the area's own visibility
    check. A kind whose subject is the organization itself (Team, API keys) has no id in its route: use

@@ -122,7 +122,7 @@ internal sealed class IntegrityHarness
             IpAddress = applicant.IpAddress,
             UserAgent = applicant.UserAgent,
             DeviceHash = KeyedHashing.DeviceHash(DeviceKey, organizationId, applicant.DeviceFingerprint),
-            FormStartedAt = clock - applicant.TimeToComplete,
+            PageTimes = [.. applicant.PageTimes()],
             AutomationMarkers = [.. applicant.AutomationMarkers],
             ObservedAt = clock,
             ExpiresAt = clock.AddDays(30),

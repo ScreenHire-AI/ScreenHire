@@ -8,8 +8,10 @@ import type { LastUpdate } from './lastUpdate.ts';
 
 /**
  * The signed-in user's organization. `slug` names its careers pages and public API routes and does not change after
- * onboarding; `careersUrl` is its careers board on the configured careers domain. `lastUpdated` is the name's
- * last change, or when the organization was made; its history is `/v1/organization/history`.
+ * onboarding; `careersUrl` is its careers board on the configured careers domain. `questionsPerPage` is how
+ * many questions candidates see on each page of a questionnaire that has no sections. `lastUpdated` is the last
+ * change to the name or the questions per page, or when the organization was made; its history is
+ * `/v1/organization/history`.
  */
 export interface OrganizationProfile {
   id: string;
@@ -19,4 +21,5 @@ export interface OrganizationProfile {
   careersUrl: string;
   createdAt: string;
   lastUpdated: LastUpdate;
+  questionsPerPage: number;
 }

@@ -261,6 +261,8 @@ public static class ScreenHireMessaging
         opts.Schedules.ScheduleRecurring<PurgeExpiredIntegrityData>("17 3 * * *");
         // Finished webhook deliveries past their retention, daily (docs/architecture/workflow-engine.md section 5).
         opts.Schedules.ScheduleRecurring<PurgeExpiredWebhookDeliveries>("37 3 * * *");
+        // Answers saved to finish later, 30 days after their first save (docs/architecture/apply-flow.md section 7).
+        opts.Schedules.ScheduleRecurring<PurgeExpiredApplicationDrafts>("7 4 * * *");
         // Records that Slack messages went, and the sandbox's messages, past their retention, daily (docs/architecture/slack.md).
         opts.Schedules.ScheduleRecurring<PurgeExpiredSlackMessages>("57 3 * * *");
         // People whose permission for future roles ran out leave the talent pool, daily (docs/architecture/talent-pool.md).

@@ -16,7 +16,7 @@ namespace ScreenHire.Testing;
 public static class SyntheticApplications
 {
     /// <summary>The careers notice version the submissions say the applicant saw (NOTICE_VERSION in apps/careers/src/lib/apply.ts).</summary>
-    public const string PrivacyNoticeVersion = "2026-10-30.1";
+    public const string PrivacyNoticeVersion = "2026-10-31.1";
 
     /// <summary>
     /// Applies to a published job of the organization with this slug and returns the application's id: the applicant's
@@ -63,7 +63,7 @@ public static class SyntheticApplications
             ["honeypotFilled"] = applicant.HoneypotFilled,
             ["accommodationRequested"] = accommodation,
             ["userAgent"] = applicant.UserAgent,
-            ["formStartedAt"] = DateTimeOffset.UtcNow - applicant.TimeToComplete,
+            ["pageTimes"] = new JsonArray([.. applicant.PageTimes().Select(p => (JsonNode)new JsonObject { ["page"] = p.Page, ["seconds"] = p.Seconds })]),
             ["automationMarkers"] = new JsonArray([.. applicant.AutomationMarkers.Select(m => JsonValue.Create(m))]),
             ["deviceFingerprint"] = applicant.DeviceFingerprint,
             ["keepForFutureRoles"] = keepForFutureRoles,

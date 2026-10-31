@@ -109,15 +109,16 @@ public sealed class IntegrityAnalyzerTests
     }
 
     [Fact]
-    public async Task Automation_measures_submit_velocity_against_a_plausible_minimum()
+    public async Task Automation_measures_active_time_on_the_pages_against_a_plausible_minimum()
     {
-        var fast = await new AutomationAnalyzer().AnalyzeAsync(Context(taken: TimeSpan.FromSeconds(8)), Ct);
-        var slow = await new AutomationAnalyzer().AnalyzeAsync(Context(taken: TimeSpan.FromMinutes(5)), Ct);
+        var fast = await new AutomationAnalyzer().AnalyzeAsync(Context(pages: [new("details", 3), new("page-1", 5)]), Ct);
+        var slow = await new AutomationAnalyzer().AnalyzeAsync(Context(pages: [new("details", 60), new("page-1", 240)]), Ct);
 
         var velocity = fast.Signals.Should().ContainSingle().Subject;
         velocity.Code.Should().Be(SignalCatalogue.SubmitVelocity);
         var metric = velocity.Evidence.Should().ContainSingle().Subject;
         metric.Kind.Should().Be(EvidenceKind.Metric);
+        metric.Label.Should().Be("Active time on the form's pages");
         metric.Amount.Should().Be(8);
         metric.Unit.Should().Be("seconds");
         metric.Reference.Should().Be(AutomationAnalyzer.PlausibleMinimum([new ApplicationAnswer("a", "yes")]));
@@ -125,9 +126,63 @@ public sealed class IntegrityAnalyzerTests
     }
 
     [Fact]
+    public async Task Automation_never_counts_the_clock_between_pages_or_a_break_away_from_the_form()
+    {
+        // The form was opened a day ago (a draft saved and picked up again), but its pages were open for 9 seconds in all.
+        var result = await new AutomationAnalyzer().AnalyzeAsync(
+            Context(pages: [new("details", 4), new("page-1", 5)], started: Now.AddDays(-1)), Ct);
+
+        result.Signals.Should().ContainSingle().Which.Code.Should().Be(SignalCatalogue.SubmitVelocity);
+    }
+
+    [Fact]
+    public async Task Automation_measures_no_velocity_without_page_times()
+    {
+        var result = await new AutomationAnalyzer().AnalyzeAsync(Context(started: Now.AddSeconds(-2)), Ct);
+
+        result.Signals.Should().BeEmpty("a start time alone is time on the clock, which the check no longer reads");
+    }
+
+    [Fact]
+    public async Task A_resumed_application_counts_only_what_was_answered_in_the_sitting_that_sent_it()
+    {
+        // Three answers carried over from the draft; one new one. Without the reading time spent in the earlier sitting,
+        // the minimum is one answer's time.
+        var answers = new[] { new ApplicationAnswer("a", "yes"), new ApplicationAnswer("b", "no"), new ApplicationAnswer("c", "yes"), new ApplicationAnswer("d", "no") };
+        var resumed = await new AutomationAnalyzer().AnalyzeAsync(
+            Context(pages: [new("details", 3), new("page-1", 2)], answers: answers, resumed: true, carriedOver: ["a", "b", "c"]), Ct);
+        var tooFast = await new AutomationAnalyzer().AnalyzeAsync(
+            Context(pages: [new("page-1", 1)], answers: answers, resumed: true, carriedOver: ["a", "b", "c"]), Ct);
+
+        AutomationAnalyzer.PlausibleMinimum([answers[3]], readsTheForm: false).Should().Be(AutomationAnalyzer.SecondsPerAnswer);
+        resumed.Signals.Should().BeEmpty();
+        tooFast.Signals.Should().ContainSingle().Which.Evidence.Should().ContainSingle().Which.Reference.Should().Be(AutomationAnalyzer.SecondsPerAnswer);
+    }
+
+    [Fact]
+    public void The_assessment_counts_only_each_analyzers_latest_version()
+    {
+        // An application analyzed before the automation analyzer's version 2 and again after: the honeypot it saw twice
+        // counts once, and an analyzer with one version keeps its signals.
+        IntegritySignal Signal(string code, string source, int version) =>
+            new() { Code = code, Source = source, SourceVersion = version, Explanation = code };
+        var signals = new[]
+        {
+            Signal(SignalCatalogue.Honeypot, "automation", 1),
+            Signal(SignalCatalogue.SubmitVelocity, "automation", 1),
+            Signal(SignalCatalogue.Honeypot, "automation", 2),
+            Signal(SignalCatalogue.DisposableEmail, "identity", 1),
+        };
+
+        var current = IntegrityPipeline.Current(signals, [("automation", 1), ("automation", 2), ("identity", 1)]);
+
+        current.Should().Equal(signals[2], signals[3]);
+    }
+
+    [Fact]
     public async Task Automation_never_measures_timing_with_an_accommodation()
     {
-        var result = await new AutomationAnalyzer().AnalyzeAsync(Context(taken: TimeSpan.FromSeconds(3), accommodation: true), Ct);
+        var result = await new AutomationAnalyzer().AnalyzeAsync(Context(pages: [new("details", 3)], accommodation: true), Ct);
 
         result.Signals.Should().BeEmpty();
     }
@@ -207,7 +262,11 @@ public sealed class IntegrityAnalyzerTests
         bool honeypot = false,
         BotCheckResult botCheck = BotCheckResult.NotChecked,
         IReadOnlyList<string>? markers = null,
-        TimeSpan? taken = null,
+        IReadOnlyList<PageTime>? pages = null,
+        DateTimeOffset? started = null,
+        IReadOnlyList<ApplicationAnswer>? answers = null,
+        bool resumed = false,
+        IReadOnlyList<string>? carriedOver = null,
         bool accommodation = false)
     {
         var organization = Guid.CreateVersion7();
@@ -215,13 +274,16 @@ public sealed class IntegrityAnalyzerTests
         var candidate = Candidate.Create(organization, "Casey", "Morgan", email, phone, Now);
         var (application, _) = JobApplication.Submit(
             job, candidate, accommodation, AiUseDeclaration.NotProvided, null, Now, null,
-            new ApplicationIntake(ApplicationSource.CareersSite, [new ApplicationAnswer("a", "yes")], "2026-10-20.2", honeypot, botCheck));
+            new ApplicationIntake(ApplicationSource.CareersSite, answers ?? [new ApplicationAnswer("a", "yes")], "2026-10-20.2", honeypot, botCheck));
         var observation = new SubmissionObservation
         {
             OrganizationId = organization,
             ApplicationId = application.Id,
             IpAddress = ip,
-            FormStartedAt = taken is { } t ? Now - t : null,
+            FormStartedAt = started,
+            PageTimes = [.. pages ?? []],
+            ResumedFromDraft = resumed,
+            CarriedOverQuestionIds = [.. carriedOver ?? []],
             AutomationMarkers = [.. markers ?? []],
             ObservedAt = Now,
             ExpiresAt = Now.AddDays(30),
