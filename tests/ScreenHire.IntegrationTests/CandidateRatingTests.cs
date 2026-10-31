@@ -242,7 +242,7 @@ public sealed class CandidateRatingTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task An_verification_result_never_changes_the_rating()
+    public async Task A_verification_result_never_changes_the_rating()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         var (slug, jobId) = await VerificationSupport.OpenJobAsync(fixture, owner);

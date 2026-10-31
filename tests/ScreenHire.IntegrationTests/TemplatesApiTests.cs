@@ -114,7 +114,7 @@ public sealed class TemplatesApiTests(AppHostFixture fixture)
     [Theory]
     [InlineData("Reject")]
     [InlineData("QueueForRejectionReview")]
-    public async Task An_verification_signal_cannot_drive_a_rejection(string actionType)
+    public async Task A_verification_signal_cannot_drive_a_rejection(string actionType)
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
         var action = new JsonObject { ["type"] = actionType, ["reason"] = "Not a fit" };
@@ -130,7 +130,7 @@ public sealed class TemplatesApiTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task An_verification_signal_may_still_route_a_candidate_for_review()
+    public async Task A_verification_signal_may_still_route_a_candidate_for_review()
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
         var action = new JsonObject { ["type"] = "AddTag", ["tag"] = "needs-review" };

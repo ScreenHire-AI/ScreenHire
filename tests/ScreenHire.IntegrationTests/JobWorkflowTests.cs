@@ -144,7 +144,7 @@ public sealed class JobWorkflowTests(AppHostFixture fixture)
     [Theory]
     [InlineData("Reject")]
     [InlineData("QueueForRejectionReview")]
-    public async Task An_verification_signal_cannot_drive_a_rejection_in_a_jobs_workflow(string actionType)
+    public async Task A_verification_signal_cannot_drive_a_rejection_in_a_jobs_workflow(string actionType)
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
         var job = await recruiter.CreateJobAsync(Samples.RemoteJob("Guardrail"));
@@ -199,7 +199,7 @@ public sealed class JobWorkflowTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task An_verification_signal_may_still_route_a_candidate_for_review_in_a_jobs_workflow()
+    public async Task A_verification_signal_may_still_route_a_candidate_for_review_in_a_jobs_workflow()
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
         var job = await recruiter.CreateJobAsync(Samples.RemoteJob("Routing"));

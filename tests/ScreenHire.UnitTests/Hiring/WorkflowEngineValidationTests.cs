@@ -17,7 +17,7 @@ public sealed class WorkflowEngineValidationTests
     private static readonly Question Experience = new("experience", QuestionType.Number, "Years of experience");
 
     [Fact]
-    public void An_verification_condition_with_reject_is_refused_at_save()
+    public void A_verification_condition_with_reject_is_refused_at_save()
     {
         var workflow = Workflow(automations:
         [
@@ -34,7 +34,7 @@ public sealed class WorkflowEngineValidationTests
     [Theory]
     [InlineData(ActionType.Reject)]
     [InlineData(ActionType.QueueForRejectionReview)]
-    public void An_verification_condition_may_not_even_queue_a_rejection(ActionType type)
+    public void A_verification_condition_may_not_even_queue_a_rejection(ActionType type)
     {
         var workflow = Workflow(automations:
         [

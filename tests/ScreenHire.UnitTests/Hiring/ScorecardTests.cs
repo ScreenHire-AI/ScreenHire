@@ -203,7 +203,7 @@ public sealed class ScorecardTests
     }
 
     [Fact]
-    public void An_verification_condition_on_a_reviewer_decision_may_not_queue_a_rejection()
+    public void A_verification_condition_on_a_reviewer_decision_may_not_queue_a_rejection()
     {
         var workflow = Workflow(new Automation("a", "A", new AutomationTrigger(TriggerType.ReviewerDecision),
             new AutomationConditions(ConditionMatch.All,

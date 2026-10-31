@@ -214,7 +214,7 @@ public sealed class DefinitionValidatorTests
     [InlineData(ActionType.SendEmail)]
     [InlineData(ActionType.NotifyTeam)]
     [InlineData(ActionType.CallWebhook)]
-    public void An_verification_condition_cannot_drive_anything_but_routing(ActionType action)
+    public void A_verification_condition_cannot_drive_anything_but_routing(ActionType action)
     {
         var workflow = Workflow(automations:
         [
@@ -226,11 +226,26 @@ public sealed class DefinitionValidatorTests
             .Which.Message.Should().Contain("ADR-0004");
     }
 
+    // ADR-0019 decision 5: a definition that still says integrity.* after the rename is held to the same guardrail.
+    [Theory]
+    [InlineData("integrity.authenticity")]
+    [InlineData("integrity.aiAssistance")]
+    public void A_leftover_integrity_condition_still_cannot_reject(string fact)
+    {
+        var workflow = Workflow(automations:
+        [
+            Automation(Conditions(new AutomationCondition(fact, ConditionOperator.EqualTo, "ReviewSuggested")),
+                Action(ActionType.Reject), allowAutoReject: true),
+        ]);
+
+        DefinitionValidator.Validate(workflow).Should().Contain(e => e.Path == "automations[0].actions[0]" && e.Message.Contains("ADR-0004"));
+    }
+
     [Theory]
     [InlineData("rejected")]
     [InlineData("withdrawn")]
     [InlineData("hired")]
-    public void An_verification_condition_cannot_move_an_application_to_a_terminal_stage(string stage)
+    public void A_verification_condition_cannot_move_an_application_to_a_terminal_stage(string stage)
     {
         var workflow = Workflow(automations:
         [
@@ -242,7 +257,7 @@ public sealed class DefinitionValidatorTests
     }
 
     [Fact]
-    public void An_verification_trigger_counts_as_a_signal_even_without_conditions()
+    public void A_verification_trigger_counts_as_a_signal_even_without_conditions()
     {
         var workflow = Workflow(automations:
         [
@@ -285,7 +300,7 @@ public sealed class DefinitionValidatorTests
     }
 
     [Fact]
-    public void An_verification_condition_mixed_with_a_knockout_still_cannot_reject()
+    public void A_verification_condition_mixed_with_a_knockout_still_cannot_reject()
     {
         var workflow = Workflow(questions: [WorkAuthorization], automations:
         [

@@ -128,7 +128,7 @@ public sealed class HiringRealtimeTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task An_verification_assessment_reaches_its_own_organization_with_levels_and_no_evidence()
+    public async Task A_verification_assessment_reaches_its_own_organization_with_levels_and_no_evidence()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         using var ours = await fixture.SignedInWithOrganizationAsync();

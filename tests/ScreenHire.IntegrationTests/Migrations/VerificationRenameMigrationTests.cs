@@ -65,6 +65,10 @@ public sealed class VerificationRenameMigrationTests(AppHostFixture fixture)
                 .Should().Be(5);
             (await ScalarAsync<long>(connectionString, "SELECT count(*) FROM pg_policies WHERE schemaname = 'public' AND tablename LIKE 'verification_%'", ct))
                 .Should().BeGreaterThanOrEqualTo(9, "five tenant_isolation policies and four job_scope policies follow their tables");
+            (await ScalarAsync<long>(connectionString, "SELECT count(*) FROM pg_policies WHERE schemaname = 'public' AND tablename LIKE 'verification_%' AND policyname = 'job_scope' AND permissive = 'RESTRICTIVE'", ct))
+                .Should().Be(4, "job_scope stays restrictive on the four rows under one application");
+            (await ScalarAsync<bool>(connectionString, "SELECT has_table_privilege('screenhire_app', 'verification_review_actions', 'UPDATE') OR has_table_privilege('screenhire_app', 'verification_review_actions', 'DELETE') OR has_table_privilege('screenhire_app', 'verification_settings', 'DELETE')", ct))
+                .Should().BeFalse("the revoked grants follow their tables");
             (await IntegrityNamesAsync(connectionString, ct)).Should().BeEmpty();
             (await UnforcedAsync(connectionString, ct)).Should().BeEmpty("FORCE comes back on every table the migration lifted it from");
 
@@ -81,6 +85,12 @@ public sealed class VerificationRenameMigrationTests(AppHostFixture fixture)
                 .Should().Equal("application.submitted", "integrity.assessed");
             (await ScalarAsync<int>(connectionString, "SELECT latest_published_version FROM hiring_templates WHERE id = '0199e8a0-0000-7000-8000-000000000001'", ct))
                 .Should().Be(4);
+            (await ScalarAsync<long>(connectionString, "SELECT count(*) FROM hiring_template_versions WHERE id = '0199e8a0-0000-7000-8000-000000000105'", ct))
+                .Should().Be(0, "version 5 exists only after the rename");
+            (await ScalarAsync<long>(connectionString, "SELECT count(*) FROM hiring_template_versions WHERE definition::text LIKE '%verificationPolicy%' OR definition::text LIKE '%VerificationAssessed%' OR definition::text LIKE '%\"verification.authenticity\"%' OR definition::text LIKE '%\"verification.aiAssistance\"%'", ct))
+                .Should().Be(0, "undoing the rename gives every definition its old policy, trigger and facts");
+            (await ScalarAsync<string>(connectionString, "SELECT definition #>> '{workflow,automations,1,trigger,type}' FROM hiring_template_versions WHERE id = '0199e8a0-0000-7000-8000-000000000104'", ct))
+                .Should().Be("IntegrityAssessed");
             (await ScalarAsync<long>(connectionString, "SELECT count(*) FROM pg_class WHERE relname LIKE 'verification_%'", ct)).Should().Be(0);
             (await UnforcedAsync(connectionString, ct)).Should().BeEmpty("undoing the rename restores FORCE too");
         }
