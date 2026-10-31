@@ -436,7 +436,16 @@
     {/if}
 
     {#if mayScore}
-      <ScorecardSheet bind:open={scorecardOpen} applicationId={detail.id} {choices} initial={scorecardInitial} ondone={scorecardSubmitted} />
+      <ScorecardSheet
+        bind:open={scorecardOpen}
+        applicationId={detail.id}
+        {choices}
+        initial={scorecardInitial}
+        loadingChoices={library.isPending || scorecards.isPending || !workflow}
+        libraryError={library.error ?? undefined}
+        onretrylibrary={() => library.refetch()}
+        ondone={scorecardSubmitted}
+      />
     {/if}
     {#if mayAsk}
       <AskScorecardSheet

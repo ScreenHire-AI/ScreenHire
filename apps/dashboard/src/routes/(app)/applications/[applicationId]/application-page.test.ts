@@ -1051,6 +1051,22 @@ describe('application page', () => {
       expect(within(viewed).queryByRole('button', { name: 'Ask for one' })).not.toBeInTheDocument();
     });
 
+    it('says so when the reader has given every scorecard there is, with nothing to submit', async () => {
+      stubApi({
+        [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob),
+        [`GET /v1/applications/${applicationId}/scorecards`]: () => Response.json([{ ...submitted, reviewerUserId: user.id }]),
+        'GET /v1/scorecard-templates': () => Response.json([]),
+      });
+      renderPage('scorecards');
+      const panel = await screen.findByRole('region', { name: 'Scorecards' });
+      await within(panel).findByText('by you');
+
+      await fireEvent.click(within(panel).getByRole('button', { name: 'Fill in' }));
+      const sheet = await screen.findByRole('dialog', { name: 'Fill in a scorecard' });
+      await within(sheet).findByText('You have given every scorecard you can for this candidate at this stage.');
+      expect(within(sheet).queryByRole('button', { name: 'Submit scorecard' })).not.toBeInTheDocument();
+    });
+
     it("asks a teammate who sees the job and fills in scorecards, on the current stage's scorecard by default", async () => {
       const fetch = stubApi({
         [`GET /v1/applications/${applicationId}`]: () => Response.json({ ...application, stage: { id: 'interview', name: 'Interview', kind: 'Interview' } }),

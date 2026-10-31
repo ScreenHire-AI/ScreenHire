@@ -45,11 +45,14 @@
   const assigneeUserId = $derived(picked || (teammates?.length === 1 ? teammates[0].userId : ''));
   let scorecardTemplateId = $state('');
   let note = $state('');
+  let tried = $state(false);
   let failure = $state('');
 
   // The current stage's own scorecard first, when it names one in the library, then the built-ins and the team's own.
   const stageKey = $derived(currentStage?.scorecard ? (currentStage.scorecardTemplateId ?? undefined) : undefined);
-  const stageOption = $derived(stageKey ? { key: stageKey, label: `${currentStage!.scorecard!.name}, this stage's` } : undefined);
+  const stageOption = $derived(
+    stageKey ? { key: stageKey, label: currentStage!.scorecard!.name === currentStage!.name ? currentStage!.name : `${currentStage!.name}: ${currentStage!.scorecard!.name}` } : undefined,
+  );
   const builtIns = $derived(library.filter((scorecard) => scorecard.builtIn && scorecard.id !== stageKey));
   const own = $derived(library.filter((scorecard) => !scorecard.builtIn && !scorecard.archived && scorecard.id !== stageKey));
   const scorecardName = (key: string) => (key === stageKey ? currentStage?.scorecard?.name : library.find((scorecard) => scorecard.id === key)?.name);
@@ -61,6 +64,7 @@
       picked = '';
       scorecardTemplateId = stageKey ?? '';
       note = '';
+      tried = false;
       failure = '';
     });
   });
@@ -68,14 +72,8 @@
   async function onsubmit(event: SubmitEvent) {
     event.preventDefault();
     failure = '';
-    if (!assigneeUserId) {
-      failure = 'Choose a teammate.';
-      return;
-    }
-    if (!scorecardTemplateId) {
-      failure = 'Choose a scorecard.';
-      return;
-    }
+    tried = true;
+    if (!assigneeUserId || !scorecardTemplateId) return;
     try {
       await request.mutateAsync({ applicationId, data: { assigneeUserId, scorecardTemplateId, note: note.trim() || null } });
       const name = teammates?.find((teammate) => teammate.userId === assigneeUserId)?.displayName ?? 'your teammate';
@@ -105,16 +103,33 @@
       {:else}
         <Field.Field>
           <Field.Label for={`${uid}-teammate`}>Teammate</Field.Label>
-          <select id={`${uid}-teammate`} class={selectClass} bind:value={() => assigneeUserId, (value) => (picked = value)}>
+          <select
+            id={`${uid}-teammate`}
+            class={selectClass}
+            bind:value={() => assigneeUserId, (value) => (picked = value)}
+            aria-invalid={(tried && !assigneeUserId) || undefined}
+            aria-describedby={tried && !assigneeUserId ? `${uid}-teammate-error` : undefined}
+          >
             <option value="" disabled>Choose a teammate</option>
             {#each teammates as teammate (teammate.userId)}<option value={teammate.userId}>{teammate.displayName}</option>{/each}
           </select>
+          <Field.Error id={`${uid}-teammate-error`} errors={tried && !assigneeUserId ? [{ message: 'Choose a teammate.' }] : undefined} />
         </Field.Field>
         <Field.Field>
           <Field.Label for={`${uid}-scorecard`}>Scorecard</Field.Label>
-          <select id={`${uid}-scorecard`} class={selectClass} bind:value={scorecardTemplateId}>
+          <select
+            id={`${uid}-scorecard`}
+            class={selectClass}
+            bind:value={scorecardTemplateId}
+            aria-invalid={(tried && !scorecardTemplateId) || undefined}
+            aria-describedby={tried && !scorecardTemplateId ? `${uid}-scorecard-error` : undefined}
+          >
             <option value="" disabled>Choose a scorecard</option>
-            {#if stageOption}<option value={stageOption.key}>{stageOption.label}</option>{/if}
+            {#if stageOption}
+              <optgroup label="This stage">
+                <option value={stageOption.key}>{stageOption.label}</option>
+              </optgroup>
+            {/if}
             {#if builtIns.length > 0}
               <optgroup label="Built in">
                 {#each builtIns as scorecard (scorecard.id)}<option value={scorecard.id}>{scorecard.name}</option>{/each}
@@ -126,6 +141,7 @@
               </optgroup>
             {/if}
           </select>
+          <Field.Error id={`${uid}-scorecard-error`} errors={tried && !scorecardTemplateId ? [{ message: 'Choose a scorecard.' }] : undefined} />
         </Field.Field>
         <Field.Field>
           <Field.Label for={`${uid}-note`}>Note</Field.Label>

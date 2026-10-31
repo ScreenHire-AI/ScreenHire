@@ -44,8 +44,13 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
 
             // A review is now done when its scorecard is submitted, and nobody ticks one by hand (ADR-0017 decision 11).
             // Finish the open reviews a scorecard already answered: one their assignee (anyone's, for a review for the
-            // whole team) gave since the review was assigned, at the first such scorecard's time and by its reviewer.
+            // whole team) gave since the review was assigned, at the first such scorecard's time and by its reviewer. Both
+            // tables force row-level security, which binds the owner running this too and would match no row with no
+            // tenant set, so it is lifted around the update, as earlier data migrations do.
             migrationBuilder.Sql("""
+                ALTER TABLE application_tasks NO FORCE ROW LEVEL SECURITY;
+                ALTER TABLE application_scorecards NO FORCE ROW LEVEL SECURITY;
+
                 UPDATE application_tasks AS t
                 SET completed_at = answered.submitted_at, completed_by_user_id = answered.reviewer_user_id
                 FROM (
@@ -60,10 +65,15 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     ORDER BY task.id, s.submitted_at
                 ) AS answered
                 WHERE t.id = answered.task_id;
+
+                ALTER TABLE application_scorecards FORCE ROW LEVEL SECURITY;
+                ALTER TABLE application_tasks FORCE ROW LEVEL SECURITY;
                 """);
         }
 
         /// <inheritdoc />
+        // For a development rollback only: the old index refuses two scorecards that differ only in their scorecard, so
+        // delete those first, and the reviews the backfill finished stay finished.
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropIndex(

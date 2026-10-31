@@ -27,6 +27,9 @@
     applicationId,
     choices,
     initial,
+    loadingChoices = false,
+    libraryError,
+    onretrylibrary,
     ondone,
   }: {
     open?: boolean;
@@ -35,6 +38,11 @@
     choices: readonly ScorecardChoice[];
     /** The choice it opens on, by value; none chosen when it is not one of `choices`. */
     initial?: string;
+    /** The scorecard library is still loading, so the choices are not all in yet. */
+    loadingChoices?: boolean;
+    /** The library could not be read; the job's stages are still offered. */
+    libraryError?: unknown;
+    onretrylibrary?: () => void;
     /** After the scorecard was saved: a sentence for the page's status line. */
     ondone: (message: string) => void | Promise<void>;
   } = $props();
@@ -96,10 +104,7 @@
     event.preventDefault();
     tried = true;
     failure = '';
-    if (!choice) {
-      failure = 'Choose a scorecard.';
-      return;
-    }
+    if (!choice) return;
     if (loading || !recommendation || unanswered.size > 0) return;
     try {
       await submit.mutateAsync({
@@ -130,6 +135,14 @@
       <Sheet.Description>Your team sees it with your name, and it is final once submitted.</Sheet.Description>
     </Sheet.Header>
     <form novalidate class="@container flex flex-col gap-5 px-4 pb-4" {onsubmit}>
+      {#if choices.length === 0 && loadingChoices}
+        <div aria-hidden="true" class="flex flex-col gap-2">
+          {#each [0, 1, 2] as row (row)}<Skeleton class="h-10 w-full" />{/each}
+        </div>
+        <p class="sr-only" role="status">Loading the scorecards…</p>
+      {:else if choices.length === 0 && !libraryError}
+        <p class="text-body">You have given every scorecard you can for this candidate at this stage.</p>
+      {:else}
       <Field.Field>
         <Field.Label for={`${uid}-scorecard`}>Scorecard</Field.Label>
         <select
@@ -137,6 +150,7 @@
           class={selectClass}
           bind:value={() => chosenValue, (value) => ((chosenValue = value), clear())}
           aria-invalid={(tried && !choice) || undefined}
+          aria-describedby={tried && !choice ? `${uid}-scorecard-error` : undefined}
         >
           <option value="" disabled>Choose a scorecard</option>
           {#if stageChoices.length > 0}
@@ -155,7 +169,12 @@
             </optgroup>
           {/if}
         </select>
+        <Field.Error id={`${uid}-scorecard-error`} errors={tried && !choice ? [{ message: 'Choose a scorecard.' }] : undefined} />
       </Field.Field>
+      {/if}
+      {#if libraryError}
+        <QueryError message={describeError(libraryError, 'Could not load the scorecard library')} onretry={() => onretrylibrary?.()} inset />
+      {/if}
 
       {#if library.isError && choice && !choice.questions}
         <QueryError message={describeError(library.error, 'Could not load this scorecard')} onretry={() => library.refetch()} inset />
@@ -171,7 +190,9 @@
       <FailureText message={failure} />
       <div class="flex justify-end gap-2">
         <Sheet.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Sheet.Close>
-        <Button type="submit" size="lg" disabled={submit.isPending}><ClipboardCheckIcon aria-hidden="true" />Submit scorecard</Button>
+        {#if choices.length > 0}
+          <Button type="submit" size="lg" disabled={submit.isPending}><ClipboardCheckIcon aria-hidden="true" />Submit scorecard</Button>
+        {/if}
       </div>
     </form>
   </Sheet.Content>
