@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Domain.History;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -12,7 +13,8 @@ namespace ScreenHire.Api.Endpoints;
 /// <summary>
 /// The organization's API keys (ADR-0011): create, list and revoke, for Owners and Admins in a signed-in session. An API
 /// key cannot call these routes: they keep the cookie-only default policy, so a key gets 401. The key itself is in the
-/// create response only and is never logged; the database keeps its hash.
+/// create response only and is never logged; the database keeps its hash. The page's change history records each key
+/// created and revoked, by its name and access, never its hash or prefix (docs/architecture/change-history.md).
 /// </summary>
 internal static class ApiKeyEndpoints
 {
@@ -24,6 +26,12 @@ internal static class ApiKeyEndpoints
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/", CreateApiKey).WithName("CreateApiKey")
             .RequireAntiforgeryToken()
+            .RequirePermission(Permission.ManageApiKeys)
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/history", GetApiKeysHistory).WithName("GetApiKeysHistory")
+            .RequirePermission(Permission.ManageApiKeys)
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/last-update", GetApiKeysLastUpdate).WithName("GetApiKeysLastUpdate")
             .RequirePermission(Permission.ManageApiKeys)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/{keyId:guid}", GetApiKey).WithName("GetApiKey")
@@ -41,6 +49,14 @@ internal static class ApiKeyEndpoints
         var keys = await db.ApiKeys.AsNoTracking().OrderByDescending(k => k.CreatedAt).ToListAsync(cancellationToken);
         return TypedResults.Ok(keys.Select(k => k.ToSummary()).ToList());
     }
+
+    private static Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> GetApiKeysHistory(
+        Guid? before, int? limit, ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
+        ChangeHistoryRoutes.OrganizationPageAsync(ChangeSubjectKind.ApiKeys, before, limit, db, tenant, cancellationToken);
+
+    private static Task<Results<Ok<LastUpdate>, NotFound>> GetApiKeysLastUpdate(
+        ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
+        ChangeHistoryRoutes.OrganizationLastUpdateAsync(ChangeSubjectKind.ApiKeys, db, tenant, cancellationToken);
 
     // A key never carries more than its creator's role (ADR-0014): a Write key needs every hiring write.
     private static async Task<Results<Created<CreatedApiKey>, ValidationProblem, ProblemHttpResult>> CreateApiKey(

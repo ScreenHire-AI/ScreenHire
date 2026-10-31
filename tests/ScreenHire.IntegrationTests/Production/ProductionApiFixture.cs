@@ -20,6 +20,9 @@ public sealed class ProductionApiFixture : AppHostFixture
 {
     protected override IReadOnlyList<string> RequiredResources => [];
 
+    // The sandbox workspace is refused outside Development (SlackSandboxGate), and this stack runs the API as Production.
+    protected override IReadOnlyList<string> ExtraArguments => ["--ScreenHire:Slack:Sandbox:Enabled=false"];
+
     protected override void Configure(IDistributedApplicationTestingBuilder builder)
     {
         builder.Resources.Remove(builder.Resources.Single(resource => resource.Name == "worker"));

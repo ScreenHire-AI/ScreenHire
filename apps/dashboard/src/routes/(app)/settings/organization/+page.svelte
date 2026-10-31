@@ -146,7 +146,8 @@
             <span class="flex min-w-0"><TruncatedText text={detail.careersUrl} href={detail.careersUrl} icon={ExternalLinkIcon} underlined class="text-primary" /></span>
           </SummaryItem>
           <SummaryItem label="Data region">{region(detail)}</SummaryItem>
-          <SummaryItem label="Created"><RelativeTime at={detail.createdAt} /></SummaryItem>
+          <!-- Until someone renames the organization, the header says when it was created (W7). -->
+          {#if !detail.lastUpdated.created}<SummaryItem label="Created"><RelativeTime at={detail.createdAt} /></SummaryItem>{/if}
         </SummaryList>
       </Panel>
     {/if}

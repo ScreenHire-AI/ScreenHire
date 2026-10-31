@@ -1,6 +1,7 @@
 using System.Globalization;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Domain.Organizations;
 
 namespace ScreenHire.Domain.History;
 
@@ -108,6 +109,12 @@ public static class ChangeLabels
     };
 
     public static string OnOff(bool value) => value ? "on" : "off";
+
+    /// <summary>A member's job access as the Team page says it (<c>accessWords</c> in <c>apps/dashboard/src/lib/hiring-team.ts</c>).</summary>
+    public static string JobAccess(JobAccess access) => access == Organizations.JobAccess.All ? "All jobs" : "Only jobs they're on";
+
+    /// <summary>An API key's scopes as the API keys page says them (its <c>access</c> function).</summary>
+    public static string ApiKeyAccess(IEnumerable<ApiKeyScope> scopes) => scopes.Contains(ApiKeyScope.Write) ? "Read and write" : "Read only";
 
     public static string Days(int days) => days == 1 ? "1 day" : $"{days.ToString(CultureInfo.InvariantCulture)} days";
 

@@ -6,7 +6,8 @@ namespace ScreenHire.E2E;
 
 /// <summary>
 /// Base class for browser tests: a fresh browser context (cookies, storage) per test, a screenshot under
-/// <c>TestResults/screenshots</c> when a test fails, and an axe accessibility check.
+/// <c>TestResults/screenshots</c> and what the browser reported (console errors, failed requests) when a test fails, and an
+/// axe accessibility check.
 /// </summary>
 public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
 {
@@ -17,6 +18,9 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
     // on every machine.
     private const string Locale = "en-US";
 
+    private const int MaxPageProblems = 40;
+
+    private readonly List<string> pageProblems = [];
     private IBrowserContext? context;
     private bool javaScriptEnabled = true;
 
@@ -28,6 +32,7 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
     {
         context = await fixture.Browser.NewContextAsync(new() { Locale = Locale });
         Page = await context.NewPageAsync();
+        WatchForProblems(Page);
     }
 
     public async ValueTask DisposeAsync()
@@ -42,6 +47,15 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
                     foreach (var stopped in fixture.StoppedResources)
                     {
                         TestContext.Current.TestOutputHelper?.WriteLine(stopped);
+                    }
+
+                    // A blank page has no text to expect, so what the browser reported while loading is the evidence.
+                    lock (pageProblems)
+                    {
+                        foreach (var problem in pageProblems)
+                        {
+                            TestContext.Current.TestOutputHelper?.WriteLine(problem);
+                        }
                     }
 
                     await SaveScreenshotAsync();
@@ -164,6 +178,39 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
         }
 
         return description.ToString();
+    }
+
+    // Console errors and warnings, uncaught page errors, failed requests and HTTP errors, as the browser sees them. The
+    // first few are enough: a page that failed to start reports its cause first.
+    private void WatchForProblems(IPage page)
+    {
+        void Record(string problem)
+        {
+            lock (pageProblems)
+            {
+                if (pageProblems.Count < MaxPageProblems)
+                {
+                    pageProblems.Add(problem);
+                }
+            }
+        }
+
+        page.Console += (_, message) =>
+        {
+            if (message.Type is "error" or "warning")
+            {
+                Record($"Browser console {message.Type}: {message.Text}");
+            }
+        };
+        page.PageError += (_, error) => Record($"Browser page error: {error}");
+        page.RequestFailed += (_, request) => Record($"Browser request failed: {request.Method} {request.Url} ({request.Failure})");
+        page.Response += (_, response) =>
+        {
+            if (response.Status >= 400)
+            {
+                Record($"Browser got HTTP {response.Status}: {response.Request.Method} {response.Url}");
+            }
+        };
     }
 
     private async Task SaveScreenshotAsync()

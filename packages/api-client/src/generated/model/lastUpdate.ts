@@ -17,4 +17,5 @@ export interface LastUpdate {
   userId?: string | null;
   /** @nullable */
   apiKeyId?: string | null;
+  created?: boolean;
 }

@@ -1,18 +1,21 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using ScreenHire.Application.Slack;
 using ScreenHire.Application.Webhooks;
 using ScreenHire.Infrastructure.Persistence;
+using Wolverine;
 
 namespace ScreenHire.Application.Jobs;
 
 /// <summary>
 /// Runs in the worker once per <see cref="JobPublished"/>: reads the job back as its organization and records that the
-/// worker saw it, and raises the <c>job.published</c> webhook event. Board postings come from the publish transaction
+/// worker saw it, and raises the <c>job.published</c> webhook event and, for a first publish, its Slack post. Board postings come from the publish transaction
 /// itself (docs/architecture/job-distribution.md §5).
 /// </summary>
 public static partial class JobPublishedHandler
 {
-    public static async Task<FanOutWebhook> Handle(JobPublished message, ScreenHireDbContext db, ILogger<JobPublished> logger, CancellationToken cancellationToken)
+    public static async Task<OutgoingMessages> Handle(
+        JobPublished message, ScreenHireDbContext db, SlackAccess slack, ILogger<JobPublished> logger, CancellationToken cancellationToken)
     {
         // Row-level security shows the job only to its own organization, so this works only because the worker made the
         // message's organization the tenant (TenantMessageMiddleware). A failure goes through the retry policy.
@@ -22,7 +25,13 @@ public static partial class JobPublishedHandler
         }
 
         LogJobPublished(logger, message.JobId, message.OrganizationId);
-        return WebhookEvents.From(message);
+        var outgoing = new OutgoingMessages { WebhookEvents.From(message) };
+        if (SlackEvents.From(message, slack) is { } post)
+        {
+            outgoing.Add(post);
+        }
+
+        return outgoing;
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Job {JobId} published for organization {OrganizationId}")]

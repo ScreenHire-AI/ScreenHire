@@ -60,6 +60,21 @@ describe('organization settings page', () => {
     await expectNoAxeViolations();
   });
 
+  it('says when it was created once: in the header until a rename, then in the careers panel (W7)', async () => {
+    renderPage({ 'GET /v1/organization': () => Response.json({ ...organization, lastUpdated: { at: organization.createdAt, by: null, created: true } }) });
+
+    await screen.findByDisplayValue('Brightwater Studio');
+    expect(document.querySelector('[data-last-updated]')).toHaveTextContent(/^Created:\s*Created /);
+    expect(screen.queryByText('Created', { selector: 'dt' })).toBeNull();
+  });
+
+  it('keeps Created in the careers panel once the header says Updated', async () => {
+    renderPage();
+
+    await screen.findByDisplayValue('Brightwater Studio');
+    expect(screen.getByText('Created', { selector: 'dt' })).toBeInTheDocument();
+  });
+
   it('links to the careers address the API gives, and shows the data region', async () => {
     renderPage();
 

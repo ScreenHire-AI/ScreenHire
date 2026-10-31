@@ -43,13 +43,16 @@
   let picked = $state('');
   // The one teammate there is, until someone picks.
   const assigneeUserId = $derived(picked || (teammates?.length === 1 ? teammates[0].userId : ''));
-  let scorecardTemplateId = $state('');
+  let pickedScorecard = $state('');
   let note = $state('');
   let tried = $state(false);
   let failure = $state('');
 
   // The current stage's own scorecard first, when it names one in the library, then the built-ins and the team's own.
   const stageKey = $derived(currentStage?.scorecard ? (currentStage.scorecardTemplateId ?? undefined) : undefined);
+  // The stage's own scorecard, until someone picks: it fills in whenever the job's workflow arrives, so a sheet opened
+  // before it did does not stay on "Choose a scorecard".
+  const scorecardTemplateId = $derived(pickedScorecard || stageKey || '');
   const stageOption = $derived(stageKey ? { key: stageKey, label: stageScorecardLabel(currentStage!) } : undefined);
   const builtIns = $derived(library.filter((scorecard) => scorecard.builtIn && scorecard.id !== stageKey));
   const own = $derived(library.filter((scorecard) => !scorecard.builtIn && !scorecard.archived && scorecard.id !== stageKey));
@@ -60,7 +63,7 @@
     if (!open) return;
     untrack(() => {
       picked = '';
-      scorecardTemplateId = stageKey ?? '';
+      pickedScorecard = '';
       note = '';
       tried = false;
       failure = '';
@@ -118,7 +121,7 @@
           <select
             id={`${uid}-scorecard`}
             class={selectClass}
-            bind:value={scorecardTemplateId}
+            bind:value={() => scorecardTemplateId, (value) => (pickedScorecard = value)}
             aria-invalid={(tried && !scorecardTemplateId) || undefined}
             aria-describedby={tried && !scorecardTemplateId ? `${uid}-scorecard-error` : undefined}
           >

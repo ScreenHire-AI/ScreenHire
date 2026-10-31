@@ -13,18 +13,33 @@ public enum ChangeActorKind
 
 /// <summary>When a tracked object last changed and who changed it, the last fact in its header.</summary>
 /// <remarks>
-/// <c>at</c>: null only for a built-in email template in ScreenHire's wording. <c>by</c>: null for an object last
-/// changed before its history was recorded. <c>userId</c> names a member, by id, so the screen shows their current name;
-/// <c>apiKeyId</c> names an API key.
+/// <c>at</c>: null only for a built-in in ScreenHire's wording. <c>by</c>: null when nobody was recorded, for an object
+/// created or changed before its history was. <c>userId</c> names a member, by id, so the screen shows their current
+/// name; <c>apiKeyId</c> names an API key. <c>created</c>: nothing has changed the object since it was created, so the
+/// header says Created, not Updated.
 /// </remarks>
-public sealed record LastUpdate(DateTimeOffset? At, ChangeActorKind? By, Guid? UserId = null, Guid? ApiKeyId = null)
+public sealed record LastUpdate(DateTimeOffset? At, ChangeActorKind? By, Guid? UserId = null, Guid? ApiKeyId = null, bool Created = false)
 {
     /// <summary>A ScreenHire built-in nobody in the organization has changed.</summary>
     public static LastUpdate ByScreenHire(DateTimeOffset? at) => new(at, ChangeActorKind.ScreenHire);
 
-    /// <summary>The newest recorded change, or <paramref name="fallback"/> with nobody named when none is recorded.</summary>
-    public static LastUpdate From(ChangeStamp? stamp, DateTimeOffset? fallback) =>
-        stamp is null ? new(fallback, null) : new(stamp.At, HistoryMappings.Actor(stamp.UserId, stamp.ApiKeyId), stamp.UserId, stamp.ApiKeyId);
+    /// <summary>
+    /// The newest recorded change. With none, the object's creation when nothing changed it since
+    /// (<paramref name="updatedAt"/> null or the creation time itself), else its last update; either with nobody named.
+    /// </summary>
+    public static LastUpdate From(ChangeStamp? stamp, DateTimeOffset createdAt, DateTimeOffset? updatedAt = null) =>
+        stamp is not null ? Of(stamp)
+        : updatedAt is { } updated && updated != createdAt ? new(updated, null)
+        : new(createdAt, null, Created: true);
+
+    /// <summary>
+    /// For something people only ever change, never create (a settings row, a built-in's own wording): the newest
+    /// recorded change, or <paramref name="changedAt"/> with nobody named.
+    /// </summary>
+    public static LastUpdate FromChange(ChangeStamp? stamp, DateTimeOffset? changedAt) => stamp is not null ? Of(stamp) : new(changedAt, null);
+
+    private static LastUpdate Of(ChangeStamp stamp) =>
+        new(stamp.At, HistoryMappings.Actor(stamp.UserId, stamp.ApiKeyId), stamp.UserId, stamp.ApiKeyId, stamp.Created);
 }
 
 /// <summary>
@@ -52,13 +67,27 @@ public sealed record HistoryDetail(string Label, string? Before, string? After, 
 
 internal static class HistoryMappings
 {
+    /// <summary>How a line names a member whose account no longer exists, as the dashboard names them.</summary>
+    public const string FormerTeammate = "a former teammate";
+
     public static ChangeActorKind Actor(Guid? userId, Guid? apiKeyId) =>
         userId is not null ? ChangeActorKind.Member : apiKeyId is not null ? ChangeActorKind.ApiKey : ChangeActorKind.ScreenHire;
 
-    public static HistoryEntry ToEntry(this ChangeRecord record) =>
+    /// <summary>The members the records' lines name, by id: the history stores ids, and names them when it is read.</summary>
+    public static IReadOnlySet<Guid> People(IEnumerable<ChangeRecord> records) =>
+        records.SelectMany(r => r.Lines).SelectMany(l => l.Parts).Select(p => p.UserId).OfType<Guid>().ToHashSet();
+
+    /// <param name="record">The record.</param>
+    /// <param name="names">The current name of each member its lines name (<see cref="People"/>); one missing is a former teammate.</param>
+    public static HistoryEntry ToEntry(this ChangeRecord record, IReadOnlyDictionary<Guid, string> names) =>
         new(record.Id, record.OccurredAt, Actor(record.ActorUserId, record.ActorApiKeyId), record.ActorUserId, record.ActorApiKeyId,
-            [.. record.Lines.Select(l => new HistoryLine(
-                l.Sentence(),
-                [.. l.Parts.Select(p => new HistoryTextPart(p.Text, p.Strong))],
-                [.. (l.Details ?? []).Select(d => new HistoryDetail(d.Label, d.Before, d.After, d.Kind))]))]);
+            [.. record.Lines.Select(l => l.ToLine(names))]);
+
+    private static HistoryLine ToLine(this ChangeLine line, IReadOnlyDictionary<Guid, string> names)
+    {
+        var parts = line.Parts
+            .Select(p => new HistoryTextPart(p.UserId is { } person ? names.GetValueOrDefault(person, FormerTeammate) : p.Text, p.Strong))
+            .ToList();
+        return new(string.Concat(parts.Select(p => p.Text)), parts, [.. (line.Details ?? []).Select(d => new HistoryDetail(d.Label, d.Before, d.After, d.Kind))]);
+    }
 }

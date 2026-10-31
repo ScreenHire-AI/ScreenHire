@@ -212,11 +212,15 @@ public sealed class WorkerMessagingTests(AppHostFixture fixture)
         await fixture.App.ResourceNotifications.WaitForResourceAsync("worker", KnownResourceStates.TerminalStates, cancellationToken);
     }
 
+    // Running is only the process; the worker handles messages once its Wolverine node leads again, which can take a
+    // minute on a busy machine, so the tests' waits start from there.
     private async Task StartWorkerAsync(CancellationToken cancellationToken)
     {
+        var stopped = await fixture.GetDatabaseTimeAsync(cancellationToken);
         var result = await fixture.App.ResourceCommands.ExecuteCommandAsync("worker", KnownResourceCommands.StartCommand, cancellationToken);
         result.Success.Should().BeTrue(result.Message);
         await fixture.App.ResourceNotifications.WaitForResourceAsync("worker", KnownResourceStates.Running, cancellationToken);
+        await fixture.WaitUntilWorkerRunsAgentsAsync(stopped, cancellationToken);
     }
 }
 

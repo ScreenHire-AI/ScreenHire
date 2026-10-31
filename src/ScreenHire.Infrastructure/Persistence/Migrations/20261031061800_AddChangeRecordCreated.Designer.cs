@@ -13,8 +13,8 @@ using ScreenHire.Infrastructure.Persistence;
 namespace ScreenHire.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ScreenHireDbContext))]
-    [Migration("20261031063959_AddIntegrityReasonExplanations")]
-    partial class AddIntegrityReasonExplanations
+    [Migration("20261031061800_AddChangeRecordCreated")]
+    partial class AddChangeRecordCreated
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1501,6 +1501,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("actor_user_id");
 
+                    b.Property<bool>("Created")
+                        .HasColumnType("boolean")
+                        .HasColumnName("created");
+
                     b.Property<string>("Lines")
                         .IsRequired()
                         .HasColumnType("jsonb")
@@ -1928,11 +1932,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(30)")
                         .HasColumnName("dismiss_reason");
 
-                    b.Property<string>("ExplainReason")
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasColumnName("explain_reason");
-
                     b.Property<string>("Note")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)")
@@ -1945,10 +1944,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
                         .HasColumnName("organization_id");
-
-                    b.Property<Guid?>("SignalId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("signal_id");
 
                     b.Property<string>("Type")
                         .IsRequired()

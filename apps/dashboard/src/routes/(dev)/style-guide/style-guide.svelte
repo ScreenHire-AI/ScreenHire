@@ -34,6 +34,7 @@
   import ChoiceCard from '#lib/components/choice-card.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import CountButton, { type CountItem } from '#lib/components/count-button.svelte';
+  import CountryPicker from '#lib/components/country-picker.svelte';
   import Picker from '#lib/components/picker.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import EmailPreview from '#lib/components/email-preview.svelte';
@@ -248,6 +249,7 @@
   // Tags change in place here; nothing is saved.
   let sampleTags = $state(['Referral', 'Relocating to Leeds']);
   let jobsChoice = $state<'All' | 'HiringTeamOnly'>('All');
+  let countriesChoice = $state(['GB', 'IE']);
   const sampleTeam = [
     { id: 'm1', userId: 'u1', email: 'avery@example.com', displayName: 'Avery Quinn', role: 'Owner' as const, customRoleId: null, roleName: 'Owner', joinedAt: ago(30 * day), jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 },
     { id: 'm2', userId: 'u2', email: 'robin@example.com', displayName: 'Robin Ashby', role: 'Recruiter' as const, customRoleId: null, roleName: 'Recruiter', joinedAt: ago(20 * day), jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 },
@@ -612,6 +614,12 @@
             onpick={() => {}}
           />
         </Panel>
+        <Panel title="Country picker" class="flex-[1_1_320px]">
+          <div class="flex flex-col gap-2">
+            <label for="style-guide-countries" class="text-body font-medium">Countries candidates can work from</label>
+            <CountryPicker id="style-guide-countries" bind:value={countriesChoice} />
+          </div>
+        </Panel>
         <Panel title="Choice card" class="flex-[1_1_320px]">
           <div role="radiogroup" aria-label="Jobs" class="flex flex-col gap-2">
             <ChoiceCard name="style-guide-jobs" value="All" bind:group={jobsChoice} title="All jobs" description="Including jobs added later." />
@@ -893,7 +901,16 @@
               <Fact label="Last updated">
                 <LastUpdated value={{ at: null, by: 'ScreenHire' }} members={sampleTeam} currentUserId="u1" />
               </Fact>
+              <Fact label="Created">
+                <LastUpdated value={{ at: ago(2 * 60 * minute), by: 'Member', userId: 'u2', created: true }} members={sampleTeam} currentUserId="u1" />
+              </Fact>
             </dl>
+          </figure>
+          <figure class="mt-4 flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">On a settings page's title row, where no label shows, it starts with its verb</figcaption>
+            <p class="text-muted-foreground">
+              <LastUpdated value={{ at: ago(2 * 60 * minute), by: 'Member', userId: 'u2', created: true }} lead members={sampleTeam} currentUserId="u1" />
+            </p>
           </figure>
           <HistorySheet
             bind:open={historyOpen}
