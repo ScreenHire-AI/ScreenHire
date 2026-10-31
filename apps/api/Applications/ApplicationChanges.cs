@@ -215,8 +215,8 @@ internal static class ApplicationChanges
     /// <summary>
     /// Asks a teammate for a scorecard: a Scorecard task assigned to them, a timeline entry naming who asked, and
     /// ApplicationTaskCreated. The teammate must see the job (<see cref="AudienceAsync"/>) and their role must fill in
-    /// scorecards, or the task could never be done; the scorecard must be in the library and not archived, or be one the
-    /// job's stages hold. Asking again while the same request is open, or for a scorecard they already gave, is a 409.
+    /// scorecards, or the task could never be done; the scorecard must be in the library and not archived, or be the
+    /// current stage's own. Asking again while the same request is open, or for a scorecard they already gave, is a 409.
     /// </summary>
     public static async Task<Results<Created<ApplicationTaskEntry>, NotFound, ValidationProblem, ProblemHttpResult>> RequestScorecardAsync(
         Guid applicationId,
@@ -273,8 +273,13 @@ internal static class ApplicationChanges
                 title: "Already asked", detail: "They already have this scorecard to fill in for this candidate.", statusCode: StatusCodes.Status409Conflict);
         }
 
-        if (await db.ApplicationScorecards.AnyAsync(
-            s => s.ApplicationId == application.Id && s.ReviewerUserId == request.AssigneeUserId && s.ScorecardTemplateId == key, cancellationToken))
+        // One given before scorecards kept their key was its stage's own, so it counts when that stage's came from this key.
+        var theirs = await db.ApplicationScorecards.AsNoTracking()
+            .Where(s => s.ApplicationId == application.Id && s.ReviewerUserId == request.AssigneeUserId)
+            .Select(s => new { s.StageId, s.ScorecardTemplateId })
+            .ToListAsync(cancellationToken);
+        if (theirs.Exists(s => s.ScorecardTemplateId == key
+            || (s.ScorecardTemplateId is null && workflow.FindStage(s.StageId)?.ScorecardTemplateId == key)))
         {
             return TypedResults.Problem(
                 title: "Already given", detail: "They already gave this scorecard for this candidate.", statusCode: StatusCodes.Status409Conflict);

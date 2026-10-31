@@ -54,7 +54,7 @@ export function scorecardChoices(sources: ScorecardChoiceSources): ScorecardChoi
       const name = stage.scorecard!.name;
       return {
         value: `stage:${stage.id}`,
-        label: name === stage.name ? stage.name : `${stage.name}: ${name}`,
+        label: stageScorecardLabel(stage),
         group: 'stages',
         name,
         stageId: stage.id,
@@ -77,6 +77,12 @@ export function scorecardChoices(sources: ScorecardChoiceSources): ScorecardChoi
 
   return [...ofStages, ...ofLibrary.filter((choice) => choice.group === 'builtIn'), ...ofLibrary.filter((choice) => choice.group === 'own')];
 }
+
+/** A stage's own scorecard in a picker: the stage's name, and the scorecard's after it when they differ. */
+export const stageScorecardLabel = (stage: WorkflowStage): string => {
+  const name = stage.scorecard?.name ?? stage.name;
+  return name === stage.name ? stage.name : `${stage.name}: ${name}`;
+};
 
 /** The choice a link's scorecard names: a stage that took that scorecard (the current one first), else the library's. */
 export const choiceFor = (choices: readonly ScorecardChoice[], key: string): ScorecardChoice | undefined =>

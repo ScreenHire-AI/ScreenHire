@@ -11,7 +11,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { Textarea } from '#lib/components/ui/textarea/index.js';
   import { describeError } from '#lib/query.js';
-  import { scorecardWords } from '#lib/scorecard-choices.js';
+  import { scorecardWords, stageScorecardLabel } from '#lib/scorecard-choices.js';
   import { cn } from '#lib/utils.js';
 
   // Ask a teammate for a scorecard (design system section 11, Scorecard): the teammate, the scorecard and a note. It makes
@@ -50,9 +50,7 @@
 
   // The current stage's own scorecard first, when it names one in the library, then the built-ins and the team's own.
   const stageKey = $derived(currentStage?.scorecard ? (currentStage.scorecardTemplateId ?? undefined) : undefined);
-  const stageOption = $derived(
-    stageKey ? { key: stageKey, label: currentStage!.scorecard!.name === currentStage!.name ? currentStage!.name : `${currentStage!.name}: ${currentStage!.scorecard!.name}` } : undefined,
-  );
+  const stageOption = $derived(stageKey ? { key: stageKey, label: stageScorecardLabel(currentStage!) } : undefined);
   const builtIns = $derived(library.filter((scorecard) => scorecard.builtIn && scorecard.id !== stageKey));
   const own = $derived(library.filter((scorecard) => !scorecard.builtIn && !scorecard.archived && scorecard.id !== stageKey));
   const scorecardName = (key: string) => (key === stageKey ? currentStage?.scorecard?.name : library.find((scorecard) => scorecard.id === key)?.name);
@@ -99,7 +97,7 @@
         </div>
         <p class="sr-only" role="status">Loading your teammates…</p>
       {:else if teammates.length === 0}
-        <p class="text-body">Nobody else who sees this job fills in scorecards. Add someone to the job's hiring team first.</p>
+        <p class="text-body">Nobody else on this job fills in scorecards. Add someone to its hiring team.</p>
       {:else}
         <Field.Field>
           <Field.Label for={`${uid}-teammate`}>Teammate</Field.Label>
@@ -126,7 +124,7 @@
           >
             <option value="" disabled>Choose a scorecard</option>
             {#if stageOption}
-              <optgroup label="This stage">
+              <optgroup label="This job's stages">
                 <option value={stageOption.key}>{stageOption.label}</option>
               </optgroup>
             {/if}

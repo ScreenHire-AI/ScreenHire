@@ -54,18 +54,18 @@ internal static class ScorecardReferences
     }
 
     /// <summary>
-    /// The questions to ask for <paramref name="key"/> on a job: the job's own copy when one of its stages took that
-    /// scorecard (the current stage first), so every candidate for the job answers the same questions; otherwise the
-    /// library's. Null when neither has it.
+    /// The questions to ask for <paramref name="key"/> at the stage the application is in: the job's own copy when that
+    /// stage's scorecard came from this key, so every candidate in the stage answers the same questions; otherwise the
+    /// library's, which is what the dashboard shows for a library scorecard (workflow-engine.md section 8). Null when
+    /// neither has it.
     /// </summary>
     public static async Task<LibraryScorecard?> ForJobAsync(
         ScreenHireDbContext db, HiringWorkflow workflow, string currentStageId, string key, CancellationToken cancellationToken)
     {
-        var stage = workflow.Stages
-            .Where(s => s.ScorecardTemplateId == key && s.Scorecard is not null)
-            .OrderBy(s => s.Id == currentStageId ? 0 : 1)
-            .FirstOrDefault();
-        return stage?.Scorecard is { } copy ? new(key, copy, Archived: false) : await FindAsync(db, key, cancellationToken);
+        var stage = workflow.FindStage(currentStageId);
+        return stage is { Scorecard: { } copy } && stage.ScorecardTemplateId == key
+            ? new(key, copy, Archived: false)
+            : await FindAsync(db, key, cancellationToken);
     }
 
     /// <summary>Errors for each stage of <paramref name="workflow"/> that names a scorecard the library does not have.</summary>

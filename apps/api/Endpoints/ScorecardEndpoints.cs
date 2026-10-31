@@ -159,8 +159,10 @@ internal static class ScorecardEndpoints
         }
 
         // One per reviewer, stage and scorecard. A scorecard given before submissions kept their scorecard (no key) was
-        // the stage's own.
-        if (given.Exists(s => s.ScorecardTemplateId == key || (request.ScorecardTemplateId is null && s.ScorecardTemplateId is null)))
+        // the stage's own, so it is this one too when the stage's scorecard came from this key.
+        var stageOwn = job.Workflow.FindStage(stageId)?.ScorecardTemplateId;
+        if (given.Exists(s => s.ScorecardTemplateId == key
+            || (s.ScorecardTemplateId is null && (request.ScorecardTemplateId is null || stageOwn == key))))
         {
             return AlreadyGiven();
         }

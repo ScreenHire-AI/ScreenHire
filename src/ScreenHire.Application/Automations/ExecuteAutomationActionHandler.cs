@@ -260,6 +260,16 @@ public static partial class ExecuteAutomationActionHandler
             return Failed("The reviewer is not a member of the organization any more.");
         }
 
+        // A review is done when its reviewer gives a scorecard, and nobody ticks one by hand (ADR-0017 decision 11). A
+        // reviewer who already gave one at this stage has done it (ReviewerGate), so a new task would stay open for good.
+        var stageId = context.Application.CurrentStageId;
+        if (assigneeUserId is { } reviewer
+            && await context.Db.ApplicationScorecards.AnyAsync(
+                s => s.ApplicationId == context.Application.Id && s.StageId == stageId && s.ReviewerUserId == reviewer, cancellationToken))
+        {
+            return Skipped("The reviewer already gave a scorecard at this stage.");
+        }
+
         return AddTask(context, ApplicationTaskKind.Review, "Review this application.", assigneeUserId,
             assigneeUserId is null ? "Asked the hiring team for a review." : "Assigned a reviewer.");
     }

@@ -1108,7 +1108,7 @@ describe('application page', () => {
 
       await fireEvent.click(await within(panel).findByRole('button', { name: 'Ask for one' }));
       const sheet = await screen.findByRole('dialog', { name: 'Ask for a scorecard' });
-      await within(sheet).findByText(/Nobody else who sees this job fills in scorecards/);
+      await within(sheet).findByText(/Nobody else on this job fills in scorecards/);
       expect(within(sheet).queryByRole('button', { name: 'Ask' })).not.toBeInTheDocument();
     });
 
