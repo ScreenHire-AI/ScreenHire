@@ -30,10 +30,11 @@ public sealed class ScorecardTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Scorecards") }).ClickAsync();
         var scorecards = Region("Scorecards");
         await Expect(scorecards).ToContainTextAsync("No scorecards yet.");
-        await scorecards.GetByRole(AriaRole.Button, new() { Name = "Fill scorecard" }).ClickAsync();
+        await scorecards.GetByRole(AriaRole.Button, new() { Name = "Fill in" }).ClickAsync();
 
-        var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Fill scorecard" });
-        await Expect(sheet).ToContainTextAsync("Stage: Interview");
+        // The candidate is in Interview, so the sheet starts on its scorecard.
+        var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Fill in a scorecard" });
+        await Expect(sheet.GetByRole(AriaRole.Combobox, new() { Name = "Scorecard" })).ToHaveValueAsync("stage:interview");
         // Ratings and yes-or-no answer on a row of joined buttons, with Low and High under a number scale.
         await Question(sheet, "Problem solving").GetByRole(AriaRole.Radio, new() { Name = "4", Exact = true }).ClickAsync();
         await Question(sheet, ".NET and C#").GetByRole(AriaRole.Radio, new() { Name = "10, High" }).ClickAsync();
@@ -60,7 +61,6 @@ public sealed class ScorecardTests(E2EFixture fixture) : BrowserTest(fixture)
         await rating.ClickAsync();
         await Expect(Page.GetByText("From 1 scorecard", new() { Exact = true })).ToBeVisibleAsync();
         await Page.Keyboard.PressAsync("Escape");
-        await Expect(scorecards.GetByRole(AriaRole.Button, new() { Name = "Fill scorecard" })).ToHaveCountAsync(0);
         // The automation's move shows in the header's stage and in Activity.
         await Expect(Page.Locator("[data-slot='header-band'] dl")).ToContainTextAsync("Offer", new() { Timeout = 30_000 });
         await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Activity") }).ClickAsync();
