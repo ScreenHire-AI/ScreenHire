@@ -126,6 +126,12 @@ import type {
   SentEmail,
   SignInMethods,
   SimulateWorkflowRequest,
+  SlackAccount,
+  SlackAuthorization,
+  SlackChannelOption,
+  SlackStatus,
+  SlackTestResult,
+  StartSlackLinkRequest,
   SubmitScorecardRequest,
   SwitchOrganizationRequest,
   TalentPoolList,
@@ -144,6 +150,8 @@ import type {
   UpdateOrganizationRequest,
   UpdateRoleRequest,
   UpdateScorecardTemplateRequest,
+  UpdateSlackAccountRequest,
+  UpdateSlackChannelRequest,
   UpdateTalentPoolSettingsRequest,
   UpdateWebhookEndpointRequest,
   UploadRequest,
@@ -8226,6 +8234,478 @@ export const replayWebhookDelivery = async (endpointId: string,
   {
     ...options,
     method: 'POST'
+
+
+  }
+);}
+
+
+
+export type getSlackResponse200 = {
+  data: SlackStatus
+  status: 200
+}
+
+export type getSlackResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getSlackResponseSuccess = (getSlackResponse200) & {
+  headers: Headers;
+};
+export type getSlackResponseError = (getSlackResponse401) & {
+  headers: Headers;
+};
+
+export type getSlackResponse = (getSlackResponseSuccess | getSlackResponseError)
+
+export const getGetSlackUrl = () => {
+
+
+
+
+  return `/v1/slack`
+}
+
+export const getSlack = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getSlackResponse> => {
+
+  return apiFetch<getSlackResponse>(getGetSlackUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type disconnectSlackResponse204 = {
+  data: void
+  status: 204
+}
+
+export type disconnectSlackResponse401 = {
+  data: void
+  status: 401
+}
+
+export type disconnectSlackResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type disconnectSlackResponse404 = {
+  data: void
+  status: 404
+}
+
+export type disconnectSlackResponseSuccess = (disconnectSlackResponse204) & {
+  headers: Headers;
+};
+export type disconnectSlackResponseError = (disconnectSlackResponse401 | disconnectSlackResponse403 | disconnectSlackResponse404) & {
+  headers: Headers;
+};
+
+export type disconnectSlackResponse = (disconnectSlackResponseSuccess | disconnectSlackResponseError)
+
+export const getDisconnectSlackUrl = () => {
+
+
+
+
+  return `/v1/slack`
+}
+
+export const disconnectSlack = async ( options?: Parameters<typeof apiFetch>[1]): Promise<disconnectSlackResponse> => {
+
+  return apiFetch<disconnectSlackResponse>(getDisconnectSlackUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type startSlackInstallResponse200 = {
+  data: SlackAuthorization
+  status: 200
+}
+
+export type startSlackInstallResponse401 = {
+  data: void
+  status: 401
+}
+
+export type startSlackInstallResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type startSlackInstallResponse404 = {
+  data: void
+  status: 404
+}
+
+export type startSlackInstallResponseSuccess = (startSlackInstallResponse200) & {
+  headers: Headers;
+};
+export type startSlackInstallResponseError = (startSlackInstallResponse401 | startSlackInstallResponse403 | startSlackInstallResponse404) & {
+  headers: Headers;
+};
+
+export type startSlackInstallResponse = (startSlackInstallResponseSuccess | startSlackInstallResponseError)
+
+export const getStartSlackInstallUrl = () => {
+
+
+
+
+  return `/v1/slack/install`
+}
+
+export const startSlackInstall = async ( options?: Parameters<typeof apiFetch>[1]): Promise<startSlackInstallResponse> => {
+
+  return apiFetch<startSlackInstallResponse>(getStartSlackInstallUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type listSlackChannelsResponse200 = {
+  data: SlackChannelOption[]
+  status: 200
+}
+
+export type listSlackChannelsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listSlackChannelsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listSlackChannelsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listSlackChannelsResponseSuccess = (listSlackChannelsResponse200) & {
+  headers: Headers;
+};
+export type listSlackChannelsResponseError = (listSlackChannelsResponse401 | listSlackChannelsResponse403 | listSlackChannelsResponse404) & {
+  headers: Headers;
+};
+
+export type listSlackChannelsResponse = (listSlackChannelsResponseSuccess | listSlackChannelsResponseError)
+
+export const getListSlackChannelsUrl = () => {
+
+
+
+
+  return `/v1/slack/channels`
+}
+
+export const listSlackChannels = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listSlackChannelsResponse> => {
+
+  return apiFetch<listSlackChannelsResponse>(getListSlackChannelsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type updateSlackChannelResponse200 = {
+  data: SlackStatus
+  status: 200
+}
+
+export type updateSlackChannelResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateSlackChannelResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateSlackChannelResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateSlackChannelResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateSlackChannelResponseSuccess = (updateSlackChannelResponse200) & {
+  headers: Headers;
+};
+export type updateSlackChannelResponseError = (updateSlackChannelResponse400 | updateSlackChannelResponse401 | updateSlackChannelResponse403 | updateSlackChannelResponse404) & {
+  headers: Headers;
+};
+
+export type updateSlackChannelResponse = (updateSlackChannelResponseSuccess | updateSlackChannelResponseError)
+
+export const getUpdateSlackChannelUrl = () => {
+
+
+
+
+  return `/v1/slack/channel`
+}
+
+export const updateSlackChannel = async (updateSlackChannelRequest: UpdateSlackChannelRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateSlackChannelResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateSlackChannelResponse>(getUpdateSlackChannelUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateSlackChannelRequest)
+  }
+);}
+
+
+
+export type sendSlackTestMessageResponse200 = {
+  data: SlackTestResult
+  status: 200
+}
+
+export type sendSlackTestMessageResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type sendSlackTestMessageResponse401 = {
+  data: void
+  status: 401
+}
+
+export type sendSlackTestMessageResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type sendSlackTestMessageResponse404 = {
+  data: void
+  status: 404
+}
+
+export type sendSlackTestMessageResponseSuccess = (sendSlackTestMessageResponse200) & {
+  headers: Headers;
+};
+export type sendSlackTestMessageResponseError = (sendSlackTestMessageResponse400 | sendSlackTestMessageResponse401 | sendSlackTestMessageResponse403 | sendSlackTestMessageResponse404) & {
+  headers: Headers;
+};
+
+export type sendSlackTestMessageResponse = (sendSlackTestMessageResponseSuccess | sendSlackTestMessageResponseError)
+
+export const getSendSlackTestMessageUrl = () => {
+
+
+
+
+  return `/v1/slack/test`
+}
+
+export const sendSlackTestMessage = async ( options?: Parameters<typeof apiFetch>[1]): Promise<sendSlackTestMessageResponse> => {
+
+  return apiFetch<sendSlackTestMessageResponse>(getSendSlackTestMessageUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type startSlackLinkResponse200 = {
+  data: SlackAuthorization
+  status: 200
+}
+
+export type startSlackLinkResponse401 = {
+  data: void
+  status: 401
+}
+
+export type startSlackLinkResponse404 = {
+  data: void
+  status: 404
+}
+
+export type startSlackLinkResponseSuccess = (startSlackLinkResponse200) & {
+  headers: Headers;
+};
+export type startSlackLinkResponseError = (startSlackLinkResponse401 | startSlackLinkResponse404) & {
+  headers: Headers;
+};
+
+export type startSlackLinkResponse = (startSlackLinkResponseSuccess | startSlackLinkResponseError)
+
+export const getStartSlackLinkUrl = () => {
+
+
+
+
+  return `/v1/slack/account/link`
+}
+
+export const startSlackLink = async (startSlackLinkRequest: StartSlackLinkRequest, options?: Parameters<typeof apiFetch>[1]): Promise<startSlackLinkResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<startSlackLinkResponse>(getStartSlackLinkUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(startSlackLinkRequest)
+  }
+);}
+
+
+
+export type updateSlackAccountResponse200 = {
+  data: SlackAccount
+  status: 200
+}
+
+export type updateSlackAccountResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateSlackAccountResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateSlackAccountResponseSuccess = (updateSlackAccountResponse200) & {
+  headers: Headers;
+};
+export type updateSlackAccountResponseError = (updateSlackAccountResponse401 | updateSlackAccountResponse404) & {
+  headers: Headers;
+};
+
+export type updateSlackAccountResponse = (updateSlackAccountResponseSuccess | updateSlackAccountResponseError)
+
+export const getUpdateSlackAccountUrl = () => {
+
+
+
+
+  return `/v1/slack/account`
+}
+
+export const updateSlackAccount = async (updateSlackAccountRequest: UpdateSlackAccountRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateSlackAccountResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateSlackAccountResponse>(getUpdateSlackAccountUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateSlackAccountRequest)
+  }
+);}
+
+
+
+export type unlinkSlackAccountResponse204 = {
+  data: void
+  status: 204
+}
+
+export type unlinkSlackAccountResponse401 = {
+  data: void
+  status: 401
+}
+
+export type unlinkSlackAccountResponseSuccess = (unlinkSlackAccountResponse204) & {
+  headers: Headers;
+};
+export type unlinkSlackAccountResponseError = (unlinkSlackAccountResponse401) & {
+  headers: Headers;
+};
+
+export type unlinkSlackAccountResponse = (unlinkSlackAccountResponseSuccess | unlinkSlackAccountResponseError)
+
+export const getUnlinkSlackAccountUrl = () => {
+
+
+
+
+  return `/v1/slack/account`
+}
+
+export const unlinkSlackAccount = async ( options?: Parameters<typeof apiFetch>[1]): Promise<unlinkSlackAccountResponse> => {
+
+  return apiFetch<unlinkSlackAccountResponse>(getUnlinkSlackAccountUrl(),
+  {
+    ...options,
+    method: 'DELETE'
 
 
   }
