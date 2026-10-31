@@ -52,10 +52,15 @@ public sealed record AutomationIssue(
     string? Detail,
     DateTimeOffset CreatedAt);
 
-/// <summary>Something a person should do about an application: a review, a to-do, or a rejection to decide on.</summary>
+/// <summary>
+/// Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a
+/// teammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are
+/// ticked off by hand.
+/// </summary>
 /// <remarks>
 /// <c>assigneeUserId</c>: Who should do it; null for anyone on the hiring team.
-/// <c>completedByUserId</c>: Who marked it done; null while it is open.
+/// <c>completedByUserId</c>: Who finished it; null while it is open.
+/// <c>scorecardTemplateId</c>: The library scorecard a Scorecard task asks for; null on every other kind.
 /// </remarks>
 public sealed record ApplicationTaskEntry(
     Guid Id,
@@ -66,12 +71,14 @@ public sealed record ApplicationTaskEntry(
     Guid? AutomationRunId,
     DateTimeOffset CreatedAt,
     DateTimeOffset? CompletedAt,
-    Guid? CompletedByUserId);
+    Guid? CompletedByUserId,
+    string? ScorecardTemplateId = null);
 
 /// <summary>A task in a list across applications (My tasks): the task, and the candidate and job it is about.</summary>
 /// <remarks>
 /// <c>assigneeUserId</c>: Who should do it; null for anyone on the hiring team.
-/// <c>completedByUserId</c>: Who marked it done; null while it is open.
+/// <c>completedByUserId</c>: Who finished it; null while it is open.
+/// <c>scorecardTemplateId</c>: The library scorecard a Scorecard task asks for; null on every other kind.
 /// </remarks>
 public sealed record TaskListItem(
     Guid Id,
@@ -85,7 +92,8 @@ public sealed record TaskListItem(
     Guid? AutomationRunId,
     DateTimeOffset CreatedAt,
     DateTimeOffset? CompletedAt,
-    Guid? CompletedByUserId);
+    Guid? CompletedByUserId,
+    string? ScorecardTemplateId = null);
 
 /// <summary>Which tasks a list shows: the open ones, or the ones done.</summary>
 public enum TaskStatusFilter
@@ -128,7 +136,7 @@ internal static class AutomationMappings
 
     public static ApplicationTaskEntry ToEntry(this ApplicationTask task) =>
         new(task.Id, task.ApplicationId, task.Kind, task.Note, task.AssigneeUserId, task.AutomationRunId, task.CreatedAt, task.CompletedAt,
-            task.CompletedByUserId);
+            task.CompletedByUserId, task.ScorecardTemplateId);
 }
 
 internal sealed class CreateApplicationTaskRequestValidator : AbstractValidator<CreateApplicationTaskRequest>

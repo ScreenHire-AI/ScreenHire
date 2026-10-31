@@ -214,6 +214,7 @@ export * from './questionType.ts';
 export * from './ratingState.ts';
 export * from './recommendation.ts';
 export * from './removeApplicationTagParams.ts';
+export * from './requestScorecardRequest.ts';
 export * from './roleCatalogue.ts';
 export * from './roleSummary.ts';
 export * from './ruleResult.ts';

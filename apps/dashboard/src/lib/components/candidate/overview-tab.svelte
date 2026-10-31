@@ -10,12 +10,12 @@
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import StatusIcon from '#lib/components/status-icon.svelte';
-  import TaskList from '#lib/components/task-list.svelte';
+  import TaskList, { type TaskRow } from '#lib/components/task-list.svelte';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import type { ActivityNames } from '#lib/activity.js';
   import { authenticityLevels } from '#lib/integrity.js';
   import { describeError } from '#lib/query.js';
-  import { createTaskCompletion } from '#lib/tasks.svelte.js';
+  import { completesByHand, createTaskCompletion, scorecardLink } from '#lib/tasks.svelte.js';
 
   // A candidate's Overview (design system section 22): a grid of panels that uses the width. On the left, what needs you
   // now (Next steps: the application's tasks and, when the integrity level needs a look, its suggested next step) and the
@@ -62,6 +62,13 @@
   const level = $derived(authenticity ? authenticityLevels[authenticity.level] : undefined);
   const integrityStep = $derived(authenticity && level && level.rank > 0 && !authenticity.dismissal ? { view: authenticity, level } : undefined);
   const taskRows = $derived(completion.withHeld(tasks.data?.data.toReversed() ?? []));
+
+  // A review or a requested scorecard is done on the Scorecards tab, by the person it is for (anyone, for a review for
+  // the whole team), so their row links there: a requested scorecard with the sheet open on it.
+  function scorecardWork(task: TaskRow): { href: string; label: string } | undefined {
+    if (completesByHand(task.kind) || (task.assigneeUserId !== null && task.assigneeUserId !== currentUserId)) return undefined;
+    return { href: `?${task.kind === 'Scorecard' && task.scorecardTemplateId ? scorecardLink(task.scorecardTemplateId) : 'tab=scorecards'}`, label: 'Fill in' };
+  }
 </script>
 
 <div class="grid items-start gap-5 @5xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
@@ -88,6 +95,7 @@
         oncomplete={permissions.includes('CompleteTasks') ? (task) => completion.complete(task) : undefined}
         onundo={(taskId) => completion.undo(taskId)}
         undoable={(taskId) => completion.undoable(taskId)}
+        work={permissions.includes('FillInScorecards') ? scorecardWork : undefined}
       />
       <FailureText message={completion.failure} />
     {/if}
