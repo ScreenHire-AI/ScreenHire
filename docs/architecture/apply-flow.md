@@ -36,7 +36,7 @@ never calls the API.
 | Path (under `/{organization}`, or `/` on a tenant host) | What it is |
 |---|---|
 | `/jobs/{job}` | The job, the "How we keep this fair" notice and an Apply link. 410 once the job closes, 404 if unknown. |
-| `/jobs/{job}/apply` | The form: **details** (notice, assistive-technology switch, first name, last name (optional), email, phone, resume), **questions** (the job's questionnaire; skipped when it has none), **review** (summary, AI-use declaration, send). |
+| `/jobs/{job}/apply` | The form: **details** (notice, assistive-technology switch, first name, last name (optional), email, phone, resume), **questions** (the job's questionnaire; skipped when it has none), **review** (summary, AI-use declaration, the optional "Keep my details for future roles" box, send). |
 | `/jobs/{job}/applied` | The confirmation, after a POST-redirect-GET. The same page whether the application is new or the email had already applied, so the form never reveals who applied. |
 | `/privacy` | "What we collect and why", the full notice. Its version (`NOTICE_VERSION` in `src/lib/apply.ts`) is recorded on every application. |
 | `/brand/{hash}.css` | The employer's brand stylesheet (section 5). |
@@ -44,6 +44,8 @@ never calls the API.
 | `/telemetry?job={id}` | Relay for the telemetry module's beacons to the API (integrity-engine.md §10.2, "Form telemetry"). |
 | `/questionnaires/{token}` | A follow-up questionnaire, opened from the signed link a SendQuestionnaire automation emailed (section 8). |
 | `/questionnaires/sent` | Where answered follow-up questions land, after a POST-redirect-GET, with no token in the address. |
+| `/talent-pool/{token}` | Where a candidate stops the employer keeping their details for future roles, from the signed link in a talent pool invitation ([talent pool](talent-pool.md)). One native form, no JavaScript, `no-store`, `noindex` and `no-referrer`. |
+| `/talent-pool/stopped` | Where stopping lands, after a POST-redirect-GET, with no token in the address. |
 
 Each step is a native `<form method="POST" enctype="multipart/form-data">` posted to the `apply` Astro Action
 (`src/actions/index.ts`), which re-renders the same page with the next step. What the candidate has entered travels
@@ -92,7 +94,14 @@ organization and never stores it as sent, and keeps it only on the job's device-
 (the EU and EEA by default), the details step shows an optional "Check this device for repeat applications" box and the
 fingerprint is kept only when it is ticked. The observation and the telemetry are deleted after 30 days. The notice and
 the privacy page say all of this, and that the employer may email a follow-up questionnaire whose page keeps the
-answers only (`NOTICE_VERSION` `2026-10-23.1`).
+answers only.
+
+The review step also asks, optionally and unticked, "Keep my details for future roles", with one line saying the
+employer keeps the application for its talent pool period (`talentPoolMonths` on the application form, 12 months by
+default) and may invite them to apply for other roles, and that every invitation has a link to stop. The careers server
+sends `keepForFutureRoles`; the API records the permission, with that period, on the application only, never on the
+candidate ([talent pool](talent-pool.md)). The privacy page's "Future roles" section says the same
+(`NOTICE_VERSION` `2026-10-30.1`).
 
 ## 3. Uploads
 

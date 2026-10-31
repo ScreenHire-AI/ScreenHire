@@ -30,6 +30,8 @@ public enum ChangeSubjectKind
 
     /// <summary>The organization's API keys, on Settings, API keys: each key created and revoked.</summary>
     ApiKeys,
+    /// <summary>The organization's talent pool settings, on Settings, Talent pool.</summary>
+    TalentPoolSettings,
 }
 
 /// <summary>

@@ -5,6 +5,7 @@ using ScreenHire.Domain.History;
 using ScreenHire.Domain.Integrity;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.TalentPool;
 
 namespace ScreenHire.Infrastructure.Persistence.History;
 
@@ -35,6 +36,7 @@ public static class TrackedKinds
         Track<Organization>(ChangeSubjectKind.Organization, o => o.Id.ToString("D"), SettingsChanges.Name),
         Track<Organization>(ChangeSubjectKind.Branding, o => o.Id.ToString("D"), SettingsChanges.Branding),
         Track<IntegritySettings>(ChangeSubjectKind.IntegritySettings, s => s.OrganizationId.ToString("D"), SettingsChanges.Integrity),
+        Track<TalentPoolSettings>(ChangeSubjectKind.TalentPoolSettings, s => s.OrganizationId.ToString("D"), SettingsChanges.TalentPool),
 
         // The Team page's one history. Its first member arrives with the organization, and that save creates the team.
         Track<OrganizationMember>(ChangeSubjectKind.Team, m => m.OrganizationId.ToString("D"), MemberAsync, creates: WithOrganization),

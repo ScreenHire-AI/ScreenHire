@@ -1,3 +1,4 @@
+import BookmarkIcon from '@lucide/svelte/icons/bookmark';
 import Building2Icon from '@lucide/svelte/icons/building-2';
 import KeyRoundIcon from '@lucide/svelte/icons/key-round';
 import PlugIcon from '@lucide/svelte/icons/plug';
@@ -25,6 +26,7 @@ export const settingsSections: readonly { label: string; href: string; icon: Luc
   { label: 'Roles', href: '/settings/roles', icon: ShieldUserIcon, permission: 'ManageTeam' },
   { label: 'Branding', href: '/settings/branding', icon: PaletteIcon, permission: 'EditSettings' },
   { label: 'Verification', href: '/settings/verification', icon: ShieldCheckIcon, permission: 'EditSettings' },
+  { label: 'Talent pool', href: '/settings/talent-pool', icon: BookmarkIcon, permission: 'EditSettings' },
   { label: 'API keys', href: '/settings/api-keys', icon: KeyRoundIcon, permission: 'ManageApiKeys', allJobs: true },
   { label: 'Webhooks', href: '/settings/webhooks', icon: WebhookIcon, permission: 'ManageWebhooks', allJobs: true },
   // The MCP server signs in with an API key, so it needs what API keys need.

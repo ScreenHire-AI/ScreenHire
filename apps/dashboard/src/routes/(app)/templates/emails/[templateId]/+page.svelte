@@ -78,7 +78,7 @@
   const listHref = templatesHref('emails');
   const mayEdit = $derived(can(page.data.user, 'EditEmailTemplates'));
   const editable = $derived(mayEdit && !detail?.archived);
-  const duplicable = $derived(Boolean(detail && !detail.rejectOnly && !detail.questionnaireOnly));
+  const duplicable = $derived(Boolean(detail && !detail.rejectOnly && !detail.questionnaireOnly && !detail.invitationOnly));
   const formId = 'email-template-form';
 
   // Last updated and History (T6): who changed the wording, named as the team list names them.

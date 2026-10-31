@@ -24,6 +24,7 @@
   import { preferences } from '#lib/preferences.svelte.js';
   import { hasModifier, isTypingTarget } from '#lib/shortcuts.js';
   import { isOverdue } from '#lib/sla.js';
+  import { stageLabel } from '#lib/talent-pool.js';
   import { createTableSort, tableSortOptions, type TableSortState } from '#lib/table-sort.svelte.js';
 
   let {
@@ -98,7 +99,7 @@
     {
       id: 'stage',
       header: 'Stage',
-      accessorFn: (application) => (stages ? attentionRank(application) : application.stage.name),
+      accessorFn: (application) => (stages ? attentionRank(application) : stageLabel(application)),
       sortFn: stages ? 'basic' : 'alphanumeric',
       // The rank is a number, which TanStack would sort descending first; attention comes first.
       sortDescFirst: false,
@@ -116,7 +117,8 @@
   // Overdue rows rank below every stage position, ordered by when they fell due; the rest rank by pipeline position.
   function attentionRank(application: ApplicationSummary): number {
     if (isOverdue(application, Date.now())) return Date.parse(application.slaDueAt!) - 1e15;
-    const position = stages?.findIndex((stage) => stage.id === application.stage.id) ?? -1;
+    // A candidate kept in mind has left the job, so they sort after every stage, with the endings.
+    const position = application.keptInMindAt ? -1 : (stages?.findIndex((stage) => stage.id === application.stage.id) ?? -1);
     return position < 0 ? Number.MAX_SAFE_INTEGER : position;
   }
 
@@ -275,7 +277,7 @@
        pill (L1). -->
   <span class="flex min-w-0 items-center gap-1.5">
     <OverdueBadge dueAt={application.slaDueAt} />
-    <TruncatedText text={application.stage.name} class="max-w-48" />
+    <TruncatedText text={stageLabel(application)} class="max-w-48" />
   </span>
 {/snippet}
 
@@ -300,7 +302,7 @@
     <MoveToStage
       compact
       candidateName={application.candidateName}
-      currentStageId={application.stage.id}
+      currentStageId={application.keptInMindAt ? '' : application.stage.id}
       {stages}
       onmove={(stage) => moves.move(application, stage)}
     />
@@ -326,7 +328,7 @@
     {#snippet facts()}
       <!-- relative: above the item's link, so the due time's tooltip opens on tap. -->
       <OverdueBadge dueAt={application.slaDueAt} class="relative" />
-      <Badge variant="muted">{application.stage.name}</Badge>
+      <Badge variant="muted">{stageLabel(application)}</Badge>
       {#if showJob}
         <!-- relative: above the item's link, so the full title's tooltip opens on tap. -->
         <Badge variant="muted" class="relative max-w-full"><TruncatedText text={application.jobTitle} /></Badge>
