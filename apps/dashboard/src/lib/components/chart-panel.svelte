@@ -4,6 +4,8 @@
     id: string;
     header: string;
     text: (row: T) => string;
+    /** What screen readers hear for a cell whose text is empty, which shows blank (L1). */
+    blank?: string;
     /** What the column sorts by; a number sorts biggest first on its first click. */
     sortBy: (row: T) => number | string;
   }
@@ -120,7 +122,10 @@
                       <span class="flex min-w-0"><TruncatedText text={column.text(row)} /></span>
                     </Table.Cell>
                   {:else}
-                    <Table.Cell class="whitespace-nowrap tabular-nums">{column.text(row)}</Table.Cell>
+                    {@const text = column.text(row)}
+                    <Table.Cell class="whitespace-nowrap tabular-nums">
+                      {#if text}{text}{:else}<span class="sr-only">{column.blank ?? 'None'}</span>{/if}
+                    </Table.Cell>
                   {/if}
                 {/each}
               </Table.Row>

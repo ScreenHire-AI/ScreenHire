@@ -81,6 +81,7 @@
       id: 'movedOn',
       header: 'Moved on',
       text: (stage) => (stage.movedOn === null ? '' : (shareText(stage.movedOn, stage.applications) ?? '')),
+      blank: 'No later stage',
       sortBy: (stage) => (stage.movedOn === null || stage.applications === 0 ? -1 : stage.movedOn / stage.applications),
     },
   ];
@@ -154,6 +155,9 @@
           {/each}
         </div>
         <p class="sr-only" role="status">Loading reports…</p>
+      {:else if data.funnel.length === 0 && data.timeToHire.hires === 0}
+        <!-- Nothing arrived and nobody was hired: one empty state for the page, not the same one in each panel (W7). -->
+        <Panel label="Reports">{@render nothing('Nothing in these dates', true)}</Panel>
       {:else}
         <div class="grid items-start gap-5 @5xl:grid-cols-2">
           <ChartPanel
@@ -167,7 +171,7 @@
             class="@5xl:col-span-2"
           >
             {#snippet chart()}<BarChart label="Hiring funnel" series={[{ label: 'Applications', tone: 'chart-1' }]} rows={funnelRows} />{/snippet}
-            {#snippet empty()}{@render nothing('No applications in these dates')}{/snippet}
+            {#snippet empty()}{@render nothing('No applications in these dates', true)}{/snippet}
           </ChartPanel>
 
           <ChartPanel
@@ -189,7 +193,7 @@
               {/if}
               <BarChart label="Time to hire by job" series={[{ label: 'Median days', tone: 'chart-1' }]} rows={hireRows} />
             {/snippet}
-            {#snippet empty()}{@render nothing('No hires in these dates')}{/snippet}
+            {#snippet empty()}{@render nothing('No hires in these dates', data.funnel.length > 0)}{/snippet}
           </ChartPanel>
 
           <ChartPanel
@@ -212,7 +216,7 @@
                 rows={sourceRows}
               />
             {/snippet}
-            {#snippet empty()}{@render nothing('No applications in these dates')}{/snippet}
+            {#snippet empty()}{@render nothing('No applications in these dates', false)}{/snippet}
           </ChartPanel>
         </div>
       {/if}
@@ -220,14 +224,15 @@
   </div>
 </main>
 
-{#snippet nothing(title: string)}
+<!-- `offer`: whether this empty state carries the one "Show the last 365 days", so a page shows it once (W7). -->
+{#snippet nothing(title: string, offer: boolean)}
   <Empty.Root class="py-6">
     <Empty.Header>
       <Empty.Media variant="icon"><ChartBarIcon /></Empty.Media>
       <Empty.Title>{title}</Empty.Title>
-      <Empty.Description>{jobIds.length > 0 ? 'Try more dates or more jobs.' : 'Try a longer range.'}</Empty.Description>
+      {#if offer}<Empty.Description>{jobIds.length > 0 ? 'Try more dates or more jobs.' : 'Try a longer range.'}</Empty.Description>{/if}
     </Empty.Header>
-    {#if range.kind === 'preset' && range.days < longest.days}
+    {#if offer && range.kind === 'preset' && range.days < longest.days}
       <Empty.Content><Button variant="outline" size="lg" onclick={() => setRange(longest)}>Show the last 365 days</Button></Empty.Content>
     {/if}
   </Empty.Root>

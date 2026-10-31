@@ -123,10 +123,19 @@ describe('reports page', () => {
       ['Applied', '8', '63%'],
       ['Screening', '5', '60%'],
       ['Interview', '3', '33%'],
-      ['Hired', '1', ''],
+      ['Hired', '1', 'No later stage'],
     ]);
     expect(within(funnel).getByRole('button', { name: 'Table' })).toHaveAttribute('aria-pressed', 'true');
     await expectNoAxeViolations();
+  });
+
+  it('says why a panel is empty when the others have numbers, offering a longer range once', async () => {
+    renderPage({ ...report, timeToHire: { medianDays: null, hires: 0, jobs: [] } });
+
+    const hires = await screen.findByRole('region', { name: 'Time to hire' });
+    expect(hires).toHaveTextContent('No hires in these dates');
+    expect(within(hires).getByRole('button', { name: 'Show the last 365 days' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Hiring funnel' })).toHaveTextContent('63% moved on');
   });
 
   it('asks for the jobs and range in the address, and writes a new range into it', async () => {
@@ -160,14 +169,15 @@ describe('reports page', () => {
     await waitFor(() => expect(goto).toHaveBeenCalledWith(new URL('http://dashboard.test/reports?from=2026-10-20&to=2026-10-25'), { replace: true, reset: false }));
   });
 
-  it('says why a panel is empty and offers a longer range', async () => {
+  it('says once that there is nothing in the dates, and offers a longer range', async () => {
     renderPage(nothing);
 
-    const funnel = await screen.findByRole('region', { name: 'Hiring funnel' });
-    expect(funnel).toHaveTextContent('No applications in these dates');
-    expect(screen.getByRole('region', { name: 'Time to hire' })).toHaveTextContent('No hires in these dates');
+    const empty = await screen.findByRole('region', { name: 'Reports' });
+    expect(empty).toHaveTextContent('Nothing in these dates');
+    expect(screen.queryByRole('region', { name: 'Hiring funnel' })).toBeNull();
+    expect(screen.getAllByRole('button', { name: 'Show the last 365 days' })).toHaveLength(1);
 
-    await fireEvent.click(within(funnel).getByRole('button', { name: 'Show the last 365 days' }));
+    await fireEvent.click(within(empty).getByRole('button', { name: 'Show the last 365 days' }));
     expect(goto).toHaveBeenCalledWith(new URL('http://dashboard.test/reports?range=365'), { replace: true, reset: false });
     await expectNoAxeViolations();
   });
