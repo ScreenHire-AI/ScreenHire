@@ -45,7 +45,7 @@ describe('selection bar', () => {
     const { container } = renderBar({ onkeep });
     const bar = screen.getByRole('region', { name: 'Selected candidates' });
 
-    const keep = within(bar).getByRole('button', { name: 'Keep 2 selected in mind' });
+    const keep = within(bar).getByRole('button', { name: 'Keep in mind, 2 selected' });
     expect(keep).toHaveTextContent('Keep in mind');
     await expectNoAxeViolations(container);
     await fireEvent.click(keep);

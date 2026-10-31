@@ -261,8 +261,8 @@ describe('talent pool page', () => {
 
       const bar = screen.getByRole('region', { name: 'Selected people' });
       expect(bar).toHaveTextContent('2 selected');
-      expect(within(bar).getByRole('button', { name: 'Invite 2 selected to apply' })).toBeInTheDocument();
-      expect(within(bar).getByRole('button', { name: 'Add 2 selected to a job' })).toBeInTheDocument();
+      expect(within(bar).getByRole('button', { name: 'Invite to apply, 2 selected' })).toBeInTheDocument();
+      expect(within(bar).getByRole('button', { name: 'Add to a job, 2 selected' })).toBeInTheDocument();
       await expectNoAxeViolations(bar);
 
       await fireEvent.click(within(bar).getByRole('button', { name: 'Clear selection' }));
@@ -286,7 +286,7 @@ describe('talent pool page', () => {
 
       const bar = screen.getByRole('region', { name: 'Selected people' });
       expect(within(bar).queryByRole('button', { name: /^Invite/ })).toBeNull();
-      expect(within(bar).getByRole('button', { name: 'Add 1 selected to a job' })).toBeInTheDocument();
+      expect(within(bar).getByRole('button', { name: 'Add to a job, 1 selected' })).toBeInTheDocument();
     });
 
     it('opens the invitation sheet for the selection and sends the chosen job to everyone ticked', async () => {
@@ -300,7 +300,7 @@ describe('talent pool page', () => {
       await screen.findByRole('table', { name: 'Talent pool' });
       await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
       await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Sam Taylor' }));
-      await fireEvent.click(screen.getByRole('button', { name: 'Invite 2 selected to apply' }));
+      await fireEvent.click(screen.getByRole('button', { name: 'Invite to apply, 2 selected' }));
 
       const sheet = await screen.findByRole('dialog', { name: 'Invite 2 to apply' });
       await fireEvent.click(within(sheet).getByRole('button', { name: 'Send 2 invitations' }));

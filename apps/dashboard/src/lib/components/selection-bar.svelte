@@ -56,7 +56,7 @@
     </DropdownMenu.Root>
   {/if}
   {#if onkeep}
-    <Button variant="outline" size="lg" class="shrink-0" aria-label="Keep {count} selected in mind" {disabled} onclick={onkeep}>
+    <Button variant="outline" size="lg" class="shrink-0" aria-label="Keep in mind, {count} selected" {disabled} onclick={onkeep}>
       <BookmarkIcon aria-hidden="true" />Keep in mind
     </Button>
   {/if}

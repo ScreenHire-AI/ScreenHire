@@ -172,7 +172,7 @@ describe('job pipeline', () => {
   it('offers Keep in mind for the ticked rows, and none while an integrity filter picked them (ADR-0004)', async () => {
     const { unmount } = renderPipeline();
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
-    expect(within(selectionBar()).getByRole('button', { name: 'Keep 1 selected in mind' })).toBeInTheDocument();
+    expect(within(selectionBar()).getByRole('button', { name: 'Keep in mind, 1 selected' })).toBeInTheDocument();
     unmount();
 
     // The fixtures have no assessment yet, so the Pending filter shows every row.
@@ -189,7 +189,7 @@ describe('job pipeline', () => {
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Sam Taylor' }));
 
-    await fireEvent.click(within(selectionBar()).getByRole('button', { name: 'Keep 2 selected in mind' }));
+    await fireEvent.click(within(selectionBar()).getByRole('button', { name: 'Keep in mind, 2 selected' }));
     const sheet = await screen.findByRole('dialog', { name: 'Keep 2 in mind' });
     await fireEvent.input(within(sheet).getByLabelText('Why'), { target: { value: 'Both strong.' } });
     await fireEvent.click(within(sheet).getByRole('button', { name: 'Keep in mind' }));

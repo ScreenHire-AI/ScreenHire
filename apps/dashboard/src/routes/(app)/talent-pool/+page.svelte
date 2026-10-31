@@ -169,12 +169,12 @@
         <div role="region" aria-label="Selected people" class="flex min-w-0 items-center gap-2 overflow-x-auto border-b border-border-subtle bg-row-selected px-4.5 py-2 max-md:px-4">
           <span class="shrink-0 font-semibold whitespace-nowrap text-accent-foreground">{selected.length} selected</span>
           {#if mayInvite}
-            <Button variant="outline" size="lg" class="shrink-0" aria-label="Invite {selected.length} selected to apply" onclick={() => open('invite', selected)}>
+            <Button variant="outline" size="lg" class="shrink-0" aria-label="Invite to apply, {selected.length} selected" onclick={() => open('invite', selected)}>
               <SendIcon aria-hidden="true" />Invite to apply
             </Button>
           {/if}
           {#if mayAdd}
-            <Button variant="outline" size="lg" class="shrink-0" aria-label="Add {selected.length} selected to a job" onclick={() => open('add', selected)}>
+            <Button variant="outline" size="lg" class="shrink-0" aria-label="Add to a job, {selected.length} selected" onclick={() => open('add', selected)}>
               <UserPlusIcon aria-hidden="true" />Add to a job
             </Button>
           {/if}
