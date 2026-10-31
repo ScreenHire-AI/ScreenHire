@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using ScreenHire.Api.Applications;
 using ScreenHire.Api.Auth;
+using ScreenHire.Api.Branding;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Applications;
@@ -226,6 +227,7 @@ internal static class TalentPoolEndpoints
         ScreenHireDbContext db,
         EmailTemplates renderer,
         EmailTemplateStore store,
+        Application.Branding.EmailHeaders headers,
         IOptions<DomainOptions> domains,
         TimeProvider time,
         CancellationToken cancellationToken)
@@ -254,7 +256,8 @@ internal static class TalentPoolEndpoints
             JobLink = domains.Value.CareersJobUrl(organization.Slug, job.Slug),
             RemoveLink = ApplicationEmails.QuestionnaireLinkNotKept,
         };
-        return TypedResults.Ok(renderer.Render(template!.Content, candidate.Email, model, EmailTemplateIds.TalentPoolInvitation).ToPreview());
+        var header = await headers.ForAsync(db, organization, cancellationToken);
+        return TypedResults.Ok(renderer.Render(template!.Content, candidate.Email, model, EmailTemplateIds.TalentPoolInvitation, header).ToPreview());
     }
 
     // One message per candidate, through the outbox. The worker renders and sends each, and checks again that the candidate
@@ -418,6 +421,7 @@ internal static class PublicTalentPoolEndpoints
         ScreenHireDbContext db,
         TenantContext tenant,
         TalentPoolLinks links,
+        IOptions<DomainOptions> domains,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
@@ -431,7 +435,7 @@ internal static class PublicTalentPoolEndpoints
         var kept = await db.TalentPoolEntries.AnyAsync(e => e.CandidateId == found.CandidateId, cancellationToken)
             || (await db.Applications.AsNoTracking().Where(a => a.CandidateId == found.CandidateId).ToListAsync(cancellationToken))
                 .Any(a => a.AllowsFutureRoles(months, now));
-        return TypedResults.Ok(new PublicTalentPoolStatus(found.Organization.ToPublic(), kept));
+        return TypedResults.Ok(new PublicTalentPoolStatus(await found.Organization.ToPublicAsync(db, domains.Value, cancellationToken), kept));
     }
 
     // Withdraws every permission for future roles the candidate gave the organization and takes them out of the pool, in

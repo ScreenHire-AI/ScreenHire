@@ -9,6 +9,7 @@ using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Endpoints;
 using ScreenHire.Application.Applications;
+using ScreenHire.Application.Branding;
 using ScreenHire.Application.TalentPool;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Integrity;
@@ -385,13 +386,14 @@ internal sealed partial class DevelopmentDemo(
             return;
         }
 
-        var organization = await db.Organizations.AsNoTracking().Where(o => o.Id == step.OrganizationId).Select(o => o.Name).SingleAsync(cancellationToken);
+        var organization = await db.Organizations.AsNoTracking().SingleAsync(o => o.Id == step.OrganizationId, cancellationToken);
+        var header = await step.Services.GetRequiredService<EmailHeaders>().ForAsync(db, organization, cancellationToken);
         var body = template.Body.Replace(
             "We would like to invite you to an interview.", $"{OneOffEmailSentence} We would like to invite you to an interview.", StringComparison.Ordinal);
         var copy = ApplicationEmails.Prepare(
-            step.Services.GetRequiredService<EmailTemplates>(), row.Application, row.Candidate, row.Job.Title, organization,
+            step.Services.GetRequiredService<EmailTemplates>(), row.Application, row.Candidate, row.Job.Title, organization.Name,
             row.Job.Workflow.FindStage(row.Application.CurrentStageId)?.Name, templateId, new EmailTemplateContent(template.Subject, body),
-            Guid.CreateVersion7(), step.Now);
+            header, Guid.CreateVersion7(), step.Now);
         db.ApplicationEmails.Add(copy);
         await step.Outbox.PublishAsync(new SendApplicationEmail(row.Application.OrganizationId, row.Application.Id, copy.Id, avery));
         await step.Outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);

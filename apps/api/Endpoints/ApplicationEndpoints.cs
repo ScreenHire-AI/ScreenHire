@@ -10,6 +10,7 @@ using ScreenHire.Application.Applications;
 using ScreenHire.Application.TalentPool;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
+using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
@@ -30,6 +31,11 @@ internal static class ApplicationEndpoints
         var jobs = app.MapGroup("/v1/jobs/{jobId:guid}/applications").WithTags("Applications").AllowApiKeys();
         jobs.MapGet("/", ListJobApplications).WithName("ListJobApplications").Produces(StatusCodes.Status401Unauthorized);
         jobs.MapPost("/", CreateApplication).WithName("CreateApplication")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.AddCandidates)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status401Unauthorized);
+        jobs.MapPost("/resume-uploads", CreateResumeUpload).WithName("CreateResumeUpload")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.AddCandidates)
             .ProducesProblem(StatusCodes.Status409Conflict)
@@ -96,12 +102,15 @@ internal static class ApplicationEndpoints
         ApplicationReads.ListAsync(user, tenant, db, new(), cancellationToken);
 
     // A recruiter adds an application by hand (ApplicationSubmission): the candidate is found by email within the
-    // organization, or created, and the application starts in the job's first stage.
+    // organization, or created, and the application starts in the job's first stage. A resume uploaded through
+    // CreateResumeUpload is checked as a careers upload is and stored as the answer to the resume question. A hand-added
+    // application has no careers form behind it, so no notice, network or session data or telemetry is collected.
     private static async Task<Results<Created<ApplicationDetail>, NotFound, ValidationProblem, ProblemHttpResult>> CreateApplication(
         Guid jobId,
         CreateApplicationRequest request,
         IValidator<CreateApplicationRequest> validator,
         IDbContextOutbox<ScreenHireDbContext> outbox,
+        ApplicantUploads uploads,
         ITenantContext tenant,
         ClaimsPrincipal user,
         TimeProvider time,
@@ -121,7 +130,7 @@ internal static class ApplicationEndpoints
 
         if (job.Status == JobStatus.Closed)
         {
-            return TypedResults.Problem("A closed job takes no applications.", statusCode: StatusCodes.Status409Conflict);
+            return ClosedJob();
         }
 
         var details = ApplicationSubmission.CandidateDetails.From(request.Candidate);
@@ -132,10 +141,23 @@ internal static class ApplicationEndpoints
                 statusCode: StatusCodes.Status409Conflict);
         }
 
+        List<VerifiedUpload> files = [];
+        if (request.ResumeUploadId is { } uploadId)
+        {
+            var check = await uploads.CheckAsync(job.OrganizationId, job.Id, ResumeQuestion(job), uploadId, cancellationToken);
+            if (check.Upload is not { } resume)
+            {
+                return TypedResults.ValidationProblem(ValidationExtensions.Problem(
+                    "resumeUploadId", check.Problem ?? "We could not find this file. Upload it again."));
+            }
+
+            files.Add(resume);
+        }
+
         var submitted = await ApplicationSubmission.SubmitAsync(
             outbox, job, details,
             new ApplicationDeclarations(request.AccommodationRequested, request.AiUseDeclaration, request.AiUseDetails),
-            ApplicationIntake.Recruiter, [], time.GetUtcNow(), tenant.UserId, cancellationToken, actorApiKeyId: user.ApiKeyId());
+            ApplicationIntake.Recruiter, files, time.GetUtcNow(), tenant.UserId, cancellationToken, actorApiKeyId: user.ApiKeyId());
         if (submitted is not { } created)
         {
             return TypedResults.Problem("This candidate already applied to this job.", statusCode: StatusCodes.Status409Conflict);
@@ -143,8 +165,59 @@ internal static class ApplicationEndpoints
 
         var (application, candidate) = created;
         return TypedResults.Created(
-            $"/v1/applications/{application.Id}", await ApplicationReads.DetailOfAsync(tenant, db, application, job, candidate, cancellationToken));
+            $"/v1/applications/{application.Id}",
+            await ApplicationReads.DetailOfAsync(tenant, db, application, job, candidate, cancellationToken));
     }
+
+    // Where to upload a resume for a candidate a recruiter is adding: a create-only link straight to storage, as the
+    // careers form's uploads get (ApplicantUploads), so the file's bytes never pass through the API. The job's resume
+    // question says which types it takes. CreateApplication checks the file and claims it.
+    private static async Task<Results<Ok<UploadTicket>, NotFound, ValidationProblem, ProblemHttpResult>> CreateResumeUpload(
+        Guid jobId,
+        UploadRequest request,
+        IValidator<UploadRequest> validator,
+        ScreenHireDbContext db,
+        ApplicantUploads uploads,
+        CancellationToken cancellationToken)
+    {
+        if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
+        {
+            return TypedResults.ValidationProblem(problems);
+        }
+
+        var job = await db.Jobs.AsNoTracking().SingleOrDefaultAsync(j => j.Id == jobId, cancellationToken);
+        if (job is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (job.Status == JobStatus.Closed)
+        {
+            return ClosedJob();
+        }
+
+        var question = ResumeQuestion(job);
+        var fileName = FileTypes.SafeFileName(request.FileName);
+        var accepted = FileTypes.AcceptedBy(question.AcceptedFileTypes);
+        if (fileName is null || !accepted.Contains(Path.GetExtension(fileName)))
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem("fileName", $"Upload a {FileTypes.Describe(accepted)} file."));
+        }
+
+        if (request.SizeBytes > uploads.MaxBytes)
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem("sizeBytes", FileTypes.TooLarge(uploads.MaxBytes)));
+        }
+
+        return TypedResults.Ok(await uploads.IssueAsync(job.OrganizationId, job.Id, question.Id, fileName, cancellationToken));
+    }
+
+    private static ProblemHttpResult ClosedJob() =>
+        TypedResults.Problem("A closed job takes no applications.", statusCode: StatusCodes.Status409Conflict);
+
+    // Every form has a resume question: the job's own, or the default one (ApplicationForm.QuestionsFor).
+    private static Question ResumeQuestion(Job job) =>
+        ApplicationForm.QuestionsFor(job.Workflow).First(q => q.Id == ApplicationForm.ResumeQuestionId);
 
     private static async Task<Results<Ok<ApplicationDetail>, NotFound>> GetApplication(
         Guid applicationId, ITenantContext tenant, ScreenHireDbContext db, CancellationToken cancellationToken) =>
@@ -370,18 +443,9 @@ internal static class ApplicationEndpoints
             return TypedResults.NotFound();
         }
 
-        var rows = await db.Applications.AsNoTracking()
-            .Where(a => a.CandidateId == candidateId)
-            .OrderByDescending(a => a.SubmittedAt)
-            .Join(db.Jobs, a => a.JobId, j => j.Id, (a, j) => new { Application = a, Job = j })
-            .ToListAsync(cancellationToken);
-        var integrity = await ApplicationReads.IntegritySummariesAsync(user, db, [.. rows.Select(r => r.Application.Id)], cancellationToken);
-        var ratings = await RatingReads.ForAsync(db, [.. rows.Select(r => r.Application.Id)], tenant.UserId, cancellationToken);
-        var poolMonths = await TalentPoolMembership.MonthsAsync(db, cancellationToken);
         return TypedResults.Ok(new CandidateDetail(
             candidate.Id, candidate.FullName, candidate.Email, candidate.Phone, candidate.CreatedAt,
-            [.. rows.Select(r => r.Application.ToSummary(
-                r.Job, candidate, poolMonths, integrity.GetValueOrDefault(r.Application.Id), ratings.GetValueOrDefault(r.Application.Id)))],
+            await ApplicationReads.ListAsync(user, tenant, db, new(CandidateId: candidateId), cancellationToken),
             candidate.FirstName, candidate.LastName));
     }
 }

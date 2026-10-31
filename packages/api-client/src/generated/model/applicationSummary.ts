@@ -21,6 +21,7 @@ export interface ApplicationSummary {
   stage: ApplicationStage;
   submittedAt: string;
   stageEnteredAt: string;
+  lastActivityAt: string;
   jobTitle: string;
   source: ApplicationSource;
   tags: string[];

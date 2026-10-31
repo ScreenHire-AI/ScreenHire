@@ -22,8 +22,17 @@ public sealed class ApplicationScorecard : IJobScoped
 
     public Guid JobId { get; init; }
 
-    /// <summary>The stage whose scorecard this is.</summary>
+    /// <summary>The stage the application was in: the stage whose scorecard this is, or where a library scorecard was given.</summary>
     public required string StageId { get; init; }
+
+    /// <summary>
+    /// The library scorecard it came from (a built-in id or a team's template id), which a requested scorecard's task
+    /// matches. Null on a stage copy that names none and on scorecards given before submissions kept it.
+    /// </summary>
+    public string? ScorecardTemplateId { get; init; }
+
+    /// <summary>The scorecard's name as it was given; null on scorecards given before submissions kept it.</summary>
+    public string? ScorecardName { get; init; }
 
     /// <summary>The person who gave the answers. Always a person: an API key has no judgement to record.</summary>
     public Guid ReviewerUserId { get; init; }

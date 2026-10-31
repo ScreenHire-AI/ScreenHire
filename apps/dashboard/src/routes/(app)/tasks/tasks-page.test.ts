@@ -87,6 +87,32 @@ describe('my tasks page', () => {
     expect(rows(panel)).toHaveLength(3);
   });
 
+  it('links a requested scorecard to the Scorecards tab with its sheet open, and every other task to the candidate', async () => {
+    renderPage({
+      'GET /v1/tasks?status=Open&scope=Everyone': () =>
+        Response.json([
+          ...open,
+          task({
+            kind: 'Scorecard',
+            note: 'Fill in the Interview scorecard.',
+            assigneeUserId: user.id,
+            scorecardTemplateId: 'interview',
+            applicationId: '01a157d4-0000-7000-8000-000000000411',
+            createdAt: '2026-10-20T10:20:00Z',
+          }),
+        ]),
+    });
+    const panel = await screen.findByRole('region', { name: 'Tasks' });
+
+    await waitFor(() => expect(rows(panel)).toHaveLength(2));
+    expect(within(panel).getByRole('link', { name: 'Fill in the Interview scorecard.' })).toHaveAttribute(
+      'href',
+      '/applications/01a157d4-0000-7000-8000-000000000411?tab=scorecards&scorecard=interview',
+    );
+    expect(within(panel).getByRole('link', { name: 'Review this application.' })).toHaveAttribute('href', '/applications/01a157d4-0000-7000-8000-000000000410');
+    expect(rows(panel)[1]).toHaveTextContent('Scorecard');
+  });
+
   it('shows done tasks with who finished them, and no checkbox on them', async () => {
     renderPage();
     await screen.findByRole('region', { name: 'Tasks' });

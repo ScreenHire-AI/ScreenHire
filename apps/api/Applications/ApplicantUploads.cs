@@ -41,29 +41,8 @@ internal sealed class ApplicantUploads(BlobServiceClient blobs, IOptions<ApplyOp
         var uploadId = Guid.NewGuid(); // random, not time-ordered: the id is what lets a later request claim the file
         var blob = Container.GetBlobClient(Prefix(organizationId, jobId, questionId, uploadId) + safeFileName);
         var expiresAt = time.GetUtcNow() + Settings.UploadLinkLifetime;
-        // Create only, not Write: the link writes the blob once and cannot replace it after CheckAsync has passed it.
-        var sas = new BlobSasBuilder(BlobSasPermissions.Create, expiresAt)
-        {
-            BlobContainerName = blob.BlobContainerName,
-            BlobName = blob.Name,
-            Resource = "b",
-            // The local emulator (Azurite) is plain http; real storage accounts are reached over https only.
-            Protocol = blob.Uri.Scheme == Uri.UriSchemeHttps ? SasProtocol.Https : SasProtocol.HttpsAndHttp,
-        };
-
-        Uri url;
-        if (blob.CanGenerateSasUri)
-        {
-            url = blob.GenerateSasUri(sas); // a shared key: the emulator, or a key-based connection string
-        }
-        else
-        {
-            // A managed identity has no key to sign with; a user delegation key lasts as long as the link.
-            var key = await blobs.GetUserDelegationKeyAsync(time.GetUtcNow().AddMinutes(-5), expiresAt, cancellationToken);
-            url = new BlobUriBuilder(blob.Uri) { Sas = sas.ToSasQueryParameters(key.Value, blobs.AccountName) }.ToUri();
-        }
-
-        return new UploadTicket(uploadId, url, "PUT", new Dictionary<string, string> { ["x-ms-blob-type"] = "BlockBlob" }, expiresAt, MaxBytes);
+        var url = await BlobLinks.CreateOnlyAsync(blobs, blob, expiresAt, time, cancellationToken);
+        return new UploadTicket(uploadId, url, "PUT", BlobLinks.PutHeaders, expiresAt, MaxBytes);
     }
 
     /// <summary>

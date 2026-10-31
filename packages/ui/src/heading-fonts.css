@@ -1,0 +1,10 @@
+/*
+ * The heading fonts an employer can pick for its careers pages (heading-fonts.ts, ADR-0018), self-hosted like
+ * fonts.css: all SIL Open Font License, never loaded from a font CDN. A browser downloads a face only when a page uses
+ * it, so declaring all of them costs a page nothing but these rules.
+ */
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/montserrat";
+@import "@fontsource-variable/nunito";
+@import "@fontsource-variable/fraunces";
+@import "@fontsource-variable/playfair-display";

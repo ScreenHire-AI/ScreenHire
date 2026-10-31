@@ -35,6 +35,7 @@ public static partial class SendTalentPoolInvitationHandler
         EmailTemplates renderer,
         EmailTemplateStore store,
         TalentPoolLinks links,
+        Branding.EmailHeaders headers,
         TimeProvider time,
         ILogger<SendTalentPoolInvitation> logger,
         CancellationToken cancellationToken)
@@ -75,11 +76,13 @@ public static partial class SendTalentPoolInvitationHandler
             JobLink = links.JobUrl(organization.Slug, job.Slug),
             RemoveLink = links.RemoveUrl(organization.Slug, links.Issue(organization.Id, candidate.Id)),
         };
-        await email.SendAsync(EmailTemplateIds.TalentPoolInvitation, template.Content, candidate.Email, model, cancellationToken);
+        var header = await headers.ForAsync(db, organization, cancellationToken);
+        await email.SendAsync(EmailTemplateIds.TalentPoolInvitation, template.Content, candidate.Email, model, header, cancellationToken);
 
         // The team's copy says where the candidate's own link was: it lets whoever holds it stop the candidate being kept.
         var kept = renderer.Render(
-            template.Content, candidate.Email, model with { RemoveLink = ApplicationEmails.QuestionnaireLinkNotKept }, EmailTemplateIds.TalentPoolInvitation);
+            template.Content, candidate.Email, model with { RemoveLink = ApplicationEmails.QuestionnaireLinkNotKept }, EmailTemplateIds.TalentPoolInvitation,
+            header);
         var copy = application!.PrepareEmail(message.SendId, EmailTemplateIds.TalentPoolInvitation, kept.To, kept.Subject, kept.TextBody, kept.HtmlBody ?? "", now);
         db.ApplicationEmails.Add(copy);
         db.ApplicationEvents.Add(application.InvitedToApply(job.Id, now, message.ActorUserId));

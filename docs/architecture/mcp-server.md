@@ -61,7 +61,7 @@ therefore the route's own.
 
 - `text` matches words in a job's title, or in a candidate's name or email, ignoring case, and is 100 characters at
   most. `limit` is 20 unless the assistant asks, and 50 at most. The HTTP lists take no search; the filter lives in
-  the same service.
+  the same service. The dashboard's Ctrl K has its own session-only `GET /v1/search`, which keys cannot call.
 - `get_application` returns the candidate, each answer with its question as the job asks it now, the files (names
   only, not their contents), follow-up questionnaires, the job's stages with the current one, and the latest 20
   activity entries, newest first. The stage ids are what `move_to_stage` takes.

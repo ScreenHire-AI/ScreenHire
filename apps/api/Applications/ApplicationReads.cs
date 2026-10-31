@@ -15,10 +15,11 @@ using ScreenHire.Infrastructure.Tenancy;
 namespace ScreenHire.Api.Applications;
 
 /// <summary>
-/// Which applications a list reads: one job's or every job's, optionally narrowed to candidates whose name or email
-/// contains <paramref name="Search"/>, and capped at <paramref name="Limit"/>. The HTTP lists pass no search and no limit.
+/// Which applications a list reads: one job's, one candidate's or every job's, optionally narrowed to candidates whose
+/// name or email contains <paramref name="Search"/>, and capped at <paramref name="Limit"/>. The HTTP lists pass no
+/// search and no limit.
 /// </summary>
-internal sealed record ApplicationFilter(Guid? JobId = null, string? Search = null, int? Limit = null);
+internal sealed record ApplicationFilter(Guid? JobId = null, string? Search = null, int? Limit = null, Guid? CandidateId = null);
 
 /// <summary>
 /// Reading applications, for the hiring API's routes and the MCP tools alike, so both apply the same rules: the tenant
@@ -28,6 +29,11 @@ internal sealed record ApplicationFilter(Guid? JobId = null, string? Search = nu
 internal static class ApplicationReads
 {
     /// <summary>The applications the filter names, newest first.</summary>
+    /// <remarks>
+    /// One statement reads the rows and each one's last activity (<see cref="ApplicationActivity"/>): the latest counted
+    /// timeline entry and the latest finished task are correlated subqueries, served by the
+    /// <c>(organization_id, application_id, occurred_at)</c> index. Integrity and ratings follow in one query each.
+    /// </remarks>
     public static async Task<List<ApplicationSummary>> ListAsync(
         ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, ApplicationFilter filter, CancellationToken cancellationToken)
     {
@@ -35,6 +41,11 @@ internal static class ApplicationReads
         if (filter.JobId is { } jobId)
         {
             applications = applications.Where(a => a.JobId == jobId);
+        }
+
+        if (filter.CandidateId is { } candidateId)
+        {
+            applications = applications.Where(a => a.CandidateId == candidateId);
         }
 
         var rows = applications
@@ -47,12 +58,27 @@ internal static class ApplicationReads
         }
 
         var ordered = rows.OrderByDescending(r => r.Application.SubmittedAt).ThenBy(r => r.Application.Id);
-        var found = await (filter.Limit is { } limit ? ordered.Take(limit) : ordered).ToListAsync(cancellationToken);
+        var counted = ApplicationActivity.CountedTypes;
+        var found = await (filter.Limit is { } limit ? ordered.Take(limit) : ordered)
+            .Select(r => new
+            {
+                r.Application,
+                r.Job,
+                r.Candidate,
+                LastEventAt = db.ApplicationEvents
+                    .Where(e => e.ApplicationId == r.Application.Id && counted.Contains(e.Type))
+                    .Max(e => (DateTimeOffset?)e.OccurredAt),
+                LastTaskCompletedAt = db.ApplicationTasks
+                    .Where(t => t.ApplicationId == r.Application.Id)
+                    .Max(t => t.CompletedAt),
+            })
+            .ToListAsync(cancellationToken);
         var integrity = await IntegritySummariesAsync(user, db, [.. found.Select(r => r.Application.Id)], cancellationToken);
         var ratings = await RatingReads.ForAsync(db, [.. found.Select(r => r.Application.Id)], tenant.UserId, cancellationToken);
         var poolMonths = await TalentPoolMembership.MonthsAsync(db, cancellationToken);
         return [.. found.Select(r => r.Application.ToSummary(
-            r.Job, r.Candidate, poolMonths, integrity.GetValueOrDefault(r.Application.Id), ratings.GetValueOrDefault(r.Application.Id)))];
+            r.Job, r.Candidate, ApplicationActivity.LastAt(r.Application.SubmittedAt, r.LastEventAt, r.LastTaskCompletedAt), poolMonths,
+            integrity.GetValueOrDefault(r.Application.Id), ratings.GetValueOrDefault(r.Application.Id)))];
     }
 
     /// <summary>One application with its candidate, files and follow-ups, or null when the reader cannot see it.</summary>

@@ -1,40 +1,55 @@
 <script lang="ts">
   import ClipboardCheckIcon from '@lucide/svelte/icons/clipboard-check';
-  import type { Recommendation, ScorecardAnswerInput, ScorecardQuestion, WorkflowStage } from '@screenhire/api-client';
-  import { ApiError, createSubmitScorecard } from '@screenhire/api-client/svelte-query';
+  import type { Recommendation, ScorecardAnswerInput, ScorecardQuestion } from '@screenhire/api-client';
+  import { ApiError, createGetScorecardTemplate, createSubmitScorecard } from '@screenhire/api-client/svelte-query';
   import { untrack } from 'svelte';
   import FailureText from '#lib/components/failure-text.svelte';
+  import QueryError from '#lib/components/query-error.svelte';
   import ScorecardFields from '#lib/components/scorecard-fields.svelte';
   import { selectClass } from '#lib/components/workflow/controls.js';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import * as Sheet from '#lib/components/ui/sheet/index.js';
+  import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { describeError } from '#lib/query.js';
+  import { scorecardWords, type ScorecardChoice } from '#lib/scorecard-choices.js';
   import { scaleOf } from '#lib/scorecards.js';
   import { cn } from '#lib/utils.js';
 
-  // A reviewer fills a stage's scorecard in a sheet, so the candidate stays behind it (design system section 9). Each
-  // question answers in its own kind: ratings and yes-or-no on one row of joined buttons (Rating answer), choices as
-  // radios or checkboxes, text in a box. A question left alone is unanswered, which a required one may not be. The
-  // overall recommendation is required: it is what ReviewerDecision automations test. Nothing here shows or takes
+  // A reviewer fills a scorecard in a sheet, so the candidate stays behind it (design system section 9): a stage's own
+  // (the job's copy, for a stage the candidate reached) or any library scorecard, given at the stage the candidate is in
+  // now. Each question answers in its own kind: ratings and yes-or-no on one row of joined buttons (Rating answer),
+  // choices as radios or checkboxes, text in a box. A question left alone is unanswered, which a required one may not be.
+  // The overall recommendation is required: it is what ReviewerDecision automations test. Nothing here shows or takes
   // integrity output (CLAUDE.md non-negotiable 2); the rating answers make the candidate's rating on the server.
   let {
     open = $bindable(false),
     applicationId,
-    stages,
+    choices,
+    initial,
+    loadingChoices = false,
+    libraryError,
+    onretrylibrary,
     ondone,
   }: {
     open?: boolean;
     applicationId: string;
-    /** The stages this reviewer can score: they have a scorecard, the application reached them, and the reviewer has not scored them yet. */
-    stages: readonly WorkflowStage[];
+    /** The scorecards this reviewer can still give (`scorecardChoices` in #lib/scorecard-choices.ts). */
+    choices: readonly ScorecardChoice[];
+    /** The choice it opens on, by value; none chosen when it is not one of `choices`. */
+    initial?: string;
+    /** The scorecard library is still loading, so the choices are not all in yet. */
+    loadingChoices?: boolean;
+    /** The library could not be read; the job's stages are still offered. */
+    libraryError?: unknown;
+    onretrylibrary?: () => void;
     /** After the scorecard was saved: a sentence for the page's status line. */
     ondone: (message: string) => void | Promise<void>;
   } = $props();
 
   const uid = $props.id();
   const submit = createSubmitScorecard();
-  let stageId = $state('');
+  let chosenValue = $state('');
   // One value per question: a number or "yes"/"no" as text, an option id, or the text; picks for a multi-choice.
   let values = $state<Record<string, string>>({});
   let picks = $state<Record<string, string[]>>({});
@@ -43,15 +58,24 @@
   let tried = $state(false);
   let failure = $state('');
 
-  const stage = $derived(stages.find((candidate) => candidate.id === stageId) ?? stages[0]);
-  const questions = $derived(stage?.scorecard?.questions ?? []);
+  const choice = $derived(choices.find((candidate) => candidate.value === chosenValue));
+  // A library scorecard's questions are read when it is chosen; a stage's come with the job's workflow.
+  const library = createGetScorecardTemplate(
+    () => (choice && !choice.questions ? (choice.key ?? '') : ''),
+    () => ({ query: { enabled: Boolean(choice && !choice.questions && choice.key) } }),
+  );
+  const questions = $derived<readonly ScorecardQuestion[]>(choice?.questions ?? (choice ? (library.data?.data.questions ?? []) : []));
+  const loading = $derived(Boolean(choice && !choice.questions && library.isPending));
   const unanswered = $derived(new Set(questions.filter((question) => question.required && !answered(question)).map((question) => question.id)));
+  const stageChoices = $derived(choices.filter((option) => option.group === 'stages'));
+  const builtIns = $derived(choices.filter((option) => option.group === 'builtIn'));
+  const own = $derived(choices.filter((option) => option.group === 'own'));
 
-  // Starts fresh each time it opens, on the first stage offered (the current one when it is offered).
+  // Starts fresh each time it opens, on the scorecard it was opened for.
   $effect(() => {
     if (!open) return;
     untrack(() => {
-      stageId = stages[0]?.id ?? '';
+      chosenValue = choices.some((option) => option.value === initial) ? initial! : '';
       clear();
       recommendation = '';
       note = '';
@@ -80,23 +104,25 @@
     event.preventDefault();
     tried = true;
     failure = '';
-    if (!stage || !recommendation || unanswered.size > 0) return;
+    if (!choice) return;
+    if (loading || !recommendation || unanswered.size > 0) return;
     try {
       await submit.mutateAsync({
         applicationId,
         data: {
-          stageId: stage.id,
+          stageId: choice.stageId ?? null,
+          scorecardTemplateId: choice.stageId ? null : choice.key,
           answers: questions.flatMap((question) => answer(question) ?? []),
           recommendation,
           note: note.trim() || null,
         },
       });
       open = false;
-      await ondone(`Scorecard for ${stage.name} saved.`);
+      await ondone(`${scorecardWords(choice.name)} saved.`.replace(/^./, (first) => first.toUpperCase()));
     } catch (error) {
       failure =
         error instanceof ApiError && error.status === 409
-          ? 'You already submitted a scorecard for this stage.'
+          ? 'You already submitted this scorecard for this stage.'
           : describeError(error, "We couldn't save the scorecard just now. Try again in a minute.");
     }
   }
@@ -105,27 +131,68 @@
 <Sheet.Root bind:open>
   <Sheet.Content side="right" class="w-full overflow-y-auto data-[side=right]:sm:max-w-xl">
     <Sheet.Header>
-      <Sheet.Title>Fill scorecard</Sheet.Title>
+      <Sheet.Title>Fill in a scorecard</Sheet.Title>
       <Sheet.Description>Your team sees it with your name, and it is final once submitted.</Sheet.Description>
     </Sheet.Header>
     <form novalidate class="@container flex flex-col gap-5 px-4 pb-4" {onsubmit}>
-      {#if stages.length > 1}
-        <Field.Field>
-          <Field.Label for={`${uid}-stage`}>Stage</Field.Label>
-          <select id={`${uid}-stage`} class={selectClass} bind:value={() => stage?.id ?? '', (id) => ((stageId = id), clear())}>
-            {#each stages as option (option.id)}<option value={option.id}>{option.name}</option>{/each}
-          </select>
-        </Field.Field>
-      {:else if stage}
-        <p class="text-body">Stage: <span class="font-semibold">{stage.name}</span></p>
+      {#if choices.length === 0 && loadingChoices}
+        <div aria-hidden="true" class="flex flex-col gap-2">
+          {#each [0, 1, 2] as row (row)}<Skeleton class="h-10 w-full" />{/each}
+        </div>
+        <p class="sr-only" role="status">Loading the scorecards…</p>
+      {:else if choices.length === 0 && !libraryError}
+        <p class="text-body">You have given every scorecard you can for this candidate at this stage.</p>
+      {:else}
+      <Field.Field>
+        <Field.Label for={`${uid}-scorecard`}>Scorecard</Field.Label>
+        <select
+          id={`${uid}-scorecard`}
+          class={selectClass}
+          bind:value={() => chosenValue, (value) => ((chosenValue = value), clear())}
+          aria-invalid={(tried && !choice) || undefined}
+          aria-describedby={tried && !choice ? `${uid}-scorecard-error` : undefined}
+        >
+          <option value="" disabled>Choose a scorecard</option>
+          {#if stageChoices.length > 0}
+            <optgroup label="This job's stages">
+              {#each stageChoices as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
+            </optgroup>
+          {/if}
+          {#if builtIns.length > 0}
+            <optgroup label="Built in">
+              {#each builtIns as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
+            </optgroup>
+          {/if}
+          {#if own.length > 0}
+            <optgroup label="Your scorecards">
+              {#each own as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
+            </optgroup>
+          {/if}
+        </select>
+        <Field.Error id={`${uid}-scorecard-error`} errors={tried && !choice ? [{ message: 'Choose a scorecard.' }] : undefined} />
+      </Field.Field>
+      {/if}
+      {#if libraryError}
+        <QueryError message={describeError(libraryError, 'Could not load the scorecard library')} onretry={() => onretrylibrary?.()} inset />
       {/if}
 
-      <ScorecardFields {questions} bind:values bind:picks bind:recommendation bind:note {tried} {unanswered} idPrefix={uid} />
+      {#if library.isError && choice && !choice.questions}
+        <QueryError message={describeError(library.error, 'Could not load this scorecard')} onretry={() => library.refetch()} inset />
+      {:else if loading}
+        <div aria-hidden="true" class="flex flex-col gap-2">
+          {#each [0, 1, 2] as row (row)}<Skeleton class="h-10 w-full" />{/each}
+        </div>
+        <p class="sr-only" role="status">Loading the scorecard…</p>
+      {:else if choice}
+        <ScorecardFields {questions} bind:values bind:picks bind:recommendation bind:note {tried} {unanswered} idPrefix={uid} />
+      {/if}
 
       <FailureText message={failure} />
       <div class="flex justify-end gap-2">
         <Sheet.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Sheet.Close>
-        <Button type="submit" size="lg" disabled={submit.isPending || !stage}><ClipboardCheckIcon aria-hidden="true" />Submit scorecard</Button>
+        {#if choices.length > 0}
+          <Button type="submit" size="lg" disabled={submit.isPending}><ClipboardCheckIcon aria-hidden="true" />Submit scorecard</Button>
+        {/if}
       </div>
     </form>
   </Sheet.Content>

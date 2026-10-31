@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using FluentValidation;
 using Scalar.AspNetCore;
 using ScreenHire.Api.Applications;
+using ScreenHire.Api.Branding;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Demo;
@@ -25,6 +26,7 @@ builder.AddScreenHireAuthentication();
 builder.AddScreenHireApiKeys();
 builder.AddScreenHireMcp();
 builder.AddScreenHireApply();
+builder.AddScreenHireBranding();
 
 // Wolverine: endpoints write through IDbContextOutbox<ScreenHireDbContext>, so a message commits with the data and the
 // worker handles it (docs/architecture/messaging.md). The API handles only tenant events from the real-time queue,
@@ -118,6 +120,7 @@ app.MapWebhookEndpoints();
 app.MapEmailEndpoints();
 app.MapTalentPoolEndpoints();
 app.MapSchemaEndpoints();
+app.MapSearchEndpoints();
 app.MapRealtimeEndpoints();
 app.MapScreenHireMcp();
 
@@ -132,6 +135,7 @@ if (app.Environment.IsDevelopment())
         ownerConnectionString, builder.Configuration.GetConnectionString(DatabaseRegistration.AppConnectionName)!, DatabasePrecisionTimeProvider.Instance);
     await ScreenHireMessaging.ProvisionStorageAsync(ownerConnectionString);
     await app.Services.GetRequiredService<ApplicantUploads>().ProvisionDevelopmentStorageAsync();
+    await app.Services.GetRequiredService<BrandImageUploads>().ProvisionDevelopmentStorageAsync();
 }
 
 await app.RunAsync();

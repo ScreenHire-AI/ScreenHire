@@ -162,9 +162,10 @@ public sealed class CandidateRatingTests(AppHostFixture fixture)
         (await recruiter.GetAsync(Scorecards(application))).Count().Should().Be(1);
     }
 
-    // Scoring an earlier stage after the review was asked for does not answer the review of a stage with a scorecard.
+    // A review is done where its work is done (ADR-0017 decision 11): any scorecard its reviewer gives finishes it, which
+    // shows them the rating, another stage's included.
     [Fact]
-    public async Task A_scorecard_for_another_stage_does_not_answer_a_review()
+    public async Task Any_scorecard_its_reviewer_gives_finishes_a_review_and_shows_them_the_rating()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         using var recruiter = await fixture.InviteAndJoinAsync(owner, "Recruiter");
@@ -182,32 +183,32 @@ public sealed class CandidateRatingTests(AppHostFixture fixture)
         var candidate = (await owner.GetAsync($"/v1/applications/{application}")).Id("candidate.id");
         var url = Scorecards(application);
         (await owner.PostAsync(url, Submission("interview", "Yes", InterviewRatings(5, 5, 5)))).Expect(HttpStatusCode.Created);
+        (await RatingsAsync(recruiter.GetAsync, job, application, candidate)).Values.Should().OnlyContain(r => r == "AfterYourScorecard - x0");
+        (await owner.GetAsync($"/v1/applications/{application}/tasks")).At("0.completedAt").ValueKind
+            .Should().Be(JsonValueKind.Null, "the owner's scorecard is not the reviewer's");
 
         (await recruiter.PostAsync(url, Submission("screening", "Yes", Answer("role_requirements", rating: 4)))).Expect(HttpStatusCode.Created);
 
-        (await RatingsAsync(recruiter.GetAsync, job, application, candidate)).Values.Should().OnlyContain(r => r == "AfterYourScorecard - x0");
-        (await recruiter.GetAsync(url)).Expect(HttpStatusCode.OK).Count().Should().Be(1, "they read only their own screening scorecard");
-
-        (await recruiter.PostAsync(url, Submission("interview", "Yes", InterviewRatings(3)))).Expect(HttpStatusCode.Created);
-
-        (await RatingsAsync(recruiter.GetAsync, job, application, candidate)).Values.Should().OnlyContain(r => r == "Rated 4.0 x3");
-        (await recruiter.GetAsync(url)).Expect(HttpStatusCode.OK).Count().Should().Be(3);
+        var review = (await owner.GetAsync($"/v1/applications/{application}/tasks")).Expect(HttpStatusCode.OK);
+        review.Id("0.completedByUserId").Should().Be(recruiter.UserId);
+        (await RatingsAsync(recruiter.GetAsync, job, application, candidate)).Values.Should().OnlyContain(r => r == "Rated 4.5 x2");
+        (await recruiter.GetAsync(url)).Expect(HttpStatusCode.OK).Count().Should().Be(2);
     }
 
     [Fact]
-    public async Task Marking_the_review_task_done_shows_the_reviewer_the_rating()
+    public async Task A_review_cannot_be_ticked_off_by_hand_so_the_rating_waits_for_the_reviewer_s_scorecard()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         using var recruiter = await fixture.InviteAndJoinAsync(owner, "Recruiter");
         var (job, application) = await ApplicationWithReviewAsync(owner, assignee: recruiter.UserId);
         var candidate = (await owner.GetAsync($"/v1/applications/{application}")).Id("candidate.id");
         (await owner.PostAsync(Scorecards(application), Submission("interview", "Yes", InterviewRatings(3, 3, 3)))).Expect(HttpStatusCode.Created);
-        (await RatingsAsync(recruiter.GetAsync, job, application, candidate)).Values.Should().OnlyContain(r => r == "AfterYourScorecard - x0");
 
         var task = (await recruiter.GetAsync($"/v1/applications/{application}/tasks")).Id("0.id");
-        (await recruiter.PostAsync($"/v1/tasks/{task}/complete")).Expect(HttpStatusCode.OK);
+        (await recruiter.PostAsync($"/v1/tasks/{task}/complete")).Expect(HttpStatusCode.Conflict);
+        (await owner.PostAsync($"/v1/tasks/{task}/complete")).Expect(HttpStatusCode.Conflict);
 
-        (await RatingsAsync(recruiter.GetAsync, job, application, candidate)).Values.Should().OnlyContain(r => r == "Rated 3.0 x1");
+        (await RatingsAsync(recruiter.GetAsync, job, application, candidate)).Values.Should().OnlyContain(r => r == "AfterYourScorecard - x0");
     }
 
     [Fact]

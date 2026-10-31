@@ -3,17 +3,6 @@ using FluentValidation;
 namespace ScreenHire.Api.Contracts;
 
 /// <summary>
-/// The organization's careers-page branding. <c>palette</c> is what careers pages use, derived from
-/// <c>brandColor</c> and contrast-checked (docs/design/design-system.md §7); both are null without a brand colour.
-/// <c>brandAdjusted</c> means the colour was darkened so text on it stays readable. <c>lastUpdated</c> is the brand
-/// colour's last change ("by ScreenHire" while it is ScreenHire's default); its history is <c>/branding/history</c>.
-/// </summary>
-public sealed record OrganizationBranding(string? BrandColor, PublicBranding? Palette, bool BrandAdjusted, LastUpdate LastUpdated);
-
-/// <summary>Sets the brand colour (<c>#rrggbb</c>), or clears it with null to use ScreenHire's default.</summary>
-public sealed record UpdateBrandingRequest(string? BrandColor);
-
-/// <summary>
 /// The organization's integrity settings. <c>llmConsistencyCheck</c> turns on the LLM consistency check, which sends the
 /// resume, answers and any LinkedIn export to the deployment's model provider; it is off until an admin turns it on.
 /// <c>monthlyTokenBudget</c> caps the tokens it may use per calendar month (UTC); null uses the deployment's default.

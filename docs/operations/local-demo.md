@@ -227,9 +227,11 @@ Settings is one item at the bottom of the sidebar; its pages share the Settings 
   (on every job) and, on the .NET job, Robin; **Add a person** and **Copy from another job** change it. Sign in as Robin
   through Dev SSO: Jobs lists only Senior .NET Engineer, another job's address says it is not found, and the
   candidates, saved views and My tasks hold only that job's.
-- **Branding.** Brightwater's teal is saved. Change it, press **Save colour**, and reload
-  http://localhost:4322/brightwater: the Apply buttons and the header mark take the new colour. A pale colour comes
-  back darkened, with "Darkened so text on it stays readable", and the colours the careers pages will use.
+- **Branding.** Brightwater's teal is saved. Type a pale brand colour such as ffd400: the field says links in it are
+  hard to read and offers the nearest shade that passes; **Use** fills it in. Pick a second colour and a heading font,
+  upload a PNG logo, watch it say Scanning for a moment, then press **Save branding**. Reload
+  http://localhost:4322/brightwater: the header band, the logo, the titles' font and the Apply buttons follow, and an
+  email from the Templates page's test send starts with the logo. History lists each change.
 - **API keys.** **Create key** shows the key once, with Copy; afterwards the list shows only its first characters.
   Under the keys, "Use the ScreenHire API" gives the base URL and links the API reference.
   `curl -H "Authorization: Bearer <key>" http://localhost:5080/v1/jobs` lists Brightwater's jobs until you revoke it

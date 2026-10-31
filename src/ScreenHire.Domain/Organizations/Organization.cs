@@ -39,6 +39,26 @@ public sealed class Organization
     public string? BrandColor { get; private set; }
 
     /// <summary>
+    /// The second colour (<c>#rrggbb</c>), which fills the header band of the careers pages and of every email to
+    /// candidates, or null for no band. Checked like the brand colour before it saves (<see cref="BrandColorCheck"/>).
+    /// </summary>
+    public string? SecondColor { get; private set; }
+
+    /// <summary>The careers pages' heading font, or null for ScreenHire's, Bricolage Grotesque.</summary>
+    public HeadingFont? HeadingFont { get; private set; }
+
+    /// <summary>
+    /// The brand images in use, each a <see cref="BrandImage"/> of the same kind. Not foreign keys: Postgres checks a
+    /// foreign key without row-level security, so a key would accept another organization's image. The branding save
+    /// looks each one up within the tenant instead (docs/architecture/branding.md).
+    /// </summary>
+    public Guid? LogoImageId { get; private set; }
+
+    public Guid? FaviconImageId { get; private set; }
+
+    public Guid? SharingImageId { get; private set; }
+
+    /// <summary>
     /// The organization opted in to the cross-employer Signal Network (ADR-0005): contributing is the price of querying.
     /// Off by default, and it does nothing while the network's feature flag is off. Like every column here it is readable
     /// by any tenant under row-level security (organizations are public), so it never goes into a DTO; when the network
@@ -51,4 +71,27 @@ public sealed class Organization
 
     /// <summary>Sets or clears the brand colour; throws <see cref="FormatException"/> unless it is <c>#rrggbb</c>.</summary>
     public void SetBrandColor(string? color) => BrandColor = color is null ? null : BrandPalette.Normalize(color);
+
+    /// <summary>
+    /// Replaces the whole branding. Colours must be <c>#rrggbb</c> (throws <see cref="FormatException"/>); the caller has
+    /// already checked their contrast and that each image is this organization's, of its kind and servable.
+    /// </summary>
+    public void SetBranding(
+        string? brandColor, string? secondColor, HeadingFont? headingFont, Guid? logoImageId, Guid? faviconImageId, Guid? sharingImageId)
+    {
+        SetBrandColor(brandColor);
+        SecondColor = secondColor is null ? null : BrandPalette.Normalize(secondColor);
+        HeadingFont = headingFont;
+        LogoImageId = logoImageId;
+        FaviconImageId = faviconImageId;
+        SharingImageId = sharingImageId;
+    }
+
+    /// <summary>The image in use for <paramref name="kind"/>, or null.</summary>
+    public Guid? ImageId(BrandImageKind kind) => kind switch
+    {
+        BrandImageKind.Logo => LogoImageId,
+        BrandImageKind.Favicon => FaviconImageId,
+        _ => SharingImageId,
+    };
 }

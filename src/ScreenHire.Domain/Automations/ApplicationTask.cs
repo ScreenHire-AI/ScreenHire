@@ -5,7 +5,7 @@ namespace ScreenHire.Domain.Automations;
 /// <summary>
 /// Something a person on the hiring team should do about one application: a review, a to-do, or a decision on a
 /// rejection an automation suggested. Automations create them (AssignReviewer, CreateTask, QueueForRejectionReview), and so
-/// can a person or an API key (<c>JobApplication.AddTask</c>); a
+/// can a person or an API key (<c>JobApplication.AddTask</c>, <c>JobApplication.RequestScorecard</c>); a
 /// task never changes the application by itself, which is how QueueForRejectionReview keeps a person in charge of every
 /// rejection that is not an opted-in knockout (workflow-engine.md §2, guardrail 2).
 /// </summary>
@@ -13,6 +13,9 @@ public sealed class ApplicationTask : IApplicationScoped
 {
     /// <summary>The longest note a task holds, from a person, an API key or an automation (the column's length).</summary>
     public const int MaxNoteLength = 1000;
+
+    /// <summary>The longest note a person adds when asking a teammate for a scorecard; the task's text leads with the scorecard.</summary>
+    public const int MaxRequestNoteLength = 500;
 
     public Guid Id { get; init; } = Guid.CreateVersion7();
 
@@ -34,6 +37,9 @@ public sealed class ApplicationTask : IApplicationScoped
     /// </summary>
     public string? StageId { get; init; }
 
+    /// <summary>The library scorecard a <see cref="ApplicationTaskKind.Scorecard"/> task asks for; null on every other kind.</summary>
+    public string? ScorecardTemplateId { get; init; }
+
     /// <summary>The automation run that created it.</summary>
     public Guid? AutomationRunId { get; init; }
 
@@ -43,6 +49,41 @@ public sealed class ApplicationTask : IApplicationScoped
 
     /// <summary>The person who marked it done.</summary>
     public Guid? CompletedByUserId { get; private set; }
+
+    /// <summary>
+    /// Whether a person ticks it off by hand: a to-do and a rejection review. A review and a requested scorecard are done
+    /// where their work is done, when the scorecard is submitted (ADR-0017 decision 11), so nobody marks them done
+    /// without doing it.
+    /// </summary>
+    public bool CompletesByHand => Kind is ApplicationTaskKind.Task or ApplicationTaskKind.RejectionReview;
+
+    /// <summary>
+    /// Whether <paramref name="reviewerUserId"/> submitting a scorecard from the library scorecard
+    /// <paramref name="scorecardTemplateId"/> on this task's application finishes it. A review is finished by any
+    /// scorecard of its assignee's, or anyone's when it is for the whole team; a requested scorecard only by its
+    /// assignee's scorecard of that kind. Someone else's task never is, and nor is a task done by hand.
+    /// </summary>
+    public bool CompletesWith(Guid reviewerUserId, string? scorecardTemplateId) =>
+        CompletedAt is null && Kind switch
+        {
+            ApplicationTaskKind.Review => AssigneeUserId is null || AssigneeUserId == reviewerUserId,
+            ApplicationTaskKind.Scorecard => AssigneeUserId == reviewerUserId
+                && scorecardTemplateId is not null
+                && string.Equals(ScorecardTemplateId, scorecardTemplateId, StringComparison.Ordinal),
+            _ => false,
+        };
+
+    /// <summary>
+    /// What a requested scorecard's task says: "Fill in the Interview scorecard.", then the asker's note when there is
+    /// one. A name that already ends in "scorecard" is not followed by a second one.
+    /// </summary>
+    public static string ScorecardRequestNote(string scorecardName, string? note)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(scorecardName);
+        var name = scorecardName.Trim();
+        var what = name.EndsWith("scorecard", StringComparison.OrdinalIgnoreCase) ? $"Fill in the {name}." : $"Fill in the {name} scorecard.";
+        return string.IsNullOrWhiteSpace(note) ? what : $"{what} {note.Trim()}";
+    }
 
     /// <summary>
     /// Marks the task done by <paramref name="userId"/>. A task that is done already keeps who finished it and when, and
@@ -88,4 +129,7 @@ public enum ApplicationTaskKind
 
     /// <summary>Decide whether to reject: a person must, the automation could not (QueueForRejectionReview).</summary>
     RejectionReview,
+
+    /// <summary>Fill in a library scorecard a teammate asked for; done when the assignee submits it.</summary>
+    Scorecard,
 }

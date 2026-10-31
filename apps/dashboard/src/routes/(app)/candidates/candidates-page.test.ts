@@ -1,13 +1,14 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ApplicationSummary } from '@screenhire/api-client';
-import { apiStub, applications, user } from '../../../test-support/fixtures.js';
+import { apiStub, applications, user, userAs } from '../../../test-support/fixtures.js';
 import WithQueryClient from '../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
 // Signed out at /candidates unless a test changes it.
 const appPage = vi.hoisted(() => ({ url: new URL('http://dashboard.test/candidates'), data: {} as Record<string, unknown> }));
-vi.mock('$app/state', () => ({ page: appPage }));
+// The Add candidate sheet's form reads `navigating` (superforms).
+vi.mock('$app/state', () => ({ page: appPage, navigating: { to: null } }));
 
 afterEach(() => {
   appPage.url = new URL('http://dashboard.test/candidates');
@@ -128,6 +129,24 @@ describe('candidates page', () => {
     expect(selected).toHaveTextContent('Selected 1');
     expect(selected.querySelector('[data-slot="badge"]')).toHaveClass('min-w-7');
     expect(screen.getByRole('region', { name: 'Applications' }).querySelector('header')).toContainElement(selected);
+  });
+
+  it('makes Add candidate the primary action for a role that adds candidates, and opens its sheet with a job picker', async () => {
+    appPage.data = { user };
+    render_();
+
+    const band = document.querySelector<HTMLElement>('[data-slot=header-band]')!;
+    await fireEvent.click(await within(band).findByRole('button', { name: 'Add candidate' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Add candidate' });
+    expect(within(sheet).getByLabelText('Job')).toBeInTheDocument();
+  });
+
+  it('has no Add candidate for a role that cannot add candidates (A3)', async () => {
+    appPage.data = { user: userAs('Viewer') };
+    render_();
+
+    await screen.findByRole('heading', { level: 1, name: 'Candidates' });
+    expect(screen.queryByRole('button', { name: 'Add candidate' })).not.toBeInTheDocument();
   });
 
   it('offers Email for the ticked rows, and none in a view that integrity picked (ADR-0004)', async () => {

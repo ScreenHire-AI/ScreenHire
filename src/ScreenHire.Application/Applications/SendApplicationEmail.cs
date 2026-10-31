@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using ScreenHire.Application.Branding;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
@@ -90,10 +91,11 @@ public static class ApplicationEmails
         string? stageName,
         string? templateId,
         EmailTemplateContent content,
+        EmailHeader header,
         Guid sendId,
         DateTimeOffset now)
     {
-        var message = renderer.Render(content, candidate.Email, ModelFor(candidate, jobTitle, organizationName, stageName), templateId);
+        var message = renderer.Render(content, candidate.Email, ModelFor(candidate, jobTitle, organizationName, stageName), templateId, header);
         return application.PrepareEmail(sendId, templateId, message.To, message.Subject, message.TextBody, message.HtmlBody ?? "", now);
     }
 
@@ -128,6 +130,7 @@ public static class ApplicationEmails
         TransactionalEmail email,
         EmailTemplates renderer,
         EmailTemplateStore store,
+        EmailHeaders headers,
         JobApplication application,
         Job job,
         string templateId,
@@ -158,10 +161,11 @@ public static class ApplicationEmails
         var candidate = await db.Candidates.AsNoTracking().SingleAsync(c => c.Id == application.CandidateId, cancellationToken);
         var organization = await db.Organizations.AsNoTracking().SingleAsync(o => o.Id == application.OrganizationId, cancellationToken);
         var model = ModelFor(candidate, job.Title, organization.Name, stage?.Name, reason, questionnaireLink);
-        var sent = await email.SendAsync(templateId, template.Content, candidate.Email, model, cancellationToken);
+        var header = await headers.ForAsync(db, organization, cancellationToken);
+        var sent = await email.SendAsync(templateId, template.Content, candidate.Email, model, header, cancellationToken);
         var kept = questionnaireLink is null
             ? sent
-            : renderer.Render(template.Content, candidate.Email, model with { QuestionnaireLink = QuestionnaireLinkNotKept }, templateId);
+            : renderer.Render(template.Content, candidate.Email, model with { QuestionnaireLink = QuestionnaireLinkNotKept }, templateId, header);
         var copy = application.PrepareEmail(eventId, templateId, kept.To, kept.Subject, kept.TextBody, kept.HtmlBody ?? "", now);
         var entry = application.EmailSent(copy, now, actorUserId, automationRunId);
         db.ApplicationEmails.Add(copy);
@@ -242,6 +246,7 @@ public static partial class SendAutomationEmailHandler
         TransactionalEmail email,
         EmailTemplates renderer,
         EmailTemplateStore store,
+        EmailHeaders headers,
         TimeProvider time,
         ILogger<SendAutomationEmail> logger,
         CancellationToken cancellationToken)
@@ -262,7 +267,7 @@ public static partial class SendAutomationEmailHandler
         var job = await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == application.JobId, cancellationToken);
         var now = time.GetUtcNow();
         var result = await ApplicationEmails.SendAsync(
-            db, email, renderer, store, application, job, message.TemplateId, message.Reason, message.QuestionnaireLink, message.SendId,
+            db, email, renderer, store, headers, application, job, message.TemplateId, message.Reason, message.QuestionnaireLink, message.SendId,
             actorUserId: null, message.AutomationRunId, now, cancellationToken);
         if (result.Event is null)
         {

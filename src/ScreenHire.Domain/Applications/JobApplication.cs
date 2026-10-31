@@ -338,9 +338,10 @@ public sealed class JobApplication : IJobScoped
     }
 
     /// <summary>
-    /// A reviewer's scorecard for <paramref name="stage"/> and the timeline entry that records it, which raises the
-    /// ReviewerDecision trigger. <paramref name="answers"/> holds answers by question id, checked by the caller with
-    /// <see cref="ScorecardAnswers.Check"/> against the stage's scorecard; a question it leaves out is unanswered.
+    /// A reviewer's scorecard for <paramref name="stage"/>, the job's own copy of the stage's scorecard, and the timeline
+    /// entry that records it, which raises the ReviewerDecision trigger. <paramref name="answers"/> holds answers by
+    /// question id, checked by the caller with <see cref="ScorecardAnswers.Check"/> against the stage's scorecard; a
+    /// question it leaves out is unanswered.
     /// </summary>
     public (ApplicationScorecard Scorecard, ApplicationEvent Entry) SubmitScorecard(
         WorkflowStage stage,
@@ -352,8 +353,30 @@ public sealed class JobApplication : IJobScoped
         DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(stage);
-        ArgumentNullException.ThrowIfNull(answers);
         var card = stage.Scorecard ?? throw new InvalidOperationException($"Stage {stage.Id} has no scorecard.");
+        return SubmitScorecard(stage.Id, card, stage.ScorecardTemplateId, reviewerUserId, answers, recommendation, note, workflowVersion, now);
+    }
+
+    /// <summary>
+    /// A reviewer's answers to <paramref name="card"/> given while the application was in <paramref name="stageId"/>,
+    /// and the timeline entry that records it. <paramref name="scorecardTemplateId"/> is the library scorecard it came
+    /// from (null for a stage copy that names none), which a requested scorecard's task matches; the scorecard keeps its
+    /// name as it keeps each question.
+    /// </summary>
+    public (ApplicationScorecard Scorecard, ApplicationEvent Entry) SubmitScorecard(
+        string stageId,
+        Scorecard card,
+        string? scorecardTemplateId,
+        Guid reviewerUserId,
+        IReadOnlyDictionary<string, ScorecardAnswerValue> answers,
+        Recommendation recommendation,
+        string? note,
+        int workflowVersion,
+        DateTimeOffset now)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(stageId);
+        ArgumentNullException.ThrowIfNull(card);
+        ArgumentNullException.ThrowIfNull(answers);
         if (ScorecardAnswers.Check(card, answers) is { Count: > 0 } errors)
         {
             throw new ArgumentException($"The answers do not fit the scorecard: {errors[0].Message}", nameof(answers));
@@ -362,7 +385,7 @@ public sealed class JobApplication : IJobScoped
         var scorecardId = Guid.CreateVersion7();
         var entry = NewEvent(
             ApplicationEventType.ScorecardSubmitted,
-            new ApplicationEventData(ScorecardId: scorecardId, StageId: stage.Id, Recommendation: recommendation.ToString()),
+            new ApplicationEventData(ScorecardId: scorecardId, StageId: stageId, Recommendation: recommendation.ToString()),
             now,
             reviewerUserId);
         var scorecard = new ApplicationScorecard
@@ -371,7 +394,9 @@ public sealed class JobApplication : IJobScoped
             OrganizationId = OrganizationId,
             ApplicationId = Id,
             JobId = JobId,
-            StageId = stage.Id,
+            StageId = stageId,
+            ScorecardTemplateId = scorecardTemplateId,
+            ScorecardName = card.Name,
             ReviewerUserId = reviewerUserId,
             Answers = ScorecardAnswers.Keep(card, answers),
             Recommendation = recommendation,
@@ -436,6 +461,31 @@ public sealed class JobApplication : IJobScoped
             Note = note.Trim(),
             AssigneeUserId = assigneeUserId,
             StageId = CurrentStageId,
+            CreatedAt = now,
+        };
+        return (task, NewEvent(
+            ApplicationEventType.TaskCreated, new ApplicationEventData(Note: task.Note, ApiKeyId: actorApiKeyId, TaskId: task.Id), now, actorUserId));
+    }
+
+    /// <summary>
+    /// Asks <paramref name="assigneeUserId"/> for the library scorecard <paramref name="scorecardTemplateId"/>: a
+    /// <see cref="ApplicationTaskKind.Scorecard"/> task, done when they submit that scorecard for this application, and
+    /// the timeline entry that records who asked. The task says what to fill in, then the asker's note when there is one.
+    /// </summary>
+    public (ApplicationTask Task, ApplicationEvent Entry) RequestScorecard(
+        string scorecardTemplateId, string scorecardName, Guid assigneeUserId, string? note, DateTimeOffset now, Guid? actorUserId, Guid? actorApiKeyId = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(scorecardTemplateId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(scorecardName);
+        var task = new ApplicationTask
+        {
+            OrganizationId = OrganizationId,
+            ApplicationId = Id,
+            Kind = ApplicationTaskKind.Scorecard,
+            Note = ApplicationTask.ScorecardRequestNote(scorecardName, note),
+            AssigneeUserId = assigneeUserId,
+            StageId = CurrentStageId,
+            ScorecardTemplateId = scorecardTemplateId,
             CreatedAt = now,
         };
         return (task, NewEvent(
