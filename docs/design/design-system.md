@@ -262,7 +262,7 @@ Each status has its own Lucide icon. The icon alone tells statuses apart, so col
 
 | Colour | Statuses and their icons | Tokens (`status-*`, `-soft`, `-mark`) | Text | Soft bg | Icon colour |
 |---|---|---|---|---|---|
-| Clear | No concerns, No problems found, Delivering, Done; Delivered, a webhook delivery; Active, an API key; Live, the live updates connection; Connected, a Slack workspace (`circle-check`). Open, a job taking applications; Live, a job showing on a board (`door-open`) | `status-clear` | `#0B5D4F` | `#E3F1EC` | `#0F766E` |
+| Clear | No concerns, No problems found, Delivering, Done; Delivered, a webhook delivery; Active, an API key; Live, the live updates connection; Connected, a Slack workspace; Explained, a Verification reason a person marked explained (`circle-check`). Open, a job taking applications; Live, a job showing on a board (`door-open`) | `status-clear` | `#0B5D4F` | `#E3F1EC` | `#0F766E` |
 | Review | Review suggested (`eye`); Overdue by 2 days (`clock-alert`) | `status-review` | `#7A4205` | `#FBEFD3` | `#C77700` |
 | Verify | Verification suggested (`id-card`). Needs fixes, for a refused posting or a workflow with problems, and for a posting a board did not answer (Error), a webhook Turned off after failures, a delivery that Failed, and a Slack workspace that is Not posting or Disconnected (`wrench`). Unsafe file, flagged by the malware scan (`shield-x`) | `status-verify` | `#9A2F17` | `#F9E0D6` | `#B4461F` |
 | AI (information) | No signs, Some signs or Strong signs of AI help (`sparkles`) | `status-ai` | `#2B2788` | `#ECEBFA` | `#2B2788` |
@@ -529,7 +529,7 @@ in a development build, shows every component in each state, and its test fails 
 | Add candidate sheet | `AddCandidateSheet` on shadcn `Sheet` | A recruiter adds a candidate by hand: Job (only the drafts and open jobs, and left out on a job's page, where the job is preset), First name, Last name, Email, Phone and Resume, then Cancel and Add candidate. Last name, Phone and Resume say "(optional)", the exception here (W6). No Source field: the API sets Recruiter (W6). No notice, telemetry or declarations: the Verification tab says which checks had nothing to look at (section 16). The resume goes straight to storage, as on the careers form. The page's primary on Candidates (in the action bar on a phone); outline on a job's page, where Publish is the primary, in More on a phone, and absent on a closed job; never without Add candidates (A3). A refusal (a closed job, someone who already applied, someone on a job the person does not see) is `FailureText` in the sheet; on success the page's status line names the candidate as a link to their page |
 | Live indicator | `LiveIndicator` | The live updates status as a pill in the top bar, beside Search, on every page: icon, colour and label (T1), from section 3.2 (Live, Connecting, Offline). While live, its icon has a slow, soft pulse behind it, which stops for reduced motion. On a phone only the icon shows; screen readers hear the label |
 | Failure text | `FailureText` with `ProblemIcon` | A failed action or form, in one line where it happened: the problem icon, the verify colour and the reason (T1, section 14). A section that cannot load uses `QueryError` |
-| Integrity chip and panel | `IntegrityChip`, `SignalEvidence`, `ReviewLog`, `LevelScale`; `IntegrityPanel` is the candidate's Verification tab | Section 16. `LevelScale` draws a level on its three steps. A summary card per kind of check: Network, Identity, Automation and Content always, Files and Form activity (the telemetry aggregates) only when they found something, each named for what was looked at, never for what it means about the person. Reasons expand one by one or with Expand all. The review log is its own panel: dismissals and review notes as Activity, and Add review note, named apart from Activity's Add note |
+| Integrity chip and panel | `IntegrityChip`, `SignalEvidence`, `ReviewLog`, `LevelScale`; `IntegrityPanel` is the candidate's Verification tab, with `IntegrityExplainDialog` and `IntegrityDismissDialog` | Section 16. `LevelScale` draws a level on its three steps. A summary card per kind of check: Network, Identity, Automation and Content always, Files and Form activity (the telemetry aggregates) only when they found something, each named for what was looked at, never for what it means about the person. Reasons expand one by one or with Expand all, and each can be marked explained, with Undo for its author. The review log is its own panel: dismissals, explained reasons, undos and review notes as Activity, and Add review note, named apart from Activity's Add note |
 | Tabs | `RecordTabs` on shadcn `Tabs` (`line`) | A record's peer views in a fixed order, each with its count in the count badge. A tab shows its state in its count where one fits (Distribution 7/8, posted on 7 of 8 boards, which screen readers hear in words), always in the same grey count badge; a state that needs a look is the record's status beside its title, never a coloured tab, a dot or a lone icon (E2). The list scrolls sideways, never wraps (F5) |
 | Notice | `Notice` | A problem to fix: the verify status's soft colour, full width, the problem icon (section 14), what is wrong in words and a link to the fix (E2) |
 | Expandable row | `ExpandableRow` | A list's row that opens in place to show more, such as an email on Messages: the whole row is the button, with `aria-expanded` and `chevron-down`, which turns up when it is open; what it shows follows the row. Its words wrap rather than truncate, since a tooltip has no place inside a button. The rows share one surface and its dividers (S4) |
@@ -633,18 +633,31 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
   the grey every tab's count has (E2), and the level is the candidate's status badge beside their name (T2). Each
   assessment is one panel with one skeleton and no labels over sentences (W9): its name, level badge (unless the page
   header already shows it, W7), a small meter of the three steps and, for AI assistance, the job's policy as a pill ("AI
-  allowed with disclosure") in the header, with Expand all on the right. When the level needs a look the next step
+  allowed with disclosure") in the header, with Expand all on the right. AI assistance's pills (level, meter, policy and
+  Informational) do not fit a fixed-height header on a narrow panel, so below a 48rem container they move to the body's
+  first line and the header keeps the name and Expand all (F1, F5). When the level needs a look the next step
   leads, semibold, in a callout edged in the level's colour with an arrow, the summary a muted line under it; a calm or
   dismissed result is one muted line, the summary then its next step (W10). Then the reasons, grouped by the kind of
   check that found them (Network, Identity, Automation, Content) and a last Context group for what does not count, each
   group's name and signal count beside its reasons, each reason opening (A9) to what was observed, its evidence as a
   facts row, any counter-evidence in its own card, and its code. The panel ends with Dismiss on the left and "Assessed 2
   hours ago" and "Ruleset" in caption size on the right. A calm result has no list of empty checks: its summary already
-  says so.
+  says so. The summary never repeats the job's policy, which the pill shows (W7).
 - A candidate added by hand came through no careers form, so the authenticity result says so in one quiet line ("Added
   by hand, so the network, automation and form activity checks had nothing to look at."), and Network and Automation
   read "Not checked" rather than "Nothing found" when the reasons show. It goes by the source alone; a careers
   applicant's checks never say this, so nothing tells an assistive-technology opt-out apart.
+- Each reason of an assessment that needs a look and is not dismissed has Mark explained, an outline button on the row
+  of its code (F6). It opens a dialog: a reason from a list (Confirmed with the candidate, Expected for this role, A
+  known false positive, Other) and a note, optional unless the reason is Other. An explained reason closes, shows a
+  quiet Explained badge on its row (W6, T3), and under the row one muted line starts with who explained it, then when, why and
+  the note (the badge already says Explained, W7), with an outline Undo for its author only. Explaining decides nothing: the level, the candidate's status badge,
+  "To review", filters, automations and webhooks never read it. Once every reason that counts is explained, Dismiss
+  reads Dismiss all; it is the same button, never a second one (W7), and it opens the dismiss dialog with the explained
+  reasons and their notes listed above the dismissal's own reason. A dismissed assessment keeps its explanations, read
+  only. The review controls show only to a role that reviews Verification; any other role reads one line saying it can
+  read the checks and should ask a reviewer to explain or dismiss them (E3). The dismiss dialog scrolls when the list
+  is taller than the window, so its button stays reachable.
 - Labels keep their full names: Verification suggested, mirroring Review suggested. AI assistance reads No signs,
   Some signs or Strong signs of AI help.
 

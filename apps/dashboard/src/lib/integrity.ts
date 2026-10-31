@@ -6,6 +6,7 @@ import type {
   ApplicationSummary,
   AuthenticityLevel,
   DismissReason,
+  ExplainReason,
   IntegritySignalView,
   IntegritySummary,
   SignalCategory,
@@ -203,9 +204,35 @@ export const dismissReasonLabels: Record<DismissReason, string> = {
   Other: 'Other reason',
 };
 
+export const explainReasonLabels: Record<ExplainReason, string> = {
+  ConfirmedWithCandidate: 'Confirmed with the candidate',
+  ExpectedForRole: 'Expected for this role',
+  KnownFalsePositive: 'A known false positive',
+  Other: 'Other',
+};
+
+/** A reason someone marked explained, as the dismiss dialog lists it before a Dismiss all. */
+export interface ExplainedReasonItem {
+  id: string;
+  title: string;
+  reason: ExplainReason;
+  note: string | null;
+  /** Who explained it, as `reviewerName` words them ("you", or a name). */
+  actor: string;
+}
+
 /**
- * After a dismissal or a note: they change the integrity panel, the review log, the list chips (dismissed) and the
- * "Needs review" counts, and no live event announces them.
+ * Whether a person has marked every reason that counts toward the level explained, so the panel offers Dismiss all.
+ * It decides nothing: the level stays as assessed until someone dismisses it (ADR-0004).
+ */
+export function everyReasonExplained(signals: readonly IntegritySignalView[]): boolean {
+  const reasons = signals.filter((signal) => signal.countsTowardLevel);
+  return reasons.length > 0 && reasons.every((signal) => signal.explained);
+}
+
+/**
+ * After a dismissal, a note or an explanation: they change the integrity panel, the review log, the list chips
+ * (dismissed) and the "Needs review" counts, and no live event announces them.
  */
 export function refetchAfterReview(queryClient: QueryClient): Promise<unknown> {
   return Promise.all([invalidatePath(queryClient, applicationsPath), invalidatePath(queryClient, jobsPath)]);

@@ -11,4 +11,6 @@ export type IntegrityReviewActionType = typeof IntegrityReviewActionType[keyof t
 export const IntegrityReviewActionType = {
   Dismissed: 'Dismissed',
   NoteAdded: 'NoteAdded',
+  ReasonExplained: 'ReasonExplained',
+  ExplanationUndone: 'ExplanationUndone',
 } as const;

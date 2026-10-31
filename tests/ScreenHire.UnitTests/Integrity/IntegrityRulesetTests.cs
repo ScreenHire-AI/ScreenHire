@@ -219,10 +219,10 @@ public sealed class IntegrityRulesetTests
     }
 
     [Fact]
-    public void Ai_assistance_summaries_state_the_policy_and_leave_the_declaration_to_the_application()
+    public void Ai_assistance_summaries_leave_the_policy_to_its_pill_and_the_declaration_to_the_application()
     {
         Assess([], AiUsePolicy.AllowedWithDisclosure, AiUseDeclaration.Used).Ai.Summary
-            .Should().Be("No signs that the content was generated or templated. This job allows AI help when disclosed.");
+            .Should().Be("No signs that the content was generated or templated.", "the job's policy is a pill beside the level, not part of the summary");
         Assess([], AiUsePolicy.AllowedWithDisclosure, AiUseDeclaration.DidNotUse).Ai.Summary
             .Should().Be(Assess([], AiUsePolicy.AllowedWithDisclosure, AiUseDeclaration.Used).Ai.Summary);
         Assess([], AiUsePolicy.NotAllowed, AiUseDeclaration.NotProvided).Ai.Summary.Should().NotContain("Declared");

@@ -107,9 +107,41 @@ public sealed class IntegrityPanelTests(E2EFixture fixture) : BrowserTest(fixtur
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-integrity-panel-light");
 
-        // Dismissing with a reason records the decision; the level stays as assessed.
-        await authenticity.GetByRole(AriaRole.Button, new() { Name = "Dismiss", Exact = true }).ClickAsync();
+        // Each reason is marked explained in turn: it closes with its badge, and the level stays as assessed.
+        string[] counted = ["AUTO_HONEYPOT", "AUTO_SUBMIT_VELOCITY", "AUTO_WEBDRIVER", "ID_EMAIL_DISPOSABLE", "ID_PHONE_INVALID", "NET_DATACENTER_IP"];
+        foreach (var code in counted)
+        {
+            await Expect(authenticity.GetByRole(AriaRole.Button, new() { Name = "Dismiss", Exact = true })).ToBeVisibleAsync();
+            var reason = authenticity.Locator($"[data-signal='{code}']");
+            await reason.GetByRole(AriaRole.Button, new() { Name = "Mark explained" }).ClickAsync();
+            var explain = Page.GetByRole(AriaRole.Dialog, new() { NameRegex = new Regex("^Mark \".+\" explained\\?$") });
+            if (code == "NET_DATACENTER_IP")
+            {
+                await explain.GetByRole(AriaRole.Radio, new() { Name = "Expected for this role" }).CheckAsync();
+                await explain.GetByLabel("Note (optional)").FillAsync("Remote role; works through a hosted VPN.");
+                await ExpectNoAccessibilityViolationsAsync();
+            }
+            else
+            {
+                await explain.GetByRole(AriaRole.Radio, new() { Name = "Confirmed with the candidate" }).CheckAsync();
+            }
+
+            await explain.GetByRole(AriaRole.Button, new() { Name = "Mark explained" }).ClickAsync();
+            await Expect(explain).ToBeHiddenAsync();
+            await Expect(reason).ToHaveAttributeAsync("data-explained", "");
+            await Expect(reason.GetByRole(AriaRole.Button, new() { Name = "Undo" })).ToBeVisibleAsync();
+        }
+
+        await Expect(authenticity.GetByRole(AriaRole.Img, new() { NameRegex = new("^Authenticity: Verification suggested") })).ToBeVisibleAsync();
+        await Expect(Region("Review log")).ToContainTextAsync("Explained Sent from a hosting provider's network: Expected for this role by you");
+        await ExpectNoAccessibilityViolationsAsync();
+
+        // Every reason explained, the one button reads Dismiss all; dismissing still takes a reason and is one action.
+        await authenticity.GetByRole(AriaRole.Button, new() { Name = "Dismiss all", Exact = true }).ClickAsync();
         var dialog = Page.GetByRole(AriaRole.Dialog, new() { Name = "Dismiss this authenticity assessment?" });
+        var listed = dialog.GetByRole(AriaRole.List, new() { Name = "Explained reasons" });
+        await Expect(listed.GetByRole(AriaRole.Listitem)).ToHaveCountAsync(counted.Length);
+        await Expect(listed).ToContainTextAsync("Expected for this role, by you. \"Remote role; works through a hosted VPN.\"");
         await dialog.GetByRole(AriaRole.Radio, new() { Name = "Verified outside ScreenHire" }).CheckAsync();
         await dialog.GetByLabel("Note (optional)").FillAsync("Video call on Monday; ID checked.");
         await ExpectNoAccessibilityViolationsAsync();
@@ -123,14 +155,16 @@ public sealed class IntegrityPanelTests(E2EFixture fixture) : BrowserTest(fixtur
         await Expect(authenticity).ToContainTextAsync("Verified outside ScreenHire");
         // The level stays as assessed.
         await Expect(authenticity.GetByRole(AriaRole.Img, new() { NameRegex = new("^Authenticity: Verification suggested") })).ToBeVisibleAsync();
-        await Expect(authenticity.GetByRole(AriaRole.Button, new() { Name = "Dismiss", Exact = true })).ToHaveCountAsync(0);
+        await Expect(authenticity.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^(Dismiss|Undo|Mark explained)") })).ToHaveCountAsync(0);
 
-        // The audit entry is in the API's record too, with the reviewer.
+        // The audit entries are in the API's record too, with the reviewer: one per explained reason, then one dismissal.
         var record = await Page.APIRequest.GetAsync(DashboardUrl($"/v1/applications/{botId}/integrity"));
         record.Ok.Should().BeTrue();
         using (var json = JsonDocument.Parse(await record.TextAsync()))
         {
-            var entry = json.RootElement.GetProperty("reviewLog").EnumerateArray().Single();
+            var entries = json.RootElement.GetProperty("reviewLog").EnumerateArray().ToList();
+            entries.Select(e => e.GetProperty("type").GetString()).Should().Equal([.. counted.Select(_ => "ReasonExplained"), "Dismissed"]);
+            var entry = entries[^1];
             entry.GetProperty("type").GetString().Should().Be("Dismissed");
             entry.GetProperty("dismissReason").GetString().Should().Be("VerifiedOutsideScreenHire");
             entry.GetProperty("note").GetString().Should().Be("Video call on Monday; ID checked.");

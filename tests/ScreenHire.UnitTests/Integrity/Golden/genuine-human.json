@@ -13,7 +13,7 @@
     "level": "NotIndicated",
     "reasonCodes": [],
     "appliedRules": [],
-    "summary": "No signs that the content was generated or templated. This job allows AI help when disclosed.",
+    "summary": "No signs that the content was generated or templated.",
     "nextStep": "No action needed.",
     "policyContext": "NotDisclosed",
     "signals": []

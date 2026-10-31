@@ -53,6 +53,7 @@ import type {
   EmailTemplateEntry,
   EmailTemplateList,
   EmailsQueued,
+  ExplainIntegrityReasonRequest,
   GetApiKeysHistoryParams,
   GetEmailTemplateHistoryParams,
   GetHiringReportParams,
@@ -4480,6 +4481,144 @@ return apiFetch<dismissIntegrityAssessmentResponse>(getDismissIntegrityAssessmen
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(dismissIntegrityAssessmentRequest)
+  }
+);}
+
+
+
+export type explainIntegrityReasonResponse200 = {
+  data: ApplicationIntegrity
+  status: 200
+}
+
+export type explainIntegrityReasonResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type explainIntegrityReasonResponse401 = {
+  data: void
+  status: 401
+}
+
+export type explainIntegrityReasonResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type explainIntegrityReasonResponse404 = {
+  data: void
+  status: 404
+}
+
+export type explainIntegrityReasonResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type explainIntegrityReasonResponseSuccess = (explainIntegrityReasonResponse200) & {
+  headers: Headers;
+};
+export type explainIntegrityReasonResponseError = (explainIntegrityReasonResponse400 | explainIntegrityReasonResponse401 | explainIntegrityReasonResponse403 | explainIntegrityReasonResponse404 | explainIntegrityReasonResponse409) & {
+  headers: Headers;
+};
+
+export type explainIntegrityReasonResponse = (explainIntegrityReasonResponseSuccess | explainIntegrityReasonResponseError)
+
+export const getExplainIntegrityReasonUrl = (applicationId: string,
+    assessmentId: string,
+    signalId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/integrity/assessments/${assessmentId}/signals/${signalId}/explain`
+}
+
+export const explainIntegrityReason = async (applicationId: string,
+    assessmentId: string,
+    signalId: string,
+    explainIntegrityReasonRequest: ExplainIntegrityReasonRequest, options?: Parameters<typeof apiFetch>[1]): Promise<explainIntegrityReasonResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<explainIntegrityReasonResponse>(getExplainIntegrityReasonUrl(applicationId,assessmentId,signalId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(explainIntegrityReasonRequest)
+  }
+);}
+
+
+
+export type undoIntegrityReasonExplanationResponse200 = {
+  data: ApplicationIntegrity
+  status: 200
+}
+
+export type undoIntegrityReasonExplanationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type undoIntegrityReasonExplanationResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type undoIntegrityReasonExplanationResponse404 = {
+  data: void
+  status: 404
+}
+
+export type undoIntegrityReasonExplanationResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type undoIntegrityReasonExplanationResponseSuccess = (undoIntegrityReasonExplanationResponse200) & {
+  headers: Headers;
+};
+export type undoIntegrityReasonExplanationResponseError = (undoIntegrityReasonExplanationResponse401 | undoIntegrityReasonExplanationResponse403 | undoIntegrityReasonExplanationResponse404 | undoIntegrityReasonExplanationResponse409) & {
+  headers: Headers;
+};
+
+export type undoIntegrityReasonExplanationResponse = (undoIntegrityReasonExplanationResponseSuccess | undoIntegrityReasonExplanationResponseError)
+
+export const getUndoIntegrityReasonExplanationUrl = (applicationId: string,
+    assessmentId: string,
+    signalId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/integrity/assessments/${assessmentId}/signals/${signalId}/undo-explanation`
+}
+
+export const undoIntegrityReasonExplanation = async (applicationId: string,
+    assessmentId: string,
+    signalId: string, options?: Parameters<typeof apiFetch>[1]): Promise<undoIntegrityReasonExplanationResponse> => {
+
+  return apiFetch<undoIntegrityReasonExplanationResponse>(getUndoIntegrityReasonExplanationUrl(applicationId,assessmentId,signalId),
+  {
+    ...options,
+    method: 'POST'
+
+
   }
 );}
 

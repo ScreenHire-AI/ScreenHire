@@ -23,6 +23,7 @@ internal static class HiringValidation
         services.AddSingleton<IValidator<CreateScorecardTemplateRequest>, CreateScorecardTemplateRequestValidator>();
         services.AddSingleton<IValidator<UpdateScorecardTemplateRequest>, UpdateScorecardTemplateRequestValidator>();
         services.AddSingleton<IValidator<DismissIntegrityAssessmentRequest>, DismissIntegrityAssessmentRequestValidator>();
+        services.AddSingleton<IValidator<ExplainIntegrityReasonRequest>, ExplainIntegrityReasonRequestValidator>();
         services.AddSingleton<IValidator<AddIntegrityNoteRequest>, AddIntegrityNoteRequestValidator>();
         return services;
     }

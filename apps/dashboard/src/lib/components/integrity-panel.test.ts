@@ -1,10 +1,10 @@
-import type { ApplicationIntegrity, ApplicationSource } from '@screenhire/api-client';
+import type { ApplicationIntegrity, ApplicationSource, CurrentUser, IntegrityReasonExplanation, IntegrityReviewEntry } from '@screenhire/api-client';
 import { QueryClient } from '@tanstack/svelte-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { invalidatePath } from '#lib/query.js';
 import { invalidations } from '#lib/realtime.js';
-import { apiStub, user } from '../../test-support/fixtures.js';
+import { apiStub, user, userAs } from '../../test-support/fixtures.js';
 import {
   authenticityAssessmentId,
   botIntegrity,
@@ -15,7 +15,17 @@ import {
 import IntegrityHarness from '../../test-support/integrity-harness.svelte';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
 
-vi.mock('$app/state', () => ({ page: { data: { user }, url: new URL('http://dashboard.test/') }, navigating: { to: null } }));
+// Who is signed in; a test can switch to a role without the review permission.
+const signedIn = vi.hoisted(() => ({ user: null as CurrentUser | null }));
+vi.mock('$app/state', () => ({
+  page: {
+    get data() {
+      return { user: signedIn.user ?? user };
+    },
+    url: new URL('http://dashboard.test/'),
+  },
+  navigating: { to: null },
+}));
 
 const base = `/v1/applications/${integrityApplicationId}/integrity`;
 
@@ -26,7 +36,7 @@ function serve(initial: ApplicationIntegrity, posts: Record<string, (body: unkno
   const routes: Record<string, (init: RequestInit | undefined) => Response> = { [`GET ${base}`]: () => Response.json(state) };
   for (const [route, answer] of Object.entries(posts)) {
     routes[route] = (init) => {
-      const body = JSON.parse(String(init?.body));
+      const body = init?.body ? JSON.parse(String(init.body)) : undefined;
       sent.push({ route, body });
       const result = answer(body);
       if (result.next) state = result.next;
@@ -45,7 +55,45 @@ const section = (name: string) => screen.getByRole('region', { name });
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  signedIn.user = null;
 });
+
+const teammate = '01a157d4-0000-7000-8000-0000000000dd';
+
+function explanation(actorUserId: string, overrides: Partial<IntegrityReasonExplanation> = {}): IntegrityReasonExplanation {
+  const name = actorUserId === user.id ? 'Avery Quinn' : 'Jordan Park';
+  return { actionId: `e-${actorUserId}`, reason: 'KnownFalsePositive', note: null, actorUserId, actorName: name, explainedAt: '2026-10-20T10:00:00Z', ...overrides };
+}
+
+/** The bot with some of its authenticity reasons explained, by code. */
+function botExplained(explained: Record<string, IntegrityReasonExplanation>, overrides: Partial<ApplicationIntegrity> = {}): ApplicationIntegrity {
+  const bot = botIntegrity();
+  return {
+    ...bot,
+    authenticity: { ...bot.authenticity!, signals: bot.authenticity!.signals.map((signal) => ({ ...signal, explained: explained[signal.code] ?? null })) },
+    ...overrides,
+  };
+}
+
+function logEntry(overrides: Partial<IntegrityReviewEntry>): IntegrityReviewEntry {
+  return {
+    id: 'l1',
+    type: 'ReasonExplained',
+    assessmentKind: 'Authenticity',
+    assessmentId: authenticityAssessmentId,
+    dismissReason: null,
+    note: null,
+    actorUserId: user.id,
+    actorName: 'Avery Quinn',
+    occurredAt: '2026-10-20T10:00:00Z',
+    signalId: 'signal-NET_DATACENTER_IP',
+    signalTitle: "Sent from a hosting provider's network",
+    explainReason: 'ExpectedForRole',
+    ...overrides,
+  };
+}
+
+const reasonRow = (code: string) => section('Authenticity').querySelector<HTMLElement>(`[data-signal="${code}"]`)!;
 
 describe('integrity panel', () => {
   it('shows each assessment with its summary, next step, reasons with evidence, context and counter-evidence', async () => {
@@ -152,10 +200,17 @@ describe('integrity panel', () => {
 
     const ai = await screen.findByRole('region', { name: 'AI assistance' });
     expect(within(ai).getByRole('heading', { level: 2 })).toHaveTextContent('AI assistance');
-    expect(within(ai).getByRole('img', { name: 'AI assistance: Some signs of AI help, the middle of 3' })).toBeInTheDocument();
-    expect(ai).toHaveTextContent('Informational');
-    // The job's policy is a pill in the header, beside the level.
-    expect(within(ai).getByText(/AI allowed with disclosure/)).toHaveTextContent('Job policy: AI allowed with disclosure');
+    // The level, the job's policy and Informational are pills in the header on a wide panel and the body's first line on
+    // a narrow one (a container query jsdom does not apply, so both copies are here).
+    const [header, body] = [...ai.querySelectorAll<HTMLElement>('[data-level-pills]')];
+    expect(header!.closest('header')).not.toBeNull();
+    expect(body!.closest('header')).toBeNull();
+    for (const pills of [header!, body!]) {
+      expect(within(pills).getByRole('img', { name: 'AI assistance: Some signs of AI help, the middle of 3' })).toBeInTheDocument();
+      expect(within(pills).getByText(/AI allowed with disclosure/)).toHaveTextContent('Job policy: AI allowed with disclosure');
+    }
+    expect(body).toHaveTextContent('Informational');
+    expect(within(ai.querySelector('header')!).getByText('Informational')).toBeInTheDocument();
     expect(ai.querySelector('[data-audit]')).toHaveTextContent(/^Assessed .+Ruleset \S+$/);
     // The declaration has its own place on the page, in Declarations (section 16).
     expect(ai).not.toHaveTextContent(/Declared AI use/);
@@ -216,7 +271,7 @@ describe('integrity panel', () => {
         dismissal: { actionId: 'a1', reason: 'VerifiedOutsideScreenHire', note: 'Video call on Monday.', actorUserId: user.id, actorName: 'Avery Quinn', dismissedAt: '2026-10-20T11:00:00Z' },
       },
       reviewLog: [
-        { id: 'a1', type: 'Dismissed', assessmentKind: 'Authenticity', assessmentId: authenticityAssessmentId, dismissReason: 'VerifiedOutsideScreenHire', note: 'Video call on Monday.', actorUserId: user.id, actorName: 'Avery Quinn', occurredAt: '2026-10-20T11:00:00Z' },
+        { id: 'a1', type: 'Dismissed', assessmentKind: 'Authenticity', assessmentId: authenticityAssessmentId, dismissReason: 'VerifiedOutsideScreenHire', note: 'Video call on Monday.', actorUserId: user.id, actorName: 'Avery Quinn', occurredAt: '2026-10-20T11:00:00Z', signalId: null, signalTitle: null, explainReason: null },
       ],
     };
     const sent = serve(botIntegrity(), {
@@ -241,6 +296,148 @@ describe('integrity panel', () => {
     expect(within(authenticity).getByRole('img', { name: /Authenticity: Verification suggested/ })).toBeInTheDocument();
     expect(authenticity).toHaveTextContent(/Dismissed by you/);
     expect(within(authenticity).queryByRole('button', { name: /Dismiss/ })).not.toBeInTheDocument();
+  });
+
+  it('marks a reason explained, which closes it with its badge and lands in the review log, and decides nothing', async () => {
+    const after = botExplained(
+      { NET_DATACENTER_IP: explanation(user.id, { reason: 'ExpectedForRole', note: 'Remote role.' }) },
+      { reviewLog: [logEntry({ note: 'Remote role.' })] },
+    );
+    const sent = serve(botIntegrity(), {
+      [`POST ${base}/assessments/${authenticityAssessmentId}/signals/signal-NET_DATACENTER_IP/explain`]: () => ({ status: 200, body: after, next: after }),
+    });
+    renderPanel();
+
+    await screen.findByRole('region', { name: 'Authenticity' });
+    const row = reasonRow('NET_DATACENTER_IP');
+    await fireEvent.click(row.querySelector('summary')!);
+    await waitFor(() => expect(row.querySelector('details')!.open).toBe(true));
+    await fireEvent.click(within(row).getByRole('button', { name: 'Mark explained' }));
+    const dialog = await screen.findByRole('dialog', { name: `Mark "Sent from a hosting provider's network" explained?` });
+    expect(dialog).toHaveTextContent('The level stays as assessed.');
+    await fireEvent.click(within(dialog).getByRole('radio', { name: 'Expected for this role' }));
+    await fireEvent.input(within(dialog).getByLabelText('Note (optional)'), { target: { value: ' Remote role. ' } });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Mark explained' }));
+
+    await waitFor(() => expect(sent).toEqual([{ route: `POST ${base}/assessments/${authenticityAssessmentId}/signals/signal-NET_DATACENTER_IP/explain`, body: { reason: 'ExpectedForRole', note: 'Remote role.' } }]));
+    await screen.findByText(`Marked explained: Sent from a hosting provider's network. It is in the review log.`);
+    await waitFor(() => expect(reasonRow('NET_DATACENTER_IP')).toHaveAttribute('data-explained'));
+    const explained = reasonRow('NET_DATACENTER_IP');
+    expect(explained.querySelector('details')!.open).toBe(false);
+    expect(within(explained.querySelector('summary')!).getByText('Explained')).toBeInTheDocument();
+    expect(explained.querySelector('[data-explanation] p')).toHaveTextContent(/^You .+: Expected for this role\. "Remote role\."$/);
+    expect(within(explained).getByRole('button', { name: 'Undo' })).toBeInTheDocument();
+    expect(within(section('Review log')).getByText(`Explained Sent from a hosting provider's network: Expected for this role`)).toBeInTheDocument();
+    // The level, and the one button, stay as they were: other reasons are still unexplained.
+    const authenticity = section('Authenticity');
+    expect(within(authenticity).getByRole('img', { name: /Authenticity: Verification suggested/ })).toBeInTheDocument();
+    expect(within(authenticity).getByRole('button', { name: 'Dismiss' })).toBeInTheDocument();
+    expect(within(authenticity).queryByRole('button', { name: 'Dismiss all' })).not.toBeInTheDocument();
+  });
+
+  it('leaves a reason open when the API refuses its explanation', async () => {
+    const sent = serve(botIntegrity(), {
+      [`POST ${base}/assessments/${authenticityAssessmentId}/signals/signal-NET_DATACENTER_IP/explain`]: () => ({ status: 409, body: { title: 'Already explained', status: 409 } }),
+    });
+    renderPanel();
+
+    await screen.findByRole('region', { name: 'Authenticity' });
+    const row = reasonRow('NET_DATACENTER_IP');
+    await fireEvent.click(row.querySelector('summary')!);
+    await waitFor(() => expect(row.querySelector('details')!.open).toBe(true));
+    await fireEvent.click(within(row).getByRole('button', { name: 'Mark explained' }));
+    const dialog = await screen.findByRole('dialog', { name: `Mark "Sent from a hosting provider's network" explained?` });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Mark explained' }));
+
+    await waitFor(() => expect(sent).toHaveLength(1));
+    await screen.findByText('Someone already explained this reason, or the assessment changed. The panel now shows the latest.');
+    expect(reasonRow('NET_DATACENTER_IP').querySelector('details')!.open).toBe(true);
+  });
+
+  it('offers Undo to the author of an explanation only, and undoes it', async () => {
+    const before = botExplained({ NET_DATACENTER_IP: explanation(user.id), AUTO_WEBDRIVER: explanation(teammate) });
+    const after = botExplained(
+      { AUTO_WEBDRIVER: explanation(teammate) },
+      { reviewLog: [logEntry({}), logEntry({ id: 'l2', type: 'ExplanationUndone', explainReason: null, occurredAt: '2026-10-20T10:05:00Z' })] },
+    );
+    const sent = serve(before, {
+      [`POST ${base}/assessments/${authenticityAssessmentId}/signals/signal-NET_DATACENTER_IP/undo-explanation`]: () => ({ status: 200, body: after, next: after }),
+    });
+    renderPanel();
+
+    await screen.findByRole('region', { name: 'Authenticity' });
+    expect(reasonRow('AUTO_WEBDRIVER').querySelector('[data-explanation]')).toHaveTextContent(/^Jordan Park /);
+    expect(within(reasonRow('AUTO_WEBDRIVER')).queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument();
+    await fireEvent.click(within(reasonRow('NET_DATACENTER_IP')).getByRole('button', { name: 'Undo' }));
+
+    await waitFor(() => expect(sent).toEqual([{ route: `POST ${base}/assessments/${authenticityAssessmentId}/signals/signal-NET_DATACENTER_IP/undo-explanation`, body: undefined }]));
+    await screen.findByText(`Undid the explanation: Sent from a hosting provider's network.`);
+    await waitFor(() => expect(reasonRow('NET_DATACENTER_IP')).not.toHaveAttribute('data-explained'));
+    expect(within(section('Review log')).getByText(`Undid the explanation of Sent from a hosting provider's network`)).toBeInTheDocument();
+  });
+
+  it('offers Dismiss all once every reason that counts is explained, lists their notes, and dismisses once', async () => {
+    // The context reason (the VPN) does not count, so it need not be explained.
+    const all = botExplained({
+      AUTO_SUBMIT_VELOCITY: explanation(user.id, { actionId: 'e1', reason: 'ConfirmedWithCandidate', note: 'Uses a password manager to fill forms.' }),
+      AUTO_WEBDRIVER: explanation(teammate, { actionId: 'e2' }),
+      NET_DATACENTER_IP: explanation(user.id, { actionId: 'e3', reason: 'ExpectedForRole', note: 'Remote role.' }),
+    });
+    const sent = serve(all, {
+      [`POST ${base}/assessments/${authenticityAssessmentId}/dismiss`]: () => ({ status: 200, body: all }),
+    });
+    renderPanel();
+
+    const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
+    expect(within(authenticity).queryByRole('button', { name: 'Dismiss' })).not.toBeInTheDocument();
+    await fireEvent.click(within(authenticity).getByRole('button', { name: 'Dismiss all' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Dismiss this authenticity assessment?' });
+    const listed = within(dialog).getByRole('list', { name: 'Explained reasons' });
+    // In the panel's order (Network before Automation), not the order the API listed the signals in.
+    expect(within(listed).getAllByRole('listitem').map((item) => item.querySelector('span')!.textContent)).toEqual([
+      "Sent from a hosting provider's network",
+      'Completed faster than a person could',
+      'Browser automation detected',
+    ]);
+    expect(listed).toHaveTextContent('Confirmed with the candidate, by you. "Uses a password manager to fill forms."');
+    expect(listed).toHaveTextContent('A known false positive, by Jordan Park');
+    expect(listed).toHaveTextContent('Expected for this role, by you. "Remote role."');
+    // The dismissal keeps its own reason: nothing is chosen from the explanations.
+    expect(within(dialog).getByRole('radio', { name: 'The observations do not apply' })).toBeChecked();
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Dismiss with this reason' }));
+
+    await waitFor(() => expect(sent).toEqual([{ route: `POST ${base}/assessments/${authenticityAssessmentId}/dismiss`, body: { reason: 'FalsePositive', note: null } }]));
+  });
+
+  it('keeps explanations read-only once the assessment is dismissed', async () => {
+    const bot = botExplained({ NET_DATACENTER_IP: explanation(user.id) });
+    serve({
+      ...bot,
+      authenticity: {
+        ...bot.authenticity!,
+        dismissal: { actionId: 'd1', reason: 'FalsePositive', note: null, actorUserId: user.id, actorName: 'Avery Quinn', dismissedAt: '2026-10-20T11:00:00Z' },
+      },
+    });
+    renderPanel();
+
+    await screen.findByRole('region', { name: 'Authenticity' });
+    expect(reasonRow('NET_DATACENTER_IP').querySelector('[data-explanation]')).toHaveTextContent(/^You /);
+    expect(within(section('Authenticity')).queryByRole('button', { name: /Undo|Mark explained|Dismiss/ })).not.toBeInTheDocument();
+  });
+
+  it('shows no review controls to a role that does not review verification', async () => {
+    signedIn.user = { ...userAs('Viewer'), id: user.id };
+    serve(botExplained({ NET_DATACENTER_IP: explanation(user.id) }));
+    renderPanel();
+
+    await screen.findByRole('region', { name: 'Authenticity' });
+    await fireEvent.click(within(section('Authenticity')).getAllByRole('button', { name: 'Expand all' })[0]!);
+    await waitFor(() => expect(reasonRow('AUTO_WEBDRIVER').querySelector('details')!.open).toBe(true));
+
+    expect(screen.queryByRole('button', { name: /Mark explained|Undo|Dismiss|Add review note/ })).not.toBeInTheDocument();
+    // Read-only says why (E3).
+    expect(section('Authenticity')).toHaveTextContent('Your role can read these checks; ask a reviewer to explain or dismiss them.');
+    expect(reasonRow('NET_DATACENTER_IP').querySelector('[data-explanation]')).toHaveTextContent(/^You /);
   });
 
   it('asks for a note before dismissing for another reason', async () => {
@@ -334,7 +531,7 @@ describe('integrity panel', () => {
   it('adds a note to the review log', async () => {
     const noted: ApplicationIntegrity = {
       ...botIntegrity(),
-      reviewLog: [{ id: 'n1', type: 'NoteAdded', assessmentKind: null, assessmentId: null, dismissReason: null, note: 'Asked for references.', actorUserId: 'someone-else', actorName: 'Jordan Park', occurredAt: '2026-10-20T11:00:00Z' }],
+      reviewLog: [{ id: 'n1', type: 'NoteAdded', assessmentKind: null, assessmentId: null, dismissReason: null, note: 'Asked for references.', actorUserId: 'someone-else', actorName: 'Jordan Park', occurredAt: '2026-10-20T11:00:00Z', signalId: null, signalTitle: null, explainReason: null }],
     };
     const sent = serve(botIntegrity(), { [`POST ${base}/notes`]: () => ({ status: 200, body: noted, next: noted }) });
     renderPanel();
