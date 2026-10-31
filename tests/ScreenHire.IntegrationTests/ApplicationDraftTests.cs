@@ -169,9 +169,12 @@ public sealed partial class ApplicationDraftTests(AppHostFixture fixture)
     public async Task The_daily_sweep_deletes_expired_drafts_and_keeps_the_rest()
     {
         var (organization, job) = await OrganizationWithEngineeringJobAsync();
+        var (other, otherJob) = await OrganizationWithEngineeringJobAsync();
         using var client = fixture.CreateHttpClient("api");
         await CreateAsync(client, organization, job, ApiSession.NewEmail("draft"));
         var kept = await CreateAsync(client, organization, job, ApiSession.NewEmail("draft"));
+        // Another organization's draft, expired too: a purge for this organization never reaches it.
+        await CreateAsync(client, other, otherJob, ApiSession.NewEmail("draft"));
 
         await using (var owner = new NpgsqlConnection(await fixture.GetOwnerConnectionStringAsync(Ct)))
         {
@@ -180,8 +183,10 @@ public sealed partial class ApplicationDraftTests(AppHostFixture fixture)
                 """
                 UPDATE application_drafts SET expires_at = now() - interval '1 day'
                 WHERE id = (SELECT id FROM application_drafts WHERE organization_id = @organization ORDER BY created_at LIMIT 1)
+                   OR organization_id = @other
                 """, owner);
             expire.Parameters.AddWithValue("organization", organization.Id);
+            expire.Parameters.AddWithValue("other", other.Id);
             await expire.ExecuteNonQueryAsync(Ct);
         }
 
@@ -196,6 +201,8 @@ public sealed partial class ApplicationDraftTests(AppHostFixture fixture)
             return await db.ApplicationDrafts.CountAsync(Ct) == 1;
         }, "the sweep", Ct);
         (await client.GetAsync(DraftPath(organization, kept), Ct)).StatusCode.Should().Be(HttpStatusCode.OK);
+        await using var otherDb = await TenantDbAsync(other.Id);
+        (await otherDb.ApplicationDrafts.CountAsync(Ct)).Should().Be(1, "the purge runs under its own organization only");
     }
 
     [Fact]

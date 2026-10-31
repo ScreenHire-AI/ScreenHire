@@ -217,6 +217,36 @@ public sealed class HiringRowLevelSecurityTests(AppHostFixture fixture)
         (await check.ApplicationNoteMentions.CountAsync(Ct)).Should().Be(0, "a note's mentions go with it");
     }
 
+    // A saved application draft holds a candidate's details and answers before they apply: only its organization sees,
+    // changes or deletes it, even without the query filter.
+    [Fact]
+    public async Task Application_drafts_are_seen_and_changed_only_by_their_organization()
+    {
+        var organization = await fixture.CreateOrganizationAsync(cancellationToken: Ct);
+        var other = await fixture.CreateOrganizationAsync(cancellationToken: Ct);
+        var job = TestData.NewJob(organization, "drafted");
+        var draft = ApplicationDraft.Create(
+            organization.Id, job.Id, "casey.morgan@example.com",
+            new ApplicationDraftContent("Casey", "Morgan", null, [], false, AiUseDeclaration.NotProvided, null), Now);
+        await using (var db = await ContextAsync(organization.Id))
+        {
+            db.Jobs.Add(job);
+            db.ApplicationDrafts.Add(draft);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        await using (var outside = await ContextAsync(other.Id))
+        {
+            (await outside.ApplicationDrafts.IgnoreQueryFilters().CountAsync(Ct)).Should().Be(0, "row-level security hides it even without the query filter");
+        }
+
+        var update = "UPDATE application_drafts SET first_name = 'Taken' WHERE id = @id";
+        (await ExecuteAsync(other.Id, update, ("id", draft.Id))).Should().Be(0);
+        (await ExecuteAsync(other.Id, "DELETE FROM application_drafts WHERE id = @id", ("id", draft.Id))).Should().Be(0);
+        (await ExecuteAsync(organization.Id, update, ("id", draft.Id))).Should().Be(1);
+        (await ExecuteAsync(organization.Id, "DELETE FROM application_drafts WHERE id = @id", ("id", draft.Id))).Should().Be(1);
+    }
+
     [Fact]
     public async Task A_template_version_can_change_while_it_is_a_draft_and_never_after_it_is_published()
     {
