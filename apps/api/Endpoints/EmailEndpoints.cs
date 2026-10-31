@@ -98,6 +98,8 @@ internal static class EmailEndpoints
                 .. EmailTemplates.Variables.Select(v => new EmailTemplateVariableEntry(v.Name, v.Label, false)),
                 new(EmailTemplates.Reason.Name, EmailTemplates.Reason.Label, true),
                 new(EmailTemplates.QuestionnaireLink.Name, EmailTemplates.QuestionnaireLink.Label, false, QuestionnaireOnly: true),
+                new(EmailTemplates.JobLink.Name, EmailTemplates.JobLink.Label, false, InvitationOnly: true),
+                new(EmailTemplates.RemoveLink.Name, EmailTemplates.RemoveLink.Label, false, InvitationOnly: true),
             ]));
     }
 

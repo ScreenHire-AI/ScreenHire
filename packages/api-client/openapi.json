@@ -11424,6 +11424,10 @@
           },
           "archived": {
             "type": "boolean"
+          },
+          "invitationOnly": {
+            "type": "boolean",
+            "default": false
           }
         },
         "description": "One email template. Built-in templates have ScreenHire's ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name."
@@ -11474,9 +11478,13 @@
           "questionnaireOnly": {
             "type": "boolean",
             "default": false
+          },
+          "invitationOnly": {
+            "type": "boolean",
+            "default": false
           }
         },
-        "description": "A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.\r\n`questionnaireOnly`: only the follow-up questions email has it."
+        "description": "A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.\r\n`questionnaireOnly`: only the follow-up questions email has it. `invitationOnly`: only the talent pool\r\ninvitation has it."
       },
       "EmploymentType": {
         "enum": [

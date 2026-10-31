@@ -1,9 +1,12 @@
 import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
+import BookmarkIcon from '@lucide/svelte/icons/bookmark';
+import BookmarkXIcon from '@lucide/svelte/icons/bookmark-x';
 import ClipboardCheckIcon from '@lucide/svelte/icons/clipboard-check';
 import ClipboardListIcon from '@lucide/svelte/icons/clipboard-list';
 import InboxIcon from '@lucide/svelte/icons/inbox';
 import ListChecksIcon from '@lucide/svelte/icons/list-checks';
 import ListTodoIcon from '@lucide/svelte/icons/list-todo';
+import MailPlusIcon from '@lucide/svelte/icons/mail-plus';
 import PencilIcon from '@lucide/svelte/icons/pencil';
 import ScanSearchIcon from '@lucide/svelte/icons/scan-search';
 import SendIcon from '@lucide/svelte/icons/send';
@@ -11,7 +14,7 @@ import StickyNoteIcon from '@lucide/svelte/icons/sticky-note';
 import TagIcon from '@lucide/svelte/icons/tag';
 import TagsIcon from '@lucide/svelte/icons/tags';
 import Trash2Icon from '@lucide/svelte/icons/trash-2';
-import type { ApplicationEventType, ApplicationTimelineEntry, TeamMember } from '@screenhire/api-client';
+import type { ApplicationEventType, ApplicationTimelineEntry, TalentPoolExit, TeamMember } from '@screenhire/api-client';
 import type { Component } from 'svelte';
 import { personName } from '#lib/team.js';
 
@@ -40,6 +43,9 @@ const kinds: Partial<Record<ApplicationEventType, ActivityKind>> = {
   StageChanged: 'stage',
   TagAdded: 'stage',
   TagRemoved: 'stage',
+  KeptInMind: 'stage',
+  LeftTalentPool: 'stage',
+  InvitedToApply: 'emails',
 };
 
 export const activityKind = (entry: Pick<ApplicationTimelineEntry, 'type'>): ActivityKind | undefined => kinds[entry.type];
@@ -73,13 +79,29 @@ export const eventIcons: Record<ApplicationEventType, Component> = {
   QuestionnaireSent: ClipboardListIcon,
   QuestionnaireCompleted: ListChecksIcon,
   TaskCreated: ListTodoIcon,
+  KeptInMind: BookmarkIcon,
+  LeftTalentPool: BookmarkXIcon,
+  InvitedToApply: MailPlusIcon,
 };
 
-/** What the screen knows that an entry names by id: stage names and follow-up questionnaire names. */
+/** What the screen knows that an entry names by id: stage names, follow-up questionnaire names and job titles. */
 export interface ActivityNames {
   stageName: (id: string | null | undefined) => string;
   followUpName: (requestId: string | null | undefined) => string;
+  /** Another job's title, for the talent pool's entries; "another job" when the reader cannot see it. */
+  jobName?: (id: string | null | undefined) => string;
 }
+
+/** Why a candidate left the talent pool, as Activity says it. */
+const poolExits: Record<NonNullable<TalentPoolExit>, (job: string) => string> = {
+  Expired: () => 'Left the talent pool: their permission ran out',
+  Removed: () => 'Took them out of the talent pool',
+  CandidateAsked: () => 'Took them out of the talent pool at their request',
+  AddedToJob: (job) => `Added them to ${job} from the talent pool`,
+  AppliedAgain: (job) => `Left the talent pool: applied for ${job}`,
+  BackInJob: () => 'Left the talent pool: back in this job',
+  KeptFromAnotherJob: (job) => `Left the talent pool here: kept in mind from ${job} instead`,
+};
 
 /** What happened, in words: "Moved from Applied to Screening". */
 export function describeEvent(entry: ApplicationTimelineEntry, names: ActivityNames): string {
@@ -116,6 +138,13 @@ export function describeEvent(entry: ApplicationTimelineEntry, names: ActivityNa
     case 'TaskCreated':
       // What the task asks shows under it, quoted, as a stage move's note does.
       return 'Created a task';
+    case 'KeptInMind':
+      // Why shows under it, quoted, as a stage move's note does.
+      return 'Kept in mind: left the job without a rejection';
+    case 'LeftTalentPool':
+      return poolExits[entry.poolExit ?? 'Removed'](names.jobName?.(entry.otherJobId) ?? 'another job');
+    case 'InvitedToApply':
+      return `Invited to apply for ${names.jobName?.(entry.otherJobId) ?? 'another job'}`;
   }
 }
 

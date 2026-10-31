@@ -5,6 +5,7 @@
   import RelativeTime from '#lib/components/relative-time.svelte';
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
+  import { formatDate } from '#lib/dates.js';
 
   // The whole application (design system section 21): the answers, each follow-up questionnaire an automation sent with
   // its answers once given, read against the questions as the candidate saw them, and the candidate's declarations.
@@ -43,5 +44,10 @@
         : ''}
     </SummaryItem>
     <SummaryItem label="Adjustments">{detail.accommodationRequested ? 'Asked for adjustments to the process' : 'None requested'}</SummaryItem>
+    <!-- "Keep my details for future roles": only an application whose candidate said yes can be kept in mind. -->
+    <SummaryItem label="Future roles">
+      {#if !detail.futureRolesGivenAt}Did not ask to be kept for future roles{:else if detail.futureRolesUntil}Allowed until {formatDate(detail.futureRolesUntil)}{:else}Allowed,
+        then stopped or ran out{/if}
+    </SummaryItem>
   </SummaryList>
 </Panel>

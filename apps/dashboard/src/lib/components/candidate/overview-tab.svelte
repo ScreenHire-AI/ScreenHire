@@ -7,6 +7,7 @@
   import FailureText from '#lib/components/failure-text.svelte';
   import FileRow from '#lib/components/file-row.svelte';
   import ManualAutomations from '#lib/components/manual-automations.svelte';
+  import OtherApplications from '#lib/components/candidate/other-applications.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import StatusIcon from '#lib/components/status-icon.svelte';
@@ -142,5 +143,6 @@
 </Panel>
 <ApplicationTags applicationId={detail.id} tags={detail.tags} editable={tagsEditable} />
 <AnswersPanel {detail} {questions} fullHref="?tab=application" />
+<OtherApplications candidateId={detail.candidate.id} applicationId={detail.id} />
 </div>
 </div>

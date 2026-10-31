@@ -6426,7 +6426,9 @@ export const ReplayWebhookDeliveryResponse = zod.object({
 }).describe('One delivery in an endpoint\'s log. string WebhookDeliveryEntry.Payload is the exact body sent; Guid? WebhookDeliveryEntry.ReplayOfId is set on\r\na replay. string? WebhookDeliveryEntry.LastError is our description of the last failed attempt, never the receiver\'s response.')
 
 
+export const listEmailTemplatesResponseTemplatesItemInvitationOnlyDefault = false;
 export const listEmailTemplatesResponseVariablesItemQuestionnaireOnlyDefault = false;
+export const listEmailTemplatesResponseVariablesItemInvitationOnlyDefault = false;
 
 export const ListEmailTemplatesResponse = zod.object({
   "sendingEnabled": zod.boolean(),
@@ -6446,14 +6448,16 @@ export const ListEmailTemplatesResponse = zod.object({
   "apiKeyId": zod.uuid().nullish()
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
   "questionnaireOnly": zod.boolean(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "invitationOnly": zod.boolean().default(listEmailTemplatesResponseTemplatesItemInvitationOnlyDefault)
 }).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')),
   "variables": zod.array(zod.object({
   "name": zod.string(),
   "label": zod.string(),
   "rejectOnly": zod.boolean(),
-  "questionnaireOnly": zod.boolean().default(listEmailTemplatesResponseVariablesItemQuestionnaireOnlyDefault)
-}).describe('A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.\r\n`questionnaireOnly`: only the follow-up questions email has it.'))
+  "questionnaireOnly": zod.boolean().default(listEmailTemplatesResponseVariablesItemQuestionnaireOnlyDefault),
+  "invitationOnly": zod.boolean().default(listEmailTemplatesResponseVariablesItemInvitationOnlyDefault)
+}).describe('A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.\r\n`questionnaireOnly`: only the follow-up questions email has it. `invitationOnly`: only the talent pool\r\ninvitation has it.'))
 }).describe('The organization\'s email templates and the variables they may use. `sendingEnabled` is false when this\r\ndeployment has no email sender: templates can still be edited, but nothing can be sent or tested.')
 
 
@@ -6462,6 +6466,8 @@ export const CreateEmailTemplateBody = zod.object({
   "subject": zod.string(),
   "body": zod.string()
 }).describe('A new template of the organization\'s own: its name, a Liquid subject and a Liquid plain-text body.')
+
+export const createEmailTemplateResponseInvitationOnlyDefault = false;
 
 export const CreateEmailTemplateResponse = zod.object({
   "id": zod.string(),
@@ -6479,13 +6485,16 @@ export const CreateEmailTemplateResponse = zod.object({
   "apiKeyId": zod.uuid().nullish()
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
   "questionnaireOnly": zod.boolean(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "invitationOnly": zod.boolean().default(createEmailTemplateResponseInvitationOnlyDefault)
 }).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
 
 
 export const GetEmailTemplateParams = zod.object({
   "templateId": zod.string()
 })
+
+export const getEmailTemplateResponseInvitationOnlyDefault = false;
 
 export const GetEmailTemplateResponse = zod.object({
   "id": zod.string(),
@@ -6503,7 +6512,8 @@ export const GetEmailTemplateResponse = zod.object({
   "apiKeyId": zod.uuid().nullish()
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
   "questionnaireOnly": zod.boolean(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "invitationOnly": zod.boolean().default(getEmailTemplateResponseInvitationOnlyDefault)
 }).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
 
 
@@ -6516,6 +6526,8 @@ export const UpdateEmailTemplateBody = zod.object({
   "body": zod.string(),
   "name": zod.string().nullish()
 }).describe('New wording for a template. `name` renames the organization\'s own template; leave it out for a built-in,\r\nwhose name is ScreenHire\'s.')
+
+export const updateEmailTemplateResponseInvitationOnlyDefault = false;
 
 export const UpdateEmailTemplateResponse = zod.object({
   "id": zod.string(),
@@ -6533,7 +6545,8 @@ export const UpdateEmailTemplateResponse = zod.object({
   "apiKeyId": zod.uuid().nullish()
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
   "questionnaireOnly": zod.boolean(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "invitationOnly": zod.boolean().default(updateEmailTemplateResponseInvitationOnlyDefault)
 }).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
 
 
@@ -6582,6 +6595,8 @@ export const ArchiveEmailTemplateParams = zod.object({
   "templateId": zod.string()
 })
 
+export const archiveEmailTemplateResponseInvitationOnlyDefault = false;
+
 export const ArchiveEmailTemplateResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -6598,13 +6613,16 @@ export const ArchiveEmailTemplateResponse = zod.object({
   "apiKeyId": zod.uuid().nullish()
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
   "questionnaireOnly": zod.boolean(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "invitationOnly": zod.boolean().default(archiveEmailTemplateResponseInvitationOnlyDefault)
 }).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
 
 
 export const UnarchiveEmailTemplateParams = zod.object({
   "templateId": zod.string()
 })
+
+export const unarchiveEmailTemplateResponseInvitationOnlyDefault = false;
 
 export const UnarchiveEmailTemplateResponse = zod.object({
   "id": zod.string(),
@@ -6622,7 +6640,8 @@ export const UnarchiveEmailTemplateResponse = zod.object({
   "apiKeyId": zod.uuid().nullish()
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
   "questionnaireOnly": zod.boolean(),
-  "archived": zod.boolean()
+  "archived": zod.boolean(),
+  "invitationOnly": zod.boolean().default(unarchiveEmailTemplateResponseInvitationOnlyDefault)
 }).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
 
 
