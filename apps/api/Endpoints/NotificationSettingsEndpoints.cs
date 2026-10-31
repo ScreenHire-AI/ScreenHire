@@ -40,6 +40,12 @@ internal static class NotificationSettingsEndpoints
     private static async Task<Results<Ok<MemberNotificationSettings>, NotFound, ValidationProblem>> UpdateNotificationSettings(
         UpdateNotificationSettingsRequest request, ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken)
     {
+        // A PUT replaces the settings, so a missing list is bad input rather than "nothing off".
+        if (request.Off is null)
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem("off", "List the kinds of change that are off, or none."));
+        }
+
         if (request.Off.Distinct().Count() != request.Off.Count)
         {
             return TypedResults.ValidationProblem(ValidationExtensions.Problem("off", "Name each kind of change once."));

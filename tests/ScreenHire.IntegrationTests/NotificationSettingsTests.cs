@@ -96,13 +96,17 @@ public sealed class NotificationSettingsTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task Naming_a_kind_twice_or_an_unknown_kind_is_refused_and_saves_nothing()
+    public async Task Naming_a_kind_twice_an_unknown_kind_or_no_list_is_refused_and_saves_nothing()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
 
         (await owner.PutAsync(Path, Settings(toasts: false, closeToasts: true, "Moves", "Moves"))).Expect(HttpStatusCode.BadRequest)
             .ProblemKeys().Should().Equal("off");
         (await owner.PutAsync(Path, Settings(toasts: false, closeToasts: true, "Gossip"))).Expect(HttpStatusCode.BadRequest);
+        (await owner.PutAsync(Path, new JsonObject { ["toasts"] = false, ["closeToasts"] = true })).Expect(HttpStatusCode.BadRequest)
+            .ProblemKeys().Should().Equal("off");
+        (await owner.PutAsync(Path, new JsonObject { ["toasts"] = false, ["closeToasts"] = true, ["off"] = null })).Expect(HttpStatusCode.BadRequest)
+            .ProblemKeys().Should().Equal("off");
 
         (await owner.GetAsync(Path)).At("toasts").GetBoolean().Should().BeTrue("a refused save changed nothing");
     }
