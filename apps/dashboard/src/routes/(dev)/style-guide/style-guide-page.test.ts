@@ -96,6 +96,9 @@ const panels: Record<string, string[]> = {
   'Choice card': ['Choice card'],
   'Filter menu': ['Filter menu'],
   Picker: ['Picker'],
+  'Colour field': ['Colour field'],
+  'Image field': ['Image field'],
+  'Branding preview': ['Branding preview'],
 };
 
 // The page draws the whole catalogue, which grows with each component, and axe walks all of it: more than Vitest's 5

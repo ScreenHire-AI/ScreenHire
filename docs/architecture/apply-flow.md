@@ -156,13 +156,12 @@ The careers server forwards the candidate's address in `X-Forwarded-For`. The AP
 
 ## 5. Employer branding and the content security policy
 
-An organization's `BrandColor` becomes a `BrandPalette` on the server (`src/ScreenHire.Domain/Organizations`):
-`brand` and `onBrand` (white or ink, 4.5:1), `brandText` (4.5:1 on the page and on cards) and `brandUi` (3:1). A
-colour that fails is darkened in OKLCH lightness, keeping its hue, until it passes. The public organization and board
-responses carry the palette; the careers server turns it into a stylesheet named by a hash of its content
-(`src/lib/brand.ts`), cached for a year. Brand never restyles status colours, the privacy notice or the footer. Owners
-and admins set the colour with `PUT /v1/organization/branding`, which returns the derived palette, from the
-dashboard's Settings > Branding page; the Development seed gives Brightwater one.
+An organization's branding (colours, heading font, logo, favicon, sharing image) is
+[branding.md](branding.md): colours are checked against WCAG 2.2 AA before they save, and images are served on the
+careers origin at `/brand/images/{id}.{png|jpg}`. The public organization and board responses carry `branding`; the
+careers server turns its palette, header colours and font into a stylesheet named by a hash of its content
+(`src/lib/brand.ts`), cached for a year. Brand never restyles status colours, the privacy notice or the footer. The
+Development seed gives Brightwater a brand colour.
 
 Careers pages run under a strict policy: Astro's `security.csp` (hashes for what Astro emits, `default-src 'none'`,
 no `unsafe-inline`), stylesheets never inlined, the apply page adding `connect-src` for the upload origin (and

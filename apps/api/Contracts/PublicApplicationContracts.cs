@@ -6,16 +6,8 @@ using ScreenHire.Domain.Organizations;
 
 namespace ScreenHire.Api.Contracts;
 
-/// <summary>An organization as its careers pages show it.</summary>
-/// <remarks><c>branding</c> is null when the organization has no brand colour: careers pages use ScreenHire's.</remarks>
-public sealed record PublicOrganization(string Name, string Slug, PublicBranding? Branding);
-
-/// <summary>
-/// The careers-page colours derived from the organization's brand colour, each contrast-checked on the server
-/// (docs/design/design-system.md §7): <c>brand</c> fills, <c>onBrand</c> is text on it (4.5:1), <c>brandText</c> is
-/// brand-coloured text on the page (4.5:1) and <c>brandUi</c> is borders and focus rings (3:1). All <c>#rrggbb</c>.
-/// </summary>
-public sealed record PublicBranding(string Brand, string OnBrand, string BrandText, string BrandUi);
+/// <summary>An organization as its careers pages show it, with its branding (each part null for ScreenHire's).</summary>
+public sealed record PublicOrganization(string Name, string Slug, PublicBranding Branding);
 
 /// <summary>
 /// One question of a job's application form, as a candidate sees it. Knockout settings stay on the server: the form
@@ -134,11 +126,6 @@ public sealed record PublicQuestionnaireAnswers(IReadOnlyList<ApplicationAnswer>
 
 internal static class PublicApplicationMappings
 {
-    public static PublicOrganization ToPublic(this Organization organization) =>
-        new(organization.Name, organization.Slug, organization.GetBrandPalette() is { } palette
-            ? new PublicBranding(palette.Brand, palette.OnBrand, palette.BrandText, palette.BrandUi)
-            : null);
-
     public static PublicQuestion ToPublic(this Question question, Func<IReadOnlyList<string>?, IReadOnlyList<string>> acceptedFileTypes) =>
         new(question.Id, question.Type, question.Label, question.Required, question.HelpText, question.Options,
             question.Type == QuestionType.Number ? question.Min : null,
