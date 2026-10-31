@@ -71,6 +71,11 @@
   --status-ai-soft: #ecebfa;
   --status-ai-mark: #2b2788;
 
+  /* Charts (section 3.5): one blue, away from every status hue. `chart-1` is the series or the part in focus, `chart-2`
+     the whole it is part of. Checked as a pair with the dataviz palette validator on the card in both themes. */
+  --chart-1: #1e5ba1;
+  --chart-2: #6aa7f4;
+
   /* Candidate & marketing — warm. Careers pages override the cta tokens with the employer brand. */
   --candidate-background: #fbf6ee;
   --candidate-surface: #ffffff;
@@ -140,6 +145,9 @@
   --status-ai: #c7c8fa;
   --status-ai-soft: #26264a;
   --status-ai-mark: #c7c8fa;
+
+  --chart-1: #5d94da;
+  --chart-2: #2e64a6;
 
   --candidate-background: #1a1714;
   --candidate-surface: #23201c;

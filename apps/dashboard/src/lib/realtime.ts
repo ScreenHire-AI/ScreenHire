@@ -16,6 +16,7 @@ export const candidatesPath = '/v1/candidates';
 export const templatesPath = '/v1/templates';
 export const tasksPath = '/v1/tasks';
 export const membersPath = '/v1/organization/members';
+export const reportsPath = '/v1/reports';
 
 /**
  * Which queries each tenant event makes stale, as API paths. Add a line when a page shows what an event changes.
@@ -28,7 +29,8 @@ export const membersPath = '/v1/organization/members';
  * Tags show in every list, which filter by them; a note, and its edits and deletion, show on the application's
  * timeline only, and so does a sent email (ApplicationEmailed). TeammateMentioned refreshes
  * nothing: the note's own event does, and the shell turns the mention into a card for the person mentioned. Answers to
- * a follow-up questionnaire (QuestionnaireAnswered) show on the application's page and its timeline.
+ * a follow-up questionnaire (QuestionnaireAnswered) show on the application's page and its timeline. Reports count
+ * applications by when they arrived and the stages they reached, so arriving and moving refresh them.
  */
 export const invalidations: InvalidationMap = {
   JobPublished: [jobsPath],
@@ -39,8 +41,8 @@ export const invalidations: InvalidationMap = {
   // A job's team (`/v1/jobs/{id}/hiring-team`), the Team page's job counts, and for someone just added, the job itself.
   HiringTeamChanged: [jobsPath, membersPath],
   HiringTemplateVersionPublished: [jobsPath, templatesPath],
-  ApplicationSubmitted: [jobsPath, applicationsPath, candidatesPath],
-  ApplicationMoved: [jobsPath, applicationsPath, candidatesPath],
+  ApplicationSubmitted: [jobsPath, applicationsPath, candidatesPath, reportsPath],
+  ApplicationMoved: [jobsPath, applicationsPath, candidatesPath, reportsPath],
   // The application's Activity, and the candidate's Messages (every email to them).
   ApplicationEmailed: [applicationsPath, candidatesPath],
   ApplicationNoteAdded: [applicationsPath],

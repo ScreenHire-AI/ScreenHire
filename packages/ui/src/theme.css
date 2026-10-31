@@ -102,6 +102,9 @@
   --color-status-ai-soft: var(--status-ai-soft);
   --color-status-ai-mark: var(--status-ai-mark);
 
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+
   --color-candidate-background: var(--candidate-background);
   --color-candidate-surface: var(--candidate-surface);
   --color-candidate-border: var(--candidate-border);
