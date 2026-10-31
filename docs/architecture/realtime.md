@@ -143,7 +143,7 @@ and the Team page's counts, so a person just added sees the job appear.
 - `createConnectionState(client)` is a runes store (`$state`) with the connection status, for the shell's indicator.
 - `invalidateOnEvents(client, map, invalidate)` invalidates cache keys by event type, and every mapped key after a
   reconnect. The dashboard maps each event to the API paths it changes (`JobPublished` to `/v1/jobs`,
-  `ApplicationMoved` to `/v1/jobs`, `/v1/applications` and `/v1/candidates`), and invalidates every TanStack Query
+  `ApplicationMoved` to `/v1/jobs`, `/v1/applications`, `/v1/candidates` and `/v1/reports`), and invalidates every TanStack Query
   query under each path. `apps/dashboard/src/lib/realtime.ts` holds the map. An event that needs more than a refetch
   goes through `LiveUpdates.onEvent`: the shell turns `TeamNotified` into a notification in its tray, after reading the
   application and the run through the API, because the event carries ids only. `TeammateMentioned` reaches the whole

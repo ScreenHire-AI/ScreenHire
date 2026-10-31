@@ -6705,6 +6705,38 @@ export const ReopenTaskResponse = zod.object({
 }).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\r\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\r\nticked off by hand.')
 
 
+export const GetHiringReportQueryParams = zod.object({
+  "from": zod.iso.datetime({"offset":true}).optional(),
+  "to": zod.iso.datetime({"offset":true}).optional(),
+  "jobId": zod.array(zod.uuid()).optional()
+})
+
+export const GetHiringReportResponse = zod.object({
+  "from": zod.iso.datetime({"offset":true}),
+  "to": zod.iso.datetime({"offset":true}),
+  "funnel": zod.array(zod.object({
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
+  "applications": zod.int(),
+  "movedOn": zod.int().nullable()
+}).describe('One row of the funnel: a stage kind and the applications that reached it or a later one.')),
+  "timeToHire": zod.object({
+  "medianDays": zod.number().nullable(),
+  "hires": zod.int(),
+  "jobs": zod.array(zod.object({
+  "jobId": zod.uuid(),
+  "jobTitle": zod.string(),
+  "hires": zod.int(),
+  "medianDays": zod.number()
+}).describe('One job\'s hires in the range and their median days from applying to being hired.'))
+}).describe('Days from applying to being hired, for the hires made in the range.'),
+  "sources": zod.array(zod.object({
+  "source": zod.enum(['Recruiter', 'CareersSite']).describe('Where an application came from. Automation conditions read it as `application.source`.'),
+  "applications": zod.int(),
+  "hires": zod.int()
+}).describe('Applications submitted in the range from one source, and how many of them are hired now.'))
+}).describe('The Reports page (docs/architecture/reports.md): the funnel, time to hire and sources for the jobs the person can see,\r\nbetween two instants. All three come from one snapshot, so their numbers agree. Nothing here reads verification\r\n(integrity) results.')
+
+
 export const ListApplicationScorecardsParams = zod.object({
   "applicationId": zod.uuid()
 })

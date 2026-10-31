@@ -63,28 +63,55 @@ internal static class DemoCandidates
             "joel-mensah", "Joel", "Mensah", "joel.mensah@example.org", "+44 20 7946 0377", "192.0.2.37", 14,
             "Joel Mensah\nBackend engineer, five years of C# and SQL Server, moving to Postgres.\nI look after a billing service.",
             EngineerAnswers("three_to_five", "https://joel-mensah.example.org/billing-ledger", "Four weeks"))),
+        // Support Engineer's hiring happened over the weeks before the demo, so Reports has a history to count: when each
+        // applied and each move, in days before the demo starts. The job is closed, so no time limit runs on them.
         new(SupportEngineer,
             [
-                new("screening"), new("technical"), new("interview"),
-                new("offer", "Offer sent after a strong panel."),
-                new("hired", "Accepted the offer."),
+                new("screening", DaysAgo: 39), new("technical", DaysAgo: 35), new("interview", DaysAgo: 30),
+                new("offer", "Offer sent after a strong panel.", 26),
+                new("hired", "Accepted the offer.", 22),
             ],
             Person(
                 "nadia-haddad", "Nadia", "Haddad", "nadia.haddad@example.com", "+44 121 496 0388", "192.0.2.38", 16,
                 "Nadia Haddad\nSupport engineer, four years at a card payments provider.\nI write the runbooks our first line uses.",
-                EngineerAnswers("three_to_five", "https://nadia-haddad.example.org/runbooks", "Two weeks"))),
+                EngineerAnswers("three_to_five", "https://nadia-haddad.example.org/runbooks", "Two weeks")),
+            AppliedDaysAgo: 41),
         new(SupportEngineer,
-            [new("screening"), new("technical"), new("interview"), new("rejected", "We chose a candidate with more payments support experience.")],
+            [
+                new("screening", DaysAgo: 36), new("technical", DaysAgo: 33), new("interview", DaysAgo: 29),
+                new("rejected", "We chose a candidate with more payments support experience.", 27),
+            ],
             Person(
                 "owen-price", "Owen", "Price", "owen.price@example.org", "+44 141 496 0399", "192.0.2.39", 13,
                 "Owen Price\nIT support analyst, two years, moving into software support.",
-                EngineerAnswers("less_than_3", "https://owen-price.example.org/helpdesk-scripts", "One week"))),
+                EngineerAnswers("less_than_3", "https://owen-price.example.org/helpdesk-scripts", "One week")),
+            AppliedDaysAgo: 38),
         new(SupportEngineer,
-            [new("screening"), new("technical"), new("withdrawn", "Withdrew: accepted another offer.")],
+            [new("screening", DaysAgo: 34), new("technical", DaysAgo: 31), new("withdrawn", "Withdrew: accepted another offer.", 28)],
             Person(
                 "lena-fischer", "Lena", "Fischer", "lena.fischer@example.com", "+44 20 7946 0400", "192.0.2.40", 10,
                 "Lena Fischer\nTechnical support lead, eight years in SaaS for hospitality.",
-                EngineerAnswers("six_to_nine", "https://lena-fischer.example.org/support-playbook", "Three months"))),
+                EngineerAnswers("six_to_nine", "https://lena-fischer.example.org/support-playbook", "Three months")),
+            AppliedDaysAgo: 36),
+        new(SupportEngineer,
+            [
+                new("screening", DaysAgo: 72), new("technical", DaysAgo: 68), new("interview", DaysAgo: 60),
+                new("offer", DaysAgo: 55), new("hired", "Started in the first-line team.", 50),
+            ],
+            Person(
+                "sam-brennan", "Sam", "Brennan", "sam.brennan@example.org", "+44 20 7946 0433", "192.0.2.43", 15,
+                "Sam Brennan\nSupport engineer, five years on a point-of-sale help desk.\nI wrote our guide to diagnosing card reader faults.",
+                EngineerAnswers("three_to_five", "https://sam-brennan.example.org/card-reader-guide", "One month")),
+            AppliedDaysAgo: 75),
+        // Added by a recruiter, who met them at a meetup, so Reports shows a second source.
+        new(SupportEngineer,
+            [new("screening", DaysAgo: 29), new("interview", DaysAgo: 24), new("offer", DaysAgo: 20), new("hired", DaysAgo: 16)],
+            Person(
+                "ruth-mwangi", "Ruth", "Mwangi", "ruth.mwangi@example.com", "+44 113 496 0444", "192.0.2.44", 12,
+                "Ruth Mwangi\nTechnical support specialist, six years with hotel booking software.",
+                EngineerAnswers("six_to_nine", "https://ruth-mwangi.example.org/escalation-notes", "Two weeks")),
+            AppliedDaysAgo: 30,
+            Source: ApplicationSource.Recruiter),
         new(SupportEngineer,
             [new("screening"), new("technical"), new("interview")],
             KeepForFutureRoles: true,
@@ -147,17 +174,29 @@ internal static class DemoCandidates
         ResumeProducer: "Microsoft Word for Microsoft 365");
 }
 
-/// <summary>An applicant to one of Brightwater's jobs and the moves a recruiter made, in order, each with an optional note.</summary>
+/// <summary>
+/// An applicant to one of Brightwater's jobs and the moves a recruiter made, in order, each with an optional note. Most
+/// apply as the demo starts; <see cref="AppliedDaysAgo"/> dates one in the past, with its moves, for Reports.
+/// </summary>
 /// <remarks>
 /// <c>KeepForFutureRoles</c>: they ticked "Keep my details for future roles" when they applied. <c>KeptInMindNote</c>:
 /// after the moves, the team kept them in mind with this note, so the talent pool has someone in it.
 /// </remarks>
 internal sealed record DemoCandidate(
-    string JobSlug, IReadOnlyList<DemoMove> Moves, SyntheticApplicant Applicant, bool KeepForFutureRoles = false, string? KeptInMindNote = null)
+    string JobSlug,
+    IReadOnlyList<DemoMove> Moves,
+    SyntheticApplicant Applicant,
+    int AppliedDaysAgo = 0,
+    ApplicationSource Source = ApplicationSource.CareersSite,
+    bool KeepForFutureRoles = false,
+    string? KeptInMindNote = null)
 {
     /// <summary>The stage the candidate ends in: the last move's, or "applied" when nobody moved them.</summary>
     public string StageId => Moves.Count == 0 ? "applied" : Moves[^1].StageId;
 }
 
-/// <summary>One move to a stage of the job's workflow, as a recruiter makes it on the dashboard.</summary>
-internal sealed record DemoMove(string StageId, string? Note = null);
+/// <summary>
+/// One move to a stage of the job's workflow, as a recruiter makes it on the dashboard: as the demo starts, or
+/// <see cref="DaysAgo"/> days before it.
+/// </summary>
+internal sealed record DemoMove(string StageId, string? Note = null, int DaysAgo = 0);

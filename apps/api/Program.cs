@@ -117,6 +117,7 @@ app.MapApiKeyEndpoints();
 app.MapWorkflowEndpoints();
 app.MapAutomationEndpoints();
 app.MapTaskEndpoints();
+app.MapReportEndpoints();
 app.MapScorecardEndpoints();
 app.MapScorecardTemplateEndpoints();
 app.MapTemplateUsageEndpoints();

@@ -55,6 +55,7 @@ import type {
   EmailsQueued,
   GetApiKeysHistoryParams,
   GetEmailTemplateHistoryParams,
+  GetHiringReportParams,
   GetHiringTemplateHistoryParams,
   GetJobHistoryParams,
   GetOrganizationBrandingHistoryParams,
@@ -64,6 +65,7 @@ import type {
   GetRoleHistoryParams,
   GetScorecardTemplateHistoryParams,
   GetTeamHistoryParams,
+  HiringReport,
   HiringTeamMember,
   HiringTeamRequest,
   HiringTemplateDetail,
@@ -7609,6 +7611,66 @@ export const reopenTask = async (taskId: string, options?: Parameters<typeof api
   {
     ...options,
     method: 'POST'
+
+
+  }
+);}
+
+
+
+export type getHiringReportResponse200 = {
+  data: HiringReport
+  status: 200
+}
+
+export type getHiringReportResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getHiringReportResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getHiringReportResponseSuccess = (getHiringReportResponse200) & {
+  headers: Headers;
+};
+export type getHiringReportResponseError = (getHiringReportResponse400 | getHiringReportResponse401) & {
+  headers: Headers;
+};
+
+export type getHiringReportResponse = (getHiringReportResponseSuccess | getHiringReportResponseError)
+
+export const getGetHiringReportUrl = (params?: GetHiringReportParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["jobId"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/reports/hiring?${stringifiedParams}` : `/v1/reports/hiring`
+}
+
+export const getHiringReport = async (params?: GetHiringReportParams, options?: Parameters<typeof apiFetch>[1]): Promise<getHiringReportResponse> => {
+
+  return apiFetch<getHiringReportResponse>(getGetHiringReportUrl(params),
+  {
+    ...options,
+    method: 'GET'
 
 
   }

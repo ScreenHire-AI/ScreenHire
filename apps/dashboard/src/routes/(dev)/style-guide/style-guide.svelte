@@ -29,13 +29,16 @@
   import ActionBar from '#lib/components/action-bar.svelte';
   import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
   import AnswerMenu from '#lib/components/answer-menu.svelte';
+  import BarChart, { type BarRow } from '#lib/components/bar-chart.svelte';
   import BrandBar from '#lib/components/brand-bar.svelte';
   import BuiltInBadge from '#lib/components/built-in-badge.svelte';
+  import ChartPanel, { type ChartColumn } from '#lib/components/chart-panel.svelte';
   import ChoiceCard from '#lib/components/choice-card.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import CountButton, { type CountItem } from '#lib/components/count-button.svelte';
   import CountryPicker from '#lib/components/country-picker.svelte';
   import Picker from '#lib/components/picker.svelte';
+  import DateRangeFilter from '#lib/components/date-range-filter.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import EmailPreview from '#lib/components/email-preview.svelte';
   import Fact from '#lib/components/fact.svelte';
@@ -173,6 +176,32 @@
   ];
   let candidateTab = $state('overview');
   let jobTab = $state('distribution');
+
+  // A report's charts (section 3.5): a funnel in one series, sources in two, and a chart panel with its table.
+  const guideFunnel: BarRow[] = [
+    { key: 'applied', label: 'Applied', values: [48], texts: ['48'], note: '63% moved on', summary: 'Applied: 48 applications, 63% moved on' },
+    { key: 'screening', label: 'Screening', values: [30], texts: ['30'], note: '40% moved on', summary: 'Screening: 30 applications, 40% moved on' },
+    { key: 'interview', label: 'Interview', values: [12], texts: ['12'], note: '25% moved on', summary: 'Interview: 12 applications, 25% moved on' },
+    { key: 'hired', label: 'Hired', values: [3], texts: ['3'], note: null, summary: 'Hired: 3 applications' },
+  ];
+  const guideSources: BarRow[] = [
+    { key: 'careers', label: 'Careers page', values: [41, 3], texts: ['41', '3'], summary: 'Careers page: 41 applications, 3 hires' },
+    { key: 'recruiter', label: 'Added by a recruiter', values: [7, 0], texts: ['7', '0'], summary: 'Added by a recruiter: 7 applications, 0 hires' },
+  ];
+  interface GuideHire {
+    job: string;
+    hires: number;
+    days: number;
+  }
+  const guideHires: GuideHire[] = [
+    { job: 'Support Engineer', hires: 2, days: 18 },
+    { job: 'Senior .NET Engineer', hires: 3, days: 34 },
+  ];
+  const guideHireColumns: ChartColumn<GuideHire>[] = [
+    { id: 'job', header: 'Job', text: (row) => row.job, sortBy: (row) => row.job },
+    { id: 'hires', header: 'Hires', text: (row) => String(row.hires), sortBy: (row) => row.hires },
+    { id: 'days', header: 'Median days', text: (row) => `${row.days} days`, sortBy: (row) => row.days },
+  ];
 
   // Twelve weeks of a metric, oldest first, for the metric cards.
   const weeks = (values: number[]): MetricPoint[] =>
@@ -1001,6 +1030,43 @@
           <MetricCard icon={HourglassIcon} title="Overdue now" value="3" change={2} period="last week" better="down" points={weeks([0, 2, 0, 2, 4, 2, 4, 2, 4, 4, 1, 3])} />
         </SummaryBand>
       </Panel>
+
+      <div class="flex flex-wrap items-start gap-5">
+        <Panel title="Bar chart" class="flex-[999_1_520px]">
+          <div class="flex flex-col gap-6">
+            <BarChart label="Funnel example" series={[{ label: 'Applications', tone: 'chart-1' }]} rows={guideFunnel} />
+            <BarChart
+              label="Sources example"
+              series={[
+                { label: 'Applications', tone: 'chart-2' },
+                { label: 'Hires', tone: 'chart-1' },
+              ]}
+              rows={guideSources}
+            />
+          </div>
+        </Panel>
+        <Panel title="Date range filter" class="flex-[1_1_320px]">
+          <div class="flex flex-wrap items-center gap-2"><DateRangeFilter /></div>
+        </Panel>
+      </div>
+
+      <ChartPanel
+        title="Chart panel"
+        basis="Median days from applying to being hired, for hires made in these dates."
+        tableId="style-guide-chart"
+        columns={guideHireColumns}
+        rows={guideHires}
+        rowKey={(row) => row.job}
+        defaultSort={{ id: 'days', desc: true }}
+      >
+        {#snippet chart()}
+          <BarChart
+            label="Time to hire example"
+            series={[{ label: 'Median days', tone: 'chart-1' }]}
+            rows={guideHires.toSorted((a, b) => b.days - a.days).map((row) => ({ key: row.job, label: row.job, values: [row.days], texts: [`${row.days} days`], note: `${row.hires} hires`, summary: `${row.job}: ${row.days} days` }))}
+          />
+        {/snippet}
+      </ChartPanel>
 
 
       <div class="flex flex-wrap items-start gap-5">

@@ -141,6 +141,11 @@ X-XSRF-TOKEN: {{xsrf}}
 
 ###
 
+# Reports: the funnel, time to hire and sources between two instants (from inclusive, to exclusive); repeat jobId to filter.
+GET {{api}}/v1/reports/hiring?from=2026-10-01T00:00:00Z&to=2026-11-01T00:00:00Z
+
+###
+
 GET {{api}}/v1/schemas/hiring-template-definition.json
 Accept: application/schema+json
 

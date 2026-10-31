@@ -32,6 +32,7 @@ What comes next, in order, is the [roadmap](roadmap.md).
 | Slack | An Owner or Admin connects the workspace from Settings > Slack and picks a channel and the events posted there (a new application, a candidate moved, an automation that failed, a job published); each person links their own account from their menu for their mentions and tasks as direct messages; messages name the candidate and the job and link to them, and never carry verification output ([Slack](architecture/slack.md)) | the Slack task |
 | MCP server | A team's AI assistant at `/v1/mcp`, signed in with an API key: find jobs and candidates, read an application with the candidate's words marked, add notes, tags and tasks, move a candidate to a stage; Read keys see only the reads; no integrity output ([MCP server](architecture/mcp-server.md)) | the MCP server task |
 | Hiring | Jobs with versions, hiring templates (system and your own), candidates, applications, the pipeline | #9 |
+| Reports | A Reports page for every member, over a date range and chosen jobs: the hiring funnel by stage kind with the share that moved on, median time to hire per job and overall, applications and hires by source; each chart has a table view; job access narrows the numbers; no verification data ([Reports](architecture/reports.md)) | the reports task |
 | Workflows | Automations with guardrails (no integrity-driven rejection), simulate and validate, transactional email, signed webhooks | #10 |
 | Webhook subscriptions | Organization endpoints for six events, a secret per endpoint (shown once, rotatable), signed deliveries with retries and backoff, a delivery log, replay, automatic disabling | #36 |
 | Collaboration | Notes on an application and on a stage move, tags with a tag filter, My tasks for the tasks automations and people make (Mine, For the team and Everyone's, each row a link to where the task is done; a to-do or a rejection review is ticked on the candidate's Next steps with Undo for 10 seconds, and a review or a requested scorecard is done when the scorecard is submitted), a real reviewer in AssignReviewer, a Run button for manual automations, a notification tray | #40, the remaining screens |
@@ -124,6 +125,9 @@ brackets.
 
 ## Known gaps
 
+- Reports know two sources, the careers page and a recruiter, because nothing records which job board sent a careers
+  applicant; the MCP server and API keys have no report yet; and stage kinds come from each job's current workflow, so a
+  removed stage's history drops out of the funnel (`architecture/reports.md` section 6).
 - Erasure requests: nothing deletes a candidate yet. A talent pool entry goes with its candidate when one is deleted,
   and until erasure exists a person removes someone from the pool with "They asked to be removed", which withdraws their
   permission for future roles ([talent pool](architecture/talent-pool.md)).
