@@ -55,7 +55,7 @@ There are two kinds, both listed by `GET /v1/email-templates` and edited on the 
 A template is a Liquid plain-text subject and a Liquid rich-text body (Fluid, ADR-0008). The body is sanitized HTML
 limited to the editor's elements (bold, italic, two heading levels, lists and links), at most 20,000 characters with
 its formatting; [rich text](rich-text.md) has the canonical form and the render. Values are HTML-encoded as they
-render, addresses in the text become links that show themselves, and the result is sanitized again, so a template
+render, the template's own addresses and the questionnaire link become links that show themselves, and the result is sanitized again, so a template
 cannot carry a script, an image or a tracking pixel, and a candidate's name cannot inject markup. A link may have its
 own text ("Apply here"), and the text part then prints its address after it; a link's address may not hold a variable,
 so a candidate's details never go to another site in a URL. ScreenHire adds no click tracking. The text part is the

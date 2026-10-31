@@ -9,6 +9,9 @@ sources:
   - resource: apps/dashboard/src/lib/status.ts
   - resource: apps/marketing/src/components/StatusIcon.astro
   - resource: apps/dashboard/src/routes/(dev)/style-guide/style-guide.svelte
+  - resource: apps/dashboard/src/lib/components/rich-text-editor.svelte
+  - resource: apps/dashboard/src/lib/components/rich-text-toolbar.svelte
+  - resource: apps/dashboard/src/lib/rich-text.ts
   - resource: apps/dashboard/src/lib/table-sort.svelte.ts
   - resource: apps/dashboard/src/lib/preview-window.svelte.ts
   - resource: apps/dashboard/src/lib/form-builder.ts

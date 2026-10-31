@@ -54,8 +54,9 @@ An email body is HTML with Liquid in its text (`EmailTemplates`, Fluid):
    `{% if x > 1 %}` stored as `&gt;` reads as written and bold over part of a tag does no harm.
 3. Values render through an HTML encoder, so a candidate's name never becomes markup.
 4. Newlines a value brought become `br`, so a reason with two lines keeps them; the stored body has none in its blocks.
-5. Bare `http` and `https` addresses in the text become links that show themselves, which is how
-   `{{ questionnaireLink }}` is clickable.
+5. Bare `http` and `https` addresses that the template's text holds become links that show themselves, and so does
+   the questionnaire link, which is how `{{ questionnaireLink }}` is clickable. An address another value brought,
+   such as a candidate's name, stays text, and an address in the text may not hold a variable.
 6. The result is sanitized again: a `{% if %}` that was false leaves no empty paragraph or orphaned tag.
 
 The template checker refuses `raw`, and a link's address may not hold a variable, so a candidate's details never go to
