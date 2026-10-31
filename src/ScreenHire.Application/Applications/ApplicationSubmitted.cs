@@ -4,6 +4,7 @@ using ScreenHire.Application.Automations;
 using ScreenHire.Application.Integrity;
 using ScreenHire.Application.Integrity.Content;
 using ScreenHire.Application.Messaging;
+using ScreenHire.Application.Slack;
 using ScreenHire.Application.Webhooks;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Infrastructure.Persistence;
@@ -24,12 +25,12 @@ public sealed record ApplicationSubmitted(
 /// trigger, and <c>StageEntered</c> for the first stage, which the application has just entered (it also starts that
 /// stage's TimeElapsed timers). It also starts the integrity pipeline (<see cref="AnalyzeApplicationIntegrity"/>) and
 /// the consistency check (<see cref="CheckApplicationConsistency"/>), and raises the <c>application.submitted</c> webhook
-/// event (<see cref="WebhookEvents"/>).
+/// event (<see cref="WebhookEvents"/>) and its Slack post (<see cref="SlackEvents"/>).
 /// </summary>
 public static partial class ApplicationSubmittedHandler
 {
     public static async Task<OutgoingMessages> Handle(
-        ApplicationSubmitted message, ScreenHireDbContext db, TimeProvider time, ILogger<ApplicationSubmitted> logger, CancellationToken cancellationToken)
+        ApplicationSubmitted message, ScreenHireDbContext db, SlackAccess slack, TimeProvider time, ILogger<ApplicationSubmitted> logger, CancellationToken cancellationToken)
     {
         var application = await db.Applications.AsNoTracking().SingleOrDefaultAsync(a => a.Id == message.ApplicationId, cancellationToken)
             ?? throw new InvalidOperationException($"Application {message.ApplicationId} is not visible to organization {message.OrganizationId}.");
@@ -50,6 +51,11 @@ public static partial class ApplicationSubmittedHandler
         outgoing.Add(new AnalyzeApplicationIntegrity(message.OrganizationId, message.ApplicationId));
         outgoing.Add(new CheckApplicationConsistency(message.OrganizationId, message.ApplicationId));
         outgoing.Add(WebhookEvents.From(message));
+        if (SlackEvents.From(message, slack) is { } post)
+        {
+            outgoing.Add(post);
+        }
+
         return outgoing;
     }
 

@@ -161,7 +161,7 @@ export const GetCurrentUserResponse = zod.object({
   "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
 }).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\r\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\r\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\r\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
@@ -218,7 +218,7 @@ export const CompleteOnboardingResponse = zod.object({
   "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
 }).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\r\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\r\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\r\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
@@ -239,7 +239,7 @@ export const AcceptInvitationResponse = zod.object({
   "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
 }).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\r\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\r\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\r\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
@@ -260,7 +260,7 @@ export const SwitchOrganizationResponse = zod.object({
   "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
 }).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\r\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\r\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\r\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
@@ -6010,7 +6010,7 @@ export const ListRolesResponse = zod.object({
   "customRoleId": zod.uuid().nullable(),
   "name": zod.string(),
   "description": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
   "people": zod.int(),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
@@ -6021,7 +6021,7 @@ export const ListRolesResponse = zod.object({
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.')
 }).describe('A role: built-in (`customRoleId` null), or Custom with its id. `description` is one line on what it is\r\nfor, generated from its permissions for a custom role. `people` counts the members who have it. A built-in role\r\nis last updated by ScreenHire.')),
   "permissions": zod.array(zod.object({
-  "permission": zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.'),
+  "permission": zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.'),
   "group": zod.enum(['Hiring', 'Templates', 'Organization']).describe('The groups the Roles page shows permissions in.'),
   "name": zod.string(),
   "description": zod.string(),
@@ -6043,7 +6043,7 @@ export const CreateRoleResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "description": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
   "people": zod.int(),
   "copiedFrom": zod.string(),
   "createdAt": zod.iso.datetime({"offset":true}),
@@ -6067,7 +6067,7 @@ export const GetRoleResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "description": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
   "people": zod.int(),
   "copiedFrom": zod.string(),
   "createdAt": zod.iso.datetime({"offset":true}),
@@ -6087,7 +6087,7 @@ export const UpdateRoleParams = zod.object({
 
 export const UpdateRoleBody = zod.object({
   "name": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')).nullable()
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')).nullable()
 }).describe('Renames a custom role and sets what it can do.')
 
 export const updateRoleResponseLastUpdatedCreatedDefault = false;
@@ -6096,7 +6096,7 @@ export const UpdateRoleResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "description": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
   "people": zod.int(),
   "copiedFrom": zod.string(),
   "createdAt": zod.iso.datetime({"offset":true}),
@@ -7234,6 +7234,115 @@ export const ReplayWebhookDeliveryResponse = zod.object({
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "payload": zod.string()
 }).describe('One delivery in an endpoint\'s log. string WebhookDeliveryEntry.Payload is the exact body sent; Guid? WebhookDeliveryEntry.ReplayOfId is set on\r\na replay. string? WebhookDeliveryEntry.LastError is our description of the last failed attempt, never the receiver\'s response.')
+
+
+export const GetSlackResponse = zod.object({
+  "available": zod.boolean(),
+  "sandbox": zod.boolean(),
+  "workspace": zod.union([zod.null(),zod.object({
+  "teamName": zod.string(),
+  "disconnected": zod.boolean()
+}).describe('The connected workspace, as every member sees it. `disconnected`: Slack stopped taking the app\'s token.')]),
+  "account": zod.union([zod.null(),zod.object({
+  "slackName": zod.string(),
+  "linkedAt": zod.iso.datetime({"offset":true}),
+  "mentions": zod.boolean(),
+  "tasks": zod.boolean(),
+  "problem": zod.union([zod.null(),zod.union([zod.literal('Disconnected'),zod.literal('ChannelNotFound'),zod.literal('NotInChannel'),zod.literal('ChannelArchived'),zod.literal('CannotPost'),zod.literal('CannotMessage'),zod.literal(null)])])
+}).describe('The member\'s linked Slack account: its name, and whether mentions and tasks given to them arrive as direct\r\nmessages. `problem` is `CannotMessage` when Slack refused the last one.')]),
+  "settings": zod.union([zod.null(),zod.object({
+  "channel": zod.union([zod.null(),zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}).describe('A channel by Slack\'s id and its name, without the `#`.')]),
+  "events": zod.array(zod.enum(['ApplicationSubmitted', 'ApplicationMoved', 'AutomationFailed', 'JobPublished']).describe('What the team can have posted to its channel. The names are stored; never rename one.')),
+  "connectedAt": zod.iso.datetime({"offset":true}),
+  "connectedBy": zod.string().nullable(),
+  "problem": zod.union([zod.null(),zod.union([zod.literal('Disconnected'),zod.literal('ChannelNotFound'),zod.literal('NotInChannel'),zod.literal('ChannelArchived'),zod.literal('CannotPost'),zod.literal('CannotMessage'),zod.literal(null)])]),
+  "problemAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('The workspace\'s settings: the channel (null until picked), the events posted there, who connected it and when,\r\nand why posting stopped working, if it did.')])
+}).describe('Slack for the signed-in member (docs/architecture/slack.md). `available` is false when this ScreenHire has no\r\nSlack app, and then nothing else is set. `workspace` is null until someone connects one. `account` is the\r\nmember\'s own link. `settings` is there only for someone who manages integrations and sees every job. The bot\r\ntoken is never in any answer.')
+
+
+export const DisconnectSlackResponse = zod.void()
+
+
+export const StartSlackInstallResponse = zod.object({
+  "authorizeUrl": zod.string()
+}).describe('Where to send the browser next: Slack\'s page (or the sandbox\'s) for an OAuth round trip.')
+
+
+export const ListSlackChannelsResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "isPrivate": zod.boolean()
+}).describe('A channel the app can post to. `isPrivate`: only for invited members, the app among them.')
+export const ListSlackChannelsResponse = zod.array(ListSlackChannelsResponseItem)
+
+
+export const UpdateSlackChannelBody = zod.object({
+  "channelId": zod.string(),
+  "events": zod.array(zod.enum(['ApplicationSubmitted', 'ApplicationMoved', 'AutomationFailed', 'JobPublished']).describe('What the team can have posted to its channel. The names are stored; never rename one.'))
+}).describe('The channel to post to, by its id from the channel list, and the events posted there (none is allowed).')
+
+export const UpdateSlackChannelResponse = zod.object({
+  "available": zod.boolean(),
+  "sandbox": zod.boolean(),
+  "workspace": zod.union([zod.null(),zod.object({
+  "teamName": zod.string(),
+  "disconnected": zod.boolean()
+}).describe('The connected workspace, as every member sees it. `disconnected`: Slack stopped taking the app\'s token.')]),
+  "account": zod.union([zod.null(),zod.object({
+  "slackName": zod.string(),
+  "linkedAt": zod.iso.datetime({"offset":true}),
+  "mentions": zod.boolean(),
+  "tasks": zod.boolean(),
+  "problem": zod.union([zod.null(),zod.union([zod.literal('Disconnected'),zod.literal('ChannelNotFound'),zod.literal('NotInChannel'),zod.literal('ChannelArchived'),zod.literal('CannotPost'),zod.literal('CannotMessage'),zod.literal(null)])])
+}).describe('The member\'s linked Slack account: its name, and whether mentions and tasks given to them arrive as direct\r\nmessages. `problem` is `CannotMessage` when Slack refused the last one.')]),
+  "settings": zod.union([zod.null(),zod.object({
+  "channel": zod.union([zod.null(),zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}).describe('A channel by Slack\'s id and its name, without the `#`.')]),
+  "events": zod.array(zod.enum(['ApplicationSubmitted', 'ApplicationMoved', 'AutomationFailed', 'JobPublished']).describe('What the team can have posted to its channel. The names are stored; never rename one.')),
+  "connectedAt": zod.iso.datetime({"offset":true}),
+  "connectedBy": zod.string().nullable(),
+  "problem": zod.union([zod.null(),zod.union([zod.literal('Disconnected'),zod.literal('ChannelNotFound'),zod.literal('NotInChannel'),zod.literal('ChannelArchived'),zod.literal('CannotPost'),zod.literal('CannotMessage'),zod.literal(null)])]),
+  "problemAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('The workspace\'s settings: the channel (null until picked), the events posted there, who connected it and when,\r\nand why posting stopped working, if it did.')])
+}).describe('Slack for the signed-in member (docs/architecture/slack.md). `available` is false when this ScreenHire has no\r\nSlack app, and then nothing else is set. `workspace` is null until someone connects one. `account` is the\r\nmember\'s own link. `settings` is there only for someone who manages integrations and sees every job. The bot\r\ntoken is never in any answer.')
+
+
+export const SendSlackTestMessageResponse = zod.object({
+  "posted": zod.boolean(),
+  "problem": zod.union([zod.null(),zod.union([zod.literal('Disconnected'),zod.literal('ChannelNotFound'),zod.literal('NotInChannel'),zod.literal('ChannelArchived'),zod.literal('CannotPost'),zod.literal('CannotMessage'),zod.literal(null)])])
+}).describe('Whether the test message reached the channel, and if not, why.')
+
+
+export const StartSlackLinkBody = zod.object({
+  "returnUrl": zod.string().nullable()
+}).describe('Links the member\'s Slack account. `returnUrl`: the dashboard path to come back to, a local path only.')
+
+export const StartSlackLinkResponse = zod.object({
+  "authorizeUrl": zod.string()
+}).describe('Where to send the browser next: Slack\'s page (or the sandbox\'s) for an OAuth round trip.')
+
+
+export const UpdateSlackAccountBody = zod.object({
+  "mentions": zod.boolean(),
+  "tasks": zod.boolean()
+}).describe('Whether mentions and tasks given to the member arrive as direct messages.')
+
+export const UpdateSlackAccountResponse = zod.object({
+  "slackName": zod.string(),
+  "linkedAt": zod.iso.datetime({"offset":true}),
+  "mentions": zod.boolean(),
+  "tasks": zod.boolean(),
+  "problem": zod.union([zod.null(),zod.union([zod.literal('Disconnected'),zod.literal('ChannelNotFound'),zod.literal('NotInChannel'),zod.literal('ChannelArchived'),zod.literal('CannotPost'),zod.literal('CannotMessage'),zod.literal(null)])])
+}).describe('The member\'s linked Slack account: its name, and whether mentions and tasks given to them arrive as direct\r\nmessages. `problem` is `CannotMessage` when Slack refused the last one.')
+
+
+export const UnlinkSlackAccountResponse = zod.void()
 
 
 export const listEmailTemplatesResponseTemplatesItemLastUpdatedCreatedDefault = false;

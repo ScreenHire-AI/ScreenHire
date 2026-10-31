@@ -255,7 +255,7 @@ unknown one "We could not find your saved answers", and both offer a fresh form.
 
 **Deletion.** Sending the application deletes the job's drafts for that email in the same save, and the one saved last
 tells the observation that the application was resumed and which answers it carried over (integrity-engine.md §10.2).
-`PurgeExpiredApplicationDrafts` runs daily at 03:57 UTC and deletes drafts 30 days after their first save; later saves
+`PurgeExpiredApplicationDrafts` runs daily at 04:07 UTC and deletes drafts 30 days after their first save; later saves
 never move that date. A link stays readable for 30 days past its draft's expiry, but once the sweep has run the draft
 is gone, so the page says "We could not find your saved answers" (whose text covers answers sent or deleted) rather
 than "expired". Two sends of one resumed form at the same moment can fail the second on the draft delete; sending

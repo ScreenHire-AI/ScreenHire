@@ -61,7 +61,16 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         await newJob.GetByLabel("Title").FillAsync(JobTitle);
         await newJob.GetByLabel("Hiring template").SelectOptionAsync(new SelectOptionValue { Label = $"{templateName} (v1)" });
         await newJob.GetByLabel("Workplace").SelectOptionAsync(new SelectOptionValue { Label = "Remote" });
-        await newJob.GetByLabel("Countries candidates can work from").FillAsync("GB, IE");
+        // Countries are picked by name (W8): typing finds one, a click adds it, and the list stays open for the next.
+        var countries = newJob.GetByRole(AriaRole.Combobox, new() { Name = "Countries candidates can work from" });
+        foreach (var country in new[] { "United Kingdom", "Ireland" })
+        {
+            await countries.PressSequentiallyAsync(country);
+            await Page.GetByRole(AriaRole.Option, new() { Name = country, Exact = true }).ClickAsync();
+        }
+        await Expect(newJob.GetByRole(AriaRole.List, new() { Name = "Chosen countries" }).GetByRole(AriaRole.Listitem)).ToHaveTextAsync(["United Kingdom", "Ireland"]);
+        await ExpectNoAccessibilityViolationsAsync();
+        await countries.PressAsync("Escape");
         await ExpectNoAccessibilityViolationsAsync();
         await newJob.GetByRole(AriaRole.Button, new() { Name = "Create job" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(JobTitle);

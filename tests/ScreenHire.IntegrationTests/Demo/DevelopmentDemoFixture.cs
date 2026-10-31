@@ -7,7 +7,8 @@ namespace ScreenHire.IntegrationTests.Demo;
 /// </summary>
 public sealed class DevelopmentDemoFixture : AppHostFixture
 {
-    protected override IReadOnlyList<string> ExtraArguments => ["--ScreenHire:Demo=true"];
+    // Slack off, as `pnpm dev` leaves it with no Slack app configured: this stack also shows the page's "not set up" state.
+    protected override IReadOnlyList<string> ExtraArguments => ["--ScreenHire:Demo=true", "--ScreenHire:Slack:Sandbox:Enabled=false"];
 }
 
 /// <summary>

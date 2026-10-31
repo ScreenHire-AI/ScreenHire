@@ -348,8 +348,8 @@ not change):
 the same insert. Every person added or removed is a membership log entry, written under the member lock.
 
 The subset rule covers job access (`TeamPolicy.MayGiveJobAccess`): a member on Only jobs they're on cannot give All jobs,
-invite with it, or give the Owner or Admin role (403 "Needs all jobs"). Manage API keys and Manage webhooks need all
-jobs (`RolePermissions.NeedsAllJobs`). A mention names only someone who can see the candidate (400 otherwise), and the
+invite with it, or give the Owner or Admin role (403 "Needs all jobs"). Manage API keys, Manage webhooks and Manage
+integrations need all jobs (`RolePermissions.NeedsAllJobs`). A mention names only someone who can see the candidate (400 otherwise), and the
 mention email is skipped for someone taken off the job since. Adding a candidate by hand to a job is 409 for a member on Only jobs they're on
 when that email is already a candidate only on jobs they cannot see.
 
