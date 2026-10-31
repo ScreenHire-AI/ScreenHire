@@ -300,6 +300,7 @@ export * from './timeToHire.ts';
 export * from './toastKind.ts';
 export * from './triggerType.ts';
 export * from './updateBrandingRequest.ts';
+export * from './updateCareersEmbeddingRequest.ts';
 export * from './updateEmailTemplateRequest.ts';
 export * from './updateHiringTemplateRequest.ts';
 export * from './updateHiringTemplateVersionRequest.ts';

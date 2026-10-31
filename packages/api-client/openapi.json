@@ -5145,6 +5145,67 @@
         ]
       }
     },
+    "/v1/organization/embedding": {
+      "put": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "UpdateCareersEmbedding",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCareersEmbeddingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationProfile"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/organization/branding": {
       "get": {
         "tags": [
@@ -10821,6 +10882,12 @@
           "inTalentPool": {
             "type": "boolean",
             "default": false
+          },
+          "sourceSite": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "description": "One application: the candidate, the job, where it is in the job's workflow, its tags, the candidate's\r\ndeclarations, answers and files."
@@ -11234,6 +11301,12 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "sourceSite": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "description": "An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself."
@@ -16074,7 +16147,8 @@
           "careersUrl",
           "createdAt",
           "lastUpdated",
-          "questionsPerPage"
+          "questionsPerPage",
+          "embedOrigins"
         ],
         "type": "object",
         "properties": {
@@ -16104,9 +16178,15 @@
           "questionsPerPage": {
             "type": "integer",
             "format": "int32"
+          },
+          "embedOrigins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
-        "description": "The signed-in user's organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain. `questionsPerPage` is how\r\nmany questions candidates see on each page of a questionnaire that has no sections. `lastUpdated` is the last\r\nchange to the name or the questions per page, or when the organization was made; its history is\r\n`/v1/organization/history`."
+        "description": "The signed-in user's organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain, where `{careersUrl}/embed.js`\r\nis the embeddable widget's script. `questionsPerPage` is how many questions candidates see on each page of a\r\nquestionnaire that has no sections. `embedOrigins` are the sites allowed to show the careers pages in a frame\r\n(origins such as `https://www.example.com`, in the order they were added). `lastUpdated` is the last change\r\nto the name, the questions per page or the sites, or when the organization was made; its history is\r\n`/v1/organization/history`."
       },
       "OrganizationRole": {
         "enum": [
@@ -16698,6 +16778,12 @@
           "keepForFutureRoles": {
             "type": "boolean",
             "default": false
+          },
+          "embedOrigin": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "description": "A candidate's application from the careers page. The candidate is matched by email within the organization and\r\ncreated if new; an existing candidate's details are never changed by a public submission."
@@ -16977,7 +17063,8 @@
           "organizationSlug",
           "jobs",
           "url",
-          "branding"
+          "branding",
+          "embedOrigins"
         ],
         "type": "object",
         "properties": {
@@ -16998,15 +17085,22 @@
           },
           "branding": {
             "$ref": "#/components/schemas/PublicBranding"
+          },
+          "embedOrigins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
-        "description": "The public careers listing for one organization. `url` is the board's careers page; `branding` is its\r\nbranding, each part null for ScreenHire's."
+        "description": "The public careers listing for one organization. `url` is the board's careers page; `branding` is its\r\nbranding, each part null for ScreenHire's; `embedOrigins` are the sites allowed to show it in a frame."
       },
       "PublicOrganization": {
         "required": [
           "name",
           "slug",
-          "branding"
+          "branding",
+          "embedOrigins"
         ],
         "type": "object",
         "properties": {
@@ -17018,9 +17112,15 @@
           },
           "branding": {
             "$ref": "#/components/schemas/PublicBranding"
+          },
+          "embedOrigins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
-        "description": "An organization as its careers pages show it, with its branding (each part null for ScreenHire's)."
+        "description": "An organization as its careers pages show it, with its branding (each part null for ScreenHire's) and\r\n`embedOrigins`, the sites allowed to show the careers pages in a frame, which the pages send in their\r\n`frame-ancestors` header (empty: none but the careers pages themselves)."
       },
       "PublicPalette": {
         "required": [
@@ -19179,6 +19279,21 @@
           }
         },
         "description": "Replaces the whole branding. Colours are `#rrggbb` and must pass the contrast check\r\n(`/branding/contrast`); each image id is one of the organization's uploads of that kind that passed its scan.\r\nNull is ScreenHire's default, or no image."
+      },
+      "UpdateCareersEmbeddingRequest": {
+        "required": [
+          "origins"
+        ],
+        "type": "object",
+        "properties": {
+          "origins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Replaces the sites allowed to embed the careers pages, at most 20. Each is an https site's address; a bare name gets\r\nhttps and a page's address keeps only its site, so `www.example.com/careers` saves as\r\n`https://www.example.com`. Duplicates are dropped and the order is kept. An empty list lets no other site frame\r\nthe careers pages."
       },
       "UpdateEmailTemplateRequest": {
         "required": [

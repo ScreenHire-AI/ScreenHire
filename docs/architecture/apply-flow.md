@@ -83,8 +83,9 @@ until then (section 3).
 
 What this build records with an application (`JobApplication`): the answers, the files, the switch
 (`AccommodationRequested`, which later turns telemetry and typing signals off and is never a signal itself), the
-AI-use declaration and details, `PrivacyNoticeVersion`, `Source = CareersSite`, and two automation signals for the
-integrity engine:
+AI-use declaration and details, `PrivacyNoticeVersion`, `Source = CareersSite` (with `SourceSite`, the organization's
+own site, when the form was in the embeddable widget: [careers widget](careers-widget.md)), and two automation signals
+for the integrity engine:
 
 - `HoneypotFilled` (`AUTO_HONEYPOT`): an off-screen field that only bots fill;
 - `BotCheck` (`AUTO_TURNSTILE_FAIL`): Cloudflare Turnstile's result when `ScreenHire:Turnstile:SiteKey` and `SecretKey`
@@ -102,7 +103,8 @@ organization and never stores it as sent, and keeps it only on the job's device-
 (the EU and EEA by default), the details step shows an optional "Check this device for repeat applications" box and the
 fingerprint is kept only when it is ticked. The observation and the telemetry are deleted after 30 days. The notice and
 the privacy page say all of this, and that the employer may email a follow-up questionnaire whose page keeps the
-answers only, and that a saved draft keeps the details and answers only, for 30 days (`NOTICE_VERSION` `2026-10-31.1`).
+answers only, that a saved draft keeps the details and answers only, for 30 days, and that an application through
+the form on the employer's own website notes which website (`NOTICE_VERSION` `2026-10-31.2`).
 
 The review step also asks, optionally and unticked, "Keep my details for future roles", with one line saying the
 employer keeps the application for its talent pool period (`talentPoolMonths` on the application form, 12 months by
@@ -183,7 +185,8 @@ Development seed gives Brightwater a brand colour.
 Careers pages run under a strict policy: Astro's `security.csp` (hashes for what Astro emits, `default-src 'none'`,
 no `unsafe-inline`), stylesheets never inlined, the apply page adding `connect-src` for the upload origin (and
 Turnstile's host when configured), and a header from `src/middleware.ts` for `frame-ancestors` and the rest that a
-`<meta>` policy cannot carry.
+`<meta>` policy cannot carry. `frame-ancestors` is `'self'` plus the sites the organization allows to embed its careers
+pages, or only the one the page is embedded in ([careers widget](careers-widget.md) section 3).
 
 ## 6. Tenant hosts
 

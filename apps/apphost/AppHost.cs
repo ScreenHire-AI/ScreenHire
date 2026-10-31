@@ -31,6 +31,11 @@
 //                               machine works; never in production), RetryDelays:0..n and DisableAfterFailedDeliveries
 //                               (the tests shorten both). The signing key comes from the webhook-signing-key parameter,
 //                               never from these keys.
+//   CareersEmbedding:*          the sites allowed to embed the careers pages (the API's CareersEmbeddingOptions,
+//                               docs/architecture/careers-widget.md), forwarded to the API: AllowLoopback
+//                               (appsettings.Development.json and the test stacks turn it on, so a site on this machine,
+//                               http://localhost or http://*.localhost, can be added; never in production, where sites
+//                               use https).
 //   Slack:*                     Slack (ScreenHire.Application SlackOptions, docs/architecture/slack.md), forwarded to the
 //                               API and the worker. Off unless configured: real Slack once ClientId is set and the
 //                               slack-client-secret parameter has the app's secret; Sandbox:Enabled=true is the local
@@ -178,6 +183,14 @@ foreach (var (key, value) in settings.GetSection("Webhooks").AsEnumerable(makePa
         var name = $"ScreenHire__Webhooks__{key.Replace(":", "__", StringComparison.Ordinal)}";
         api.WithEnvironment(name, value);
         worker.WithEnvironment(name, value);
+    }
+}
+
+foreach (var (key, value) in settings.GetSection("CareersEmbedding").AsEnumerable(makePathsRelative: true))
+{
+    if (value is not null)
+    {
+        api.WithEnvironment($"ScreenHire__CareersEmbedding__{key.Replace(":", "__", StringComparison.Ordinal)}", value);
     }
 }
 

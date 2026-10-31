@@ -7,10 +7,13 @@
 import type { PublicBranding } from './publicBranding.ts';
 
 /**
- * An organization as its careers pages show it, with its branding (each part null for ScreenHire's).
+ * An organization as its careers pages show it, with its branding (each part null for ScreenHire's) and
+ * `embedOrigins`, the sites allowed to show the careers pages in a frame, which the pages send in their
+ * `frame-ancestors` header (empty: none but the careers pages themselves).
  */
 export interface PublicOrganization {
   name: string;
   slug: string;
   branding: PublicBranding;
+  embedOrigins: string[];
 }

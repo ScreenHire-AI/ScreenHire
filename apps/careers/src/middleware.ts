@@ -1,4 +1,5 @@
 import { defineMiddleware } from 'astro:middleware';
+import { securityPolicy } from './lib/embed';
 import { hostTenant } from './lib/host';
 import { isFrameworkPath, tenantRoute } from './lib/tenancy';
 
@@ -20,8 +21,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const response = route && 'render' in route ? await next(`${route.render}${context.url.search}`) : await next();
 
   // Directives a <meta> policy cannot carry. Astro's own policy (astro.config.mjs) covers scripts and styles; appended,
-  // not set, so neither replaces the other, and browsers enforce both.
-  response.headers.append('Content-Security-Policy', "frame-ancestors 'self'; base-uri 'none'; object-src 'none'; form-action 'self'");
+  // not set, so neither replaces the other, and browsers enforce both. Which sites may frame the page is the
+  // organization's list, which its page put in locals while it rendered (lib/embed.ts); this is the only place the
+  // directive is written, because with two of them the stricter would win.
+  response.headers.append('Content-Security-Policy', securityPolicy(context.locals.embedding));
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'same-origin');
   // Careers pages never use these; saying so in the browser too backs up the privacy notice.

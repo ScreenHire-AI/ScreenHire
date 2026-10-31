@@ -40,6 +40,7 @@ const organization: OrganizationProfile = {
   careersUrl: 'https://brightwater.careers.example.com',
   createdAt: '2026-09-01T09:00:00Z',
   questionsPerPage: 8,
+  embedOrigins: [],
 };
 
 const passing = (color: string): ColorContrast => ({

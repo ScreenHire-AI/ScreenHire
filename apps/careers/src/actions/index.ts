@@ -19,7 +19,10 @@ export const server = {
    */
   apply: defineAction({
     accept: 'form',
-    handler: async (form: FormData, context) => applyStep(form, addressOf(context), context.request.headers.get('user-agent')),
+    // `embed` is the site the careers page is embedded in, which the step form's address keeps
+    // (docs/architecture/careers-widget.md); applyStep checks it against the organization's list.
+    handler: async (form: FormData, context) =>
+      applyStep(form, addressOf(context), context.request.headers.get('user-agent'), new Date(), context.url.searchParams.get('embed')),
   }),
 
   /**

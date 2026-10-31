@@ -22,7 +22,7 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
     // About 20 KB for the upload island and Svelte, plus the telemetry module (about 2 KB; its own budget is 5 KB).
     private const int JavaScriptBudgetBytes = 22 * 1024;
 
-    private static readonly byte[] Pdf = Encoding.ASCII.GetBytes("%PDF-1.7\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n");
+    private static readonly byte[] Pdf = ApplySteps.Pdf;
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -266,81 +266,17 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
         await AssertApplicationAsync(organization, "noa.reyes@example.com");
     }
 
-    // The whole journey from the first step: details and the notice, questions, review, confirmation. Accessibility is
-    // checked on every step.
-    private async Task ApplyAsync(Organization organization, string email, bool javaScript, string? appliedUrl = null)
-    {
-        // The notice comes before anything is asked for.
-        var notice = Page.GetByRole(AriaRole.Region, new() { Name = "How we keep this fair" });
-        await Expect(notice).ToBeVisibleAsync();
-        (await notice.BoundingBoxAsync())!.Y.Should().BeLessThan((await Page.GetByLabel("First name").BoundingBoxAsync())!.Y);
-        await ExpectNoAccessibilityViolationsAsync();
+    // The whole journey from the first step: details and the notice, questions, review, confirmation (ApplySteps, which
+    // the careers widget's test drives in its frame too). Accessibility is checked on every step.
+    private Task ApplyAsync(Organization organization, string email, bool javaScript, string? appliedUrl = null) =>
+        ApplySteps.ApplyAsync(
+            Page.MainFrame, email, javaScript,
+            appliedUrl ?? new Uri(Fixture.GetEndpoint("careers"), $"/{organization.Slug}/jobs/engineer/applied").ToString(),
+            ExpectNoAccessibilityViolationsAsync);
 
-        // A step sent with nothing in it explains itself.
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" }).ClickAsync();
-        await Expect(ErrorSummary()).ToContainTextAsync("Enter your first name.");
-        await Expect(ErrorSummary()).ToContainTextAsync("Add a file.");
-        await ExpectNoAccessibilityViolationsAsync();
+    private Task RecordBeaconsAsync() => ApplySteps.RecordBeaconsAsync(Page);
 
-        await FillDetailsAsync(email);
-        await Page.GetByRole(AriaRole.Switch, new() { Name = "I use dictation, a screen reader or other assistive technology" }).CheckAsync();
-        await Page.GetByLabel("Your CV or resume").SetInputFilesAsync(new FilePayload { Name = "Casey CV.pdf", MimeType = "application/pdf", Buffer = Pdf });
-        if (javaScript)
-        {
-            await Expect(Page.GetByText("Uploaded: Casey CV.pdf")).ToBeVisibleAsync();
-        }
-
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" }).ClickAsync();
-
-        await Expect(Page.Locator("#step-heading")).ToHaveTextAsync("Questions");
-        await Page.GetByRole(AriaRole.Group, new() { Name = "Do you have the right to work in the country this job is in?" })
-            .GetByLabel("Yes").CheckAsync();
-        await Page.GetByRole(AriaRole.Group, new() { Name = "How many years have you worked as a software engineer?" })
-            .GetByLabel("3 to 5").CheckAsync();
-        await Page.GetByLabel("A link to code or a project you are proud of").FillAsync("https://example.com/portfolio");
-        await ExpectNoAccessibilityViolationsAsync();
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to review" }).ClickAsync();
-
-        await Expect(Page.Locator("#step-heading")).ToHaveTextAsync("Review and send");
-        await Expect(Page.GetByRole(AriaRole.Main)).ToContainTextAsync("Casey CV.pdf");
-        await Expect(Page.GetByRole(AriaRole.Main)).ToContainTextAsync("3 to 5");
-        // The job wants AI use disclosed: sending without an answer asks for one.
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Send application" }).ClickAsync();
-        await Expect(ErrorSummary()).ToContainTextAsync("Tell us whether you used AI tools for this application.");
-        await ExpectNoAccessibilityViolationsAsync();
-        await Page.GetByLabel("Yes, I used AI tools").CheckAsync();
-        await Page.GetByLabel("If you used AI tools, how?").FillAsync("To check my grammar.");
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Send application" }).ClickAsync();
-
-        await Expect(Page).ToHaveURLAsync(
-            appliedUrl ?? new Uri(Fixture.GetEndpoint("careers"), $"/{organization.Slug}/jobs/engineer/applied").ToString());
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Application sent");
-        await ExpectNoAccessibilityViolationsAsync();
-    }
-
-    // Records every navigator.sendBeacon call the pages make, in sessionStorage so it survives the steps' navigations.
-    // Playwright's network events miss a beacon sent while its page unloads, so the record is taken where the page sends.
-    private async Task RecordBeaconsAsync() => await Page.AddInitScriptAsync("""
-        (() => {
-          const send = navigator.sendBeacon.bind(navigator);
-          navigator.sendBeacon = (url, body) => {
-            const log = JSON.parse(sessionStorage.getItem('test:beacons') ?? '[]');
-            log.push({ url: String(url), body: String(body) });
-            sessionStorage.setItem('test:beacons', JSON.stringify(log));
-            return send(url, body);
-          };
-        })();
-        """);
-
-    // The bodies of the telemetry beacons recorded so far in this tab.
-    private async Task<List<string>> TelemetryBeaconsAsync()
-    {
-        var json = await Page.EvaluateAsync<string>("() => sessionStorage.getItem('test:beacons') ?? '[]'");
-        var log = JsonSerializer.Deserialize<List<BeaconCall>>(json, JsonSerializerOptions.Web)!;
-        return [.. log.Where(call => call.Url.Contains("/telemetry?", StringComparison.Ordinal)).Select(call => call.Body)];
-    }
-
-    private sealed record BeaconCall(string Url, string Body);
+    private Task<List<string>> TelemetryBeaconsAsync() => ApplySteps.TelemetryBeaconsAsync(Page.MainFrame);
 
     // Waits until the organization has at least `count` telemetry snapshots stored.
     private async Task StoredSnapshotsAsync(Guid organizationId, int count)
@@ -366,15 +302,9 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
         return await Fixture.CreateDbContextAsync(tenant, Ct);
     }
 
-    private async Task FillDetailsAsync(string email)
-    {
-        await Page.GetByLabel("First name").FillAsync("Casey");
-        await Page.GetByLabel("Last name").FillAsync("Morgan");
-        await Page.GetByLabel("Email").FillAsync(email);
-        await Page.GetByLabel("Phone").FillAsync("+44 20 7946 0000");
-    }
+    private Task FillDetailsAsync(string email) => ApplySteps.FillDetailsAsync(Page.MainFrame, email);
 
-    private ILocator ErrorSummary() => Page.Locator("#error-summary");
+    private ILocator ErrorSummary() => ApplySteps.ErrorSummary(Page.MainFrame);
 
     private async Task AssertApplicationAsync(Organization organization, string email)
     {

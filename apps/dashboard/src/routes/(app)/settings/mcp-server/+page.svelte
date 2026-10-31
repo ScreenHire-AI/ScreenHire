@@ -1,6 +1,7 @@
 <script lang="ts">
   import KeyRoundIcon from '@lucide/svelte/icons/key-round';
   import { createGetMeta } from '@screenhire/api-client/svelte-query';
+  import CodeBlock from '#lib/components/code-block.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -66,7 +67,7 @@
           </SummaryItem>
         </SummaryList>
         {#if serverUrl}
-          <pre aria-label="Example client configuration" class="rounded-lg bg-secondary px-3.5 py-3 font-mono text-code break-all whitespace-pre-wrap">{config(serverUrl)}</pre>
+          <CodeBlock code={config(serverUrl)} label="Example client configuration" />
         {/if}
         <div>
           <a href="/settings/api-keys" class={buttonVariants({ variant: 'outline', size: 'lg' })}><KeyRoundIcon aria-hidden="true" />Create a key</a>

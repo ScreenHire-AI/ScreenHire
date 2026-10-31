@@ -151,6 +151,7 @@ import type {
   TemplateUsageList,
   TestEmailSent,
   UpdateBrandingRequest,
+  UpdateCareersEmbeddingRequest,
   UpdateEmailTemplateRequest,
   UpdateHiringTemplateRequest,
   UpdateHiringTemplateVersionRequest,
@@ -5292,6 +5293,75 @@ export const getOrganizationIntegritySettingsHistory = async (params?: GetOrgani
     method: 'GET'
 
 
+  }
+);}
+
+
+
+export type updateCareersEmbeddingResponse200 = {
+  data: OrganizationProfile
+  status: 200
+}
+
+export type updateCareersEmbeddingResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateCareersEmbeddingResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateCareersEmbeddingResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateCareersEmbeddingResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateCareersEmbeddingResponseSuccess = (updateCareersEmbeddingResponse200) & {
+  headers: Headers;
+};
+export type updateCareersEmbeddingResponseError = (updateCareersEmbeddingResponse400 | updateCareersEmbeddingResponse401 | updateCareersEmbeddingResponse403 | updateCareersEmbeddingResponse404) & {
+  headers: Headers;
+};
+
+export type updateCareersEmbeddingResponse = (updateCareersEmbeddingResponseSuccess | updateCareersEmbeddingResponseError)
+
+export const getUpdateCareersEmbeddingUrl = () => {
+
+
+
+
+  return `/v1/organization/embedding`
+}
+
+export const updateCareersEmbedding = async (updateCareersEmbeddingRequest: UpdateCareersEmbeddingRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateCareersEmbeddingResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateCareersEmbeddingResponse>(getUpdateCareersEmbeddingUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateCareersEmbeddingRequest)
   }
 );}
 

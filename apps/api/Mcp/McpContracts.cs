@@ -48,7 +48,8 @@ public sealed record McpApplicationMatch(
 
 /// <summary>
 /// One application: the candidate, the job's stages with the current one, tags, answers, files, follow-up
-/// questionnaires and the latest activity. <c>stages</c> are the ids <c>move_to_stage</c> takes.
+/// questionnaires and the latest activity. <c>stages</c> are the ids <c>move_to_stage</c> takes. <c>sourceSite</c> is the
+/// organization's own site the careers page was embedded in when the candidate applied, or null.
 /// </summary>
 public sealed record McpApplication(
     Guid Id,
@@ -59,6 +60,7 @@ public sealed record McpApplication(
     IReadOnlyList<ApplicationStage> Stages,
     IReadOnlyList<string> Tags,
     ApplicationSource Source,
+    string? SourceSite,
     DateTimeOffset SubmittedAt,
     DateTimeOffset StageEnteredAt,
     DateTimeOffset? SlaDueAt,
@@ -135,7 +137,7 @@ internal static class McpMappings
             new(application.Candidate.Id, new(application.Candidate.FullName), application.Candidate.Email),
             application.Stage,
             [.. workflow.Stages.Select(s => new ApplicationStage(s.Id, s.Name, s.Kind))],
-            application.Tags, application.Source, application.SubmittedAt, application.StageEnteredAt, application.SlaDueAt,
+            application.Tags, application.Source, application.SourceSite, application.SubmittedAt, application.StageEnteredAt, application.SlaDueAt,
             application.AiUseDeclaration,
             string.IsNullOrWhiteSpace(application.AiUseDetails) ? null : new(application.AiUseDetails),
             [.. application.Answers.Select(a => a.ToMcp(questions.GetValueOrDefault(a.QuestionId), files))],

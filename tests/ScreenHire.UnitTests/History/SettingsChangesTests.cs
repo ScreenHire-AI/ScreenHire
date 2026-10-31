@@ -22,6 +22,22 @@ public sealed class SettingsChangesTests
     }
 
     [Fact]
+    public void Each_site_that_may_embed_the_careers_page_has_its_own_line_on_the_organizations_history()
+    {
+        var none = Organization("Brightwater");
+        var one = Organization("Brightwater");
+        one.SetEmbedOrigins(["https://www.example.com"], allowLoopback: false);
+        var other = Organization("Brightwater");
+        other.SetEmbedOrigins(["https://jobs.example.com"], allowLoopback: false);
+
+        Sentences(SettingsChanges.Name(none, one)).Should().Equal("let https://www.example.com embed the careers page");
+        Sentences(SettingsChanges.Name(one, other)).Should().Equal(
+            "let https://jobs.example.com embed the careers page", "stopped https://www.example.com embedding the careers page");
+        SettingsChanges.Name(one, one).Should().BeEmpty();
+        SettingsChanges.Branding(none, one).Should().BeEmpty();
+    }
+
+    [Fact]
     public void The_brand_colour_says_whether_it_was_set_changed_or_put_back_to_the_default()
     {
         var plain = Organization("Brightwater");

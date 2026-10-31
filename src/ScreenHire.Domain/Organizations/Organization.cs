@@ -79,6 +79,20 @@ public sealed class Organization
     /// </summary>
     public int QuestionsPerPage { get; private set; } = DefaultQuestionsPerPage;
 
+    /// <summary>
+    /// The sites allowed to show the careers pages in a frame (<see cref="EmbedOrigins"/>), as origins, in the order they
+    /// were added. Empty, the default, lets only the careers pages themselves frame them. The careers pages send the list
+    /// in their <c>frame-ancestors</c> header, so it is no secret that every tenant can read the row.
+    /// </summary>
+    public List<string> EmbedOrigins { get; private set; } = [];
+
+    /// <summary>
+    /// Replaces the sites that may embed the careers pages with <paramref name="origins"/>, normalized and without
+    /// duplicates. Throws <see cref="ArgumentException"/> for one that is not an allowed origin or for too many.
+    /// </summary>
+    public void SetEmbedOrigins(IEnumerable<string> origins, bool allowLoopback) =>
+        EmbedOrigins = Organizations.EmbedOrigins.NormalizeAll(origins, allowLoopback);
+
     /// <summary>The careers-page palette, or null when the organization has no brand colour.</summary>
     public BrandPalette? GetBrandPalette() => BrandColor is null ? null : BrandPalette.Derive(BrandColor);
 

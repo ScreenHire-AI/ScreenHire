@@ -43,6 +43,6 @@ internal static class PublicBrandings
         this Organization organization, ScreenHireDbContext db, DomainOptions domains, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(organization);
-        return new(organization.Name, organization.Slug, await LoadAsync(db, organization, domains, cancellationToken));
+        return new(organization.Name, organization.Slug, await LoadAsync(db, organization, domains, cancellationToken), organization.EmbedOrigins);
     }
 }

@@ -63,6 +63,7 @@
   import { authenticityLevels } from '#lib/integrity.js';
   import { createMoves } from '#lib/moves.svelte.js';
   import { formatDate } from '#lib/dates.js';
+  import { siteName } from '#lib/format.js';
   import { canKeepInMind, stageLabel } from '#lib/talent-pool.js';
   import { membersWhoSee } from '#lib/hiring-team.js';
   import { can } from '#lib/permissions.js';
@@ -340,7 +341,9 @@
           <!-- When and where from, as one phrase that reads without its label. -->
           <MetaItem label="Applied" icon={CalendarIcon}>
             <span>
-              {#if detail.source === 'CareersSite'}Applied <RelativeTime at={detail.submittedAt} class="inline" /> via the careers page{:else}Added by a
+              {#if detail.source === 'CareersSite'}Applied <RelativeTime at={detail.submittedAt} class="inline" /> via {detail.sourceSite
+                  ? siteName(detail.sourceSite)
+                  : 'the careers page'}{:else}Added by a
                 recruiter <RelativeTime at={detail.submittedAt} class="inline" />{/if}
             </span>
           </MetaItem>

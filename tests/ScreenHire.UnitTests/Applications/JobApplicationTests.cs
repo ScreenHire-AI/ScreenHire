@@ -53,6 +53,18 @@ public sealed class JobApplicationTests
     }
 
     [Fact]
+    public void An_application_through_the_widget_keeps_the_site_and_stays_a_careers_page_one()
+    {
+        var (job, candidate) = JobAndCandidate();
+        var intake = new ApplicationIntake(ApplicationSource.CareersSite, [], PrivacyNoticeVersion: "2026-10-31.2", SourceSite: "https://www.example.com");
+
+        var (application, _) = JobApplication.Submit(job, candidate, false, AiUseDeclaration.DidNotUse, null, Monday, null, intake);
+
+        application.Source.Should().Be(ApplicationSource.CareersSite, "the frame shows the same pages, notice and checks");
+        application.SourceSite.Should().Be("https://www.example.com");
+    }
+
+    [Fact]
     public void A_recruiter_added_application_has_no_answers_or_checks()
     {
         var (job, candidate) = JobAndCandidate();
@@ -62,6 +74,7 @@ public sealed class JobApplicationTests
         application.Source.Should().Be(ApplicationSource.Recruiter);
         application.Answers.Should().BeEmpty();
         application.PrivacyNoticeVersion.Should().BeNull();
+        application.SourceSite.Should().BeNull();
         application.BotCheck.Should().Be(BotCheckResult.NotChecked);
     }
 

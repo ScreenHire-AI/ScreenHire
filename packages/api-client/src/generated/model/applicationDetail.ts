@@ -45,4 +45,6 @@ export interface ApplicationDetail {
   /** @nullable */
   futureRolesGivenAt?: string | null;
   inTalentPool?: boolean;
+  /** @nullable */
+  sourceSite?: string | null;
 }

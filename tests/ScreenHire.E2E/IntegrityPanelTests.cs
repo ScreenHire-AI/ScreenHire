@@ -2,7 +2,9 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore;
 using ScreenHire.Application.Integrity;
+using ScreenHire.Infrastructure.Tenancy;
 
 namespace ScreenHire.E2E;
 
@@ -41,7 +43,7 @@ public sealed class IntegrityPanelTests(E2EFixture fixture) : BrowserTest(fixtur
         var bot = SyntheticApplicants.Bot;
         var (farmFirst, farmSecond) = (SyntheticApplicants.ApplicationFarm[0], SyntheticApplicants.ApplicationFarm[1]);
         var botId = Guid.Empty;
-        foreach (var applicant in new[] { genuine, bot, farmFirst, farmSecond })
+        foreach (var applicant in new[] { genuine, bot })
         {
             var id = await Fixture.ApplyAsync(scene.Slug, scene.JobId, applicant, Ct);
             if (applicant == bot)
@@ -50,28 +52,34 @@ public sealed class IntegrityPanelTests(E2EFixture fixture) : BrowserTest(fixtur
             }
         }
 
+        // The duplicates check never revisits an earlier application: the later one carries the signal
+        // (DuplicateAnalyzer). So the farm's second member applies only once every check has run on the first, and the
+        // test never depends on which the worker reaches first.
+        await SettledAsync(scene.Slug, await Fixture.ApplyAsync(scene.Slug, scene.JobId, farmFirst, Ct));
+        await Fixture.ApplyAsync(scene.Slug, scene.JobId, farmSecond, Ct);
+
         // The chips arrive with IntegrityAssessed, in the page that was already open. Levels as in the golden files
         // (tests/ScreenHire.UnitTests/Integrity/Golden); the farm's reason counts differ from them because these
         // submissions answer only the resume question, which makes 20 seconds a plausible time to complete the form.
         await Expect(Chip(genuine.FullName, "authenticity")).ToContainTextAsync("Authenticity: No concerns", Assessed);
         await Expect(Chip(bot.FullName, "authenticity")).ToContainTextAsync("Authenticity: Verification suggested, 6 reasons", Assessed);
-        await Expect(Chip(farmFirst.FullName, "authenticity")).ToContainTextAsync("Authenticity: Verification suggested", Assessed);
+        await Expect(Chip(farmFirst.FullName, "authenticity")).ToContainTextAsync("Authenticity: No concerns", Assessed);
         await Expect(Chip(farmSecond.FullName, "authenticity")).ToContainTextAsync("Authenticity: Verification suggested", Assessed);
         await Expect(Chip(bot.FullName, "aiAssistance")).ToContainTextAsync("AI assistance: No signs of AI help");
         (await Page.EvaluateAsync<bool>("() => window.__screenhireNoReload === true")).Should().BeTrue("the chips updated in place");
 
         var legend = Page.GetByRole(AriaRole.Group, new() { Name = "Authenticity" });
-        await Expect(legend.GetByRole(AriaRole.Button, new() { Name = "No concerns 1" })).ToBeVisibleAsync();
-        await Expect(legend.GetByRole(AriaRole.Button, new() { Name = "Verification suggested 3" })).ToBeVisibleAsync();
+        await Expect(legend.GetByRole(AriaRole.Button, new() { Name = "No concerns 2" })).ToBeVisibleAsync();
+        await Expect(legend.GetByRole(AriaRole.Button, new() { Name = "Verification suggested 2" })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-integrity-job-light");
 
         // The legend filters the table to one level, and a second press shows everyone again.
         var table = Page.GetByRole(AriaRole.Table, new() { Name = $"Candidates for {scene.Title}" });
-        await legend.GetByRole(AriaRole.Button, new() { Name = "Verification suggested 3" }).ClickAsync();
-        await Expect(CandidateLinks(table)).ToHaveCountAsync(3);
+        await legend.GetByRole(AriaRole.Button, new() { Name = "Verification suggested 2" }).ClickAsync();
+        await Expect(CandidateLinks(table)).ToHaveCountAsync(2);
         await Expect(table.GetByRole(AriaRole.Link, new() { Name = genuine.FullName })).ToHaveCountAsync(0);
-        await legend.GetByRole(AriaRole.Button, new() { Name = "Verification suggested 3" }).ClickAsync();
+        await legend.GetByRole(AriaRole.Button, new() { Name = "Verification suggested 2" }).ClickAsync();
         await Expect(CandidateLinks(table)).ToHaveCountAsync(4);
 
         // The bot's Integrity tab: reasons, evidence, the next step and the AI policy, and nothing that decides.
@@ -177,12 +185,12 @@ public sealed class IntegrityPanelTests(E2EFixture fixture) : BrowserTest(fixtur
         await SaveScreenshotAsync(Page, "dashboard-integrity-panel-dark");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Switch to light theme" }).ClickAsync();
 
-        // "To review" now holds the two farm members; the dismissed bot and the genuine applicant are not in it.
+        // "To review" now holds the farm's second member, which carries the duplicate; the dismissed bot, the genuine
+        // applicant and the farm's first member are not in it.
         await Page.GetByRole(AriaRole.Link, new() { NameRegex = new Regex("^To review") }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("To review");
         var queue = Page.GetByRole(AriaRole.Table, new() { Name = "Candidates" });
-        await Expect(CandidateLinks(queue)).ToHaveCountAsync(2);
-        await Expect(queue.GetByRole(AriaRole.Link, new() { Name = farmFirst.FullName })).ToBeVisibleAsync();
+        await Expect(CandidateLinks(queue)).ToHaveCountAsync(1);
         await Expect(queue.GetByRole(AriaRole.Link, new() { Name = farmSecond.FullName })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
 
@@ -257,6 +265,34 @@ public sealed class IntegrityPanelTests(E2EFixture fixture) : BrowserTest(fixtur
     private ILocator Chip(string candidate, string kind) =>
         Page.GetByRole(AriaRole.Row).Filter(new() { Has = Page.GetByRole(AriaRole.Link, new() { Name = candidate, Exact = true }) })
             .Locator($"[data-integrity-chip='{kind}']");
+
+    // Waits until every analyzer has run on the application, content forensics included, as the integration tests'
+    // SettledAsync does: eight analyzers (IntegrityRegistration).
+    private async Task SettledAsync(string slug, Guid applicationId)
+    {
+        var reader = new TenantContext();
+        reader.SetOrganization(Guid.NewGuid()); // organizations are public rows, readable as any tenant
+        Guid organizationId;
+        await using (var db = await Fixture.CreateDbContextAsync(reader, Ct))
+        {
+            organizationId = await db.Organizations.Where(o => o.Slug == slug).Select(o => o.Id).SingleAsync(Ct);
+        }
+
+        var tenant = new TenantContext();
+        tenant.SetOrganization(organizationId);
+        for (var attempt = 0; attempt < 600; attempt++)
+        {
+            await using var db = await Fixture.CreateDbContextAsync(tenant, Ct);
+            if (await db.IntegrityAnalyzerRuns.Where(r => r.ApplicationId == applicationId).Select(r => r.Analyzer).Distinct().CountAsync(Ct) >= 8)
+            {
+                return;
+            }
+
+            await Task.Delay(100, Ct);
+        }
+
+        throw new TimeoutException("Expected every integrity analyzer to run on the farm's first application.");
+    }
 
     private ILocator Region(string name) => Page.GetByRole(AriaRole.Region, new() { Name = name, Exact = true });
 

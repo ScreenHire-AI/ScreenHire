@@ -5,6 +5,7 @@
 import CareersLayout from '../../layouts/CareersLayout.astro';
 import { getPublicOrganization } from '../../lib/api';
 import { NOTICE_VERSION } from '../../lib/apply';
+import { useEmbedding } from '../../lib/embed';
 
 const response = await getPublicOrganization(Astro.params.organization!);
 if (response.status !== 200) {
@@ -12,6 +13,7 @@ if (response.status !== 200) {
 }
 
 const employer = response.data;
+useEmbedding(Astro.locals, Astro.url, employer.embedOrigins);
 ---
 
 <CareersLayout
@@ -67,6 +69,10 @@ const employer = response.data;
         <li>
           what our checks read from your files and answers: the text, any hidden text, the tool that made each file, a
           fingerprint of each written answer, and the result of any comparison;
+        </li>
+        <li>
+          if you apply through the form on {employer.name}'s own website, which website that was (the form is still ours,
+          and works the same);
         </li>
         <li>which version of this notice you were shown.</li>
       </ul>

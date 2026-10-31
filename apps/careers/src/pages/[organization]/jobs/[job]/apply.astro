@@ -29,13 +29,16 @@ import { HONEYPOT_FIELD } from '../../../../lib/apply-server';
 import { fromDraft, longDate } from '../../../../lib/drafts';
 import { isToken } from '../../../../lib/questionnaire';
 import { answeredCount, describeSize, TextField } from '@screenhire/ui/questions';
+import { isOrigin, useEmbedding, withEmbed } from '../../../../lib/embed';
 import { basePath } from '../../../../lib/host';
 
 const { organization, job: jobSlug } = Astro.params;
 const base = basePath(Astro.request, organization!);
 const result = Astro.getActionResult(actions.apply);
 if (result?.data?.outcome === 'submitted') {
-  return Astro.redirect(`${base}/jobs/${jobSlug}/applied`, 303);
+  // Inside the widget the confirmation stays in the frame; the applied page checks the site against the list again.
+  const site = Astro.url.searchParams.get('embed');
+  return Astro.redirect(withEmbed(`${base}/jobs/${jobSlug}/applied`, isOrigin(site) ? site : null), 303);
 }
 
 // What the candidate types is theirs alone: never cached, never indexed, and a draft link is never sent on as a referrer.
@@ -48,6 +51,10 @@ const employer = form?.organization ?? (await getPublicOrganization(organization
 if (!employer) {
   return new Response(null, { status: 404 });
 }
+
+// In the widget (docs/architecture/careers-widget.md). Every step posts back to an address that keeps `embed=`, so the
+// whole flow stays in embed mode and the apply action can send the site with the application.
+const embed = useEmbedding(Astro.locals, Astro.url, employer.embedOrigins);
 
 if (!form) {
   Astro.response.status = closed ? 410 : 404;
@@ -167,7 +174,7 @@ const answerText = (questionId: string): string => {
 
       <form
         method="POST"
-        action={actions.apply}
+        action={withEmbed(actions.apply.toString(), embed)}
         enctype="multipart/form-data"
         novalidate
         aria-labelledby="step-heading"

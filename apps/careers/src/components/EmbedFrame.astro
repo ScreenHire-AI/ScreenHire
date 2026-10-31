@@ -1,0 +1,22 @@
+---
+// Sizes the widget's frame to this page (docs/architecture/careers-widget.md). Rendered only in embed mode, so a page on
+// the careers site ships no script for it. It tells the one site the page is embedded in (`data-embed-origin` on <html>,
+// already checked against the organization's list) how tall the page is and what it is called, and nothing else; the
+// snippet's script (src/embed/embed.js) takes messages only from the careers origin and only from its own frame.
+---
+
+<script>
+  const target = document.documentElement.dataset.embedOrigin;
+  if (target && window.parent !== window) {
+    const post = (page: boolean) =>
+      window.parent.postMessage(
+        { type: 'screenhire:frame', height: Math.ceil(document.documentElement.getBoundingClientRect().height), title: document.title, page },
+        target,
+      );
+    post(true);
+    // A browser ignores autofocus in a frame from another site, so the error summary, which takes the focus on the careers
+    // site, is focused here instead.
+    document.querySelector<HTMLElement>('[autofocus]')?.focus();
+    new ResizeObserver(() => post(false)).observe(document.documentElement);
+  }
+</script>

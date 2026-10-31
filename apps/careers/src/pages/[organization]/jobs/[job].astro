@@ -3,6 +3,7 @@ import JobUnavailable from '../../../components/JobUnavailable.astro';
 import PrivacyNotice from '../../../components/PrivacyNotice.astro';
 import CareersLayout from '../../../layouts/CareersLayout.astro';
 import { formatSalary, getPublicJob, getPublicOrganization, jsonLdScript, label } from '../../../lib/api';
+import { newTabLinks, useEmbedding, withEmbed } from '../../../lib/embed';
 import { basePath } from '../../../lib/host';
 import { buildJobPosting } from '../../../lib/job-posting';
 
@@ -18,6 +19,7 @@ if (organizationResponse.status !== 200) {
 
 const employer = organizationResponse.data;
 const base = basePath(Astro.request, employer.slug);
+const embed = useEmbedding(Astro.locals, Astro.url, employer.embedOrigins);
 
 // A closed job is 410 Gone (teardown, docs/architecture/job-distribution.md), so search engines drop it for good
 // (ADR-0003). The API still sends its last content with validThrough set to when it closed, so the page keeps its
@@ -74,7 +76,7 @@ const salary = job ? formatSalary(job.salaryMin, job.salaryMax, job.salaryCurren
         <section
           aria-label="About the role"
           class="mt-6 text-[15px] leading-relaxed [&_a]:underline [&_h2]:mt-5 [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-4 [&_h3]:font-bold [&_li]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-3 [&_ul]:list-disc [&_ul]:pl-5"
-          set:html={job.description}
+          set:html={embed ? newTabLinks(job.description) : job.description}
         />
       )}
 
@@ -82,7 +84,7 @@ const salary = job ? formatSalary(job.salaryMin, job.salaryMax, job.salaryCurren
         <PrivacyNotice base={base} />
       </div>
 
-      <a href={`${base}/jobs/${job.slug}/apply`} class="button-primary mt-6 w-full sm:w-auto">
+      <a href={withEmbed(`${base}/jobs/${job.slug}/apply`, embed)} class="button-primary mt-6 w-full sm:w-auto">
         Apply for this role
       </a>
     </CareersLayout>

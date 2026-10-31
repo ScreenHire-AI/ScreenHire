@@ -31,8 +31,17 @@ export function formatSalary(salary: JobSalary): string {
 
 const sourceLabels: Record<ApplicationSource, string> = { CareersSite: 'Careers page', Recruiter: 'Recruiter' };
 
-/** Where an application came from, as a table's Source column shows it. */
-export const sourceLabel = (source: ApplicationSource) => sourceLabels[source];
+/**
+ * The site an application came from when the careers page was embedded in the organization's own site
+ * (`https://www.example.com` reads `www.example.com`), as people know it.
+ */
+export const siteName = (site: string) => site.replace(/^https?:\/\//, '');
+
+/**
+ * Where an application came from, as a table's Source column shows it: the organization's own site when the careers page
+ * was embedded in it (docs/architecture/careers-widget.md).
+ */
+export const sourceLabel = (source: ApplicationSource, sourceSite?: string | null) => (sourceSite ? siteName(sourceSite) : sourceLabels[source]);
 
 const sourceNames: Record<ApplicationSource, string> = { CareersSite: 'Careers page', Recruiter: 'Added by a recruiter' };
 

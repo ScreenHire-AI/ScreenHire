@@ -108,6 +108,8 @@ public class AppHostFixture : IAsyncLifetime
                 $"--ScreenHire:Webhooks:RetryDelays:0={WebhookRetryDelays[0]}",
                 $"--ScreenHire:Webhooks:RetryDelays:1={WebhookRetryDelays[1]}",
                 $"--ScreenHire:Webhooks:DisableAfterFailedDeliveries={WebhookDisableAfterFailedDeliveries}",
+                // Embedding: the end-to-end tests' host pages are on http://*.localhost.
+                "--ScreenHire:CareersEmbedding:AllowLoopback=true",
                 // Slack: the local sandbox workspace (docs/architecture/slack.md), so connecting and posting run with no Slack.
                 "--ScreenHire:Slack:Sandbox:Enabled=true",
                 .. ExtraArguments,

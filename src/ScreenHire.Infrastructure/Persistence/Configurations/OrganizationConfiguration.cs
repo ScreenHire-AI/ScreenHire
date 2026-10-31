@@ -14,6 +14,8 @@ internal sealed class OrganizationConfiguration : IEntityTypeConfiguration<Organ
         builder.Property(o => o.BrandColor).HasMaxLength(7);
         builder.Property(o => o.SecondColor).HasMaxLength(7);
         builder.Property(o => o.HeadingFont).HasConversion<string>().HasMaxLength(40);
+        // Existing organizations let no other site frame their careers pages.
+        builder.Property(o => o.EmbedOrigins).HasColumnType("text[]").HasDefaultValueSql("'{}'::text[]");
         builder.HasIndex(o => o.Slug).IsUnique();
         builder.Ignore(o => o.MayUsePartnerBoards);
     }

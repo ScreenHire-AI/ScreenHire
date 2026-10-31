@@ -23,7 +23,7 @@ using Wolverine.EntityFrameworkCore;
 namespace ScreenHire.Api.Endpoints;
 
 /// <summary>
-/// The signed-in user's organization: its name, its branding, its integrity settings and its talent pool settings (how
+/// The signed-in user's organization: its name, the sites allowed to embed its careers pages, its branding, its integrity settings and its talent pool settings (how
 /// long a candidate's permission for future roles lasts). Branding colours are checked against WCAG 2.2 AA before they
 /// save, and a colour that fails is refused with the nearest passing shade (ADR-0018); brand images upload straight to
 /// storage and are checked, then scanned, before a save may use them (docs/architecture/branding.md). Each settings page
@@ -41,6 +41,10 @@ internal static class OrganizationEndpoints
         group.MapGet("/integrity-settings/history", GetIntegritySettingsHistory).WithName("GetOrganizationIntegritySettingsHistory")
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPut("", UpdateOrganization).WithName("UpdateOrganization")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.EditSettings)
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapPut("/embedding", UpdateCareersEmbedding).WithName("UpdateCareersEmbedding")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditSettings)
             .Produces(StatusCodes.Status401Unauthorized);
@@ -110,12 +114,50 @@ internal static class OrganizationEndpoints
         return TypedResults.Ok(await ToProfileAsync(db, organization, domains.Value, cancellationToken));
     }
 
+    // The sites allowed to embed the careers pages (docs/architecture/careers-widget.md). Every entry is checked and the
+    // problems keyed by its index, so the page can say which one is wrong.
+    private static async Task<Results<Ok<OrganizationProfile>, NotFound, ValidationProblem>> UpdateCareersEmbedding(
+        UpdateCareersEmbeddingRequest request, ScreenHireDbContext db, ITenantContext tenant, IOptions<DomainOptions> domains,
+        IOptions<CareersEmbeddingOptions> embedding, CancellationToken cancellationToken)
+    {
+        var origins = request.Origins ?? [];
+        var normalized = origins.Select(o => EmbedOrigins.Normalize(o, embedding.Value.AllowLoopback)).ToList();
+        var problems = new Dictionary<string, string[]>();
+        for (var index = 0; index < normalized.Count; index++)
+        {
+            if (normalized[index].Problem is { } problem)
+            {
+                problems[$"origins[{index.ToString(CultureInfo.InvariantCulture)}]"] = [problem];
+            }
+        }
+
+        if (problems.Count == 0 && normalized.Select(n => n.Origin).Distinct(StringComparer.Ordinal).Count() > EmbedOrigins.MaxCount)
+        {
+            problems["origins"] = [$"At most {EmbedOrigins.MaxCount} sites can embed the careers page."];
+        }
+
+        if (problems.Count > 0)
+        {
+            return TypedResults.ValidationProblem(problems);
+        }
+
+        var organization = await db.Organizations.SingleOrDefaultAsync(o => o.Id == tenant.OrganizationId, cancellationToken);
+        if (organization is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        organization.SetEmbedOrigins(origins, embedding.Value.AllowLoopback);
+        await db.SaveChangesAsync(cancellationToken);
+        return TypedResults.Ok(await ToProfileAsync(db, organization, domains.Value, cancellationToken));
+    }
+
     private static async Task<OrganizationProfile> ToProfileAsync(
         ScreenHireDbContext db, Organization organization, DomainOptions domains, CancellationToken cancellationToken)
     {
         var last = await ChangeHistoryQueries.LastAsync(db, ChangeSubjectKind.Organization, SubjectId(organization.Id), cancellationToken);
         return new(organization.Id, organization.Name, organization.Slug, organization.HomeRegion, domains.CareersBoardUrl(organization.Slug),
-            organization.CreatedAt, LastUpdate.From(last, organization.CreatedAt), organization.QuestionsPerPage);
+            organization.CreatedAt, LastUpdate.From(last, organization.CreatedAt), organization.QuestionsPerPage, organization.EmbedOrigins);
     }
 
     // Every settings history's subject is the organization itself.
