@@ -74,7 +74,7 @@ public static class SignalCatalogue
             "The browser reported that automation software was controlling it ({markers})."),
         new(SubmitVelocity, SignalCategory.Automation, IntegrityAssessmentKind.Authenticity, SignalWeight.Medium,
             "Completed faster than a person could",
-            "The form was completed in {duration}, faster than reading and answering it plausibly takes ({minimum}).",
+            "The form's pages were open for {duration} in all, faster than reading and answering them plausibly takes ({minimum}).",
             AccessibilitySensitive: true),
         new(Honeypot, SignalCategory.Automation, IntegrityAssessmentKind.Authenticity, SignalWeight.Medium,
             "Hidden field filled in",

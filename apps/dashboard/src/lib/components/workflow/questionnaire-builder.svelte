@@ -1,15 +1,18 @@
 <script lang="ts" module>
-  import type { Question } from '@screenhire/api-client';
+  import type { Question, QuestionSection } from '@screenhire/api-client';
 
-  /** What the questionnaire's pop-out preview window draws (`/preview/form`). */
+  /** What the questionnaire's pop-out preview window draws (`/preview/form`): the questions, page by page. */
   export interface FormPreview {
     form: 'apply' | 'follow-up';
     questions: Question[];
+    sections: QuestionSection[] | null;
+    questionsPerPage: number;
   }
 </script>
 
 <script lang="ts">
   import type { DefinitionError, HiringWorkflow, QuestionType } from '@screenhire/api-client';
+  import { createGetOrganization } from '@screenhire/api-client/svelte-query';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import EditPreviewLayout from '#lib/components/edit-preview-layout.svelte';
   import FormBuilder from '#lib/components/form-builder.svelte';
@@ -20,6 +23,7 @@
   import { Input } from '#lib/components/ui/input/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import { applyFormKinds, duplicateId, followUpKinds, type AnswerKindGroup } from '#lib/form-builder.js';
+  import type { SectionDraft } from '#lib/form-sections.js';
   import { createPreviewSource } from '#lib/preview-window.svelte.js';
   import { aiUseLabels, allQuestions, errorsAt, errorsUnder, followUpsOf, newFollowUp, newQuestion, withQuestionType } from '#lib/workflow.js';
   import { labelClass, selectClass } from './controls.js';
@@ -30,7 +34,9 @@
   // The apply form's questions and AI-use policy, and the follow-up questionnaires an automation sends after someone
   // applied, in the form builder. One questionnaire shows at a time; the toggles are peer views of the workflow's
   // questionnaires (design system section 11). Beside the builder where both fit, or behind the Edit / Preview switch,
-  // the candidate's form at its real size; the window icon opens it in a second window that follows each edit (A8).
+  // the candidate's form at its real size; the window icon opens it in a second window that follows each edit (A8). A
+  // questionnaire may have named sections, each a page for the candidate; without them it splits into pages of the
+  // organization's questions per page (Settings > Organization), and the preview shows the pages either way.
   let { workflow = $bindable(), errors }: { workflow: HiringWorkflow; errors: readonly DefinitionError[] } = $props();
 
   /** `apply`, or the id of the follow-up questionnaire on show. */
@@ -42,13 +48,21 @@
   const current = $derived(index >= 0 ? followUps[index] : undefined);
   const path = $derived(current ? `followUpQuestionnaires[${index}]` : 'questionnaire');
   const questions = $derived(current ? current.questions : workflow.questionnaire.questions);
+  const sections = $derived((current ? current.sections : workflow.questionnaire.sections) ?? null);
   const groups: readonly AnswerKindGroup<QuestionType>[] = $derived(current ? followUpKinds : applyFormKinds);
+  const organization = createGetOrganization();
+  const questionsPerPage = $derived(organization.data?.data.questionsPerPage ?? 8);
 
-  const source = createPreviewSource<FormPreview>(() => ({ form: current ? 'follow-up' : 'apply', questions }));
+  const source = createPreviewSource<FormPreview>(() => ({ form: current ? 'follow-up' : 'apply', questions, sections, questionsPerPage }));
 
   function setQuestions(next: Question[]) {
     if (current) current.questions = next;
     else workflow.questionnaire.questions = next;
+  }
+
+  function setSections(next: SectionDraft[] | null | undefined) {
+    if (current) current.sections = next ?? null;
+    else workflow.questionnaire.sections = next ?? null;
   }
 
   function addFollowUp() {
@@ -88,7 +102,7 @@
   {#snippet preview(popout)}
     <Panel title="Preview" actions={popout}>
       <PreviewFrame>
-        <QuestionnairePreview {questions} followUp={!!current} />
+        <QuestionnairePreview {questions} {sections} {questionsPerPage} followUp={!!current} />
       </PreviewFrame>
     </Panel>
   {/snippet}
@@ -133,6 +147,9 @@
     {#key path}
       <FormBuilder
         bind:items={() => questions, setQuestions}
+        withSections
+        bind:sections={() => sections, setSections}
+        sectionErrors={(sectionIndex) => errorsUnder(errors, `${path}.sections[${sectionIndex}]`).map((error) => error.message)}
         {groups}
         title={current ? 'Questions' : 'Screening questions'}
         empty={current ? 'Add at least one question.' : 'No questions yet. Every form still asks for a resume.'}
@@ -149,7 +166,11 @@
         newItem={(type) => newQuestion(workflow, type)}
         {duplicate}
         errorsFor={(_, questionIndex) => errorsUnder(errors, `${path}.questions[${questionIndex}]`).map((error) => error.message)}
-        problems={current ? errorsAt(errors, `${path}.questions`) : [...errorsAt(errors, path), ...errorsAt(errors, `${path}.questions`)]}
+        problems={[
+          ...(current ? [] : errorsAt(errors, path)),
+          ...errorsAt(errors, `${path}.questions`),
+          ...errorsAt(errors, `${path}.sections`),
+        ]}
       >
         {#snippet settings(question)}<QuestionSettings {question} />{/snippet}
       </FormBuilder>

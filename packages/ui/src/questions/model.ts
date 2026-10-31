@@ -88,3 +88,59 @@ export const selectedOf = (answer: AnswerValue | undefined): string[] =>
 /** The `aria-describedby` for a field with an optional hint and error. */
 export const describedBy = (id: string, hint: unknown, error: unknown): string | undefined =>
   [hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(' ') || undefined;
+
+/** A questionnaire's named page, as the hiring definition stores it. */
+export interface SectionSpec {
+  id: string;
+  name: string;
+  questionIds: readonly string[];
+}
+
+/** One page of a form: its heading (null for an automatic page) and the ids of its questions, in order. */
+export interface QuestionPage {
+  name: string | null;
+  questionIds: string[];
+}
+
+/**
+ * The pages a candidate meets (apply-flow.md §7): the questionnaire's named sections in order, or, without sections,
+ * the questions in pages of `pageSize`. `skip` leaves out questions shown elsewhere (the resume, on the details step); a
+ * page left empty is dropped. The careers pages and the dashboard's preview both page through this, so the preview is
+ * the form.
+ */
+export function questionPages(
+  questions: readonly QuestionSpec[],
+  sections: readonly SectionSpec[] | null | undefined,
+  pageSize: number,
+  skip: readonly string[] = [],
+): QuestionPage[] {
+  const shown = questions.map((question) => question.id).filter((id) => !skip.includes(id));
+  if (sections && sections.length > 0) {
+    const known = new Set(shown);
+    const pages = sections
+      .map((section) => ({ name: section.name, questionIds: section.questionIds.filter((id) => known.has(id)) }))
+      .filter((page) => page.questionIds.length > 0);
+    // A question no section names (a definition saved before its sections) still gets asked, on a last page.
+    const placed = new Set(pages.flatMap((page) => page.questionIds));
+    const rest = shown.filter((id) => !placed.has(id));
+    return rest.length > 0 ? [...pages, { name: null, questionIds: rest }] : pages;
+  }
+
+  const size = Math.max(1, Math.floor(pageSize) || 1);
+  const pages: QuestionPage[] = [];
+  for (let i = 0; i < shown.length; i += size) pages.push({ name: null, questionIds: shown.slice(i, i + size) });
+  return pages;
+}
+
+/** How many of `questions` have an answer: text, a choice, or a file. */
+export function answeredCount(
+  questions: readonly QuestionSpec[],
+  answers: Readonly<Record<string, AnswerValue | undefined>>,
+  files: Readonly<Record<string, unknown>> = {},
+): number {
+  return questions.filter((question) => {
+    if (question.type === 'File') return files[question.id] != null;
+    const answer = answers[question.id];
+    return Array.isArray(answer) ? answer.length > 0 : answer !== undefined && answer.trim() !== '';
+  }).length;
+}

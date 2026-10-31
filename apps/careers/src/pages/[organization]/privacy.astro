@@ -48,7 +48,7 @@ const employer = response.data;
       </p>
       <ul>
         <li>what you enter: your name, email, phone number, answers and the files you upload;</li>
-        <li>the network (IP) address and browser you sent it from, and when you opened the form;</li>
+        <li>the network (IP) address and browser you sent it from, and how long each page of the form was open;</li>
         <li>
           counts of how you filled in the form, unless you switch on the assistive technology option: for each field, how
           many characters you typed and how many you pasted, how often you pasted, how many times you came back to it, how
@@ -68,9 +68,19 @@ const employer = response.data;
         <li>which version of this notice you were shown.</li>
       </ul>
       <p class="mt-2">
-        We delete the network address, browser, form timing, the counts and the device code within 30 days, and the counts
+        We delete the network address, browser, the time on each page, the counts and the device code within 30 days, and the counts
         from a form you never send within a day. What we keep from them is coarse: the network's operator and country,
         never your address or a location more precise than a country.
+      </p>
+    </section>
+
+    <section aria-labelledby="saving">
+      <h2 id="saving">If you save to finish later</h2>
+      <p class="mt-2">
+        You can save the form and come back to it. We keep your name, email, phone number and answers under your email
+        address, and email you a link that only works for you. We never keep your files, the counts of how you typed or the
+        time you spent: attach your files again when you come back. Nobody at {employer.name} sees what you saved until you
+        send it. We delete it when you send your application, or 30 days after you first saved it.
       </p>
     </section>
 
@@ -79,6 +89,8 @@ const employer = response.data;
       <p class="mt-2">
         {employer.name} may email you a link to a few more questions. The link works for 14 days and only for you. That
         page keeps your answers and nothing else: no counts of how you typed, no device code and no checks of your network.
+        You can save your answers there to finish later through the same link; we delete them when you send them, or 30
+        days after you first saved them.
       </p>
     </section>
 

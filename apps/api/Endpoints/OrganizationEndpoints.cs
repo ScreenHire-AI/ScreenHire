@@ -57,7 +57,8 @@ internal static class OrganizationEndpoints
         return organization is null ? TypedResults.NotFound() : TypedResults.Ok(await ToProfileAsync(db, organization, domains.Value, cancellationToken));
     }
 
-    // Renames only. The slug is the careers address boards and candidates already link to, so it stays.
+    // The name and the questions per page. The slug is the careers address boards and candidates already link to, so it
+    // stays.
     private static async Task<Results<Ok<OrganizationProfile>, NotFound, ValidationProblem>> UpdateOrganization(
         UpdateOrganizationRequest request, IValidator<UpdateOrganizationRequest> validator, ScreenHireDbContext db, ITenantContext tenant,
         IOptions<DomainOptions> domains, CancellationToken cancellationToken)
@@ -74,6 +75,11 @@ internal static class OrganizationEndpoints
         }
 
         organization.Name = request.Name.Trim();
+        if (request.QuestionsPerPage is { } questionsPerPage)
+        {
+            organization.SetQuestionsPerPage(questionsPerPage);
+        }
+
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.Ok(await ToProfileAsync(db, organization, domains.Value, cancellationToken));
     }
@@ -83,7 +89,7 @@ internal static class OrganizationEndpoints
     {
         var last = await ChangeHistoryQueries.LastAsync(db, ChangeSubjectKind.Organization, SubjectId(organization.Id), cancellationToken);
         return new(organization.Id, organization.Name, organization.Slug, organization.HomeRegion, domains.CareersBoardUrl(organization.Slug),
-            organization.CreatedAt, LastUpdate.From(last, organization.CreatedAt));
+            organization.CreatedAt, LastUpdate.From(last, organization.CreatedAt), organization.QuestionsPerPage);
     }
 
     // Every settings history's subject is the organization itself.

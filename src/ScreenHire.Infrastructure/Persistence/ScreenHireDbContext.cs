@@ -141,6 +141,8 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<QuestionnaireRequest> QuestionnaireRequests => Set<QuestionnaireRequest>();
 
+    public DbSet<ApplicationDraft> ApplicationDrafts => Set<ApplicationDraft>();
+
     /// <summary>
     /// The ASP.NET Core Data Protection key ring the API and the worker share (<see cref="DataProtectionRegistration"/>).
     /// Not tenant-owned: the keys protect every organization's cookies and links alike.

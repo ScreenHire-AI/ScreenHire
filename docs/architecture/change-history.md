@@ -148,7 +148,7 @@ of the dashboard names people (`personName`: "you", the current name, "a former 
 1. Add a `ChangeSubjectKind` value.
 2. Add one line to `TrackedKinds.All`: the entity, its subject id and its describer. A describer that needs only the
    entity before and after is a plain function; reuse `DefinitionChanges` for questions. One entity can feed two
-   histories (the organization row: its name and its brand colour), one line each, when each describer returns no
+   histories (the organization row: its name and questions per page, and its brand colour), one line each, when each describer returns no
    lines for the other's changes.
 3. Add a `GET .../{id}/history` route in the kind's area with `ChangeHistoryRoutes`, after the area's own visibility
    check.

@@ -1,4 +1,5 @@
 using FluentValidation;
+using ScreenHire.Domain.Organizations;
 
 namespace ScreenHire.Api.Contracts;
 
@@ -27,18 +28,29 @@ public sealed record UpdateIntegritySettingsRequest(bool LlmConsistencyCheck, lo
 
 /// <summary>
 /// The signed-in user's organization. <c>slug</c> names its careers pages and public API routes and does not change after
-/// onboarding; <c>careersUrl</c> is its careers board on the configured careers domain. <c>lastUpdated</c> is the name's
-/// last change, or when the organization was made; its history is <c>/v1/organization/history</c>.
+/// onboarding; <c>careersUrl</c> is its careers board on the configured careers domain. <c>questionsPerPage</c> is how
+/// many questions candidates see on each page of a questionnaire that has no sections. <c>lastUpdated</c> is the last
+/// change to the name or the questions per page, or when the organization was made; its history is
+/// <c>/v1/organization/history</c>.
 /// </summary>
 public sealed record OrganizationProfile(
-    Guid Id, string Name, string Slug, string HomeRegion, string CareersUrl, DateTimeOffset CreatedAt, LastUpdate LastUpdated);
+    Guid Id, string Name, string Slug, string HomeRegion, string CareersUrl, DateTimeOffset CreatedAt, LastUpdate LastUpdated,
+    int QuestionsPerPage);
 
-/// <summary>Renames the organization. Its slug, and so its careers address, stays as it is.</summary>
-public sealed record UpdateOrganizationRequest(string Name);
+/// <summary>
+/// Renames the organization and, when given, sets its questions per page (1 to 50); null keeps it. Its slug, and so its
+/// careers address, stays as it is.
+/// </summary>
+public sealed record UpdateOrganizationRequest(string Name, int? QuestionsPerPage = null);
 
 internal sealed class UpdateOrganizationRequestValidator : AbstractValidator<UpdateOrganizationRequest>
 {
-    public UpdateOrganizationRequestValidator() =>
+    public UpdateOrganizationRequestValidator()
+    {
         RuleFor(r => r.Name).Must(name => !string.IsNullOrWhiteSpace(name)).WithMessage("Enter your organization's name.")
             .MaximumLength(200);
+        RuleFor(r => r.QuestionsPerPage)
+            .InclusiveBetween(Organization.MinQuestionsPerPage, Organization.MaxQuestionsPerPage)
+            .WithMessage($"Choose from {Organization.MinQuestionsPerPage} to {Organization.MaxQuestionsPerPage} questions a page.");
+    }
 }

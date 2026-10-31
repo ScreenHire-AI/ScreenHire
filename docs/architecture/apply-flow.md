@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Careers apply flow"
-description: "The candidate apply page: the notice before any collection, three steps that work without JavaScript, direct-to-storage resume uploads, the public submission endpoint, per-tenant branding stylesheets under the content security policy, tenant careers hosts, and the follow-up questionnaire page a signed link opens."
+description: "The candidate apply page: the notice before any collection, steps that work without JavaScript with one section of questions a page, direct-to-storage resume uploads, the public submission endpoint, per-tenant branding stylesheets under the content security policy, tenant careers hosts, saving the form to finish later through an emailed link, and the follow-up questionnaire page a signed link opens."
 tags: [careers, apply, astro]
 sources:
   - resource: apps/careers/src/pages/[organization]/jobs/[job]/apply.astro
@@ -19,6 +19,13 @@ sources:
   - resource: apps/api/Applications/ApplicantUploads.cs
   - resource: src/ScreenHire.Domain/Organizations/BrandPalette.cs
   - resource: apps/dashboard/src/lib/components/file-frame.svelte
+  - resource: apps/careers/src/lib/drafts.ts
+  - resource: apps/careers/src/components/StepIndicator.astro
+  - resource: packages/ui/src/questions/PageProgress.svelte
+  - resource: apps/api/Applications/ApplicationDrafts.cs
+  - resource: apps/api/Endpoints/PublicApplicationDraftEndpoints.cs
+  - resource: src/ScreenHire.Domain/Applications/ApplicationDraft.cs
+  - resource: src/ScreenHire.Application/Applications/DraftRetention.cs
 ---
 # Careers apply flow
 
@@ -27,8 +34,8 @@ sources:
 > follows: ADR-0003 (Astro, plain forms, iframe widget), ADR-0004 (evidence, not verdicts), `docs/research/legal.md`
 > (notice, accommodation), design-system §2.4, §7 and §8.
 
-A candidate goes from a job page to a sent application in three steps, with or without JavaScript, and is told what
-is checked before anything is collected. The careers server talks to the API on the candidate's behalf; the browser
+A candidate goes from a job page to a sent application a page at a time, with or without JavaScript, and is told what
+is checked before anything is collected. They can save the form and finish it later from a link in their email (§7). The careers server talks to the API on the candidate's behalf; the browser
 never calls the API.
 
 ## 1. Pages and steps
@@ -36,7 +43,7 @@ never calls the API.
 | Path (under `/{organization}`, or `/` on a tenant host) | What it is |
 |---|---|
 | `/jobs/{job}` | The job, the "How we keep this fair" notice and an Apply link. 410 once the job closes, 404 if unknown. |
-| `/jobs/{job}/apply` | The form: **details** (notice, assistive-technology switch, first name, last name (optional), email, phone, resume), **questions** (the job's questionnaire; skipped when it has none), **review** (summary, AI-use declaration, send). |
+| `/jobs/{job}/apply` | The form: **details** (notice, assistive-technology switch, first name, last name (optional), email, phone, resume), one **page** per section of the job's questionnaire (none when it has no questions beyond the resume; §7), **review** (summary, AI-use declaration, send). `?draft={token}` fills it from a saved draft. |
 | `/jobs/{job}/applied` | The confirmation, after a POST-redirect-GET. The same page whether the application is new or the email had already applied, so the form never reveals who applied. |
 | `/privacy` | "What we collect and why", the full notice. Its version (`NOTICE_VERSION` in `src/lib/apply.ts`) is recorded on every application. |
 | `/brand/{hash}.css` | The employer's brand stylesheet (section 5). |
@@ -48,8 +55,8 @@ never calls the API.
 Each step is a native `<form method="POST" enctype="multipart/form-data">` posted to the `apply` Astro Action
 (`src/actions/index.ts`), which re-renders the same page with the next step. What the candidate has entered travels
 between steps in one hidden field (`state`); the server re-reads and re-checks it on every post, and checks every step
-again before sending. Back and "Change" buttons keep what was typed without checking it. Field errors show inline and in
-an error summary at the top that links to each field and takes focus.
+again before sending. Back, "Change" and "Save and finish later" keep what was typed without checking it. Field errors
+show inline and in an error summary at the top that links to each field and takes focus.
 
 The form is built from the API's `GET /v1/public/organizations/{slug}/jobs/{job}/application-form`: the job, its
 questions (resume first; knockouts and automations stay on the server), the AI-use policy, upload limits and the bot
@@ -84,15 +91,16 @@ Neither refuses a submission (CLAUDE.md non-negotiable 2), and knockout answers 
 
 With a careers-site application the API also stores a `SubmissionObservation` for the integrity engine
 (integrity-engine.md §10): the candidate's address (from `X-Forwarded-For`), their browser's user agent, which the
-careers server passes on as `userAgent` because the API only sees the server's, and `formStartedAt`, the moment the
-careers server first rendered the form (kept in the step state, so it round-trips through the browser and is only a
-hint). The telemetry module fills `automationMarkers` and `deviceFingerprint` on the review step, and the careers
+careers server passes on as `userAgent` because the API only sees the server's, and `pageTimes`, the active seconds on
+each page as the careers server measured them (§7; kept in the step state, so they round-trip through the browser and
+are only a hint, and never sent with the switch on). The telemetry module fills `automationMarkers` and `deviceFingerprint` on the review step, and the careers
 server passes them on with the session token and the module's last snapshot. The API hashes a fingerprint per
 organization and never stores it as sent, and keeps it only on the job's device-check basis: where that is `Consent`
 (the EU and EEA by default), the details step shows an optional "Check this device for repeat applications" box and the
 fingerprint is kept only when it is ticked. The observation and the telemetry are deleted after 30 days. The notice and
 the privacy page say all of this, and that the employer may email a follow-up questionnaire whose page keeps the
-answers only (`NOTICE_VERSION` `2026-10-23.1`).
+answers only, and that a saved draft keeps the details and answers only, for 30 days (`NOTICE_VERSION`
+`2026-10-30.1`).
 
 ## 3. Uploads
 
@@ -176,13 +184,77 @@ uses `localhost` otherwise. Endpoints (`/uploads`, the brand stylesheet) take th
 tenant host, a path that already starts with `/{tenant}` (a path-style link) gets a 301 to the same path without it. On the careers domain itself, the organization is in the path. Locally the AppHost sets
 `CareersDomain` to the careers endpoint, so `http://brightwater.localhost:<port>/` serves Brightwater's board.
 
+## 7. Pages, progress and saved drafts
+
+**Pages.** A questionnaire's named sections (`sections` on the hiring definition's questionnaire, workflow-engine.md §7)
+are its pages, one each, in order. Without sections the questions split into pages of the organization's questions per
+page (Settings > Organization, 1 to 50, default 8; `questionsPerPage` on the public form). One function,
+`questionPages` in `packages/ui/src/questions/model.ts`, pages the apply form, the follow-up page and the dashboard's
+preview, so the preview is the form. The resume stays on the details step, and a section left empty by that is
+dropped. Steps are `details`, `page-1` to `page-N` and `review`; each page's heading is its section's name
+("Questions" for an automatic page). Each page posts the ids it rendered (`pageQuestions`), and the server reads only
+those, so an answer is never wiped when the pages change between showing a page and posting it.
+
+**Progress.** `PageProgress` (`packages/ui/src/questions`, rendered on the server with no JavaScript) shows a bar of one
+segment per step, then "Step 2 of 4" and "9 of 24 answered", counting the form's questions with the resume and not the
+contact fields. The review lists the answers page by page, each with its own Change; a page opened from the review has
+"Back to review" as its primary.
+
+**Active time per page.** The page stamps `pageShownAt` into the state when it renders a step; any post of that step
+(Next, Back, Change, Save) adds the time since, at most 30 minutes, to `pageSeconds` for that step. A break between
+saving and coming back is never inside a page, so it never counts. Submission sends the totals as `pageTimes`, which
+the API stores on the submission's observation (dropping anything out of range rather than refusing the application)
+for the submit-velocity check (integrity-engine.md §10.2). Nothing new runs in the browser: this is the careers server's
+own measure.
+
+**Save and finish later.** On the pages and the review, when the form says `saveDraftEnabled` (an `IEmailSender` is
+registered and a careers host pattern is configured; otherwise the button is hidden), "Save and finish later" posts
+the draft and keeps the candidate on the step with a notice: "Saved. We emailed a link to {email} to finish by
+{date}.", and that files are attached again. The API (`PublicApplicationDraftEndpoints`, `ApplicationDrafts`):
+
+- `POST .../jobs/{jobId}/application-drafts` checks the answers' shape only (`ApplicationForm.ValidateDraft`: nothing
+  required yet, no file answers), creates an `ApplicationDraft` and sends the link inside the request, as sign-in links
+  are, because the token lets whoever holds it read the draft and so never sits in the outbox. The email is
+  ScreenHire's own wording, not an organization template. An address gets at most 5 draft links a day in one
+  organization (a per-address advisory lock, as for sign-in links); the sixth save is a 429. The answer is the same
+  whether or not the address applied before.
+- The token is Data Protection under its own purpose (`ScreenHire.ApplicationDraft.Link.v1`), naming the organization
+  and the draft, like follow-up links. A draft is found by its token, never by its email, so nobody who knows an
+  address can replace the answers saved under it. The careers page keeps the token in its state, so saving again
+  updates the same draft (`PUT .../application-drafts/{token}`, no second email) while the email is the one its link
+  went to; a different address makes a new draft.
+- A draft keeps the details, the answers to non-file questions, the assistive-technology switch (so a resumed form never
+  starts telemetry on someone who switched it on) and the AI-use answer. Never files, telemetry, the device check, a
+  fingerprint or the time on the pages.
+
+**Resume.** The link is the job's apply page with `?draft={token}`. The page checks the token is base64url text, reads
+the draft (`GET .../application-drafts/{token}`; another job's draft is "not found"), and opens the details step filled
+in, with a fresh telemetry session, so the notice shows again before anything is collected. The page sends
+`no-referrer`, and the first post drops the token from the address. An expired link says "This link has expired", an
+unknown one "We could not find your saved answers", and both offer a fresh form.
+
+**Deletion.** Sending the application deletes the job's drafts for that email in the same save, and the one saved last
+tells the observation that the application was resumed and which answers it carried over (integrity-engine.md §10.2).
+`PurgeExpiredApplicationDrafts` runs daily at 03:47 UTC and deletes drafts 30 days after their first save; later saves
+never move that date.
+
+**Knockouts.** A draft is never an application: saving one raises no event and runs no automation or integrity check,
+and the careers server never learns knockout settings. A knockout answer on an early page therefore ends nothing
+before the candidate sends the application; sent, it is judged as on any application (workflow-engine.md §2).
+
 ## 8. Follow-up questionnaires
 
 After someone applied, a SendQuestionnaire automation can email them a link to a follow-up questionnaire
-(workflow-engine.md §8): `/questionnaires/{token}` on the organization's careers board. The page is one native form
+(workflow-engine.md §8): `/questionnaires/{token}` on the organization's careers board. Each page is a native form
 posted to the `questionnaire` Astro Action (`src/lib/questionnaire.ts`), so it works with JavaScript off and ships no
 script at all. Its fields are the same shared question components as the apply form, rendered on the server; follow-up
-questionnaires have no file questions, so there is no upload island.
+questionnaires have no file questions, so there is no upload island. It pages like the apply form (§7): one section a
+page, or pages of the organization's size, with the progress line when there is more than one page, Back, and "Send
+answers" on the last page.
+
+- **Save and finish later.** The answers are kept on the request (`PUT .../questionnaires/{token}/draft`, answers
+  only, checked for shape), and the same link opens them again while it works; the page says so. No second email: the
+  link the candidate holds is the signed link to finish later. Answering, or 30 days after the first save, deletes them.
 
 - **Answers only.** No device check, no form telemetry and no bot challenge: the candidate saw the notice when they
   applied, and this page collects what they type into its fields and nothing about their browser (CLAUDE.md

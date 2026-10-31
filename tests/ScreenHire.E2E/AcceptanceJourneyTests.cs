@@ -242,14 +242,14 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
     // The "Software engineer" questionnaire, which the job copied from the template.
     private static async Task AnswerQuestionsAsync(IPage page, string notice)
     {
-        await Expect(page.Locator("[aria-current='step']")).ToContainTextAsync("QUESTIONS");
+        await Expect(page.Locator("#step-heading")).ToHaveTextAsync("Questions");
         await page.GetByRole(AriaRole.Group, new() { Name = "Do you have the right to work in the country this job is in?" })
             .GetByLabel("Yes").CheckAsync();
         await page.GetByRole(AriaRole.Group, new() { Name = "How many years have you worked as a software engineer?" })
             .GetByLabel("6 to 9").CheckAsync();
         await page.GetByLabel("What is your notice period?").FillAsync(notice);
         await page.GetByRole(AriaRole.Button, new() { Name = "Continue to review" }).ClickAsync();
-        await Expect(page.Locator("[aria-current='step']")).ToContainTextAsync("REVIEW");
+        await Expect(page.Locator("#step-heading")).ToHaveTextAsync("Review and send");
     }
 
     // A person's click on the name, the first one on the page included: the side panel keeps its place, so the row

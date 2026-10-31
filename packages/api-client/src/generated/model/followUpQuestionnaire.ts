@@ -5,6 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { Question } from './question.ts';
+import type { QuestionSection } from './questionSection.ts';
 
 /**
  * A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire
@@ -16,4 +17,6 @@ export interface FollowUpQuestionnaire {
   id: string;
   name: string;
   questions: Question[];
+  /** @nullable */
+  sections?: QuestionSection[] | null;
 }

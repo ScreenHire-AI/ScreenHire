@@ -259,6 +259,8 @@ public static class ScreenHireMessaging
         opts.Schedules.ScheduleRecurring<PurgeExpiredIntegrityData>("17 3 * * *");
         // Finished webhook deliveries past their retention, daily (docs/architecture/workflow-engine.md section 5).
         opts.Schedules.ScheduleRecurring<PurgeExpiredWebhookDeliveries>("37 3 * * *");
+        // Answers saved to finish later, 30 days after their first save (docs/architecture/apply-flow.md section 7).
+        opts.Schedules.ScheduleRecurring<PurgeExpiredApplicationDrafts>("47 3 * * *");
         // Job distribution (docs/architecture/job-distribution.md): the reconciliation sweep, and the Indexing API queue.
         opts.Schedules.ScheduleRecurring<ReconcileJobPostings>("*/5 * * * *");
         opts.Schedules.ScheduleRecurring<DispatchIndexingNotifications>("* * * * *");

@@ -5,6 +5,88 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/v1/public/organizations/{organizationSlug}/jobs/{jobId}/application-drafts": {
+      "post": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "CreatePublicApplicationDraft",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicApplicationDraftRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApplicationDraftReceipt"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/public/organizations/{organizationSlug}/jobs/{jobId}/telemetry": {
       "post": {
         "tags": [
@@ -944,6 +1026,132 @@
         }
       }
     },
+    "/v1/public/organizations/{organizationSlug}/application-drafts/{token}": {
+      "get": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "GetPublicApplicationDraft",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApplicationDraft"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "SavePublicApplicationDraft",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicApplicationDraftRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApplicationDraftReceipt"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
     "/v1/public/organizations/{organizationSlug}/questionnaires/{token}": {
       "get": {
         "tags": [
@@ -992,6 +1200,93 @@
           "Public careers"
         ],
         "operationId": "AnswerPublicQuestionnaire",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicQuestionnaireAnswers"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/questionnaires/{token}/draft": {
+      "put": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "SavePublicQuestionnaireDraft",
         "parameters": [
           {
             "name": "organizationSlug",
@@ -10912,6 +11207,15 @@
             "items": {
               "$ref": "#/components/schemas/Question"
             }
+          },
+          "sections": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/QuestionSection"
+            }
           }
         },
         "description": "A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads."
@@ -13065,7 +13369,8 @@
           "homeRegion",
           "careersUrl",
           "createdAt",
-          "lastUpdated"
+          "lastUpdated",
+          "questionsPerPage"
         ],
         "type": "object",
         "properties": {
@@ -13091,9 +13396,13 @@
           },
           "lastUpdated": {
             "$ref": "#/components/schemas/LastUpdate"
+          },
+          "questionsPerPage": {
+            "type": "integer",
+            "format": "int32"
           }
         },
-        "description": "The signed-in user's organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain. `lastUpdated` is the name's\r\nlast change, or when the organization was made; its history is `/v1/organization/history`."
+        "description": "The signed-in user's organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain. `questionsPerPage` is how\r\nmany questions candidates see on each page of a questionnaire that has no sections. `lastUpdated` is the last\r\nchange to the name or the questions per page, or when the organization was made; its history is\r\n`/v1/organization/history`."
       },
       "OrganizationRole": {
         "enum": [
@@ -13125,6 +13434,23 @@
         },
         "additionalProperties": false,
         "description": "Page-level counts: times the page was hidden, and automation markers from a fixed list (`webdriver`,\r\n`headless`, ...)."
+      },
+      "PageTimeInput": {
+        "required": [
+          "page",
+          "seconds"
+        ],
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "string"
+          },
+          "seconds": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "The active seconds on one page of the apply form (`details`, `page-2`, `review`)."
       },
       "PendingInvitation": {
         "required": [
@@ -13346,6 +13672,118 @@
           }
         }
       },
+      "PublicApplicationDraft": {
+        "required": [
+          "jobSlug",
+          "firstName",
+          "lastName",
+          "email",
+          "phone",
+          "answers",
+          "accommodationRequested",
+          "aiUseDeclaration",
+          "aiUseDetails",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "jobSlug": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "answers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApplicationAnswer"
+            }
+          },
+          "accommodationRequested": {
+            "type": "boolean"
+          },
+          "aiUseDeclaration": {
+            "$ref": "#/components/schemas/AiUseDeclaration"
+          },
+          "aiUseDetails": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "A saved draft as the careers apply page fills the form from it. `jobSlug` is the job it belongs to; the page\r\nrefuses a draft for another job."
+      },
+      "PublicApplicationDraftReceipt": {
+        "required": [
+          "token",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "A saved draft: the token in its link, which the careers page keeps to save it again, and when it is deleted."
+      },
+      "PublicApplicationDraftRequest": {
+        "required": [
+          "candidate"
+        ],
+        "type": "object",
+        "properties": {
+          "candidate": {
+            "$ref": "#/components/schemas/PublicCandidateInput"
+          },
+          "answers": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ApplicationAnswer"
+            }
+          },
+          "accommodationRequested": {
+            "type": "boolean",
+            "default": false
+          },
+          "aiUseDeclaration": {
+            "$ref": "#/components/schemas/AiUseDeclaration"
+          },
+          "aiUseDetails": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "What a candidate saves of the apply form to finish later (ApplicationDraft): their details, their\r\nanswers to the non-file questions, the assistive-technology switch and the AI-use answer. Nothing is required yet\r\nbeyond the first name and the email the link goes to."
+      },
       "PublicApplicationForm": {
         "required": [
           "organization",
@@ -13354,7 +13792,10 @@
           "aiUsePolicy",
           "uploads",
           "turnstileSiteKey",
-          "telemetry"
+          "telemetry",
+          "sections",
+          "questionsPerPage",
+          "saveDraftEnabled"
         ],
         "type": "object",
         "properties": {
@@ -13384,9 +13825,25 @@
           },
           "telemetry": {
             "$ref": "#/components/schemas/PublicTelemetrySettings"
+          },
+          "sections": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/QuestionSection"
+            }
+          },
+          "questionsPerPage": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "saveDraftEnabled": {
+            "type": "boolean"
           }
         },
-        "description": "Everything the careers apply page needs for one open job. The resume question comes first\r\n(ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured.\r\n`telemetry` is a new telemetry session for the form; the page keeps the first one it gets."
+        "description": "Everything the careers apply page needs for one open job. The resume question comes first\r\n(ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured.\r\n`telemetry` is a new telemetry session for the form; the page keeps the first one it gets.\r\n`sections` are the questionnaire's named pages, or null to split it into pages of `questionsPerPage`\r\n(apply-flow.md §7). `saveDraftEnabled` says whether the candidate can save the form to finish later: false when\r\nthis deployment sends no email or has no careers host to link to."
       },
       "PublicApplicationReceipt": {
         "required": [
@@ -13457,12 +13914,14 @@
               "string"
             ]
           },
-          "formStartedAt": {
+          "pageTimes": {
             "type": [
               "null",
-              "string"
+              "array"
             ],
-            "format": "date-time"
+            "items": {
+              "$ref": "#/components/schemas/PageTimeInput"
+            }
           },
           "automationMarkers": {
             "type": [
@@ -13819,7 +14278,10 @@
           "jobTitle",
           "name",
           "status",
-          "questions"
+          "questions",
+          "sections",
+          "questionsPerPage",
+          "draft"
         ],
         "type": "object",
         "properties": {
@@ -13840,9 +14302,28 @@
             "items": {
               "$ref": "#/components/schemas/PublicQuestion"
             }
+          },
+          "sections": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/QuestionSection"
+            }
+          },
+          "questionsPerPage": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "draft": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApplicationAnswer"
+            }
           }
         },
-        "description": "A follow-up questionnaire as its careers page shows it, through the signed link in the candidate's email.\r\n`questions` are listed only while the link is `Open`; knockout settings stay on the server."
+        "description": "A follow-up questionnaire as its careers page shows it, through the signed link in the candidate's email.\r\n`questions`, `sections` and `draft` are listed only while the link is `Open`; knockout settings stay\r\non the server. `sections` are its named pages, or null to split it into pages of `questionsPerPage`.\r\n`draft` holds the answers the candidate saved to finish later, empty when there are none."
       },
       "PublicQuestionnaireAnswers": {
         "required": [
@@ -14006,6 +14487,15 @@
             "items": {
               "$ref": "#/components/schemas/Question"
             }
+          },
+          "sections": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/QuestionSection"
+            }
           }
         },
         "description": "The screening questions a candidate answers when applying.",
@@ -14028,6 +14518,29 @@
             "type": "string"
           }
         }
+      },
+      "QuestionSection": {
+        "required": [
+          "id",
+          "name",
+          "questionIds"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "questionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "One named page of a questionnaire: its name, the page's heading, and the ids of its questions in order."
       },
       "QuestionType": {
         "enum": [
@@ -15393,9 +15906,16 @@
         "properties": {
           "name": {
             "type": "string"
+          },
+          "questionsPerPage": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         },
-        "description": "Renames the organization. Its slug, and so its careers address, stays as it is."
+        "description": "Renames the organization and, when given, sets its questions per page (1 to 50); null keeps it. Its slug, and so its\r\ncareers address, stays as it is."
       },
       "UpdateRoleRequest": {
         "required": [

@@ -19,6 +19,9 @@ public sealed class QuestionnaireRequest : IJobScoped
     /// <summary>How long an emailed link stays open. Sending again issues a fresh one.</summary>
     public static readonly TimeSpan LinkLifetime = TimeSpan.FromDays(14);
 
+    /// <summary>How long answers saved to finish later are kept, from the first save.</summary>
+    public static readonly TimeSpan DraftLifetime = TimeSpan.FromDays(30);
+
     public Guid Id { get; init; } = Guid.CreateVersion7();
 
     public Guid OrganizationId { get; init; }
@@ -53,7 +56,40 @@ public sealed class QuestionnaireRequest : IJobScoped
     /// <summary>The candidate's answers, in the form automation conditions read them, empty ones left out.</summary>
     public IReadOnlyList<ApplicationAnswer> Answers { get; private set; } = [];
 
+    /// <summary>
+    /// Answers the candidate saved to finish later (apply-flow.md §8), empty ones left out: answers only, nothing about
+    /// their browser. Cleared on completion and by the daily sweep after <see cref="DraftExpiresAt"/>.
+    /// </summary>
+    public IReadOnlyList<ApplicationAnswer> DraftAnswers { get; private set; } = [];
+
+    public DateTimeOffset? DraftSavedAt { get; private set; }
+
+    /// <summary>When the saved answers are deleted: <see cref="DraftLifetime"/> after the first save, never moved.</summary>
+    public DateTimeOffset? DraftExpiresAt { get; private set; }
+
     public bool IsCompleted => CompletedAt is not null;
+
+    /// <summary>Keeps <paramref name="answers"/> to finish later. Only an unanswered request keeps a draft.</summary>
+    public void SaveDraft(IReadOnlyList<ApplicationAnswer> answers, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(answers);
+        if (IsCompleted)
+        {
+            throw new InvalidOperationException("An answered questionnaire keeps no draft.");
+        }
+
+        DraftAnswers = ApplicationForm.Normalize(answers);
+        DraftSavedAt = now;
+        DraftExpiresAt ??= now + DraftLifetime;
+    }
+
+    /// <summary>Deletes the saved answers.</summary>
+    public void ClearDraft()
+    {
+        DraftAnswers = [];
+        DraftSavedAt = null;
+        DraftExpiresAt = null;
+    }
 
     /// <summary>A new request for <paramref name="questionnaire"/>, sent now.</summary>
     public static QuestionnaireRequest Create(JobApplication application, FollowUpQuestionnaire questionnaire, DateTimeOffset now)
@@ -110,6 +146,7 @@ public sealed class QuestionnaireRequest : IJobScoped
         var entry = NewEvent(ApplicationEventType.QuestionnaireCompleted, now, automationRunId: null);
         Questions = [.. questionnaire.Questions];
         Answers = ApplicationForm.Normalize(answers);
+        ClearDraft();
         CompletedAt = now;
         CompletedEventId = entry.Id;
         return entry;
