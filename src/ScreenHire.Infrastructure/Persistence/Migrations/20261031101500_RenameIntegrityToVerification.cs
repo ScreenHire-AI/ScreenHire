@@ -56,6 +56,8 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
             ("verification_signals", "ix_integrity_signals_organization_id_application_id", "ix_verification_signals_organization_id_application_id"),
         ];
 
+        // The JSON rewrite edits every stored definition in place, published system template versions included: a
+        // change of storage, like AddScorecardTemplates, so a job copied from version 4 sees no update for it.
         // Names stored inside JSON, as whole quoted strings: the workflow's policy key, the trigger, the two facts (in
         // definitions and in an automation run's rule results) and the facts' keys in an automation run's snapshot.
         private static readonly (string Old, string New)[] JsonTokens =

@@ -66,6 +66,7 @@ public sealed class VerificationRenameMigrationTests(AppHostFixture fixture)
             (await ScalarAsync<long>(connectionString, "SELECT count(*) FROM pg_policies WHERE schemaname = 'public' AND tablename LIKE 'verification_%'", ct))
                 .Should().BeGreaterThanOrEqualTo(9, "five tenant_isolation policies and four job_scope policies follow their tables");
             (await IntegrityNamesAsync(connectionString, ct)).Should().BeEmpty();
+            (await UnforcedAsync(connectionString, ct)).Should().BeEmpty("FORCE comes back on every table the migration lifted it from");
 
             await using (var db = Context(connectionString))
             {
@@ -81,6 +82,7 @@ public sealed class VerificationRenameMigrationTests(AppHostFixture fixture)
             (await ScalarAsync<int>(connectionString, "SELECT latest_published_version FROM hiring_templates WHERE id = '0199e8a0-0000-7000-8000-000000000001'", ct))
                 .Should().Be(4);
             (await ScalarAsync<long>(connectionString, "SELECT count(*) FROM pg_class WHERE relname LIKE 'verification_%'", ct)).Should().Be(0);
+            (await UnforcedAsync(connectionString, ct)).Should().BeEmpty("undoing the rename restores FORCE too");
         }
         finally
         {
@@ -112,6 +114,15 @@ public sealed class VerificationRenameMigrationTests(AppHostFixture fixture)
 
     private static ScreenHireDbContext Context(string connectionString) =>
         new(new DbContextOptionsBuilder<ScreenHireDbContext>().UseNpgsql(connectionString).UseScreenHireConventions().Options, new TenantContext());
+
+    // Every table with an organization_id, the renamed ones and the rewritten ones among them, keeps FORCE ROW LEVEL SECURITY.
+    private static Task<List<string>> UnforcedAsync(string connectionString, CancellationToken ct) =>
+        NamesAsync(connectionString, """
+            SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace AND n.nspname = 'public'
+            WHERE c.relkind = 'r'
+              AND EXISTS (SELECT FROM pg_attribute a WHERE a.attrelid = c.oid AND a.attname = 'organization_id' AND NOT a.attisdropped)
+              AND NOT (c.relrowsecurity AND c.relforcerowsecurity)
+            """, ct);
 
     private static Task<List<string>> IntegrityNamesAsync(string connectionString, CancellationToken ct) =>
         NamesAsync(connectionString, """
