@@ -13,6 +13,9 @@ sources:
   - resource: apps/dashboard/src/lib/preview-window.svelte.ts
   - resource: apps/dashboard/src/lib/form-builder.ts
   - resource: apps/dashboard/src/lib/templates.ts
+  - resource: apps/dashboard/src/lib/components/color-field.svelte
+  - resource: apps/dashboard/src/lib/components/image-field.svelte
+  - resource: apps/dashboard/src/lib/components/branding-preview.svelte
 ---
 # ScreenHire design system
 
@@ -297,7 +300,9 @@ higher layers get lighter (section 6), and the surface shadow is darker so it st
 | `candidate-chip` | `#F3E7D6` (text `#5A4630`) | `#2E2A25` |
 | `candidate-cta` | `#C2462F` (white text, 4.98:1) | `#F08A6E` (text `#1A1310`) |
 
-On tenant careers pages, `candidate-cta` and the header mark take the employer brand tokens (section 18).
+On tenant careers pages, `candidate-cta` and the header mark take the employer brand tokens, and `candidate-header`
+and `candidate-header-foreground` (the header band, default the page background and ink) take the second colour
+(section 18).
 
 ## 4. Type
 
@@ -329,7 +334,7 @@ weight and tracking. The family is its own class: `font-display` for the two tit
 
 ### 4.3 Candidate and marketing pages
 
-Base 15px, display 30px, inputs 16px (no zoom on iOS), hints under a field 13px: `text-candidate-body`,
+Titles take the employer's heading font where one is set (section 18), otherwise Bricolage Grotesque. Base 15px, display 30px, inputs 16px (no zoom on iOS), hints under a field 13px: `text-candidate-body`,
 `text-candidate-input` and `text-candidate-hint` in `packages/ui`. Marketing display goes up to 64px. The dashboard's
 questionnaire preview shows the candidate base with `text-candidate-body`.
 
@@ -507,6 +512,9 @@ in a development build, shows every component in each state, and its test fails 
 | Choice card | `ChoiceCard`: a native radio in a labelled card | A choice of a few options in a `radiogroup` with its label: each a bordered card with its name and one muted line, and the whole card is the target. The chosen card takes the `primary` edge and `accent` fill. A member's jobs (All jobs or Only jobs they're on), the role in Invite, and the role to copy in New role |
 | Filter menu | `FilterMenu` (one choice), `MultiFilterMenu` (several) | An outline button that names the filter and its choice ("Stage: All", "Job: 2 chosen"), `primary` while set, opening each choice with its count. `MultiFilterMenu` shows a box on every choice, ticked or not, and with two or more chosen each one is a pill with its own remove button beside the button. Filters sit in one row under a list panel's header that scrolls rather than wraps (F5); the page applies them to the rows |
 | Picker | shadcn `Popover` and `Command` | An outline button with a verb ("Add a person", "Copy from another job") that opens a searchable list; typing filters by name, a pick closes it. The list keeps a 16px gutter from the window's edge. Nothing left to pick is said in the list, never by disabling the button (A3) |
+| Colour field | `ColorField` on shadcn `Field` and `Input` | A colour for Branding: the native colour picker beside a hex field (16px on touch, F4), empty for ScreenHire's default, with one line saying where the colour goes. As someone types a whole colour, the API checks it (section 18); each pair it fails is a line under the field in words ("Links in #ffd400 are hard to read on the page: 1.4:1, and they need 4.5:1."), and the nearest passing shade is an outline button on that row (F6), "Use #8a6d00", which fills the field. A refused save's messages take the same place |
+| Image field | `ImageField` on shadcn `Field`; `BrandImageSlot` in `#lib/brand-images.svelte.ts` for the upload | A brand image: the image in use at 48px tall with its pixel size and file size, or "No logo"; Upload or Replace (outline, opening the file picker) and Remove, which changes nothing until Save. While the malware scan runs it shows the grey Scanning badge (T3) and the page's Save waits, saying why (A3); a file the scan blocked says so with `FailureText`. The upload goes straight to storage, as a candidate's does |
+| Branding preview | `BrandingPreview` in `PreviewFrame` | Branding's result beside its form (A8): the careers page (the tab with the favicon, the header band, a heading and a job in the heading font, a brand link and the Apply button), the shared link card with the sharing image, and the top of an email. It draws the form's values as typed, failing ones included, so the person sees the problem the check names |
 
 ## 12. Words
 
@@ -603,20 +611,34 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
 - axe runs in component tests and Playwright; manual NVDA and VoiceOver passes per release; an external audit before
   general availability.
 
-## 18. Employer branding (careers pages)
+## 18. Employer branding
 
-Tenants set a brand colour and logo. On save, the server derives and validates:
+Settings, Branding (ADR-0018, `docs/architecture/branding.md`) sets a brand colour, a second colour, a heading font,
+a logo, a favicon and a sharing image, each optional and shown next to ScreenHire's default (principle 10). They apply
+to the careers pages, the apply flow, the embeddable widget and the top of every email to a candidate.
 
-| Token | Purpose | Minimum |
+| Part | Where | Check before it saves |
 |---|---|---|
-| `brand` | Tenant colour | |
-| `on-brand` | Text on brand fills | 4.5:1 |
-| `brand-text` | Brand-coloured text on the page background | 4.5:1 |
-| `brand-ui` | Borders, focus rings | 3:1 |
+| Brand colour | The Apply button and every filled button, links, focus rings | White or ink on it at 4.5:1 ("Text on buttons"); it on the page background at 4.5:1 ("Links") |
+| Second colour | The careers header band, the email's top band | White or ink on it at 4.5:1 ("Text on a header") |
+| Heading font | Every careers title (`font-display`) | One of six self-hosted OFL fonts: Bricolage Grotesque (ScreenHire's), Inter, Montserrat, Nunito, Fraunces, Playfair Display |
+| Logo | The careers header in place of the letter mark and name; the email's top | PNG or JPEG, up to 1 MB, malware scan |
+| Favicon | The browser tab | Square PNG or JPEG, at least 32px, up to 256 KB, malware scan |
+| Sharing image | `og:image` when a link is shared | PNG or JPEG, at least 600 by 315px, up to 5 MB, malware scan |
 
-Failing colours are adjusted in tone (OKLCH lightness) or rejected with an explanation, and shipped as a hashed
-per-tenant stylesheet (strict CSP, no inline styles). Brand never overrides status colours, the privacy notice or the
-"Powered by ScreenHire" footer.
+- A colour is used as it is given. One that fails a pair is refused, never adjusted: the field says which pair fails
+  in words, with its ratio cut down so a failing one never reads as its minimum, and offers the nearest passing shade
+  as a button that fills the field (Colour field, section 11). The page checks as someone types; Save checks again.
+- Everything inside the careers header, its links and focus ring included, takes `candidate-header-foreground`, the
+  white or ink the check chose, so a dark brand focus ring never sits on a dark band.
+- The palette ships as the hashed per-tenant stylesheet (strict CSP, no inline styles), and images from the careers
+  origin, so `img-src 'self'` holds. Brand never overrides status colours, the privacy notice or the "Powered by
+  ScreenHire" footer.
+- The email's logo is a plain image at one address for every recipient, never a tracking pixel. Emails load no web
+  font.
+- The page is the form template with its preview beside it where both fit (A8): the careers page, the shared link and
+  the email's top (Branding preview, section 11). Nothing changes for candidates until Save, which waits for any image
+  still being scanned and says so.
 
 ## 19. Assets
 

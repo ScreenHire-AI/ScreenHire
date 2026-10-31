@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using ScreenHire.Api.Branding;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Applications;
@@ -49,6 +51,7 @@ internal static class PublicQuestionnaireEndpoints
         ScreenHireDbContext db,
         TenantContext tenant,
         QuestionnaireLinks links,
+        IOptions<DomainOptions> domains,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
@@ -59,7 +62,7 @@ internal static class PublicQuestionnaireEndpoints
 
         var status = found.StatusAt(time.GetUtcNow());
         return TypedResults.Ok(new PublicQuestionnaire(
-            found.Organization.ToPublic(),
+            await found.Organization.ToPublicAsync(db, domains.Value, cancellationToken),
             found.Job.Title,
             found.Questionnaire?.Name ?? found.Request.QuestionnaireName,
             status,
