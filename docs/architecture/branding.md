@@ -104,7 +104,10 @@ with its type, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: defa
 their own origin at `/brand/images/{id}.{png|jpg}` (`[organization]/brand/images/[file].ts`, organization from the
 host as for the stylesheet), so the content security policy keeps `img-src 'self'`. Pages link the logo and the
 favicon relative to the tenant base; `og:image`, the JobPosting's `hiringOrganization.logo` and emails use the
-absolute careers address the API returns (`BrandImage.UrlUnder`, from `CareersBoardUrl`).
+absolute careers address the API returns (`BrandImage.UrlUnder`, from `CareersBoardUrl`). Any servable upload is served, saved or not, so the
+page's preview can show an image before Save; its id is random, and it is the organization's own image. The other
+choice, serving only the images in use and previewing through a signed-in route, needs a second route for the same
+bytes.
 
 `PublicBranding` on every public organization and board response holds the palette, the header colours, the font and
 the servable images, each null for ScreenHire's. `brandStylesheet` turns it into the hashed per-tenant stylesheet
