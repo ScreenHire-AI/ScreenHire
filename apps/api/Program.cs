@@ -113,6 +113,7 @@ app.MapTemplateUsageEndpoints();
 app.MapWebhookEndpoints();
 app.MapEmailEndpoints();
 app.MapSchemaEndpoints();
+app.MapSearchEndpoints();
 app.MapRealtimeEndpoints();
 app.MapScreenHireMcp();
 

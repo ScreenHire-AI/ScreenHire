@@ -2,6 +2,7 @@
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import PencilIcon from '@lucide/svelte/icons/pencil';
   import SendIcon from '@lucide/svelte/icons/send';
+  import UserPlusIcon from '@lucide/svelte/icons/user-plus';
   import UsersRoundIcon from '@lucide/svelte/icons/users-round';
   import WorkflowIcon from '@lucide/svelte/icons/workflow';
   import {
@@ -18,6 +19,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
+  import AddCandidateSheet, { type AddedCandidate } from '#lib/components/add-candidate-sheet.svelte';
   import CloseJobDialog from '#lib/components/close-job-dialog.svelte';
   import DistributionPanel from '#lib/components/distribution-panel.svelte';
   import Fact from '#lib/components/fact.svelte';
@@ -76,6 +78,12 @@
   const teamCount = $derived(hiringTeam.data?.data.length);
   let teamOpen = $state(false);
   let teamChosen = false;
+  // Add candidate: outline, because Publish is the page's primary (A1); in More on a phone. A closed job takes no
+  // applications, so it has none (A3). The job is preset; the new row arrives live (ApplicationSubmitted).
+  const canAdd = $derived(can(page.data.user, 'AddCandidates') && detail !== undefined && detail.status !== 'Closed');
+  let adding = $state(false);
+  let addChosen = false;
+  let added = $state<AddedCandidate | null>(null);
   const currentMemberId = $derived(members?.find((member) => member.userId === currentUserId)?.id);
   const history = createHistoryPages(
     (before) => getGetJobHistoryQueryOptions(params.jobId, { before }),
@@ -176,7 +184,7 @@
     <Tabs.Root value={tab} onValueChange={showTab} class={['gap-0', boardFills && 'min-h-0 flex-1']}>
       <!-- What saving the details or publishing did, in the band's line under the title, so a long message never pushes
            the actions onto a second row. -->
-      <HeaderBand title={detail.title} details={page.state.saved || publishFailure ? outcome : undefined}>
+      <HeaderBand title={detail.title} details={page.state.saved || publishFailure || added ? outcome : undefined}>
         {#snippet status()}<StatusBadge {...jobStatus[detail.status]} />{/snippet}
         {#snippet actions()}
           <!-- The one primary action; on a phone it sits in the action bar at the bottom of the screen (section 8). -->
@@ -186,6 +194,9 @@
               <Button href={`/jobs/${detail.id}/edit`} variant="outline" size="lg"><PencilIcon aria-hidden="true" />Edit details</Button>
             {/if}
             <Button href={`/jobs/${detail.id}/workflow`} variant="outline" size="lg"><WorkflowIcon aria-hidden="true" />Edit workflow</Button>
+            {#if canAdd}
+              <Button variant="outline" size="lg" aria-haspopup="dialog" onclick={() => (adding = true)}><UserPlusIcon aria-hidden="true" />Add candidate</Button>
+            {/if}
             <Button variant="outline" size="lg" aria-haspopup="dialog" onclick={() => (teamOpen = true)}>
               <UsersRoundIcon aria-hidden="true" />Hiring team{#if teamCount !== undefined}<Badge variant="count">{teamCount}</Badge>{/if}
             </Button>
@@ -197,8 +208,10 @@
               onclosed={() => {
                 if (closeChosen) confirmClose = true;
                 if (teamChosen) teamOpen = true;
+                if (addChosen) adding = true;
                 closeChosen = false;
                 teamChosen = false;
+                addChosen = false;
               }}
             >
               {#if sidebar.isMobile}
@@ -211,6 +224,9 @@
                 <DropdownMenu.Item>
                   {#snippet child({ props })}<a {...props} href={`/jobs/${detail.id}/workflow`}><WorkflowIcon aria-hidden="true" />Edit workflow</a>{/snippet}
                 </DropdownMenu.Item>
+                {#if canAdd}
+                  <DropdownMenu.Item onSelect={() => (addChosen = true)}><UserPlusIcon aria-hidden="true" />Add candidate</DropdownMenu.Item>
+                {/if}
                 <DropdownMenu.Item onSelect={() => (teamChosen = true)}><UsersRoundIcon aria-hidden="true" />Hiring team</DropdownMenu.Item>
               {/if}
               {#if detail.status === 'Open'}
@@ -243,6 +259,9 @@
         {/snippet}
         {#snippet tabs()}<RecordTabs label="Job sections" tabs={sections} />{/snippet}
       </HeaderBand>
+      {#if canAdd}
+        <AddCandidateSheet bind:open={adding} job={detail} onadded={(candidate) => (added = candidate)} />
+      {/if}
       <HiringTeamSheet
         bind:open={teamOpen}
         kind="job"
@@ -322,5 +341,8 @@
 
 {#snippet outcome()}
   <p role="status" class="empty:hidden">{page.state.saved ?? ''}</p>
+  <p role="status" class="empty:hidden" data-added>
+    {#if added}Added <a href={`/applications/${added.applicationId}`} class="underline underline-offset-2">{added.name}</a> to this job.{/if}
+  </p>
   <FailureText message={publishFailure} />
 {/snippet}

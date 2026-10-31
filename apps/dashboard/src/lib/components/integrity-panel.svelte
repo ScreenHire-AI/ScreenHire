@@ -9,7 +9,7 @@
   import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
   import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
   import UserRoundIcon from '@lucide/svelte/icons/user-round';
-  import type { AiAssistanceAssessmentView, AuthenticityAssessmentView, IntegritySignalView, SignalCategory } from '@screenhire/api-client';
+  import type { AiAssistanceAssessmentView, ApplicationSource, AuthenticityAssessmentView, IntegritySignalView, SignalCategory } from '@screenhire/api-client';
   import { createGetApplicationIntegrity } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { page } from '$app/state';
@@ -24,6 +24,7 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import {
+    addedByHandNote,
     aiAssistanceLevels,
     aiAssistanceOrder,
     aiPolicyLabels,
@@ -35,6 +36,7 @@
     dismissReasonLabels,
     refetchAfterReview,
     reviewerName,
+    uncheckedCategories,
     type AssessmentKind,
     type LevelView,
   } from '#lib/integrity.js';
@@ -45,7 +47,10 @@
   // each assessment's level on its three-step scale, its suggested next step, then its reasons grouped by the kind of
   // check that found them, each expanding to its evidence and counter-evidence. It decides nothing. A dismissal is a person's and goes
   // in the review log (`ReviewLog`), and nothing here rejects anyone or shows a score.
-  let { applicationId }: { applicationId: string } = $props();
+  // `source`: how the application arrived. A candidate added by hand had no careers form, so the checks that read one
+  // say they had nothing to look at instead of "Nothing found" (uncheckedCategories).
+  let { applicationId, source }: { applicationId: string; source?: ApplicationSource } = $props();
+  const unchecked = $derived(uncheckedCategories(source));
 
   const queryClient = useQueryClient();
   // IntegrityAssessed refetches it live (#lib/realtime.ts).
@@ -193,7 +198,7 @@
             {#each group.signals as signal (signal.id)}{@render signalItem(signal, group.key === 'context')}{/each}
           </ul>
         {:else}
-          <p class="px-3 pb-2.5 pl-13 text-muted-foreground @3xl:py-2.5 @3xl:pl-3">Nothing found</p>
+          <p class="px-3 pb-2.5 pl-13 text-muted-foreground @3xl:py-2.5 @3xl:pl-3">{unchecked.includes(group.key as SignalCategory) ? 'Not checked' : 'Nothing found'}</p>
         {/if}
       </li>
     {/each}
@@ -243,6 +248,8 @@
       {:else}
         <p data-summary class="max-w-measure text-muted-foreground">{view.summary} <span data-next-step>{view.nextStep}</span></p>
       {/if}
+
+      {#if kind === 'authenticity' && unchecked.length > 0}<p class="max-w-measure text-muted-foreground" data-not-checked>{addedByHandNote}</p>{/if}
 
       {#if groups.length > 0}{@render groupList(groups, level)}{/if}
 
