@@ -148,7 +148,7 @@ would retry the automations. Both Slack messages carry ids only, and an idempote
 
 Each handler is idempotent three ways: the worker's inbox, `[Deduplicated]` on the key, and a `slack_messages` row
 (`SlackMessageRecord`, no text) written with the post and checked first. A crash between Slack's answer and the commit
-can repeat one message, as email can. The rows are deleted after 30 days (`PurgeExpiredSlackMessages`, daily at 03:47
+can repeat one message, as email can. The rows are deleted after 30 days (`PurgeExpiredSlackMessages`, daily at 03:57
 UTC, one tenant message per organization).
 
 `SlackApiClient` is one long-lived `HttpClient`, not a factory client, for the reason `HttpWebhookSender` gives: the

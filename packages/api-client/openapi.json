@@ -1108,6 +1108,85 @@
         }
       }
     },
+    "/v1/public/organizations/{organizationSlug}/talent-pool/{token}": {
+      "get": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "GetPublicTalentPoolStatus",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicTalentPoolStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "StopKeepingDetails",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
     "/v1/jobs": {
       "get": {
         "tags": [
@@ -4981,6 +5060,149 @@
         ]
       }
     },
+    "/v1/organization/talent-pool-settings": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "GetOrganizationTalentPoolSettings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationTalentPoolSettings"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "UpdateOrganizationTalentPoolSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTalentPoolSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationTalentPoolSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/talent-pool-settings/history": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "GetOrganizationTalentPoolSettingsHistory",
+        "parameters": [
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/organization/members": {
       "get": {
         "tags": [
@@ -7759,364 +7981,6 @@
         ]
       }
     },
-    "/v1/slack": {
-      "get": {
-        "tags": [
-          "Slack"
-        ],
-        "operationId": "GetSlack",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SlackStatus"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      },
-      "delete": {
-        "tags": [
-          "Slack"
-        ],
-        "operationId": "DisconnectSlack",
-        "responses": {
-          "204": {
-            "description": "No Content"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      }
-    },
-    "/v1/slack/install": {
-      "post": {
-        "tags": [
-          "Slack"
-        ],
-        "operationId": "StartSlackInstall",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SlackAuthorization"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      }
-    },
-    "/v1/slack/channels": {
-      "get": {
-        "tags": [
-          "Slack"
-        ],
-        "operationId": "ListSlackChannels",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SlackChannelOption"
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      }
-    },
-    "/v1/slack/channel": {
-      "put": {
-        "tags": [
-          "Slack"
-        ],
-        "operationId": "UpdateSlackChannel",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateSlackChannelRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SlackStatus"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      }
-    },
-    "/v1/slack/test": {
-      "post": {
-        "tags": [
-          "Slack"
-        ],
-        "operationId": "SendSlackTestMessage",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SlackTestResult"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      }
-    },
-    "/v1/slack/account/link": {
-      "post": {
-        "tags": [
-          "Slack"
-        ],
-        "operationId": "StartSlackLink",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StartSlackLinkRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SlackAuthorization"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      }
-    },
-    "/v1/slack/account": {
-      "put": {
-        "tags": [
-          "Slack"
-        ],
-        "operationId": "UpdateSlackAccount",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateSlackAccountRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SlackAccount"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      },
-      "delete": {
-        "tags": [
-          "Slack"
-        ],
-        "operationId": "UnlinkSlackAccount",
-        "responses": {
-          "204": {
-            "description": "No Content"
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      }
-    },
     "/v1/email-templates": {
       "get": {
         "tags": [
@@ -8860,6 +8724,335 @@
         ]
       }
     },
+    "/v1/talent-pool": {
+      "get": {
+        "tags": [
+          "Talent pool"
+        ],
+        "operationId": "ListTalentPool",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TalentPoolList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Talent pool"
+        ],
+        "operationId": "KeepInMind",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeepInMindRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KeptInMind"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/talent-pool/{candidateId}/remove": {
+      "post": {
+        "tags": [
+          "Talent pool"
+        ],
+        "operationId": "RemoveFromTalentPool",
+        "parameters": [
+          {
+            "name": "candidateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveFromTalentPoolRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/talent-pool/invitations/preview": {
+      "post": {
+        "tags": [
+          "Talent pool"
+        ],
+        "operationId": "PreviewTalentPoolInvitation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvitationPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailPreview"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/talent-pool/invitations": {
+      "post": {
+        "tags": [
+          "Talent pool"
+        ],
+        "operationId": "InviteToApply",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteToApplyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationsQueued"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/talent-pool/applications": {
+      "post": {
+        "tags": [
+          "Talent pool"
+        ],
+        "operationId": "AddFromTalentPool",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddFromTalentPoolRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddedFromTalentPool"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/schemas/hiring-template-definition.json": {
       "get": {
         "tags": [
@@ -8988,6 +9181,48 @@
           }
         },
         "description": "A tag to add to an application. Tags compare ignoring case; conditions read them as `application.tags`."
+      },
+      "AddedFromTalentPool": {
+        "required": [
+          "applicationIds",
+          "skipped"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "skipped": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "The new applications, one per candidate added, and how many were skipped because they had already applied to the\r\njob. Each new application carries the candidate's permission for future roles from the one they were kept from."
+      },
+      "AddFromTalentPoolRequest": {
+        "required": [
+          "candidateIds",
+          "jobId"
+        ],
+        "type": "object",
+        "properties": {
+          "candidateIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "description": "Adds these candidates from the talent pool to `jobId`, which must not be closed."
       },
       "AddIntegrityNoteRequest": {
         "required": [
@@ -9361,6 +9596,31 @@
                 "$ref": "#/components/schemas/ApplicationRating"
               }
             ]
+          },
+          "keptInMindAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "futureRolesUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "futureRolesGivenAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "inTalentPool": {
+            "type": "boolean",
+            "default": false
           }
         },
         "description": "One application: the candidate, the job, where it is in the job's workflow, its tags, the candidate's\r\ndeclarations, answers and files."
@@ -9400,7 +9660,10 @@
           "QuestionnaireCompleted",
           "NoteEdited",
           "NoteDeleted",
-          "TaskCreated"
+          "TaskCreated",
+          "KeptInMind",
+          "LeftTalentPool",
+          "InvitedToApply"
         ]
       },
       "ApplicationFileSummary": {
@@ -9757,6 +10020,20 @@
                 "$ref": "#/components/schemas/ApplicationRating"
               }
             ]
+          },
+          "keptInMindAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "futureRolesUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         },
         "description": "An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself."
@@ -9984,6 +10261,30 @@
             "format": "uuid"
           },
           "taskId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "poolExit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TalentPoolExit"
+              }
+            ]
+          },
+          "otherJobId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "otherApplicationId": {
             "type": [
               "null",
               "string"
@@ -11472,7 +11773,7 @@
             "format": "date-time"
           }
         },
-        "description": "A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\r\nversion's workflow, and every field left out here takes the template's posting default. Without a slug, one is made\r\nfrom the title."
+        "description": "A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\r\nversion's workflow, and every field left out here takes the template's posting default. Without a slug, one is made\r\nfrom the title. The description is rich text as HTML, kept to the dashboard editor's elements (p, br, strong, em, h2,\r\nh3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text\r\nworks too: a blank line starts a paragraph and lines starting with \"- \" make a list."
       },
       "CreateRoleRequest": {
         "required": [
@@ -11864,6 +12165,10 @@
           },
           "archived": {
             "type": "boolean"
+          },
+          "invitationOnly": {
+            "type": "boolean",
+            "default": false
           }
         },
         "description": "One email template. Built-in templates have ScreenHire's ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name."
@@ -11914,9 +12219,13 @@
           "questionnaireOnly": {
             "type": "boolean",
             "default": false
+          },
+          "invitationOnly": {
+            "type": "boolean",
+            "default": false
           }
         },
-        "description": "A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.\r\n`questionnaireOnly`: only the follow-up questions email has it."
+        "description": "A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.\r\n`questionnaireOnly`: only the follow-up questions email has it. `invitationOnly`: only the talent pool\r\ninvitation has it."
       },
       "EmploymentType": {
         "enum": [
@@ -12859,6 +13168,24 @@
         },
         "description": "Accepts the invitation whose token an emailed link carries, signing in as the invited address."
       },
+      "InvitationPreviewRequest": {
+        "required": [
+          "candidateId",
+          "jobId"
+        ],
+        "type": "object",
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "description": "The invitation as `candidateId` would receive it, for `jobId`."
+      },
       "InvitationRequest": {
         "required": [
           "email",
@@ -12898,6 +13225,45 @@
           }
         },
         "description": "Invites a person by email to join the organization with a role: a built-in one, or Custom with its id. They join with\r\n`jobAccess`, All when it is left out."
+      },
+      "InvitationsQueued": {
+        "required": [
+          "queued",
+          "skipped"
+        ],
+        "type": "object",
+        "properties": {
+          "queued": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "skipped": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "How many invitations were queued, and how many candidates were skipped: no longer in the pool, or already applied to\r\nthe job. Each sent invitation appears in Messages and in the Activity of the application they were kept from."
+      },
+      "InviteToApplyRequest": {
+        "required": [
+          "candidateIds",
+          "jobId"
+        ],
+        "type": "object",
+        "properties": {
+          "candidateIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "description": "Invites these candidates from the talent pool to apply for `jobId`, an open job."
       },
       "JobAccess": {
         "enum": [
@@ -13731,6 +14097,51 @@
         },
         "description": "One published version of a job, without its content."
       },
+      "KeepInMindRequest": {
+        "required": [
+          "applicationIds"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Keeps the candidates of these applications in mind: each leaves its job without a rejection and joins the talent pool.\r\n`note` says why, once for all of them. Only an open application whose candidate gave permission for future roles\r\non its form can be kept."
+      },
+      "KeptInMind": {
+        "required": [
+          "kept",
+          "notAllowed",
+          "alreadyEnded"
+        ],
+        "type": "object",
+        "properties": {
+          "kept": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "notAllowed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "alreadyEnded": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "What happened: `kept` joined the pool; `notAllowed` have no permission for future roles (they never gave it,\r\nit ran out or they took it back); `alreadyEnded` were hired, rejected, withdrawn or kept in mind already."
+      },
       "Knockout": {
         "required": [
           "disqualifyingAnswer"
@@ -14271,6 +14682,33 @@
         ],
         "description": "The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text."
       },
+      "OrganizationTalentPoolSettings": {
+        "required": [
+          "permissionMonths",
+          "minMonths",
+          "maxMonths",
+          "lastUpdated"
+        ],
+        "type": "object",
+        "properties": {
+          "permissionMonths": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "minMonths": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxMonths": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastUpdated": {
+            "$ref": "#/components/schemas/LastUpdate"
+          }
+        },
+        "description": "The organization's talent pool settings (docs/architecture/talent-pool.md). `permissionMonths` is how long a\r\ncandidate's permission to keep their details for future roles lasts from when they gave it: 12 by default, from\r\n`minMonths` to `maxMonths`. A permission ends at the shorter of the period when it was given and this one.\r\n`lastUpdated` is the settings' last change (\"by ScreenHire\" while they are the default); their history is\r\n`/talent-pool-settings/history`."
+      },
       "PageTelemetryInput": {
         "required": [
           "visibilityChanges",
@@ -14359,8 +14797,7 @@
           "ManageTeam",
           "ManageOwners",
           "DeleteAnyNote",
-          "CreateTasks",
-          "ManageIntegrations"
+          "CreateTasks"
         ],
         "description": "Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions."
       },
@@ -14521,7 +14958,8 @@
           "aiUsePolicy",
           "uploads",
           "turnstileSiteKey",
-          "telemetry"
+          "telemetry",
+          "talentPoolMonths"
         ],
         "type": "object",
         "properties": {
@@ -14551,9 +14989,13 @@
           },
           "telemetry": {
             "$ref": "#/components/schemas/PublicTelemetrySettings"
+          },
+          "talentPoolMonths": {
+            "type": "integer",
+            "format": "int32"
           }
         },
-        "description": "Everything the careers apply page needs for one open job. The resume question comes first\r\n(ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured.\r\n`telemetry` is a new telemetry session for the form; the page keeps the first one it gets."
+        "description": "Everything the careers apply page needs for one open job. The resume question comes first\r\n(ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured.\r\n`telemetry` is a new telemetry session for the form; the page keeps the first one it gets.\r\n`talentPoolMonths` is how long the organization keeps a candidate's details for future roles if they say so,\r\nwhich the form's \"Keep my details for future roles\" box tells them."
       },
       "PublicApplicationReceipt": {
         "required": [
@@ -14665,6 +15107,10 @@
                 "$ref": "#/components/schemas/TelemetrySnapshotInput"
               }
             ]
+          },
+          "keepForFutureRoles": {
+            "type": "boolean",
+            "default": false
           }
         },
         "description": "A candidate's application from the careers page. The candidate is matched by email within the organization and\r\ncreated if new; an existing candidate's details are never changed by a public submission."
@@ -15143,6 +15589,22 @@
         ],
         "description": "Whether a follow-up questionnaire's link can still be answered: `Answered` once the candidate sent their answers,\r\n`Expired` after the link's time ran out, `Closed` when the questionnaire, the job or the application is no\r\nlonger open."
       },
+      "PublicTalentPoolStatus": {
+        "required": [
+          "organization",
+          "kept"
+        ],
+        "type": "object",
+        "properties": {
+          "organization": {
+            "$ref": "#/components/schemas/PublicOrganization"
+          },
+          "kept": {
+            "type": "boolean"
+          }
+        },
+        "description": "The page a candidate opens from the link in an invitation to stop being kept. `kept`: the organization still\r\nkeeps their details for future roles; false once they stopped it, or it ran out."
+      },
       "PublicTelemetrySettings": {
         "required": [
           "sessionToken",
@@ -15332,6 +15794,16 @@
           "StrongYes"
         ],
         "description": "A reviewer's overall recommendation for the stage. Automations test it as `reviewer.recommendation`."
+      },
+      "RemoveFromTalentPoolRequest": {
+        "type": "object",
+        "properties": {
+          "candidateAsked": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "description": "Takes the candidate out of the talent pool. `candidateAsked`: they asked to be removed, so their permission for\r\nfuture roles is withdrawn too, and they cannot be kept again until they give it on a new application."
       },
       "RequestScorecardRequest": {
         "required": [
@@ -16208,255 +16680,6 @@
         },
         "description": "\"Test this workflow\" (workflow-engine.md §4): run a sample application through a workflow and see which automations\r\na trigger would fire. Nothing is saved or sent. `facts` is the sample application's snapshot; leave members out\r\nfor facts it does not have."
       },
-      "SlackAccount": {
-        "required": [
-          "slackName",
-          "linkedAt",
-          "mentions",
-          "tasks",
-          "problem"
-        ],
-        "type": "object",
-        "properties": {
-          "slackName": {
-            "type": "string"
-          },
-          "linkedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "mentions": {
-            "type": "boolean"
-          },
-          "tasks": {
-            "type": "boolean"
-          },
-          "problem": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/SlackProblem"
-              }
-            ]
-          }
-        },
-        "description": "The member's linked Slack account: its name, and whether mentions and tasks given to them arrive as direct\r\nmessages. `problem` is `CannotMessage` when Slack refused the last one."
-      },
-      "SlackAuthorization": {
-        "required": [
-          "authorizeUrl"
-        ],
-        "type": "object",
-        "properties": {
-          "authorizeUrl": {
-            "type": "string"
-          }
-        },
-        "description": "Where to send the browser next: Slack's page (or the sandbox's) for an OAuth round trip."
-      },
-      "SlackChannelChoice": {
-        "required": [
-          "id",
-          "name"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          }
-        },
-        "description": "A channel by Slack's id and its name, without the `#`."
-      },
-      "SlackChannelEvent": {
-        "enum": [
-          "ApplicationSubmitted",
-          "ApplicationMoved",
-          "AutomationFailed",
-          "JobPublished"
-        ],
-        "description": "What the team can have posted to its channel. The names are stored; never rename one."
-      },
-      "SlackChannelOption": {
-        "required": [
-          "id",
-          "name",
-          "isPrivate"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "isPrivate": {
-            "type": "boolean"
-          }
-        },
-        "description": "A channel the app can post to. `isPrivate`: only for invited members, the app among them."
-      },
-      "SlackProblem": {
-        "enum": [
-          "Disconnected",
-          "ChannelNotFound",
-          "NotInChannel",
-          "ChannelArchived",
-          "CannotPost",
-          "CannotMessage",
-          null
-        ]
-      },
-      "SlackSettings": {
-        "required": [
-          "channel",
-          "events",
-          "connectedAt",
-          "connectedBy",
-          "problem",
-          "problemAt"
-        ],
-        "type": "object",
-        "properties": {
-          "channel": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/SlackChannelChoice"
-              }
-            ]
-          },
-          "events": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SlackChannelEvent"
-            }
-          },
-          "connectedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "connectedBy": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "problem": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/SlackProblem"
-              }
-            ]
-          },
-          "problemAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          }
-        },
-        "description": "The workspace's settings: the channel (null until picked), the events posted there, who connected it and when,\r\nand why posting stopped working, if it did."
-      },
-      "SlackStatus": {
-        "required": [
-          "available",
-          "sandbox",
-          "workspace",
-          "account",
-          "settings"
-        ],
-        "type": "object",
-        "properties": {
-          "available": {
-            "type": "boolean"
-          },
-          "sandbox": {
-            "type": "boolean"
-          },
-          "workspace": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/SlackWorkspace"
-              }
-            ]
-          },
-          "account": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/SlackAccount"
-              }
-            ]
-          },
-          "settings": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/SlackSettings"
-              }
-            ]
-          }
-        },
-        "description": "Slack for the signed-in member (docs/architecture/slack.md). `available` is false when this ScreenHire has no\r\nSlack app, and then nothing else is set. `workspace` is null until someone connects one. `account` is the\r\nmember's own link. `settings` is there only for someone who manages integrations and sees every job. The bot\r\ntoken is never in any answer."
-      },
-      "SlackTestResult": {
-        "required": [
-          "posted",
-          "problem"
-        ],
-        "type": "object",
-        "properties": {
-          "posted": {
-            "type": "boolean"
-          },
-          "problem": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/SlackProblem"
-              }
-            ]
-          }
-        },
-        "description": "Whether the test message reached the channel, and if not, why."
-      },
-      "SlackWorkspace": {
-        "required": [
-          "teamName",
-          "disconnected"
-        ],
-        "type": "object",
-        "properties": {
-          "teamName": {
-            "type": "string"
-          },
-          "disconnected": {
-            "type": "boolean"
-          }
-        },
-        "description": "The connected workspace, as every member sees it. `disconnected`: Slack stopped taking the app's token."
-      },
       "StageKind": {
         "enum": [
           "Applied",
@@ -16470,21 +16693,6 @@
           "Withdrawn",
           "Custom"
         ]
-      },
-      "StartSlackLinkRequest": {
-        "required": [
-          "returnUrl"
-        ],
-        "type": "object",
-        "properties": {
-          "returnUrl": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        },
-        "description": "Links the member's Slack account. `returnUrl`: the dashboard path to come back to, a local path only."
       },
       "SubmitScorecardRequest": {
         "required": [
@@ -16536,6 +16744,136 @@
           }
         },
         "description": "Makes another of the signed-in user's organizations the one they work in."
+      },
+      "TalentPoolExit": {
+        "enum": [
+          "Expired",
+          "Removed",
+          "CandidateAsked",
+          "AddedToJob",
+          "AppliedAgain",
+          "BackInJob",
+          "KeptFromAnotherJob",
+          null
+        ]
+      },
+      "TalentPoolList": {
+        "required": [
+          "permissionMonths",
+          "people"
+        ],
+        "type": "object",
+        "properties": {
+          "permissionMonths": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "people": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TalentPoolMember"
+            }
+          }
+        },
+        "description": "The organization's talent pool (docs/architecture/talent-pool.md): the candidates the team kept in mind, whose\r\npermission for future roles still holds. `permissionMonths` is the organization's period now."
+      },
+      "TalentPoolMember": {
+        "required": [
+          "candidateId",
+          "candidateName",
+          "email",
+          "applicationId",
+          "jobId",
+          "jobTitle",
+          "note",
+          "tags",
+          "keptAt",
+          "keptByUserId",
+          "permissionEndsAt",
+          "lastInvitedJobId",
+          "lastInvitedJobTitle",
+          "lastInvitedAt",
+          "appliedJobIds"
+        ],
+        "type": "object",
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "candidateName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "keptAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "keptByUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "permissionEndsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastInvitedJobId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "lastInvitedJobTitle": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lastInvitedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "appliedJobIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "description": "One candidate in the talent pool."
       },
       "TaskListItem": {
         "required": [
@@ -17016,7 +17354,7 @@
             "format": "date-time"
           }
         },
-        "description": "Replaces a job's posting content. A published job keeps its slug; a closed job cannot change."
+        "description": "Replaces a job's posting content. A published job keeps its slug; a closed job cannot change. The description is rich\r\ntext, as on CreateJobRequest."
       },
       "UpdateJobWorkflowRequest": {
         "required": [
@@ -17088,40 +17426,18 @@
         },
         "description": "An own scorecard's name and questions, replaced whole. Jobs that copied it keep their copy."
       },
-      "UpdateSlackAccountRequest": {
+      "UpdateTalentPoolSettingsRequest": {
         "required": [
-          "mentions",
-          "tasks"
+          "permissionMonths"
         ],
         "type": "object",
         "properties": {
-          "mentions": {
-            "type": "boolean"
-          },
-          "tasks": {
-            "type": "boolean"
+          "permissionMonths": {
+            "type": "integer",
+            "format": "int32"
           }
         },
-        "description": "Whether mentions and tasks given to the member arrive as direct messages."
-      },
-      "UpdateSlackChannelRequest": {
-        "required": [
-          "channelId",
-          "events"
-        ],
-        "type": "object",
-        "properties": {
-          "channelId": {
-            "type": "string"
-          },
-          "events": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SlackChannelEvent"
-            }
-          }
-        },
-        "description": "The channel to post to, by its id from the channel list, and the events posted there (none is allowed)."
+        "description": "Sets how long a candidate's permission for future roles lasts, in whole months from 6 to 24."
       },
       "UpdateWebhookEndpointRequest": {
         "required": [
@@ -17672,10 +17988,10 @@
       "name": "Webhooks"
     },
     {
-      "name": "Slack"
+      "name": "Email"
     },
     {
-      "name": "Email"
+      "name": "Talent pool"
     },
     {
       "name": "Schemas"

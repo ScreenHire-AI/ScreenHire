@@ -406,7 +406,8 @@ Two layers, so one mistake is not a breach.
    is append-only: `screenhire_app` has no `UPDATE` or `DELETE` on it ([change-history.md](change-history.md)).
 
    Job access (migration `AddJobAccess`, ADR-0015) adds a `job_scope` policy, `AS RESTRICTIVE` and `TO screenhire_app`,
-   to `jobs` and every table under a job or an application. Restrictive policies are ANDed with `tenant_isolation`, so
+   to `jobs` and every table under a job or an application (since then, `talent_pool_entries` too, in `AddTalentPool`:
+   a member on Only jobs they're on sees the people kept in mind from their own jobs). Restrictive policies are ANDed with `tenant_isolation`, so
    they only narrow it. `jobs` shows a row when `app.job_scope` is `all` or `app.member_id` is in `hiring_team`; the
    others ask `app_sees_job` or `app_sees_application`, or their parent row. `candidates` and `change_records` keep
    tenant-only policies: a candidate is one row across jobs and is found by email when they apply again, so the API

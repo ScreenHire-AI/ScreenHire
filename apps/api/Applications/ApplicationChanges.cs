@@ -6,6 +6,7 @@ using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Applications;
+using ScreenHire.Application.TalentPool;
 using ScreenHire.Application.Automations;
 using ScreenHire.Application.Slack;
 using ScreenHire.Domain.Applications;
@@ -62,11 +63,18 @@ internal static class ApplicationChanges
 
         var from = application.CurrentStageId;
         var now = time.GetUtcNow();
+        var wasKept = application.KeptInMindAt is not null;
         if (application.MoveTo(target, now, tenant.UserId, request.Note, actorApiKeyId: user.ApiKeyId()) is { } moved)
         {
             db.ApplicationEvents.Add(moved);
             await outbox.PublishAsync(new ApplicationMoved(
                 application.OrganizationId, application.Id, application.JobId, from, target.Id, moved.Id, now));
+
+            // Moving an application the team kept in mind brings the candidate back to the job and out of the pool.
+            if (wasKept && await db.TalentPoolEntries.SingleOrDefaultAsync(e => e.ApplicationId == application.Id, cancellationToken) is { } entry)
+            {
+                await outbox.PublishAsync(TalentPoolMembership.Leave(db, entry, application, TalentPoolExit.BackInJob, now, tenant.UserId));
+            }
             try
             {
                 await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);

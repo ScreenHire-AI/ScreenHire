@@ -14,6 +14,7 @@ using ScreenHire.Application.Distribution.GoogleIndexing;
 using ScreenHire.Application.Integrity;
 using ScreenHire.Application.Jobs;
 using ScreenHire.Application.Slack;
+using ScreenHire.Application.TalentPool;
 using ScreenHire.Application.Webhooks;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -261,7 +262,9 @@ public static class ScreenHireMessaging
         // Finished webhook deliveries past their retention, daily (docs/architecture/workflow-engine.md section 5).
         opts.Schedules.ScheduleRecurring<PurgeExpiredWebhookDeliveries>("37 3 * * *");
         // Records that Slack messages went, and the sandbox's messages, past their retention, daily (docs/architecture/slack.md).
-        opts.Schedules.ScheduleRecurring<PurgeExpiredSlackMessages>("47 3 * * *");
+        opts.Schedules.ScheduleRecurring<PurgeExpiredSlackMessages>("57 3 * * *");
+        // People whose permission for future roles ran out leave the talent pool, daily (docs/architecture/talent-pool.md).
+        opts.Schedules.ScheduleRecurring<ExpireTalentPool>("47 3 * * *");
         // Job distribution (docs/architecture/job-distribution.md): the reconciliation sweep, and the Indexing API queue.
         opts.Schedules.ScheduleRecurring<ReconcileJobPostings>("*/5 * * * *");
         opts.Schedules.ScheduleRecurring<DispatchIndexingNotifications>("* * * * *");

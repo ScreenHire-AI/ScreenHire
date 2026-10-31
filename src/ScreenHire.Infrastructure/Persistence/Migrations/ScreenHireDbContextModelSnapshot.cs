@@ -532,6 +532,18 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(40)")
                         .HasColumnName("current_stage_id");
 
+                    b.Property<DateTimeOffset?>("FutureRolesConsentGivenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("future_roles_consent_given_at");
+
+                    b.Property<int?>("FutureRolesConsentMonths")
+                        .HasColumnType("integer")
+                        .HasColumnName("future_roles_consent_months");
+
+                    b.Property<DateTimeOffset?>("FutureRolesWithdrawnAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("future_roles_withdrawn_at");
+
                     b.Property<bool>("HoneypotFilled")
                         .HasColumnType("boolean")
                         .HasColumnName("honeypot_filled");
@@ -539,6 +551,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("JobId")
                         .HasColumnType("uuid")
                         .HasColumnName("job_id");
+
+                    b.Property<DateTimeOffset?>("KeptInMindAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("kept_in_mind_at");
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
@@ -1251,8 +1267,8 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("Body")
                         .IsRequired()
-                        .HasMaxLength(10000)
-                        .HasColumnType("character varying(10000)")
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)")
                         .HasColumnName("body");
 
                     b.Property<string>("BuiltInId")
@@ -2965,238 +2981,80 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("ScreenHire.Domain.Slack.SlackAccountLink", b =>
+            modelBuilder.Entity("ScreenHire.Domain.TalentPool.TalentPoolEntry", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid>("InstallationId")
+                    b.Property<Guid>("ApplicationId")
                         .HasColumnType("uuid")
-                        .HasColumnName("installation_id");
+                        .HasColumnName("application_id");
 
-                    b.Property<DateTimeOffset>("LinkedAt")
+                    b.Property<Guid>("CandidateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("candidate_id");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("job_id");
+
+                    b.Property<DateTimeOffset>("KeptAt")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("linked_at");
+                        .HasColumnName("kept_at");
 
-                    b.Property<bool>("Mentions")
-                        .HasColumnType("boolean")
-                        .HasColumnName("mentions");
+                    b.Property<Guid?>("KeptByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("kept_by_user_id");
+
+                    b.Property<Guid>("KeptEventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("kept_event_id");
+
+                    b.Property<DateTimeOffset?>("LastInvitedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_invited_at");
+
+                    b.Property<Guid?>("LastInvitedJobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("last_invited_job_id");
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
                         .HasColumnName("organization_id");
-
-                    b.Property<string>("Problem")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("problem");
-
-                    b.Property<DateTimeOffset?>("ProblemAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("problem_at");
-
-                    b.Property<string>("SlackName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("slack_name");
-
-                    b.Property<string>("SlackUserId")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasColumnName("slack_user_id");
-
-                    b.Property<bool>("Tasks")
-                        .HasColumnType("boolean")
-                        .HasColumnName("tasks");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
 
                     b.HasKey("Id")
-                        .HasName("pk_slack_account_links");
+                        .HasName("pk_talent_pool_entries");
 
-                    b.HasIndex("OrganizationId", "InstallationId")
-                        .HasDatabaseName("ix_slack_account_links_organization_id_installation_id");
+                    b.HasIndex("OrganizationId", "ApplicationId")
+                        .HasDatabaseName("ix_talent_pool_entries_organization_id_application_id");
 
-                    b.HasIndex("OrganizationId", "SlackUserId")
+                    b.HasIndex("OrganizationId", "CandidateId")
                         .IsUnique()
-                        .HasDatabaseName("ix_slack_account_links_organization_id_slack_user_id");
+                        .HasDatabaseName("ix_talent_pool_entries_organization_id_candidate_id");
 
-                    b.HasIndex("OrganizationId", "UserId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_slack_account_links_organization_id_user_id");
-
-                    b.ToTable("slack_account_links", (string)null);
+                    b.ToTable("talent_pool_entries", (string)null);
                 });
 
-            modelBuilder.Entity("ScreenHire.Domain.Slack.SlackInstallation", b =>
+            modelBuilder.Entity("ScreenHire.Domain.TalentPool.TalentPoolSettings", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("BotUserId")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasColumnName("bot_user_id");
-
-                    b.Property<string>("ChannelId")
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasColumnName("channel_id");
-
-                    b.Property<string>("ChannelName")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("channel_name");
-
-                    b.Property<DateTimeOffset>("ConnectedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("connected_at");
-
-                    b.Property<Guid?>("ConnectedByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("connected_by_user_id");
-
-                    b.PrimitiveCollection<string[]>("Events")
-                        .IsRequired()
-                        .HasColumnType("text[]")
-                        .HasColumnName("events");
-
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
                         .HasColumnName("organization_id");
 
-                    b.Property<string>("Problem")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("problem");
-
-                    b.Property<DateTimeOffset?>("ProblemAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("problem_at");
-
-                    b.Property<string>("ProtectedBotToken")
-                        .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)")
-                        .HasColumnName("protected_bot_token");
-
-                    b.Property<string>("TeamId")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasColumnName("team_id");
-
-                    b.Property<string>("TeamName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("team_name");
+                    b.Property<int>("PermissionMonths")
+                        .HasColumnType("integer")
+                        .HasColumnName("permission_months");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.HasKey("Id")
-                        .HasName("pk_slack_installations");
+                    b.HasKey("OrganizationId")
+                        .HasName("pk_talent_pool_settings");
 
-                    b.HasAlternateKey("OrganizationId", "Id")
-                        .HasName("ak_slack_installations_organization_id_id");
-
-                    b.HasIndex("OrganizationId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_slack_installations_organization_id");
-
-                    b.ToTable("slack_installations", (string)null);
-                });
-
-            modelBuilder.Entity("ScreenHire.Domain.Slack.SlackMessageRecord", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset>("At")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("at");
-
-                    b.Property<string>("ErrorCode")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("error_code");
-
-                    b.Property<string>("IdempotencyKey")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("idempotency_key");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("organization_id");
-
-                    b.Property<string>("Outcome")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("outcome");
-
-                    b.HasKey("Id")
-                        .HasName("pk_slack_messages");
-
-                    b.HasIndex("OrganizationId", "At")
-                        .HasDatabaseName("ix_slack_messages_organization_id_at");
-
-                    b.HasIndex("OrganizationId", "IdempotencyKey")
-                        .IsUnique()
-                        .HasDatabaseName("ix_slack_messages_organization_id_idempotency_key");
-
-                    b.ToTable("slack_messages", (string)null);
-                });
-
-            modelBuilder.Entity("ScreenHire.Domain.Slack.SlackSandboxMessage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Conversation")
-                        .IsRequired()
-                        .HasMaxLength(60)
-                        .HasColumnType("character varying(60)")
-                        .HasColumnName("conversation");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("organization_id");
-
-                    b.Property<DateTimeOffset>("PostedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("posted_at");
-
-                    b.Property<string>("Text")
-                        .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)")
-                        .HasColumnName("text");
-
-                    b.HasKey("Id")
-                        .HasName("pk_slack_sandbox_messages");
-
-                    b.HasIndex("OrganizationId", "PostedAt")
-                        .HasDatabaseName("ix_slack_sandbox_messages_organization_id_posted_at");
-
-                    b.ToTable("slack_sandbox_messages", (string)null);
+                    b.ToTable("talent_pool_settings", (string)null);
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Webhooks.WebhookDelivery", b =>
@@ -4036,45 +3894,33 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_organization_members_custom_roles_organization_id_custom_ro");
                 });
 
-            modelBuilder.Entity("ScreenHire.Domain.Slack.SlackAccountLink", b =>
+            modelBuilder.Entity("ScreenHire.Domain.TalentPool.TalentPoolEntry", b =>
                 {
-                    b.HasOne("ScreenHire.Domain.Slack.SlackInstallation", null)
+                    b.HasOne("ScreenHire.Domain.Applications.JobApplication", null)
                         .WithMany()
-                        .HasForeignKey("OrganizationId", "InstallationId")
+                        .HasForeignKey("OrganizationId", "ApplicationId")
                         .HasPrincipalKey("OrganizationId", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_slack_account_links_slack_installations_organization_id_ins");
-                });
+                        .HasConstraintName("fk_talent_pool_entries_applications_organization_id_applicatio");
 
-            modelBuilder.Entity("ScreenHire.Domain.Slack.SlackInstallation", b =>
-                {
-                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
+                    b.HasOne("ScreenHire.Domain.Candidates.Candidate", null)
                         .WithMany()
-                        .HasForeignKey("OrganizationId")
+                        .HasForeignKey("OrganizationId", "CandidateId")
+                        .HasPrincipalKey("OrganizationId", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_slack_installations_organizations_organization_id");
+                        .HasConstraintName("fk_talent_pool_entries_candidates_organization_id_candidate_id");
                 });
 
-            modelBuilder.Entity("ScreenHire.Domain.Slack.SlackMessageRecord", b =>
+            modelBuilder.Entity("ScreenHire.Domain.TalentPool.TalentPoolSettings", b =>
                 {
                     b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
-                        .WithMany()
-                        .HasForeignKey("OrganizationId")
+                        .WithOne()
+                        .HasForeignKey("ScreenHire.Domain.TalentPool.TalentPoolSettings", "OrganizationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_slack_messages_organizations_organization_id");
-                });
-
-            modelBuilder.Entity("ScreenHire.Domain.Slack.SlackSandboxMessage", b =>
-                {
-                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
-                        .WithMany()
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_slack_sandbox_messages_organizations_organization_id");
+                        .HasConstraintName("fk_talent_pool_settings_organizations_organization_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Webhooks.WebhookDelivery", b =>

@@ -44,6 +44,9 @@ builder.Services.AddSingleton<IValidator<UpdateEmailTemplateRequest>, UpdateEmai
 builder.Services.AddSingleton<IValidator<EmailTemplateDraft>, EmailTemplateDraftValidator>();
 builder.Services.AddSingleton<IValidator<ApplicationEmailDraft>, ApplicationEmailDraftValidator>();
 builder.Services.AddSingleton<IValidator<SendEmailsRequest>, SendEmailsRequestValidator>();
+builder.Services.AddSingleton<IValidator<KeepInMindRequest>, KeepInMindRequestValidator>();
+builder.Services.AddSingleton<IValidator<InviteToApplyRequest>, InviteToApplyRequestValidator>();
+builder.Services.AddSingleton<IValidator<AddFromTalentPoolRequest>, AddFromTalentPoolRequestValidator>();
 if (builder.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("ScreenHire:Demo:Enabled"))
 {
     // The local demo's data: Brightwater's template, jobs on every board, a closed job, the synthetic applicants and
@@ -97,6 +100,7 @@ app.MapAuthEndpoints();
 app.MapPublicJobEndpoints();
 app.MapPublicApplicationEndpoints();
 app.MapPublicQuestionnaireEndpoints();
+app.MapPublicTalentPoolEndpoints();
 app.MapPublicTelemetryEndpoints();
 app.MapJobEndpoints();
 app.MapTemplateEndpoints();
@@ -118,6 +122,7 @@ app.MapTemplateUsageEndpoints();
 app.MapWebhookEndpoints();
 app.MapSlackEndpoints();
 app.MapEmailEndpoints();
+app.MapTalentPoolEndpoints();
 app.MapSchemaEndpoints();
 app.MapSearchEndpoints();
 app.MapRealtimeEndpoints();

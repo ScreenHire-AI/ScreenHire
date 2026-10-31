@@ -5,6 +5,7 @@ using ScreenHire.Domain.History;
 using ScreenHire.Domain.Integrity;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.TalentPool;
 using ScreenHire.Domain.Webhooks;
 using ScreenHire.Infrastructure.Persistence.History;
 
@@ -18,7 +19,7 @@ public sealed partial class TrackedKindsTests
         TrackedKinds.All.Select(k => k.EntityType).Should().BeEquivalentTo(
         [
             typeof(HiringTemplate), typeof(HiringTemplateVersion), typeof(EmailTemplate), typeof(Job), typeof(ScorecardTemplate), typeof(CustomRole),
-            typeof(Organization), typeof(Organization), typeof(IntegritySettings),
+            typeof(Organization), typeof(Organization), typeof(IntegritySettings), typeof(TalentPoolSettings),
         ]);
         TrackedKinds.All.Select(k => k.EntityType).Should().NotContain([typeof(ApiKey), typeof(WebhookEndpoint), typeof(OrganizationInvitation)]);
         TrackedKinds.FindAll(typeof(ApiKey)).Should().BeEmpty();

@@ -54,13 +54,13 @@ export const savedViews: readonly SavedView[] = [
     id: 'not-screened',
     label: 'Not screened',
     icon: InboxIcon,
-    matches: (application) => application.stage.kind === 'Applied',
+    matches: (application) => application.stage.kind === 'Applied' && !application.keptInMindAt,
   },
   {
     id: 'interviewing',
     label: 'Interviewing',
     icon: MessagesSquareIcon,
-    matches: (application) => application.stage.kind === 'Interview',
+    matches: (application) => application.stage.kind === 'Interview' && !application.keptInMindAt,
   },
 ];
 

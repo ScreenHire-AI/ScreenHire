@@ -1,5 +1,16 @@
 # Log
 
+## 2026-10-31
+
+**Rich text for job descriptions and email templates** ([rich text](architecture/rich-text.md)). New job, Edit
+details, the email template editor and the composer have a small editor with a toolbar (bold, italic, a heading and a
+subheading, bulleted and numbered lists, links) in place of the plain-text hints. Both are stored as sanitized HTML
+limited to those elements, which the server writes in one canonical form, so a save that changes nothing records
+nothing. Email bodies became HTML with Liquid in their text: values are encoded, the result is sanitized again, and the
+plain-text part prints lists and link addresses. In an email, each variable is a chip. A migration converted every
+plain-text body. The design system gains a Rich text editor row, and its shortcuts join the `?` dialog; typed
+formatting stops while single-key shortcuts are off.
+
 ## 2026-10-30
 
 **Scorecards: fill in any one, ask a teammate for one, and tasks done where the work is.** On the candidate's
@@ -11,6 +22,11 @@ review for the whole team with anyone's), in the same transaction, and the API r
 scorecard by hand. My tasks links a requested scorecard to the Scorecards tab with the sheet open on it and every other
 task to the candidate. A requested scorecard holds back the rating and the others' scorecards until it is given, as a
 review does ([workflow engine](architecture/workflow-engine.md#8-the-engine-v1)).
+
+**The talent pool** has its own design doc, [architecture/talent-pool.md](architecture/talent-pool.md): keeping a
+candidate in mind, the permission for future roles from the apply form, the pool, invitations, the link to stop being
+kept and the daily expiry. The apply flow, email, messaging, workflow engine, sign-in and tenancy, design system,
+roadmap and status docs point to it.
 
 **The owner reviewed the v0.3 build** ([ADR-0017](adr/0017-design-system-v0-3-owner-review.md)) and the dashboard
 changed with it. The candidate page has no details rail: who they are and where they stand is one meta line in the

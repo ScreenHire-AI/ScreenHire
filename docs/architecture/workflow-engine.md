@@ -149,6 +149,9 @@ builder's "time limit") measures the hiring team's delay, never the candidate: s
 3. **Every automated action is audit-logged** with the definition version, trigger event, evaluated facts and result.
 4. Accommodation: if the candidate requested accommodation, automations referencing timing/telemetry facts are skipped.
    `SlaBreached` is the exception, and the reason is section 8.
+5. **Keep in mind is a person's action only** ([talent pool](talent-pool.md)): no automation action keeps a candidate in
+   mind, so no condition, integrity or otherwise, can take someone out of a job that way. An application kept in mind
+   has ended like one in a Hired, Rejected or Withdrawn stage: actions skip it and its stage's timers do nothing.
 
 ## 3. Execution model
 

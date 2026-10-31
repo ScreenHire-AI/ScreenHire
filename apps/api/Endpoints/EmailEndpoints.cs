@@ -11,6 +11,7 @@ using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.History;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Infrastructure.Content;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Persistence.History;
@@ -99,6 +100,8 @@ internal static class EmailEndpoints
                 .. EmailTemplates.Variables.Select(v => new EmailTemplateVariableEntry(v.Name, v.Label, false)),
                 new(EmailTemplates.Reason.Name, EmailTemplates.Reason.Label, true),
                 new(EmailTemplates.QuestionnaireLink.Name, EmailTemplates.QuestionnaireLink.Label, false, QuestionnaireOnly: true),
+                new(EmailTemplates.JobLink.Name, EmailTemplates.JobLink.Label, false, InvitationOnly: true),
+                new(EmailTemplates.RemoveLink.Name, EmailTemplates.RemoveLink.Label, false, InvitationOnly: true),
             ]));
     }
 
@@ -145,7 +148,8 @@ internal static class EmailEndpoints
             return TypedResults.ValidationProblem(problems);
         }
 
-        if (renderer.Validate(null, new(request.Subject, request.Body)).ToProblems() is { } wording)
+        var body = RichText.Sanitize(request.Body);
+        if (renderer.Validate(null, new(request.Subject, body)).ToProblems() is { } wording)
         {
             return TypedResults.ValidationProblem(wording);
         }
@@ -157,7 +161,7 @@ internal static class EmailEndpoints
                 statusCode: StatusCodes.Status409Conflict);
         }
 
-        var template = EmailTemplate.CreateCustom(tenant.OrganizationId!.Value, request.Name.Trim(), request.Subject, request.Body, time.GetUtcNow());
+        var template = EmailTemplate.CreateCustom(tenant.OrganizationId!.Value, request.Name.Trim(), request.Subject, body, time.GetUtcNow());
         db.EmailTemplates.Add(template);
         await db.SaveChangesAsync(cancellationToken);
         var created = await store.FindAsync(db, template.Key, cancellationToken);
@@ -202,7 +206,15 @@ internal static class EmailEndpoints
             return TypedResults.ValidationProblem(ValidationExtensions.Problem("name", "A built-in template keeps its name; leave it out."));
         }
 
-        if (renderer.Validate(templateId, new(request.Subject, request.Body)).ToProblems() is { } wording)
+        // A body that sanitizes to what is stored keeps the stored string, so a save that changes nothing records nothing.
+        var body = RichText.Sanitize(request.Body);
+        var stored = row?.Body ?? (builtIn ? renderer.Default(templateId).Body : null);
+        if (stored is not null && body == RichText.Sanitize(stored))
+        {
+            body = stored;
+        }
+
+        if (renderer.Validate(templateId, new(request.Subject, body)).ToProblems() is { } wording)
         {
             return TypedResults.ValidationProblem(wording);
         }
@@ -210,13 +222,13 @@ internal static class EmailEndpoints
         var now = time.GetUtcNow();
         if (row is null)
         {
-            db.EmailTemplates.Add(EmailTemplate.Reword(tenant.OrganizationId!.Value, templateId, request.Subject, request.Body, now));
+            db.EmailTemplates.Add(EmailTemplate.Reword(tenant.OrganizationId!.Value, templateId, request.Subject, body, now));
         }
         else
         {
             row.Name = builtIn ? null : request.Name?.Trim() ?? row.Name;
             row.Subject = request.Subject;
-            row.Body = request.Body;
+            row.Body = body;
             row.UpdatedAt = now;
         }
 
@@ -231,7 +243,7 @@ internal static class EmailEndpoints
             db.ChangeTracker.Clear();
             var added = await db.EmailTemplates.SingleAsync(t => t.BuiltInId == templateId, cancellationToken);
             added.Subject = request.Subject;
-            added.Body = request.Body;
+            added.Body = body;
             added.UpdatedAt = now;
             await db.SaveChangesAsync(cancellationToken);
         }
@@ -469,7 +481,7 @@ internal static class EmailEndpoints
         foreach (var row in rows)
         {
             var stage = row.Job.Workflow.FindStage(row.Application.CurrentStageId);
-            if (ApplicationEmails.Skips(request.TemplateId, stage))
+            if (ApplicationEmails.Skips(request.TemplateId, row.Application, stage))
             {
                 skipped++;
                 continue;

@@ -1,6 +1,7 @@
 import { defineAction } from 'astro:actions';
 import { applyStep } from '../lib/apply-server';
 import { answerQuestionnaire } from '../lib/questionnaire';
+import { stopKeeping } from '../lib/talent-pool';
 
 /** The careers server's address for the candidate, or undefined where Astro cannot tell (it throws when prerendering). */
 const addressOf = (context: { clientAddress: string }): string | undefined => {
@@ -28,5 +29,14 @@ export const server = {
   questionnaire: defineAction({
     accept: 'form',
     handler: async (form: FormData, context) => answerQuestionnaire(form, addressOf(context)),
+  }),
+
+  /**
+   * Stops the employer keeping the candidate's details for future roles, posted as an HTML form from the link in a
+   * talent pool invitation. Never throws for the candidate.
+   */
+  talentPool: defineAction({
+    accept: 'form',
+    handler: async (form: FormData, context) => stopKeeping(form, addressOf(context)),
   }),
 };
