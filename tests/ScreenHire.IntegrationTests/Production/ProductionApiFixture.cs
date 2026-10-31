@@ -20,6 +20,8 @@ public sealed class ProductionApiFixture : AppHostFixture
 {
     protected override IReadOnlyList<string> RequiredResources => [];
 
+    protected override bool HasWorker => false;
+
     protected override void Configure(IDistributedApplicationTestingBuilder builder)
     {
         builder.Resources.Remove(builder.Resources.Single(resource => resource.Name == "worker"));

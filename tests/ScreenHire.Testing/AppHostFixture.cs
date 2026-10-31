@@ -78,6 +78,14 @@ public class AppHostFixture : IAsyncLifetime
     /// <summary>Resources that must report healthy before any test runs.</summary>
     protected virtual IReadOnlyList<string> RequiredResources => ["api"];
 
+    /// <summary>
+    /// Whether the stack has a worker, so no test runs before it is up. The worker has no health endpoint and starts after
+    /// the API (a <c>dotnet run</c> that builds first), so a test that needs it, and the first test of a run usually does,
+    /// raced its own 30-second wait against that start; a loaded machine lost the race. A started worker joins Wolverine's
+    /// cluster, which is what this waits for.
+    /// </summary>
+    protected virtual bool HasWorker => true;
+
     public DistributedApplication App => app ?? throw new InvalidOperationException("The AppHost has not started.");
 
     public virtual async ValueTask InitializeAsync()
@@ -110,12 +118,56 @@ public class AppHostFixture : IAsyncLifetime
         {
             await app.StartAsync(startup.Token);
             await Task.WhenAll(RequiredResources.Select(resource => WaitUntilHealthyAsync(app, resource, startup.Token)));
+            if (HasWorker)
+            {
+                await WaitForWorkerAsync(startup.Token);
+            }
         }
         catch
         {
             // A failed start must not leave containers and processes behind, whether or not xUnit disposes us.
             await DisposeAppAsync();
             throw;
+        }
+    }
+
+    // The worker is up once it has registered a node in its Wolverine schema (workflow-engine messaging, messaging.md).
+    // The tables are provisioned by the API's start, so until the row exists the query may fail or count nothing.
+    private async Task WaitForWorkerAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            while (true)
+            {
+                if (stopped.Values.FirstOrDefault(message => message.Contains("'worker'", StringComparison.Ordinal)) is { } crashed)
+                {
+                    throw new InvalidOperationException(crashed);
+                }
+
+                try
+                {
+                    await using var connection = new Npgsql.NpgsqlConnection(await GetOwnerConnectionStringAsync(cancellationToken));
+                    await connection.OpenAsync(cancellationToken);
+                    await using var command = new Npgsql.NpgsqlCommand("SELECT count(*) FROM wolverine.wolverine_nodes", connection);
+                    if (Convert.ToInt64(await command.ExecuteScalarAsync(cancellationToken), CultureInfo.InvariantCulture) > 0)
+                    {
+                        return;
+                    }
+                }
+                catch (Npgsql.NpgsqlException)
+                {
+                    // Not provisioned or not reachable yet; the next poll asks again.
+                }
+
+                await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
+            }
+        }
+        catch (OperationCanceledException exception) when (!TestContext.Current.CancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException(
+                $"The AppHost resource 'worker' had not joined Wolverine's cluster within {StartupTimeout.TotalMinutes:0} minutes. " +
+                $"Check its log in {LogDirectory}.",
+                exception);
         }
     }
 
