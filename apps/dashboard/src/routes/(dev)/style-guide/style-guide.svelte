@@ -258,6 +258,7 @@
   ];
   let mentionText = $state('Can you book the call once they confirm, @Ro');
   let mentionPicked = $state<PickedMention[]>([]);
+  let richTextEditor = $state<ReturnType<typeof RichTextEditor> | null>(null);
   let richText = $state('<h2>Next steps</h2><p>Hi {{ firstName }}, thank you for applying for <strong>{{ jobTitle }}</strong>.</p><ul><li>Book a time</li><li>Bring your portfolio</li></ul>');
   const sampleTasks: TaskRow[] = [
     { id: 't1', applicationId: 'a1', kind: 'Review', note: 'Review this application.', assigneeUserId: 'u1', createdAt: ago(2 * hour), completedAt: null, completedByUserId: null },
@@ -803,8 +804,9 @@
         </Panel>
         <Panel title="Rich text editor" class="flex-[1_1_320px]">
           <div class="flex flex-col gap-2">
-            <span id="style-guide-rich-text-label" class="text-caption font-semibold text-muted-foreground">Message</span>
+            <Field.Label id="style-guide-rich-text-label" for="style-guide-rich-text" class="text-caption font-semibold text-muted-foreground" onclick={() => richTextEditor?.focus()}>Message</Field.Label>
             <RichTextEditor
+              bind:this={richTextEditor}
               bind:value={richText}
               id="style-guide-rich-text"
               labelledBy="style-guide-rich-text-label"

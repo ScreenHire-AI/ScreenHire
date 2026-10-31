@@ -105,6 +105,8 @@ public sealed class RichTextTests(AppHostFixture fixture)
         { "Tom & Jerry <3 {% if stageName == \"Offer\" %}yes{% endif %}", true, "<p>Tom &amp; Jerry &lt;3 {% if stageName == \"Offer\" %}yes{% endif %}</p>" },
         { "  Spaced    out  \n\n- item", true, "<p>Spaced out</p><ul><li>item</li></ul>" },
         { "AT&amp;T\n\nSecond", false, "<p>AT&amp;T</p><p>Second</p>" },
+        // A comparison inside Liquid is entity-encoded like any text, as the sanitizer writes it; the renderer decodes it.
+        { "{% if stageName > \"A\" %}Next{% endif %}", true, "<p>{% if stageName &gt; \"A\" %}Next{% endif %}</p>" },
         { "", true, "" },
     };
 

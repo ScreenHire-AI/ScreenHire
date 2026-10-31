@@ -1,4 +1,4 @@
-import { Node, nodeInputRule, type Extensions } from '@tiptap/core';
+import { InputRule, Node, type Extensions } from '@tiptap/core';
 import { ListItem } from '@tiptap/extension-list';
 import StarterKit from '@tiptap/starter-kit';
 
@@ -137,7 +137,7 @@ export const Variable = Node.create<VariableOptions>({
     return ({ node }) => {
       const dom = document.createElement('span');
       dom.dataset['liquid'] = node.attrs['expression'];
-      dom.className = 'rounded-sm bg-muted px-1 text-muted-foreground';
+      dom.className = 'rounded-sm bg-secondary px-1 text-muted-foreground';
       const hidden = document.createElement('span');
       hidden.className = 'sr-only';
       hidden.textContent = 'variable ';
@@ -146,12 +146,16 @@ export const Variable = Node.create<VariableOptions>({
     };
   },
 
+  // A typed `{{ name }}` becomes a chip, braces and all. (Tiptap's `nodeInputRule` keeps the text before a capture
+  // group, which would leave `{{ ` around the chip.)
   addInputRules() {
+    const type = this.type;
     return [
-      nodeInputRule({
+      new InputRule({
         find: /\{\{\s*([^{}]+?)\s*\}\}$/,
-        type: this.type,
-        getAttributes: (match) => ({ expression: match[1]!.trim() }),
+        handler: ({ state, range, match }) => {
+          state.tr.replaceWith(range.from, range.to, type.create({ expression: match[1]!.trim() }));
+        },
       }),
     ];
   },

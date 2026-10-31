@@ -1,3 +1,4 @@
+import type { Editor } from '@tiptap/core';
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { preferences } from '#lib/preferences.svelte.js';
@@ -108,6 +109,25 @@ describe('rich text editor', () => {
 
     await waitFor(() => expect(onvalue).toHaveBeenLastCalledWith(expect.stringMatching(/\{\{ firstName \}\}.*\{\{ firstName \}\}|\{\{ firstName \}\}\{\{ firstName \}\}/)));
     expect(onvalue.mock.lastCall![0]).not.toContain('data-liquid');
+  });
+
+  it('turns a typed variable into one chip, braces and all', async () => {
+    const onvalue = vi.fn();
+    render(Harness, { props: { value: '<p>Hi</p>', variables, onvalue } });
+    const editor = (textbox() as HTMLElement & { editor: Editor }).editor;
+    editor.commands.setTextSelection(editor.state.doc.content.size - 1);
+
+    // ProseMirror runs input rules as text is typed, one key at a time, at the caret.
+    for (const key of ' {{ firstName }}') {
+      const { view } = editor;
+      const { from, to } = view.state.selection;
+      const handled = view.someProp('handleTextInput', (handle) => handle(view, from, to, key, () => view.state.tr.insertText(key, from, to)));
+      if (!handled) view.dispatch(view.state.tr.insertText(key, from, to));
+    }
+
+    await waitFor(() => expect(onvalue).toHaveBeenLastCalledWith('<p>Hi {{ firstName }}</p>'));
+    expect(textbox().querySelectorAll('[data-liquid]')).toHaveLength(1);
+    expect(textbox()).toHaveTextContent('Hi variable First name');
   });
 
   it('loads a value set from outside without counting it as an edit', async () => {

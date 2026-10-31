@@ -28,7 +28,7 @@ public sealed class RichTextTests(E2EFixture fixture) : BrowserTest(fixture)
         await editor.ClickAsync();
         await Page.Keyboard.PressAsync("ControlOrMeta+A");
         await Page.Keyboard.TypeAsync("About the role");
-        await toolbar.GetByRole(AriaRole.Button, new() { Name = "Heading" }).ClickAsync();
+        await toolbar.GetByRole(AriaRole.Button, new() { Name = "Heading", Exact = true }).ClickAsync();
         await Page.Keyboard.PressAsync("End");
         await Page.Keyboard.PressAsync("Enter");
         await Page.Keyboard.TypeAsync("We build ");
@@ -66,15 +66,15 @@ public sealed class RichTextTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GotoAsync(DashboardUrl("/templates/emails/stage-change"));
         var message = Page.GetByRole(AriaRole.Textbox, new() { Name = "Message" });
         await Expect(message.Locator("[data-liquid]").First).ToContainTextAsync("First name");
-        await message.ClickAsync();
-        await Page.Keyboard.PressAsync("ControlOrMeta+End");
+        await message.Locator("p").Last.ClickAsync();
+        await Page.Keyboard.PressAsync("End");
         await Page.Keyboard.PressAsync("Enter");
         await Page.GetByRole(AriaRole.Toolbar, new() { Name = "Formatting" }).GetByRole(AriaRole.Button, new() { Name = "Subheading" }).ClickAsync();
         await Page.Keyboard.TypeAsync("Next steps for ");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Insert variable" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "First name" }).ClickAsync();
 
-        await Expect(message.Locator("h3 [data-liquid]")).ToContainTextAsync("First name");
+        await Expect(message.Locator("h3")).ToHaveTextAsync("Next steps for variable First name");
         var preview = Page.FrameLocator("iframe[title='Email preview']");
         await Expect(preview.Locator("h3")).ToHaveTextAsync("Next steps for Jordan");
         await ExpectNoAccessibilityViolationsAsync();
