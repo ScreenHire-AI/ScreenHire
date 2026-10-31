@@ -230,4 +230,23 @@ public sealed class PublicTalentPoolLinkTests(AppHostFixture fixture)
         (await world.PoolCandidateIdsAsync()).Should().Equal(person.CandidateId);
         (await world.DetailAsync(person.ApplicationId)).At("futureRolesUntil").ValueKind.Should().Be(JsonValueKind.String);
     }
+
+    [Fact]
+    public async Task The_preview_shows_the_invitation_for_someone_in_the_pool_and_nobody_else()
+    {
+        using var world = await PoolWorld.CreateAsync(fixture);
+        var (keptFrom, _) = await world.OpenJobAsync("Previewed from");
+        var (target, targetSlug) = await world.OpenJobAsync("Previewed for");
+        var person = await world.KeptPersonAsync(keptFrom, "previewed");
+        var applicant = await world.ApplyAsync(keptFrom, ApiSession.NewEmail("notkept"), keep: true);
+        var notKept = (await world.DetailAsync(applicant)).Id("candidate.id");
+
+        var preview = (await PreviewAsync(world, person.CandidateId, target)).Expect(HttpStatusCode.OK);
+        preview.Text("text").Should().Contain($"/jobs/{targetSlug}").And.Contain("[the candidate's link, not kept in this copy]");
+
+        (await PreviewAsync(world, notKept, target)).Expect(HttpStatusCode.NotFound); // outside the pool, so no invitation to preview
+    }
+
+    private static Task<ApiResult> PreviewAsync(PoolWorld world, Guid candidateId, Guid jobId) =>
+        world.Owner.PostAsync("/v1/talent-pool/invitations/preview", new JsonObject { ["candidateId"] = candidateId, ["jobId"] = jobId });
 }

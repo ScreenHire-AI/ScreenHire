@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using ScreenHire.Application.Integrity;
 
 namespace ScreenHire.IntegrationTests.TalentPool;
 
@@ -229,5 +230,35 @@ public sealed class TalentPoolKeepTests(AppHostFixture fixture)
 
         queued.At("queued").GetInt32().Should().Be(1);
         queued.At("skipped").GetInt32().Should().Be(1, "a kept application left the job, so it is not told it moved on");
+    }
+
+    [Fact]
+    public async Task Keeping_listing_and_adding_to_a_job_never_depend_on_the_Verification_level()
+    {
+        // ADR-0004: a candidate the checks flagged and one they cleared are kept, listed and added alike, and the pool
+        // carries no Verification output to sort or pick people by.
+        using var world = await PoolWorld.CreateAsync(fixture);
+        var (job, _) = await world.OpenJobAsync("Integration Engineer");
+        var (target, _) = await world.OpenJobAsync("Solutions Engineer");
+        var cleared = await fixture.ApplyAsync(world.Slug, job, SyntheticApplicants.GenuineHuman, Ct, keepForFutureRoles: true);
+        var flagged = await fixture.ApplyAsync(world.Slug, job, SyntheticApplicants.Bot, Ct, keepForFutureRoles: true);
+        (await IntegritySupport.AssessedAsync(world.Owner, flagged)).Text("authenticity.level").Should().Be("VerificationRecommended");
+        (await IntegritySupport.AssessedAsync(world.Owner, cleared)).Text("authenticity.level").Should().Be("NoConcerns");
+
+        var kept = (await world.KeepAsync([flagged, cleared])).Expect(HttpStatusCode.OK);
+
+        kept.At("kept").GetInt32().Should().Be(2);
+        var candidateIds = new[] { (await world.DetailAsync(flagged)).Id("candidate.id"), (await world.DetailAsync(cleared)).Id("candidate.id") };
+        (await world.PoolCandidateIdsAsync()).Should().BeEquivalentTo(candidateIds);
+        var pool = (await world.Owner.GetAsync("/v1/talent-pool")).Expect(HttpStatusCode.OK).Body.GetRawText();
+        pool.Should().NotContainEquivalentOf("integrity").And.NotContainEquivalentOf("authenticity").And.NotContainEquivalentOf("verification");
+
+        var added = (await world.Owner.PostAsync("/v1/talent-pool/applications", new JsonObject
+        {
+            ["candidateIds"] = PoolWorld.Ids(candidateIds),
+            ["jobId"] = target,
+        })).Expect(HttpStatusCode.OK);
+        added.Count("applicationIds").Should().Be(2);
+        added.At("skipped").GetInt32().Should().Be(0);
     }
 }

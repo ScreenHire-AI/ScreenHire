@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/sve
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
 import { apiStub, jobs, user, userAs } from '../../../test-support/fixtures.js';
+import { stubViewport } from '../../../test-support/viewport.js';
 import WithQueryClient from '../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
@@ -218,6 +219,16 @@ describe('talent pool page', () => {
       renderPage();
       const menu = await openRowMenu('Casey Morgan');
 
+      expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Invite to apply', 'Add to a job', 'Remove from talent pool']);
+    });
+
+    it('stays on each list item on a phone, where the record page has none of these actions (section 8)', async () => {
+      stubViewport(360);
+      renderPage();
+
+      await screen.findByRole('link', { name: 'Casey Morgan' });
+      expect(screen.queryByRole('table')).not.toBeInTheDocument();
+      const menu = await openRowMenu('Casey Morgan');
       expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Invite to apply', 'Add to a job', 'Remove from talent pool']);
     });
 
