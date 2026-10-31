@@ -69,7 +69,9 @@ subsystem.
   `ScreenHire:Distribution:*` (the local sandbox board, `GoogleIndexing:Mode` `Off`/`Local`/`Google`) is forwarded to
   the API and worker alike; see [`docs/architecture/job-distribution.md`](docs/architecture/job-distribution.md) §5.
   `ScreenHire:Integrity:Llm:*` (the consistency check's model: `Fake` in Development, `None`, or `Anthropic` with the
-  `anthropic-api-key` secret) goes to the worker. `ScreenHire:PersistData` (default `true`) keeps Postgres, Azurite and
+  `anthropic-api-key` secret) goes to the worker. `ScreenHire:Slack:*` (real Slack with `ClientId` and the
+  `slack-client-secret` parameter, or `Sandbox:Enabled` for the local sandbox workspace; off in `pnpm dev`, on in the
+  test stacks) goes to the API and worker alike; see [`docs/architecture/slack.md`](docs/architecture/slack.md). `ScreenHire:PersistData` (default `true`) keeps Postgres, Azurite and
   Mailpit data in per-worktree volumes; `false` starts with none, as the tests do. `ScreenHire:Demo` (default: on with `Dev`
   frontends only) seeds the local demo's data on Brightwater, and the API is healthy only once it is in. The header of `apps/apphost/AppHost.cs`
   describes every setting.
