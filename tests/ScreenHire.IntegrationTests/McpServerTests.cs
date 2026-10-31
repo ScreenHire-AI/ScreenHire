@@ -75,7 +75,9 @@ public sealed class McpServerTests(AppHostFixture fixture)
         (await owner.GetAsync("/v1/tasks?scope=Team")).Body.EnumerateArray().Select(t => t.GetProperty("id").GetGuid()).Should().Contain(task.GetProperty("id").GetGuid());
         var keyId = key.Id("key.id");
         var changes = (await owner.GetAsync($"/v1/applications/{application}/timeline")).Expect(HttpStatusCode.OK).Body.EnumerateArray()
-            .Where(e => e.GetProperty("type").GetString() != "Submitted")
+            // The changes under the key. The submission and the worker's verification result (which lands whenever the
+            // worker gets to it) are the system's, with no actor.
+            .Where(e => e.GetProperty("type").GetString() is not ("Submitted" or "IntegrityAssessed"))
             .Select(e => (e.GetProperty("type").GetString(), e.GetProperty("actorApiKeyId").GetGuid(), e.GetProperty("actorUserId").ValueKind))
             .ToList();
         changes.Should().Equal(
