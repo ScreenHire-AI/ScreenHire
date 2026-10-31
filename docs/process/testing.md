@@ -379,7 +379,21 @@ The first runs found two differences from the Windows dev machine. Both were fix
 
 ### Time
 
-Measurements are added after the first green run.
+The first green run, on 2026-10-31 at commit `579ed99b` (run 41213499536), took 13 min 6 s from start to `Gate`, with
+the caches the run before it saved (NuGet, the pnpm store, Playwright's Chromium):
+
+| Job | Wall clock | Its longest steps |
+|---|---|---|
+| `checks` | 12 min 17 s | Vitest 7 min 0 s, `verify:dotnet` 2 min 3 s, `pnpm check` 1 min 9 s, setup 54 s, .NET unit tests 25 s |
+| `integration` | 10 min 54 s | the tests 9 min 32 s (622), setup 49 s |
+| `e2e` | 13 min 1 s | the tests 9 min 18 s (111), setup with Chromium 2 min 32 s, `pnpm -r build` 32 s, image pulls 23 s |
+| `lighthouse` | 4 min 33 s | setup with Chromium 2 min 31 s, 15 pages 1 min 40 s (every LCP 1505 to 1521 ms, CLS 0) |
+| `gate` | 3 s | |
+
+The test counts were the local gate's on the same commit: 1324 unit, 622 integration and 111 end-to-end tests, and
+1401 Vitest tests (dashboard 1101, careers 127, realtime 81, marketing 64, telemetry 15, api-client 13). The runners
+have 4 cores, so Vitest is the longest step of `checks`: the dashboard's suite took 409 s there and 47 s on the dev
+machine.
 
 ## Flake policy
 
