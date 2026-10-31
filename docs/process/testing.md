@@ -118,7 +118,8 @@ stack, because DCP 0.26's stop can kill unrelated processes through a reused par
 does not and the measurements are in [Processes on the dev machine](board-pipeline.md#processes-on-the-dev-machine).
 
 The API and every JS app have HTTP health checks, so the fixtures wait for servers that answer, never for a fixed
-delay. The API only starts listening after its Development migrate-and-seed, so a healthy API has its schema and
+delay. The worker has none, so they also wait until it has registered a node in `wolverine.wolverine_nodes`
+(`HasWorker`), which is when it can run a message. The API only starts listening after its Development migrate-and-seed, so a healthy API has its schema and
 Brightwater. With the demo on (`DevelopmentDemoFixture`, `pnpm dev`), `/health` also waits for the demo's data. A resource that fails to start fails the fixture at once, and a timeout names the resource.
 
 ### Test data: isolate by organization
