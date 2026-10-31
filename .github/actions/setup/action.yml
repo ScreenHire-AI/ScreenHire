@@ -5,6 +5,16 @@ description: >-
   Every job in ci.yml uses it after its checkout, so the jobs set up the same way a dev machine does.
 
 inputs:
+  node:
+    description: >-
+      Set up pnpm and Node 24 and install the workspace's packages ('true' or 'false'). The integration shards skip it:
+      they start no frontend, and scripts/test-shard.mjs needs only the runner's own Node.
+    default: 'true'
+  nuget-cache:
+    description: >-
+      The NuGet cache's name. Each suite keeps its own, holding only what its projects restore: the integration shards'
+      leaves out Playwright's browser drivers, so they restore less.
+    default: all
   dotnet:
     description: Set up .NET, the repo-local tools and the Aspire bundle ('true' or 'false'). Vitest-only jobs skip it.
     default: 'true'
@@ -18,11 +28,13 @@ runs:
     # pnpm first: setup-node's pnpm cache asks pnpm where its store is. No version: the action reads packageManager
     # from the root package.json.
     - name: Set up pnpm
+      if: ${{ inputs.node == 'true' }}
       uses: pnpm/action-setup@v6
 
     # Node 24, the dev machine's major. package.json's engines (>=22.22.0) is only the floor, and setup-node would
     # resolve that range to the newest release, which the dev machine does not run.
     - name: Set up Node.js 24
+      if: ${{ inputs.node == 'true' }}
       uses: actions/setup-node@v7
       with:
         node-version: 24
@@ -40,10 +52,11 @@ runs:
       uses: actions/cache@v6
       with:
         path: ~/.nuget/packages
-        key: ${{ runner.os }}-nuget-${{ hashFiles('global.json', 'dotnet-tools.json', 'Directory.Packages.props', '**/*.csproj') }}
-        restore-keys: ${{ runner.os }}-nuget-
+        key: ${{ runner.os }}-nuget-${{ inputs.nuget-cache }}-${{ hashFiles('global.json', 'dotnet-tools.json', 'Directory.Packages.props', '**/*.csproj') }}
+        restore-keys: ${{ runner.os }}-nuget-${{ inputs.nuget-cache }}-
 
     - name: Install packages (pnpm install --frozen-lockfile)
+      if: ${{ inputs.node == 'true' }}
       shell: bash
       run: pnpm install --frozen-lockfile
 

@@ -155,6 +155,9 @@ jobs:
         uses: actions/checkout@v7
       - name: Set up the toolchain
         uses: ./.github/actions/setup
+        with:
+          node: 'false'
+          nuget-cache: integration
       - name: Pull the AppHost's container images
         run: printf '%s\n' $APPHOST_IMAGES | xargs -P 5 -n 1 docker pull -q
       - name: Build the integration tests

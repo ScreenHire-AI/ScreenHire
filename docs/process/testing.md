@@ -384,7 +384,9 @@ Every job runs on `ubuntu-24.04`, pinned, and sets up through
 - `pnpm install --frozen-lockfile` and `dotnet tool restore`;
 - `dotnet aspire setup`, which lays out the Aspire CLI's bundle (DCP and the dashboard) under `~/.aspire`. The AppHost
   sets `AspireUseCliBundle=true` and reads DCP from there, as on a dev machine;
-- for `vitest`, none of the .NET steps;
+- for `vitest`, none of the .NET steps; for `integration`, no Node or pnpm (no frontend starts, and
+  `scripts/test-shard.mjs` runs on the runner's own Node) and a NuGet cache of its own without Playwright's browser
+  drivers, which restores faster than the full 1.5 GB one;
 - for `e2e` and `lighthouse`, Playwright's browsers cached on the `Microsoft.Playwright` version. The `e2e` job
   installs Chromium with `node scripts/install-browsers.mjs --no-build` after its test-only build, `lighthouse` with
   `pnpm e2e:install`.
