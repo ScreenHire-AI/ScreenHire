@@ -158,7 +158,8 @@ Authors check their screens against this list, and the `design-review` agent rep
 - **T5** Times follow section 13: time ago in text, dates in tables, the browser's locale, the exact time on hover.
 - **T6** Anything people edit says who updated it last and how long ago: the last fact in its header ("2 hours ago by
   Avery Quinn") with History beside it, and a Last updated column in its list. ScreenHire's own templates and roles
-  say "by ScreenHire". History opens a sheet with every change, newest first and grouped by day: who, when and what,
+  say "by ScreenHire". Something nothing has changed since it was created says so: the fact is Created, "2 hours ago by
+  Avery Quinn", never Updated with nobody, and no second Created fact repeats it (W7). History opens a sheet with every change, newest first and grouped by day: who, when and what,
   with before and after on request. The one exception is a record whose row holds a secret (a webhook endpoint):
   change history never reads it, so its header says when it was added and when its secret was last rotated instead
   (ADR-0016).
@@ -475,7 +476,7 @@ in a development build, shows every component in each state, and its test fails 
 | Scorecard | `ScorecardList`; `ScorecardSheet` to fill one; `ScorecardBuilder` for a library scorecard's questions; `ScorecardPicker` in the workflow builder | A submitted scorecard is an icon in a circle, the recommendation in words and who gave it, the stage as a fact pill and time ago, then each question and its answer as a summary list ("Not answered" when left out) and the note quoted. Every scorecard ends with an overall recommendation, in words, and a note. `ScorecardFields` draws what a reviewer fills in, for the sheet and for the library scorecard's Preview, which shows it at the sheet's width for a sample candidate; `ScorecardQuestionList` reads a scorecard's questions as content. Questions are built in the form builder with the answer menu, on a library scorecard (built-in or the team's own); a stage picks one, and a job keeps its own copy of the questions; rating questions answer on one row of joined buttons and make the candidate's rating, the one average anything takes of scorecards (Rating, below). The sheet never shows integrity output. Fill scorecard (outline) is in the panel header for a role that changes hiring data, while a reached stage with a scorecard is left to score. Questions ask about the work and the skills the job needs, never personality, emotion or honesty |
 | Notification tray | `NotificationTray` | Overlay cards in the bottom corner (above the action bar on phones), newest first, at most three: an icon for what raised it (`bell` for the team, `at-sign` for a mention), the record as a link, one line and Dismiss. They never time out, because each holds a link (WCAG 2.2.1), and a polite live region announces them |
 | Sheet | shadcn `Sheet` (`MoveNoteSheet`, `ScorecardSheet`, the workflow builder's automations and scorecards) | Quick work in place (section 9): the title, one line of description, the form, then Cancel and the one primary action (A1). The record stays behind it. History (T6), the items behind a count (T4), Invite and the email composer are sheets too |
-| History sheet | `HistorySheet` on shadcn `Sheet`; `LastUpdated` for the fact; `HistoryFact` puts both in a header that shows nothing else of the history (the settings pages) | T6: Last updated is the last fact of the header, time ago and who ("2 hours ago by Avery Quinn", "By ScreenHire" for an untouched built-in), then an outline History button that opens the sheet. The sheet's title is History and its one line the record's name; changes come newest first under a heading per day (Today, Yesterday, Oct 22). Each change is the person's avatar, their name starting the first line, one line per thing that changed ("changed **.NET and C#** from 1 to 5 to 1 to 10"), and time ago. Show the change is an outline button (A6) that reveals before, struck through, and after for each value, and "Unchanged" for the context. Show older changes loads the next page. A ScreenHire template has no History button, because nobody can change it |
+| History sheet | `HistorySheet` on shadcn `Sheet`; `LastUpdated` for the fact; `HistoryFact` puts both in a header that shows nothing else of the history (the settings pages) | T6: Last updated is the last fact of the header, time ago and who ("2 hours ago by Avery Quinn", "By ScreenHire" for an untouched built-in), then an outline History button that opens the sheet. While nothing has changed the object since it was created, the fact's label is Created. On a settings page's title row, where no label shows, the fact starts with its verb ("Created 2 hours ago by Avery Quinn", "Updated yesterday by you"). The sheet's title is History and its one line the record's name; changes come newest first under a heading per day (Today, Yesterday, Oct 22). Each change is the person's avatar, their name starting the first line, one line per thing that changed ("changed **.NET and C#** from 1 to 5 to 1 to 10"), and time ago. Show the change is an outline button (A6) that reveals before, struck through, and after for each value, and "Unchanged" for the context. Show older changes loads the next page. A ScreenHire template has no History button, because nobody can change it |
 | Action bar | Our component (`ActionBar`) | A phone's primary action in a bar fixed to the bottom, over the safe area (section 8) |
 | Relative time, truncated text | Our components on `Hint` | Time ago, or text cut with an ellipsis (on one line, or on two as a workflow graph node's title); the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5). A truncated link is one tab stop, with an optional icon before its text |
 | Table date | `DateText` on `Hint` | A date in a table or list item, the exact time in its tooltip (T5, section 13) |
@@ -540,7 +541,7 @@ Helper text only when a label cannot say it. Copy follows `.claude/rules/writing
 | Text, headers, activity | Time ago, exact date and time on hover | 2 hours ago |
 | Tables | The date, so the column lines up and sorts | Oct 20, 2026 |
 | Older than 7 days | The date | Oct 3, 2026 |
-| Last updated (T6) | Time ago and who, the exact time on hover | 2 hours ago by Avery Quinn |
+| Last updated (T6) | Time ago and who, the exact time on hover; Created until the first change | 2 hours ago by Avery Quinn; Created 2 hours ago by Avery Quinn |
 
 Always the browser's locale (US English by default), through one shared formatter on `Intl.DateTimeFormat` and
 `Intl.RelativeTimeFormat` (`#lib/dates.ts`). The API never sends formatted dates (`.claude/rules/utc-timestamps.md`).
@@ -683,7 +684,8 @@ per-tenant stylesheet (strict CSP, no inline styles). Brand never overrides stat
 - **Settings:** one sidebar item with its own menu (section 11). Careers branding becomes Branding, and email
   templates move to Templates.
 - **Team and Roles:** Team lists the members full width, each role by its name alone: a custom role has no Custom label
-  (W6). Invite opens a sheet that describes each role, built-in or custom, starts at Viewer, the least access, and links
+  (W6). Its title's row has Last updated and History (S8) for every change to the team: invitations sent and revoked,
+  joins, role and job access changes, and removals. Invite opens a sheet that describes each role, built-in or custom, starts at Viewer, the least access, and links
   to Compare roles. Roles is its own page on the list template: every role, the built-in ones marked Built in, with what
   it can do, how many people have it and Last updated ("By ScreenHire" for a built-in). Its header has Compare roles and
   New role. New role opens a sheet with a name and the role to copy, never Owner, then Create and edit opens the copy's
@@ -712,6 +714,7 @@ per-tenant stylesheet (strict CSP, no inline styles). Brand never overrides stat
   Built: To review, To verify and Overdue show their status's icon; New today, Not screened and Interviewing an
   ordinary one. The short name is also the candidates page's title for the view.
 - **API keys and webhooks:** each page says what it is for, how to call it and where the reference is. The API
-  reference is served in production.
+  reference is served in production. API keys has Last updated and History on its title's row: each key created and
+  revoked, with its name, access and who. A webhook endpoint keeps Added and Secret rotated instead (T6).
 - **MCP server:** the values any MCP client needs (this deployment's server URL, the transport, the header), the
   key's access, the tools as pills, one generic config and a link to API keys. Never one client's setup steps.

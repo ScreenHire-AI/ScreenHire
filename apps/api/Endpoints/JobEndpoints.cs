@@ -729,7 +729,7 @@ internal static class JobEndpoints
                 LastChange = db.ChangeRecords
                     .Where(r => r.SubjectKind == ChangeSubjectKind.Job && r.SubjectId == subjectId)
                     .OrderByDescending(r => r.Sequence)
-                    .Select(r => new ChangeStamp(r.OccurredAt, r.ActorUserId, r.ActorApiKeyId))
+                    .Select(r => new ChangeStamp(r.OccurredAt, r.ActorUserId, r.ActorApiKeyId, r.Created))
                     .FirstOrDefault(),
             })
             .SingleOrDefaultAsync(cancellationToken);

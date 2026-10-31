@@ -10,6 +10,9 @@ import type { CurrentUser, JobAccess, OrganizationRole, Permission, RoleSummary 
 import { can, seesAllJobs } from '#lib/permissions.js';
 import type { LucideIcon } from '#lib/shell.js';
 
+/** The team's history and its Last updated (`/team/history`, `/team/last-update`): invalidate it with every team change. */
+export const teamPath = '/v1/organization/team';
+
 /**
  * The Settings menu's pages (design system section 11), each with the permission its changes need: the sidebar's one
  * Settings item opens the first the person may use, and the command palette lists those. Kept apart from `sections`,

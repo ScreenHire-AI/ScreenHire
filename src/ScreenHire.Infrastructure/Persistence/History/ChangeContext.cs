@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Email;
 
 namespace ScreenHire.Infrastructure.Persistence.History;
@@ -63,6 +64,27 @@ public sealed class ChangeContext(ScreenHireDbContext db, EmailTemplates emailTe
             .OrderByDescending(v => v.Version)
             .Select(v => v.Definition)
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// A role's name as the Team page shows it: a built-in by its own name, a custom role by the name it has now (the one
+    /// this save gives it, if it renames it).
+    /// </summary>
+    public async ValueTask<string> RoleNameAsync(OrganizationRole role, Guid? customRoleId, CancellationToken cancellationToken)
+    {
+        if (role != OrganizationRole.Custom || customRoleId is not { } id)
+        {
+            return role.ToString();
+        }
+
+        if (db.ChangeTracker.Entries<CustomRole>().FirstOrDefault(e => e.Entity.Id == id) is { } tracked)
+        {
+            return tracked.Entity.Name;
+        }
+
+        // A member holds their role through a restricting foreign key, so only an old invitation's role can be gone.
+        return await db.CustomRoles.AsNoTracking().Where(r => r.Id == id).Select(r => r.Name).SingleOrDefaultAsync(cancellationToken)
+            ?? "a deleted role";
     }
 
     /// <summary>ScreenHire's wording of a built-in email template, or null for the organization's own.</summary>

@@ -147,6 +147,7 @@ API keys (Owners and Admins) manages keys in a session, on the dashboard's Setti
 | `POST /v1/organization/api-keys` | Creates a key and returns it once, with `Cache-Control: no-store`. |
 | `GET /v1/organization/api-keys/{id}` | One key, without the key itself. |
 | `POST /v1/organization/api-keys/{id}/revoke` | Revokes it. The next request with it gets 401. |
+| `GET /v1/organization/api-keys/history`, `GET /v1/organization/api-keys/last-update` | The page's change history: each key created and revoked, with its name, access and who, never its hash or prefix (`docs/architecture/change-history.md`). |
 
 - **The key** is `shk_{prefix}_{organization}_{secret}`, lower-case hex: 8 digits of prefix that the list shows, the
   organization's id and a 256-bit secret (`apps/api/Auth/ApiKeyTokens.cs`). `api_keys` stores the SHA-256 hash of the
@@ -285,6 +286,7 @@ created as well, for a role that manages keys (ADR-0011). The API stays the judg
 | `POST /invitations` | Manage the team | Invites an address with a role, built-in or custom, and a job access (`All` unless it says `HiringTeamOnly`), and emails the link. 404 when no email sender is configured. |
 | `DELETE /invitations/{invitationId}` | Manage the team | Revokes an open invitation. |
 | `GET /membership-log` | Manage the team | The latest 200 entries of the membership log. |
+| `GET /team/history`, `GET /team/last-update` | Manage the team | The Team page's change history and its Last updated, in words (`docs/architecture/change-history.md`). |
 
 `TeamPolicy` (`src/ScreenHire.Domain/Organizations`) says who may give which role, by permissions: an actor with
 Manage the team may give, take away, make, change or delete a role only when it holds nothing their own role does not.
@@ -320,7 +322,8 @@ log shows job titles and template names as they are now, and leaves out entries 
 founding Owner, whose membership onboarding creates with the organization, and an invitation accepted by someone who is
 already a member, which only uses up the invitation (its row keeps `accepted_at` and `accepted_by_user_id`). It is append-only for audit: `screenhire_app` has no
 `UPDATE` or `DELETE` on it. It holds user ids and no foreign key to `organization_members`, so a removal keeps its own
-record.
+record. The Team page's History sheet reads the change history instead, which says the same team changes in words and
+also records the founding Owner, as "created the team". Hiring teams stay in the membership log only.
 
 ### Job access
 

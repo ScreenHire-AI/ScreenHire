@@ -22,8 +22,14 @@ public enum ChangeSubjectKind
     /// <summary>The organization's brand colour, on Settings, Branding.</summary>
     Branding,
 
-    /// <summary>The organization's integrity settings, on Settings, Integrity.</summary>
+    /// <summary>The organization's integrity settings, on Settings, Verification.</summary>
     IntegritySettings,
+
+    /// <summary>The organization's team, on Settings, Team: members' roles and job access, joins, removals and invitations.</summary>
+    Team,
+
+    /// <summary>The organization's API keys, on Settings, API keys: each key created and revoked.</summary>
+    ApiKeys,
 }
 
 /// <summary>
@@ -55,6 +61,12 @@ public sealed class ChangeRecord : ITenantOwned
     public Guid? ActorApiKeyId { get; init; }
 
     public DateTimeOffset OccurredAt { get; init; }
+
+    /// <summary>
+    /// Whether this save created the object. While it is the object's newest record, Last updated says Created, by
+    /// whoever made it.
+    /// </summary>
+    public bool Created { get; init; }
 
     public required IReadOnlyList<ChangeLine> Lines { get; init; }
 }

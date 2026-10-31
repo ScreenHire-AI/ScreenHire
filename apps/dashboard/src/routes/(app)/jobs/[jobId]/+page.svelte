@@ -50,6 +50,7 @@
   import { can, seesAllJobs } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
+  import { lastUpdateWords } from '#lib/history.js';
   import type { PageProps } from './$types';
 
   let { params }: PageProps = $props();
@@ -228,7 +229,8 @@
             <Fact label="Opened"><RelativeTime at={detail.publishedAt} /></Fact>
           {:else if detail.status === 'Closed' && detail.closedAt}
             <Fact label="Closed"><RelativeTime at={detail.closedAt} /></Fact>
-          {:else}
+          {:else if !detail.lastUpdated.created}
+            <!-- A job nothing has changed since says Created in its last fact, so it is said once (W7). -->
             <Fact label="Created"><RelativeTime at={detail.createdAt} /></Fact>
           {/if}
           {#if detail.template}
@@ -237,7 +239,7 @@
               {detail.template.templateName} v{detail.template.version}{#if detail.template.updateAvailable}, update available{/if}
             </Fact>
           {/if}
-          <Fact label="Last updated">
+          <Fact label={lastUpdateWords(detail.lastUpdated).label}>
             <LastUpdated value={detail.lastUpdated} {members} {currentUserId} onhistory={() => (historyOpen = true)} />
           </Fact>
         {/snippet}
