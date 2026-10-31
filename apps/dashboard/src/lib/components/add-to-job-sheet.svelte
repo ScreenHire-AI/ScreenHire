@@ -38,12 +38,20 @@
   let jobId = $state('');
   let failure = $state('');
 
+  // Starts fresh each time it opens.
   $effect(() => {
     if (!open) return;
     untrack(() => {
-      jobId = targets.find((job) => !people.every((person) => person.appliedJobIds.includes(job.id)))?.id ?? '';
+      jobId = '';
       failure = '';
     });
+  });
+
+  // The first job someone in the selection has not applied to, once the jobs have loaded, unless one is chosen.
+  $effect(() => {
+    const choices = targets;
+    if (!open || choices.some((job) => job.id === untrack(() => jobId))) return;
+    untrack(() => (jobId = choices.find((job) => !people.every((person) => person.appliedJobIds.includes(job.id)))?.id ?? ''));
   });
 
   const title = $derived(people.length === 1 ? `Add ${people[0]!.candidateName} to a job` : `Add ${people.length} to a job`);

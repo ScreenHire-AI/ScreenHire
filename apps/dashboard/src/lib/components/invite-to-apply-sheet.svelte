@@ -38,24 +38,36 @@
   let rendered = $state<Preview | undefined>(undefined);
   let previewFailure = $state('');
 
+  // Starts fresh each time it opens.
   $effect(() => {
     if (!open) return;
     untrack(() => {
-      jobId = openJobs.find((job) => !people.every((person) => person.appliedJobIds.includes(job.id)))?.id ?? '';
+      jobId = '';
       failure = '';
     });
   });
 
-  // The preview follows the chosen job, for the first person in the selection.
+  // The first job someone in the selection has not applied to, once the jobs have loaded, unless one is chosen.
+  $effect(() => {
+    const choices = openJobs;
+    if (!open || choices.some((job) => job.id === untrack(() => jobId))) return;
+    untrack(() => (jobId = choices.find((job) => !people.every((person) => person.appliedJobIds.includes(job.id)))?.id ?? ''));
+  });
+
+  // The preview follows the chosen job, for the first person in the selection. Only those are its dependencies: the
+  // mutation's own state changes as it runs, and reading it here would start the preview again on every answer.
   $effect(() => {
     const first = people[0];
-    if (!open || !jobId || !first) return;
-    rendered = undefined;
-    previewFailure = '';
-    preview.mutateAsync({ data: { candidateId: first.candidateId, jobId } }).then(
-      (response) => (rendered = response.data),
-      (error: unknown) => (previewFailure = describeError(error, 'Could not show the email')),
-    );
+    const job = jobId;
+    if (!open || !job || !first) return;
+    untrack(() => {
+      rendered = undefined;
+      previewFailure = '';
+      preview.mutateAsync({ data: { candidateId: first.candidateId, jobId: job } }).then(
+        (response) => (rendered = response.data),
+        (error: unknown) => (previewFailure = describeError(error, 'Could not show the email')),
+      );
+    });
   });
 
   const title = $derived(people.length === 1 ? `Invite ${people[0]!.candidateName} to apply` : `Invite ${people.length} to apply`);
