@@ -587,7 +587,7 @@ export const CreateJobBody = zod.object({
   "period": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]).optional()
 }).describe('A pay range. Currency and period may come from the template\'s posting defaults on create.')]).optional(),
   "validThrough": zod.iso.datetime({"offset":true}).nullish()
-}).describe('A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\r\nversion\'s workflow, and every field left out here takes the template\'s posting default. Without a slug, one is made\r\nfrom the title.')
+}).describe('A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\r\nversion\'s workflow, and every field left out here takes the template\'s posting default. Without a slug, one is made\r\nfrom the title. The description is rich text as HTML, kept to the dashboard editor\'s elements (p, br, strong, em, h2,\r\nh3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text\r\nworks too: a blank line starts a paragraph and lines starting with "- " make a list.')
 
 export const createJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const createJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
@@ -971,7 +971,7 @@ export const UpdateJobBody = zod.object({
   "period": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]).optional()
 }).describe('A pay range. Currency and period may come from the template\'s posting defaults on create.')]).optional(),
   "validThrough": zod.iso.datetime({"offset":true}).nullish()
-}).describe('Replaces a job\'s posting content. A published job keeps its slug; a closed job cannot change.')
+}).describe('Replaces a job\'s posting content. A published job keeps its slug; a closed job cannot change. The description is rich\r\ntext, as on CreateJobRequest.')
 
 export const updateJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const updateJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
