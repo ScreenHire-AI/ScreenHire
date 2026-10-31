@@ -253,7 +253,7 @@ otherwise run.
 | `TeammateChangesRealtimeTests` (integration) | a person's move, note, tags, scorecard, task create, complete and reopen, and email carry their `actorUserId`, and the task events `assigneeUserId`; the same move by an API key carries none; publishing a template another member last changed carries both ids; each reaches its own organization only |
 | `NotificationSettingsTests` (integration) | the defaults, saving and reading back, each member and each organization keeping their own, a kind named twice, antiforgery, and an API key refused |
 | `teammate-changes.test.ts`, `teammate-toasts.test.ts`, `notifications.test.ts` (Vitest) | which changes toast and their words, grouping, a mention's note left to its card, the shared limit of three, and the countdown and what holds it |
-| `TeammateToastsTests` (Playwright) | a recruiter's move shows as a toast in the owner's dashboard with its link, the owner's own move does not, turning Moves off in the sheet stops it, and on a phone the toast ends above the action bar |
+| `TeammateToastsTests` (Playwright) | a recruiter's move shows as a toast in the owner's dashboard with its link, the owner's own move does not, turning Moves off in the sheet stops it, and on a phone the toast ends above the jobs list's action bar |
 | `LiveUpdatesTests` (Playwright) | two browser contexts in one organization: publishing and closing a job in one updates the other without a reload, over the hub's WebSocket (no fallback transport) |
 
 `CheckLiveUpdates` exists so that a test, or an operator, can prove the worker-to-browser path without a feature that
