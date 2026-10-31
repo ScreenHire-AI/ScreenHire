@@ -126,6 +126,7 @@ internal static class PublicJobEndpoints
         TelemetrySessions telemetry,
         IOptions<IntegrityOptions> integrity,
         IOptions<DomainOptions> domains,
+        ApplicationDrafts drafts,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
@@ -150,6 +151,9 @@ internal static class PublicJobEndpoints
             turnstile.SiteKey,
             new PublicTelemetrySettings(
                 telemetry.Issue(job.OrganizationId, job.Id, time.GetUtcNow()), TelemetrySessions.DeviceCheckFor(job, integrity.Value)),
+            job.Workflow.Questionnaire.Sections is { Count: > 0 } sections ? sections : null,
+            organization.QuestionsPerPage,
+            drafts.IsEnabled,
             await TalentPoolMembership.MonthsAsync(db, cancellationToken)));
     }
 }

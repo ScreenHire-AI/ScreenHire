@@ -64,6 +64,20 @@ public sealed class DevelopmentDemoTests
     }
 
     [Fact]
+    public void Dated_history_runs_forward_and_gives_reports_hires_from_two_sources()
+    {
+        // A move happens after the application and after the move before it, so each days-ago count falls.
+        DemoCandidates.All.Where(c => c.AppliedDaysAgo > 0).Should().AllSatisfy(candidate =>
+            new[] { candidate.AppliedDaysAgo }.Concat(candidate.Moves.Select(m => m.DaysAgo))
+                .Should().BeInDescendingOrder().And.OnlyHaveUniqueItems(candidate.Applicant.Key));
+        DemoCandidates.All.Where(c => c.AppliedDaysAgo == 0).SelectMany(c => c.Moves).Should().OnlyContain(m => m.DaysAgo == 0);
+
+        var history = DemoCandidates.All.Where(c => c.AppliedDaysAgo > 0).ToList();
+        history.Count(c => c.StageId == "hired").Should().BeGreaterThanOrEqualTo(2, "time to hire needs hires to take a median of");
+        history.Select(c => c.Source).Distinct().Should().BeEquivalentTo([ApplicationSource.CareersSite, ApplicationSource.Recruiter]);
+    }
+
+    [Fact]
     public void The_candidate_emails_are_a_valid_workflow_edit()
     {
         var workflow = HiringWorkflow.Default with { Automations = [.. DevelopmentDemo.CandidateEmails] };

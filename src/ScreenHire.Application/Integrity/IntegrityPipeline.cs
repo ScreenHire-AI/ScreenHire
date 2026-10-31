@@ -74,9 +74,24 @@ public sealed class IntegrityPipeline(ScreenHireDbContext db, IEnumerable<IInteg
             });
             db.IntegritySignals.AddRange(written);
             signals.AddRange(written);
+            done.Add(new { Analyzer = analyzer.Name, AnalyzerVersion = analyzer.Version });
         }
 
-        return await AssessAsync(application, job, signals, now, cancellationToken);
+        return await AssessAsync(application, job, Current(signals, done.Select(r => (r.Analyzer, r.AnalyzerVersion))), now, cancellationToken);
+    }
+
+    /// <summary>
+    /// The signals the assessment counts: those of each analyzer's latest version that has a run. A re-run under a new
+    /// version (its logic or its input changed) speaks for the analyzer from then on, so an application analyzed before
+    /// and after never counts one observation twice; the superseded rows stay stored for the audit trail.
+    /// </summary>
+    public static List<IntegritySignal> Current(IEnumerable<IntegritySignal> signals, IEnumerable<(string Analyzer, int Version)> runs)
+    {
+        ArgumentNullException.ThrowIfNull(signals);
+        ArgumentNullException.ThrowIfNull(runs);
+        var latest = runs.GroupBy(r => r.Analyzer, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.Max(r => r.Version), StringComparer.Ordinal);
+        return [.. signals.Where(s => !latest.TryGetValue(s.Source, out var version) || s.SourceVersion == version)];
     }
 
     /// <summary>

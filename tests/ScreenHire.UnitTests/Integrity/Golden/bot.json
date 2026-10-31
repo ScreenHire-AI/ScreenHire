@@ -24,7 +24,7 @@
         "contextOnly": false,
         "informational": false,
         "accessibilitySensitive": true,
-        "source": "automation@1",
+        "source": "automation@2",
         "explanation": "A form field hidden from people was filled in. Automated software usually does this; some autofill tools can too.",
         "evidence": [
           {
@@ -44,12 +44,12 @@
         "contextOnly": false,
         "informational": false,
         "accessibilitySensitive": true,
-        "source": "automation@1",
-        "explanation": "The form was completed in 6 seconds, faster than reading and answering it plausibly takes (at least 32 seconds).",
+        "source": "automation@2",
+        "explanation": "The form's pages were open for 6 seconds in all, faster than reading and answering them plausibly takes (at least 32 seconds).",
         "evidence": [
           {
             "kind": "Metric",
-            "label": "Time from opening the form to sending it",
+            "label": "Active time on the form's pages",
             "amount": 6,
             "unit": "seconds",
             "reference": 32,
@@ -67,7 +67,7 @@
         "contextOnly": false,
         "informational": false,
         "accessibilitySensitive": false,
-        "source": "automation@1",
+        "source": "automation@2",
         "explanation": "The browser reported that automation software was controlling it (webdriver, headless).",
         "evidence": [
           {

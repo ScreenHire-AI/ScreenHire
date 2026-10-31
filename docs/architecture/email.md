@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Email to candidates"
-description: "Organization email templates in Liquid with a rich-text body over fixed variables, the email composer (a template or a blank email changed for one send, previewed with the candidate's details), each email kept as it went for Messages, sending through the worker, the rules that the rejection email goes only with Reject, the follow-up questions email only with SendQuestionnaire and the talent pool invitation only with Invite to apply, and what is not built (replies, an inbox)."
+description: "Organization email templates in Liquid with a rich-text body over fixed variables, the email composer (a template or a blank email changed for one send, previewed with the candidate's details), each email kept as it went for Messages, sending through the worker, the rules that the rejection email goes only with Reject, the follow-up questions email only with SendQuestionnaire and the talent pool invitation only with Invite to apply, the link to finish a saved application, and what is not built (replies, an inbox)."
 tags: [email, templates, liquid]
 sources:
   - resource: src/ScreenHire.Domain/Hiring/EmailTemplate.cs
@@ -25,6 +25,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/email-composer-sheet.svelte
   - resource: apps/dashboard/src/lib/components/candidate/messages-tab.svelte
   - resource: src/ScreenHire.Application/Applications/ApplicationNotes.cs
+  - resource: apps/api/Applications/ApplicationDrafts.cs
   - resource: src/ScreenHire.Infrastructure/Email/EmailHeader.cs
 ---
 # Email to candidates
@@ -174,6 +175,16 @@ so a redelivered message sends nothing; a mention removed, a note deleted, a per
 the job (ADR-0015) before the worker gets to it gets no email. A note can mention only someone who sees the candidate.
 Someone who linked their Slack account also gets the mention as a Slack direct message, its own message beside this
 one, so a failing email never holds it up ([slack.md](slack.md)).
+
+## The link to finish a saved application
+
+A candidate who saves the apply form to finish later gets one email with the link back to it ([apply-flow.md](apply-flow.md)
+§7). It is ScreenHire's own wording (`ApplicationDrafts.Compose`), not an organization template: there is no
+application to name yet, and nothing in it is the hiring team's to word. It names the job and the organization, links to
+the job's apply page with the draft's token, says the date the answers are deleted and that files are attached again.
+Like a sign-in link it goes out inside the request, because its token lets whoever holds it read the draft and must not
+sit in the outbox's message table, and it is never kept as a copy or shown in Messages. An address gets at most 5 a day
+in one organization. With no `IEmailSender`, saving is hidden on the careers page.
 
 ## Not built
 

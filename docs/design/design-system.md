@@ -15,10 +15,15 @@ sources:
   - resource: apps/dashboard/src/lib/table-sort.svelte.ts
   - resource: apps/dashboard/src/lib/preview-window.svelte.ts
   - resource: apps/dashboard/src/lib/form-builder.ts
+  - resource: apps/dashboard/src/lib/form-sections.ts
   - resource: apps/dashboard/src/lib/templates.ts
   - resource: apps/dashboard/src/lib/components/color-field.svelte
   - resource: apps/dashboard/src/lib/components/image-field.svelte
   - resource: apps/dashboard/src/lib/components/branding-preview.svelte
+  - resource: apps/dashboard/src/lib/components/bar-chart.svelte
+  - resource: apps/dashboard/src/lib/components/chart-panel.svelte
+  - resource: apps/dashboard/src/lib/components/date-range-filter.svelte
+  - resource: apps/dashboard/src/lib/report-range.ts
 ---
 # ScreenHire design system
 
@@ -64,7 +69,7 @@ Authors check their screens against this list, and the `design-review` agent rep
 
 **Structure**
 
-- **S1** The page uses a template from section 7 (list, detail, read-only, form, builder).
+- **S1** The page uses a template from section 7 (list, detail, read-only, form, report, builder).
 - **S2** One header band: title, its status badges beside it, the primary action on the right, then the facts row or
   tabs. A description is one plain sentence. On anything people edit, Last updated is the last fact, with History
   beside it (T6).
@@ -226,7 +231,8 @@ Authors check their screens against this list, and the `design-review` agent rep
 
 Semantic names are the API; raw values live only in `packages/ui` (`tokens.css`, mapped in `theme.css`) and reach
 components as Tailwind classes. The token column is the name in code: `background` is `bg-background`,
-`muted-foreground` is `text-muted-foreground`. Colours did not change in v0.2 or v0.3.
+`muted-foreground` is `text-muted-foreground`. Colours did not change in v0.2 or v0.3, except that Reports added the two
+chart colours (section 3.5).
 
 ### 3.1 Recruiter app, light (default)
 
@@ -311,6 +317,25 @@ On tenant careers pages, `candidate-cta` and the header mark take the employer b
 and `candidate-header-foreground` (the header band, default the page background and ink) take the second colour
 (section 18).
 
+### 3.5 Charts
+
+Charts take their own colours, never a status colour (T1): one blue, away from every status hue (teal, amber,
+red-orange, indigo).
+
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| `chart-1` | `#1E5BA1` | `#5D94DA` | The series of a one-series chart, or the part in focus (Hires) |
+| `chart-2` | `#6AA7F4` | `#2E64A6` | The whole that part belongs to (Applications) |
+
+- A chart with one series uses `chart-1` for every bar, and the panel's title names it, so it has no legend. A funnel is
+  one series: the bars' order already says the order of the stages. Two series have a legend above the bars.
+- Text never takes a chart colour: names, values and legends are text tokens, and a swatch beside them carries the
+  colour.
+- `chart-2` is under 3:1 against the card, so every bar has its value written at its tip and every chart has its table
+  view. The pair passes the dataviz palette validator's checks (lightness band, chroma, colour-blind and normal-vision
+  separation) on `card` in both themes; check it again after changing either value.
+- A third series needs a third token checked the same way. Never a generated or status colour.
+
 ## 4. Type
 
 Fonts are self-hosted (`@fontsource-variable/*`, latin and latin-ext): Bricolage Grotesque for titles, Hanken Grotesk
@@ -342,7 +367,9 @@ weight and tracking. The family is its own class: `font-display` for the two tit
 ### 4.3 Candidate and marketing pages
 
 Titles take the employer's heading font where one is set (section 18), otherwise Bricolage Grotesque. Base 15px, display 30px, inputs 16px (no zoom on iOS), hints under a field 13px: `text-candidate-body`,
-`text-candidate-input` and `text-candidate-hint` in `packages/ui`. Marketing display goes up to 64px. The dashboard's
+`text-candidate-input` and `text-candidate-hint` in `packages/ui`. A form of several pages shows `PageProgress`
+(`packages/ui/src/questions`) above its fields: a bar of one segment per step, then "Step 2 of 4" and "9 of 24
+answered" in the hint size, the step semibold; each page's heading is its section's name. Marketing display goes up to 64px. The dashboard's
 questionnaire preview shows the candidate base with `text-candidate-body`.
 
 ## 5. Space, shape and size
@@ -389,6 +416,7 @@ Atlassian's surfaces.
 | Detail | A candidate, a job, a webhook endpoint | Header band (identity, status badges, a contact line for a person, actions, the facts row); tabs in a fixed order under it; the content in panels below, in a grid of two columns on a wide page and one on a narrow one (S7) |
 | Read-only view | A ScreenHire template, anything you cannot edit | As detail; data as labels and values, never disabled inputs; it says why it is read only and what to do (E3); Copy or Edit as the primary action |
 | Form | Creating or editing a record; a settings page such as Organization, Branding or Integrity | One column, 688px wide, labels above fields, actions at the end |
+| Report | Reports | Header band (title, then one row of filters on its bottom edge: the date range first, then Job), then the report's panels in a grid of two columns from 1024px of content and one below, the main chart across both. Each chart is a Chart panel (section 11). Filters scope every panel, never one panel alone |
 | Builder | The workflow graph; the questionnaire, scorecard and email template editors | Header band, then a full-width work area, with the Edit / Preview switch when someone else sees the result (A8). The graph's nodes edit through the same sheets and forms as the list view beside it, never a second editor, and nothing in it needs dragging: a node's buttons do every edit. A validation message shows on the node it is about, as it does under its form control (W7) |
 
 Sign-in, onboarding and error pages sit outside the app shell. They have no sidebar: the brand bar takes the top
@@ -506,6 +534,9 @@ in a development build, shows every component in each state, and its test fails 
 | Notice | `Notice` | A problem to fix: the verify status's soft colour, full width, the problem icon (section 14), what is wrong in words and a link to the fix (E2) |
 | Expandable row | `ExpandableRow` | A list's row that opens in place to show more, such as an email on Messages: the whole row is the button, with `aria-expanded` and `chevron-down`, which turns up when it is open; what it shows follows the row. Its words wrap rather than truncate, since a tooltip has no place inside a button. The rows share one surface and its dividers (S4) |
 | Summary card | shadcn `Card` as it is (`SummaryCard`), on a summary band (`SummaryBand`, section 6) | An icon in a neutral 32px chip and `Card.Title` (16/24 semibold); the count as a badge in `Card.Action`, saying what it counts (2 signals); `Card.Description` (14/20 muted, two lines at most, the rest in a tooltip). A link when it opens what it counts |
+| Bar chart | `BarChart` | A horizontal bar chart in HTML (section 3.5): each row's name, then its bars from one baseline, at most 24px thick, square at the baseline and rounded 4px at the end, with the value written at each tip in text colours, then an optional muted note (62% moved on). A zero draws nothing. Two series sit in pairs with a 2px gap and a legend above. Each row reads out its summary on hover, focus and tap (F4) and is one image with that summary for screen readers. In a narrow container the name goes above the bars |
+| Chart panel | `ChartPanel` on `Panel`, `Toggle` and the sorted table (L2) | A report's chart: the title, Chart and Table toggles on the header's right, one muted line saying what the numbers count, then the chart or the same numbers as a table, whose first column is the row's name. The table opens on the chart's own order unless a default sort says otherwise. While new numbers load it keeps the old ones, dimmed, rather than a skeleton. An empty state replaces both views |
+| Date range filter | `DateRangeFilter` on shadcn `Popover`; `#lib/report-range.ts` | A filter menu's outline button for dates (Dates: Last 30 days), `primary` once it is not the default. It opens the presets as ticked rows (Last 30, 90 and 365 days), which apply at once, then a custom range of two date fields under a rule, which applies with Apply and says what is wrong in words. Dates are the person's own days (W8); the API gets the local midnights |
 | Metric card | shadcn `Card` (`MetricCard`) | The value in the UI typeface (`metric`), a signed change against a named period (+7 vs last week), a 12-point line and a readout on hover, tap and focus; no description. The change is green when good and amber when it needs a look, decided per metric (fewer days to hire is good). It opens its report |
 | File row and file viewer | `FileRow`; `FileViewer` on shadcn `Dialog`; `FileFrame` | A page shows a file row: type icon, name, size, View and Download, or the scan status when a file is withheld. View opens the file in a full-window dialog with Close and Download, never a new tab. Untrusted files render isolated in a sandboxed frame; it draws PDFs, and other types keep Download only |
 | Edit / Preview switch | `EditPreviewLayout` (the editor and its preview side by side where both fit, else `EditPreviewSwitch`: a `Toggle` group and an icon button); `PreviewFrame`; `#lib/preview-window.svelte.ts` | A8: a pencil and an eye; the window icon (`app-window`, "Open in a new window") pops the preview out, and the window follows each edit over a same-origin `BroadcastChannel`. A candidate page previews in a phone, tablet or desktop frame at its real size. A read-only view of what an editor makes (a closed job's questionnaire) keeps the same switch, so content and preview never share the screen there either |
@@ -514,7 +545,7 @@ in a development build, shows every component in each state, and its test fails 
 | Built in badge | `BuiltInBadge` on `Badge` muted variant | After the name of a template or role ScreenHire supplies; nothing marks your own (W6) |
 | Reorder grip | `ReorderList` and `ReorderGrip` on svelte-dnd-action | A7: a drag handle whose click (or Enter) opens Move up, Move down, Move to top and Move to bottom, leaving out moves that do not apply; Space picks the item up and the arrow keys move it. Each list has its own drag zone, so lists on one page never trade items |
 | Settings menu | `SettingsMenu`; its pages are `settingsSections` in `#lib/settings.ts` | Settings is one sidebar item; its pages share this menu: Organization, Team, Roles, Branding, Verification, Talent pool, API keys, Webhooks, MCP server and Slack. Email templates are on the Templates page (section 21), and their old Settings addresses redirect there. A surface under the header band: from `lg` a 200px column left of the page's content, the one side column S7 allows; below `lg` one row above the content that scrolls sideways and never wraps (F5). Each entry is a link with its icon; the current page takes `accent` and `aria-current`, and the row scrolls to show it. The menu lists only the pages the person's role may use, each behind its permission. A record under a settings page (a webhook endpoint, a role) is a page with no menu: a detail page when it has the details rail, the form template when it does not. On a settings page the header band fills the window and its title lines up with the menu, not with the form column |
-| Form builder | `FormBuilder` and `AnswerMenu` on `Panel`, `ReorderList` and shadcn `Switch`; `#lib/form-builder.ts` | One builder for application questions, follow-up questionnaires and scorecards, modelled on Google Forms. The questions are rows in one panel with their count (S4), and every row starts closed. A closed row reads as text: the question, an asterisk when required, its answer kind's icon and name top right, the help line, and the options with the mark the person will see (a circle for Choice, a square for Multi-choice). The row is one button that opens it, beside its grip. Only one question is open at a time, with a `primary` bar down its left edge: its text, the answer kind button top right (the answer menu), the help line, the options with their own grip list ending in an outline Add option, then what the kind needs (a knockout, a number's range, a file's types). Its footer holds Duplicate and Delete icon buttons and the Required switch. Duplicate puts the copy straight after the original and opens it. Deleting changes nothing until Save, so it does not confirm (section 10). A problem shows under its question whether the row is open or closed (W7). Add a question, under the list, opens the answer menu. Questions and options reorder with a grip (A7). The editor that mounts it has the Edit / Preview switch at its top (A8). Changing a question never changes answers already given |
+| Form builder | `FormBuilder` and `AnswerMenu` on `Panel`, `ReorderList` and shadcn `Switch`; `#lib/form-builder.ts`, `#lib/form-sections.ts` | One builder for application questions, follow-up questionnaires and scorecards, modelled on Google Forms. The questions are rows in one panel with their count (S4), and every row starts closed. A closed row reads as text: the question, an asterisk when required, its answer kind's icon and name top right, the help line, and the options with the mark the person will see (a circle for Choice, a square for Multi-choice). The row is one button that opens it, beside its grip. Only one question is open at a time, with a `primary` bar down its left edge: its text, the answer kind button top right (the answer menu), the help line, the options with their own grip list ending in an outline Add option, then what the kind needs (a knockout, a number's range, a file's types). Its footer holds Duplicate and Delete icon buttons and the Required switch. Duplicate puts the copy straight after the original and opens it. Deleting changes nothing until Save, so it does not confirm (section 10). A problem shows under its question whether the row is open or closed (W7). Add a question, under the list, opens the answer menu. Questions and options reorder with a grip (A7). The editor that mounts it has the Edit / Preview switch at its top (A8). Changing a question never changes answers already given. A questionnaire (never a scorecard) may have named sections, each a page for the candidate: an outline Add a section beside Add a question, and each section a row in the same list, on the `muted` fill, with its grip, an inline name field, its question count and a Delete section icon button. A section row starts its section, so moving a question past one, by drag or the grip's Move up and Move down, moves it into that section; the list stays one panel with one open question. Deleting a section gives its questions to the section before it and does not confirm (section 10). The preview stacks the candidate's pages, each opening with `PageProgress` |
 | Answer menu | `AnswerMenu` on shadcn `DropdownMenu` | Picks a question's answer kind, each group under its heading and each kind with its icon; the current kind is ticked, and Add a question opens the same menu with nothing ticked. General: Yes or no, Choice (pick one), Multi-choice (pick any), Short text, Long text. Application questions add More: Number, Link and File. A follow-up questionnaire offers the same without File, because its page takes no uploads. A scorecard offers General and Rating, each rating with a star: 1 to 5, 1 to 10, Yes or no |
 | Rating | `Rating`; `#lib/rating-column.ts` for a job's table | The candidate's rating: one to five stars filled to the tenth, the number and how many scorecards it comes from (in words in the count's tooltip), opening, from a small outline button (A6), to each scorecard that counts with its own number and recommendation. It averages people's rating questions only, never integrity results, AI signals or the stage; a reviewer with a scorecard to give reads "Rating after your scorecard" ("After yours" in a table cell, the rest in its tooltip) until they submit their own; no automation acts on it. "Not rated yet" until a scorecard counts. A job's table has a Rating column, highest first, the unrated last |
 | Rating answer | `RatingAnswer` on shadcn `ToggleGroup` | A rating or yes-or-no question on one row of joined buttons, with Low and High under the two ends of a number scale. Each button is a radio in the question's group; the chosen one takes `accent` (A6) and an inset ring in `accent-foreground`, so a chosen button is not told from a hovered one by a faint fill alone, and choosing it again clears an optional answer. A number scale never wraps: its buttons share the row equally, up to the control size, so 1 to 10 on a phone has buttons narrower than 44 px (still above WCAG 2.5.8's 24 px) and High stays under 10 |
@@ -782,6 +813,14 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   decision 11): a requested scorecard opens the candidate's Scorecards tab with the sheet open on it, and every other
   task the candidate's Overview, where Next steps ticks a to-do or a rejection review. A review and a requested
   scorecard are done when the scorecard is submitted.
+- **Reports:** a sidebar item after My tasks (G R) for every member, since every role sees jobs and candidates; job
+  access narrows the numbers to the jobs a person sees. The Report template (section 7): Dates and Job in the header
+  band, then Hiring funnel across the top, Time to hire and Sources below it. The funnel counts the applications that
+  arrived in the dates at every stage kind up to the furthest one each reached, Applied to Hired, with the share that
+  moved on; time to hire is the median days from applying to being hired for hires made in the dates, overall in the
+  metric size and per job; sources are applications and the hires among them by where they came from. Each panel's
+  first line says what it counts. No verification data: no levels, signals or counts by level, and no row for a
+  verification stage (ADR-0004, `docs/architecture/reports.md`).
 - **Saved views:** each shows its status icon and a short name (To verify), so nothing is cut off.
   Built: To review, To verify and Overdue show their status's icon; New today, Not screened and Interviewing an
   ordinary one. The short name is also the candidates page's title for the view.

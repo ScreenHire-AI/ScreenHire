@@ -66,11 +66,32 @@ public sealed class Organization
     /// </summary>
     public bool SignalNetworkOptIn { get; set; }
 
+    /// <summary>The page size every new organization starts with.</summary>
+    public const int DefaultQuestionsPerPage = 8;
+
+    public const int MinQuestionsPerPage = 1;
+
+    public const int MaxQuestionsPerPage = 50;
+
+    /// <summary>
+    /// How many questions a candidate sees on each page of a questionnaire that has no sections (the apply form and
+    /// follow-up questionnaires). Careers pages show it anyway, so it is no secret that every tenant can read the row.
+    /// </summary>
+    public int QuestionsPerPage { get; private set; } = DefaultQuestionsPerPage;
+
     /// <summary>The careers-page palette, or null when the organization has no brand colour.</summary>
     public BrandPalette? GetBrandPalette() => BrandColor is null ? null : BrandPalette.Derive(BrandColor);
 
     /// <summary>Sets or clears the brand colour; throws <see cref="FormatException"/> unless it is <c>#rrggbb</c>.</summary>
     public void SetBrandColor(string? color) => BrandColor = color is null ? null : BrandPalette.Normalize(color);
+
+    /// <summary>Sets the page size; throws <see cref="ArgumentOutOfRangeException"/> outside 1 to 50.</summary>
+    public void SetQuestionsPerPage(int questionsPerPage)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(questionsPerPage, MinQuestionsPerPage);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(questionsPerPage, MaxQuestionsPerPage);
+        QuestionsPerPage = questionsPerPage;
+    }
 
     /// <summary>
     /// Replaces the whole branding. Colours must be <c>#rrggbb</c> (throws <see cref="FormatException"/>); the caller has

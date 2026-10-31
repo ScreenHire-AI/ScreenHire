@@ -84,3 +84,36 @@ describe('QuestionnairePreview', () => {
     expect(screen.getByRole('textbox', { name: /Portfolio link/ })).toHaveAttribute('type', 'url');
   });
 });
+
+describe('QuestionnairePreview pages', () => {
+  it('shows each named section as a page with the step line the candidate sees', () => {
+    render(QuestionnairePreview, {
+      questions,
+      sections: [
+        { id: 'eligibility', name: 'Eligibility', questionIds: ['work_authorization'] },
+        { id: 'about', name: 'About the role', questionIds: ['shifts', 'years', 'why'] },
+      ],
+    });
+
+    const pages = [...document.querySelectorAll<HTMLElement>('[data-preview-page]')];
+    expect(pages.map((page) => page.querySelector('h3')?.textContent)).toEqual(['Eligibility', 'About the role']);
+    // Details, two pages and the review: four steps.
+    expect(within(pages[1]!).getByText('Step 3 of 4')).toBeInTheDocument();
+    expect(within(pages[0]!).getByText('0 of 5 answered')).toBeInTheDocument();
+  });
+
+  it("splits a questionnaire without sections at the organization's page size, and counts answers as they are tried", async () => {
+    render(QuestionnairePreview, { questions, questionsPerPage: 2 });
+
+    expect(document.querySelectorAll('[data-preview-page]')).toHaveLength(2);
+    await fireEvent.click(screen.getByRole('radio', { name: 'Yes' }));
+    expect(screen.getAllByText('1 of 5 answered').length).toBeGreaterThan(0);
+  });
+
+  it('pages a follow-up questionnaire without the details step', () => {
+    render(QuestionnairePreview, { questions, followUp: true, questionsPerPage: 3 });
+
+    expect(screen.getByText('Step 2 of 2')).toBeInTheDocument();
+    expect(screen.queryByText('Your details')).toBeNull();
+  });
+});

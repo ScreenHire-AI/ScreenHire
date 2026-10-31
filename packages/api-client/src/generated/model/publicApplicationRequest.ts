@@ -6,6 +6,7 @@
  */
 import type { AiUseDeclaration } from './aiUseDeclaration.ts';
 import type { ApplicationAnswer } from './applicationAnswer.ts';
+import type { PageTimeInput } from './pageTimeInput.ts';
 import type { PublicCandidateInput } from './publicCandidateInput.ts';
 import type { TelemetrySnapshotInput } from './telemetrySnapshotInput.ts';
 
@@ -28,7 +29,7 @@ export interface PublicApplicationRequest {
   /** @nullable */
   userAgent?: string | null;
   /** @nullable */
-  formStartedAt?: string | null;
+  pageTimes?: PageTimeInput[] | null;
   /** @nullable */
   automationMarkers?: string[] | null;
   /** @nullable */

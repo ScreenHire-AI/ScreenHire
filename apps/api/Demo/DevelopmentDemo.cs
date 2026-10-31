@@ -58,7 +58,8 @@ namespace ScreenHire.Api.Demo;
 /// submission path as the careers form, with their network and session details, so the worker's assessments show every
 /// integrity level.</item>
 /// <item>The people in <see cref="DemoCandidates"/> apply to their jobs, answering every question of their job, and are
-/// moved through their stages, with notes.</item>
+/// moved through their stages, with notes. Support Engineer's people applied and moved in the weeks before, and one of
+/// them was added by a recruiter, so Reports has hires, a time to hire and two sources to show.</item>
 /// <item>Notes on one .NET candidate (<see cref="SeedNotesAsync"/>): Jordan Ellis mentions Avery Quinn, and Avery mentions Jordan and
 /// edits the note, so the candidate's Activity shows mentions and an edited note and Mailpit has the mention emails.</item>
 /// <item>Scorecards (<see cref="SeedScorecardsAsync"/>): Brightwater's own "Technical interview" scorecard, with every answer
@@ -95,7 +96,7 @@ internal sealed partial class DevelopmentDemo(
     public const string ClosedJobSlug = DemoCandidates.SupportEngineer;
 
     /// <summary>The careers notice version the demo applicants "saw" (NOTICE_VERSION in apps/careers/src/lib/apply.ts).</summary>
-    public const string PrivacyNoticeVersion = "2026-10-30.1";
+    public const string PrivacyNoticeVersion = "2026-10-31.1";
 
     /// <summary>The seeded open jobs that get the candidate emails, and the boards each is posted to (null: every board).</summary>
     public static IReadOnlyList<(string Slug, IReadOnlyList<string>? Boards)> OpenJobs { get; } =
@@ -181,14 +182,19 @@ internal sealed partial class DevelopmentDemo(
         var applicants = 0;
         foreach (var applicant in SyntheticApplicants.All)
         {
-            applicants += await TryAsync(() => ApplyAsync(SyntheticApplicantsJobSlug, applicant, moves: [], keepForFutureRoles: false, stoppingToken), stoppingToken) ? 1 : 0;
+            applicants += await TryAsync(
+                () => ApplyAsync(SyntheticApplicantsJobSlug, applicant, moves: [], ApplicationSource.CareersSite, daysAgo: 0, keepForFutureRoles: false, stoppingToken),
+                stoppingToken) ? 1 : 0;
         }
 
         var candidates = 0;
         foreach (var candidate in DemoCandidates.All)
         {
             candidates += await TryAsync(
-                () => ApplyAsync(candidate.JobSlug, candidate.Applicant, candidate.Moves, candidate.KeepForFutureRoles, stoppingToken), stoppingToken) ? 1 : 0;
+                () => ApplyAsync(
+                    candidate.JobSlug, candidate.Applicant, candidate.Moves, candidate.Source, candidate.AppliedDaysAgo, candidate.KeepForFutureRoles,
+                    stoppingToken),
+                stoppingToken) ? 1 : 0;
         }
 
         await TryAsync(() => SeedNotesAsync(stoppingToken), stoppingToken);
@@ -931,9 +937,11 @@ internal sealed partial class DevelopmentDemo(
     }
 
     // Submits one applicant through the careers submission path, then makes `moves` in order as Brightwater's Owner.
-    // False when they had already applied or the job is not open.
+    // `daysAgo` dates the submission that many days before now, for Reports' history. False when they had already
+    // applied or the job is not open.
     private async Task<bool> ApplyAsync(
-        string jobSlug, SyntheticApplicant applicant, IReadOnlyList<DemoMove> moves, bool keepForFutureRoles, CancellationToken cancellationToken)
+        string jobSlug, SyntheticApplicant applicant, IReadOnlyList<DemoMove> moves, ApplicationSource source, int daysAgo, bool keepForFutureRoles,
+        CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
         if (await BeginAsync(scope, cancellationToken) is not { } step)
@@ -952,18 +960,21 @@ internal sealed partial class DevelopmentDemo(
         var resumeQuestion = ApplicationForm.QuestionsFor(job.Workflow).First(q => q.Id == ApplicationForm.ResumeQuestionId);
         var upload = await step.Services.GetRequiredService<ApplicantUploads>().StoreDevelopmentFileAsync(
             step.OrganizationId, job.Id, resumeQuestion, applicant.ResumeFileName, applicant.ResumeBytes(), cancellationToken);
+        var submittedAt = step.Now.AddDays(-daysAgo);
         var intake = new ApplicationIntake(
-            ApplicationSource.CareersSite,
+            source,
             [new ApplicationAnswer(resumeQuestion.Id, upload.UploadId.ToString()), .. applicant.Answers],
             PrivacyNoticeVersion,
             applicant.HoneypotFilled,
             BotCheckResult.NotChecked,
-            keepForFutureRoles ? new FutureRolesConsent(step.Now, await TalentPoolMembership.MonthsAsync(db, cancellationToken)) : null);
+            keepForFutureRoles ? new FutureRolesConsent(submittedAt, await TalentPoolMembership.MonthsAsync(db, cancellationToken)) : null);
         var created = await ApplicationSubmission.SubmitAsync(
             step.Outbox, job, new ApplicationSubmission.CandidateDetails(applicant.FirstName, applicant.LastName, applicant.Email, applicant.Phone),
             new ApplicationDeclarations(false, applicant.AiUseDeclaration, applicant.AiUseDetails),
-            intake, [upload], step.Now, actorUserId: null, cancellationToken,
-            new SubmissionSession(applicant.IpAddress, applicant.UserAgent, applicant.DeviceFingerprint, step.Now - applicant.TimeToComplete, applicant.AutomationMarkers),
+            intake, [upload], submittedAt, actorUserId: null, cancellationToken,
+            new SubmissionSession(
+                applicant.IpAddress, applicant.UserAgent, applicant.DeviceFingerprint,
+                [.. applicant.PageTimes().Select(p => new PageTimeInput(p.Page, p.Seconds))], applicant.AutomationMarkers),
             step.Services.GetRequiredService<IOptions<IntegrityOptions>>().Value,
             Telemetry(applicant));
         if (created is not (var application, _))
@@ -1038,7 +1049,7 @@ internal sealed partial class DevelopmentDemo(
             }
 
             var from = application.CurrentStageId;
-            var now = time.GetUtcNow();
+            var now = time.GetUtcNow().AddDays(-move.DaysAgo);
             if (application.MoveTo(target, now, step.Owner, move.Note) is { } moved)
             {
                 db.ApplicationEvents.Add(moved);

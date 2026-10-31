@@ -117,6 +117,8 @@ internal sealed class SubmissionObservationConfiguration : IEntityTypeConfigurat
         builder.Property(o => o.UserAgent).HasMaxLength(SubmissionObservation.MaxUserAgentLength);
         builder.Property(o => o.DeviceHash).HasMaxLength(64);
         builder.Property(o => o.AutomationMarkers).HasColumnType("text[]");
+        builder.Property(o => o.PageTimes).HasJsonColumn().HasDefaultValueSql("'[]'::jsonb");
+        builder.Property(o => o.CarriedOverQuestionIds).HasColumnType("text[]").HasDefaultValueSql("'{}'::text[]");
 
         builder.HasOne<JobApplication>().WithMany()
             .HasForeignKey(o => new { o.OrganizationId, o.ApplicationId })
