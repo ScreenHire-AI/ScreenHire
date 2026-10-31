@@ -28,6 +28,8 @@ public sealed class EmbedOriginsTests
     [InlineData("https://203.0.113.7", "Use the site's name, not its IP address.")]
     [InlineData("https://[2001:db8::1]", "Use the site's name, not its IP address.")]
     [InlineData("https://localhost:3000", "A site that embeds the careers page is on the internet, not this computer.")]
+    [InlineData("https://jobs_site.example.com", "Enter a site's address, such as https://www.example.com.")]
+    [InlineData("https://www.example.com.", "Enter a site's address, such as https://www.example.com.")]
     public void Anything_else_says_what_is_wrong(string input, string problem) =>
         EmbedOrigins.Normalize(input, allowLoopback: false).Should().Be(((string?)null, problem));
 

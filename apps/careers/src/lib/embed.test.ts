@@ -58,6 +58,12 @@ describe('newTabLinks', () => {
     );
   });
 
+  it('reads target only as an attribute, not inside an address', () => {
+    expect(newTabLinks('<a href="https://www.example.com/?target=jobs" rel="nofollow">x</a>')).toBe(
+      '<a target="_blank" href="https://www.example.com/?target=jobs" rel="nofollow">x</a>',
+    );
+  });
+
   it('leaves a link that already says where it opens', () => {
     expect(newTabLinks('<a target="_self" href="#x">x</a>')).toBe('<a target="_self" href="#x">x</a>');
   });

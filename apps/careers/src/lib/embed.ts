@@ -49,7 +49,7 @@ export function withEmbed(href: string, embed: string | null | undefined): strin
  * frame, where most refuse to show. The description is the API's sanitized HTML, whose links are only
  * `<a href="..." rel="nofollow noopener noreferrer">` (RichText.cs), so a plain rewrite of the tag is enough.
  */
-export const newTabLinks = (html: string): string => html.replace(/<a (?![^>]*\btarget=)/g, '<a target="_blank" ');
+export const newTabLinks = (html: string): string => html.replace(/<a (?!(?:[^>]*\s)?target=)/g, '<a target="_blank" ');
 
 /**
  * Sets the page's embedding for the middleware's `frame-ancestors` and the components that build links, and returns the

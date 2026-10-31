@@ -4,8 +4,8 @@
   import { Button } from '#lib/components/ui/button/index.js';
 
   // Code for people to paste elsewhere (design system section 11, Code block): the embed snippet on Settings,
-  // Organization, and an MCP client's config. The code in monospace, then Copy. Without a clipboard (an insecure origin,
-  // a refused permission) Copy selects the code for a manual copy.
+  // Organization, an MCP client's config and the example request on Settings, API keys. The code in monospace, then
+  // Copy. Without a clipboard (an insecure origin, a refused permission) Copy selects the code for a manual copy.
   let { code, label }: { code: string; /** Names the code for screen readers and the copy's status line. */ label: string } = $props();
 
   let pre: HTMLPreElement | undefined = $state();
@@ -27,8 +27,10 @@
 </script>
 
 <div class="flex min-w-0 flex-col items-start gap-2">
-  <pre bind:this={pre} aria-label={label} class="w-full rounded-lg bg-secondary px-3.5 py-3 font-mono text-code break-all whitespace-pre-wrap">{code}</pre>
-  <Button variant="outline" onclick={copy}>
+  <!-- A role, so screen readers announce the label; lines break at spaces first, and inside a long address only when it
+       must (overflow-wrap: anywhere keeps the block from widening its panel). -->
+  <pre bind:this={pre} role="group" aria-label={label} class="w-full rounded-lg bg-secondary px-3.5 py-3 font-mono text-code whitespace-pre-wrap [overflow-wrap:anywhere]">{code}</pre>
+  <Button variant="outline" size="lg" onclick={copy}>
     {#if copied}<CheckIcon aria-hidden="true" />Copied{:else}<CopyIcon aria-hidden="true" />Copy{/if}
   </Button>
   <p role="status" class="sr-only">{copied ? `${label} copied` : ''}</p>

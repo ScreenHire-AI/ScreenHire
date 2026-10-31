@@ -121,16 +121,17 @@ internal static class OrganizationEndpoints
         IOptions<CareersEmbeddingOptions> embedding, CancellationToken cancellationToken)
     {
         var origins = request.Origins ?? [];
+        var normalized = origins.Select(o => EmbedOrigins.Normalize(o, embedding.Value.AllowLoopback)).ToList();
         var problems = new Dictionary<string, string[]>();
-        for (var index = 0; index < origins.Count; index++)
+        for (var index = 0; index < normalized.Count; index++)
         {
-            if (EmbedOrigins.Normalize(origins[index], embedding.Value.AllowLoopback).Problem is { } problem)
+            if (normalized[index].Problem is { } problem)
             {
                 problems[$"origins[{index.ToString(CultureInfo.InvariantCulture)}]"] = [problem];
             }
         }
 
-        if (problems.Count == 0 && origins.Select(o => EmbedOrigins.Normalize(o, embedding.Value.AllowLoopback).Origin).Distinct().Count() > EmbedOrigins.MaxCount)
+        if (problems.Count == 0 && normalized.Select(n => n.Origin).Distinct(StringComparer.Ordinal).Count() > EmbedOrigins.MaxCount)
         {
             problems["origins"] = [$"At most {EmbedOrigins.MaxCount} sites can embed the careers page."];
         }

@@ -167,7 +167,7 @@ describe('organization settings page', () => {
       '<script src="https://jobs.brightwater.example.com/embed.js" async></script>',
     );
     expect(screen.getByRole('button', { name: 'Copy' })).toBeInTheDocument();
-    expect(screen.getByText('Paste it where the jobs should go, for the same notice and Verification checks inside your site.')).toBeInTheDocument();
+    expect(screen.getByText('Paste it into your site where the jobs should show.')).toBeInTheDocument();
     await expectNoAxeViolations();
   });
 

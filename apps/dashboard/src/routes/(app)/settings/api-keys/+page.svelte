@@ -28,6 +28,7 @@
   import { z } from 'zod';
   import ActionBar from '#lib/components/action-bar.svelte';
   import ChoiceCard from '#lib/components/choice-card.svelte';
+  import CodeBlock from '#lib/components/code-block.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
@@ -276,8 +277,7 @@
           </SummaryItem>
         </SummaryList>
         {#if apiOrigin}
-          <pre aria-label="Example request" class="rounded-lg bg-secondary px-3.5 py-3 font-mono text-code break-all whitespace-pre-wrap">curl {apiOrigin}/v1/jobs \
-  -H "Authorization: Bearer $SCREENHIRE_KEY"</pre>
+          <CodeBlock code={`curl ${apiOrigin}/v1/jobs \\\n  -H "Authorization: Bearer $SCREENHIRE_KEY"`} label="Example request" />
         {/if}
       </div>
     </Panel>

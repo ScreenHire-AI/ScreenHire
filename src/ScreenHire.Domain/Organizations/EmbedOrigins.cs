@@ -58,6 +58,13 @@ public static class EmbedOrigins
             return (null, "Use the site's name, not its IP address.");
         }
 
+        // A CSP host source and a browser's location.origin both say a name as letters, digits, dots and hyphens, with no
+        // dot at either end; the careers pages drop anything else from frame-ancestors, so it could never embed them.
+        if (!host.All(c => char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || c is '.' or '-') || host.StartsWith('.') || host.EndsWith('.'))
+        {
+            return (null, "Enter a site's address, such as https://www.example.com.");
+        }
+
         if (uri.Scheme == "http" && !(loopback && allowLoopback))
         {
             return (null, "A site that embeds the careers page uses https.");

@@ -216,7 +216,7 @@
             tags={detail.embedOrigins}
             noun="site"
             label="Sites that can embed the careers page"
-            placeholder="https://www.example.com"
+            placeholder="https://example.com"
             maxlength={200}
             inputmode="url"
             missing="Enter the site's address first."
@@ -232,7 +232,7 @@
             <h3 class="font-semibold">Embed code</h3>
             <CodeBlock code={snippet(detail)} label="Embed code" />
             <p class="text-muted-foreground">
-              Paste it where the jobs should go, for the same notice and Verification checks inside your site.
+              Paste it into your site where the jobs should show.
             </p>
           </div>
         {/if}
