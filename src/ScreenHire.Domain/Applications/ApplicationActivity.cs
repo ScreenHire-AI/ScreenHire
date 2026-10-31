@@ -30,10 +30,17 @@ public static class ApplicationActivity
         ApplicationEventType.QuestionnaireSent,
         ApplicationEventType.QuestionnaireCompleted,
         ApplicationEventType.TaskCreated,
+        // A person kept the candidate in mind, or invited them to apply for another job (docs/architecture/talent-pool.md).
+        ApplicationEventType.KeptInMind,
+        ApplicationEventType.InvitedToApply,
     ];
 
-    /// <summary>The timeline entries that leave it as it is.</summary>
-    public static readonly ApplicationEventType[] NotCounted = [ApplicationEventType.IntegrityAssessed];
+    /// <summary>
+    /// The timeline entries that leave it as it is: the integrity engine's, and the candidate leaving the talent pool,
+    /// which the daily expiry sweep writes with nobody involved, and whose other causes (a move back, a new application)
+    /// come with an entry that counts.
+    /// </summary>
+    public static readonly ApplicationEventType[] NotCounted = [ApplicationEventType.IntegrityAssessed, ApplicationEventType.LeftTalentPool];
 
     /// <summary>
     /// The application's last activity: the latest counted timeline entry or finished task, and never earlier than when it

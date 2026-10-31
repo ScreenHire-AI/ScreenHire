@@ -26,8 +26,15 @@ public static class EmailTemplateIds
     /// </summary>
     public const string QuestionnaireRequest = "questionnaire-request";
 
+    /// <summary>
+    /// Invites a candidate in the talent pool to apply for another job, with that job's link and a signed link to stop
+    /// being kept. Only a person's Invite to apply sends it (docs/architecture/talent-pool.md): never an automation, and
+    /// never as an ordinary email.
+    /// </summary>
+    public const string TalentPoolInvitation = "talent-pool-invitation";
+
     /// <summary>The built-in templates, in the order the dashboard lists them.</summary>
-    public static IReadOnlyList<string> BuiltIn { get; } = [ApplicationReceived, StageChange, QuestionnaireRequest, ApplicationRejected];
+    public static IReadOnlyList<string> BuiltIn { get; } = [ApplicationReceived, StageChange, QuestionnaireRequest, ApplicationRejected, TalentPoolInvitation];
 
     /// <summary>ScreenHire's names for the built-in templates, which organizations cannot rename.</summary>
     public static IReadOnlyDictionary<string, string> Names { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -36,16 +43,18 @@ public static class EmailTemplateIds
         [StageChange] = "Moved to the next step",
         [QuestionnaireRequest] = "Follow-up questions",
         [ApplicationRejected] = "Not progressing",
+        [TalentPoolInvitation] = "Invitation to apply",
     };
 
     public static IReadOnlySet<string> All { get; } =
-        new HashSet<string>(StringComparer.Ordinal) { ApplicationReceived, StageChange, QuestionnaireRequest, ApplicationRejected };
+        new HashSet<string>(StringComparer.Ordinal) { ApplicationReceived, StageChange, QuestionnaireRequest, ApplicationRejected, TalentPoolInvitation };
 
     /// <summary>
-    /// Whether only an automation action sends <paramref name="id"/>: the rejection email (Reject) and the follow-up
-    /// questions email (SendQuestionnaire). A person never sends either by hand, and SendEmail never names one.
+    /// Whether only its own action sends <paramref name="id"/>: the rejection email (Reject), the follow-up questions
+    /// email (SendQuestionnaire) and the talent pool invitation (a person's Invite to apply). None goes as an ordinary
+    /// email by hand, and SendEmail never names one.
     /// </summary>
-    public static bool IsActionOnly(string id) => id is ApplicationRejected or QuestionnaireRequest;
+    public static bool IsActionOnly(string id) => id is ApplicationRejected or QuestionnaireRequest or TalentPoolInvitation;
 
     /// <summary>Whether <paramref name="id"/> names one of an organization's own templates: a Guid in its 36-character form.</summary>
     public static bool IsOrganizationTemplate(string id) => Guid.TryParseExact(id, "D", out _);

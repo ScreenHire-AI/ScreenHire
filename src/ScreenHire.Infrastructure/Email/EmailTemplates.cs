@@ -21,7 +21,9 @@ namespace ScreenHire.Infrastructure.Email;
 /// <c>candidateName</c>: the full name. <c>firstName</c>: the first name, or the full name when none is given (a
 /// candidate from before the name was split keeps their whole name as the first name). <c>lastName</c>: empty when the
 /// candidate gave none. <c>questionnaireLink</c>: the signed link to a follow-up questionnaire, for the questionnaire
-/// request email only.
+/// request email only. <c>jobLink</c> and <c>removeLink</c>: the talent pool invitation's links, to the job's careers
+/// page and to the page where the candidate stops being kept; in that email <c>jobTitle</c> is the job they are invited
+/// to.
 /// </remarks>
 public sealed record EmailTemplateModel(
     string CandidateName,
@@ -31,12 +33,15 @@ public sealed record EmailTemplateModel(
     string? Reason = null,
     string? QuestionnaireLink = null,
     string? FirstName = null,
-    string? LastName = null)
+    string? LastName = null,
+    string? JobLink = null,
+    string? RemoveLink = null)
 {
     /// <summary>The made-up candidate a template's preview and test send use.</summary>
     public static EmailTemplateModel Sample(string organizationName) =>
         new("Jordan Lee", "Product designer", organizationName, "Interview", "This role needs a driving licence.",
-            "https://careers.example.com/questionnaires/sample", "Jordan", "Lee");
+            "https://careers.example.com/questionnaires/sample", "Jordan", "Lee",
+            "https://careers.example.com/jobs/product-designer", "https://careers.example.com/talent-pool/sample");
 }
 
 /// <summary>
@@ -81,11 +86,18 @@ public sealed partial class EmailTemplates
     /// <summary>The variable only <see cref="EmailTemplateIds.QuestionnaireRequest"/> may use, and must.</summary>
     public static EmailTemplateVariable QuestionnaireLink { get; } = new("questionnaireLink", "Questionnaire link");
 
-    /// <summary>The variables <paramref name="templateId"/> may use: every template's, plus its own required one.</summary>
+    /// <summary>The link to the job a talent pool invitation is for: only that email may use it, and must.</summary>
+    public static EmailTemplateVariable JobLink { get; } = new("jobLink", "Job link");
+
+    /// <summary>The link to stop being kept in the talent pool: only the invitation may use it, and must.</summary>
+    public static EmailTemplateVariable RemoveLink { get; } = new("removeLink", "Stop link");
+
+    /// <summary>The variables <paramref name="templateId"/> may use: every template's, plus its own required ones.</summary>
     public static IReadOnlyList<EmailTemplateVariable> VariablesFor(string? templateId) => templateId switch
     {
         EmailTemplateIds.ApplicationRejected => [.. Variables, Reason],
         EmailTemplateIds.QuestionnaireRequest => [.. Variables, QuestionnaireLink],
+        EmailTemplateIds.TalentPoolInvitation => [.. Variables, JobLink, RemoveLink],
         _ => Variables,
     };
 
@@ -159,6 +171,20 @@ public sealed partial class EmailTemplates
             problems.Add(new("body", "The follow-up questions email must give the link: add {{ questionnaireLink }}."));
         }
 
+        if (templateId == EmailTemplateIds.TalentPoolInvitation && problems.Count == 0)
+        {
+            // The candidate needs the job to apply for, and a way to stop being kept (GDPR Art. 7(3)).
+            if (!used.Contains(JobLink.Name))
+            {
+                problems.Add(new("body", "The invitation must give the job's link: add {{ jobLink }}."));
+            }
+
+            if (!used.Contains(RemoveLink.Name))
+            {
+                problems.Add(new("body", "The invitation must say how to stop: add {{ removeLink }}."));
+            }
+        }
+
         if (problems.Count == 0)
         {
             // A template that parses can still fail as it runs, such as a loop past the step limit.
@@ -200,6 +226,8 @@ public sealed partial class EmailTemplates
         context.SetValue("stageName", model.StageName ?? "");
         context.SetValue("reason", model.Reason ?? "");
         context.SetValue("questionnaireLink", model.QuestionnaireLink ?? "");
+        context.SetValue("jobLink", model.JobLink ?? "");
+        context.SetValue("removeLink", model.RemoveLink ?? "");
 
         // A subject is one line of plain text: no line breaks a header could carry. Variables can make it far longer than
         // its wording, so it is cut to what a kept copy holds, and the candidate gets the same subject the copy keeps.
@@ -218,12 +246,16 @@ public sealed partial class EmailTemplates
             rendered += $"<p>{WebUtility.HtmlEncode(AutomatedDecisionNotice(model.OrganizationName))}</p>";
         }
 
-        // Only the addresses the template's author wrote, and the questionnaire link, become links: a value a candidate
-        // typed (a name that is a web address) stays text.
+        // Only the addresses the template's author wrote, and the links ScreenHire makes (the questionnaire's, and the
+        // talent pool invitation's job and stop links), become links: a value a candidate typed (a name that is a web
+        // address) stays text.
         var linkable = TextAddresses(body).Where(address => !HoldsLiquid(address)).ToHashSet(StringComparer.Ordinal);
-        if (!string.IsNullOrEmpty(model.QuestionnaireLink))
+        foreach (var link in new[] { model.QuestionnaireLink, model.JobLink, model.RemoveLink })
         {
-            linkable.Add(model.QuestionnaireLink);
+            if (!string.IsNullOrEmpty(link))
+            {
+                linkable.Add(link);
+            }
         }
 
         var html = RichText.Sanitize(Finish(rendered, linkable));

@@ -28,6 +28,7 @@
   import { findSavedView } from '#lib/saved-views.js';
   import { matchesTag, tagsOf } from '#lib/tags.js';
   import { jobOptions, stageOptions } from '#lib/candidate-filters.js';
+  import { stageLabel } from '#lib/talent-pool.js';
 
   // Every application in the organization, newest first; new ones, stage moves and integrity levels arrive live
   // (#lib/realtime.ts).
@@ -55,7 +56,7 @@
         matchesIntegrityFilter(application, integrityFilter) &&
         matchesTag(application, tagFilter) &&
         (jobFilter.length === 0 || jobFilter.includes(application.jobId)) &&
-        (stagesPicked.length === 0 || stagesPicked.includes(application.stage.name)) &&
+        (stagesPicked.length === 0 || stagesPicked.includes(stageLabel(application))) &&
         matchesSearch(application, search, true),
     ),
   );

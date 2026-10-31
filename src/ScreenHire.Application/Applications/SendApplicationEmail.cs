@@ -64,12 +64,14 @@ public static class ApplicationEmails
     public const string QuestionnaireLinkNotKept = "[the candidate's link, not kept in this copy]";
 
     /// <summary>
-    /// Whether <paramref name="templateId"/> skips an application in <paramref name="stage"/>: the stage-change email
-    /// never goes to one that has ended ("moved to the next step: Rejected" would be a rejection no Reject action
-    /// guarded). The API counts the skips when it queues a send; the worker re-checks when it goes.
+    /// Whether <paramref name="templateId"/> skips <paramref name="application"/> in <paramref name="stage"/>: the
+    /// stage-change email never goes to one that has ended ("moved to the next step: Rejected" would be a rejection no
+    /// Reject action guarded), nor to one the team kept in mind, which left the job. The API counts the skips when it
+    /// queues a send; the worker re-checks when it goes.
     /// </summary>
-    public static bool Skips(string? templateId, WorkflowStage? stage) =>
-        templateId == EmailTemplateIds.StageChange && stage?.Kind is StageKind.Rejected or StageKind.Withdrawn;
+    public static bool Skips(string? templateId, JobApplication application, WorkflowStage? stage) =>
+        templateId == EmailTemplateIds.StageChange
+        && (application.KeptInMindAt is not null || stage?.Kind is StageKind.Rejected or StageKind.Withdrawn);
 
     /// <summary>What a template may say about this candidate's application.</summary>
     public static EmailTemplateModel ModelFor(
@@ -146,7 +148,7 @@ public static class ApplicationEmails
         }
 
         var stage = job.Workflow.FindStage(application.CurrentStageId);
-        if (Skips(templateId, stage))
+        if (Skips(templateId, application, stage))
         {
             return new("The application has ended, so the stage-change email was not sent.", null);
         }
@@ -212,7 +214,7 @@ public static partial class SendApplicationEmailHandler
 
         var job = await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == application.JobId, cancellationToken);
         if (copy.TemplateId is { } templateId
-            && (EmailTemplateIds.IsActionOnly(templateId) || ApplicationEmails.Skips(templateId, job.Workflow.FindStage(application.CurrentStageId))))
+            && (EmailTemplateIds.IsActionOnly(templateId) || ApplicationEmails.Skips(templateId, application, job.Workflow.FindStage(application.CurrentStageId))))
         {
             // An email only an action sends (the API refuses both), or the stage-change email to an application that
             // ended since it was queued. The copy of an email that never went is not kept.
