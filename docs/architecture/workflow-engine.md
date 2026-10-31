@@ -394,7 +394,7 @@ The data model and API from the jobs and templates task, and the engine that run
   or withdrawn stage: a hiring template's stage names a library scorecard (`scorecardTemplateId`, a built-in's id or a
   uuid) and holds no copy, and a job's stage holds its copy, 1 to 20 questions with unique ids. A condition on the
   candidate's rating (`application.rating`, `rating`, `scorecard.*` and the like) is refused outright, whatever the
-  trigger or action: no automation acts on the rating (ADR-0013). An automation that uses an `verification.*` or `verification.*` fact, or an
+  trigger or action: no automation acts on the rating (ADR-0013). An automation that uses a `verification.*` fact, or a
   `VerificationAssessed` or `VerificationCompleted` trigger, may only request verification, assign a reviewer, add a tag
   or move to a screening, assessment, verification or interview stage. The same holds at one remove, across the whole
   workflow: an automation that reads a tag such an automation adds, or fires on a stage it moves applications into,

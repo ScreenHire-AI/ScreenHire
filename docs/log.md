@@ -2,6 +2,14 @@
 
 ## 2026-10-31
 
+**Integrity is called Verification everywhere** ([ADR-0019](adr/0019-rename-integrity-to-verification.md)). The
+integrity engine's doc is now [verification engine](architecture/verification-engine.md), and the
+`integrity-guardrails` agent is `verification-guardrails`. Code, API routes, the `verification.assessed` webhook event,
+the `VerificationAssessed` realtime event, `ScreenHire:Verification:*` configuration and the `verification_*` tables
+follow; a migration renames the tables and rewrites the names stored as data, and drops nothing. ScreenHire's Software
+engineer template gains a version 5 whose automation and tag say verification. Accepted ADRs, research and earlier
+entries here keep the word they used.
+
 **Rich text for job descriptions and email templates** ([rich text](architecture/rich-text.md)). New job, Edit
 details, the email template editor and the composer have a small editor with a toolbar (bold, italic, a heading and a
 subheading, bulleted and numbered lists, links) in place of the plain-text hints. Both are stored as sanitized HTML

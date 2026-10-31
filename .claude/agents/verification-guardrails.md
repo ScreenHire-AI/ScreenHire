@@ -34,7 +34,7 @@ and, for automations, `docs/architecture/workflow-engine.md`.
 2. **Level rules.** A level above the lowest needs at least two independent signal categories. Telemetry alone never
    raises a level. Levels come from the versioned ruleset, and each assessment records ruleset, analyzer, prompt and
    model versions.
-3. **No rejection from verification.** No code path rejects, archives, declines or emails a rejection because of an
+3. **No rejection from verification.** No code path rejects, archives, declines or emails a rejection because of a
    `verification.*` value. The workflow engine refuses such automation definitions at validation time, with a test.
    Verification UI has no reject button, and no bulk action combines a verification filter with reject.
 4. **No forbidden inference.** No emotion, intent, honesty, sentiment or personality inference from text, voice,

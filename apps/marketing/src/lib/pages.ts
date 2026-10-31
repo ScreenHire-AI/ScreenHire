@@ -23,9 +23,9 @@ export const pages = {
   product: {
     path: '/product/',
     label: 'Product',
-    title: 'Product: hiring with integrity checks | ScreenHire',
+    title: 'Product: hiring with applicant verification | ScreenHire',
     description:
-      'Jobs, hiring workflows, one-click posting and an applicant integrity layer that shows evidence and a next step. A person always decides.',
+      'Jobs, hiring workflows, one-click posting and an applicant verification layer that shows evidence and a next step. A person always decides.',
   },
   detection: {
     path: '/how-detection-works/',
@@ -39,7 +39,7 @@ export const pages = {
     label: 'Pricing',
     title: 'Pricing for small hiring teams | ScreenHire',
     description:
-      'Simple monthly plans with unlimited users and applicant integrity checks included. No credit card to start.',
+      'Simple monthly plans with unlimited users and applicant verification included. No credit card to start.',
   },
   laws: {
     path: '/hiring-ai-laws/',

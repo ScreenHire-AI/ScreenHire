@@ -9,7 +9,7 @@ import Page from './+page.svelte';
 // Nobody has changed the defaults yet (T6).
 const lastUpdated = { at: null, by: 'ScreenHire' as const };
 
-vi.mock('$app/state', () => ({ page: { data: { user }, url: new URL('http://dashboard.test/settings/integrity') }, navigating: { to: null } }));
+vi.mock('$app/state', () => ({ page: { data: { user }, url: new URL('http://dashboard.test/settings/verification') }, navigating: { to: null } }));
 // Superforms needs the rest of the module (beforeNavigate).
 vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await importOriginal()), goto: vi.fn(async () => {}) }));
 

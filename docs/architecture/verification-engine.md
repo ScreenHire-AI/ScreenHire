@@ -297,7 +297,7 @@ model access in `Llm/`), `apps/api/Endpoints/VerificationEndpoints.cs` (API), `p
 
 ### 10.1 Signals and evidence
 
-An `VerificationSignal` row has the fields of §4: `code`, `category`, `assessment` (which of the two it feeds), `weight`
+A `VerificationSignal` row has the fields of §4: `code`, `category`, `assessment` (which of the two it feeds), `weight`
 (`Low`, `Medium`, `High`), `confidence` (same three), `source` and `sourceVersion` (the analyzer), `observedAt`,
 `accessibilitySensitive`, `contextOnly`, `explanation` (the catalogue's template with this observation's values filled
 in), `evidence[]` and `counterEvidence[]`. `SignalCatalogue` defines every code once: category, assessment, default
@@ -331,7 +331,7 @@ separate message so the pipeline retries and fails apart from the workflow engin
    and its signals. A unique index on the run is the idempotency key;
 2. derives both assessments with the ruleset. An assessment row is written only when its inputs changed: its
    `fingerprint` (ruleset version, signal ids, policy, declaration, accommodation) has a unique index;
-3. when a level changed (or on the first assessment), appends an `VerificationAssessed` timeline entry with both level
+3. when a level changed (or on the first assessment), appends a `VerificationAssessed` timeline entry with both level
    names, and publishes the `VerificationAssessed` tenant event and `RunAutomations(VerificationAssessed)` for the workflow
    engine. New evidence at the same levels is stored as a new assessment row and not announced: content forensics
    reassess as each stage lands, and an automation that assigns a reviewer must run once, not once per stage.

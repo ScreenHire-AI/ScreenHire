@@ -8,14 +8,14 @@ const intro = `# ScreenHire
 
 > ScreenHire is an applicant tracking system (ATS) for small hiring teams. It detects bots, impersonators and
 > AI-generated or copy-paste job applications, and explains every flag in plain language with a suggested next step.
-> Integrity signals never reject a candidate; a person decides.
+> Verification signals never reject a candidate; a person decides.
 
 ScreenHire is in development. This file and the site describe the product as designed, not as generally available.
 
 ## What ScreenHire does
 
 - Applicant tracking with per-job hiring workflows built from reusable, versioned templates.
-- Applicant integrity checks at the application stage, in two separate assessments: authenticity (is this a real,
+- Applicant verification at the application stage, in two separate assessments: authenticity (is this a real,
   unique person?) and AI assistance (how much looks generated?). Each is a level with reason codes, evidence,
   counter-evidence and a suggested next step, never a numeric score.
 - One-click posting to a careers page, Google for Jobs and job boards, and one-click removal with per-board status.
@@ -23,7 +23,7 @@ ScreenHire is in development. This file and the site describe the product as des
 
 ## Principles
 
-- Evidence, not verdicts: a person decides on every integrity flag, and integrity signals never reject anyone.
+- Evidence, not verdicts: a person decides on every verification flag, and verification signals never reject anyone.
 - Candidates are told what is checked before any application data or device checks are collected, and can switch
   off typing signals if they use assistive technology, with no negative inference.
 - No emotion, intent or personality inference, no biometrics in this release, and no scraping of LinkedIn or other

@@ -1,6 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
-import SampleIntegrityCard from '../components/SampleIntegrityCard.astro';
+import SampleVerificationCard from '../components/SampleVerificationCard.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { pages } from '../lib/pages';
 import { plans, pricedOffers, startingPrice } from '../lib/pricing';
@@ -12,9 +12,9 @@ const laws = (await getCollection('laws')).sort((a, b) => a.data.order - b.data.
 
 const features = [
   {
-    kicker: '01 · Integrity',
+    kicker: '01 · Verification',
     title: 'Evidence, not verdicts',
-    body: "Every flag shows what was observed, why it matters and what counts in the candidate's favour. Your team decides. Integrity signals never reject anyone.",
+    body: "Every flag shows what was observed, why it matters and what counts in the candidate's favour. Your team decides. Verification signals never reject anyone.",
   },
   {
     kicker: '02 · Distribution',
@@ -38,7 +38,7 @@ const steps = [
 <BaseLayout title={title} description={description} jsonLd={[softwareApplication(description, site, pricedOffers(plans))]}>
   <section aria-labelledby="hero-title" class="mx-auto flex max-w-6xl flex-wrap items-center gap-12 px-6 pt-14 pb-16">
     <div class="flex min-w-0 flex-1 basis-[480px] flex-col gap-5">
-      <p class="font-mono text-xs tracking-[0.1em] text-muted-foreground">APPLICANT INTEGRITY · APPLICANT TRACKING</p>
+      <p class="font-mono text-xs tracking-[0.1em] text-muted-foreground">APPLICANT VERIFICATION · APPLICANT TRACKING</p>
       <h1 id="hero-title" class="font-display text-5xl leading-[0.98] font-extrabold tracking-[-0.035em] sm:text-[68px]">
         Know who's really applying.
       </h1>
@@ -59,10 +59,10 @@ const steps = [
         >
       </div>
       <p class="flex flex-wrap gap-x-5 gap-y-1 font-mono text-xs text-muted-foreground">
-        <span>NO CREDIT CARD</span><span>DESIGNED FOR GDPR &amp; THE EU AI ACT</span><span>EVIDENCE, NEVER AUTO-REJECTION ON INTEGRITY</span>
+        <span>NO CREDIT CARD</span><span>DESIGNED FOR GDPR &amp; THE EU AI ACT</span><span>EVIDENCE, NEVER AUTO-REJECTION ON A FLAG</span>
       </p>
     </div>
-    <SampleIntegrityCard />
+    <SampleVerificationCard />
   </section>
 
   <section aria-label="Our principle" class="bg-foreground text-background">

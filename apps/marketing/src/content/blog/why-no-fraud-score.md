@@ -32,7 +32,7 @@ A level with evidence gives the reviewer something real to review. A score invit
 
 ## What this means in practice
 
-- Integrity signals never reject anyone. Integrity levels can route, tag, assign or suggest verification, and ScreenHire refuses workflows that try to reject on them.
+- Verification signals never reject anyone. Verification levels can route, tag, assign or suggest an identity check, and ScreenHire refuses workflows that try to reject on them.
 - A level above the lowest needs signals from at least two independent categories, such as network and identity.
 - Levels come from documented, versioned rules, so we can explain any result and test the rules for bias.
 

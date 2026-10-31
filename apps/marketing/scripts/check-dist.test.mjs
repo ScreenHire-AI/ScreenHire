@@ -25,7 +25,7 @@ describe('internalReferences', () => {
   it('collects same-site links and the og:image, ignoring other hosts and fragments', () => {
     const html = page(
       `<meta property="og:image" content="${origin}/og/pricing.png"><link rel="canonical" href="${origin}/pricing/">`,
-      '<a href="/product/#integrity">x</a><a href="https://example.org/">y</a><a href="#main">z</a><a href="//cdn.example.net/x">w</a>',
+      '<a href="/product/#verification">x</a><a href="https://example.org/">y</a><a href="#main">z</a><a href="//cdn.example.net/x">w</a>',
     );
     expect(internalReferences(html, origin).sort()).toEqual(['/og/pricing.png', '/product/']);
   });
