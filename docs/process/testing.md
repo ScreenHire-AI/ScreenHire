@@ -326,7 +326,7 @@ branch cancels the run before it. The board still gates on the local `pnpm verif
 another OS until the board moves to it.
 
 The runners have 4 cores and each long suite is CPU-bound there, so the long suites run as matrix shards on separate
-runners, as Kangentic's workflow does. Every matrix sets `fail-fast: false`, so one shard's failure never hides
+runners. Every matrix sets `fail-fast: false`, so one shard's failure never hides
 another's.
 
 | Job | Runs | Timeout |
@@ -375,7 +375,9 @@ Three settings make each shard faster without changing what it proves:
   machine runs several gates at once.
 - **No SQL in the test stacks' logs**: `AppHostFixture` sets `Microsoft.EntityFrameworkCore.Database.Command` to
   Warning for the API and the worker. Logging every command was 80 MB of console output per integration stack; failed
-  commands still log.
+  commands still log. The same method turns the API's request log on (`Microsoft.AspNetCore.Hosting.Diagnostics` at
+  Information), one line per request with its path, status and time, so a test that waits out a slow request names
+  it in `api.log`.
 
 Every job runs on `ubuntu-24.04`, pinned, and sets up through
 [`.github/actions/setup`](../../.github/actions/setup/action.yml):

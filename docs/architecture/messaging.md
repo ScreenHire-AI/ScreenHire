@@ -191,7 +191,9 @@ by side.
 | `AnalyzeApplicationVerification` | the application | The submission and each content stage as it lands ask for an analysis within milliseconds of each other. Two at once inserted the same analyzer run, and the second failed on the unique index, then waited out a retry (1 s, then 5 s) before finding the run. One integration run logged 434 such failures, and each delayed the assessment people watch arrive live |
 | `CheckApplicationConsistency` | the application | Two checks of one application inserted the same consistency check row |
 
-Ordering is per worker process: the worker is one process, and these messages travel on its local queues.
+Ordering is per worker process: the worker is one process, and these messages travel on its local queues. Each queue
+has five slots (`PartitionSlots.Five`), so at most five applications are analyzed at once, and two applications whose
+ids hash to one slot wait for each other. Raise the slot count if a slow consistency check starts to queue.
 `VerificationOrderingTests` sends six analyses of one application at once and fails on any handler failure.
 
 ## Failures

@@ -1,5 +1,6 @@
 The components in this folder were copied from shadcn-svelte (https://github.com/huntabyte/shadcn-svelte) and
-changed for ScreenHire. They stay under shadcn-svelte's licence, which follows as published.
+changed for ScreenHire. So were two helpers outside it: `cn` and the helper types in `../../utils.ts`, and `IsMobile`
+in `../../hooks/is-mobile.svelte.ts`. They stay under shadcn-svelte's licence, which follows as published.
 
 MIT License
 
