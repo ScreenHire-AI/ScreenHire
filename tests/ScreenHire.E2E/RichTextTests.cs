@@ -65,10 +65,14 @@ public sealed class RichTextTests(E2EFixture fixture) : BrowserTest(fixture)
 
         await Page.GotoAsync(DashboardUrl("/templates/emails/stage-change"));
         var message = Page.GetByRole(AriaRole.Textbox, new() { Name = "Message" });
+        var preview = Page.FrameLocator("iframe[title='Email preview']");
+        // The page is settled once the preview shows the sample candidate.
+        await Expect(preview.Locator("body")).ToContainTextAsync("Hi Jordan");
         await Expect(message.Locator("[data-liquid]").First).ToContainTextAsync("First name");
-        // The built-in wording's paragraph with no variable in it, so End lands after its last word.
-        await message.GetByText("The hiring team will be in touch").ClickAsync();
-        await Page.Keyboard.PressAsync("End");
+        // The caret at the end of the message. The wording ends on a chip, past which a browser's own End key does not go,
+        // so Tiptap's focus command puts it there, as a click after the last word would.
+        await message.ClickAsync();
+        await Page.EvaluateAsync("() => document.getElementById('email-template-body').editor.commands.focus('end')");
         await Page.Keyboard.PressAsync("Enter");
         await Page.GetByRole(AriaRole.Toolbar, new() { Name = "Formatting" }).GetByRole(AriaRole.Button, new() { Name = "Subheading" }).ClickAsync();
         await Page.Keyboard.TypeAsync("Next steps for ");
@@ -76,7 +80,6 @@ public sealed class RichTextTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "First name" }).ClickAsync();
 
         await Expect(message.Locator("h3")).ToHaveTextAsync("Next steps for variable First name");
-        var preview = Page.FrameLocator("iframe[title='Email preview']");
         await Expect(preview.Locator("h3")).ToHaveTextAsync("Next steps for Jordan");
         await ExpectNoAccessibilityViolationsAsync();
     }
