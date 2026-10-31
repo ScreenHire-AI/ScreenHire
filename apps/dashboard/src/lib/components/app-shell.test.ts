@@ -50,10 +50,10 @@ describe('app shell', () => {
     ]);
     // Navigation pairs an icon with its label (I1); status icons mark the integrity and Overdue views only (I2).
     const marks = links.map((link) => link.querySelector('[data-status-icon]')?.getAttribute('data-status-icon') ?? (link.querySelector('svg') ? 'icon' : null));
-    expect(marks).toEqual(['icon', 'icon', 'icon', 'icon', 'icon', 'eye', 'id-card', 'clock-alert', 'icon', 'icon', 'icon', ...settings.map(() => 'icon')]);
+    expect(marks).toEqual(['icon', 'icon', 'icon', 'icon', 'icon', 'icon', 'eye', 'id-card', 'clock-alert', 'icon', 'icon', 'icon', ...settings.map(() => 'icon')]);
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings/organization');
     expect(within(main()).queryByRole('link', { name: 'Team' })).toBeNull();
-    expect(within(links[5]!).getByText('2')).toHaveAttribute('data-slot', 'badge');
+    expect(within(links[6]!).getByText('2')).toHaveAttribute('data-slot', 'badge');
     expect(screen.getByRole('link', { name: /^To review/ })).toHaveAttribute('aria-current', 'page');
     expect(screen.queryByRole('button', { name: 'Open navigation' })).toBeNull();
     await expectNoAxeViolations();
