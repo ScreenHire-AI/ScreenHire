@@ -104,6 +104,8 @@
   import { sections } from '#lib/shell.js';
   import type { StatusName } from '#lib/status.js';
   import EditPreviewDemo from './edit-preview-demo.svelte';
+  import AddCandidateDemo from './add-candidate-demo.svelte';
+  import BrandingDemo from './branding-demo.svelte';
   import EmailComposerDemo, { demoEmail } from './email-composer-demo.svelte';
   import FormBuilderDemo from './form-builder-demo.svelte';
   import ReorderDemo from './reorder-demo.svelte';
@@ -690,6 +692,9 @@
         <Panel title="Email composer" class="flex-[1_1_320px]">
           <EmailComposerDemo />
         </Panel>
+        <Panel title="Add candidate sheet" class="flex-[1_1_320px]">
+          <AddCandidateDemo />
+        </Panel>
         <Panel title="Live indicator" class="flex-[1_1_320px]">
           <div class="flex flex-col gap-1">
             {#each ['connected', 'reconnecting', 'disconnected'] as const as status (status)}<LiveIndicator {status} />{/each}
@@ -700,6 +705,8 @@
       <Panel title="Email preview">
         <EmailPreview preview={demoEmail} />
       </Panel>
+
+      <BrandingDemo />
 
       <div class="flex flex-wrap items-start gap-5">
         <Panel title="Empty state" class="flex-[999_1_520px]">

@@ -94,6 +94,8 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<ApplicationFile> ApplicationFiles => Set<ApplicationFile>();
 
+    public DbSet<BrandImage> BrandImages => Set<BrandImage>();
+
     public DbSet<AutomationRun> AutomationRuns => Set<AutomationRun>();
 
     public DbSet<AutomationActionRun> AutomationActionRuns => Set<AutomationActionRun>();

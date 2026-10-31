@@ -13,6 +13,9 @@ sources:
   - resource: apps/dashboard/src/lib/preview-window.svelte.ts
   - resource: apps/dashboard/src/lib/form-builder.ts
   - resource: apps/dashboard/src/lib/templates.ts
+  - resource: apps/dashboard/src/lib/components/color-field.svelte
+  - resource: apps/dashboard/src/lib/components/image-field.svelte
+  - resource: apps/dashboard/src/lib/components/branding-preview.svelte
 ---
 # ScreenHire design system
 
@@ -298,7 +301,9 @@ higher layers get lighter (section 6), and the surface shadow is darker so it st
 | `candidate-chip` | `#F3E7D6` (text `#5A4630`) | `#2E2A25` |
 | `candidate-cta` | `#C2462F` (white text, 4.98:1) | `#F08A6E` (text `#1A1310`) |
 
-On tenant careers pages, `candidate-cta` and the header mark take the employer brand tokens (section 18).
+On tenant careers pages, `candidate-cta` and the header mark take the employer brand tokens, and `candidate-header`
+and `candidate-header-foreground` (the header band, default the page background and ink) take the second colour
+(section 18).
 
 ## 4. Type
 
@@ -330,7 +335,7 @@ weight and tracking. The family is its own class: `font-display` for the two tit
 
 ### 4.3 Candidate and marketing pages
 
-Base 15px, display 30px, inputs 16px (no zoom on iOS), hints under a field 13px: `text-candidate-body`,
+Titles take the employer's heading font where one is set (section 18), otherwise Bricolage Grotesque. Base 15px, display 30px, inputs 16px (no zoom on iOS), hints under a field 13px: `text-candidate-body`,
 `text-candidate-input` and `text-candidate-hint` in `packages/ui`. Marketing display goes up to 64px. The dashboard's
 questionnaire preview shows the candidate base with `text-candidate-body`.
 
@@ -486,6 +491,7 @@ in a development build, shows every component in each state, and its test fails 
 | Secret dialog | shadcn `Dialog` (`SecretDialog`) | A secret the API shows once (an API key, a webhook signing secret): "Copy it now. You will not see it again.", the value in a read-only monospace field with Copy, and Done. The value lives only while the dialog is open; never in the query cache, the address or storage |
 | Email preview | `EmailPreview` | An email as the candidate receives it: the subject, then Email or Plain text (Toggle). The HTML renders in a sandboxed frame with no scripts, in an inset, never in the page, because a tenant wrote the template. The composer's preview, and a sent email opened in Messages (`SentEmail`), as it went |
 | Email composer | `EmailComposer`; `EmailComposerSheet` on shadcn `Sheet` | Email one candidate or a selection: in a sheet from a list's selection bar and the candidate's header (section 9, in place), and inline at the top of the Messages tab, titled Email and the candidate's name. To, then Start from: Blank email, the default, or one of the organization's templates, which fills Subject and Message. The rejection and follow-up questions emails are never offered, because only their actions send them (`docs/architecture/email.md`), and a blank email never becomes a template. The Edit / Preview switch (A8, no window) and Insert variable, a menu of the variables that puts `{{ name }}` at the caret of the field last used. Changing a template's wording changes this email only, and one muted line under the message says so and that the template stays as it is. Preview is the first candidate's email, rendered by the API with their details ("Preview for" and their name in a selection); each candidate's own copy is rendered with theirs. Send is the sheet's one primary ("Send 3 emails" for a selection); inline on Messages it is outline, because the page's primary is Move to stage (A1), and empty fields say what they need when it is pressed. Each email lands in Activity and Messages as it went. No bulk email while an integrity filter or view picked the rows |
+| Add candidate sheet | `AddCandidateSheet` on shadcn `Sheet` | A recruiter adds a candidate by hand: Job (only the drafts and open jobs, and left out on a job's page, where the job is preset), First name, Last name, Email, Phone and Resume, then Cancel and Add candidate. Last name, Phone and Resume say "(optional)", the exception here (W6). No Source field: the API sets Recruiter (W6). No notice, telemetry or declarations: the Verification tab says which checks had nothing to look at (section 16). The resume goes straight to storage, as on the careers form. The page's primary on Candidates (in the action bar on a phone); outline on a job's page, where Publish is the primary, in More on a phone, and absent on a closed job; never without Add candidates (A3). A refusal (a closed job, someone who already applied, someone on a job the person does not see) is `FailureText` in the sheet; on success the page's status line names the candidate as a link to their page |
 | Live indicator | `LiveIndicator` | The live updates status as a pill in the top bar, beside Search, on every page: icon, colour and label (T1), from section 3.2 (Live, Connecting, Offline). While live, its icon has a slow, soft pulse behind it, which stops for reduced motion. On a phone only the icon shows; screen readers hear the label |
 | Failure text | `FailureText` with `ProblemIcon` | A failed action or form, in one line where it happened: the problem icon, the verify colour and the reason (T1, section 14). A section that cannot load uses `QueryError` |
 | Integrity chip and panel | `IntegrityChip`, `SignalEvidence`, `ReviewLog`, `LevelScale`; `IntegrityPanel` is the candidate's Verification tab | Section 16. `LevelScale` draws a level on its three steps. A summary card per kind of check: Network, Identity, Automation and Content always, Files and Form activity (the telemetry aggregates) only when they found something, each named for what was looked at, never for what it means about the person. Reasons expand one by one or with Expand all. The review log is its own panel: dismissals and review notes as Activity, and Add review note, named apart from Activity's Add note |
@@ -508,6 +514,9 @@ in a development build, shows every component in each state, and its test fails 
 | Choice card | `ChoiceCard`: a native radio in a labelled card | A choice of a few options in a `radiogroup` with its label: each a bordered card with its name and one muted line, and the whole card is the target. The chosen card takes the `primary` edge and `accent` fill. A member's jobs (All jobs or Only jobs they're on), the role in Invite, and the role to copy in New role |
 | Filter menu | `FilterMenu` (one choice), `MultiFilterMenu` (several) | An outline button that names the filter and its choice ("Stage: All", "Job: 2 chosen"), `primary` while set, opening each choice with its count. `MultiFilterMenu` shows a box on every choice, ticked or not, and with two or more chosen each one is a pill with its own remove button beside the button. Filters sit in one row under a list panel's header that scrolls rather than wraps (F5); the page applies them to the rows |
 | Picker | shadcn `Popover` and `Command` | An outline button with a verb ("Add a person", "Copy from another job") that opens a searchable list; typing filters by name, a pick closes it. The list keeps a 16px gutter from the window's edge. Nothing left to pick is said in the list, never by disabling the button (A3) |
+| Colour field | `ColorField` on shadcn `Field` and `Input` | A colour for Branding: the native colour picker beside a hex field (16px on touch, F4), empty for its default (its placeholder names it: "ScreenHire's" for the brand colour, "None" for the second colour), with one line saying where the colour goes. As someone types a whole colour, the API checks it (section 18); each pair it fails is a line under the field in words ("Links in #ffd400 are hard to read on the page: 1.4:1, and they need 4.5:1."), and the nearest passing shade is an outline button on that row (F6), "Use #8a6d00", which fills the field. A refused save's messages take the same place |
+| Image field | `ImageField` on shadcn `Field`; `BrandImageSlot` in `#lib/brand-images.svelte.ts` for the upload | A brand image: the image in use at 48px tall with its pixel size and file size, or "No logo"; Upload or Replace (outline, opening the file picker) and Remove, which changes nothing until Save. While the malware scan runs it shows the grey Scanning badge (T3) and the page's Save waits, saying why (A3); a file the scan blocked says so with `FailureText`. The upload goes straight to storage, as a candidate's does |
+| Branding preview | `BrandingPreview` in `PreviewFrame` | Branding's result beside its form (A8): the careers page (the tab with the favicon, the header band, a heading and a job in the heading font, a brand link and the Apply button), the shared link card with the sharing image, and the top of an email. It draws the form's values as typed, failing ones included, so the person sees the problem the check names |
 
 ## 12. Words
 
@@ -558,7 +567,10 @@ never stands in for a badge.
 
 ## 15. Shortcuts
 
-Ctrl K or Cmd K opens the command palette. `?` opens the shortcuts dialog, and so does its command in the palette.
+Ctrl K or Cmd K opens the command palette. From two characters it searches on the server once typing pauses
+(`GET /v1/search`): candidates by name or email, each on a job, and jobs by title, within the jobs the person sees. A
+list page's own search still filters the rows it loaded. `?` opens the shortcuts dialog, and so does its command in the
+palette.
 Hints appear as `Kbd` key caps in tooltips and menus, never as an always-on bar. Single-key shortcuts (the G chords, J
 and K, X, V and `?`) can be turned off (WCAG 2.1.4), skip text fields, menus and dialogs, and work only while their
 table or board has focus, except the G chords and `?`.
@@ -587,6 +599,10 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
   facts row, any counter-evidence in its own card, and its code. The panel ends with Dismiss on the left and "Assessed 2
   hours ago" and "Ruleset" in caption size on the right. A calm result has no list of empty checks: its summary already
   says so.
+- A candidate added by hand came through no careers form, so the authenticity result says so in one quiet line ("Added
+  by hand, so the network, automation and form activity checks had nothing to look at."), and Network and Automation
+  read "Not checked" rather than "Nothing found" when the reasons show. It goes by the source alone; a careers
+  applicant's checks never say this, so nothing tells an assistive-technology opt-out apart.
 - Labels keep their full names: Verification suggested, mirroring Review suggested. AI assistance reads No signs,
   Some signs or Strong signs of AI help.
 
@@ -604,20 +620,34 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
 - axe runs in component tests and Playwright; manual NVDA and VoiceOver passes per release; an external audit before
   general availability.
 
-## 18. Employer branding (careers pages)
+## 18. Employer branding
 
-Tenants set a brand colour and logo. On save, the server derives and validates:
+Settings, Branding (ADR-0018, `docs/architecture/branding.md`) sets a brand colour, a second colour, a heading font,
+a logo, a favicon and a sharing image, each optional and shown next to ScreenHire's default (principle 10). They apply
+to the careers pages, the apply flow, the embeddable widget and the top of every email to a candidate.
 
-| Token | Purpose | Minimum |
+| Part | Where | Check before it saves |
 |---|---|---|
-| `brand` | Tenant colour | |
-| `on-brand` | Text on brand fills | 4.5:1 |
-| `brand-text` | Brand-coloured text on the page background | 4.5:1 |
-| `brand-ui` | Borders, focus rings | 3:1 |
+| Brand colour | The Apply button and every filled button, links, focus rings | White or ink on it at 4.5:1 ("Text on buttons"); it on the page background at 4.5:1 ("Links") |
+| Second colour | The careers header band, the email's top band | White or ink on it at 4.5:1 ("Text on a header") |
+| Heading font | Every careers title (`font-display`) | One of six self-hosted OFL fonts: Bricolage Grotesque (ScreenHire's), Inter, Montserrat, Nunito, Fraunces, Playfair Display |
+| Logo | The careers header in place of the letter mark and name; the email's top | PNG or JPEG, up to 1 MB, malware scan |
+| Favicon | The browser tab | Square PNG or JPEG, at least 32px, up to 256 KB, malware scan |
+| Sharing image | `og:image` when a link is shared | PNG or JPEG, at least 600 by 315px, up to 5 MB, malware scan |
 
-Failing colours are adjusted in tone (OKLCH lightness) or rejected with an explanation, and shipped as a hashed
-per-tenant stylesheet (strict CSP, no inline styles). Brand never overrides status colours, the privacy notice or the
-"Powered by ScreenHire" footer.
+- A colour is used as it is given. One that fails a pair is refused, never adjusted: the field says which pair fails
+  in words, with its ratio cut down so a failing one never reads as its minimum, and offers the nearest passing shade
+  as a button that fills the field (Colour field, section 11). The page checks as someone types; Save checks again.
+- Everything inside the careers header, its links and focus ring included, takes `candidate-header-foreground`, the
+  white or ink the check chose, so a dark brand focus ring never sits on a dark band.
+- The palette ships as the hashed per-tenant stylesheet (strict CSP, no inline styles), and images from the careers
+  origin, so `img-src 'self'` holds. Brand never overrides status colours, the privacy notice or the "Powered by
+  ScreenHire" footer.
+- The email's logo is a plain image at one address for every recipient, never a tracking pixel. Emails load no web
+  font.
+- The page is the form template with its preview beside it where both fit (A8): the careers page, the shared link and
+  the email's top (Branding preview, section 11). Nothing changes for candidates until Save, which waits for any image
+  still being scanned and says so.
 
 ## 19. Assets
 
@@ -650,6 +680,11 @@ per-tenant stylesheet (strict CSP, no inline styles). Brand never overrides stat
   of the people on the job, each with their role, "Only jobs they're on" for someone who sees only their own (W6), a
   remove button, and Add a person and Copy from another job (Pickers). Changes land on Save. Without Edit jobs the sheet lists the people and says why (E3). A hiring
   template's header has Default hiring team as a fact whose count opens the same sheet, without Copy.
+- **Candidates:** every candidate table (Candidates and a job's) has Last activity after Applied: the date anything
+  last happened to the application, from the candidate (applied, answered a questionnaire) or the team (moved, noted,
+  tagged, emailed, scored, a task given or done), never the checks. It sorts, newest first on the first click, and live
+  events keep it current; the tables keep their default sorts (L2). Add candidate opens the Add candidate sheet (section
+  11), and Ctrl K searches on the server (section 15).
 - **Candidate:** the same tabs in the same order for everyone: Overview (what needs you now, the last five things
   anyone did with a box for a note, and the answers), Application, Messages (every email with the candidate, both
   ways, and the reply box), Scorecards, Integrity, Activity. Activity lists everything newest first, saying who and

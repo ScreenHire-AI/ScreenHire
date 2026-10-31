@@ -1,5 +1,6 @@
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.Configuration;
+using ScreenHire.Application.Applications;
 using ScreenHire.Application.Integrity.Content;
 
 namespace ScreenHire.Worker;
@@ -11,7 +12,7 @@ namespace ScreenHire.Worker;
 /// </summary>
 internal sealed class BlobApplicantFileStore(BlobServiceClient blobs, IConfiguration configuration) : IApplicantFileStore
 {
-    private readonly string container = configuration["ScreenHire:Apply:Container"] is { Length: > 0 } name ? name : "applicant-uploads";
+    private readonly string container = ApplicantUploadsContainer.From(configuration);
 
     public async Task<StoredFile> ReadAsync(string blobName, long maxBytes, CancellationToken cancellationToken)
     {

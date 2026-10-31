@@ -55,6 +55,20 @@ X-XSRF-TOKEN: {{xsrf}}
 
 ###
 
+# A resume for a candidate added by hand: PUT the file to uploadUrl, then send uploadId as resumeUploadId above.
+POST {{api}}/v1/jobs/00000000-0000-0000-0000-000000000000/applications/resume-uploads
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "fileName": "jordan-example.pdf", "sizeBytes": 48213 }
+
+###
+
+# The dashboard's Ctrl K: candidates by name or email, jobs by title.
+GET {{api}}/v1/search?q=jordan
+
+###
+
 POST {{api}}/v1/applications/00000000-0000-0000-0000-000000000000/move
 Content-Type: application/json
 X-XSRF-TOKEN: {{xsrf}}

@@ -35,6 +35,24 @@ public sealed class SettingsChangesTests
     }
 
     [Fact]
+    public void The_branding_names_each_part_that_changed_in_one_save()
+    {
+        var plain = Organization("Brightwater");
+        var logo = Guid.NewGuid();
+        var branded = Organization("Brightwater");
+        branded.SetBranding(null, "#e9dcc4", HeadingFont.PlayfairDisplay, logo, null, null);
+        var rebranded = Organization("Brightwater");
+        rebranded.SetBranding(null, "#1f4e5a", null, Guid.NewGuid(), Guid.NewGuid(), null);
+
+        Sentences(SettingsChanges.Branding(plain, branded)).Should().Equal(
+            "set the second colour to #e9dcc4", "changed the heading font to Playfair Display", "added a logo");
+        Sentences(SettingsChanges.Branding(branded, rebranded)).Should().Equal(
+            "changed the second colour from #e9dcc4 to #1f4e5a", "went back to ScreenHire's heading font", "replaced the logo", "added a favicon");
+        Sentences(SettingsChanges.Branding(rebranded, plain)).Should().Equal("removed the second colour", "removed the logo", "removed the favicon");
+        SettingsChanges.Name(plain, branded).Should().BeEmpty();
+    }
+
+    [Fact]
     public void The_integrity_settings_name_each_change_and_compare_a_first_save_with_the_defaults()
     {
         var on = new IntegritySettings { LlmConsistencyCheckEnabled = true, MonthlyTokenBudget = 250_000 };
