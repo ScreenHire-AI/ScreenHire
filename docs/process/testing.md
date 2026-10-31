@@ -120,6 +120,10 @@ does not and the measurements are in [Processes on the dev machine](board-pipeli
 The API and every JS app have HTTP health checks, so the fixtures wait for servers that answer, never for a fixed
 delay. The API only starts listening after its Development migrate-and-seed, so a healthy API has its schema and
 Brightwater. With the demo on (`DevelopmentDemoFixture`, `pnpm dev`), `/health` also waits for the demo's data. A resource that fails to start fails the fixture at once, and a timeout names the resource.
+The worker has no HTTP endpoint, so Aspire calls it healthy as soon as its process runs, and it starts only after the
+API is healthy. The fixture also waits for the worker's "Application started" line in Aspire's log stream: without it,
+a test that published a message at once spent its 30-second wait on the worker's own start and timed out on a busy
+machine.
 
 ### Test data: isolate by organization
 

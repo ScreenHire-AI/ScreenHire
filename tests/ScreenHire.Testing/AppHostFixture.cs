@@ -110,6 +110,7 @@ public class AppHostFixture : IAsyncLifetime
         {
             await app.StartAsync(startup.Token);
             await Task.WhenAll(RequiredResources.Select(resource => WaitUntilHealthyAsync(app, resource, startup.Token)));
+            await WaitUntilWorkerStartedAsync(app, startup.Token);
         }
         catch
         {
@@ -133,6 +134,39 @@ public class AppHostFixture : IAsyncLifetime
             throw new TimeoutException(
                 $"The AppHost resource '{resource}' was not healthy within {StartupTimeout.TotalMinutes:0} minutes. " +
                 $"Check its log in {LogDirectory}.",
+                exception);
+        }
+    }
+
+    // The worker is a generic host with no health endpoint, so Aspire calls it healthy as soon as its process runs, and it
+    // starts only once the API is healthy. A test that publishes a message at once would spend its wait on the worker's
+    // own start (20 s on a busy machine) and time out. Its host's "Application started" line, from Aspire's log stream,
+    // says its handlers are listening.
+    private async Task WaitUntilWorkerStartedAsync(DistributedApplication app, CancellationToken cancellationToken)
+    {
+        // A fixture can take the worker out of its stack (ProductionApiFixture does); then there is nothing to wait for.
+        if (!app.Services.GetRequiredService<DistributedApplicationModel>().Resources.Any(resource => resource.Name == "worker"))
+        {
+            return;
+        }
+
+        try
+        {
+            var running = await app.ResourceNotifications.WaitForResourceAsync(
+                "worker", update => update.Snapshot.State?.Text == KnownResourceStates.Running, cancellationToken);
+            var logs = app.Services.GetRequiredService<ResourceLoggerService>();
+            await foreach (var batch in logs.WatchAsync(running.ResourceId).WithCancellation(cancellationToken))
+            {
+                if (batch.Any(line => line.Content.Contains("Application started", StringComparison.Ordinal)))
+                {
+                    return;
+                }
+            }
+        }
+        catch (OperationCanceledException exception) when (!TestContext.Current.CancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException(
+                $"The AppHost resource 'worker' did not start within {StartupTimeout.TotalMinutes:0} minutes. Check its log in {LogDirectory}.",
                 exception);
         }
     }
