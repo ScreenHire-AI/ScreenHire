@@ -256,7 +256,7 @@ Each status has its own Lucide icon. The icon alone tells statuses apart, so col
 
 | Colour | Statuses and their icons | Tokens (`status-*`, `-soft`, `-mark`) | Text | Soft bg | Icon colour |
 |---|---|---|---|---|---|
-| Clear | No concerns, No problems found, Delivering, Done; Delivered, a webhook delivery; Active, an API key; Live, the live updates connection; Connected, a Slack workspace (`circle-check`). Open, a job taking applications; Live, a job showing on a board (`door-open`) | `status-clear` | `#0B5D4F` | `#E3F1EC` | `#0F766E` |
+| Clear | No concerns, No problems found, Delivering, Done; Delivered, a webhook delivery; Active, an API key; Live, the live updates connection; Connected, a Slack workspace; Explained, a Verification reason a person marked explained (`circle-check`). Open, a job taking applications; Live, a job showing on a board (`door-open`) | `status-clear` | `#0B5D4F` | `#E3F1EC` | `#0F766E` |
 | Review | Review suggested (`eye`); Overdue by 2 days (`clock-alert`) | `status-review` | `#7A4205` | `#FBEFD3` | `#C77700` |
 | Verify | Verification suggested (`id-card`). Needs fixes, for a refused posting or a workflow with problems, and for a posting a board did not answer (Error), a webhook Turned off after failures, a delivery that Failed, and a Slack workspace that is Not posting or Disconnected (`wrench`). Unsafe file, flagged by the malware scan (`shield-x`) | `status-verify` | `#9A2F17` | `#F9E0D6` | `#B4461F` |
 | AI (information) | No signs, Some signs or Strong signs of AI help (`sparkles`) | `status-ai` | `#2B2788` | `#ECEBFA` | `#2B2788` |
@@ -617,8 +617,8 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
 - Each reason of an assessment that needs a look and is not dismissed has Mark explained, an outline button on the row
   of its code (F6). It opens a dialog: a reason from a list (Confirmed with the candidate, Expected for this role, A
   known false positive, Other) and a note, optional unless the reason is Other. An explained reason closes, shows a
-  quiet Explained badge on its row (W6, T3), and under the row one muted line says who explained it, when, why and the
-  note, with an outline Undo for its author only. Explaining decides nothing: the level, the candidate's status badge,
+  quiet Explained badge on its row (W6, T3), and under the row one muted line starts with who explained it, then when, why and
+  the note (the badge already says Explained, W7), with an outline Undo for its author only. Explaining decides nothing: the level, the candidate's status badge,
   "To review", filters, automations and webhooks never read it. Once every reason that counts is explained, Dismiss
   reads Dismiss all; it is the same button, never a second one (W7), and it opens the dismiss dialog with the explained
   reasons and their notes listed above the dismissal's own reason. A dismissed assessment keeps its explanations, read

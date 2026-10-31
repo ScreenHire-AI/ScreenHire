@@ -51,6 +51,7 @@
     type AssessmentKind,
     type LevelView,
   } from '#lib/integrity.js';
+  import { sentenceStart } from '#lib/history.js';
   import { can } from '#lib/permissions.js';
   import { describeError } from '#lib/query.js';
   import { statuses, type StatusTone } from '#lib/status.js';
@@ -229,7 +230,8 @@
       {@const explanation = signal.explained}
       <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3 pb-2.5" data-explanation>
         <p class="min-w-0 max-w-measure text-muted-foreground">
-          Explained by {reviewerName(explanation.actorUserId, explanation.actorName, page.data.user?.id)} <RelativeTime at={explanation.explainedAt} class="inline" />:
+          <!-- The row's Explained badge says what this is, so the line starts with who (W7). -->
+          {sentenceStart(reviewerName(explanation.actorUserId, explanation.actorName, page.data.user?.id))} <RelativeTime at={explanation.explainedAt} class="inline" />:
           {explainReasonLabels[explanation.reason]}{explanation.note ? `. "${explanation.note}"` : '.'}
         </p>
         {#if review.open && reviewer && explanation.actorUserId === page.data.user?.id}

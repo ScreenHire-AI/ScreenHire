@@ -318,7 +318,7 @@ describe('integrity panel', () => {
     const explained = reasonRow('NET_DATACENTER_IP');
     expect(explained.querySelector('details')!.open).toBe(false);
     expect(within(explained.querySelector('summary')!).getByText('Explained')).toBeInTheDocument();
-    expect(explained.querySelector('[data-explanation] p')).toHaveTextContent(/^Explained by you .+: Expected for this role\. "Remote role\."$/);
+    expect(explained.querySelector('[data-explanation] p')).toHaveTextContent(/^You .+: Expected for this role\. "Remote role\."$/);
     expect(within(explained).getByRole('button', { name: 'Undo' })).toBeInTheDocument();
     expect(within(section('Review log')).getByText(`Explained Sent from a hosting provider's network: Expected for this role`)).toBeInTheDocument();
     // The level, and the one button, stay as they were: other reasons are still unexplained.
@@ -340,7 +340,7 @@ describe('integrity panel', () => {
     renderPanel();
 
     await screen.findByRole('region', { name: 'Authenticity' });
-    expect(reasonRow('AUTO_WEBDRIVER').querySelector('[data-explanation]')).toHaveTextContent(/^Explained by Jordan Park/);
+    expect(reasonRow('AUTO_WEBDRIVER').querySelector('[data-explanation]')).toHaveTextContent(/^Jordan Park /);
     expect(within(reasonRow('AUTO_WEBDRIVER')).queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument();
     await fireEvent.click(within(reasonRow('NET_DATACENTER_IP')).getByRole('button', { name: 'Undo' }));
 
@@ -390,7 +390,7 @@ describe('integrity panel', () => {
     renderPanel();
 
     await screen.findByRole('region', { name: 'Authenticity' });
-    expect(reasonRow('NET_DATACENTER_IP').querySelector('[data-explanation]')).toHaveTextContent(/^Explained by you/);
+    expect(reasonRow('NET_DATACENTER_IP').querySelector('[data-explanation]')).toHaveTextContent(/^You /);
     expect(within(section('Authenticity')).queryByRole('button', { name: /Undo|Mark explained|Dismiss/ })).not.toBeInTheDocument();
   });
 
@@ -406,7 +406,7 @@ describe('integrity panel', () => {
     expect(screen.queryByRole('button', { name: /Mark explained|Undo|Dismiss|Add review note/ })).not.toBeInTheDocument();
     // Read-only says why (E3).
     expect(section('Authenticity')).toHaveTextContent('Your role can read these checks. A reviewer explains reasons and dismisses.');
-    expect(reasonRow('NET_DATACENTER_IP').querySelector('[data-explanation]')).toHaveTextContent(/^Explained by you/);
+    expect(reasonRow('NET_DATACENTER_IP').querySelector('[data-explanation]')).toHaveTextContent(/^You /);
   });
 
   it('asks for a note before dismissing for another reason', async () => {
