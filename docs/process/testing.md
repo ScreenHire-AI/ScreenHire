@@ -353,6 +353,18 @@ when `Gate` does not need every test job, when anything under `.github/` reads `
 runner, and when `APPHOST_IMAGES` differs from the images `apps/apphost/AppHost.cs` names. That is why `AppHost.cs`
 names Azurite's and Mailpit's tags itself: bump them with the Aspire packages.
 
+### What differs on Linux
+
+The first runs found two differences from the Windows dev machine. Both were fixed at their cause:
+
+- **Line endings in the contract.** The OpenAPI XML-comment generator joins a doc comment's lines with the build
+  machine's newline, so `openapi.json` had `\r\n` from Windows and `\n` from Linux, and `verify:contract` failed on
+  one of them. The API's last OpenAPI transformer (`OpenApiLineEndings`) writes `\n` on both.
+- **Graceful stops.** On Windows DCP stops a process by killing it; on Linux it sends SIGTERM and waits about 12 s.
+  The test stack has no dashboard, but Aspire's testing builder still pointed every service's telemetry exporter at
+  `localhost:4317`, with retries on, so the worker spent its shutdown retrying exports and the restart test's stop
+  timed out. `AppHostFixture` now clears `OTEL_EXPORTER_OTLP_ENDPOINT` in the test stacks, so no exporter is added.
+
 ### Reading a failed run
 
 1. `gh run list --branch <branch> --workflow CI` finds the run, and `gh pr checks <number>` shows each job on a PR.

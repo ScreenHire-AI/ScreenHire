@@ -115,6 +115,7 @@ public class AppHostFixture : IAsyncLifetime
                 .. ExtraArguments,
             ],
             startup.Token);
+        WithoutTelemetryExport(builder);
         Configure(builder);
         app = await builder.BuildAsync(startup.Token);
         watcher = WatchResourcesAsync(app, watching.Token);
@@ -129,6 +130,21 @@ public class AppHostFixture : IAsyncLifetime
             // A failed start must not leave containers and processes behind, whether or not xUnit disposes us.
             await DisposeAppAsync();
             throw;
+        }
+    }
+
+    // The test stack has no Aspire dashboard, yet the testing builder still points every service's OTLP exporter at
+    // http://localhost:4317, where nothing listens, and Aspire turns on the exporter's in-memory retry. A service then
+    // spends its shutdown retrying exports. On Linux, where DCP stops a process gracefully, the worker outlived DCP's stop
+    // timeout and the stop command failed (docs/process/testing.md, "Continuous integration"); on Windows DCP kills it,
+    // which hid this. With no endpoint, ServiceDefaults adds no exporter, so there is nothing to flush.
+    private static void WithoutTelemetryExport(IDistributedApplicationTestingBuilder builder)
+    {
+        foreach (var resource in builder.Resources.OfType<IResourceWithEnvironment>()
+                     .Where(resource => resource.Annotations.OfType<OtlpExporterAnnotation>().Any()))
+        {
+            resource.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
+                context.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = ""));
         }
     }
 
