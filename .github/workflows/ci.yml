@@ -14,10 +14,17 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-# The same suites as the local gate (`pnpm verify`), split into jobs that run side by side on GitHub's hosted Linux
-# runners. Gate is the one required check: it passes only when checks, integration and e2e all succeeded. Lighthouse
-# is report-only and outside the gate. The layout, how to read a failed run and the measured times are in
-# docs/process/testing.md, "Continuous integration".
+# The same suites as the local gate (`pnpm verify`), spread over jobs that run side by side on GitHub's hosted Linux
+# runners. Gate is the one required check: it passes only when every test job succeeded. Lighthouse is report-only
+# and outside the gate. The layout, how to read a failed run and the measured times are in docs/process/testing.md,
+# "Continuous integration".
+#
+# The runners have 4 cores, and each suite is CPU-bound there, so the long suites run as matrix shards on separate
+# runners, as Kangentic's ci.yml does: the dashboard's Vitest suite (Vitest's --shard), and the integration and
+# end-to-end suites by test class (scripts/test-shard.mjs; xUnit has no shard option). Every matrix sets
+# fail-fast: false, so one shard's failure never hides another's. Adding a shard is one more number in its matrix's
+# `shard` list and a new `shards` value; CiWorkflowTests fails when the list is not 1 to shards. Each Aspire shard
+# boots its own AppHost (about a minute), so a shard is worth adding while its tests run well past that.
 #
 # Every job runs on ubuntu-24.04, pinned: ubuntu-latest moved to a new Ubuntu on 2026-10-19, and the caches are keyed
 # on runner.os, which reads Linux on every release. Move all jobs together.
@@ -42,13 +49,13 @@ env:
     caddy:2.10.2-alpine
 
 jobs:
-  # Build with warnings as errors, the API contract, type checks, the frontend builds, Vitest and the .NET unit tests.
-  # Every step runs even after one fails (`!cancelled()`), and the last step fails the job if any did, so one failure
-  # never hides another and a run reports every broken check at once.
+  # Build with warnings as errors, the API contract, type checks, the frontend builds, the small Vitest suites and the
+  # .NET unit tests. Every step runs even after one fails (`!cancelled()`), and the last step fails the job if any did,
+  # so one failure never hides another and a run reports every broken check at once.
   checks:
-    name: Build, contract, checks, Vitest, unit tests
+    name: Build, contract, checks, unit tests
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 20
     steps:
       - name: Check out
         uses: actions/checkout@v7
@@ -70,10 +77,11 @@ jobs:
         id: build
         if: ${{ !cancelled() }}
         run: pnpm -r build
-      - name: Vitest (pnpm -r --if-present test)
+      # Every Vitest suite but the dashboard's, which runs in the vitest matrix below.
+      - name: Vitest, every package but the dashboard
         id: vitest
         if: ${{ !cancelled() }}
-        run: pnpm -r --if-present test
+        run: pnpm -r --if-present --filter '!@screenhire/dashboard' test
       - name: .NET unit tests
         id: unit
         if: ${{ !cancelled() }}
@@ -100,11 +108,36 @@ jobs:
           report ".NET unit tests" "$UNIT"
           exit $status
 
-  # tests/ScreenHire.IntegrationTests: the AppHost with no frontends, on the runner's Docker Engine.
-  integration:
-    name: Integration tests
+  # The dashboard's Vitest suite, the longest on these runners, in Vitest's own shards. No .NET.
+  vitest:
+    name: Vitest, dashboard (${{ matrix.shard }}/${{ matrix.shards }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+        shards: [3]
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+      - name: Set up the toolchain
+        uses: ./.github/actions/setup
+        with:
+          dotnet: 'false'
+      - name: Vitest, dashboard (shard ${{ matrix.shard }}/${{ matrix.shards }})
+        run: pnpm --filter @screenhire/dashboard run test --shard=${{ matrix.shard }}/${{ matrix.shards }}
+
+  # tests/ScreenHire.IntegrationTests on the runner's Docker Engine, its test classes split over the shards.
+  integration:
+    name: Integration tests (${{ matrix.shard }}/${{ matrix.shards }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+        shards: [4]
     steps:
       - name: Check out
         uses: actions/checkout@v7
@@ -112,23 +145,37 @@ jobs:
         uses: ./.github/actions/setup
       - name: Pull the AppHost's container images
         run: printf '%s\n' $APPHOST_IMAGES | xargs -P 5 -n 1 docker pull -q
-      - name: Integration tests
-        run: dotnet test --project tests/ScreenHire.IntegrationTests
+      - name: Build the integration tests
+        run: dotnet build tests/ScreenHire.IntegrationTests
+      - name: Integration tests (shard ${{ matrix.shard }}/${{ matrix.shards }})
+        env:
+          SHARD: ${{ matrix.shard }}
+          SHARDS: ${{ matrix.shards }}
+        run: |
+          node scripts/test-shard.mjs tests/ScreenHire.IntegrationTests "$SHARD" "$SHARDS" > "$RUNNER_TEMP/shard.args"
+          mapfile -t filters < "$RUNNER_TEMP/shard.args"
+          dotnet test --project tests/ScreenHire.IntegrationTests --no-build "${filters[@]}"
       # The fixture writes every resource's console log here (docs/process/testing.md, "AppHostFixture").
       - name: Upload resource logs
         if: ${{ failure() || cancelled() }}
         uses: actions/upload-artifact@v7
         with:
-          name: integration-logs
+          name: integration-logs-${{ matrix.shard }}
           path: tests/ScreenHire.IntegrationTests/bin/Debug/net10.0/TestResults/
           retention-days: 7
           if-no-files-found: ignore
 
-  # tests/ScreenHire.E2E: Playwright's Chromium against the production builds (Frontends=Built).
+  # tests/ScreenHire.E2E: Playwright's Chromium against the production builds (Frontends=Built), its test classes
+  # split over the shards.
   e2e:
-    name: End-to-end tests
+    name: End-to-end tests (${{ matrix.shard }}/${{ matrix.shards }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+        shards: [4]
     steps:
       - name: Check out
         uses: actions/checkout@v7
@@ -140,14 +187,22 @@ jobs:
         run: printf '%s\n' $APPHOST_IMAGES | xargs -P 5 -n 1 docker pull -q
       - name: Frontend builds (pnpm -r build)
         run: pnpm -r build
-      - name: End-to-end tests
-        run: dotnet test --project tests/ScreenHire.E2E
+      - name: Build the end-to-end tests
+        run: dotnet build tests/ScreenHire.E2E
+      - name: End-to-end tests (shard ${{ matrix.shard }}/${{ matrix.shards }})
+        env:
+          SHARD: ${{ matrix.shard }}
+          SHARDS: ${{ matrix.shards }}
+        run: |
+          node scripts/test-shard.mjs tests/ScreenHire.E2E "$SHARD" "$SHARDS" > "$RUNNER_TEMP/shard.args"
+          mapfile -t filters < "$RUNNER_TEMP/shard.args"
+          dotnet test --project tests/ScreenHire.E2E --no-build "${filters[@]}"
       # Resource logs, plus a full-page screenshot of every failed test (TestResults/screenshots).
       - name: Upload resource logs and screenshots
         if: ${{ failure() || cancelled() }}
         uses: actions/upload-artifact@v7
         with:
-          name: e2e-results
+          name: e2e-results-${{ matrix.shard }}
           path: tests/ScreenHire.E2E/bin/Debug/net10.0/TestResults/
           retention-days: 7
           if-no-files-found: ignore
@@ -200,10 +255,10 @@ jobs:
         run: echo "::warning::Lighthouse budgets failed on this runner (report-only). The step's log names the pages."
 
   # The one check branch protection requires. It runs whatever happened upstream (`always()`) and fails unless every
-  # test job succeeded, so a skipped or cancelled job never reads as a pass.
+  # test job succeeded, each matrix's shards included, so a skipped or cancelled job never reads as a pass.
   gate:
     name: Gate
-    needs: [checks, integration, e2e]
+    needs: [checks, vitest, integration, e2e]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -211,11 +266,12 @@ jobs:
       - name: Require every test job
         env:
           CHECKS: ${{ needs.checks.result }}
+          VITEST: ${{ needs.vitest.result }}
           INTEGRATION: ${{ needs.integration.result }}
           E2E: ${{ needs.e2e.result }}
         run: |
           status=0
-          for pair in "checks=$CHECKS" "integration=$INTEGRATION" "e2e=$E2E"; do
+          for pair in "checks=$CHECKS" "vitest=$VITEST" "integration=$INTEGRATION" "e2e=$E2E"; do
             if [ "${pair#*=}" = success ]; then echo "passed: ${pair%%=*}"; else echo "FAILED: ${pair%%=*} (${pair#*=})"; status=1; fi
           done
           exit $status

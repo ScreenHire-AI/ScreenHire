@@ -22,7 +22,9 @@ public sealed class CiWorkflowTests
         var files = CiWorkflow.RepositoryGitHubFiles();
         var jobs = CiWorkflow.Jobs(files[CiWorkflow.CiPath]);
 
-        jobs.Select(job => job.Id).Should().Contain(["checks", "integration", "e2e", "lighthouse", "gate"]);
+        jobs.Select(job => job.Id).Should().Contain(["checks", "vitest", "integration", "e2e", "lighthouse", "gate"]);
+        jobs.Where(job => job.Shard.Count > 0).Select(job => job.Id).Should().Equal(["vitest", "integration", "e2e"],
+            "the shard check reads the matrices");
         jobs.Should().AllSatisfy(job => job.RunsOn.Should().NotBeEmpty());
         CiWorkflow.AppHostImages(CiWorkflow.RepositoryAppHost()).Should().HaveCountGreaterThanOrEqualTo(5,
             "AppHost.cs names Postgres, Azurite, Mailpit, Dev SSO and Caddy");
@@ -30,10 +32,12 @@ public sealed class CiWorkflowTests
     }
 
     [Theory]
-    [InlineData("runs-on: ubuntu-24.04\n    timeout-minutes: 25", "runs-on: ubuntu-latest\n    timeout-minutes: 25", "job 'checks' runs on [ubuntu-latest]")]
+    [InlineData("runs-on: ubuntu-24.04\n    timeout-minutes: 15", "runs-on: ubuntu-latest\n    timeout-minutes: 15", "job 'vitest' runs on [ubuntu-latest]")]
     [InlineData("runs-on: ubuntu-24.04\n    timeout-minutes: 20", "runs-on: [self-hosted, linux]\n    timeout-minutes: 20", "job 'lighthouse' runs on a self-hosted runner")]
     [InlineData("    timeout-minutes: 20\n", "", "job 'lighthouse' has no positive timeout-minutes")]
-    [InlineData("needs: [checks, integration, e2e]", "needs: [checks, integration]", "gate needs [checks, integration]")]
+    [InlineData("needs: [checks, vitest, integration, e2e]", "needs: [checks, integration, e2e]", "gate needs [checks, integration, e2e]")]
+    [InlineData("shard: [1, 2, 3]\n        shards: [3]", "shard: [1, 2]\n        shards: [3]", "job 'vitest' runs shards [1, 2] of [3]")]
+    [InlineData("shard: [1, 2, 3]\n        shards: [3]", "shard: [1, 2, 3]", "job 'vitest' runs shards [1, 2, 3] of []")]
     [InlineData("if: ${{ always() }}\n    runs-on", "runs-on", "if: always()")]
     [InlineData("name: Gate\n", "name: Required\n", "not 'Gate'")]
     [InlineData("DOTNET_NOLOGO: 'true'", "DOTNET_NOLOGO: ${{ secrets.NUGET_TOKEN }}", "reads a secret")]

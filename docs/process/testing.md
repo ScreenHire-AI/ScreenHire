@@ -13,6 +13,7 @@ sources:
   - resource: global.json
   - resource: .github/workflows/ci.yml
   - resource: .github/actions/setup/action.yml
+  - resource: scripts/test-shard.mjs
 ---
 # Testing
 
@@ -324,13 +325,32 @@ for every pull request to `main`, every push to `main`, and on demand (`workflow
 branch cancels the run before it. The board still gates on the local `pnpm verify`; CI is the second opinion on
 another OS until the board moves to it.
 
+The runners have 4 cores and each long suite is CPU-bound there, so the long suites run as matrix shards on separate
+runners, as Kangentic's workflow does. Every matrix sets `fail-fast: false`, so one shard's failure never hides
+another's.
+
 | Job | Runs | Timeout |
 |---|---|---|
-| `checks` | `pnpm verify:dotnet`, `pnpm verify:contract`, `pnpm check`, `pnpm -r build`, `pnpm -r --if-present test` (Vitest) and `dotnet test --project tests/ScreenHire.UnitTests`. Every step runs even when an earlier one failed, and the last step fails the job if any did, so a run reports every broken check at once | 25 min |
-| `integration` | `dotnet test --project tests/ScreenHire.IntegrationTests` on the runner's Docker Engine | 30 min |
-| `e2e` | `pnpm -r build`, then `dotnet test --project tests/ScreenHire.E2E` with Playwright's Chromium | 30 min |
+| `checks` | `pnpm verify:dotnet`, `pnpm verify:contract`, `pnpm check`, `pnpm -r build`, Vitest for every package but the dashboard, and `dotnet test --project tests/ScreenHire.UnitTests`. Every step runs even when an earlier one failed, and the last step fails the job if any did, so a run reports every broken check at once | 20 min |
+| `vitest` (3 shards) | The dashboard's Vitest suite with Vitest's own `--shard`. No .NET | 15 min |
+| `integration` (4 shards) | `tests/ScreenHire.IntegrationTests` on the runner's Docker Engine, one AppHost per shard | 25 min |
+| `e2e` (4 shards) | `pnpm -r build`, then `tests/ScreenHire.E2E` with Playwright's Chromium, one AppHost per shard | 25 min |
 | `lighthouse` | `pnpm verify:lighthouse` on the marketing build, only when the change touches `apps/marketing`, `packages/ui` or `pnpm-lock.yaml` (otherwise a notice says so). Report-only: a budget miss is a warning, the job stays green, and it is not in the gate, because shared runners have no LCP baseline yet | 20 min |
-| `gate` (`Gate`) | Nothing but a check that `checks`, `integration` and `e2e` all succeeded. It runs even when they fail (`always()`), so a skipped or cancelled job never reads as a pass. It is the one check branch protection requires | 5 min |
+| `gate` (`Gate`) | Nothing but a check that `checks` and every shard of `vitest`, `integration` and `e2e` succeeded. It runs even when they fail (`always()`), so a skipped or cancelled job never reads as a pass. It is the one check branch protection requires | 5 min |
+
+xUnit and Microsoft Testing Platform have no shard option, so [`scripts/test-shard.mjs`](../../scripts/test-shard.mjs)
+splits a .NET test project by class:
+- it lists the built project's tests (`dotnet test --list-tests`);
+- it gives each class, whole, to the shard with the fewest tests so far, largest class first;
+- it prints one shard's `--filter-class` arguments.
+
+A class stays whole because a class fixture can boot a stack of its own (`DevelopmentDemoFixture`). A shard with no
+class fails rather than run everything. Shards are balanced by test count, not time, as Playwright's are. After a
+build, `node scripts/test-shard.mjs tests/ScreenHire.E2E 2 4` prints what CI's second end-to-end shard runs.
+
+Meziantou.ShardedTest does the same per test, but it has no licence (ADR-0008), and it builds a VSTest `--filter`,
+which `dotnet test` on this platform does not take. Each Aspire shard boots its own AppHost, about a minute, so a shard
+is worth adding while its tests run well past that. Raise a matrix's `shard` list and `shards` value together.
 
 Every job runs on `ubuntu-24.04`, pinned, and sets up through
 [`.github/actions/setup`](../../.github/actions/setup/action.yml):
@@ -339,6 +359,7 @@ Every job runs on `ubuntu-24.04`, pinned, and sets up through
 - `pnpm install --frozen-lockfile` and `dotnet tool restore`;
 - `dotnet aspire setup`, which lays out the Aspire CLI's bundle (DCP and the dashboard) under `~/.aspire`. The AppHost
   sets `AspireUseCliBundle=true` and reads DCP from there, as on a dev machine;
+- for `vitest`, none of the .NET steps;
 - for `e2e` and `lighthouse`, `pnpm e2e:install`, with Playwright's browsers cached on the `Microsoft.Playwright`
   version.
 
@@ -349,7 +370,7 @@ image at the first start; it is not on the list.
 CI never sees a secret: the repository's logs and artifacts are public, and nothing in the stack needs a real
 credential (the consistency check's LLM is the Development fake). No test retries in CI either (flake policy).
 `CiWorkflowTests` (`tests/ScreenHire.UnitTests/Tooling/`) fails when a job leaves `ubuntu-24.04` or has no timeout,
-when `Gate` does not need every test job, when anything under `.github/` reads `secrets.` or runs on a self-hosted
+when `Gate` does not need every test job, when a matrix's `shard` list is not 1 to its `shards` value, when anything under `.github/` reads `secrets.` or runs on a self-hosted
 runner, and when `APPHOST_IMAGES` differs from the images `apps/apphost/AppHost.cs` names. That is why `AppHost.cs`
 names Azurite's and Mailpit's tags itself: bump them with the Aspire packages.
 
@@ -371,15 +392,15 @@ The first runs found two differences from the Windows dev machine. Both were fix
 2. `gh run view <run-id> --log-failed` prints the log of each failed step only. A test failure names the test and
    its assertion there, as it does locally.
 3. When `integration` or `e2e` fails or is cancelled (a timeout included), the job uploads its `TestResults` folder as
-   an artifact for 7 days: `integration-logs` or `e2e-results`, with each resource's console log in `logs/` and a
-   screenshot of every failed end-to-end test in `screenshots/`. `gh run download <run-id> -n e2e-results` fetches it.
+   an artifact for 7 days: `integration-logs-<shard>` or `e2e-results-<shard>`, with each resource's console log in `logs/` and a
+   screenshot of every failed end-to-end test in `screenshots/`. `gh run download <run-id> -n e2e-results-2` fetches the second shard's.
    Read the resource logs first, as locally ([`AppHostFixture`](#apphostfixture-testsscreenhiretesting)).
 4. Rerun a job only to tell a flake from a defect, and record a flake in [Flake history](#flake-history) as for a
    local run.
 
 ### Time
 
-The first green run, on 2026-10-31 at commit `579ed99b` (run 41213499536), took 13 min 6 s from start to `Gate`, with
+The first green run, before the suites were sharded, on 2026-10-31 at commit `579ed99b` (run 41213499536), took 13 min 6 s from start to `Gate`, with
 the caches the run before it saved (NuGet, the pnpm store, Playwright's Chromium):
 
 | Job | Wall clock | Its longest steps |

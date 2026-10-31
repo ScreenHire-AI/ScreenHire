@@ -19,7 +19,9 @@ internal static partial class CiWorkflow
     /// <summary>Jobs outside the gate on purpose: the gate itself, and Lighthouse, which only reports.</summary>
     public static readonly string[] OutsideGate = ["gate", "lighthouse"];
 
-    public sealed record Job(string Id, string? Name, IReadOnlyList<string> RunsOn, string? TimeoutMinutes, IReadOnlyList<string> Needs, string? If);
+    public sealed record Job(
+        string Id, string? Name, IReadOnlyList<string> RunsOn, string? TimeoutMinutes, IReadOnlyList<string> Needs, string? If,
+        IReadOnlyList<string> Shard, IReadOnlyList<string> Shards);
 
     /// <summary>Every file under <c>.github/</c> in the repository, by its '/'-separated repo path.</summary>
     public static Dictionary<string, string> RepositoryGitHubFiles()
@@ -62,6 +64,18 @@ internal static partial class CiWorkflow
                 if (!int.TryParse(job.TimeoutMinutes, out var minutes) || minutes <= 0)
                 {
                     problems.Add($"{path}: job '{job.Id}' has no positive timeout-minutes");
+                }
+
+                // A matrix of shards must run every one of them: a number left out of the list skips its tests silently.
+                if (job.Shard.Count > 0 || job.Shards.Count > 0)
+                {
+                    var expected = job.Shards is [var total] && int.TryParse(total, out var count) && count > 0
+                        ? Enumerable.Range(1, count).Select(index => index.ToString(System.Globalization.CultureInfo.InvariantCulture)).ToList()
+                        : null;
+                    if (expected is null || !job.Shard.SequenceEqual(expected))
+                    {
+                        problems.Add($"{path}: job '{job.Id}' runs shards [{string.Join(", ", job.Shard)}] of [{string.Join(", ", job.Shards)}], not 1 to its one shards value");
+                    }
                 }
             }
         }
@@ -129,7 +143,9 @@ internal static partial class CiWorkflow
                 Strings(Child(job, "runs-on")),
                 Scalar(Child(job, "timeout-minutes")),
                 Strings(Child(job, "needs")),
-                Scalar(Child(job, "if")));
+                Scalar(Child(job, "if")),
+                Strings(Child(Child(Child(job, "strategy"), "matrix"), "shard")),
+                Strings(Child(Child(Child(job, "strategy"), "matrix"), "shards")));
         }).ToList();
     }
 
