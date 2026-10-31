@@ -141,7 +141,8 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
 
             if (!toNew)
             {
-                // Version 5 says verification; the code before this migration reads only what version 4 says.
+                // Version 5 says verification; the code before this migration reads only what version 4 says. A job
+                // copied from version 5 loses its source link (the foreign key sets it null) and keeps its own copy.
                 sql.AppendLine($"DELETE FROM hiring_template_versions WHERE id = '{SoftwareEngineerVersion5}';");
                 sql.AppendLine($"UPDATE hiring_templates SET latest_published_version = 4 WHERE id = '{SoftwareEngineer}' AND latest_published_version = 5;");
             }
@@ -169,8 +170,8 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
             {
                 // A change to a system template's content is a new version (SystemTemplates): version 4 with its
                 // verification automation's name and tag saying verification. Its id stays integrity_review, because
-                // automation ids feed idempotency keys. The WHERE pins version 4 as expected, so the insert does nothing
-                // otherwise.
+                // automation ids feed idempotency keys. The WHERE pins version 4 as expected, and the check after the
+                // insert stops the migration if version 4 was not, because the code reads version 5.
                 sql.AppendLine($"""
                     INSERT INTO hiring_template_versions (id, organization_id, template_id, version, status, definition, created_at, published_at)
                     SELECT '{SoftwareEngineerVersion5}', NULL, v.template_id, 5, 'Published',
@@ -185,6 +186,12 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     UPDATE hiring_templates SET latest_published_version = 5
                     WHERE id = '{SoftwareEngineer}' AND latest_published_version < 5
                       AND EXISTS (SELECT FROM hiring_template_versions WHERE id = '{SoftwareEngineerVersion5}');
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (SELECT FROM hiring_template_versions WHERE id = '{SoftwareEngineerVersion5}') THEN
+                            RAISE EXCEPTION 'RenameIntegrityToVerification found no version 4 of the Software engineer template to copy';
+                        END IF;
+                    END $$;
                     """);
             }
 
