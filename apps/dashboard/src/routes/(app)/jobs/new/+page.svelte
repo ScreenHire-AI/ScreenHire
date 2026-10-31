@@ -8,6 +8,7 @@
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
   import { goto } from '$app/navigation';
+  import CountryPicker from '#lib/components/country-picker.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -17,6 +18,8 @@
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import { selectClass } from '#lib/components/workflow/controls.js';
+  import { countryOptions } from '#lib/countries.js';
+  import { locales } from '#lib/dates.js';
   import { applyValidationProblem } from '#lib/forms.js';
   import { checkWhere, whereBody, workplaceOptions, workplaceValues } from '#lib/job-form.js';
   import { describeError, invalidatePath } from '#lib/query.js';
@@ -39,7 +42,7 @@
       title: z.string().trim().min(1, 'Give the job a title.'),
       templateVersionId: z.string(),
       workplaceType: z.enum(workplaceValues),
-      countries: z.string(),
+      countries: z.array(z.string()),
       city: z.string().max(100, 'Keep the city to 100 characters or fewer.'),
       country: z.string(),
       description: z.string(),
@@ -49,7 +52,8 @@
       checkWhere(value, issue);
       if (!value.templateVersionId && isBlank(value.description)) issue('description', 'Describe the job, or choose a template that has a description.');
     });
-  const empty = { title: '', templateVersionId: '', workplaceType: '', countries: '', city: '', country: '', description: '' } as const;
+  const empty = { title: '', templateVersionId: '', workplaceType: '' as const, countries: [] as string[], city: '', country: '', description: '' };
+  const countries = countryOptions(locales);
   const { form, errors, enhance, submitting } = superForm(defaults({ ...empty }, zod4(schema)), {
     SPA: true,
     validators: zod4(schema),
@@ -145,19 +149,15 @@
             <Field.Error id="new-job-workplace-error" errors={$errors.workplaceType?.map((message) => ({ message }))} />
           </Field.Field>
           {#if $form.workplaceType === 'Remote'}
-            <Field.Field data-invalid={$errors.countries ? true : undefined}>
+            <Field.Field data-invalid={$errors.countries?._errors ? true : undefined}>
               <Field.Label for="new-job-countries">Countries candidates can work from</Field.Label>
-              <Input
+              <CountryPicker
                 id="new-job-countries"
-                name="countries"
-                required
-                autocomplete="off"
                 bind:value={$form.countries}
-                aria-invalid={$errors.countries ? 'true' : undefined}
-                aria-describedby={describedBy('new-job-countries-error', $errors.countries, 'new-job-countries-hint')}
+                invalid={!!$errors.countries?._errors}
+                describedby={describedBy('new-job-countries-error', $errors.countries?._errors)}
               />
-              <Field.Description id="new-job-countries-hint">Two-letter codes, separated by commas, such as GB, IE.</Field.Description>
-              <Field.Error id="new-job-countries-error" errors={$errors.countries?.map((message) => ({ message }))} />
+              <Field.Error id="new-job-countries-error" errors={$errors.countries?._errors?.map((message) => ({ message }))} />
             </Field.Field>
           {:else if $form.workplaceType}
             <div class="@container">
@@ -175,17 +175,20 @@
                   <Field.Error id="new-job-city-error" errors={$errors.city?.map((message) => ({ message }))} />
                 </Field.Field>
                 <Field.Field data-invalid={$errors.country ? true : undefined}>
-                  <Field.Label for="new-job-country">Country code</Field.Label>
-                  <Input
+                  <Field.Label for="new-job-country">Country</Field.Label>
+                  <!-- Picked by name, never typed as a code (W8); the value is the ISO code the API takes. -->
+                  <select
                     id="new-job-country"
                     name="country"
+                    class={selectClass}
                     required
-                    maxlength={2}
-                    autocomplete="off"
                     bind:value={$form.country}
                     aria-invalid={$errors.country ? 'true' : undefined}
                     aria-describedby={describedBy('new-job-country-error', $errors.country)}
-                  />
+                  >
+                    <option value="">Select</option>
+                    {#each countries as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
+                  </select>
                   <Field.Error id="new-job-country-error" errors={$errors.country?.map((message) => ({ message }))} />
                 </Field.Field>
               </div>

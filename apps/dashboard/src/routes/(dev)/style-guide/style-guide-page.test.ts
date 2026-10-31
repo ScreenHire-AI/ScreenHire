@@ -96,6 +96,7 @@ const panels: Record<string, string[]> = {
   'Choice card': ['Choice card'],
   'Filter menu': ['Filter menu'],
   Picker: ['Picker'],
+  'Country picker': ['Country picker'],
   'Rich text editor': ['Rich text editor'],
   'Colour field': ['Colour field'],
   'Image field': ['Image field'],
