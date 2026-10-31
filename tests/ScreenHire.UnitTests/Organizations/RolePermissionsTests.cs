@@ -36,6 +36,7 @@ public sealed partial class RolePermissionsTests
         ["ReopenTask"] = Permission.CompleteTasks,
         ["SendEmails"] = Permission.EmailCandidates,
         ["SubmitScorecard"] = Permission.FillInScorecards,
+        ["RequestScorecard"] = Permission.CreateTasks,
         ["DismissIntegrityAssessment"] = Permission.ReviewIntegrity,
         ["AddIntegrityNote"] = Permission.ReviewIntegrity,
         ["RequestIdentityVerification"] = Permission.ReviewIntegrity,

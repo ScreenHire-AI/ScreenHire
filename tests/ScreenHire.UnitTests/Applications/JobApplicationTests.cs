@@ -1,4 +1,5 @@
 using ScreenHire.Domain.Applications;
+using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
@@ -180,6 +181,47 @@ public sealed class JobApplicationTests
         entry.Id.Should().Be(sendId);
         entry.Type.Should().Be(ApplicationEventType.EmailSent);
         entry.Data.Should().BeEquivalentTo(new { EmailId = (Guid?)sendId, EmailSubject = "A quick question", EmailTemplateId = (string?)null });
+    }
+
+    [Fact]
+    public void A_library_scorecard_records_the_stage_the_candidate_was_in_its_key_and_its_name()
+    {
+        var (application, _) = Submitted();
+        var card = new Scorecard("Culture add", [new ScorecardQuestion("values", ScorecardQuestionType.Rating5, "Shares how the team works")]);
+
+        var (scorecard, entry) = application.SubmitScorecard(
+            application.CurrentStageId, card, "11111111-2222-3333-4444-555555555555", Recruiter,
+            new Dictionary<string, ScorecardAnswerValue> { ["values"] = new(Rating: 4) }, Recommendation.Yes, null, 1, Monday);
+
+        scorecard.Should().BeEquivalentTo(new
+        {
+            StageId = application.CurrentStageId,
+            ScorecardTemplateId = "11111111-2222-3333-4444-555555555555",
+            ScorecardName = "Culture add",
+            ReviewerUserId = Recruiter,
+        });
+        entry.Data.StageId.Should().Be(application.CurrentStageId);
+    }
+
+    [Fact]
+    public void Asking_for_a_scorecard_makes_a_scorecard_task_in_the_current_stage_and_records_who_asked()
+    {
+        var (application, _) = Submitted();
+        var teammate = Guid.CreateVersion7();
+
+        var (task, entry) = application.RequestScorecard("interview", "Interview", teammate, "Focus on the pairing.", Monday, Recruiter);
+
+        task.Should().BeEquivalentTo(new
+        {
+            Kind = ApplicationTaskKind.Scorecard,
+            AssigneeUserId = (Guid?)teammate,
+            ScorecardTemplateId = "interview",
+            StageId = application.CurrentStageId,
+            Note = "Fill in the Interview scorecard. Focus on the pairing.",
+        });
+        entry.Type.Should().Be(ApplicationEventType.TaskCreated);
+        entry.ActorUserId.Should().Be(Recruiter);
+        entry.Data.TaskId.Should().Be(task.Id);
     }
 
     private static (JobApplication Application, Job Job) Submitted()

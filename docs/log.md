@@ -13,6 +13,16 @@ formatting stops while single-key shortcuts are off.
 
 ## 2026-10-30
 
+**Scorecards: fill in any one, ask a teammate for one, and tasks done where the work is.** On the candidate's
+Scorecards tab, Fill in takes a reached stage's own scorecard (the current one first) or any library scorecard, which is
+given at the stage the candidate is in now; each submission keeps the scorecard it came from and its name. Ask for one
+gives a teammate who sees the job and fills in scorecards a new kind of task, Scorecard. A task is done where its work
+is done (ADR-0017 decision 11): submitting the scorecard finishes the reviewer's request for it and their review (a
+review for the whole team with anyone's), in the same transaction, and the API refuses to tick a review or a requested
+scorecard by hand. My tasks links a requested scorecard to the Scorecards tab with the sheet open on it and every other
+task to the candidate. A requested scorecard holds back the rating and the others' scorecards until it is given, as a
+review does ([workflow engine](architecture/workflow-engine.md#8-the-engine-v1)).
+
 **The owner reviewed the v0.3 build** ([ADR-0017](adr/0017-design-system-v0-3-owner-review.md)) and the dashboard
 changed with it. The candidate page has no details rail: who they are and where they stand is one meta line in the
 header, with the authenticity level as their status beside the name, and Overview is a grid of panels. The feature

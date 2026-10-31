@@ -99,7 +99,8 @@ X-XSRF-TOKEN: {{xsrf}}
 
 ###
 
-# Scorecards: one per reviewer per stage; submitting raises the ReviewerDecision trigger.
+# Scorecards: one per reviewer, stage and scorecard; submitting raises the ReviewerDecision trigger and finishes the
+# reviewer's review and their request for that scorecard.
 GET {{api}}/v1/applications/00000000-0000-0000-0000-000000000000/scorecards
 
 ###
@@ -108,7 +109,25 @@ POST {{api}}/v1/applications/00000000-0000-0000-0000-000000000000/scorecards
 Content-Type: application/json
 X-XSRF-TOKEN: {{xsrf}}
 
-{ "stageId": "interview", "ratings": [{ "criterionId": "role_skills", "rating": "Demonstrated" }], "recommendation": "Yes" }
+{ "stageId": "interview", "answers": [{ "questionId": "role_skills", "rating": 4 }], "recommendation": "Yes" }
+
+###
+
+# A library scorecard, given at the stage the candidate is in now.
+POST {{api}}/v1/applications/00000000-0000-0000-0000-000000000000/scorecards
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "scorecardTemplateId": "phone-screen", "answers": [{ "questionId": "role_requirements", "rating": 4 }], "recommendation": "Yes" }
+
+###
+
+# Ask a teammate for a scorecard: a Scorecard task, done when they submit it.
+POST {{api}}/v1/applications/00000000-0000-0000-0000-000000000000/scorecard-requests
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "assigneeUserId": "00000000-0000-0000-0000-000000000000", "scorecardTemplateId": "interview", "note": "Focus on the pairing exercise." }
 
 ###
 

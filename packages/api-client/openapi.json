@@ -6514,6 +6514,16 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Unauthorized"
           }
@@ -6558,6 +6568,16 @@
           },
           "403": {
             "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6673,6 +6693,94 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ScorecardEntry"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/applications/{applicationId}/scorecard-requests": {
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "RequestScorecard",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestScorecardRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationTaskEntry"
                 }
               }
             }
@@ -9354,15 +9462,22 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "scorecardTemplateId": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "Something a person should do about an application: a review, a to-do, or a rejection to decide on."
+        "description": "Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\r\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\r\nticked off by hand."
       },
       "ApplicationTaskKind": {
         "enum": [
           "Review",
           "Task",
-          "RejectionReview"
+          "RejectionReview",
+          "Scorecard"
         ]
       },
       "ApplicationTimelineEntry": {
@@ -14859,6 +14974,29 @@
         ],
         "description": "A reviewer's overall recommendation for the stage. Automations test it as `reviewer.recommendation`."
       },
+      "RequestScorecardRequest": {
+        "required": [
+          "assigneeUserId",
+          "scorecardTemplateId"
+        ],
+        "type": "object",
+        "properties": {
+          "assigneeUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "scorecardTemplateId": {
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Ask a teammate for a scorecard: a Scorecard task assigned to them, done when they submit that scorecard for the\r\napplication."
+      },
       "RoleCatalogue": {
         "required": [
           "roles",
@@ -15147,7 +15285,9 @@
           "note",
           "workflowVersion",
           "timelineEventId",
-          "submittedAt"
+          "submittedAt",
+          "scorecardTemplateId",
+          "scorecardName"
         ],
         "type": "object",
         "properties": {
@@ -15201,9 +15341,21 @@
           "submittedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "scorecardTemplateId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "scorecardName": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "One reviewer's scorecard for one stage: an answer to each question as it was asked, and an overall recommendation.\r\nIts rating answers make the candidate's rating (`ApplicationRating`, ADR-0013); nothing else on it does."
+        "description": "One reviewer's scorecard, given while the application was in a stage: an answer to each question as it was asked, and\r\nan overall recommendation.\r\nIts rating answers make the candidate's rating (`ApplicationRating`, ADR-0013); nothing else on it does."
       },
       "ScorecardQuestion": {
         "required": [
@@ -15720,7 +15872,10 @@
         "type": "object",
         "properties": {
           "stageId": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "answers": {
             "type": "array",
@@ -15736,9 +15891,15 @@
               "null",
               "string"
             ]
+          },
+          "scorecardTemplateId": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "A reviewer's scorecard for a stage the application has reached and whose workflow stage has a scorecard. Each\r\nreviewer gives one per stage: the same submission again returns the stored one, a different one is a 409."
+        "description": "A reviewer's scorecard. Name one of two: `stageId`, a stage the application has reached whose workflow stage\r\nhas a scorecard (the job's own copy), or `scorecardTemplateId`, a library scorecard given at the stage the\r\napplication is in now. Each reviewer gives one per stage and scorecard: the same submission again returns the stored\r\none, a different one is a 409."
       },
       "SwitchOrganizationRequest": {
         "required": [
@@ -15825,6 +15986,12 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "scorecardTemplateId": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "description": "A task in a list across applications (My tasks): the task, and the candidate and job it is about."
