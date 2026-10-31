@@ -290,7 +290,8 @@ internal static class TalentPoolEndpoints
 
     // Each candidate gets an application on the job, as a recruiter adding them by hand does, carrying the permission they
     // gave on the application they were kept from, so its clock does not restart. Adding them takes them out of the pool
-    // (ApplicationSubmission), and the kept application's Activity names the new one.
+    // (ApplicationSubmission), and the kept application's Activity names the new one. One commit for the selection: a
+    // candidate who applied to the job at the same moment fails the whole add with a 409, and nothing is half done.
     private static async Task<Results<Ok<AddedFromTalentPool>, ValidationProblem, ProblemHttpResult>> AddFromTalentPool(
         AddFromTalentPoolRequest request,
         IValidator<AddFromTalentPoolRequest> validator,
@@ -326,15 +327,25 @@ internal static class TalentPoolEndpoints
             var submitted = await ApplicationSubmission.SubmitAsync(
                 outbox, job, new ApplicationSubmission.CandidateDetails(candidate.FirstName, candidate.LastName, candidate.Email, candidate.Phone),
                 new ApplicationDeclarations(false, AiUseDeclaration.NotProvided, null),
-                ApplicationIntake.Recruiter with { FutureRoles = keptFrom.CarriedFutureRoles() }, [], now, tenant.UserId, cancellationToken);
+                ApplicationIntake.Recruiter with { FutureRoles = keptFrom.CarriedFutureRoles() }, [], now, tenant.UserId, cancellationToken,
+                commit: false);
             if (submitted is { } created)
             {
                 added.Add(created.Application.Id);
             }
             else
             {
-                skipped++; // applied to the job at the same moment
+                skipped++;
             }
+        }
+
+        try
+        {
+            await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (exception.IsUniqueViolation())
+        {
+            return TypedResults.Problem("One of them applied to this job just now; refresh and try again.", statusCode: StatusCodes.Status409Conflict);
         }
 
         return TypedResults.Ok(new AddedFromTalentPool(added, skipped));

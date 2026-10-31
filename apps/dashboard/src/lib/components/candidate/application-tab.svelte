@@ -44,10 +44,12 @@
         : ''}
     </SummaryItem>
     <SummaryItem label="Adjustments">{detail.accommodationRequested ? 'Asked for adjustments to the process' : 'None requested'}</SummaryItem>
-    <!-- "Keep my details for future roles": only an application whose candidate said yes can be kept in mind. -->
-    <SummaryItem label="Future roles">
-      {#if !detail.futureRolesGivenAt}Did not ask to be kept for future roles{:else if detail.futureRolesUntil}Allowed until {formatDate(detail.futureRolesUntil)}{:else}Allowed,
-        then stopped or ran out{/if}
-    </SummaryItem>
+    <!-- "Keep my details for future roles": only an application whose candidate said yes can be kept in mind. The
+         default, no, shows nothing (W6). -->
+    {#if detail.futureRolesGivenAt}
+      <SummaryItem label="Future roles">
+        {#if detail.futureRolesUntil}Allowed until {formatDate(detail.futureRolesUntil)}{:else}Allowed, then stopped{/if}
+      </SummaryItem>
+    {/if}
   </SummaryList>
 </Panel>

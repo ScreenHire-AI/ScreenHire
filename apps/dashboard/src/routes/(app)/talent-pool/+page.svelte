@@ -194,7 +194,7 @@
           <Empty.Description>
             {filtering
               ? 'Nobody in the talent pool matches these filters.'
-              : 'Nobody in the talent pool yet. Keep a strong candidate in mind from Move to stage on their page.'}
+              : 'Nobody has been kept in mind yet.'}
           </Empty.Description>
           {#if filtering}
             <Button variant="outline" size="lg" onclick={() => ((search = ''), (tagFilter = []), (jobFilter = []))}>Clear filters</Button>

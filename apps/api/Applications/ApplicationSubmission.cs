@@ -50,7 +50,9 @@ internal static class ApplicationSubmission
     /// <summary>The new application and its candidate, or null when the candidate has already applied to the job.</summary>
     /// <remarks>
     /// An existing candidate's name and phone are left as they are. Anyone can type any email address into a careers
-    /// form, so a submission never changes the details of a candidate who already exists.
+    /// form, so a submission never changes the details of a candidate who already exists. With <paramref name="commit"/>
+    /// false the caller saves and flushes once for several submissions: an outbox that has flushed once keeps later
+    /// messages in its table without sending them.
     /// </remarks>
     public static async Task<(JobApplication Application, Candidate Candidate)?> SubmitAsync(
         IDbContextOutbox<ScreenHireDbContext> outbox,
@@ -65,7 +67,8 @@ internal static class ApplicationSubmission
         SubmissionSession? session = null,
         IntegrityOptions? integrity = null,
         TelemetryBinding? telemetry = null,
-        Guid? actorApiKeyId = null)
+        Guid? actorApiKeyId = null,
+        bool commit = true)
     {
         var db = outbox.DbContext;
         var email = Candidate.Normalize(input.Email);
@@ -133,6 +136,11 @@ internal static class ApplicationSubmission
             };
             db.ApplicationFiles.Add(file);
             await outbox.PublishAsync(new ScanApplicationFile(file.OrganizationId, application.Id, file.Id));
+        }
+
+        if (!commit)
+        {
+            return (application, candidate);
         }
 
         try

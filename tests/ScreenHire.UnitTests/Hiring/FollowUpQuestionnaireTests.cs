@@ -115,6 +115,18 @@ public sealed class FollowUpQuestionnaireTests
             .Which.Path.Should().Be("automations[0].actions[0].emailTemplate");
     }
 
+    // Only a person's Invite to apply sends the talent pool invitation (docs/architecture/talent-pool.md, guardrail 5):
+    // no automation names it, so nothing automatic invites anyone or acts on the pool.
+    [Fact]
+    public void Send_email_cannot_send_the_talent_pool_invitation()
+    {
+        var automation = Automation("a", new AutomationTrigger(TriggerType.ApplicationSubmitted),
+            [new AutomationAction(ActionType.SendEmail, EmailTemplate: EmailTemplateIds.TalentPoolInvitation)]);
+
+        DefinitionValidator.Validate(Workflow(automations: [automation])).Should().ContainSingle()
+            .Which.Path.Should().Be("automations[0].actions[0].emailTemplate");
+    }
+
     // The knockout rules hold for follow-up questions as for apply questions (guardrail 2): queue by default, reject only
     // with the opt-in, and never on a question that is not a knockout.
     [Fact]
