@@ -134,7 +134,7 @@ public static partial class ExecuteAutomationActionHandler
             return (null, Skipped("Email is not set up, so nothing was sent."));
         }
 
-        if (ApplicationEmails.Skips(templateId, CurrentStage(context)))
+        if (ApplicationEmails.Skips(templateId, context.Application, CurrentStage(context)))
         {
             return (null, Skipped("The application has ended, so the stage-change email was not sent."));
         }
@@ -170,7 +170,7 @@ public static partial class ExecuteAutomationActionHandler
             return Failed("The careers site address is not set up, so no link could be sent.");
         }
 
-        if (CurrentStage(context)?.Kind.IsTerminal() == true)
+        if (context.Application.HasEnded(CurrentStage(context)))
         {
             return Skipped("The application has ended, so no questionnaire was sent.");
         }
@@ -209,7 +209,7 @@ public static partial class ExecuteAutomationActionHandler
 
     private static (AutomationActionStatus, string) MoveToStage(ActionContext context, string stageId)
     {
-        if (CurrentStage(context)?.Kind.IsTerminal() == true)
+        if (context.Application.HasEnded(CurrentStage(context)))
         {
             return Skipped("The application has already ended, so automations no longer move it.");
         }
@@ -258,6 +258,16 @@ public static partial class ExecuteAutomationActionHandler
             && !await context.Db.OrganizationMembers.AnyAsync(m => m.UserId == userId && m.OrganizationId == context.Run.OrganizationId, cancellationToken))
         {
             return Failed("The reviewer is not a member of the organization any more.");
+        }
+
+        // A review is done when its reviewer gives a scorecard, and nobody ticks one by hand (ADR-0017 decision 11). A
+        // reviewer who already gave one at this stage has done it (ReviewerGate), so a new task would stay open for good.
+        var stageId = context.Application.CurrentStageId;
+        if (assigneeUserId is { } reviewer
+            && await context.Db.ApplicationScorecards.AnyAsync(
+                s => s.ApplicationId == context.Application.Id && s.StageId == stageId && s.ReviewerUserId == reviewer, cancellationToken))
+        {
+            return Skipped("The reviewer already gave a scorecard at this stage.");
         }
 
         return AddTask(context, ApplicationTaskKind.Review, "Review this application.", assigneeUserId,
@@ -311,7 +321,7 @@ public static partial class ExecuteAutomationActionHandler
                 : "Queued for a person to decide: email is not set up, so the candidate could not be told why.");
         }
 
-        if (CurrentStage(context)?.Kind.IsTerminal() == true)
+        if (context.Application.HasEnded(CurrentStage(context)))
         {
             return Skipped("The application has already ended.");
         }

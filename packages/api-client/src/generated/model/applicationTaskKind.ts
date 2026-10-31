@@ -12,4 +12,5 @@ export const ApplicationTaskKind = {
   Review: 'Review',
   Task: 'Task',
   RejectionReview: 'RejectionReview',
+  Scorecard: 'Scorecard',
 } as const;

@@ -36,6 +36,7 @@ describe('app shell', () => {
     expect(links.map((link) => link.textContent?.trim())).toEqual([
       'Jobs',
       'Candidates',
+      'Talent pool',
       'Templates',
       'My tasks',
       'Reports',
@@ -176,7 +177,7 @@ describe('app shell', () => {
     render(ShellHarness, { props: { user, viewCounts: {} } });
 
     const links = within(main()).getAllByRole('link');
-    expect(links.map((link) => link.textContent?.trim()).slice(5)).toEqual([
+    expect(links.map((link) => link.textContent?.trim()).slice(6)).toEqual([
       'To review',
       'To verify',
       'Overdue',
@@ -193,8 +194,8 @@ describe('app shell', () => {
     render(ShellHarness, { props: { user: userAs(role), viewCounts } });
 
     expect(within(main()).queryByRole('link', { name: 'Settings' })).toBeNull();
-    // The five sections (My tasks and Reports included) and the six saved views.
-    expect(within(main()).getAllByRole('link')).toHaveLength(11);
+    // The six sections (Talent pool, My tasks and Reports included) and the six saved views.
+    expect(within(main()).getAllByRole('link')).toHaveLength(12);
   });
 
   it('shows a label cut with an ellipsis in full in a tooltip in the full sidebar (F5)', async () => {

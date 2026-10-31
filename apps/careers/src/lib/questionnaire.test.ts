@@ -49,7 +49,7 @@ describe('questionnaire links', () => {
 describe('answering a questionnaire', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  const open = { organization: { name: 'Acme', slug: 'acme', branding: null }, jobTitle: 'Warehouse lead', name: 'Availability', status: 'Open', questions: [question('start', 'ShortText', true), question('licence', 'YesNo', true)] };
+  const open = { organization: { name: 'Acme', slug: 'acme', branding: { colors: null, header: null, headingFont: null, logo: null, favicon: null, sharingImage: null } }, jobTitle: 'Warehouse lead', name: 'Availability', status: 'Open', questions: [question('start', 'ShortText', true), question('licence', 'YesNo', true)] };
 
   it('checks required answers before it sends anything', async () => {
     const fetch = vi.fn().mockResolvedValueOnce(json(200, open));

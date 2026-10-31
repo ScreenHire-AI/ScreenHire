@@ -64,4 +64,14 @@ public sealed class ReviewerGateTests
 
         ReviewerGate.Withholds(reviews, [new GivenScorecard("screening", Assigned.AddHours(1))]).Should().BeTrue();
     }
+
+    // A teammate asked for a scorecard is a reviewer too: only that scorecard answers the request.
+    [Fact]
+    public void A_requested_scorecard_holds_the_rating_back_until_that_scorecard_is_given()
+    {
+        OpenReview[] request = [new("interview", Assigned, StageHasScorecard: true, ScorecardTemplateId: "culture")];
+
+        ReviewerGate.Withholds(request, [new GivenScorecard("interview", Assigned.AddHours(1), "interview")]).Should().BeTrue();
+        ReviewerGate.Withholds(request, [new GivenScorecard("interview", Assigned.AddHours(1), "culture")]).Should().BeFalse();
+    }
 }

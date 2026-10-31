@@ -9,6 +9,7 @@
   import EmailComposerSheet from '#lib/components/email-composer-sheet.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import FilterMenu from '#lib/components/filter-menu.svelte';
+  import KeepInMindSheet from '#lib/components/keep-in-mind-sheet.svelte';
   import Panel from '#lib/components/panel.svelte';
   import PipelineBoard from '#lib/components/pipeline-board.svelte';
   import QueryError from '#lib/components/query-error.svelte';
@@ -73,7 +74,7 @@
   const onBoard = $derived(searched.filter((application) => matchesIntegrityFilter(application, integrityFilter)));
   // A stage taken out of the workflow on its own page filters nothing, and the menu reads All again.
   const chosenStage = $derived(stages.some((stage) => stage.id === stageFilter) ? stageFilter : null);
-  const shown = $derived(onBoard.filter((application) => !chosenStage || application.stage.id === chosenStage));
+  const shown = $derived(onBoard.filter((application) => !chosenStage || (application.stage.id === chosenStage && !application.keptInMindAt)));
   const filtering = $derived(Boolean(chosenStage) || Boolean(search.trim()) || isIntegrityFiltered(integrityFilter));
   const moveTargets = $derived(bulkMoveStages(stages, integrityFilter));
   // Only the rows on screen: a ticked row that a search or filter hides is never moved with the rest.
@@ -83,8 +84,14 @@
   const canEmail = $derived(Boolean(emailTemplates.data?.data.sendingEnabled) && can(page.data.user, 'EmailCandidates'));
   let emailOpen = $state(false);
   let emailed = $state('');
+  // Keep in mind for the selection, with the same guard as Email: never on rows a Verification filter picked (ADR-0004).
+  let keepOpen = $state(false);
   const stageOptions = $derived(
-    stages.map((stage) => ({ value: stage.id, label: stage.name, count: applications.filter((application) => application.stage.id === stage.id).length })),
+    stages.map((stage) => ({
+      value: stage.id,
+      label: stage.name,
+      count: applications.filter((application) => application.stage.id === stage.id && !application.keptInMindAt).length,
+    })),
   );
   const views = [
     { id: 'table', label: 'Table' },
@@ -176,6 +183,7 @@
         onmove={moves.allowed ? moveSelected : undefined}
         disabled={moves.pending}
         onemail={canEmail && !isIntegrityFiltered(integrityFilter) ? () => (emailOpen = true) : undefined}
+        onkeep={moves.allowed && !isIntegrityFiltered(integrityFilter) ? () => (keepOpen = true) : undefined}
         onclear={() => (selectedIds = [])}
       />
     {/if}
@@ -223,6 +231,9 @@
 
 {#if canEmail}
   <EmailComposerSheet bind:open={emailOpen} recipients={selected} onsent={(message) => ((emailed = message), (selectedIds = []))} />
+{/if}
+{#if moves.allowed}
+  <KeepInMindSheet bind:open={keepOpen} applicationIds={selected.map((application) => application.id)} ondone={(message) => ((emailed = message), (selectedIds = []))} />
 {/if}
 
 {#snippet searchField(className: string)}

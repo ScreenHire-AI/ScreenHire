@@ -20,7 +20,7 @@ internal static class DemoCandidates
 
     public static IReadOnlyList<DemoCandidate> All { get; } =
     [
-        new(ProductDesigner, [new("interview")], Person(
+        new(ProductDesigner, [new("interview")], KeepForFutureRoles: true, Applicant: Person(
             "priya-natarajan", "Priya", "Natarajan", "priya.natarajan@example.com", "+44 20 7946 0311", "192.0.2.31", 17,
             "Priya Natarajan\nProduct designer, nine years. Research-led work on booking and payments products.\nI run design critiques and pair with engineers on prototypes.",
             DesignerAnswers(
@@ -51,7 +51,7 @@ internal static class DemoCandidates
             "marcus-lindqvist", "Marcus", "Lindqvist", "marcus.lindqvist@example.org", "+44 20 7946 0344", "192.0.2.34", 15,
             "Marcus Lindqvist\nFrontend engineer, six years. Svelte, TypeScript and design systems.\nI maintain a component library used by four product teams.",
             FrontendAnswers("six_to_nine", "production", "yes", "https://code.example.org/marcus-lindqvist/component-library", "Three months"))),
-        new(FrontendEngineer, [new("interview")], Person(
+        new(FrontendEngineer, [new("interview")], KeepForFutureRoles: true, Applicant: Person(
             "hannah-okoro", "Hannah", "Okoro", "hannah.okoro@example.com", "+44 117 496 0355", "192.0.2.35", 11,
             "Hannah Okoro\nFull-stack developer leaning frontend: SvelteKit, Node and Postgres.",
             FrontendAnswers("three_to_five", "production", "yes", "https://hannah-okoro.example.org/projects/booking-calendar", "One month"))),
@@ -99,19 +99,27 @@ internal static class DemoCandidates
                 new("offer", DaysAgo: 55), new("hired", "Started in the first-line team.", 50),
             ],
             Person(
-                "sam-adeyemi", "Sam", "Adeyemi", "sam.adeyemi@example.org", "+44 20 7946 0411", "192.0.2.41", 15,
-                "Sam Adeyemi\nSupport engineer, five years on a point-of-sale help desk.\nI wrote our guide to diagnosing card reader faults.",
-                EngineerAnswers("three_to_five", "https://sam-adeyemi.example.org/card-reader-guide", "One month")),
+                "sam-brennan", "Sam", "Brennan", "sam.brennan@example.org", "+44 20 7946 0433", "192.0.2.43", 15,
+                "Sam Brennan\nSupport engineer, five years on a point-of-sale help desk.\nI wrote our guide to diagnosing card reader faults.",
+                EngineerAnswers("three_to_five", "https://sam-brennan.example.org/card-reader-guide", "One month")),
             AppliedDaysAgo: 75),
         // Added by a recruiter, who met them at a meetup, so Reports shows a second source.
         new(SupportEngineer,
             [new("screening", DaysAgo: 29), new("interview", DaysAgo: 24), new("offer", DaysAgo: 20), new("hired", DaysAgo: 16)],
             Person(
-                "grace-mwangi", "Grace", "Mwangi", "grace.mwangi@example.com", "+44 113 496 0422", "192.0.2.42", 12,
-                "Grace Mwangi\nTechnical support specialist, six years with hotel booking software.",
-                EngineerAnswers("six_to_nine", "https://grace-mwangi.example.org/escalation-notes", "Two weeks")),
+                "ruth-mwangi", "Ruth", "Mwangi", "ruth.mwangi@example.com", "+44 113 496 0444", "192.0.2.44", 12,
+                "Ruth Mwangi\nTechnical support specialist, six years with hotel booking software.",
+                EngineerAnswers("six_to_nine", "https://ruth-mwangi.example.org/escalation-notes", "Two weeks")),
             AppliedDaysAgo: 30,
             Source: ApplicationSource.Recruiter),
+        new(SupportEngineer,
+            [new("screening"), new("technical"), new("interview")],
+            KeepForFutureRoles: true,
+            KeptInMindNote: "Close second to Nadia. Clear runbooks and calm on the incident exercise; think of her for the next support opening.",
+            Applicant: Person(
+                "grace-adeyemi", "Grace", "Adeyemi", "grace.adeyemi@example.org", "+44 117 496 0411", "192.0.2.41", 15,
+                "Grace Adeyemi\nSupport engineer, three years in a payroll software team.\nI built our first on-call handbook.",
+                EngineerAnswers("three_to_five", "https://grace-adeyemi.example.org/on-call-handbook", "One month"))),
     ];
 
     // Answers to every question of the candidate's job: the "Software engineer" template's for the .NET and support jobs,
@@ -170,12 +178,18 @@ internal static class DemoCandidates
 /// An applicant to one of Brightwater's jobs and the moves a recruiter made, in order, each with an optional note. Most
 /// apply as the demo starts; <see cref="AppliedDaysAgo"/> dates one in the past, with its moves, for Reports.
 /// </summary>
+/// <remarks>
+/// <c>KeepForFutureRoles</c>: they ticked "Keep my details for future roles" when they applied. <c>KeptInMindNote</c>:
+/// after the moves, the team kept them in mind with this note, so the talent pool has someone in it.
+/// </remarks>
 internal sealed record DemoCandidate(
     string JobSlug,
     IReadOnlyList<DemoMove> Moves,
     SyntheticApplicant Applicant,
     int AppliedDaysAgo = 0,
-    ApplicationSource Source = ApplicationSource.CareersSite)
+    ApplicationSource Source = ApplicationSource.CareersSite,
+    bool KeepForFutureRoles = false,
+    string? KeptInMindNote = null)
 {
     /// <summary>The stage the candidate ends in: the last move's, or "applied" when nobody moved them.</summary>
     public string StageId => Moves.Count == 0 ? "applied" : Moves[^1].StageId;

@@ -5,6 +5,7 @@ using ScreenHire.Domain.History;
 using ScreenHire.Domain.Integrity;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.TalentPool;
 
 namespace ScreenHire.Infrastructure.Persistence.History;
 
@@ -34,6 +35,7 @@ public static class TrackedKinds
         Track<Organization>(ChangeSubjectKind.Organization, o => o.Id.ToString("D"), SettingsChanges.Name),
         Track<Organization>(ChangeSubjectKind.Branding, o => o.Id.ToString("D"), SettingsChanges.Branding),
         Track<IntegritySettings>(ChangeSubjectKind.IntegritySettings, s => s.OrganizationId.ToString("D"), SettingsChanges.Integrity),
+        Track<TalentPoolSettings>(ChangeSubjectKind.TalentPoolSettings, s => s.OrganizationId.ToString("D"), SettingsChanges.TalentPool),
     ];
 
     private static readonly ILookup<Type, TrackedKind> ByType = All.ToLookup(k => k.EntityType);

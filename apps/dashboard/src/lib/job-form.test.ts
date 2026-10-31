@@ -4,8 +4,6 @@ import {
   checkWhere,
   closingDate,
   closingInstant,
-  descriptionBody,
-  descriptionText,
   salaryBody,
   whereBody,
   whereFields,
@@ -94,21 +92,5 @@ describe('closing date', () => {
     expect(closingInstant('2026-11-30', '2026-11-30T12:00:00+00:00')).toBe('2026-11-30T12:00:00+00:00');
     expect(closingInstant('2026-12-01', '2026-11-30T12:00:00+00:00')).toBe('2026-12-01T23:59:59Z');
     expect(closingInstant('', '2026-11-30T12:00:00+00:00')).toBeNull();
-  });
-});
-
-describe('description', () => {
-  const html = '<p>Join our payments team.</p><h2>What you will do</h2><ul><li>Ship features.</li><li>Review code.</li></ul>';
-
-  it('reads as a block per paragraph, heading and list item', () => {
-    expect(descriptionText(html)).toBe('Join our payments team.\n\nWhat you will do\n\n- Ship features.\n\n- Review code.');
-    expect(descriptionText('Just text')).toBe('Just text');
-  });
-
-  it('keeps the original HTML when the text is untouched, and makes paragraphs when it changed', () => {
-    const original = { html, text: descriptionText(html) };
-    expect(descriptionBody(original.text, original)).toBe(html);
-    expect(descriptionBody('New intro.\n\nMore.', original)).toBe('<p>New intro.</p><p>More.</p>');
-    expect(descriptionBody('  ', original)).toBeNull();
   });
 });

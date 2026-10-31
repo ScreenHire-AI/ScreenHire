@@ -6,16 +6,8 @@ using ScreenHire.Domain.Organizations;
 
 namespace ScreenHire.Api.Contracts;
 
-/// <summary>An organization as its careers pages show it.</summary>
-/// <remarks><c>branding</c> is null when the organization has no brand colour: careers pages use ScreenHire's.</remarks>
-public sealed record PublicOrganization(string Name, string Slug, PublicBranding? Branding);
-
-/// <summary>
-/// The careers-page colours derived from the organization's brand colour, each contrast-checked on the server
-/// (docs/design/design-system.md §7): <c>brand</c> fills, <c>onBrand</c> is text on it (4.5:1), <c>brandText</c> is
-/// brand-coloured text on the page (4.5:1) and <c>brandUi</c> is borders and focus rings (3:1). All <c>#rrggbb</c>.
-/// </summary>
-public sealed record PublicBranding(string Brand, string OnBrand, string BrandText, string BrandUi);
+/// <summary>An organization as its careers pages show it, with its branding (each part null for ScreenHire's).</summary>
+public sealed record PublicOrganization(string Name, string Slug, PublicBranding Branding);
 
 /// <summary>
 /// One question of a job's application form, as a candidate sees it. Knockout settings stay on the server: the form
@@ -44,6 +36,8 @@ public sealed record PublicUploadSettings(long MaxBytes, string Origin);
 /// Everything the careers apply page needs for one open job. The resume question comes first
 /// (<see cref="ApplicationForm"/>). <c>turnstileSiteKey</c> is null unless the bot challenge is configured.
 /// <c>telemetry</c> is a new telemetry session for the form; the page keeps the first one it gets.
+/// <c>talentPoolMonths</c> is how long the organization keeps a candidate's details for future roles if they say so,
+/// which the form's "Keep my details for future roles" box tells them.
 /// </summary>
 public sealed record PublicApplicationForm(
     PublicOrganization Organization,
@@ -52,7 +46,8 @@ public sealed record PublicApplicationForm(
     AiUsePolicy AiUsePolicy,
     PublicUploadSettings Uploads,
     string? TurnstileSiteKey,
-    PublicTelemetrySettings Telemetry);
+    PublicTelemetrySettings Telemetry,
+    int TalentPoolMonths);
 
 /// <summary>Asks for a link to upload one file for a file question. <c>sizeBytes</c> is the size the candidate's device reports.</summary>
 public sealed record UploadRequest(string FileName, long SizeBytes);
@@ -82,7 +77,9 @@ public sealed record UploadedFile(Guid UploadId, string FileName, string Content
 /// <c>deviceFingerprint</c> is the page's device identifier, which the API hashes per organization and never stores as
 /// sent, and drops where the job's device-check basis is <c>Off</c>, or <c>Consent</c> without
 /// <c>deviceCheckConsent</c>. The candidate's address comes from the connection (<c>X-Forwarded-For</c> from a trusted
-/// proxy). <c>telemetrySessionToken</c> binds the form's telemetry to the application, and <c>telemetry</c> is the last
+/// proxy). <c>keepForFutureRoles</c> is the candidate's own, optional "Keep my details for future roles": the
+/// organization may keep this application for the period the form showed and invite them to apply for other jobs.
+/// <c>telemetrySessionToken</c> binds the form's telemetry to the application, and <c>telemetry</c> is the last
 /// page's snapshot, which travels with the form post rather than a beacon so it is stored before analysis starts; an
 /// invalid one is dropped, never a reason to refuse.
 /// </remarks>
@@ -101,7 +98,8 @@ public sealed record PublicApplicationRequest(
     string? DeviceFingerprint = null,
     bool DeviceCheckConsent = false,
     string? TelemetrySessionToken = null,
-    TelemetrySnapshotInput? Telemetry = null);
+    TelemetrySnapshotInput? Telemetry = null,
+    bool KeepForFutureRoles = false);
 
 /// <summary>The candidate as the apply form asks: a first name, an optional last name, the email and an optional phone.</summary>
 public sealed record PublicCandidateInput(string FirstName, string Email, string? LastName = null, string? Phone = null);
@@ -134,11 +132,6 @@ public sealed record PublicQuestionnaireAnswers(IReadOnlyList<ApplicationAnswer>
 
 internal static class PublicApplicationMappings
 {
-    public static PublicOrganization ToPublic(this Organization organization) =>
-        new(organization.Name, organization.Slug, organization.GetBrandPalette() is { } palette
-            ? new PublicBranding(palette.Brand, palette.OnBrand, palette.BrandText, palette.BrandUi)
-            : null);
-
     public static PublicQuestion ToPublic(this Question question, Func<IReadOnlyList<string>?, IReadOnlyList<string>> acceptedFileTypes) =>
         new(question.Id, question.Type, question.Label, question.Required, question.HelpText, question.Options,
             question.Type == QuestionType.Number ? question.Min : null,

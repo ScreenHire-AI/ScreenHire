@@ -57,4 +57,43 @@ describe('activity', () => {
     expect(actorText(task, [], undefined)).toBe('by Assistant');
     expect(kindCounts([task])).toEqual({ all: 1, notes: 0, emails: 0, scorecards: 0, stage: 0 });
   });
+
+  describe('talent pool entries', () => {
+    const jobNames = { ...names, jobName: (id: string | null | undefined) => (id === 'j2' ? 'Support Engineer' : 'another job') };
+
+    it('says a candidate was kept in mind without a rejection, and lists it under Stage', () => {
+      const kept = entry('k', { type: 'KeptInMind', note: 'Strong, wrong timing.' });
+      expect(describeEvent(kept, jobNames)).toBe('Kept in mind: left the job without a rejection');
+      expect(kindCounts([kept]).stage).toBe(1);
+    });
+
+    it.each([
+      ['Expired', 'Left the talent pool: their permission ran out'],
+      ['Removed', 'Took them out of the talent pool'],
+      ['CandidateAsked', 'Took them out of the talent pool at their request'],
+      ['AddedToJob', 'Added them to Support Engineer from the talent pool'],
+      ['AppliedAgain', 'Left the talent pool: applied for Support Engineer'],
+      ['BackInJob', 'Left the talent pool: back in this job'],
+      ['KeptFromAnotherJob', 'Left the talent pool here: kept in mind from Support Engineer instead'],
+    ] as const)('words leaving the pool by %s', (poolExit, text) => {
+      expect(describeEvent(entry('l', { type: 'LeftTalentPool', poolExit, otherJobId: 'j2' }), jobNames)).toBe(text);
+    });
+
+    it('words a leave with no recorded reason as a removal, and names no job the reader cannot see', () => {
+      expect(describeEvent(entry('l', { type: 'LeftTalentPool', poolExit: null }), jobNames)).toBe('Took them out of the talent pool');
+      expect(describeEvent(entry('l', { type: 'LeftTalentPool', poolExit: 'AddedToJob', otherJobId: 'hidden' }), jobNames)).toBe(
+        'Added them to another job from the talent pool',
+      );
+      expect(describeEvent(entry('l', { type: 'LeftTalentPool', poolExit: 'AddedToJob', otherJobId: 'j2' }), names)).toBe(
+        'Added them to another job from the talent pool',
+      );
+    });
+
+    it('names the job an invitation was for, and lists it under Emails', () => {
+      const invited = entry('i', { type: 'InvitedToApply', otherJobId: 'j2' });
+      expect(describeEvent(invited, jobNames)).toBe('Invited to apply for Support Engineer');
+      expect(describeEvent(invited, names)).toBe('Invited to apply for another job');
+      expect(kindCounts([invited]).emails).toBe(1);
+    });
+  });
 });

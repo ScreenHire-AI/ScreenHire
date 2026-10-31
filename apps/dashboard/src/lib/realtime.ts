@@ -16,6 +16,7 @@ export const candidatesPath = '/v1/candidates';
 export const templatesPath = '/v1/templates';
 export const tasksPath = '/v1/tasks';
 export const membersPath = '/v1/organization/members';
+export const talentPoolPath = '/v1/talent-pool';
 export const reportsPath = '/v1/reports';
 
 /**
@@ -26,11 +27,13 @@ export const reportsPath = '/v1/reports';
  * IntegrityAssessed changes the chips in every list, the job's overview and the application's integrity panel
  * (`/v1/applications/{id}/integrity`). An automation run can also create a task, which My tasks (`/v1/tasks`) and the
  * application's own tasks show, and so can a person or an API key (ApplicationTaskCreated), which Activity shows too.
- * Tags show in every list, which filter by them; a note, and its edits and deletion, show on the application's
- * timeline only, and so does a sent email (ApplicationEmailed). TeammateMentioned refreshes
- * nothing: the note's own event does, and the shell turns the mention into a card for the person mentioned. Answers to
- * a follow-up questionnaire (QuestionnaireAnswered) show on the application's page and its timeline. Reports count
- * applications by when they arrived and the stages they reached, so arriving and moving refresh them.
+ * Tags show in every list, which filter by them. Every list also shows each application's last activity
+ * (`lastActivityAt`), which anything the candidate or the team does moves: a note and its edits and deletion, a sent
+ * email (ApplicationEmailed), answers to a follow-up questionnaire (QuestionnaireAnswered), a task, an automation run.
+ * So those refetch the lists too, the job's own table (under `/v1/jobs`) and a candidate's applications included.
+ * TeammateMentioned refreshes nothing: the note's own event does, and the shell turns the mention into a card for the
+ * person mentioned. Reports count applications by when they arrived and the stages they reached, so arriving and
+ * moving refresh them.
  */
 export const invalidations: InvalidationMap = {
   JobPublished: [jobsPath],
@@ -43,20 +46,23 @@ export const invalidations: InvalidationMap = {
   HiringTemplateVersionPublished: [jobsPath, templatesPath],
   ApplicationSubmitted: [jobsPath, applicationsPath, candidatesPath, reportsPath],
   ApplicationMoved: [jobsPath, applicationsPath, candidatesPath, reportsPath],
-  // The application's Activity, and the candidate's Messages (every email to them).
-  ApplicationEmailed: [applicationsPath, candidatesPath],
-  ApplicationNoteAdded: [applicationsPath],
-  ApplicationNoteEdited: [applicationsPath],
-  ApplicationNoteDeleted: [applicationsPath],
+  // The application's Activity, the candidate's Messages (every email to them) and every list's last activity.
+  ApplicationEmailed: [jobsPath, applicationsPath, candidatesPath],
+  ApplicationNoteAdded: [jobsPath, applicationsPath, candidatesPath],
+  ApplicationNoteEdited: [jobsPath, applicationsPath, candidatesPath],
+  ApplicationNoteDeleted: [jobsPath, applicationsPath, candidatesPath],
   ApplicationTagsChanged: [jobsPath, applicationsPath, candidatesPath],
   // A scorecard changes the candidate's rating in the lists; a finished review task can show it to its reviewer.
   ScorecardSubmitted: [jobsPath, applicationsPath, candidatesPath],
-  QuestionnaireAnswered: [applicationsPath],
-  ApplicationTaskCreated: [applicationsPath, tasksPath],
+  QuestionnaireAnswered: [jobsPath, applicationsPath, candidatesPath],
+  ApplicationTaskCreated: [jobsPath, applicationsPath, candidatesPath, tasksPath],
   ApplicationTaskCompleted: [jobsPath, applicationsPath, candidatesPath, tasksPath],
   ApplicationTaskReopened: [jobsPath, applicationsPath, candidatesPath, tasksPath],
-  AutomationRunFinished: [applicationsPath, tasksPath],
+  AutomationRunFinished: [jobsPath, applicationsPath, candidatesPath, tasksPath],
   IntegrityAssessed: [jobsPath, applicationsPath, candidatesPath],
+  // Keeping someone in mind ends their application in every list; leaving the pool, or an invitation, changes the pool
+  // and the kept application's page.
+  TalentPoolChanged: [talentPoolPath, jobsPath, applicationsPath, candidatesPath],
 };
 
 export interface LiveUpdates {

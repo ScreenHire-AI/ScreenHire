@@ -16,6 +16,9 @@ public sealed class EmailComposerTests(E2EFixture fixture) : BrowserTest(fixture
     private const string TemplateSubject = "Interview for {{ jobTitle }}";
     private const string TemplateBody = "Hi {{ firstName }},\n\nWe would like to meet you.";
 
+    // The template above as the API stores it: rich text, a paragraph for each block (docs/architecture/rich-text.md).
+    private const string StoredTemplateBody = "<p>Hi {{ firstName }},</p><p>We would like to meet you.</p>";
+
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
@@ -37,7 +40,7 @@ public sealed class EmailComposerTests(E2EFixture fixture) : BrowserTest(fixture
         await sheet.GetByLabel("Start from").SelectOptionAsync(new SelectOptionValue { Label = "Interview invitation" });
         await Expect(sheet.GetByLabel("Subject")).ToHaveValueAsync(TemplateSubject);
         await sheet.GetByLabel("Subject").FillAsync($"Interview {marker} for {{{{ jobTitle }}}}");
-        await sheet.GetByLabel("Message").FillAsync($"Hi {{{{ firstName }}}},\n\nYour portfolio stood out {marker}.");
+        await WriteAsync(sheet.GetByLabel("Message"), "Hi {{ firstName }},", $"Your portfolio stood out {marker}.");
         await Expect(sheet.GetByText("Changed for this email only. The Interview invitation template stays as it is.")).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
 
@@ -61,7 +64,7 @@ public sealed class EmailComposerTests(E2EFixture fixture) : BrowserTest(fixture
             await session.SignInWithDevSsoAsync(scene.Owner, Ct);
             var template = await ReadAsync(await session.Client.GetAsync($"/v1/email-templates/{scene.TemplateId}", Ct), HttpStatusCode.OK);
             template.GetProperty("subject").GetString().Should().Be(TemplateSubject);
-            template.GetProperty("body").GetString().Should().Be(TemplateBody);
+            template.GetProperty("body").GetString().Should().Be(StoredTemplateBody);
         }
 
         // Messages shows the email as it went, once the worker has sent it.
@@ -89,7 +92,7 @@ public sealed class EmailComposerTests(E2EFixture fixture) : BrowserTest(fixture
         var box = Page.GetByRole(AriaRole.Form, new() { Name = "Email Casey Morgan" });
         await Expect(box.GetByLabel("Start from")).ToHaveValueAsync("");
         await box.GetByLabel("Subject").FillAsync($"A quick question {marker}");
-        await box.GetByLabel("Message").FillAsync("Hi {{ firstName }}, are you free on Tuesday?");
+        await WriteAsync(box.GetByLabel("Message"), "Hi {{ firstName }}, are you free on Tuesday?");
         await ExpectNoAccessibilityViolationsAsync();
         await box.GetByRole(AriaRole.Button, new() { Name = "Send", Exact = true }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Sending" }).First).ToHaveTextAsync("Sending 1 email.");
@@ -103,6 +106,23 @@ public sealed class EmailComposerTests(E2EFixture fixture) : BrowserTest(fixture
         // The email appears in Messages without a reload, once the worker has sent it.
         var messages = Page.GetByRole(AriaRole.Region, new() { Name = "Messages", Exact = true });
         await Expect(messages.GetByRole(AriaRole.List, new() { Name = "Emails" })).ToContainTextAsync($"A quick question {marker}", new() { Timeout = 30_000 });
+    }
+
+    // Replaces the rich text editor's text as a person types it: a paragraph each, Enter between them.
+    private async Task WriteAsync(ILocator editor, params string[] paragraphs)
+    {
+        await editor.ClickAsync();
+        await Page.Keyboard.PressAsync("ControlOrMeta+A");
+        await Page.Keyboard.PressAsync("Backspace");
+        for (var i = 0; i < paragraphs.Length; i++)
+        {
+            if (i > 0)
+            {
+                await Page.Keyboard.PressAsync("Enter");
+            }
+
+            await Page.Keyboard.TypeAsync(paragraphs[i]);
+        }
     }
 
     private sealed record Scene(string Owner, Guid JobId, string Title, string TemplateId, Guid Casey, string CaseyEmail, Guid Riley);

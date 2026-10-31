@@ -33,9 +33,31 @@ public sealed class HiringTenantIsolationTests(AppHostFixture fixture)
 
         responses.Should().OnlyContain(r => r.Value.Status == HttpStatusCode.NotFound, "another tenant's row looks exactly like a missing one");
         var after = await b.GetAsync($"/v1/jobs/{scene.BJobId}");
-        after.Expect(HttpStatusCode.OK).Body.GetRawText().Should().Be(before.Body.GetRawText(), "nothing of B's job changed");
+        after.Expect(HttpStatusCode.OK);
+        WithoutPostings(after).Should().Be(WithoutPostings(before), "nothing of B's job changed");
         after.Text("status").Should().Be("Open");
         (await b.GetAsync($"/v1/jobs/{scene.BJobId}/versions")).Count().Should().Be(1);
+    }
+
+    // B's timeline but for the worker's own assessment of the new application, which may land between the two reads.
+    private static string WithoutAssessment(ApiResult timeline)
+    {
+        var entries = JsonNode.Parse(timeline.Body.GetRawText())!.AsArray();
+        foreach (var entry in entries.Where(e => e!["type"]!.GetValue<string>() == "IntegrityAssessed").ToList())
+        {
+            entries.Remove(entry);
+        }
+
+        return entries.ToJsonString();
+    }
+
+    // B's job as it reads, but for its board postings: the worker moves those along on its own time (Queued, then
+    // Submitted) while the test runs, which is B's own publish at work, not anything A did.
+    private static string WithoutPostings(ApiResult job)
+    {
+        var node = JsonNode.Parse(job.Body.GetRawText())!.AsObject();
+        node.Remove("postings");
+        return node.ToJsonString();
     }
 
     [Fact]
@@ -83,7 +105,7 @@ public sealed class HiringTenantIsolationTests(AppHostFixture fixture)
         responses.Should().OnlyContain(r => r.Value.Status == HttpStatusCode.NotFound, "another tenant's row looks exactly like a missing one");
         (await b.GetAsync($"/v1/applications/{scene.BApplicationId}")).Text("stage.id").Should().Be("applied");
         var timelineAfter = await b.GetAsync($"/v1/applications/{scene.BApplicationId}/timeline");
-        timelineAfter.Body.GetRawText().Should().Be(timelineBefore.Body.GetRawText(), "the refused move left no timeline entry");
+        WithoutAssessment(timelineAfter).Should().Be(WithoutAssessment(timelineBefore), "the refused move left no timeline entry");
         (await b.GetAsync($"/v1/candidates/{scene.BCandidateId}")).Expect(HttpStatusCode.OK).Count("applications").Should().Be(1);
     }
 

@@ -90,6 +90,9 @@
   /* Brand-coloured text on the page (4.5:1) and brand borders and focus rings (3:1). */
   --candidate-brand-text: #c2462f;
   --candidate-brand-ui: #c2462f;
+  /* The careers header band. An employer's second colour replaces both, with white or ink text at 4.5:1 (ADR-0018). */
+  --candidate-header: #fbf6ee;
+  --candidate-header-foreground: #231f1a;
 }
 
 @media (width >= 48rem) {
@@ -161,4 +164,6 @@
   --candidate-cta-foreground: #1a1310;
   --candidate-brand-text: #f08a6e;
   --candidate-brand-ui: #f08a6e;
+  --candidate-header: #1a1714;
+  --candidate-header-foreground: #f2ede6;
 }
