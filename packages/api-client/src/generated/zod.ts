@@ -25,11 +25,11 @@ export const CreatePublicApplicationDraftBody = zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')).nullish(),
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')).nullish(),
   "accommodationRequested": zod.boolean().default(createPublicApplicationDraftBodyAccommodationRequestedDefault),
   "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(createPublicApplicationDraftBodyAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
   "aiUseDetails": zod.string().nullish()
-}).describe('What a candidate saves of the apply form to finish later (ApplicationDraft): their details, their\r\nanswers to the non-file questions, the assistive-technology switch and the AI-use answer. Nothing is required yet\r\nbeyond the first name and the email the link goes to.')
+}).describe('What a candidate saves of the apply form to finish later (ApplicationDraft): their details, their\nanswers to the non-file questions, the assistive-technology switch and the AI-use answer. Nothing is required yet\nbeyond the first name and the email the link goes to.')
 
 export const CreatePublicApplicationDraftResponse = zod.object({
   "token": zod.string(),
@@ -59,8 +59,8 @@ export const SendPublicTelemetryBody = zod.object({
   "page": zod.object({
   "visibilityChanges": zod.int(),
   "automationMarkers": zod.array(zod.string())
-}).describe('Page-level counts: times the page was hidden, and automation markers from a fixed list (`webdriver`,\r\n`headless`, ...).')
-}).describe('One cumulative snapshot of one page view\'s form telemetry: session aggregates only (CLAUDE.md non-negotiable 4), never\r\nkeystrokes, key values, timings per key or field content. Unknown members are refused, so nothing else can travel in\r\nit.')
+}).describe('Page-level counts: times the page was hidden, and automation markers from a fixed list (`webdriver`,\n`headless`, ...).')
+}).describe('One cumulative snapshot of one page view\'s form telemetry: session aggregates only (CLAUDE.md non-negotiable 4), never\nkeystrokes, key values, timings per key or field content. Unknown members are refused, so nothing else can travel in\nit.')
 
 export const SendPublicTelemetryResponse = zod.void()
 
@@ -89,7 +89,7 @@ export const ListAutomationIssuesResponseItem = zod.object({
   "status": zod.enum(['NotMatched', 'Skipped', 'Blocked', 'Running', 'Completed', 'Failed']),
   "detail": zod.string().nullable(),
   "createdAt": zod.iso.datetime({"offset":true})
-}).describe('An automation that did not do its job: blocked (a loop, the depth limit, a workflow that no longer validates) or\r\nfailed (an action failed after its retries). Newest first; the run has the full record.')
+}).describe('An automation that did not do its job: blocked (a loop, the depth limit, a workflow that no longer validates) or\nfailed (an action failed after its retries). Newest first; the run has the full record.')
 export const ListAutomationIssuesResponse = zod.array(ListAutomationIssuesResponseItem)
 
 
@@ -102,10 +102,10 @@ export const GetTemplateUsageResponse = zod.object({
   "name": zod.string(),
   "automationId": zod.string().nullish(),
   "automationName": zod.string().nullish()
-}).describe('One thing that uses a template. `id` is the job\'s or the hiring template\'s id; for an automation it is the job\r\nor template the automation belongs to, and `automationId` and `automationName` name the automation.')),
+}).describe('One thing that uses a template. `id` is the job\'s or the hiring template\'s id; for an automation it is the job\nor template the automation belongs to, and `automationId` and `automationName` name the automation.')),
   "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
   "notUsedRecently": zod.boolean()
-}).describe('Where one template is used and when it was last used. `templateId` is the id its own list gives it.\r\n`usedBy` lists every user, so its length is the count: jobs that are not closed for a hiring template, hiring\r\ntemplates for a scorecard, automations for an email. `lastUsedAt`: when a job last started from it, a stage last\r\nused it or an email last went out from it; null when never. `notUsedRecently`: nothing used it in the last 180\r\ndays, and the team has had it longer than that.')),
+}).describe('Where one template is used and when it was last used. `templateId` is the id its own list gives it.\n`usedBy` lists every user, so its length is the count: jobs that are not closed for a hiring template, hiring\ntemplates for a scorecard, automations for an email. `lastUsedAt`: when a job last started from it, a stage last\nused it or an email last went out from it; null when never. `notUsedRecently`: nothing used it in the last 180\ndays, and the team has had it longer than that.')),
   "scorecards": zod.array(zod.object({
   "templateId": zod.string(),
   "usedBy": zod.array(zod.object({
@@ -114,10 +114,10 @@ export const GetTemplateUsageResponse = zod.object({
   "name": zod.string(),
   "automationId": zod.string().nullish(),
   "automationName": zod.string().nullish()
-}).describe('One thing that uses a template. `id` is the job\'s or the hiring template\'s id; for an automation it is the job\r\nor template the automation belongs to, and `automationId` and `automationName` name the automation.')),
+}).describe('One thing that uses a template. `id` is the job\'s or the hiring template\'s id; for an automation it is the job\nor template the automation belongs to, and `automationId` and `automationName` name the automation.')),
   "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
   "notUsedRecently": zod.boolean()
-}).describe('Where one template is used and when it was last used. `templateId` is the id its own list gives it.\r\n`usedBy` lists every user, so its length is the count: jobs that are not closed for a hiring template, hiring\r\ntemplates for a scorecard, automations for an email. `lastUsedAt`: when a job last started from it, a stage last\r\nused it or an email last went out from it; null when never. `notUsedRecently`: nothing used it in the last 180\r\ndays, and the team has had it longer than that.')),
+}).describe('Where one template is used and when it was last used. `templateId` is the id its own list gives it.\n`usedBy` lists every user, so its length is the count: jobs that are not closed for a hiring template, hiring\ntemplates for a scorecard, automations for an email. `lastUsedAt`: when a job last started from it, a stage last\nused it or an email last went out from it; null when never. `notUsedRecently`: nothing used it in the last 180\ndays, and the team has had it longer than that.')),
   "emails": zod.array(zod.object({
   "templateId": zod.string(),
   "usedBy": zod.array(zod.object({
@@ -126,10 +126,10 @@ export const GetTemplateUsageResponse = zod.object({
   "name": zod.string(),
   "automationId": zod.string().nullish(),
   "automationName": zod.string().nullish()
-}).describe('One thing that uses a template. `id` is the job\'s or the hiring template\'s id; for an automation it is the job\r\nor template the automation belongs to, and `automationId` and `automationName` name the automation.')),
+}).describe('One thing that uses a template. `id` is the job\'s or the hiring template\'s id; for an automation it is the job\nor template the automation belongs to, and `automationId` and `automationName` name the automation.')),
   "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
   "notUsedRecently": zod.boolean()
-}).describe('Where one template is used and when it was last used. `templateId` is the id its own list gives it.\r\n`usedBy` lists every user, so its length is the count: jobs that are not closed for a hiring template, hiring\r\ntemplates for a scorecard, automations for an email. `lastUsedAt`: when a job last started from it, a stage last\r\nused it or an email last went out from it; null when never. `notUsedRecently`: nothing used it in the last 180\r\ndays, and the team has had it longer than that.'))
+}).describe('Where one template is used and when it was last used. `templateId` is the id its own list gives it.\n`usedBy` lists every user, so its length is the count: jobs that are not closed for a hiring template, hiring\ntemplates for a scorecard, automations for an email. `lastUsedAt`: when a job last started from it, a stage last\nused it or an email last went out from it; null when never. `notUsedRecently`: nothing used it in the last 180\ndays, and the team has had it longer than that.'))
 }).describe('Every template\'s use, by kind, as the Templates page lists them.')
 
 
@@ -138,7 +138,7 @@ export const GetMetaResponse = zod.object({
   "version": zod.string(),
   "environment": zod.string(),
   "apiOrigin": zod.string()
-}).describe('What is serving this API: the product name, the build version, the hosting environment, and the API\'s public origin\r\n(`ScreenHire:Domains:ApiHost`), which the API reference (`/scalar`), the OpenAPI file and `/v1` sit under.')
+}).describe('What is serving this API: the product name, the build version, the hosting environment, and the API\'s public origin\n(`ScreenHire:Domains:ApiHost`), which the API reference (`/scalar`), the OpenAPI file and `/v1` sit under.')
 
 
 export const GetSignInMethodsResponse = zod.object({
@@ -158,12 +158,12 @@ export const GetCurrentUserResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "slug": zod.string(),
-  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.'),
+  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\r\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\r\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\r\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
 
 
@@ -171,9 +171,9 @@ export const ListMyOrganizationsResponseItem = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "slug": zod.string(),
-  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.'),
+  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.'),
   "roleName": zod.string().nullable()
-}).describe('One of the signed-in user\'s organizations, for the organization switcher, with their role there. `roleName` is\r\nnull for a custom role in an organization other than the one they work in: row-level security keeps its roles from\r\nthem until they switch.')
+}).describe('One of the signed-in user\'s organizations, for the organization switcher, with their role there. `roleName` is\nnull for a custom role in an organization other than the one they work in: row-level security keeps its roles from\nthem until they switch.')
 export const ListMyOrganizationsResponse = zod.array(ListMyOrganizationsResponseItem)
 
 
@@ -215,12 +215,12 @@ export const CompleteOnboardingResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "slug": zod.string(),
-  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.'),
+  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\r\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\r\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\r\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
 
 
@@ -236,12 +236,12 @@ export const AcceptInvitationResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "slug": zod.string(),
-  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.'),
+  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\r\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\r\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\r\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
 
 
@@ -257,12 +257,12 @@ export const SwitchOrganizationResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "slug": zod.string(),
-  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.'),
+  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\r\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\r\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\r\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
 
 
@@ -282,7 +282,7 @@ export const GetPublicOrganizationResponse = zod.object({
   "onBrand": zod.string(),
   "brandText": zod.string(),
   "brandUi": zod.string()
-}).describe('The careers-page colours from the brand colour (docs/design/design-system.md section 18): `brand` fills,\r\n`onBrand` is text on it, `brandText` is links on the page and `brandUi` is borders and focus rings.\r\nA colour saved since the contrast check passes as it is, so all three are the colour itself; an older one is darkened\r\nuntil it passes. All `#rrggbb`.')]),
+}).describe('The careers-page colours from the brand colour (docs/design/design-system.md section 18): `brand` fills,\n`onBrand` is text on it, `brandText` is links on the page and `brandUi` is borders and focus rings.\nA colour saved since the contrast check passes as it is, so all three are the colour itself; an older one is darkened\nuntil it passes. All `#rrggbb`.')]),
   "header": zod.union([zod.null(),zod.object({
   "background": zod.string(),
   "foreground": zod.string()
@@ -309,9 +309,9 @@ export const GetPublicOrganizationResponse = zod.object({
   "height": zod.int(),
   "url": zod.string()
 }).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')])
-}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\r\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\r\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.'),
+}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.'),
   "embedOrigins": zod.array(zod.string())
-}).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s) and\r\n`embedOrigins`, the sites allowed to show the careers pages in a frame, which the pages send in their\r\n`frame-ancestors` header (empty: none but the careers pages themselves).')
+}).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s) and\n`embedOrigins`, the sites allowed to show the careers pages in a frame, which the pages send in their\n`frame-ancestors` header (empty: none but the careers pages themselves).')
 
 
 export const ListPublicJobsParams = zod.object({
@@ -338,7 +338,7 @@ export const ListPublicJobsResponse = zod.object({
   "city": zod.string().nullable(),
   "region": zod.string().nullable(),
   "country": zod.string().nullable()
-}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\r\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
+}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
   "applicantLocationRequirements": zod.array(zod.string()),
   "salaryPeriod": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]),
   "validThrough": zod.iso.datetime({"offset":true}).nullable(),
@@ -352,7 +352,7 @@ export const ListPublicJobsResponse = zod.object({
   "onBrand": zod.string(),
   "brandText": zod.string(),
   "brandUi": zod.string()
-}).describe('The careers-page colours from the brand colour (docs/design/design-system.md section 18): `brand` fills,\r\n`onBrand` is text on it, `brandText` is links on the page and `brandUi` is borders and focus rings.\r\nA colour saved since the contrast check passes as it is, so all three are the colour itself; an older one is darkened\r\nuntil it passes. All `#rrggbb`.')]),
+}).describe('The careers-page colours from the brand colour (docs/design/design-system.md section 18): `brand` fills,\n`onBrand` is text on it, `brandText` is links on the page and `brandUi` is borders and focus rings.\nA colour saved since the contrast check passes as it is, so all three are the colour itself; an older one is darkened\nuntil it passes. All `#rrggbb`.')]),
   "header": zod.union([zod.null(),zod.object({
   "background": zod.string(),
   "foreground": zod.string()
@@ -379,9 +379,9 @@ export const ListPublicJobsResponse = zod.object({
   "height": zod.int(),
   "url": zod.string()
 }).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')])
-}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\r\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\r\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.'),
+}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.'),
   "embedOrigins": zod.array(zod.string())
-}).describe('The public careers listing for one organization. `url` is the board\'s careers page; `branding` is its\r\nbranding, each part null for ScreenHire\'s; `embedOrigins` are the sites allowed to show it in a frame.')
+}).describe('The public careers listing for one organization. `url` is the board\'s careers page; `branding` is its\nbranding, each part null for ScreenHire\'s; `embedOrigins` are the sites allowed to show it in a frame.')
 
 
 export const GetPublicJobParams = zod.object({
@@ -406,7 +406,7 @@ export const GetPublicJobResponse = zod.object({
   "city": zod.string().nullable(),
   "region": zod.string().nullable(),
   "country": zod.string().nullable()
-}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\r\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
+}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
   "applicantLocationRequirements": zod.array(zod.string()),
   "salaryPeriod": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]),
   "validThrough": zod.iso.datetime({"offset":true}).nullable(),
@@ -430,7 +430,7 @@ export const GetPublicApplicationFormResponse = zod.object({
   "onBrand": zod.string(),
   "brandText": zod.string(),
   "brandUi": zod.string()
-}).describe('The careers-page colours from the brand colour (docs/design/design-system.md section 18): `brand` fills,\r\n`onBrand` is text on it, `brandText` is links on the page and `brandUi` is borders and focus rings.\r\nA colour saved since the contrast check passes as it is, so all three are the colour itself; an older one is darkened\r\nuntil it passes. All `#rrggbb`.')]),
+}).describe('The careers-page colours from the brand colour (docs/design/design-system.md section 18): `brand` fills,\n`onBrand` is text on it, `brandText` is links on the page and `brandUi` is borders and focus rings.\nA colour saved since the contrast check passes as it is, so all three are the colour itself; an older one is darkened\nuntil it passes. All `#rrggbb`.')]),
   "header": zod.union([zod.null(),zod.object({
   "background": zod.string(),
   "foreground": zod.string()
@@ -457,9 +457,9 @@ export const GetPublicApplicationFormResponse = zod.object({
   "height": zod.int(),
   "url": zod.string()
 }).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')])
-}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\r\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\r\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.'),
+}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.'),
   "embedOrigins": zod.array(zod.string())
-}).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s) and\r\n`embedOrigins`, the sites allowed to show the careers pages in a frame, which the pages send in their\r\n`frame-ancestors` header (empty: none but the careers pages themselves).'),
+}).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s) and\n`embedOrigins`, the sites allowed to show the careers pages in a frame, which the pages send in their\n`frame-ancestors` header (empty: none but the careers pages themselves).'),
   "job": zod.object({
   "id": zod.uuid(),
   "title": zod.string(),
@@ -477,7 +477,7 @@ export const GetPublicApplicationFormResponse = zod.object({
   "city": zod.string().nullable(),
   "region": zod.string().nullable(),
   "country": zod.string().nullable()
-}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\r\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
+}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
   "applicantLocationRequirements": zod.array(zod.string()),
   "salaryPeriod": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]),
   "validThrough": zod.iso.datetime({"offset":true}).nullable(),
@@ -498,7 +498,7 @@ export const GetPublicApplicationFormResponse = zod.object({
   "max": zod.number().nullable(),
   "maxLength": zod.int().nullable(),
   "acceptedFileTypes": zod.array(zod.string()).nullable()
-}).describe('One question of a job\'s application form, as a candidate sees it. Knockout settings stay on the server: the form\r\naccepts every answer, and a person reviews what follows from it.')),
+}).describe('One question of a job\'s application form, as a candidate sees it. Knockout settings stay on the server: the form\naccepts every answer, and a person reviews what follows from it.')),
   "aiUsePolicy": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
   "uploads": zod.object({
   "maxBytes": zod.int(),
@@ -507,8 +507,8 @@ export const GetPublicApplicationFormResponse = zod.object({
   "turnstileSiteKey": zod.string().nullable(),
   "telemetry": zod.object({
   "sessionToken": zod.string(),
-  "deviceCheck": zod.enum(['Off', 'Notice', 'Consent']).describe('On which footing the careers page may compute a device fingerprint (docs/research/legal.md, "Device / browser\r\nfingerprint"; verification-engine.md §3). ePrivacy Art. 5(3) needs consent for fingerprinting unless it is strictly\r\nnecessary, and data protection authorities differ on whether fraud prevention is, so the basis is configuration per\r\ncountry rather than code.')
-}).describe('What the careers page\'s telemetry module may do on this form (verification-engine.md §3): `sessionToken` binds its\r\nsnapshots to one way through the form, and `deviceCheck` is the footing for the device fingerprint where the job\r\nis (`Off`, `Notice`, or `Consent`, which needs the candidate\'s tick).'),
+  "deviceCheck": zod.enum(['Off', 'Notice', 'Consent']).describe('On which footing the careers page may compute a device fingerprint (docs/research/legal.md, "Device / browser\nfingerprint"; verification-engine.md §3). ePrivacy Art. 5(3) needs consent for fingerprinting unless it is strictly\nnecessary, and data protection authorities differ on whether fraud prevention is, so the basis is configuration per\ncountry rather than code.')
+}).describe('What the careers page\'s telemetry module may do on this form (verification-engine.md §3): `sessionToken` binds its\nsnapshots to one way through the form, and `deviceCheck` is the footing for the device fingerprint where the job\nis (`Off`, `Notice`, or `Consent`, which needs the candidate\'s tick).'),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -517,7 +517,7 @@ export const GetPublicApplicationFormResponse = zod.object({
   "questionsPerPage": zod.int(),
   "saveDraftEnabled": zod.boolean(),
   "talentPoolMonths": zod.int()
-}).describe('Everything the careers apply page needs for one open job. The resume question comes first\r\n(ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured.\r\n`telemetry` is a new telemetry session for the form; the page keeps the first one it gets.\r\n`sections` are the questionnaire\'s named pages, or null to split it into pages of `questionsPerPage`\r\n(apply-flow.md §7). `saveDraftEnabled` says whether the candidate can save the form to finish later: false when\r\nthis deployment sends no email or has no careers host to link to.\r\n`talentPoolMonths` is how long the organization keeps a candidate\'s details for future roles if they say so,\r\nwhich the form\'s "Keep my details for future roles" box tells them.')
+}).describe('Everything the careers apply page needs for one open job. The resume question comes first\n(ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured.\n`telemetry` is a new telemetry session for the form; the page keeps the first one it gets.\n`sections` are the questionnaire\'s named pages, or null to split it into pages of `questionsPerPage`\n(apply-flow.md §7). `saveDraftEnabled` says whether the candidate can save the form to finish later: false when\nthis deployment sends no email or has no careers host to link to.\n`talentPoolMonths` is how long the organization keeps a candidate\'s details for future roles if they say so,\nwhich the form\'s "Keep my details for future roles" box tells them.')
 
 
 export const GetPublicBrandImageParams = zod.object({
@@ -546,7 +546,7 @@ export const CreatePublicUploadResponse = zod.object({
   "headers": zod.record(zod.string(), zod.string()),
   "expiresAt": zod.iso.datetime({"offset":true}),
   "maxBytes": zod.int()
-}).describe('Where and how to upload one file, and until when: send its bytes with `method` to `uploadUrl` with\r\n`headers`, then refer to it by `uploadId`.')
+}).describe('Where and how to upload one file, and until when: send its bytes with `method` to `uploadUrl` with\n`headers`, then refer to it by `uploadId`.')
 
 
 export const VerifyPublicUploadParams = zod.object({
@@ -587,7 +587,7 @@ export const SubmitPublicApplicationBody = zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')).nullish(),
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')).nullish(),
   "accommodationRequested": zod.boolean().default(submitPublicApplicationBodyAccommodationRequestedDefault),
   "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(submitPublicApplicationBodyAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
   "aiUseDetails": zod.string().nullish(),
@@ -619,11 +619,11 @@ export const SubmitPublicApplicationBody = zod.object({
   "page": zod.object({
   "visibilityChanges": zod.int(),
   "automationMarkers": zod.array(zod.string())
-}).describe('Page-level counts: times the page was hidden, and automation markers from a fixed list (`webdriver`,\r\n`headless`, ...).')
-}).describe('One cumulative snapshot of one page view\'s form telemetry: session aggregates only (CLAUDE.md non-negotiable 4), never\r\nkeystrokes, key values, timings per key or field content. Unknown members are refused, so nothing else can travel in\r\nit.')]).optional(),
+}).describe('Page-level counts: times the page was hidden, and automation markers from a fixed list (`webdriver`,\n`headless`, ...).')
+}).describe('One cumulative snapshot of one page view\'s form telemetry: session aggregates only (CLAUDE.md non-negotiable 4), never\nkeystrokes, key values, timings per key or field content. Unknown members are refused, so nothing else can travel in\nit.')]).optional(),
   "keepForFutureRoles": zod.boolean().default(submitPublicApplicationBodyKeepForFutureRolesDefault),
   "embedOrigin": zod.string().nullish()
-}).describe('A candidate\'s application from the careers page. The candidate is matched by email within the organization and\r\ncreated if new; an existing candidate\'s details are never changed by a public submission.')
+}).describe('A candidate\'s application from the careers page. The candidate is matched by email within the organization and\ncreated if new; an existing candidate\'s details are never changed by a public submission.')
 
 export const SubmitPublicApplicationResponse = zod.object({
   "applicationId": zod.uuid(),
@@ -648,12 +648,12 @@ export const GetPublicApplicationDraftResponse = zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
   "accommodationRequested": zod.boolean(),
   "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(getPublicApplicationDraftResponseAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
   "aiUseDetails": zod.string().nullable(),
   "expiresAt": zod.iso.datetime({"offset":true})
-}).describe('A saved draft as the careers apply page fills the form from it. `jobSlug` is the job it belongs to; the page\r\nrefuses a draft for another job.')
+}).describe('A saved draft as the careers apply page fills the form from it. `jobSlug` is the job it belongs to; the page\nrefuses a draft for another job.')
 
 
 export const SavePublicApplicationDraftParams = zod.object({
@@ -675,11 +675,11 @@ export const SavePublicApplicationDraftBody = zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')).nullish(),
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')).nullish(),
   "accommodationRequested": zod.boolean().default(savePublicApplicationDraftBodyAccommodationRequestedDefault),
   "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(savePublicApplicationDraftBodyAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
   "aiUseDetails": zod.string().nullish()
-}).describe('What a candidate saves of the apply form to finish later (ApplicationDraft): their details, their\r\nanswers to the non-file questions, the assistive-technology switch and the AI-use answer. Nothing is required yet\r\nbeyond the first name and the email the link goes to.')
+}).describe('What a candidate saves of the apply form to finish later (ApplicationDraft): their details, their\nanswers to the non-file questions, the assistive-technology switch and the AI-use answer. Nothing is required yet\nbeyond the first name and the email the link goes to.')
 
 export const SavePublicApplicationDraftResponse = zod.object({
   "token": zod.string(),
@@ -702,7 +702,7 @@ export const GetPublicQuestionnaireResponse = zod.object({
   "onBrand": zod.string(),
   "brandText": zod.string(),
   "brandUi": zod.string()
-}).describe('The careers-page colours from the brand colour (docs/design/design-system.md section 18): `brand` fills,\r\n`onBrand` is text on it, `brandText` is links on the page and `brandUi` is borders and focus rings.\r\nA colour saved since the contrast check passes as it is, so all three are the colour itself; an older one is darkened\r\nuntil it passes. All `#rrggbb`.')]),
+}).describe('The careers-page colours from the brand colour (docs/design/design-system.md section 18): `brand` fills,\n`onBrand` is text on it, `brandText` is links on the page and `brandUi` is borders and focus rings.\nA colour saved since the contrast check passes as it is, so all three are the colour itself; an older one is darkened\nuntil it passes. All `#rrggbb`.')]),
   "header": zod.union([zod.null(),zod.object({
   "background": zod.string(),
   "foreground": zod.string()
@@ -729,12 +729,12 @@ export const GetPublicQuestionnaireResponse = zod.object({
   "height": zod.int(),
   "url": zod.string()
 }).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')])
-}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\r\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\r\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.'),
+}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.'),
   "embedOrigins": zod.array(zod.string())
-}).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s) and\r\n`embedOrigins`, the sites allowed to show the careers pages in a frame, which the pages send in their\r\n`frame-ancestors` header (empty: none but the careers pages themselves).'),
+}).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s) and\n`embedOrigins`, the sites allowed to show the careers pages in a frame, which the pages send in their\n`frame-ancestors` header (empty: none but the careers pages themselves).'),
   "jobTitle": zod.string(),
   "name": zod.string(),
-  "status": zod.enum(['Open', 'Answered', 'Expired', 'Closed']).describe('Whether a follow-up questionnaire\'s link can still be answered: `Answered` once the candidate sent their answers,\r\n`Expired` after the link\'s time ran out, `Closed` when the questionnaire, the job or the application is no\r\nlonger open.'),
+  "status": zod.enum(['Open', 'Answered', 'Expired', 'Closed']).describe('Whether a follow-up questionnaire\'s link can still be answered: `Answered` once the candidate sent their answers,\n`Expired` after the link\'s time ran out, `Closed` when the questionnaire, the job or the application is no\nlonger open.'),
   "questions": zod.array(zod.object({
   "id": zod.string(),
   "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
@@ -749,7 +749,7 @@ export const GetPublicQuestionnaireResponse = zod.object({
   "max": zod.number().nullable(),
   "maxLength": zod.int().nullable(),
   "acceptedFileTypes": zod.array(zod.string()).nullable()
-}).describe('One question of a job\'s application form, as a candidate sees it. Knockout settings stay on the server: the form\r\naccepts every answer, and a person reviews what follows from it.')),
+}).describe('One question of a job\'s application form, as a candidate sees it. Knockout settings stay on the server: the form\naccepts every answer, and a person reviews what follows from it.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -760,8 +760,8 @@ export const GetPublicQuestionnaireResponse = zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
-}).describe('A follow-up questionnaire as its careers page shows it, through the signed link in the candidate\'s email.\r\n`questions`, `sections` and `draft` are listed only while the link is `Open`; knockout settings stay\r\non the server. `sections` are its named pages, or null to split it into pages of `questionsPerPage`.\r\n`draft` holds the answers the candidate saved to finish later, empty when there are none.')
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
+}).describe('A follow-up questionnaire as its careers page shows it, through the signed link in the candidate\'s email.\n`questions`, `sections` and `draft` are listed only while the link is `Open`; knockout settings stay\non the server. `sections` are its named pages, or null to split it into pages of `questionsPerPage`.\n`draft` holds the answers the candidate saved to finish later, empty when there are none.')
 
 
 export const AnswerPublicQuestionnaireParams = zod.object({
@@ -774,7 +774,7 @@ export const AnswerPublicQuestionnaireBody = zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
 }).describe('The candidate\'s answers to a follow-up questionnaire, keyed by question id as on the apply form.')
 
 export const AnswerPublicQuestionnaireResponse = zod.void()
@@ -790,7 +790,7 @@ export const SavePublicQuestionnaireDraftBody = zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
 }).describe('The candidate\'s answers to a follow-up questionnaire, keyed by question id as on the apply form.')
 
 export const SavePublicQuestionnaireDraftResponse = zod.void()
@@ -811,7 +811,7 @@ export const GetPublicTalentPoolStatusResponse = zod.object({
   "onBrand": zod.string(),
   "brandText": zod.string(),
   "brandUi": zod.string()
-}).describe('The careers-page colours from the brand colour (docs/design/design-system.md section 18): `brand` fills,\r\n`onBrand` is text on it, `brandText` is links on the page and `brandUi` is borders and focus rings.\r\nA colour saved since the contrast check passes as it is, so all three are the colour itself; an older one is darkened\r\nuntil it passes. All `#rrggbb`.')]),
+}).describe('The careers-page colours from the brand colour (docs/design/design-system.md section 18): `brand` fills,\n`onBrand` is text on it, `brandText` is links on the page and `brandUi` is borders and focus rings.\nA colour saved since the contrast check passes as it is, so all three are the colour itself; an older one is darkened\nuntil it passes. All `#rrggbb`.')]),
   "header": zod.union([zod.null(),zod.object({
   "background": zod.string(),
   "foreground": zod.string()
@@ -838,11 +838,11 @@ export const GetPublicTalentPoolStatusResponse = zod.object({
   "height": zod.int(),
   "url": zod.string()
 }).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')])
-}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\r\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\r\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.'),
+}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.'),
   "embedOrigins": zod.array(zod.string())
-}).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s) and\r\n`embedOrigins`, the sites allowed to show the careers pages in a frame, which the pages send in their\r\n`frame-ancestors` header (empty: none but the careers pages themselves).'),
+}).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s) and\n`embedOrigins`, the sites allowed to show the careers pages in a frame, which the pages send in their\n`frame-ancestors` header (empty: none but the careers pages themselves).'),
   "kept": zod.boolean()
-}).describe('The page a candidate opens from the link in an invitation to stop being kept. `kept`: the organization still\r\nkeeps their details for future roles; false once they stopped it, or it ran out.')
+}).describe('The page a candidate opens from the link in an invitation to stop being kept. `kept`: the organization still\nkeeps their details for future roles; false once they stopped it, or it ran out.')
 
 
 export const StopKeepingDetailsParams = zod.object({
@@ -890,7 +890,7 @@ export const CreateJobBody = zod.object({
   "city": zod.string().nullable(),
   "region": zod.string().nullable(),
   "country": zod.string().nullable()
-}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\r\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')).nullish(),
+}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')).nullish(),
   "applicantLocationRequirements": zod.array(zod.string()).nullish(),
   "salary": zod.union([zod.null(),zod.object({
   "min": zod.number().nullable(),
@@ -899,7 +899,7 @@ export const CreateJobBody = zod.object({
   "period": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]).optional()
 }).describe('A pay range. Currency and period may come from the template\'s posting defaults on create.')]).optional(),
   "validThrough": zod.iso.datetime({"offset":true}).nullish()
-}).describe('A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\r\nversion\'s workflow, and every field left out here takes the template\'s posting default. Without a slug, one is made\r\nfrom the title. The description is rich text as HTML, kept to the dashboard editor\'s elements (p, br, strong, em, h2,\r\nh3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text\r\nworks too: a blank line starts a paragraph and lines starting with "- " make a list.')
+}).describe('A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\nversion\'s workflow, and every field left out here takes the template\'s posting default. Without a slug, one is made\nfrom the title. The description is rich text as HTML, kept to the dashboard editor\'s elements (p, br, strong, em, h2,\nh3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text\nworks too: a blank line starts a paragraph and lines starting with "- " make a list.')
 
 export const createJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const createJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
@@ -922,7 +922,7 @@ export const CreateJobResponse = zod.object({
   "city": zod.string().nullable(),
   "region": zod.string().nullable(),
   "country": zod.string().nullable()
-}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\r\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
+}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
   "applicantLocationRequirements": zod.array(zod.string()),
   "location": zod.string(),
   "salary": zod.union([zod.null(),zod.object({
@@ -942,7 +942,7 @@ export const CreateJobResponse = zod.object({
   "name": zod.string(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(createJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -951,7 +951,7 @@ export const CreateJobResponse = zod.object({
   "label": zod.string()
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
-}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
@@ -968,12 +968,12 @@ export const CreateJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -1000,8 +1000,8 @@ export const CreateJobResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(createJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
-}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\n`yes` and `no`, choice answers are option ids). Facts are\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\n`verification.result`, `application.tags`, `application.source`,\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\n`reviewer.recommendation`.'))
+}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
   "stageId": zod.string().nullish(),
@@ -1013,10 +1013,10 @@ export const CreateJobResponse = zod.object({
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
   "questionnaireId": zod.string().nullish()
-}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(createJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(createJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\r\nsignal (ADR-0004).')),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\nsignal (ADR-0004).')),
   "followUpQuestionnaires": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -1033,19 +1033,19 @@ export const CreateJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
-}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
   "template": zod.union([zod.null(),zod.object({
   "templateId": zod.uuid(),
@@ -1115,7 +1115,7 @@ export const GetJobResponse = zod.object({
   "city": zod.string().nullable(),
   "region": zod.string().nullable(),
   "country": zod.string().nullable()
-}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\r\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
+}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
   "applicantLocationRequirements": zod.array(zod.string()),
   "location": zod.string(),
   "salary": zod.union([zod.null(),zod.object({
@@ -1135,7 +1135,7 @@ export const GetJobResponse = zod.object({
   "name": zod.string(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(getJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -1144,7 +1144,7 @@ export const GetJobResponse = zod.object({
   "label": zod.string()
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
-}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
@@ -1161,12 +1161,12 @@ export const GetJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -1193,8 +1193,8 @@ export const GetJobResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(getJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
-}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\n`yes` and `no`, choice answers are option ids). Facts are\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\n`verification.result`, `application.tags`, `application.source`,\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\n`reviewer.recommendation`.'))
+}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
   "stageId": zod.string().nullish(),
@@ -1206,10 +1206,10 @@ export const GetJobResponse = zod.object({
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
   "questionnaireId": zod.string().nullish()
-}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(getJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(getJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\r\nsignal (ADR-0004).')),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\nsignal (ADR-0004).')),
   "followUpQuestionnaires": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -1226,19 +1226,19 @@ export const GetJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
-}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
   "template": zod.union([zod.null(),zod.object({
   "templateId": zod.uuid(),
@@ -1298,7 +1298,7 @@ export const UpdateJobBody = zod.object({
   "city": zod.string().nullable(),
   "region": zod.string().nullable(),
   "country": zod.string().nullable()
-}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\r\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')).nullish(),
+}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')).nullish(),
   "applicantLocationRequirements": zod.array(zod.string()).nullish(),
   "salary": zod.union([zod.null(),zod.object({
   "min": zod.number().nullable(),
@@ -1307,7 +1307,7 @@ export const UpdateJobBody = zod.object({
   "period": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]).optional()
 }).describe('A pay range. Currency and period may come from the template\'s posting defaults on create.')]).optional(),
   "validThrough": zod.iso.datetime({"offset":true}).nullish()
-}).describe('Replaces a job\'s posting content. A published job keeps its slug; a closed job cannot change. The description is rich\r\ntext, as on CreateJobRequest.')
+}).describe('Replaces a job\'s posting content. A published job keeps its slug; a closed job cannot change. The description is rich\ntext, as on CreateJobRequest.')
 
 export const updateJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const updateJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
@@ -1330,7 +1330,7 @@ export const UpdateJobResponse = zod.object({
   "city": zod.string().nullable(),
   "region": zod.string().nullable(),
   "country": zod.string().nullable()
-}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\r\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
+}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
   "applicantLocationRequirements": zod.array(zod.string()),
   "location": zod.string(),
   "salary": zod.union([zod.null(),zod.object({
@@ -1350,7 +1350,7 @@ export const UpdateJobResponse = zod.object({
   "name": zod.string(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(updateJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -1359,7 +1359,7 @@ export const UpdateJobResponse = zod.object({
   "label": zod.string()
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
-}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
@@ -1376,12 +1376,12 @@ export const UpdateJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -1408,8 +1408,8 @@ export const UpdateJobResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(updateJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
-}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\n`yes` and `no`, choice answers are option ids). Facts are\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\n`verification.result`, `application.tags`, `application.source`,\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\n`reviewer.recommendation`.'))
+}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
   "stageId": zod.string().nullish(),
@@ -1421,10 +1421,10 @@ export const UpdateJobResponse = zod.object({
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
   "questionnaireId": zod.string().nullish()
-}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\r\nsignal (ADR-0004).')),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\nsignal (ADR-0004).')),
   "followUpQuestionnaires": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -1441,19 +1441,19 @@ export const UpdateJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
-}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
   "template": zod.union([zod.null(),zod.object({
   "templateId": zod.uuid(),
@@ -1525,11 +1525,11 @@ export const GetJobHistoryResponse = zod.object({
   "before": zod.string().nullable(),
   "after": zod.string().nullable(),
   "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
-}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\r\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
-}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\r\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
+}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
+}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
 }).describe('Everything one save changed in the object: who, when, and a line per change.')),
   "nextBefore": zod.uuid().nullable()
-}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\r\n`before` for the next page, or null after the last.')
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
 
 
 export const PublishJobParams = zod.object({
@@ -1538,7 +1538,7 @@ export const PublishJobParams = zod.object({
 
 export const PublishJobBody = zod.union([zod.null(),zod.object({
   "boards": zod.array(zod.string()).nullish()
-}).describe('Publishing a job: optionally, the boards to post it to. Left out, the first publish posts to every board in\r\n`GET /v1/boards` and a later one updates the boards the job is already on. Naming a board the job was taken\r\ndown from posts it again.')])
+}).describe('Publishing a job: optionally, the boards to post it to. Left out, the first publish posts to every board in\n`GET /v1/boards` and a later one updates the boards the job is already on. Naming a board the job was taken\ndown from posts it again.')])
 
 export const publishJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const publishJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
@@ -1561,7 +1561,7 @@ export const PublishJobResponse = zod.object({
   "city": zod.string().nullable(),
   "region": zod.string().nullable(),
   "country": zod.string().nullable()
-}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\r\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
+}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
   "applicantLocationRequirements": zod.array(zod.string()),
   "location": zod.string(),
   "salary": zod.union([zod.null(),zod.object({
@@ -1581,7 +1581,7 @@ export const PublishJobResponse = zod.object({
   "name": zod.string(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(publishJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -1590,7 +1590,7 @@ export const PublishJobResponse = zod.object({
   "label": zod.string()
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
-}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
@@ -1607,12 +1607,12 @@ export const PublishJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -1639,8 +1639,8 @@ export const PublishJobResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(publishJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
-}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\n`yes` and `no`, choice answers are option ids). Facts are\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\n`verification.result`, `application.tags`, `application.source`,\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\n`reviewer.recommendation`.'))
+}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
   "stageId": zod.string().nullish(),
@@ -1652,10 +1652,10 @@ export const PublishJobResponse = zod.object({
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
   "questionnaireId": zod.string().nullish()
-}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(publishJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(publishJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\r\nsignal (ADR-0004).')),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\nsignal (ADR-0004).')),
   "followUpQuestionnaires": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -1672,19 +1672,19 @@ export const PublishJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
-}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
   "template": zod.union([zod.null(),zod.object({
   "templateId": zod.uuid(),
@@ -1754,7 +1754,7 @@ export const CloseJobResponse = zod.object({
   "city": zod.string().nullable(),
   "region": zod.string().nullable(),
   "country": zod.string().nullable()
-}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\r\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
+}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
   "applicantLocationRequirements": zod.array(zod.string()),
   "location": zod.string(),
   "salary": zod.union([zod.null(),zod.object({
@@ -1774,7 +1774,7 @@ export const CloseJobResponse = zod.object({
   "name": zod.string(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(closeJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -1783,7 +1783,7 @@ export const CloseJobResponse = zod.object({
   "label": zod.string()
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
-}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
@@ -1800,12 +1800,12 @@ export const CloseJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -1832,8 +1832,8 @@ export const CloseJobResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(closeJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
-}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\n`yes` and `no`, choice answers are option ids). Facts are\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\n`verification.result`, `application.tags`, `application.source`,\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\n`reviewer.recommendation`.'))
+}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
   "stageId": zod.string().nullish(),
@@ -1845,10 +1845,10 @@ export const CloseJobResponse = zod.object({
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
   "questionnaireId": zod.string().nullish()
-}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(closeJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(closeJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\r\nsignal (ADR-0004).')),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\nsignal (ADR-0004).')),
   "followUpQuestionnaires": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -1865,19 +1865,19 @@ export const CloseJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
-}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
   "template": zod.union([zod.null(),zod.object({
   "templateId": zod.uuid(),
@@ -1955,7 +1955,7 @@ export const GetJobVersionResponse = zod.object({
   "city": zod.string().nullable(),
   "region": zod.string().nullable(),
   "country": zod.string().nullable()
-}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\r\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
+}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
   "applicantLocationRequirements": zod.array(zod.string()),
   "salary": zod.union([zod.null(),zod.object({
   "min": zod.number().nullable(),
@@ -1964,7 +1964,7 @@ export const GetJobVersionResponse = zod.object({
   "period": zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])
 }).describe('A pay range. At least one of decimal? JobSalary.Min and decimal? JobSalary.Max is set; string JobSalary.Currency is ISO 4217.')]),
   "validThrough": zod.iso.datetime({"offset":true}).nullable()
-}).describe('The posting content of a job at one moment: everything a careers page, a feed or a job board shows. A\r\nJobVersion freezes one. Equality compares the content, list members included.')
+}).describe('The posting content of a job at one moment: everything a careers page, a feed or a job board shows. A\nJobVersion freezes one. Equality compares the content, list members included.')
 }).describe('One published version of a job: the frozen content boards were sent.')
 
 
@@ -1985,7 +1985,7 @@ export const GetJobTemplateDiffResponse = zod.object({
   "before": zod.string().nullable(),
   "after": zod.string().nullable()
 }).describe('One difference between two workflows. `before` and `after` are values, or JSON for objects and lists.'))
-}).describe('How the job\'s workflow differs from the newest published version of the template it came from. Empty\r\n`changes` with `updateAvailable` false: the job is up to date.')
+}).describe('How the job\'s workflow differs from the newest published version of the template it came from. Empty\n`changes` with `updateAvailable` false: the job is up to date.')
 
 
 export const UpdateJobWorkflowParams = zod.object({
@@ -2010,7 +2010,7 @@ export const UpdateJobWorkflowBody = zod.object({
   "name": zod.string(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(updateJobWorkflowBodyWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -2019,7 +2019,7 @@ export const UpdateJobWorkflowBody = zod.object({
   "label": zod.string()
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
-}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
@@ -2036,12 +2036,12 @@ export const UpdateJobWorkflowBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -2068,8 +2068,8 @@ export const UpdateJobWorkflowBody = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(updateJobWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
-}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\n`yes` and `no`, choice answers are option ids). Facts are\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\n`verification.result`, `application.tags`, `application.source`,\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\n`reviewer.recommendation`.'))
+}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
   "stageId": zod.string().nullish(),
@@ -2081,10 +2081,10 @@ export const UpdateJobWorkflowBody = zod.object({
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
   "questionnaireId": zod.string().nullish()
-}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateJobWorkflowBodyWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateJobWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\r\nsignal (ADR-0004).')),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\nsignal (ADR-0004).')),
   "followUpQuestionnaires": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -2101,21 +2101,21 @@ export const UpdateJobWorkflowBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
-}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "expectedWorkflowVersion": zod.int()
-}).describe('Replaces a job\'s workflow with the recruiter\'s edit of it: the job\'s own copy, tailored. `expectedWorkflowVersion`\r\nis the `workflowVersion` the edit started from; if someone saved in between, the request is refused (409) rather\r\nthan overwriting their change. A stage that still holds applications cannot be removed.')
+}).describe('Replaces a job\'s workflow with the recruiter\'s edit of it: the job\'s own copy, tailored. `expectedWorkflowVersion`\nis the `workflowVersion` the edit started from; if someone saved in between, the request is refused (409) rather\nthan overwriting their change. A stage that still holds applications cannot be removed.')
 
 export const updateJobWorkflowResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const updateJobWorkflowResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
@@ -2138,7 +2138,7 @@ export const UpdateJobWorkflowResponse = zod.object({
   "city": zod.string().nullable(),
   "region": zod.string().nullable(),
   "country": zod.string().nullable()
-}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\r\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
+}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
   "applicantLocationRequirements": zod.array(zod.string()),
   "location": zod.string(),
   "salary": zod.union([zod.null(),zod.object({
@@ -2158,7 +2158,7 @@ export const UpdateJobWorkflowResponse = zod.object({
   "name": zod.string(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(updateJobWorkflowResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -2167,7 +2167,7 @@ export const UpdateJobWorkflowResponse = zod.object({
   "label": zod.string()
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
-}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
@@ -2184,12 +2184,12 @@ export const UpdateJobWorkflowResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -2216,8 +2216,8 @@ export const UpdateJobWorkflowResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(updateJobWorkflowResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
-}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\n`yes` and `no`, choice answers are option ids). Facts are\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\n`verification.result`, `application.tags`, `application.source`,\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\n`reviewer.recommendation`.'))
+}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
   "stageId": zod.string().nullish(),
@@ -2229,10 +2229,10 @@ export const UpdateJobWorkflowResponse = zod.object({
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
   "questionnaireId": zod.string().nullish()
-}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateJobWorkflowResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateJobWorkflowResponseWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\r\nsignal (ADR-0004).')),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\nsignal (ADR-0004).')),
   "followUpQuestionnaires": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -2249,19 +2249,19 @@ export const UpdateJobWorkflowResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
-}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
   "template": zod.union([zod.null(),zod.object({
   "templateId": zod.uuid(),
@@ -2313,7 +2313,7 @@ export const ApplyJobTemplateUpdateParams = zod.object({
 export const ApplyJobTemplateUpdateBody = zod.object({
   "templateVersionId": zod.uuid(),
   "expectedWorkflowVersion": zod.int()
-}).describe('Replaces a job\'s workflow with a published version of the template it came from (usually the newest, from\r\n`GET /v1/jobs/{jobId}/workflow/template-diff`). It replaces the job\'s own edits too, which the diff lists.\r\n`expectedWorkflowVersion` works as in UpdateJobWorkflowRequest.')
+}).describe('Replaces a job\'s workflow with a published version of the template it came from (usually the newest, from\n`GET /v1/jobs/{jobId}/workflow/template-diff`). It replaces the job\'s own edits too, which the diff lists.\n`expectedWorkflowVersion` works as in UpdateJobWorkflowRequest.')
 
 export const applyJobTemplateUpdateResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const applyJobTemplateUpdateResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
@@ -2336,7 +2336,7 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "city": zod.string().nullable(),
   "region": zod.string().nullable(),
   "country": zod.string().nullable()
-}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\r\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
+}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
   "applicantLocationRequirements": zod.array(zod.string()),
   "location": zod.string(),
   "salary": zod.union([zod.null(),zod.object({
@@ -2356,7 +2356,7 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "name": zod.string(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(applyJobTemplateUpdateResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -2365,7 +2365,7 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "label": zod.string()
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
-}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
@@ -2382,12 +2382,12 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -2414,8 +2414,8 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(applyJobTemplateUpdateResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
-}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\n`yes` and `no`, choice answers are option ids). Facts are\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\n`verification.result`, `application.tags`, `application.source`,\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\n`reviewer.recommendation`.'))
+}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
   "stageId": zod.string().nullish(),
@@ -2427,10 +2427,10 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
   "questionnaireId": zod.string().nullish()
-}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(applyJobTemplateUpdateResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(applyJobTemplateUpdateResponseWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\r\nsignal (ADR-0004).')),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\nsignal (ADR-0004).')),
   "followUpQuestionnaires": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -2447,19 +2447,19 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
-}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
   "template": zod.union([zod.null(),zod.object({
   "templateId": zod.uuid(),
@@ -2524,7 +2524,7 @@ export const ListHiringTemplatesResponseItem = zod.object({
   "created": zod.boolean().default(listHiringTemplatesResponseLastUpdatedCreatedDefault)
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
   "archived": zod.boolean()
-}).describe('A hiring template in a list. System templates ship with the product and are read-only. An archived template\r\n(`archived`) is out of the pickers: no new job starts from it, and the jobs that did keep their copy.')
+}).describe('A hiring template in a list. System templates ship with the product and are read-only. An archived template\n(`archived`) is out of the pickers: no new job starts from it, and the jobs that did keep their copy.')
 export const ListHiringTemplatesResponse = zod.array(ListHiringTemplatesResponseItem)
 
 
@@ -2549,7 +2549,7 @@ export const CreateHiringTemplateBody = zod.object({
   "name": zod.string(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(createHiringTemplateBodyDefinitionTwoWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -2558,7 +2558,7 @@ export const CreateHiringTemplateBody = zod.object({
   "label": zod.string()
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
-}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
@@ -2575,12 +2575,12 @@ export const CreateHiringTemplateBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -2607,8 +2607,8 @@ export const CreateHiringTemplateBody = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(createHiringTemplateBodyDefinitionTwoWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
-}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\n`yes` and `no`, choice answers are option ids). Facts are\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\n`verification.result`, `application.tags`, `application.source`,\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\n`reviewer.recommendation`.'))
+}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
   "stageId": zod.string().nullish(),
@@ -2620,10 +2620,10 @@ export const CreateHiringTemplateBody = zod.object({
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
   "questionnaireId": zod.string().nullish()
-}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(createHiringTemplateBodyDefinitionTwoWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(createHiringTemplateBodyDefinitionTwoWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\r\nsignal (ADR-0004).')),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\nsignal (ADR-0004).')),
   "followUpQuestionnaires": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -2640,19 +2640,19 @@ export const CreateHiringTemplateBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
-}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
   "employmentType": zod.union([zod.null(),zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship'])]).optional(),
   "workplaceType": zod.union([zod.null(),zod.enum(['Onsite', 'Hybrid', 'Remote'])]).optional(),
@@ -2664,7 +2664,7 @@ export const CreateHiringTemplateBody = zod.object({
 }).describe('Values a new job starts with when it is created from the template. Every member is optional.')
 }).describe('A hiring template version\'s full definition: the workflow a job copies, plus defaults for the job\'s posting.')]).optional(),
   "copyFromVersionId": zod.uuid().nullish()
-}).describe('A new organization template, whose version 1 is a draft. Give a `definition`, or `copyFromVersionId` to\r\nstart from an existing version (a system template\'s, to customise it), or neither for a basic pipeline.')
+}).describe('A new organization template, whose version 1 is a draft. Give a `definition`, or `copyFromVersionId` to\nstart from an existing version (a system template\'s, to customise it), or neither for a basic pipeline.')
 
 export const createHiringTemplateResponseLastUpdatedCreatedDefault = false;
 
@@ -2790,11 +2790,11 @@ export const GetHiringTemplateHistoryResponse = zod.object({
   "before": zod.string().nullable(),
   "after": zod.string().nullable(),
   "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
-}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\r\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
-}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\r\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
+}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
+}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
 }).describe('Everything one save changed in the object: who, when, and a line per change.')),
   "nextBefore": zod.uuid().nullable()
-}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\r\n`before` for the next page, or null after the last.')
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
 
 
 export const CreateHiringTemplateVersionParams = zod.object({
@@ -2820,7 +2820,7 @@ export const CreateHiringTemplateVersionBody = zod.object({
   "name": zod.string(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(createHiringTemplateVersionBodyDefinitionTwoWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -2829,7 +2829,7 @@ export const CreateHiringTemplateVersionBody = zod.object({
   "label": zod.string()
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
-}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
@@ -2846,12 +2846,12 @@ export const CreateHiringTemplateVersionBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -2878,8 +2878,8 @@ export const CreateHiringTemplateVersionBody = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(createHiringTemplateVersionBodyDefinitionTwoWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
-}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\n`yes` and `no`, choice answers are option ids). Facts are\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\n`verification.result`, `application.tags`, `application.source`,\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\n`reviewer.recommendation`.'))
+}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
   "stageId": zod.string().nullish(),
@@ -2891,10 +2891,10 @@ export const CreateHiringTemplateVersionBody = zod.object({
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
   "questionnaireId": zod.string().nullish()
-}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(createHiringTemplateVersionBodyDefinitionTwoWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(createHiringTemplateVersionBodyDefinitionTwoWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\r\nsignal (ADR-0004).')),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\nsignal (ADR-0004).')),
   "followUpQuestionnaires": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -2911,19 +2911,19 @@ export const CreateHiringTemplateVersionBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
-}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
   "employmentType": zod.union([zod.null(),zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship'])]).optional(),
   "workplaceType": zod.union([zod.null(),zod.enum(['Onsite', 'Hybrid', 'Remote'])]).optional(),
@@ -2959,7 +2959,7 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "name": zod.string(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(createHiringTemplateVersionResponseDefinitionWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -2968,7 +2968,7 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "label": zod.string()
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
-}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
@@ -2985,12 +2985,12 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -3017,8 +3017,8 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(createHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
-}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\n`yes` and `no`, choice answers are option ids). Facts are\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\n`verification.result`, `application.tags`, `application.source`,\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\n`reviewer.recommendation`.'))
+}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
   "stageId": zod.string().nullish(),
@@ -3030,10 +3030,10 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
   "questionnaireId": zod.string().nullish()
-}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(createHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(createHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\r\nsignal (ADR-0004).')),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\nsignal (ADR-0004).')),
   "followUpQuestionnaires": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -3050,19 +3050,19 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
-}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
   "employmentType": zod.union([zod.null(),zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship'])]).optional(),
   "workplaceType": zod.union([zod.null(),zod.enum(['Onsite', 'Hybrid', 'Remote'])]).optional(),
@@ -3076,7 +3076,7 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
   "publishedBy": zod.uuid().nullable()
-}).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\r\n`/v1/schemas/hiring-template-definition.json`.')
+}).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\n`/v1/schemas/hiring-template-definition.json`.')
 
 
 export const GetHiringTemplateVersionParams = zod.object({
@@ -3107,7 +3107,7 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "name": zod.string(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(getHiringTemplateVersionResponseDefinitionWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -3116,7 +3116,7 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "label": zod.string()
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
-}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
@@ -3133,12 +3133,12 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -3165,8 +3165,8 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(getHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
-}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\n`yes` and `no`, choice answers are option ids). Facts are\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\n`verification.result`, `application.tags`, `application.source`,\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\n`reviewer.recommendation`.'))
+}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
   "stageId": zod.string().nullish(),
@@ -3178,10 +3178,10 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
   "questionnaireId": zod.string().nullish()
-}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(getHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(getHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\r\nsignal (ADR-0004).')),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\nsignal (ADR-0004).')),
   "followUpQuestionnaires": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -3198,19 +3198,19 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
-}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
   "employmentType": zod.union([zod.null(),zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship'])]).optional(),
   "workplaceType": zod.union([zod.null(),zod.enum(['Onsite', 'Hybrid', 'Remote'])]).optional(),
@@ -3224,7 +3224,7 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
   "publishedBy": zod.uuid().nullable()
-}).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\r\n`/v1/schemas/hiring-template-definition.json`.')
+}).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\n`/v1/schemas/hiring-template-definition.json`.')
 
 
 export const UpdateHiringTemplateVersionParams = zod.object({
@@ -3251,7 +3251,7 @@ export const UpdateHiringTemplateVersionBody = zod.object({
   "name": zod.string(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(updateHiringTemplateVersionBodyDefinitionWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -3260,7 +3260,7 @@ export const UpdateHiringTemplateVersionBody = zod.object({
   "label": zod.string()
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
-}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
@@ -3277,12 +3277,12 @@ export const UpdateHiringTemplateVersionBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -3309,8 +3309,8 @@ export const UpdateHiringTemplateVersionBody = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(updateHiringTemplateVersionBodyDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
-}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\n`yes` and `no`, choice answers are option ids). Facts are\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\n`verification.result`, `application.tags`, `application.source`,\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\n`reviewer.recommendation`.'))
+}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
   "stageId": zod.string().nullish(),
@@ -3322,10 +3322,10 @@ export const UpdateHiringTemplateVersionBody = zod.object({
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
   "questionnaireId": zod.string().nullish()
-}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateHiringTemplateVersionBodyDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateHiringTemplateVersionBodyDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\r\nsignal (ADR-0004).')),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\nsignal (ADR-0004).')),
   "followUpQuestionnaires": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -3342,19 +3342,19 @@ export const UpdateHiringTemplateVersionBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
-}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
   "employmentType": zod.union([zod.null(),zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship'])]).optional(),
   "workplaceType": zod.union([zod.null(),zod.enum(['Onsite', 'Hybrid', 'Remote'])]).optional(),
@@ -3390,7 +3390,7 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "name": zod.string(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(updateHiringTemplateVersionResponseDefinitionWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -3399,7 +3399,7 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "label": zod.string()
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
-}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
@@ -3416,12 +3416,12 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -3448,8 +3448,8 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(updateHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
-}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\n`yes` and `no`, choice answers are option ids). Facts are\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\n`verification.result`, `application.tags`, `application.source`,\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\n`reviewer.recommendation`.'))
+}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
   "stageId": zod.string().nullish(),
@@ -3461,10 +3461,10 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
   "questionnaireId": zod.string().nullish()
-}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\r\nsignal (ADR-0004).')),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\nsignal (ADR-0004).')),
   "followUpQuestionnaires": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -3481,19 +3481,19 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
-}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
   "employmentType": zod.union([zod.null(),zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship'])]).optional(),
   "workplaceType": zod.union([zod.null(),zod.enum(['Onsite', 'Hybrid', 'Remote'])]).optional(),
@@ -3507,7 +3507,7 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
   "publishedBy": zod.uuid().nullable()
-}).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\r\n`/v1/schemas/hiring-template-definition.json`.')
+}).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\n`/v1/schemas/hiring-template-definition.json`.')
 
 
 export const PublishHiringTemplateVersionParams = zod.object({
@@ -3538,7 +3538,7 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "name": zod.string(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(publishHiringTemplateVersionResponseDefinitionWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -3547,7 +3547,7 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "label": zod.string()
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
-}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
@@ -3564,12 +3564,12 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -3596,8 +3596,8 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(publishHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
-}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\n`yes` and `no`, choice answers are option ids). Facts are\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\n`verification.result`, `application.tags`, `application.source`,\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\n`reviewer.recommendation`.'))
+}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
   "stageId": zod.string().nullish(),
@@ -3609,10 +3609,10 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
   "questionnaireId": zod.string().nullish()
-}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(publishHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(publishHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\r\nsignal (ADR-0004).')),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\nsignal (ADR-0004).')),
   "followUpQuestionnaires": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -3629,19 +3629,19 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
-}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
   "employmentType": zod.union([zod.null(),zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship'])]).optional(),
   "workplaceType": zod.union([zod.null(),zod.enum(['Onsite', 'Hybrid', 'Remote'])]).optional(),
@@ -3655,7 +3655,7 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
   "publishedBy": zod.uuid().nullable()
-}).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\r\n`/v1/schemas/hiring-template-definition.json`.')
+}).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\n`/v1/schemas/hiring-template-definition.json`.')
 
 
 export const ArchiveHiringTemplateParams = zod.object({
@@ -3751,17 +3751,17 @@ export const ListJobApplicationsResponseItem = zod.object({
   "aiAssistance": zod.enum(['NotIndicated', 'SomeIndicators', 'StrongIndicators']).describe('AI assistance levels, lowest first. Informational and relative to the job\'s AI policy.'),
   "aiAssistanceReasons": zod.array(zod.string()),
   "aiAssistanceDismissed": zod.boolean()
-}).describe('The verification chips for an application in a list: each current level and its reason codes (shown as "3 reasons"), and\r\nwhether a reviewer dismissed it. Null on the summary until the application is assessed.')]).optional(),
+}).describe('The verification chips for an application in a list: each current level and its reason codes (shown as "3 reasons"), and\nwhether a reviewer dismissed it. Null on the summary until the application is assessed.')]).optional(),
   "slaDueAt": zod.iso.datetime({"offset":true}).nullish(),
   "rating": zod.union([zod.null(),zod.object({
-  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\r\nreader has a review to give first.'),
+  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\nreader has a review to give first.'),
   "value": zod.number().nullish(),
   "scorecards": zod.int().default(listJobApplicationsResponseRatingTwoScorecardsDefault)
-}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\r\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\r\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\r\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\r\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\r\nthey give it, so it cannot anchor them.')]).optional(),
+}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\nthey give it, so it cannot anchor them.')]).optional(),
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
   "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
   "sourceSite": zod.string().nullish()
-}).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself.')
+}).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\napplication itself.')
 export const ListJobApplicationsResponse = zod.array(ListJobApplicationsResponseItem)
 
 
@@ -3784,7 +3784,7 @@ export const CreateApplicationBody = zod.object({
   "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(createApplicationBodyAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
   "aiUseDetails": zod.string().nullish(),
   "resumeUploadId": zod.uuid().nullish()
-}).describe('A recruiter adds an application by hand, for a candidate who applied another way. The candidate is matched by email\r\nwithin the organization and created if new. The public apply flow is the careers site\'s.')
+}).describe('A recruiter adds an application by hand, for a candidate who applied another way. The candidate is matched by email\nwithin the organization and created if new. The public apply flow is the careers site\'s.')
 
 export const createApplicationResponseAiUseDeclarationDefault = `NotProvided`;
 export const createApplicationResponseFollowUpsItemQuestionsItemRequiredDefault = false;
@@ -3821,7 +3821,7 @@ export const CreateApplicationResponse = zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
   "files": zod.array(zod.object({
   "id": zod.uuid(),
   "questionId": zod.string(),
@@ -3854,30 +3854,30 @@ export const CreateApplicationResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "answers": zod.array(zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
-}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.')),
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
+}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\nworkflow changes.')),
   "slaDueAt": zod.iso.datetime({"offset":true}).nullish(),
   "rating": zod.union([zod.null(),zod.object({
-  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\r\nreader has a review to give first.'),
+  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\nreader has a review to give first.'),
   "value": zod.number().nullish(),
   "scorecards": zod.int().default(createApplicationResponseRatingTwoScorecardsDefault)
-}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\r\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\r\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\r\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\r\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\r\nthey give it, so it cannot anchor them.')]).optional(),
+}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\nthey give it, so it cannot anchor them.')]).optional(),
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
   "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
   "futureRolesGivenAt": zod.iso.datetime({"offset":true}).nullish(),
   "inTalentPool": zod.boolean().default(createApplicationResponseInTalentPoolDefault),
   "sourceSite": zod.string().nullish()
-}).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
+}).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\ndeclarations, answers and files.')
 
 
 export const CreateResumeUploadParams = zod.object({
@@ -3896,7 +3896,7 @@ export const CreateResumeUploadResponse = zod.object({
   "headers": zod.record(zod.string(), zod.string()),
   "expiresAt": zod.iso.datetime({"offset":true}),
   "maxBytes": zod.int()
-}).describe('Where and how to upload one file, and until when: send its bytes with `method` to `uploadUrl` with\r\n`headers`, then refer to it by `uploadId`.')
+}).describe('Where and how to upload one file, and until when: send its bytes with `method` to `uploadUrl` with\n`headers`, then refer to it by `uploadId`.')
 
 
 export const listApplicationsResponseRatingTwoScorecardsDefault = 0;
@@ -3924,17 +3924,17 @@ export const ListApplicationsResponseItem = zod.object({
   "aiAssistance": zod.enum(['NotIndicated', 'SomeIndicators', 'StrongIndicators']).describe('AI assistance levels, lowest first. Informational and relative to the job\'s AI policy.'),
   "aiAssistanceReasons": zod.array(zod.string()),
   "aiAssistanceDismissed": zod.boolean()
-}).describe('The verification chips for an application in a list: each current level and its reason codes (shown as "3 reasons"), and\r\nwhether a reviewer dismissed it. Null on the summary until the application is assessed.')]).optional(),
+}).describe('The verification chips for an application in a list: each current level and its reason codes (shown as "3 reasons"), and\nwhether a reviewer dismissed it. Null on the summary until the application is assessed.')]).optional(),
   "slaDueAt": zod.iso.datetime({"offset":true}).nullish(),
   "rating": zod.union([zod.null(),zod.object({
-  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\r\nreader has a review to give first.'),
+  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\nreader has a review to give first.'),
   "value": zod.number().nullish(),
   "scorecards": zod.int().default(listApplicationsResponseRatingTwoScorecardsDefault)
-}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\r\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\r\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\r\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\r\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\r\nthey give it, so it cannot anchor them.')]).optional(),
+}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\nthey give it, so it cannot anchor them.')]).optional(),
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
   "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
   "sourceSite": zod.string().nullish()
-}).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself.')
+}).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\napplication itself.')
 export const ListApplicationsResponse = zod.array(ListApplicationsResponseItem)
 
 
@@ -3977,7 +3977,7 @@ export const GetApplicationResponse = zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
   "files": zod.array(zod.object({
   "id": zod.uuid(),
   "questionId": zod.string(),
@@ -4010,30 +4010,30 @@ export const GetApplicationResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "answers": zod.array(zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
-}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.')),
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
+}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\nworkflow changes.')),
   "slaDueAt": zod.iso.datetime({"offset":true}).nullish(),
   "rating": zod.union([zod.null(),zod.object({
-  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\r\nreader has a review to give first.'),
+  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\nreader has a review to give first.'),
   "value": zod.number().nullish(),
   "scorecards": zod.int().default(getApplicationResponseRatingTwoScorecardsDefault)
-}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\r\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\r\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\r\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\r\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\r\nthey give it, so it cannot anchor them.')]).optional(),
+}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\nthey give it, so it cannot anchor them.')]).optional(),
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
   "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
   "futureRolesGivenAt": zod.iso.datetime({"offset":true}).nullish(),
   "inTalentPool": zod.boolean().default(getApplicationResponseInTalentPoolDefault),
   "sourceSite": zod.string().nullish()
-}).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
+}).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\ndeclarations, answers and files.')
 
 
 export const MoveApplicationParams = zod.object({
@@ -4043,7 +4043,7 @@ export const MoveApplicationParams = zod.object({
 export const MoveApplicationBody = zod.object({
   "toStageId": zod.string(),
   "note": zod.string().nullish()
-}).describe('Moves an application to another stage of its job\'s workflow. Only people move applications here. The optional\r\n`note` is kept on the move\'s timeline entry.')
+}).describe('Moves an application to another stage of its job\'s workflow. Only people move applications here. The optional\n`note` is kept on the move\'s timeline entry.')
 
 export const moveApplicationResponseAiUseDeclarationDefault = `NotProvided`;
 export const moveApplicationResponseFollowUpsItemQuestionsItemRequiredDefault = false;
@@ -4080,7 +4080,7 @@ export const MoveApplicationResponse = zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
   "files": zod.array(zod.object({
   "id": zod.uuid(),
   "questionId": zod.string(),
@@ -4113,30 +4113,30 @@ export const MoveApplicationResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "answers": zod.array(zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
-}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.')),
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
+}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\nworkflow changes.')),
   "slaDueAt": zod.iso.datetime({"offset":true}).nullish(),
   "rating": zod.union([zod.null(),zod.object({
-  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\r\nreader has a review to give first.'),
+  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\nreader has a review to give first.'),
   "value": zod.number().nullish(),
   "scorecards": zod.int().default(moveApplicationResponseRatingTwoScorecardsDefault)
-}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\r\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\r\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\r\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\r\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\r\nthey give it, so it cannot anchor them.')]).optional(),
+}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\nthey give it, so it cannot anchor them.')]).optional(),
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
   "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
   "futureRolesGivenAt": zod.iso.datetime({"offset":true}).nullish(),
   "inTalentPool": zod.boolean().default(moveApplicationResponseInTalentPoolDefault),
   "sourceSite": zod.string().nullish()
-}).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
+}).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\ndeclarations, answers and files.')
 
 
 export const GetApplicationTimelineParams = zod.object({
@@ -4179,7 +4179,7 @@ export const AddApplicationNoteParams = zod.object({
 
 export const AddApplicationNoteBody = zod.object({
   "note": zod.string()
-}).describe('A note from the hiring team on an application, kept on its timeline with the author and the time. Mention a member\r\nas `@[userId]`: they get a notification and an email that never quotes the note.')
+}).describe('A note from the hiring team on an application, kept on its timeline with the author and the time. Mention a member\nas `@[userId]`: they get a notification and an email that never quotes the note.')
 
 export const AddApplicationNoteResponse = zod.object({
   "id": zod.uuid(),
@@ -4281,7 +4281,7 @@ export const AddApplicationTagResponse = zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
   "files": zod.array(zod.object({
   "id": zod.uuid(),
   "questionId": zod.string(),
@@ -4314,30 +4314,30 @@ export const AddApplicationTagResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "answers": zod.array(zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
-}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.')),
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
+}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\nworkflow changes.')),
   "slaDueAt": zod.iso.datetime({"offset":true}).nullish(),
   "rating": zod.union([zod.null(),zod.object({
-  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\r\nreader has a review to give first.'),
+  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\nreader has a review to give first.'),
   "value": zod.number().nullish(),
   "scorecards": zod.int().default(addApplicationTagResponseRatingTwoScorecardsDefault)
-}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\r\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\r\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\r\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\r\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\r\nthey give it, so it cannot anchor them.')]).optional(),
+}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\nthey give it, so it cannot anchor them.')]).optional(),
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
   "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
   "futureRolesGivenAt": zod.iso.datetime({"offset":true}).nullish(),
   "inTalentPool": zod.boolean().default(addApplicationTagResponseInTalentPoolDefault),
   "sourceSite": zod.string().nullish()
-}).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
+}).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\ndeclarations, answers and files.')
 
 
 export const RemoveApplicationTagParams = zod.object({
@@ -4383,7 +4383,7 @@ export const RemoveApplicationTagResponse = zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
   "files": zod.array(zod.object({
   "id": zod.uuid(),
   "questionId": zod.string(),
@@ -4416,30 +4416,30 @@ export const RemoveApplicationTagResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "answers": zod.array(zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
-}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes.')),
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
+}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\nworkflow changes.')),
   "slaDueAt": zod.iso.datetime({"offset":true}).nullish(),
   "rating": zod.union([zod.null(),zod.object({
-  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\r\nreader has a review to give first.'),
+  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\nreader has a review to give first.'),
   "value": zod.number().nullish(),
   "scorecards": zod.int().default(removeApplicationTagResponseRatingTwoScorecardsDefault)
-}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\r\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\r\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\r\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\r\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\r\nthey give it, so it cannot anchor them.')]).optional(),
+}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\nthey give it, so it cannot anchor them.')]).optional(),
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
   "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
   "futureRolesGivenAt": zod.iso.datetime({"offset":true}).nullish(),
   "inTalentPool": zod.boolean().default(removeApplicationTagResponseInTalentPoolDefault),
   "sourceSite": zod.string().nullish()
-}).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
+}).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\ndeclarations, answers and files.')
 
 
 export const CreateApplicationTaskParams = zod.object({
@@ -4462,7 +4462,7 @@ export const CreateApplicationTaskResponse = zod.object({
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "completedByUserId": zod.uuid().nullable(),
   "scorecardTemplateId": zod.string().nullish()
-}).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\r\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\r\nticked off by hand.')
+}).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 
 
 export const ListApplicationTasksParams = zod.object({
@@ -4480,7 +4480,7 @@ export const ListApplicationTasksResponseItem = zod.object({
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "completedByUserId": zod.uuid().nullable(),
   "scorecardTemplateId": zod.string().nullish()
-}).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\r\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\r\nticked off by hand.')
+}).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 export const ListApplicationTasksResponse = zod.array(ListApplicationTasksResponseItem)
 
 
@@ -4539,17 +4539,17 @@ export const GetCandidateResponse = zod.object({
   "aiAssistance": zod.enum(['NotIndicated', 'SomeIndicators', 'StrongIndicators']).describe('AI assistance levels, lowest first. Informational and relative to the job\'s AI policy.'),
   "aiAssistanceReasons": zod.array(zod.string()),
   "aiAssistanceDismissed": zod.boolean()
-}).describe('The verification chips for an application in a list: each current level and its reason codes (shown as "3 reasons"), and\r\nwhether a reviewer dismissed it. Null on the summary until the application is assessed.')]).optional(),
+}).describe('The verification chips for an application in a list: each current level and its reason codes (shown as "3 reasons"), and\nwhether a reviewer dismissed it. Null on the summary until the application is assessed.')]).optional(),
   "slaDueAt": zod.iso.datetime({"offset":true}).nullish(),
   "rating": zod.union([zod.null(),zod.object({
-  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\r\nreader has a review to give first.'),
+  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\nreader has a review to give first.'),
   "value": zod.number().nullish(),
   "scorecards": zod.int().default(getCandidateResponseApplicationsItemRatingTwoScorecardsDefault)
-}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\r\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\r\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\r\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\r\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\r\nthey give it, so it cannot anchor them.')]).optional(),
+}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\nthey give it, so it cannot anchor them.')]).optional(),
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
   "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
   "sourceSite": zod.string().nullish()
-}).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself.')),
+}).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\napplication itself.')),
   "firstName": zod.string(),
   "lastName": zod.string().nullable()
 }).describe('A candidate and every application they made to the organization.')
@@ -4574,7 +4574,7 @@ export const GetApplicationVerificationResponse = zod.object({
   "id": zod.uuid(),
   "code": zod.string(),
   "title": zod.string(),
-  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\r\nsource, such as a corporate VPN, cannot raise a level by itself.'),
+  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\nsource, such as a corporate VPN, cannot raise a level by itself.'),
   "weight": zod.enum(['Low', 'Medium', 'High']).describe('How much a signal counts towards its category. Categorical on purpose: there is no score (ADR-0004).'),
   "confidence": zod.enum(['Low', 'Medium', 'High']).describe('How sure the analyzer is of the observation itself (a lookup that matched exactly, or a heuristic).'),
   "countsTowardLevel": zod.boolean(),
@@ -4600,7 +4600,7 @@ export const GetApplicationVerificationResponse = zod.object({
   "reference": zod.number().nullish(),
   "referenceLabel": zod.string().nullish(),
   "items": zod.array(zod.string()).nullish()
-}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
   "counterEvidence": zod.array(zod.object({
   "explanation": zod.string(),
   "evidence": zod.union([zod.null(),zod.object({
@@ -4622,7 +4622,7 @@ export const GetApplicationVerificationResponse = zod.object({
   "reference": zod.number().nullish(),
   "referenceLabel": zod.string().nullish(),
   "items": zod.array(zod.string()).nullish()
-}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
 }).describe('Something that argues against a signal, in plain language, with optional evidence of its own.')),
   "source": zod.string(),
   "sourceVersion": zod.int(),
@@ -4632,7 +4632,7 @@ export const GetApplicationVerificationResponse = zod.object({
   "promptVersion": zod.string(),
   "extractionModel": zod.string(),
   "consistencyModel": zod.string()
-}).describe('Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')]),
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\nones the provider reported serving, not the configured names.')]),
   "explained": zod.union([zod.null(),zod.object({
   "actionId": zod.uuid(),
   "reason": zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.'),
@@ -4641,7 +4641,7 @@ export const GetApplicationVerificationResponse = zod.object({
   "actorName": zod.string().nullable(),
   "explainedAt": zod.iso.datetime({"offset":true})
 }).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
-}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
+}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
   "dismissal": zod.union([zod.null(),zod.object({
@@ -4663,7 +4663,7 @@ export const GetApplicationVerificationResponse = zod.object({
   "id": zod.uuid(),
   "code": zod.string(),
   "title": zod.string(),
-  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\r\nsource, such as a corporate VPN, cannot raise a level by itself.'),
+  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\nsource, such as a corporate VPN, cannot raise a level by itself.'),
   "weight": zod.enum(['Low', 'Medium', 'High']).describe('How much a signal counts towards its category. Categorical on purpose: there is no score (ADR-0004).'),
   "confidence": zod.enum(['Low', 'Medium', 'High']).describe('How sure the analyzer is of the observation itself (a lookup that matched exactly, or a heuristic).'),
   "countsTowardLevel": zod.boolean(),
@@ -4689,7 +4689,7 @@ export const GetApplicationVerificationResponse = zod.object({
   "reference": zod.number().nullish(),
   "referenceLabel": zod.string().nullish(),
   "items": zod.array(zod.string()).nullish()
-}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
   "counterEvidence": zod.array(zod.object({
   "explanation": zod.string(),
   "evidence": zod.union([zod.null(),zod.object({
@@ -4711,7 +4711,7 @@ export const GetApplicationVerificationResponse = zod.object({
   "reference": zod.number().nullish(),
   "referenceLabel": zod.string().nullish(),
   "items": zod.array(zod.string()).nullish()
-}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
 }).describe('Something that argues against a signal, in plain language, with optional evidence of its own.')),
   "source": zod.string(),
   "sourceVersion": zod.int(),
@@ -4721,7 +4721,7 @@ export const GetApplicationVerificationResponse = zod.object({
   "promptVersion": zod.string(),
   "extractionModel": zod.string(),
   "consistencyModel": zod.string()
-}).describe('Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')]),
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\nones the provider reported serving, not the configured names.')]),
   "explained": zod.union([zod.null(),zod.object({
   "actionId": zod.uuid(),
   "reason": zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.'),
@@ -4730,7 +4730,7 @@ export const GetApplicationVerificationResponse = zod.object({
   "actorName": zod.string().nullable(),
   "explainedAt": zod.iso.datetime({"offset":true})
 }).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
-}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
+}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
   "dismissal": zod.union([zod.null(),zod.object({
@@ -4771,8 +4771,8 @@ export const GetApplicationVerificationResponse = zod.object({
   "consistencyModel": zod.string().nullable(),
   "contradictions": zod.int(),
   "completedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\r\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')])
-}).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\r\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\r\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\r\n`reviewLog`.')
+}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')])
+}).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\n`reviewLog`.')
 
 
 export const DismissVerificationAssessmentParams = zod.object({
@@ -4800,7 +4800,7 @@ export const DismissVerificationAssessmentResponse = zod.object({
   "id": zod.uuid(),
   "code": zod.string(),
   "title": zod.string(),
-  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\r\nsource, such as a corporate VPN, cannot raise a level by itself.'),
+  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\nsource, such as a corporate VPN, cannot raise a level by itself.'),
   "weight": zod.enum(['Low', 'Medium', 'High']).describe('How much a signal counts towards its category. Categorical on purpose: there is no score (ADR-0004).'),
   "confidence": zod.enum(['Low', 'Medium', 'High']).describe('How sure the analyzer is of the observation itself (a lookup that matched exactly, or a heuristic).'),
   "countsTowardLevel": zod.boolean(),
@@ -4826,7 +4826,7 @@ export const DismissVerificationAssessmentResponse = zod.object({
   "reference": zod.number().nullish(),
   "referenceLabel": zod.string().nullish(),
   "items": zod.array(zod.string()).nullish()
-}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
   "counterEvidence": zod.array(zod.object({
   "explanation": zod.string(),
   "evidence": zod.union([zod.null(),zod.object({
@@ -4848,7 +4848,7 @@ export const DismissVerificationAssessmentResponse = zod.object({
   "reference": zod.number().nullish(),
   "referenceLabel": zod.string().nullish(),
   "items": zod.array(zod.string()).nullish()
-}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
 }).describe('Something that argues against a signal, in plain language, with optional evidence of its own.')),
   "source": zod.string(),
   "sourceVersion": zod.int(),
@@ -4858,7 +4858,7 @@ export const DismissVerificationAssessmentResponse = zod.object({
   "promptVersion": zod.string(),
   "extractionModel": zod.string(),
   "consistencyModel": zod.string()
-}).describe('Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')]),
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\nones the provider reported serving, not the configured names.')]),
   "explained": zod.union([zod.null(),zod.object({
   "actionId": zod.uuid(),
   "reason": zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.'),
@@ -4867,7 +4867,7 @@ export const DismissVerificationAssessmentResponse = zod.object({
   "actorName": zod.string().nullable(),
   "explainedAt": zod.iso.datetime({"offset":true})
 }).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
-}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
+}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
   "dismissal": zod.union([zod.null(),zod.object({
@@ -4889,7 +4889,7 @@ export const DismissVerificationAssessmentResponse = zod.object({
   "id": zod.uuid(),
   "code": zod.string(),
   "title": zod.string(),
-  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\r\nsource, such as a corporate VPN, cannot raise a level by itself.'),
+  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\nsource, such as a corporate VPN, cannot raise a level by itself.'),
   "weight": zod.enum(['Low', 'Medium', 'High']).describe('How much a signal counts towards its category. Categorical on purpose: there is no score (ADR-0004).'),
   "confidence": zod.enum(['Low', 'Medium', 'High']).describe('How sure the analyzer is of the observation itself (a lookup that matched exactly, or a heuristic).'),
   "countsTowardLevel": zod.boolean(),
@@ -4915,7 +4915,7 @@ export const DismissVerificationAssessmentResponse = zod.object({
   "reference": zod.number().nullish(),
   "referenceLabel": zod.string().nullish(),
   "items": zod.array(zod.string()).nullish()
-}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
   "counterEvidence": zod.array(zod.object({
   "explanation": zod.string(),
   "evidence": zod.union([zod.null(),zod.object({
@@ -4937,7 +4937,7 @@ export const DismissVerificationAssessmentResponse = zod.object({
   "reference": zod.number().nullish(),
   "referenceLabel": zod.string().nullish(),
   "items": zod.array(zod.string()).nullish()
-}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
 }).describe('Something that argues against a signal, in plain language, with optional evidence of its own.')),
   "source": zod.string(),
   "sourceVersion": zod.int(),
@@ -4947,7 +4947,7 @@ export const DismissVerificationAssessmentResponse = zod.object({
   "promptVersion": zod.string(),
   "extractionModel": zod.string(),
   "consistencyModel": zod.string()
-}).describe('Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')]),
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\nones the provider reported serving, not the configured names.')]),
   "explained": zod.union([zod.null(),zod.object({
   "actionId": zod.uuid(),
   "reason": zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.'),
@@ -4956,7 +4956,7 @@ export const DismissVerificationAssessmentResponse = zod.object({
   "actorName": zod.string().nullable(),
   "explainedAt": zod.iso.datetime({"offset":true})
 }).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
-}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
+}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
   "dismissal": zod.union([zod.null(),zod.object({
@@ -4997,8 +4997,8 @@ export const DismissVerificationAssessmentResponse = zod.object({
   "consistencyModel": zod.string().nullable(),
   "contradictions": zod.int(),
   "completedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\r\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')])
-}).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\r\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\r\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\r\n`reviewLog`.')
+}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')])
+}).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\n`reviewLog`.')
 
 
 export const ExplainVerificationReasonParams = zod.object({
@@ -5027,7 +5027,7 @@ export const ExplainVerificationReasonResponse = zod.object({
   "id": zod.uuid(),
   "code": zod.string(),
   "title": zod.string(),
-  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\r\nsource, such as a corporate VPN, cannot raise a level by itself.'),
+  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\nsource, such as a corporate VPN, cannot raise a level by itself.'),
   "weight": zod.enum(['Low', 'Medium', 'High']).describe('How much a signal counts towards its category. Categorical on purpose: there is no score (ADR-0004).'),
   "confidence": zod.enum(['Low', 'Medium', 'High']).describe('How sure the analyzer is of the observation itself (a lookup that matched exactly, or a heuristic).'),
   "countsTowardLevel": zod.boolean(),
@@ -5053,7 +5053,7 @@ export const ExplainVerificationReasonResponse = zod.object({
   "reference": zod.number().nullish(),
   "referenceLabel": zod.string().nullish(),
   "items": zod.array(zod.string()).nullish()
-}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
   "counterEvidence": zod.array(zod.object({
   "explanation": zod.string(),
   "evidence": zod.union([zod.null(),zod.object({
@@ -5075,7 +5075,7 @@ export const ExplainVerificationReasonResponse = zod.object({
   "reference": zod.number().nullish(),
   "referenceLabel": zod.string().nullish(),
   "items": zod.array(zod.string()).nullish()
-}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
 }).describe('Something that argues against a signal, in plain language, with optional evidence of its own.')),
   "source": zod.string(),
   "sourceVersion": zod.int(),
@@ -5085,7 +5085,7 @@ export const ExplainVerificationReasonResponse = zod.object({
   "promptVersion": zod.string(),
   "extractionModel": zod.string(),
   "consistencyModel": zod.string()
-}).describe('Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')]),
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\nones the provider reported serving, not the configured names.')]),
   "explained": zod.union([zod.null(),zod.object({
   "actionId": zod.uuid(),
   "reason": zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.'),
@@ -5094,7 +5094,7 @@ export const ExplainVerificationReasonResponse = zod.object({
   "actorName": zod.string().nullable(),
   "explainedAt": zod.iso.datetime({"offset":true})
 }).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
-}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
+}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
   "dismissal": zod.union([zod.null(),zod.object({
@@ -5116,7 +5116,7 @@ export const ExplainVerificationReasonResponse = zod.object({
   "id": zod.uuid(),
   "code": zod.string(),
   "title": zod.string(),
-  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\r\nsource, such as a corporate VPN, cannot raise a level by itself.'),
+  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\nsource, such as a corporate VPN, cannot raise a level by itself.'),
   "weight": zod.enum(['Low', 'Medium', 'High']).describe('How much a signal counts towards its category. Categorical on purpose: there is no score (ADR-0004).'),
   "confidence": zod.enum(['Low', 'Medium', 'High']).describe('How sure the analyzer is of the observation itself (a lookup that matched exactly, or a heuristic).'),
   "countsTowardLevel": zod.boolean(),
@@ -5142,7 +5142,7 @@ export const ExplainVerificationReasonResponse = zod.object({
   "reference": zod.number().nullish(),
   "referenceLabel": zod.string().nullish(),
   "items": zod.array(zod.string()).nullish()
-}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
   "counterEvidence": zod.array(zod.object({
   "explanation": zod.string(),
   "evidence": zod.union([zod.null(),zod.object({
@@ -5164,7 +5164,7 @@ export const ExplainVerificationReasonResponse = zod.object({
   "reference": zod.number().nullish(),
   "referenceLabel": zod.string().nullish(),
   "items": zod.array(zod.string()).nullish()
-}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
 }).describe('Something that argues against a signal, in plain language, with optional evidence of its own.')),
   "source": zod.string(),
   "sourceVersion": zod.int(),
@@ -5174,7 +5174,7 @@ export const ExplainVerificationReasonResponse = zod.object({
   "promptVersion": zod.string(),
   "extractionModel": zod.string(),
   "consistencyModel": zod.string()
-}).describe('Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')]),
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\nones the provider reported serving, not the configured names.')]),
   "explained": zod.union([zod.null(),zod.object({
   "actionId": zod.uuid(),
   "reason": zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.'),
@@ -5183,7 +5183,7 @@ export const ExplainVerificationReasonResponse = zod.object({
   "actorName": zod.string().nullable(),
   "explainedAt": zod.iso.datetime({"offset":true})
 }).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
-}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
+}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
   "dismissal": zod.union([zod.null(),zod.object({
@@ -5224,8 +5224,8 @@ export const ExplainVerificationReasonResponse = zod.object({
   "consistencyModel": zod.string().nullable(),
   "contradictions": zod.int(),
   "completedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\r\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')])
-}).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\r\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\r\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\r\n`reviewLog`.')
+}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')])
+}).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\n`reviewLog`.')
 
 
 export const UndoVerificationReasonExplanationParams = zod.object({
@@ -5249,7 +5249,7 @@ export const UndoVerificationReasonExplanationResponse = zod.object({
   "id": zod.uuid(),
   "code": zod.string(),
   "title": zod.string(),
-  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\r\nsource, such as a corporate VPN, cannot raise a level by itself.'),
+  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\nsource, such as a corporate VPN, cannot raise a level by itself.'),
   "weight": zod.enum(['Low', 'Medium', 'High']).describe('How much a signal counts towards its category. Categorical on purpose: there is no score (ADR-0004).'),
   "confidence": zod.enum(['Low', 'Medium', 'High']).describe('How sure the analyzer is of the observation itself (a lookup that matched exactly, or a heuristic).'),
   "countsTowardLevel": zod.boolean(),
@@ -5275,7 +5275,7 @@ export const UndoVerificationReasonExplanationResponse = zod.object({
   "reference": zod.number().nullish(),
   "referenceLabel": zod.string().nullish(),
   "items": zod.array(zod.string()).nullish()
-}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
   "counterEvidence": zod.array(zod.object({
   "explanation": zod.string(),
   "evidence": zod.union([zod.null(),zod.object({
@@ -5297,7 +5297,7 @@ export const UndoVerificationReasonExplanationResponse = zod.object({
   "reference": zod.number().nullish(),
   "referenceLabel": zod.string().nullish(),
   "items": zod.array(zod.string()).nullish()
-}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
 }).describe('Something that argues against a signal, in plain language, with optional evidence of its own.')),
   "source": zod.string(),
   "sourceVersion": zod.int(),
@@ -5307,7 +5307,7 @@ export const UndoVerificationReasonExplanationResponse = zod.object({
   "promptVersion": zod.string(),
   "extractionModel": zod.string(),
   "consistencyModel": zod.string()
-}).describe('Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')]),
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\nones the provider reported serving, not the configured names.')]),
   "explained": zod.union([zod.null(),zod.object({
   "actionId": zod.uuid(),
   "reason": zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.'),
@@ -5316,7 +5316,7 @@ export const UndoVerificationReasonExplanationResponse = zod.object({
   "actorName": zod.string().nullable(),
   "explainedAt": zod.iso.datetime({"offset":true})
 }).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
-}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
+}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
   "dismissal": zod.union([zod.null(),zod.object({
@@ -5338,7 +5338,7 @@ export const UndoVerificationReasonExplanationResponse = zod.object({
   "id": zod.uuid(),
   "code": zod.string(),
   "title": zod.string(),
-  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\r\nsource, such as a corporate VPN, cannot raise a level by itself.'),
+  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\nsource, such as a corporate VPN, cannot raise a level by itself.'),
   "weight": zod.enum(['Low', 'Medium', 'High']).describe('How much a signal counts towards its category. Categorical on purpose: there is no score (ADR-0004).'),
   "confidence": zod.enum(['Low', 'Medium', 'High']).describe('How sure the analyzer is of the observation itself (a lookup that matched exactly, or a heuristic).'),
   "countsTowardLevel": zod.boolean(),
@@ -5364,7 +5364,7 @@ export const UndoVerificationReasonExplanationResponse = zod.object({
   "reference": zod.number().nullish(),
   "referenceLabel": zod.string().nullish(),
   "items": zod.array(zod.string()).nullish()
-}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
   "counterEvidence": zod.array(zod.object({
   "explanation": zod.string(),
   "evidence": zod.union([zod.null(),zod.object({
@@ -5386,7 +5386,7 @@ export const UndoVerificationReasonExplanationResponse = zod.object({
   "reference": zod.number().nullish(),
   "referenceLabel": zod.string().nullish(),
   "items": zod.array(zod.string()).nullish()
-}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
 }).describe('Something that argues against a signal, in plain language, with optional evidence of its own.')),
   "source": zod.string(),
   "sourceVersion": zod.int(),
@@ -5396,7 +5396,7 @@ export const UndoVerificationReasonExplanationResponse = zod.object({
   "promptVersion": zod.string(),
   "extractionModel": zod.string(),
   "consistencyModel": zod.string()
-}).describe('Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')]),
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\nones the provider reported serving, not the configured names.')]),
   "explained": zod.union([zod.null(),zod.object({
   "actionId": zod.uuid(),
   "reason": zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.'),
@@ -5405,7 +5405,7 @@ export const UndoVerificationReasonExplanationResponse = zod.object({
   "actorName": zod.string().nullable(),
   "explainedAt": zod.iso.datetime({"offset":true})
 }).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
-}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
+}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
   "dismissal": zod.union([zod.null(),zod.object({
@@ -5446,8 +5446,8 @@ export const UndoVerificationReasonExplanationResponse = zod.object({
   "consistencyModel": zod.string().nullable(),
   "contradictions": zod.int(),
   "completedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\r\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')])
-}).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\r\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\r\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\r\n`reviewLog`.')
+}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')])
+}).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\n`reviewLog`.')
 
 
 export const AddVerificationNoteParams = zod.object({
@@ -5474,7 +5474,7 @@ export const AddVerificationNoteResponse = zod.object({
   "id": zod.uuid(),
   "code": zod.string(),
   "title": zod.string(),
-  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\r\nsource, such as a corporate VPN, cannot raise a level by itself.'),
+  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\nsource, such as a corporate VPN, cannot raise a level by itself.'),
   "weight": zod.enum(['Low', 'Medium', 'High']).describe('How much a signal counts towards its category. Categorical on purpose: there is no score (ADR-0004).'),
   "confidence": zod.enum(['Low', 'Medium', 'High']).describe('How sure the analyzer is of the observation itself (a lookup that matched exactly, or a heuristic).'),
   "countsTowardLevel": zod.boolean(),
@@ -5500,7 +5500,7 @@ export const AddVerificationNoteResponse = zod.object({
   "reference": zod.number().nullish(),
   "referenceLabel": zod.string().nullish(),
   "items": zod.array(zod.string()).nullish()
-}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
   "counterEvidence": zod.array(zod.object({
   "explanation": zod.string(),
   "evidence": zod.union([zod.null(),zod.object({
@@ -5522,7 +5522,7 @@ export const AddVerificationNoteResponse = zod.object({
   "reference": zod.number().nullish(),
   "referenceLabel": zod.string().nullish(),
   "items": zod.array(zod.string()).nullish()
-}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
 }).describe('Something that argues against a signal, in plain language, with optional evidence of its own.')),
   "source": zod.string(),
   "sourceVersion": zod.int(),
@@ -5532,7 +5532,7 @@ export const AddVerificationNoteResponse = zod.object({
   "promptVersion": zod.string(),
   "extractionModel": zod.string(),
   "consistencyModel": zod.string()
-}).describe('Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')]),
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\nones the provider reported serving, not the configured names.')]),
   "explained": zod.union([zod.null(),zod.object({
   "actionId": zod.uuid(),
   "reason": zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.'),
@@ -5541,7 +5541,7 @@ export const AddVerificationNoteResponse = zod.object({
   "actorName": zod.string().nullable(),
   "explainedAt": zod.iso.datetime({"offset":true})
 }).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
-}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
+}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
   "dismissal": zod.union([zod.null(),zod.object({
@@ -5563,7 +5563,7 @@ export const AddVerificationNoteResponse = zod.object({
   "id": zod.uuid(),
   "code": zod.string(),
   "title": zod.string(),
-  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\r\nsource, such as a corporate VPN, cannot raise a level by itself.'),
+  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\nsource, such as a corporate VPN, cannot raise a level by itself.'),
   "weight": zod.enum(['Low', 'Medium', 'High']).describe('How much a signal counts towards its category. Categorical on purpose: there is no score (ADR-0004).'),
   "confidence": zod.enum(['Low', 'Medium', 'High']).describe('How sure the analyzer is of the observation itself (a lookup that matched exactly, or a heuristic).'),
   "countsTowardLevel": zod.boolean(),
@@ -5589,7 +5589,7 @@ export const AddVerificationNoteResponse = zod.object({
   "reference": zod.number().nullish(),
   "referenceLabel": zod.string().nullish(),
   "items": zod.array(zod.string()).nullish()
-}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
   "counterEvidence": zod.array(zod.object({
   "explanation": zod.string(),
   "evidence": zod.union([zod.null(),zod.object({
@@ -5611,7 +5611,7 @@ export const AddVerificationNoteResponse = zod.object({
   "reference": zod.number().nullish(),
   "referenceLabel": zod.string().nullish(),
   "items": zod.array(zod.string()).nullish()
-}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
 }).describe('Something that argues against a signal, in plain language, with optional evidence of its own.')),
   "source": zod.string(),
   "sourceVersion": zod.int(),
@@ -5621,7 +5621,7 @@ export const AddVerificationNoteResponse = zod.object({
   "promptVersion": zod.string(),
   "extractionModel": zod.string(),
   "consistencyModel": zod.string()
-}).describe('Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names.')]),
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\nones the provider reported serving, not the configured names.')]),
   "explained": zod.union([zod.null(),zod.object({
   "actionId": zod.uuid(),
   "reason": zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.'),
@@ -5630,7 +5630,7 @@ export const AddVerificationNoteResponse = zod.object({
   "actorName": zod.string().nullable(),
   "explainedAt": zod.iso.datetime({"offset":true})
 }).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
-}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers.')),
+}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
   "dismissal": zod.union([zod.null(),zod.object({
@@ -5671,8 +5671,8 @@ export const AddVerificationNoteResponse = zod.object({
   "consistencyModel": zod.string().nullable(),
   "contradictions": zod.int(),
   "completedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\r\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')])
-}).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\r\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\r\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\r\n`reviewLog`.')
+}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')])
+}).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\n`reviewLog`.')
 
 
 export const RequestIdentityVerificationParams = zod.object({
@@ -5798,7 +5798,7 @@ export const ListJobBoardJobsResponse = zod.object({
 }).describe('Greenhouse\'s pay transparency range, in minor units of `currency_type`.')),
   "valid_through": zod.iso.datetime({"offset":true}).nullable(),
   "content": zod.string().nullable()
-}).describe('A job in the public job-board API, in Greenhouse\'s snake_case shape so tools built for Greenhouse boards read it.\r\n`content` is the description as sanitized HTML (Greenhouse escapes it; we do not), present with\r\n`?content=true` and on a single job. Ids are our job ids (UUIDs), not Greenhouse\'s integers.')),
+}).describe('A job in the public job-board API, in Greenhouse\'s snake_case shape so tools built for Greenhouse boards read it.\n`content` is the description as sanitized HTML (Greenhouse escapes it; we do not), present with\n`?content=true` and on a single job. Ids are our job ids (UUIDs), not Greenhouse\'s integers.')),
   "meta": zod.object({
   "total": zod.int()
 })
@@ -5837,7 +5837,7 @@ export const GetJobBoardJobResponse = zod.object({
 }).describe('Greenhouse\'s pay transparency range, in minor units of `currency_type`.')),
   "valid_through": zod.iso.datetime({"offset":true}).nullable(),
   "content": zod.string().nullable()
-}).describe('A job in the public job-board API, in Greenhouse\'s snake_case shape so tools built for Greenhouse boards read it.\r\n`content` is the description as sanitized HTML (Greenhouse escapes it; we do not), present with\r\n`?content=true` and on a single job. Ids are our job ids (UUIDs), not Greenhouse\'s integers.')
+}).describe('A job in the public job-board API, in Greenhouse\'s snake_case shape so tools built for Greenhouse boards read it.\n`content` is the description as sanitized HTML (Greenhouse escapes it; we do not), present with\n`?content=true` and on a single job. Ids are our job ids (UUIDs), not Greenhouse\'s integers.')
 
 
 export const getOrganizationResponseLastUpdatedCreatedDefault = false;
@@ -5858,13 +5858,13 @@ export const GetOrganizationResponse = zod.object({
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
   "questionsPerPage": zod.int(),
   "embedOrigins": zod.array(zod.string())
-}).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain, where `{careersUrl}/embed.js`\r\nis the embeddable widget\'s script. `questionsPerPage` is how many questions candidates see on each page of a\r\nquestionnaire that has no sections. `embedOrigins` are the sites allowed to show the careers pages in a frame\r\n(origins such as `https://www.example.com`, in the order they were added). `lastUpdated` is the last change\r\nto the name, the questions per page or the sites, or when the organization was made; its history is\r\n`/v1/organization/history`.')
+}).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\nonboarding; `careersUrl` is its careers board on the configured careers domain, where `{careersUrl}/embed.js`\nis the embeddable widget\'s script. `questionsPerPage` is how many questions candidates see on each page of a\nquestionnaire that has no sections. `embedOrigins` are the sites allowed to show the careers pages in a frame\n(origins such as `https://www.example.com`, in the order they were added). `lastUpdated` is the last change\nto the name, the questions per page or the sites, or when the organization was made; its history is\n`/v1/organization/history`.')
 
 
 export const UpdateOrganizationBody = zod.object({
   "name": zod.string(),
   "questionsPerPage": zod.int().nullish()
-}).describe('Renames the organization and, when given, sets its questions per page (1 to 50); null keeps it. Its slug, and so its\r\ncareers address, stays as it is.')
+}).describe('Renames the organization and, when given, sets its questions per page (1 to 50); null keeps it. Its slug, and so its\ncareers address, stays as it is.')
 
 export const updateOrganizationResponseLastUpdatedCreatedDefault = false;
 
@@ -5884,7 +5884,7 @@ export const UpdateOrganizationResponse = zod.object({
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
   "questionsPerPage": zod.int(),
   "embedOrigins": zod.array(zod.string())
-}).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain, where `{careersUrl}/embed.js`\r\nis the embeddable widget\'s script. `questionsPerPage` is how many questions candidates see on each page of a\r\nquestionnaire that has no sections. `embedOrigins` are the sites allowed to show the careers pages in a frame\r\n(origins such as `https://www.example.com`, in the order they were added). `lastUpdated` is the last change\r\nto the name, the questions per page or the sites, or when the organization was made; its history is\r\n`/v1/organization/history`.')
+}).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\nonboarding; `careersUrl` is its careers board on the configured careers domain, where `{careersUrl}/embed.js`\nis the embeddable widget\'s script. `questionsPerPage` is how many questions candidates see on each page of a\nquestionnaire that has no sections. `embedOrigins` are the sites allowed to show the careers pages in a frame\n(origins such as `https://www.example.com`, in the order they were added). `lastUpdated` is the last change\nto the name, the questions per page or the sites, or when the organization was made; its history is\n`/v1/organization/history`.')
 
 
 export const GetOrganizationHistoryQueryParams = zod.object({
@@ -5910,11 +5910,11 @@ export const GetOrganizationHistoryResponse = zod.object({
   "before": zod.string().nullable(),
   "after": zod.string().nullable(),
   "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
-}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\r\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
-}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\r\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
+}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
+}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
 }).describe('Everything one save changed in the object: who, when, and a line per change.')),
   "nextBefore": zod.uuid().nullable()
-}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\r\n`before` for the next page, or null after the last.')
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
 
 
 export const GetOrganizationBrandingHistoryQueryParams = zod.object({
@@ -5940,11 +5940,11 @@ export const GetOrganizationBrandingHistoryResponse = zod.object({
   "before": zod.string().nullable(),
   "after": zod.string().nullable(),
   "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
-}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\r\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
-}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\r\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
+}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
+}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
 }).describe('Everything one save changed in the object: who, when, and a line per change.')),
   "nextBefore": zod.uuid().nullable()
-}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\r\n`before` for the next page, or null after the last.')
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
 
 
 export const GetOrganizationVerificationSettingsHistoryQueryParams = zod.object({
@@ -5970,16 +5970,16 @@ export const GetOrganizationVerificationSettingsHistoryResponse = zod.object({
   "before": zod.string().nullable(),
   "after": zod.string().nullable(),
   "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
-}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\r\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
-}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\r\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
+}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
+}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
 }).describe('Everything one save changed in the object: who, when, and a line per change.')),
   "nextBefore": zod.uuid().nullable()
-}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\r\n`before` for the next page, or null after the last.')
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
 
 
 export const UpdateCareersEmbeddingBody = zod.object({
   "origins": zod.array(zod.string())
-}).describe('Replaces the sites allowed to embed the careers pages, at most 20. Each is an https site\'s address; a bare name gets\r\nhttps and a page\'s address keeps only its site, so `www.example.com/careers` saves as\r\n`https://www.example.com`. Duplicates are dropped and the order is kept. An empty list lets no other site frame\r\nthe careers pages.')
+}).describe('Replaces the sites allowed to embed the careers pages, at most 20. Each is an https site\'s address; a bare name gets\nhttps and a page\'s address keeps only its site, so `www.example.com/careers` saves as\n`https://www.example.com`. Duplicates are dropped and the order is kept. An empty list lets no other site frame\nthe careers pages.')
 
 export const updateCareersEmbeddingResponseLastUpdatedCreatedDefault = false;
 
@@ -5999,7 +5999,7 @@ export const UpdateCareersEmbeddingResponse = zod.object({
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
   "questionsPerPage": zod.int(),
   "embedOrigins": zod.array(zod.string())
-}).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain, where `{careersUrl}/embed.js`\r\nis the embeddable widget\'s script. `questionsPerPage` is how many questions candidates see on each page of a\r\nquestionnaire that has no sections. `embedOrigins` are the sites allowed to show the careers pages in a frame\r\n(origins such as `https://www.example.com`, in the order they were added). `lastUpdated` is the last change\r\nto the name, the questions per page or the sites, or when the organization was made; its history is\r\n`/v1/organization/history`.')
+}).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\nonboarding; `careersUrl` is its careers board on the configured careers domain, where `{careersUrl}/embed.js`\nis the embeddable widget\'s script. `questionsPerPage` is how many questions candidates see on each page of a\nquestionnaire that has no sections. `embedOrigins` are the sites allowed to show the careers pages in a frame\n(origins such as `https://www.example.com`, in the order they were added). `lastUpdated` is the last change\nto the name, the questions per page or the sites, or when the organization was made; its history is\n`/v1/organization/history`.')
 
 
 export const getOrganizationBrandingResponseLastUpdatedCreatedDefault = false;
@@ -6017,7 +6017,7 @@ export const GetOrganizationBrandingResponse = zod.object({
   "height": zod.int(),
   "sizeBytes": zod.int(),
   "url": zod.string().nullable()
-}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\r\nserved. `url` is its public address on the careers board, null until it may be served.')]),
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served.')]),
   "favicon": zod.union([zod.null(),zod.object({
   "id": zod.uuid(),
   "kind": zod.enum(['Logo', 'Favicon', 'SharingImage']).describe('What a brand image is for, which decides its limits (BrandImageRules).'),
@@ -6027,7 +6027,7 @@ export const GetOrganizationBrandingResponse = zod.object({
   "height": zod.int(),
   "sizeBytes": zod.int(),
   "url": zod.string().nullable()
-}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\r\nserved. `url` is its public address on the careers board, null until it may be served.')]),
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served.')]),
   "sharingImage": zod.union([zod.null(),zod.object({
   "id": zod.uuid(),
   "kind": zod.enum(['Logo', 'Favicon', 'SharingImage']).describe('What a brand image is for, which decides its limits (BrandImageRules).'),
@@ -6037,7 +6037,7 @@ export const GetOrganizationBrandingResponse = zod.object({
   "height": zod.int(),
   "sizeBytes": zod.int(),
   "url": zod.string().nullable()
-}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\r\nserved. `url` is its public address on the careers board, null until it may be served.')]),
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served.')]),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
   "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
@@ -6045,7 +6045,7 @@ export const GetOrganizationBrandingResponse = zod.object({
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(getOrganizationBrandingResponseLastUpdatedCreatedDefault)
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.')
-}).describe('The organization\'s branding (docs/architecture/branding.md): the brand colour (buttons and links), the second colour\r\n(the header band of its careers pages and emails), the heading font and the images in use, each null for\r\nScreenHire\'s default. `lastUpdated` is the branding\'s last change ("by ScreenHire" while it is all the\r\ndefault); its history is `/branding/history`.')
+}).describe('The organization\'s branding (docs/architecture/branding.md): the brand colour (buttons and links), the second colour\n(the header band of its careers pages and emails), the heading font and the images in use, each null for\nScreenHire\'s default. `lastUpdated` is the branding\'s last change ("by ScreenHire" while it is all the\ndefault); its history is `/branding/history`.')
 
 
 export const UpdateOrganizationBrandingBody = zod.object({
@@ -6055,7 +6055,7 @@ export const UpdateOrganizationBrandingBody = zod.object({
   "logoId": zod.uuid().nullish(),
   "faviconId": zod.uuid().nullish(),
   "sharingImageId": zod.uuid().nullish()
-}).describe('Replaces the whole branding. Colours are `#rrggbb` and must pass the contrast check\r\n(`/branding/contrast`); each image id is one of the organization\'s uploads of that kind that passed its scan.\r\nNull is ScreenHire\'s default, or no image.')
+}).describe('Replaces the whole branding. Colours are `#rrggbb` and must pass the contrast check\n(`/branding/contrast`); each image id is one of the organization\'s uploads of that kind that passed its scan.\nNull is ScreenHire\'s default, or no image.')
 
 export const updateOrganizationBrandingResponseLastUpdatedCreatedDefault = false;
 
@@ -6072,7 +6072,7 @@ export const UpdateOrganizationBrandingResponse = zod.object({
   "height": zod.int(),
   "sizeBytes": zod.int(),
   "url": zod.string().nullable()
-}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\r\nserved. `url` is its public address on the careers board, null until it may be served.')]),
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served.')]),
   "favicon": zod.union([zod.null(),zod.object({
   "id": zod.uuid(),
   "kind": zod.enum(['Logo', 'Favicon', 'SharingImage']).describe('What a brand image is for, which decides its limits (BrandImageRules).'),
@@ -6082,7 +6082,7 @@ export const UpdateOrganizationBrandingResponse = zod.object({
   "height": zod.int(),
   "sizeBytes": zod.int(),
   "url": zod.string().nullable()
-}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\r\nserved. `url` is its public address on the careers board, null until it may be served.')]),
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served.')]),
   "sharingImage": zod.union([zod.null(),zod.object({
   "id": zod.uuid(),
   "kind": zod.enum(['Logo', 'Favicon', 'SharingImage']).describe('What a brand image is for, which decides its limits (BrandImageRules).'),
@@ -6092,7 +6092,7 @@ export const UpdateOrganizationBrandingResponse = zod.object({
   "height": zod.int(),
   "sizeBytes": zod.int(),
   "url": zod.string().nullable()
-}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\r\nserved. `url` is its public address on the careers board, null until it may be served.')]),
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served.')]),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
   "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
@@ -6100,7 +6100,7 @@ export const UpdateOrganizationBrandingResponse = zod.object({
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(updateOrganizationBrandingResponseLastUpdatedCreatedDefault)
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.')
-}).describe('The organization\'s branding (docs/architecture/branding.md): the brand colour (buttons and links), the second colour\r\n(the header band of its careers pages and emails), the heading font and the images in use, each null for\r\nScreenHire\'s default. `lastUpdated` is the branding\'s last change ("by ScreenHire" while it is all the\r\ndefault); its history is `/branding/history`.')
+}).describe('The organization\'s branding (docs/architecture/branding.md): the brand colour (buttons and links), the second colour\n(the header band of its careers pages and emails), the heading font and the images in use, each null for\nScreenHire\'s default. `lastUpdated` is the branding\'s last change ("by ScreenHire" while it is all the\ndefault); its history is `/branding/history`.')
 
 
 export const CheckBrandingContrastQueryParams = zod.object({
@@ -6139,7 +6139,7 @@ export const CheckBrandingContrastResponse = zod.object({
   "suggestion": zod.string().nullable(),
   "problems": zod.array(zod.string())
 }).describe('One colour\'s check. `problems` says each failing pair in words, as a refused save does.')])
-}).describe('The contrast check of the colours asked about, each null when it was not asked: whether every pair the colour is\r\nused in reaches WCAG 2.2 AA, the text colour that goes on it, the pairs, and the nearest passing shade when it fails.')
+}).describe('The contrast check of the colours asked about, each null when it was not asked: whether every pair the colour is\nused in reaches WCAG 2.2 AA, the text colour that goes on it, the pairs, and the nearest passing shade when it fails.')
 
 
 export const CreateBrandImageUploadBody = zod.object({
@@ -6155,7 +6155,7 @@ export const CreateBrandImageUploadResponse = zod.object({
   "headers": zod.record(zod.string(), zod.string()),
   "expiresAt": zod.iso.datetime({"offset":true}),
   "maxBytes": zod.int()
-}).describe('Where and how to upload one file, and until when: send its bytes with `method` to `uploadUrl` with\r\n`headers`, then refer to it by `uploadId`.')
+}).describe('Where and how to upload one file, and until when: send its bytes with `method` to `uploadUrl` with\n`headers`, then refer to it by `uploadId`.')
 
 
 export const VerifyBrandImageUploadParams = zod.object({
@@ -6171,7 +6171,7 @@ export const VerifyBrandImageUploadResponse = zod.object({
   "height": zod.int(),
   "sizeBytes": zod.int(),
   "url": zod.string().nullable()
-}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\r\nserved. `url` is its public address on the careers board, null until it may be served.')
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served.')
 
 
 export const GetBrandImageParams = zod.object({
@@ -6187,7 +6187,7 @@ export const GetBrandImageResponse = zod.object({
   "height": zod.int(),
   "sizeBytes": zod.int(),
   "url": zod.string().nullable()
-}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\r\nserved. `url` is its public address on the careers board, null until it may be served.')
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served.')
 
 
 export const getOrganizationVerificationSettingsResponseLastUpdatedCreatedDefault = false;
@@ -6203,7 +6203,7 @@ export const GetOrganizationVerificationSettingsResponse = zod.object({
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(getOrganizationVerificationSettingsResponseLastUpdatedCreatedDefault)
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.')
-}).describe('The organization\'s verification settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the\r\nresume, answers and any LinkedIn export to the deployment\'s model provider; it is off until an admin turns it on.\r\n`monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment\'s default.\r\n`tokensUsedThisMonth` is what the check has used so far this month. `lastUpdated` is the settings\' last\r\nchange ("by ScreenHire" while they are the defaults); their history is `/verification-settings/history`.')
+}).describe('The organization\'s verification settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the\nresume, answers and any LinkedIn export to the deployment\'s model provider; it is off until an admin turns it on.\n`monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment\'s default.\n`tokensUsedThisMonth` is what the check has used so far this month. `lastUpdated` is the settings\' last\nchange ("by ScreenHire" while they are the defaults); their history is `/verification-settings/history`.')
 
 
 export const UpdateOrganizationVerificationSettingsBody = zod.object({
@@ -6224,7 +6224,7 @@ export const UpdateOrganizationVerificationSettingsResponse = zod.object({
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(updateOrganizationVerificationSettingsResponseLastUpdatedCreatedDefault)
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.')
-}).describe('The organization\'s verification settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the\r\nresume, answers and any LinkedIn export to the deployment\'s model provider; it is off until an admin turns it on.\r\n`monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment\'s default.\r\n`tokensUsedThisMonth` is what the check has used so far this month. `lastUpdated` is the settings\' last\r\nchange ("by ScreenHire" while they are the defaults); their history is `/verification-settings/history`.')
+}).describe('The organization\'s verification settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the\nresume, answers and any LinkedIn export to the deployment\'s model provider; it is off until an admin turns it on.\n`monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment\'s default.\n`tokensUsedThisMonth` is what the check has used so far this month. `lastUpdated` is the settings\' last\nchange ("by ScreenHire" while they are the defaults); their history is `/verification-settings/history`.')
 
 
 export const getOrganizationTalentPoolSettingsResponseLastUpdatedCreatedDefault = false;
@@ -6240,7 +6240,7 @@ export const GetOrganizationTalentPoolSettingsResponse = zod.object({
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(getOrganizationTalentPoolSettingsResponseLastUpdatedCreatedDefault)
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.')
-}).describe('The organization\'s talent pool settings (docs/architecture/talent-pool.md). `permissionMonths` is how long a\r\ncandidate\'s permission to keep their details for future roles lasts from when they gave it: 12 by default, from\r\n`minMonths` to `maxMonths`. A permission ends at the shorter of the period when it was given and this one.\r\n`lastUpdated` is the settings\' last change ("by ScreenHire" while they are the default); their history is\r\n`/talent-pool-settings/history`.')
+}).describe('The organization\'s talent pool settings (docs/architecture/talent-pool.md). `permissionMonths` is how long a\ncandidate\'s permission to keep their details for future roles lasts from when they gave it: 12 by default, from\n`minMonths` to `maxMonths`. A permission ends at the shorter of the period when it was given and this one.\n`lastUpdated` is the settings\' last change ("by ScreenHire" while they are the default); their history is\n`/talent-pool-settings/history`.')
 
 
 export const UpdateOrganizationTalentPoolSettingsBody = zod.object({
@@ -6260,7 +6260,7 @@ export const UpdateOrganizationTalentPoolSettingsResponse = zod.object({
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(updateOrganizationTalentPoolSettingsResponseLastUpdatedCreatedDefault)
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.')
-}).describe('The organization\'s talent pool settings (docs/architecture/talent-pool.md). `permissionMonths` is how long a\r\ncandidate\'s permission to keep their details for future roles lasts from when they gave it: 12 by default, from\r\n`minMonths` to `maxMonths`. A permission ends at the shorter of the period when it was given and this one.\r\n`lastUpdated` is the settings\' last change ("by ScreenHire" while they are the default); their history is\r\n`/talent-pool-settings/history`.')
+}).describe('The organization\'s talent pool settings (docs/architecture/talent-pool.md). `permissionMonths` is how long a\ncandidate\'s permission to keep their details for future roles lasts from when they gave it: 12 by default, from\n`minMonths` to `maxMonths`. A permission ends at the shorter of the period when it was given and this one.\n`lastUpdated` is the settings\' last change ("by ScreenHire" while they are the default); their history is\n`/talent-pool-settings/history`.')
 
 
 export const GetOrganizationTalentPoolSettingsHistoryQueryParams = zod.object({
@@ -6286,11 +6286,11 @@ export const GetOrganizationTalentPoolSettingsHistoryResponse = zod.object({
   "before": zod.string().nullable(),
   "after": zod.string().nullable(),
   "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
-}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\r\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
-}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\r\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
+}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
+}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
 }).describe('Everything one save changed in the object: who, when, and a line per change.')),
   "nextBefore": zod.uuid().nullable()
-}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\r\n`before` for the next page, or null after the last.')
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
 
 
 export const ListTeamMembersResponseItem = zod.object({
@@ -6298,14 +6298,14 @@ export const ListTeamMembersResponseItem = zod.object({
   "userId": zod.uuid(),
   "email": zod.string(),
   "displayName": zod.string(),
-  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.'),
+  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
   "joinedAt": zod.iso.datetime({"offset":true}),
-  "jobAccess": zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\r\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.'),
+  "jobAccess": zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.'),
   "seesAllJobs": zod.boolean(),
   "jobCount": zod.int()
-}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.\r\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\r\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\r\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.')
+}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.')
 export const ListTeamMembersResponse = zod.array(ListTeamMembersResponseItem)
 
 
@@ -6324,32 +6324,32 @@ export const ListMemberJobsResponse = zod.array(ListMemberJobsResponseItem)
 export const ListInvitationsResponseItem = zod.object({
   "id": zod.uuid(),
   "email": zod.string(),
-  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.'),
+  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "expiresAt": zod.iso.datetime({"offset":true}),
-  "jobAccess": zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\r\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.')
+  "jobAccess": zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.')
 }).describe('An invitation nobody has accepted, revoked or let expire yet, and the role and job access it offers.')
 export const ListInvitationsResponse = zod.array(ListInvitationsResponseItem)
 
 
 export const CreateInvitationBody = zod.object({
   "email": zod.string(),
-  "role": zod.union([zod.null(),zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.')]),
+  "role": zod.union([zod.null(),zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.')]),
   "customRoleId": zod.uuid().nullish(),
-  "jobAccess": zod.union([zod.null(),zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\r\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.')]).optional()
-}).describe('Invites a person by email to join the organization with a role: a built-in one, or Custom with its id. They join with\r\n`jobAccess`, All when it is left out.')
+  "jobAccess": zod.union([zod.null(),zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.')]).optional()
+}).describe('Invites a person by email to join the organization with a role: a built-in one, or Custom with its id. They join with\n`jobAccess`, All when it is left out.')
 
 export const CreateInvitationResponse = zod.object({
   "id": zod.uuid(),
   "email": zod.string(),
-  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.'),
+  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "expiresAt": zod.iso.datetime({"offset":true}),
-  "jobAccess": zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\r\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.')
+  "jobAccess": zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.')
 }).describe('An invitation nobody has accepted, revoked or let expire yet, and the role and job access it offers.')
 
 
@@ -6359,21 +6359,21 @@ export const ListMembershipLogResponseItem = zod.object({
   "actorUserId": zod.uuid().nullable(),
   "memberUserId": zod.uuid().nullable(),
   "invitationId": zod.uuid().nullable(),
-  "previousRole": zod.union([zod.null(),zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.')]),
+  "previousRole": zod.union([zod.null(),zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.')]),
   "previousCustomRoleId": zod.uuid().nullable(),
   "previousRoleName": zod.string().nullable(),
-  "role": zod.union([zod.null(),zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.')]),
+  "role": zod.union([zod.null(),zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.')]),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string().nullable(),
   "occurredAt": zod.iso.datetime({"offset":true}),
-  "previousJobAccess": zod.union([zod.null(),zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\r\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.')]),
-  "jobAccess": zod.union([zod.null(),zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\r\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.')]),
+  "previousJobAccess": zod.union([zod.null(),zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.')]),
+  "jobAccess": zod.union([zod.null(),zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.')]),
   "jobId": zod.uuid().nullable(),
   "jobTitle": zod.string().nullable(),
   "hiringTemplateId": zod.uuid().nullable(),
   "hiringTemplateName": zod.string().nullable(),
   "actorApiKeyId": zod.uuid().nullable()
-}).describe('One entry in the organization\'s membership log. `actorUserId` made the change, or `actorApiKeyId` when an\r\nAPI key did; `memberUserId` is who it is\r\nabout (null for an invitation not accepted yet and for a change to a role itself). `previousRole` and\r\n`role` are set where the kind has them, with the custom role\'s id and its name at the time; for RoleCreated,\r\nRoleUpdated and RoleDeleted, `customRoleId` and `roleName` are the role, and a rename keeps the old name in\r\n`previousRoleName`. JobAccessChanged sets `previousJobAccess` and `jobAccess`; an invitation and a\r\njoin set `jobAccess`. AddedToHiringTeam and RemovedFromHiringTeam name a job (`jobId`, with its title now)\r\nor a hiring template\'s default team (`hiringTemplateId`, with its name now). A reader who sees only their own\r\njobs gets no entries about the others.')
+}).describe('One entry in the organization\'s membership log. `actorUserId` made the change, or `actorApiKeyId` when an\nAPI key did; `memberUserId` is who it is\nabout (null for an invitation not accepted yet and for a change to a role itself). `previousRole` and\n`role` are set where the kind has them, with the custom role\'s id and its name at the time; for RoleCreated,\nRoleUpdated and RoleDeleted, `customRoleId` and `roleName` are the role, and a rename keeps the old name in\n`previousRoleName`. JobAccessChanged sets `previousJobAccess` and `jobAccess`; an invitation and a\njoin set `jobAccess`. AddedToHiringTeam and RemovedFromHiringTeam name a job (`jobId`, with its title now)\nor a hiring template\'s default team (`hiringTemplateId`, with its name now). A reader who sees only their own\njobs gets no entries about the others.')
 export const ListMembershipLogResponse = zod.array(ListMembershipLogResponseItem)
 
 
@@ -6400,11 +6400,11 @@ export const GetTeamHistoryResponse = zod.object({
   "before": zod.string().nullable(),
   "after": zod.string().nullable(),
   "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
-}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\r\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
-}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\r\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
+}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
+}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
 }).describe('Everything one save changed in the object: who, when, and a line per change.')),
   "nextBefore": zod.uuid().nullable()
-}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\r\n`before` for the next page, or null after the last.')
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
 
 
 export const getTeamLastUpdateResponseCreatedDefault = false;
@@ -6423,7 +6423,7 @@ export const ChangeMemberRoleParams = zod.object({
 })
 
 export const ChangeMemberRoleBody = zod.object({
-  "role": zod.union([zod.null(),zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.')]),
+  "role": zod.union([zod.null(),zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.')]),
   "customRoleId": zod.uuid().nullish()
 }).describe('Gives a member another role: a built-in one, or Custom with the custom role\'s id.')
 
@@ -6432,14 +6432,14 @@ export const ChangeMemberRoleResponse = zod.object({
   "userId": zod.uuid(),
   "email": zod.string(),
   "displayName": zod.string(),
-  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.'),
+  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
   "joinedAt": zod.iso.datetime({"offset":true}),
-  "jobAccess": zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\r\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.'),
+  "jobAccess": zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.'),
   "seesAllJobs": zod.boolean(),
   "jobCount": zod.int()
-}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.\r\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\r\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\r\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.')
+}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.')
 
 
 export const ChangeMemberJobAccessParams = zod.object({
@@ -6447,7 +6447,7 @@ export const ChangeMemberJobAccessParams = zod.object({
 })
 
 export const ChangeMemberJobAccessBody = zod.object({
-  "jobAccess": zod.union([zod.null(),zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\r\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.')])
+  "jobAccess": zod.union([zod.null(),zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.')])
 }).describe('Sets which jobs a member sees: all of them, or only the jobs whose hiring team they are on.')
 
 export const ChangeMemberJobAccessResponse = zod.object({
@@ -6455,14 +6455,14 @@ export const ChangeMemberJobAccessResponse = zod.object({
   "userId": zod.uuid(),
   "email": zod.string(),
   "displayName": zod.string(),
-  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.'),
+  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
   "joinedAt": zod.iso.datetime({"offset":true}),
-  "jobAccess": zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\r\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.'),
+  "jobAccess": zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.'),
   "seesAllJobs": zod.boolean(),
   "jobCount": zod.int()
-}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.\r\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\r\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\r\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.')
+}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.')
 
 
 export const RemoveMemberParams = zod.object({
@@ -6482,21 +6482,21 @@ export const RevokeInvitationResponse = zod.void()
 export const GetNotificationSettingsResponse = zod.object({
   "toasts": zod.boolean(),
   "closeToasts": zod.boolean(),
-  "off": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\r\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\r\nlast, published by someone else. Stored and sent as text.'))
-}).describe('The signed-in member\'s settings for teammates\' changes as toasts, in their current organization. `toasts` turns\r\nthem on or off; `closeToasts` closes each after a few seconds, and off keeps it until dismissed; `off` lists\r\nthe kinds of change that do not toast. Everything starts on.')
+  "off": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. Stored and sent as text.'))
+}).describe('The signed-in member\'s settings for teammates\' changes as toasts, in their current organization. `toasts` turns\nthem on or off; `closeToasts` closes each after a few seconds, and off keeps it until dismissed; `off` lists\nthe kinds of change that do not toast. Everything starts on.')
 
 
 export const UpdateNotificationSettingsBody = zod.object({
   "toasts": zod.boolean(),
   "closeToasts": zod.boolean(),
-  "off": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\r\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\r\nlast, published by someone else. Stored and sent as text.'))
+  "off": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. Stored and sent as text.'))
 }).describe('Replaces the signed-in member\'s notification settings; `off` names each kind at most once.')
 
 export const UpdateNotificationSettingsResponse = zod.object({
   "toasts": zod.boolean(),
   "closeToasts": zod.boolean(),
-  "off": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\r\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\r\nlast, published by someone else. Stored and sent as text.'))
-}).describe('The signed-in member\'s settings for teammates\' changes as toasts, in their current organization. `toasts` turns\r\nthem on or off; `closeToasts` closes each after a few seconds, and off keeps it until dismissed; `off` lists\r\nthe kinds of change that do not toast. Everything starts on.')
+  "off": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. Stored and sent as text.'))
+}).describe('The signed-in member\'s settings for teammates\' changes as toasts, in their current organization. `toasts` turns\nthem on or off; `closeToasts` closes each after a few seconds, and off keeps it until dismissed; `off` lists\nthe kinds of change that do not toast. Everything starts on.')
 
 
 export const GetJobHiringTeamParams = zod.object({
@@ -6510,7 +6510,7 @@ export const GetJobHiringTeamResponseItem = zod.object({
   "displayName": zod.string(),
   "roleName": zod.string(),
   "seesAllJobs": zod.boolean()
-}).describe('A person on a job\'s hiring team, or on a hiring template\'s default one (ADR-0015). `memberId` is their\r\nmembership\'s id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\r\njobs they\'re on sees this job through this list.')
+}).describe('A person on a job\'s hiring team, or on a hiring template\'s default one (ADR-0015). `memberId` is their\nmembership\'s id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\njobs they\'re on sees this job through this list.')
 export const GetJobHiringTeamResponse = zod.array(GetJobHiringTeamResponseItem)
 
 
@@ -6521,7 +6521,7 @@ export const SetJobHiringTeamParams = zod.object({
 export const SetJobHiringTeamBody = zod.object({
   "memberIds": zod.array(zod.uuid()).nullable(),
   "copyFromJobId": zod.uuid().nullish()
-}).describe('Sets a hiring team to `memberIds`, the organization\'s member ids. For a job, `copyFromJobId` also brings\r\nover another job\'s team, which the caller must be able to see.')
+}).describe('Sets a hiring team to `memberIds`, the organization\'s member ids. For a job, `copyFromJobId` also brings\nover another job\'s team, which the caller must be able to see.')
 
 export const SetJobHiringTeamResponseItem = zod.object({
   "memberId": zod.uuid(),
@@ -6530,7 +6530,7 @@ export const SetJobHiringTeamResponseItem = zod.object({
   "displayName": zod.string(),
   "roleName": zod.string(),
   "seesAllJobs": zod.boolean()
-}).describe('A person on a job\'s hiring team, or on a hiring template\'s default one (ADR-0015). `memberId` is their\r\nmembership\'s id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\r\njobs they\'re on sees this job through this list.')
+}).describe('A person on a job\'s hiring team, or on a hiring template\'s default one (ADR-0015). `memberId` is their\nmembership\'s id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\njobs they\'re on sees this job through this list.')
 export const SetJobHiringTeamResponse = zod.array(SetJobHiringTeamResponseItem)
 
 
@@ -6545,7 +6545,7 @@ export const GetHiringTemplateTeamResponseItem = zod.object({
   "displayName": zod.string(),
   "roleName": zod.string(),
   "seesAllJobs": zod.boolean()
-}).describe('A person on a job\'s hiring team, or on a hiring template\'s default one (ADR-0015). `memberId` is their\r\nmembership\'s id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\r\njobs they\'re on sees this job through this list.')
+}).describe('A person on a job\'s hiring team, or on a hiring template\'s default one (ADR-0015). `memberId` is their\nmembership\'s id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\njobs they\'re on sees this job through this list.')
 export const GetHiringTemplateTeamResponse = zod.array(GetHiringTemplateTeamResponseItem)
 
 
@@ -6556,7 +6556,7 @@ export const SetHiringTemplateTeamParams = zod.object({
 export const SetHiringTemplateTeamBody = zod.object({
   "memberIds": zod.array(zod.uuid()).nullable(),
   "copyFromJobId": zod.uuid().nullish()
-}).describe('Sets a hiring team to `memberIds`, the organization\'s member ids. For a job, `copyFromJobId` also brings\r\nover another job\'s team, which the caller must be able to see.')
+}).describe('Sets a hiring team to `memberIds`, the organization\'s member ids. For a job, `copyFromJobId` also brings\nover another job\'s team, which the caller must be able to see.')
 
 export const SetHiringTemplateTeamResponseItem = zod.object({
   "memberId": zod.uuid(),
@@ -6565,7 +6565,7 @@ export const SetHiringTemplateTeamResponseItem = zod.object({
   "displayName": zod.string(),
   "roleName": zod.string(),
   "seesAllJobs": zod.boolean()
-}).describe('A person on a job\'s hiring team, or on a hiring template\'s default one (ADR-0015). `memberId` is their\r\nmembership\'s id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\r\njobs they\'re on sees this job through this list.')
+}).describe('A person on a job\'s hiring team, or on a hiring template\'s default one (ADR-0015). `memberId` is their\nmembership\'s id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\njobs they\'re on sees this job through this list.')
 export const SetHiringTemplateTeamResponse = zod.array(SetHiringTemplateTeamResponseItem)
 
 
@@ -6573,11 +6573,11 @@ export const listRolesResponseRolesItemLastUpdatedCreatedDefault = false;
 
 export const ListRolesResponse = zod.object({
   "roles": zod.array(zod.object({
-  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.'),
+  "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "name": zod.string(),
   "description": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "people": zod.int(),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
@@ -6586,23 +6586,23 @@ export const ListRolesResponse = zod.object({
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(listRolesResponseRolesItemLastUpdatedCreatedDefault)
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.')
-}).describe('A role: built-in (`customRoleId` null), or Custom with its id. `description` is one line on what it is\r\nfor, generated from its permissions for a custom role. `people` counts the members who have it. A built-in role\r\nis last updated by ScreenHire.')),
+}).describe('A role: built-in (`customRoleId` null), or Custom with its id. `description` is one line on what it is\nfor, generated from its permissions for a custom role. `people` counts the members who have it. A built-in role\nis last updated by ScreenHire.')),
   "permissions": zod.array(zod.object({
-  "permission": zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.'),
+  "permission": zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.'),
   "group": zod.enum(['Hiring', 'Templates', 'Organization']).describe('The groups the Roles page shows permissions in.'),
   "name": zod.string(),
   "description": zod.string(),
   "ownerOnly": zod.boolean(),
   "everyRole": zod.boolean()
-}).describe('A permission in the order the Roles page lists it: its group, its name and one line on what it covers.\r\n`ownerOnly` ones never go into a custom role; `everyRole` ones are in every role.'))
-}).describe('The organization\'s roles and what each can do: the four built-in ones, most access first, then its custom roles by\r\nname, with every permission in the catalogue (RolePermissions).')
+}).describe('A permission in the order the Roles page lists it: its group, its name and one line on what it covers.\n`ownerOnly` ones never go into a custom role; `everyRole` ones are in every role.'))
+}).describe('The organization\'s roles and what each can do: the four built-in ones, most access first, then its custom roles by\nname, with every permission in the catalogue (RolePermissions).')
 
 
 export const CreateRoleBody = zod.object({
   "name": zod.string(),
-  "copyFrom": zod.union([zod.null(),zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text.')]),
+  "copyFrom": zod.union([zod.null(),zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.')]),
   "copyFromRoleId": zod.uuid().nullish()
-}).describe('Makes a custom role by copying a role: a built-in one (`copyFrom`) or a custom one (`copyFromRoleId`), never\r\nboth. Owner-only permissions are never copied.')
+}).describe('Makes a custom role by copying a role: a built-in one (`copyFrom`) or a custom one (`copyFromRoleId`), never\nboth. Owner-only permissions are never copied.')
 
 export const createRoleResponseLastUpdatedCreatedDefault = false;
 
@@ -6610,7 +6610,7 @@ export const CreateRoleResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "description": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "people": zod.int(),
   "copiedFrom": zod.string(),
   "createdAt": zod.iso.datetime({"offset":true}),
@@ -6634,7 +6634,7 @@ export const GetRoleResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "description": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "people": zod.int(),
   "copiedFrom": zod.string(),
   "createdAt": zod.iso.datetime({"offset":true}),
@@ -6654,7 +6654,7 @@ export const UpdateRoleParams = zod.object({
 
 export const UpdateRoleBody = zod.object({
   "name": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')).nullable()
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')).nullable()
 }).describe('Renames a custom role and sets what it can do.')
 
 export const updateRoleResponseLastUpdatedCreatedDefault = false;
@@ -6663,7 +6663,7 @@ export const UpdateRoleResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "description": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "people": zod.int(),
   "copiedFrom": zod.string(),
   "createdAt": zod.iso.datetime({"offset":true}),
@@ -6711,11 +6711,11 @@ export const GetRoleHistoryResponse = zod.object({
   "before": zod.string().nullable(),
   "after": zod.string().nullable(),
   "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
-}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\r\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
-}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\r\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
+}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
+}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
 }).describe('Everything one save changed in the object: who, when, and a line per change.')),
   "nextBefore": zod.uuid().nullable()
-}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\r\n`before` for the next page, or null after the last.')
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
 
 
 export const ListApiKeysResponseItem = zod.object({
@@ -6728,7 +6728,7 @@ export const ListApiKeysResponseItem = zod.object({
   "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
   "revokedAt": zod.iso.datetime({"offset":true}).nullable(),
   "createdByUserId": zod.uuid().nullable()
-}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute. `createdByUserId` is the member who created it, or null once their\r\naccount is deleted; removing a member offers to revoke the keys they created.')
+}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\n`lastUsedAt` is accurate to about a minute. `createdByUserId` is the member who created it, or null once their\naccount is deleted; removing a member offers to revoke the keys they created.')
 export const ListApiKeysResponse = zod.array(ListApiKeysResponseItem)
 
 
@@ -6736,7 +6736,7 @@ export const CreateApiKeyBody = zod.object({
   "name": zod.string(),
   "scopes": zod.array(zod.enum(['Read', 'Write']).describe('What an API key may do on the hiring API.')),
   "permitsPerMinute": zod.int().nullish()
-}).describe('Creates a key. `scopes` is `["Read"]` or `["Read", "Write"]`. `permitsPerMinute` lowers the\r\nkey\'s rate limit below the deployment\'s; null uses the deployment\'s.')
+}).describe('Creates a key. `scopes` is `["Read"]` or `["Read", "Write"]`. `permitsPerMinute` lowers the\nkey\'s rate limit below the deployment\'s; null uses the deployment\'s.')
 
 export const CreateApiKeyResponse = zod.object({
   "key": zod.object({
@@ -6749,9 +6749,9 @@ export const CreateApiKeyResponse = zod.object({
   "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
   "revokedAt": zod.iso.datetime({"offset":true}).nullable(),
   "createdByUserId": zod.uuid().nullable()
-}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute. `createdByUserId` is the member who created it, or null once their\r\naccount is deleted; removing a member offers to revoke the keys they created.'),
+}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\n`lastUsedAt` is accurate to about a minute. `createdByUserId` is the member who created it, or null once their\naccount is deleted; removing a member offers to revoke the keys they created.'),
   "token": zod.string()
-}).describe('A new key. `token` is shown this once and cannot be read again: send it as `Authorization: Bearer\r\n{token}`.')
+}).describe('A new key. `token` is shown this once and cannot be read again: send it as `Authorization: Bearer\n{token}`.')
 
 
 export const GetApiKeysHistoryQueryParams = zod.object({
@@ -6777,11 +6777,11 @@ export const GetApiKeysHistoryResponse = zod.object({
   "before": zod.string().nullable(),
   "after": zod.string().nullable(),
   "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
-}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\r\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
-}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\r\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
+}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
+}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
 }).describe('Everything one save changed in the object: who, when, and a line per change.')),
   "nextBefore": zod.uuid().nullable()
-}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\r\n`before` for the next page, or null after the last.')
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
 
 
 export const getApiKeysLastUpdateResponseCreatedDefault = false;
@@ -6809,7 +6809,7 @@ export const GetApiKeyResponse = zod.object({
   "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
   "revokedAt": zod.iso.datetime({"offset":true}).nullable(),
   "createdByUserId": zod.uuid().nullable()
-}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute. `createdByUserId` is the member who created it, or null once their\r\naccount is deleted; removing a member offers to revoke the keys they created.')
+}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\n`lastUsedAt` is accurate to about a minute. `createdByUserId` is the member who created it, or null once their\naccount is deleted; removing a member offers to revoke the keys they created.')
 
 
 export const RevokeApiKeyParams = zod.object({
@@ -6826,7 +6826,7 @@ export const RevokeApiKeyResponse = zod.object({
   "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
   "revokedAt": zod.iso.datetime({"offset":true}).nullable(),
   "createdByUserId": zod.uuid().nullable()
-}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\r\n`lastUsedAt` is accurate to about a minute. `createdByUserId` is the member who created it, or null once their\r\naccount is deleted; removing a member offers to revoke the keys they created.')
+}).describe('An organization API key as listed: never the key itself, which only CreatedApiKey carries.\n`prefix` is the key\'s first characters. `permitsPerMinute` is null for the deployment\'s default.\n`lastUsedAt` is accurate to about a minute. `createdByUserId` is the member who created it, or null once their\naccount is deleted; removing a member offers to revoke the keys they created.')
 
 
 export const validateWorkflowBodyWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
@@ -6847,7 +6847,7 @@ export const ValidateWorkflowBody = zod.object({
   "name": zod.string(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(validateWorkflowBodyWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -6856,7 +6856,7 @@ export const ValidateWorkflowBody = zod.object({
   "label": zod.string()
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
-}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
@@ -6873,12 +6873,12 @@ export const ValidateWorkflowBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -6905,8 +6905,8 @@ export const ValidateWorkflowBody = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(validateWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
-}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\n`yes` and `no`, choice answers are option ids). Facts are\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\n`verification.result`, `application.tags`, `application.source`,\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\n`reviewer.recommendation`.'))
+}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
   "stageId": zod.string().nullish(),
@@ -6918,10 +6918,10 @@ export const ValidateWorkflowBody = zod.object({
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
   "questionnaireId": zod.string().nullish()
-}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(validateWorkflowBodyWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(validateWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\r\nsignal (ADR-0004).')),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\nsignal (ADR-0004).')),
   "followUpQuestionnaires": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -6938,19 +6938,19 @@ export const ValidateWorkflowBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
-}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.')
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.')
 }).describe('A workflow to check, as the builder holds it before saving.')
 
 export const ValidateWorkflowResponse = zod.object({
@@ -6959,7 +6959,7 @@ export const ValidateWorkflowResponse = zod.object({
   "path": zod.string(),
   "message": zod.string()
 }).describe('A problem with a definition, at a JSON path such as `workflow.stages[1].id`.'))
-}).describe('The validator\'s verdict, guardrails included. 200 either way: a workflow with problems is a normal answer here, and\r\neach problem has a JSON path such as `automations[0].actions[0]` the builder can point at.')
+}).describe('The validator\'s verdict, guardrails included. 200 either way: a workflow with problems is a normal answer here, and\neach problem has a JSON path such as `automations[0].actions[0]` the builder can point at.')
 
 
 export const simulateWorkflowBodyWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
@@ -6981,7 +6981,7 @@ export const SimulateWorkflowBody = zod.object({
   "name": zod.string(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(simulateWorkflowBodyWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -6990,7 +6990,7 @@ export const SimulateWorkflowBody = zod.object({
   "label": zod.string()
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
-}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those.')]).optional(),
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
@@ -7007,12 +7007,12 @@ export const SimulateWorkflowBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -7039,8 +7039,8 @@ export const SimulateWorkflowBody = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "negate": zod.boolean().default(simulateWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
-}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`.'))
-}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\n`yes` and `no`, choice answers are option ids). Facts are\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\n`verification.result`, `application.tags`, `application.source`,\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\n`reviewer.recommendation`.'))
+}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
   "actions": zod.array(zod.object({
   "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
   "stageId": zod.string().nullish(),
@@ -7052,10 +7052,10 @@ export const SimulateWorkflowBody = zod.object({
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
   "questionnaireId": zod.string().nullish()
-}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(simulateWorkflowBodyWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(simulateWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault)
-}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\r\nsignal (ADR-0004).')),
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\nsignal (ADR-0004).')),
   "followUpQuestionnaires": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -7072,19 +7072,19 @@ export const SimulateWorkflowBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
-}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "trigger": zod.object({
   "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'VerificationAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
   "stageId": zod.string().nullish(),
@@ -7103,10 +7103,10 @@ export const SimulateWorkflowBody = zod.object({
   "verificationAiAssistance": zod.string().nullish(),
   "verificationResult": zod.string().nullish(),
   "reviewerRecommendation": zod.string().nullish()
-}).describe('What an automation\'s conditions can see about one application at the moment its trigger fired: the facts snapshot\r\n(docs/architecture/workflow-engine.md §3). The engine stores it with every run, so a replay or an audit sees exactly\r\nwhat the conditions saw. A fact that is null or empty here is absent: ConditionOperator.Exists is false\r\nand every other test fails.')]).optional(),
+}).describe('What an automation\'s conditions can see about one application at the moment its trigger fired: the facts snapshot\n(docs/architecture/workflow-engine.md §3). The engine stores it with every run, so a replay or an audit sees exactly\nwhat the conditions saw. A fact that is null or empty here is absent: ConditionOperator.Exists is false\nand every other test fails.')]).optional(),
   "accommodationRequested": zod.boolean().default(simulateWorkflowBodyAccommodationRequestedDefault),
   "chain": zod.array(zod.string()).nullish()
-}).describe('"Test this workflow" (workflow-engine.md §4): run a sample application through a workflow and see which automations\r\na trigger would fire. Nothing is saved or sent. `facts` is the sample application\'s snapshot; leave members out\r\nfor facts it does not have.')
+}).describe('"Test this workflow" (workflow-engine.md §4): run a sample application through a workflow and see which automations\na trigger would fire. Nothing is saved or sent. `facts` is the sample application\'s snapshot; leave members out\nfor facts it does not have.')
 
 export const SimulateWorkflowResponse = zod.object({
   "automations": zod.array(zod.object({
@@ -7129,7 +7129,7 @@ export const SimulateWorkflowResponse = zod.object({
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
   "questionnaireId": zod.string().nullish()
-}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.')),
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "reason": zod.string().nullable()
 }).describe('What one automation would do. Only automations the trigger fires are listed, in definition order.'))
 })
@@ -7164,7 +7164,7 @@ export const ListAutomationRunsResponseItem = zod.object({
   "verificationAiAssistance": zod.string().nullish(),
   "verificationResult": zod.string().nullish(),
   "reviewerRecommendation": zod.string().nullish()
-}).describe('What an automation\'s conditions can see about one application at the moment its trigger fired: the facts snapshot\r\n(docs/architecture/workflow-engine.md §3). The engine stores it with every run, so a replay or an audit sees exactly\r\nwhat the conditions saw. A fact that is null or empty here is absent: ConditionOperator.Exists is false\r\nand every other test fails.'),
+}).describe('What an automation\'s conditions can see about one application at the moment its trigger fired: the facts snapshot\n(docs/architecture/workflow-engine.md §3). The engine stores it with every run, so a replay or an audit sees exactly\nwhat the conditions saw. A fact that is null or empty here is absent: ConditionOperator.Exists is false\nand every other test fails.'),
   "rules": zod.array(zod.object({
   "fact": zod.string(),
   "operator": zod.enum(['EqualTo', 'In', 'Contains', 'GreaterThan', 'GreaterThanOrEqual', 'LessThan', 'LessThanOrEqual', 'Exists']),
@@ -7185,7 +7185,7 @@ export const ListAutomationRunsResponseItem = zod.object({
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
   "questionnaireId": zod.string().nullish()
-}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else.'),
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.'),
   "status": zod.enum(['Pending', 'Completed', 'Skipped', 'Failed']),
   "detail": zod.string().nullable(),
   "finishedAt": zod.iso.datetime({"offset":true}).nullable()
@@ -7193,7 +7193,7 @@ export const ListAutomationRunsResponseItem = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "finishedAt": zod.iso.datetime({"offset":true}).nullable(),
   "triggerQuestionnaireId": zod.string().nullish()
-}).describe('The audit record of one automation evaluated for one application (workflow-engine.md §2, guardrail 3): the trigger,\r\nthe facts its conditions saw, which rules held, and what each action did.')
+}).describe('The audit record of one automation evaluated for one application (workflow-engine.md §2, guardrail 3): the trigger,\nthe facts its conditions saw, which rules held, and what each action did.')
 export const ListAutomationRunsResponse = zod.array(ListAutomationRunsResponseItem)
 
 
@@ -7251,7 +7251,7 @@ export const CompleteTaskResponse = zod.object({
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "completedByUserId": zod.uuid().nullable(),
   "scorecardTemplateId": zod.string().nullish()
-}).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\r\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\r\nticked off by hand.')
+}).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 
 
 export const ReopenTaskParams = zod.object({
@@ -7269,7 +7269,7 @@ export const ReopenTaskResponse = zod.object({
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "completedByUserId": zod.uuid().nullable(),
   "scorecardTemplateId": zod.string().nullish()
-}).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\r\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\r\nticked off by hand.')
+}).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 
 
 export const GetHiringReportQueryParams = zod.object({
@@ -7301,7 +7301,7 @@ export const GetHiringReportResponse = zod.object({
   "applications": zod.int(),
   "hires": zod.int()
 }).describe('Applications submitted in the range from one source, and how many of them are hired now.'))
-}).describe('The Reports page (docs/architecture/reports.md): the funnel, time to hire and sources for the jobs the person can see,\r\nbetween two instants. All three come from one snapshot, so their numbers agree. Nothing here reads verification\r\n(verification) results.')
+}).describe('The Reports page (docs/architecture/reports.md): the funnel, time to hire and sources for the jobs the person can see,\nbetween two instants. All three come from one snapshot, so their numbers agree. Nothing here reads verification\n(verification) results.')
 
 
 export const ListApplicationScorecardsParams = zod.object({
@@ -7315,7 +7315,7 @@ export const ListApplicationScorecardsResponseItem = zod.object({
   "answers": zod.array(zod.object({
   "questionId": zod.string(),
   "label": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "rating": zod.int().nullish(),
@@ -7323,7 +7323,7 @@ export const ListApplicationScorecardsResponseItem = zod.object({
   "id": zod.string(),
   "label": zod.string()
 })).nullish()
-}).describe('A question as the reviewer was asked it, and their answer. `value` is "yes" or "no" for the yes-or-no kinds, an\r\noption id for a choice and the text for the text kinds; `values` are a multi-choice answer\'s option ids;\r\n`rating` is the number picked on a 1 to 5 or 1 to 10 scale. All empty means it was not answered.')),
+}).describe('A question as the reviewer was asked it, and their answer. `value` is "yes" or "no" for the yes-or-no kinds, an\noption id for a choice and the text for the text kinds; `values` are a multi-choice answer\'s option ids;\n`rating` is the number picked on a 1 to 5 or 1 to 10 scale. All empty means it was not answered.')),
   "rating": zod.number().nullable(),
   "ratings": zod.array(zod.object({
   "criterionId": zod.string(),
@@ -7337,7 +7337,7 @@ export const ListApplicationScorecardsResponseItem = zod.object({
   "submittedAt": zod.iso.datetime({"offset":true}),
   "scorecardTemplateId": zod.string().nullable(),
   "scorecardName": zod.string().nullable()
-}).describe('One reviewer\'s scorecard, given while the application was in a stage: an answer to each question as it was asked, and\r\nan overall recommendation.\r\nIts rating answers make the candidate\'s rating (`ApplicationRating`, ADR-0013); nothing else on it does.')
+}).describe('One reviewer\'s scorecard, given while the application was in a stage: an answer to each question as it was asked, and\nan overall recommendation.\nIts rating answers make the candidate\'s rating (`ApplicationRating`, ADR-0013); nothing else on it does.')
 export const ListApplicationScorecardsResponse = zod.array(ListApplicationScorecardsResponseItem)
 
 
@@ -7352,11 +7352,11 @@ export const SubmitScorecardBody = zod.object({
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "rating": zod.int().nullish()
-}).describe('The answer to one question: `value` for the yes-or-no kinds ("yes" or "no"), a choice (an option id) and the\r\ntext kinds, `values` for a multi-choice (option ids) and `rating` for a number scale.')),
+}).describe('The answer to one question: `value` for the yes-or-no kinds ("yes" or "no"), a choice (an option id) and the\ntext kinds, `values` for a multi-choice (option ids) and `rating` for a number scale.')),
   "recommendation": zod.enum(['StrongNo', 'No', 'Yes', 'StrongYes']).describe('A reviewer\'s overall recommendation for the stage. Automations test it as `reviewer.recommendation`.'),
   "note": zod.string().nullish(),
   "scorecardTemplateId": zod.string().nullish()
-}).describe('A reviewer\'s scorecard. Name one of two: `stageId`, a stage the application has reached whose workflow stage\r\nhas a scorecard (the job\'s own copy), or `scorecardTemplateId`, a library scorecard given at the stage the\r\napplication is in now. Each reviewer gives one per stage and scorecard: the same submission again returns the stored\r\none, a different one is a 409.')
+}).describe('A reviewer\'s scorecard. Name one of two: `stageId`, a stage the application has reached whose workflow stage\nhas a scorecard (the job\'s own copy), or `scorecardTemplateId`, a library scorecard given at the stage the\napplication is in now. Each reviewer gives one per stage and scorecard: the same submission again returns the stored\none, a different one is a 409.')
 
 export const SubmitScorecardResponse = zod.object({
   "id": zod.uuid(),
@@ -7365,7 +7365,7 @@ export const SubmitScorecardResponse = zod.object({
   "answers": zod.array(zod.object({
   "questionId": zod.string(),
   "label": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish(),
   "rating": zod.int().nullish(),
@@ -7373,7 +7373,7 @@ export const SubmitScorecardResponse = zod.object({
   "id": zod.string(),
   "label": zod.string()
 })).nullish()
-}).describe('A question as the reviewer was asked it, and their answer. `value` is "yes" or "no" for the yes-or-no kinds, an\r\noption id for a choice and the text for the text kinds; `values` are a multi-choice answer\'s option ids;\r\n`rating` is the number picked on a 1 to 5 or 1 to 10 scale. All empty means it was not answered.')),
+}).describe('A question as the reviewer was asked it, and their answer. `value` is "yes" or "no" for the yes-or-no kinds, an\noption id for a choice and the text for the text kinds; `values` are a multi-choice answer\'s option ids;\n`rating` is the number picked on a 1 to 5 or 1 to 10 scale. All empty means it was not answered.')),
   "rating": zod.number().nullable(),
   "ratings": zod.array(zod.object({
   "criterionId": zod.string(),
@@ -7387,7 +7387,7 @@ export const SubmitScorecardResponse = zod.object({
   "submittedAt": zod.iso.datetime({"offset":true}),
   "scorecardTemplateId": zod.string().nullable(),
   "scorecardName": zod.string().nullable()
-}).describe('One reviewer\'s scorecard, given while the application was in a stage: an answer to each question as it was asked, and\r\nan overall recommendation.\r\nIts rating answers make the candidate\'s rating (`ApplicationRating`, ADR-0013); nothing else on it does.')
+}).describe('One reviewer\'s scorecard, given while the application was in a stage: an answer to each question as it was asked, and\nan overall recommendation.\nIts rating answers make the candidate\'s rating (`ApplicationRating`, ADR-0013); nothing else on it does.')
 
 
 export const RequestScorecardParams = zod.object({
@@ -7398,7 +7398,7 @@ export const RequestScorecardBody = zod.object({
   "assigneeUserId": zod.uuid(),
   "scorecardTemplateId": zod.string(),
   "note": zod.string().nullish()
-}).describe('Ask a teammate for a scorecard: a Scorecard task assigned to them, done when they submit that scorecard for the\r\napplication.')
+}).describe('Ask a teammate for a scorecard: a Scorecard task assigned to them, done when they submit that scorecard for the\napplication.')
 
 export const RequestScorecardResponse = zod.object({
   "id": zod.uuid(),
@@ -7411,7 +7411,7 @@ export const RequestScorecardResponse = zod.object({
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "completedByUserId": zod.uuid().nullable(),
   "scorecardTemplateId": zod.string().nullish()
-}).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\r\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\r\nticked off by hand.')
+}).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 
 
 export const listScorecardTemplatesResponseLastUpdatedCreatedDefault = false;
@@ -7430,7 +7430,7 @@ export const ListScorecardTemplatesResponseItem = zod.object({
   "created": zod.boolean().default(listScorecardTemplatesResponseLastUpdatedCreatedDefault)
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
   "archived": zod.boolean()
-}).describe('A scorecard in the organization\'s library: a built-in (`builtIn`, ScreenHire\'s and read only) or one of its own.\r\nA hiring template\'s stage names it by `id` (`scorecardTemplateId`); a job keeps its own copy.')
+}).describe('A scorecard in the organization\'s library: a built-in (`builtIn`, ScreenHire\'s and read only) or one of its own.\nA hiring template\'s stage names it by `id` (`scorecardTemplateId`); a job keeps its own copy.')
 export const ListScorecardTemplatesResponse = zod.array(ListScorecardTemplatesResponseItem)
 
 
@@ -7440,7 +7440,7 @@ export const CreateScorecardTemplateBody = zod.object({
   "name": zod.string(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(createScorecardTemplateBodyQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -7462,7 +7462,7 @@ export const CreateScorecardTemplateResponse = zod.object({
   "copiedFrom": zod.string().nullable(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(createScorecardTemplateResponseQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -7496,7 +7496,7 @@ export const GetScorecardTemplateResponse = zod.object({
   "copiedFrom": zod.string().nullable(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(getScorecardTemplateResponseQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -7526,7 +7526,7 @@ export const UpdateScorecardTemplateBody = zod.object({
   "name": zod.string(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(updateScorecardTemplateBodyQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -7547,7 +7547,7 @@ export const UpdateScorecardTemplateResponse = zod.object({
   "copiedFrom": zod.string().nullable(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(updateScorecardTemplateResponseQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -7594,11 +7594,11 @@ export const GetScorecardTemplateHistoryResponse = zod.object({
   "before": zod.string().nullable(),
   "after": zod.string().nullable(),
   "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
-}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\r\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
-}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\r\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
+}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
+}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
 }).describe('Everything one save changed in the object: who, when, and a line per change.')),
   "nextBefore": zod.uuid().nullable()
-}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\r\n`before` for the next page, or null after the last.')
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
 
 
 export const ArchiveScorecardTemplateParams = zod.object({
@@ -7615,7 +7615,7 @@ export const ArchiveScorecardTemplateResponse = zod.object({
   "copiedFrom": zod.string().nullable(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(archiveScorecardTemplateResponseQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -7649,7 +7649,7 @@ export const UnarchiveScorecardTemplateResponse = zod.object({
   "copiedFrom": zod.string().nullable(),
   "questions": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\r\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
   "label": zod.string(),
   "required": zod.boolean().default(unarchiveScorecardTemplateResponseQuestionsItemRequiredDefault),
   "guidance": zod.string().nullish(),
@@ -7685,7 +7685,7 @@ export const ListWebhookEndpointsResponseItem = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}),
   "secretRotatedAt": zod.iso.datetime({"offset":true})
-}).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\r\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.')
+}).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.')
 export const ListWebhookEndpointsResponse = zod.array(ListWebhookEndpointsResponseItem)
 
 
@@ -7708,9 +7708,9 @@ export const CreateWebhookEndpointResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}),
   "secretRotatedAt": zod.iso.datetime({"offset":true})
-}).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\r\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.'),
+}).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.'),
   "signingSecret": zod.string()
-}).describe('An endpoint with its signing secret, returned only when the secret is new (create, rotate). Store it now: the API\r\ncannot show it again. Check each delivery\'s `ScreenHire-Signature: t={unix seconds},v1={hex}`, the hex\r\nHMAC-SHA256 of `{t}.{raw body}` keyed with this secret.')
+}).describe('An endpoint with its signing secret, returned only when the secret is new (create, rotate). Store it now: the API\ncannot show it again. Check each delivery\'s `ScreenHire-Signature: t={unix seconds},v1={hex}`, the hex\nHMAC-SHA256 of `{t}.{raw body}` keyed with this secret.')
 
 
 export const GetWebhookEndpointParams = zod.object({
@@ -7729,7 +7729,7 @@ export const GetWebhookEndpointResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}),
   "secretRotatedAt": zod.iso.datetime({"offset":true})
-}).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\r\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.')
+}).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.')
 
 
 export const UpdateWebhookEndpointParams = zod.object({
@@ -7741,7 +7741,7 @@ export const UpdateWebhookEndpointBody = zod.object({
   "events": zod.array(zod.string()),
   "enabled": zod.boolean().nullish(),
   "description": zod.string().nullish()
-}).describe('Replaces an endpoint\'s settings. A body without `enabled` keeps the endpoint on or off as it is. Turning it\r\nback on clears an automatic disable and its failure count; deliveries skipped while it was off stay skipped and can\r\nbe replayed.')
+}).describe('Replaces an endpoint\'s settings. A body without `enabled` keeps the endpoint on or off as it is. Turning it\nback on clears an automatic disable and its failure count; deliveries skipped while it was off stay skipped and can\nbe replayed.')
 
 export const UpdateWebhookEndpointResponse = zod.object({
   "id": zod.uuid(),
@@ -7755,7 +7755,7 @@ export const UpdateWebhookEndpointResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}),
   "secretRotatedAt": zod.iso.datetime({"offset":true})
-}).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\r\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.')
+}).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.')
 
 
 export const DeleteWebhookEndpointParams = zod.object({
@@ -7782,9 +7782,9 @@ export const RotateWebhookSecretResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}),
   "secretRotatedAt": zod.iso.datetime({"offset":true})
-}).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\r\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.'),
+}).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.'),
   "signingSecret": zod.string()
-}).describe('An endpoint with its signing secret, returned only when the secret is new (create, rotate). Store it now: the API\r\ncannot show it again. Check each delivery\'s `ScreenHire-Signature: t={unix seconds},v1={hex}`, the hex\r\nHMAC-SHA256 of `{t}.{raw body}` keyed with this secret.')
+}).describe('An endpoint with its signing secret, returned only when the secret is new (create, rotate). Store it now: the API\ncannot show it again. Check each delivery\'s `ScreenHire-Signature: t={unix seconds},v1={hex}`, the hex\nHMAC-SHA256 of `{t}.{raw body}` keyed with this secret.')
 
 
 export const ListWebhookDeliveriesParams = zod.object({
@@ -7809,7 +7809,7 @@ export const ListWebhookDeliveriesResponseItem = zod.object({
   "nextAttemptAt": zod.iso.datetime({"offset":true}).nullable(),
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "payload": zod.string()
-}).describe('One delivery in an endpoint\'s log. string WebhookDeliveryEntry.Payload is the exact body sent; Guid? WebhookDeliveryEntry.ReplayOfId is set on\r\na replay. string? WebhookDeliveryEntry.LastError is our description of the last failed attempt, never the receiver\'s response.')
+}).describe('One delivery in an endpoint\'s log. string WebhookDeliveryEntry.Payload is the exact body sent; Guid? WebhookDeliveryEntry.ReplayOfId is set on\na replay. string? WebhookDeliveryEntry.LastError is our description of the last failed attempt, never the receiver\'s response.')
 export const ListWebhookDeliveriesResponse = zod.array(ListWebhookDeliveriesResponseItem)
 
 
@@ -7832,7 +7832,7 @@ export const ReplayWebhookDeliveryResponse = zod.object({
   "nextAttemptAt": zod.iso.datetime({"offset":true}).nullable(),
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "payload": zod.string()
-}).describe('One delivery in an endpoint\'s log. string WebhookDeliveryEntry.Payload is the exact body sent; Guid? WebhookDeliveryEntry.ReplayOfId is set on\r\na replay. string? WebhookDeliveryEntry.LastError is our description of the last failed attempt, never the receiver\'s response.')
+}).describe('One delivery in an endpoint\'s log. string WebhookDeliveryEntry.Payload is the exact body sent; Guid? WebhookDeliveryEntry.ReplayOfId is set on\na replay. string? WebhookDeliveryEntry.LastError is our description of the last failed attempt, never the receiver\'s response.')
 
 
 export const GetSlackResponse = zod.object({
@@ -7848,7 +7848,7 @@ export const GetSlackResponse = zod.object({
   "mentions": zod.boolean(),
   "tasks": zod.boolean(),
   "problem": zod.union([zod.null(),zod.union([zod.literal('Disconnected'),zod.literal('ChannelNotFound'),zod.literal('NotInChannel'),zod.literal('ChannelArchived'),zod.literal('CannotPost'),zod.literal('CannotMessage'),zod.literal(null)])])
-}).describe('The member\'s linked Slack account: its name, and whether mentions and tasks given to them arrive as direct\r\nmessages. `problem` is `CannotMessage` when Slack refused the last one.')]),
+}).describe('The member\'s linked Slack account: its name, and whether mentions and tasks given to them arrive as direct\nmessages. `problem` is `CannotMessage` when Slack refused the last one.')]),
   "settings": zod.union([zod.null(),zod.object({
   "channel": zod.union([zod.null(),zod.object({
   "id": zod.string(),
@@ -7859,8 +7859,8 @@ export const GetSlackResponse = zod.object({
   "connectedBy": zod.string().nullable(),
   "problem": zod.union([zod.null(),zod.union([zod.literal('Disconnected'),zod.literal('ChannelNotFound'),zod.literal('NotInChannel'),zod.literal('ChannelArchived'),zod.literal('CannotPost'),zod.literal('CannotMessage'),zod.literal(null)])]),
   "problemAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('The workspace\'s settings: the channel (null until picked), the events posted there, who connected it and when,\r\nand why posting stopped working, if it did.')])
-}).describe('Slack for the signed-in member (docs/architecture/slack.md). `available` is false when this ScreenHire has no\r\nSlack app, and then nothing else is set. `workspace` is null until someone connects one. `account` is the\r\nmember\'s own link. `settings` is there only for someone who manages integrations and sees every job. The bot\r\ntoken is never in any answer.')
+}).describe('The workspace\'s settings: the channel (null until picked), the events posted there, who connected it and when,\nand why posting stopped working, if it did.')])
+}).describe('Slack for the signed-in member (docs/architecture/slack.md). `available` is false when this ScreenHire has no\nSlack app, and then nothing else is set. `workspace` is null until someone connects one. `account` is the\nmember\'s own link. `settings` is there only for someone who manages integrations and sees every job. The bot\ntoken is never in any answer.')
 
 
 export const DisconnectSlackResponse = zod.void()
@@ -7897,7 +7897,7 @@ export const UpdateSlackChannelResponse = zod.object({
   "mentions": zod.boolean(),
   "tasks": zod.boolean(),
   "problem": zod.union([zod.null(),zod.union([zod.literal('Disconnected'),zod.literal('ChannelNotFound'),zod.literal('NotInChannel'),zod.literal('ChannelArchived'),zod.literal('CannotPost'),zod.literal('CannotMessage'),zod.literal(null)])])
-}).describe('The member\'s linked Slack account: its name, and whether mentions and tasks given to them arrive as direct\r\nmessages. `problem` is `CannotMessage` when Slack refused the last one.')]),
+}).describe('The member\'s linked Slack account: its name, and whether mentions and tasks given to them arrive as direct\nmessages. `problem` is `CannotMessage` when Slack refused the last one.')]),
   "settings": zod.union([zod.null(),zod.object({
   "channel": zod.union([zod.null(),zod.object({
   "id": zod.string(),
@@ -7908,8 +7908,8 @@ export const UpdateSlackChannelResponse = zod.object({
   "connectedBy": zod.string().nullable(),
   "problem": zod.union([zod.null(),zod.union([zod.literal('Disconnected'),zod.literal('ChannelNotFound'),zod.literal('NotInChannel'),zod.literal('ChannelArchived'),zod.literal('CannotPost'),zod.literal('CannotMessage'),zod.literal(null)])]),
   "problemAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('The workspace\'s settings: the channel (null until picked), the events posted there, who connected it and when,\r\nand why posting stopped working, if it did.')])
-}).describe('Slack for the signed-in member (docs/architecture/slack.md). `available` is false when this ScreenHire has no\r\nSlack app, and then nothing else is set. `workspace` is null until someone connects one. `account` is the\r\nmember\'s own link. `settings` is there only for someone who manages integrations and sees every job. The bot\r\ntoken is never in any answer.')
+}).describe('The workspace\'s settings: the channel (null until picked), the events posted there, who connected it and when,\nand why posting stopped working, if it did.')])
+}).describe('Slack for the signed-in member (docs/architecture/slack.md). `available` is false when this ScreenHire has no\nSlack app, and then nothing else is set. `workspace` is null until someone connects one. `account` is the\nmember\'s own link. `settings` is there only for someone who manages integrations and sees every job. The bot\ntoken is never in any answer.')
 
 
 export const SendSlackTestMessageResponse = zod.object({
@@ -7938,7 +7938,7 @@ export const UpdateSlackAccountResponse = zod.object({
   "mentions": zod.boolean(),
   "tasks": zod.boolean(),
   "problem": zod.union([zod.null(),zod.union([zod.literal('Disconnected'),zod.literal('ChannelNotFound'),zod.literal('NotInChannel'),zod.literal('ChannelArchived'),zod.literal('CannotPost'),zod.literal('CannotMessage'),zod.literal(null)])])
-}).describe('The member\'s linked Slack account: its name, and whether mentions and tasks given to them arrive as direct\r\nmessages. `problem` is `CannotMessage` when Slack refused the last one.')
+}).describe('The member\'s linked Slack account: its name, and whether mentions and tasks given to them arrive as direct\nmessages. `problem` is `CannotMessage` when Slack refused the last one.')
 
 
 export const UnlinkSlackAccountResponse = zod.void()
@@ -7970,15 +7970,15 @@ export const ListEmailTemplatesResponse = zod.object({
   "questionnaireOnly": zod.boolean(),
   "archived": zod.boolean(),
   "invitationOnly": zod.boolean().default(listEmailTemplatesResponseTemplatesItemInvitationOnlyDefault)
-}).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')),
+}).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')),
   "variables": zod.array(zod.object({
   "name": zod.string(),
   "label": zod.string(),
   "rejectOnly": zod.boolean(),
   "questionnaireOnly": zod.boolean().default(listEmailTemplatesResponseVariablesItemQuestionnaireOnlyDefault),
   "invitationOnly": zod.boolean().default(listEmailTemplatesResponseVariablesItemInvitationOnlyDefault)
-}).describe('A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.\r\n`questionnaireOnly`: only the follow-up questions email has it. `invitationOnly`: only the talent pool\r\ninvitation has it.'))
-}).describe('The organization\'s email templates and the variables they may use. `sendingEnabled` is false when this\r\ndeployment has no email sender: templates can still be edited, but nothing can be sent or tested.')
+}).describe('A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.\n`questionnaireOnly`: only the follow-up questions email has it. `invitationOnly`: only the talent pool\ninvitation has it.'))
+}).describe('The organization\'s email templates and the variables they may use. `sendingEnabled` is false when this\ndeployment has no email sender: templates can still be edited, but nothing can be sent or tested.')
 
 
 export const CreateEmailTemplateBody = zod.object({
@@ -8009,7 +8009,7 @@ export const CreateEmailTemplateResponse = zod.object({
   "questionnaireOnly": zod.boolean(),
   "archived": zod.boolean(),
   "invitationOnly": zod.boolean().default(createEmailTemplateResponseInvitationOnlyDefault)
-}).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
+}).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
 
 
 export const GetEmailTemplateParams = zod.object({
@@ -8038,7 +8038,7 @@ export const GetEmailTemplateResponse = zod.object({
   "questionnaireOnly": zod.boolean(),
   "archived": zod.boolean(),
   "invitationOnly": zod.boolean().default(getEmailTemplateResponseInvitationOnlyDefault)
-}).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
+}).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
 
 
 export const UpdateEmailTemplateParams = zod.object({
@@ -8049,7 +8049,7 @@ export const UpdateEmailTemplateBody = zod.object({
   "subject": zod.string(),
   "body": zod.string(),
   "name": zod.string().nullish()
-}).describe('New wording for a template. `name` renames the organization\'s own template; leave it out for a built-in,\r\nwhose name is ScreenHire\'s.')
+}).describe('New wording for a template. `name` renames the organization\'s own template; leave it out for a built-in,\nwhose name is ScreenHire\'s.')
 
 export const updateEmailTemplateResponseLastUpdatedCreatedDefault = false;
 export const updateEmailTemplateResponseInvitationOnlyDefault = false;
@@ -8073,7 +8073,7 @@ export const UpdateEmailTemplateResponse = zod.object({
   "questionnaireOnly": zod.boolean(),
   "archived": zod.boolean(),
   "invitationOnly": zod.boolean().default(updateEmailTemplateResponseInvitationOnlyDefault)
-}).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
+}).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
 
 
 export const DeleteEmailTemplateParams = zod.object({
@@ -8110,11 +8110,11 @@ export const GetEmailTemplateHistoryResponse = zod.object({
   "before": zod.string().nullable(),
   "after": zod.string().nullable(),
   "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
-}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\r\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
-}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\r\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
+}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
+}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
 }).describe('Everything one save changed in the object: who, when, and a line per change.')),
   "nextBefore": zod.uuid().nullable()
-}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\r\n`before` for the next page, or null after the last.')
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
 
 
 export const ArchiveEmailTemplateParams = zod.object({
@@ -8143,7 +8143,7 @@ export const ArchiveEmailTemplateResponse = zod.object({
   "questionnaireOnly": zod.boolean(),
   "archived": zod.boolean(),
   "invitationOnly": zod.boolean().default(archiveEmailTemplateResponseInvitationOnlyDefault)
-}).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
+}).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
 
 
 export const UnarchiveEmailTemplateParams = zod.object({
@@ -8172,14 +8172,14 @@ export const UnarchiveEmailTemplateResponse = zod.object({
   "questionnaireOnly": zod.boolean(),
   "archived": zod.boolean(),
   "invitationOnly": zod.boolean().default(unarchiveEmailTemplateResponseInvitationOnlyDefault)
-}).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
+}).describe('One email template. Built-in templates have ScreenHire\'s ids and names; the organization may change their wording\n(`edited`) and restore it. Its own templates have a Guid id and its own name.')
 
 
 export const PreviewEmailTemplateBody = zod.object({
   "subject": zod.string(),
   "body": zod.string(),
   "templateId": zod.string().nullish()
-}).describe('Wording to render with the sample candidate, before it is saved. `templateId` is the template it is for, so\r\nthe rejection email\'s `reason` renders; leave it out for a new template.')
+}).describe('Wording to render with the sample candidate, before it is saved. `templateId` is the template it is for, so\nthe rejection email\'s `reason` renders; leave it out for a new template.')
 
 export const PreviewEmailTemplateResponse = zod.object({
   "subject": zod.string(),
@@ -8192,7 +8192,7 @@ export const SendTestEmailBody = zod.object({
   "subject": zod.string(),
   "body": zod.string(),
   "templateId": zod.string().nullish()
-}).describe('Wording to render with the sample candidate, before it is saved. `templateId` is the template it is for, so\r\nthe rejection email\'s `reason` renders; leave it out for a new template.')
+}).describe('Wording to render with the sample candidate, before it is saved. `templateId` is the template it is for, so\nthe rejection email\'s `reason` renders; leave it out for a new template.')
 
 export const SendTestEmailResponse = zod.object({
   "to": zod.string()
@@ -8217,12 +8217,12 @@ export const SendEmailsBody = zod.object({
   "templateId": zod.string().nullish(),
   "subject": zod.string().nullish(),
   "body": zod.string().nullish()
-}).describe('An email to the candidates of these applications, one each, rendered for each candidate. Give the wording\r\n(`subject` and `body`, Liquid over the general variables), a `templateId` to send the template as it\r\nstands, or both: then the wording goes, changed for this send only, and the template id records where it started.\r\nA blank email has wording and no template id.')
+}).describe('An email to the candidates of these applications, one each, rendered for each candidate. Give the wording\n(`subject` and `body`, Liquid over the general variables), a `templateId` to send the template as it\nstands, or both: then the wording goes, changed for this send only, and the template id records where it started.\nA blank email has wording and no template id.')
 
 export const SendEmailsResponse = zod.object({
   "queued": zod.int(),
   "skipped": zod.int()
-}).describe('How many emails were queued. `skipped` counts applications the email does not fit: the stage-change email to a\r\ncandidate whose application has ended. Each sent email appears in its application\'s activity.')
+}).describe('How many emails were queued. `skipped` counts applications the email does not fit: the stage-change email to a\ncandidate whose application has ended. Each sent email appears in its application\'s activity.')
 
 
 export const GetSentEmailParams = zod.object({
@@ -8255,7 +8255,7 @@ export const ListCandidateEmailsResponseItem = zod.object({
   "automationRunId": zod.uuid().nullable(),
   "sentAt": zod.iso.datetime({"offset":true}),
   "kept": zod.boolean()
-}).describe('One email to the candidate, for Messages: what went, when, and who or which automation sent it. `kept` is false\r\nfor an email sent before ScreenHire kept each email\'s copy: only its subject is known.')
+}).describe('One email to the candidate, for Messages: what went, when, and who or which automation sent it. `kept` is false\nfor an email sent before ScreenHire kept each email\'s copy: only its subject is known.')
 export const ListCandidateEmailsResponse = zod.array(ListCandidateEmailsResponseItem)
 
 
@@ -8278,19 +8278,19 @@ export const ListTalentPoolResponse = zod.object({
   "lastInvitedAt": zod.iso.datetime({"offset":true}).nullable(),
   "appliedJobIds": zod.array(zod.uuid())
 }).describe('One candidate in the talent pool.'))
-}).describe('The organization\'s talent pool (docs/architecture/talent-pool.md): the candidates the team kept in mind, whose\r\npermission for future roles still holds. `permissionMonths` is the organization\'s period now.')
+}).describe('The organization\'s talent pool (docs/architecture/talent-pool.md): the candidates the team kept in mind, whose\npermission for future roles still holds. `permissionMonths` is the organization\'s period now.')
 
 
 export const KeepInMindBody = zod.object({
   "applicationIds": zod.array(zod.uuid()),
   "note": zod.string().nullish()
-}).describe('Keeps the candidates of these applications in mind: each leaves its job without a rejection and joins the talent pool.\r\n`note` says why, once for all of them. Only an open application whose candidate gave permission for future roles\r\non its form can be kept.')
+}).describe('Keeps the candidates of these applications in mind: each leaves its job without a rejection and joins the talent pool.\n`note` says why, once for all of them. Only an open application whose candidate gave permission for future roles\non its form can be kept.')
 
 export const KeepInMindResponse = zod.object({
   "kept": zod.int(),
   "notAllowed": zod.int(),
   "alreadyEnded": zod.int()
-}).describe('What happened: `kept` joined the pool; `notAllowed` have no permission for future roles (they never gave it,\r\nit ran out or they took it back); `alreadyEnded` were hired, rejected, withdrawn or kept in mind already.')
+}).describe('What happened: `kept` joined the pool; `notAllowed` have no permission for future roles (they never gave it,\nit ran out or they took it back); `alreadyEnded` were hired, rejected, withdrawn or kept in mind already.')
 
 
 export const RemoveFromTalentPoolParams = zod.object({
@@ -8301,7 +8301,7 @@ export const removeFromTalentPoolBodyCandidateAskedDefault = false;
 
 export const RemoveFromTalentPoolBody = zod.object({
   "candidateAsked": zod.boolean().default(removeFromTalentPoolBodyCandidateAskedDefault)
-}).describe('Takes the candidate out of the talent pool. `candidateAsked`: they asked to be removed, so their permission for\r\nfuture roles is withdrawn too, and they cannot be kept again until they give it on a new application.')
+}).describe('Takes the candidate out of the talent pool. `candidateAsked`: they asked to be removed, so their permission for\nfuture roles is withdrawn too, and they cannot be kept again until they give it on a new application.')
 
 export const RemoveFromTalentPoolResponse = zod.void()
 
@@ -8326,7 +8326,7 @@ export const InviteToApplyBody = zod.object({
 export const InviteToApplyResponse = zod.object({
   "queued": zod.int(),
   "skipped": zod.int()
-}).describe('How many invitations were queued, and how many candidates were skipped: no longer in the pool, or already applied to\r\nthe job. Each sent invitation appears in Messages and in the Activity of the application they were kept from.')
+}).describe('How many invitations were queued, and how many candidates were skipped: no longer in the pool, or already applied to\nthe job. Each sent invitation appears in Messages and in the Activity of the application they were kept from.')
 
 
 export const AddFromTalentPoolBody = zod.object({
@@ -8337,7 +8337,7 @@ export const AddFromTalentPoolBody = zod.object({
 export const AddFromTalentPoolResponse = zod.object({
   "applicationIds": zod.array(zod.uuid()),
   "skipped": zod.int()
-}).describe('The new applications, one per candidate added, and how many were skipped because they had already applied to the\r\njob. Each new application carries the candidate\'s permission for future roles from the one they were kept from.')
+}).describe('The new applications, one per candidate added, and how many were skipped because they had already applied to the\njob. Each new application carries the candidate\'s permission for future roles from the one they were kept from.')
 
 
 export const GetHiringTemplateDefinitionSchemaResponse = zod.unknown()
@@ -8372,4 +8372,4 @@ export const SearchResponse = zod.object({
   "title": zod.string(),
   "status": zod.enum(['Draft', 'Open', 'Closed'])
 }).describe('A job whose title matched.'))
-}).describe('What a search found among the candidates and jobs the reader sees: candidates by name or email, one hit per\r\napplication, and jobs by title. Each list is short and starts with names or titles that begin with the search.')
+}).describe('What a search found among the candidates and jobs the reader sees: candidates by name or email, one hit per\napplication, and jobs by title. Each list is short and starts with names or titles that begin with the search.')

@@ -82,8 +82,12 @@ var appDatabase = builder.AddConnectionString("screenhire-app", ReferenceExpress
     $"Database={database.Resource.DatabaseName};Username=screenhire_app;Password={appRolePassword}"));
 
 // Azurite locally; Azure Blob Storage in production (ADR-0007).
+// Every image in this file is named with its tag, Azurite's and Mailpit's included (the tags their integrations default
+// to), because CI pulls them before the tests start: .github/workflows/ci.yml lists the same images, and
+// CiWorkflowTests fails when the two lists differ. Bump these tags with the Aspire and Community Toolkit packages.
 var storage = builder.AddAzureStorage("storage").RunAsEmulator(emulator =>
 {
+    emulator.WithImage("azure-storage/azurite", "3.35.0").WithImageRegistry("mcr.microsoft.com");
     if (persistData)
     {
         emulator.WithDataVolume();
@@ -95,6 +99,7 @@ var blobs = storage.AddBlobs("blobs");
 // web UI is pinned like the apps (Ports:Mailpit, default 8025, Mailpit's usual port) so the local guide can link it; SMTP
 // stays random, since only the API and worker use it, through Aspire's reference.
 var mailpit = builder.AddMailPit("mailpit", httpPort: PortFor("Mailpit", 8025))
+    .WithImage("axllent/mailpit", "v1.31.2")
     // Mailpit looks up each SMTP client's reverse DNS by default, which takes ~10 s per connection under Docker Desktop.
     .WithEnvironment("MP_SMTP_DISABLE_RDNS", "true");
 if (persistData)

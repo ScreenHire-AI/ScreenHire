@@ -1,0 +1,335 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# The same suites as the local gate (`pnpm verify`), spread over jobs that run side by side on GitHub's hosted Linux
+# runners. Gate is the one required check: it passes only when every test job succeeded. Lighthouse is report-only
+# and outside the gate. The layout, how to read a failed run and the measured times are in docs/process/testing.md,
+# "Continuous integration".
+#
+# The runners have 4 cores, and each suite is CPU-bound there, so the long suites run as matrix shards on separate
+# runners: the dashboard's Vitest suite (Vitest's --shard), and the integration and
+# end-to-end suites by test class (scripts/test-shard.mjs; xUnit has no shard option). Every matrix sets
+# fail-fast: false, so one shard's failure never hides another's. Adding a shard is one more number in its matrix's
+# `shard` list and a new `shards` value; CiWorkflowTests fails when the list is not 1 to shards. Each Aspire shard
+# boots its own AppHost (about 40 s), so a shard is worth adding while its tests run well past that.
+#
+# Every job runs on ubuntu-24.04, pinned: ubuntu-latest moved to a new Ubuntu on 2026-10-19, and the caches are keyed
+# on runner.os, which reads Linux on every release. Move all jobs together.
+#
+# No job reads a secret or runs on a self-hosted runner: this repository's logs and artifacts are public, and the
+# stack needs no real credential (the consistency check's LLM is the Development fake). CiWorkflowTests fails on
+# either, on a job without timeout-minutes, and on a Gate that does not need every test job. Every checkout sets
+# persist-credentials: false: no job pushes, so the job's token never sits in .git/config while a pull request's code
+# runs.
+#
+# No test retries (flake policy, docs/process/testing.md). A test that fails here is fixed at its cause.
+
+env:
+  DOTNET_NOLOGO: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+  # The container images apps/apphost/AppHost.cs runs. The integration and end-to-end jobs pull them before the tests
+  # start, so the pulls do not eat the fixture's 3-minute start limit. CiWorkflowTests fails when this list and
+  # AppHost.cs differ.
+  APPHOST_IMAGES: >-
+    pgvector/pgvector:pg17
+    mcr.microsoft.com/azure-storage/azurite:3.35.0
+    axllent/mailpit:v1.31.2
+    ghcr.io/navikt/mock-oauth2-server:6.1.2
+    caddy:2.10.2-alpine
+  # How the test shards build: no analyzers, no code-style enforcement and no build-time OpenAPI document, about a
+  # third less compile time. The checks job builds with all of them and warnings as errors, so nothing goes unchecked,
+  # and the API's runtime OpenAPI document is unchanged (its XML-comment generator is a source generator, not an
+  # analyzer).
+  TEST_BUILD_FLAGS: -p:RunAnalyzers=false -p:EnforceCodeStyleInBuild=false -p:OpenApiGenerateDocuments=false
+  # How the Aspire shards run their tests: every test in parallel, its class included (xUnit's `all` mode), with xUnit's
+  # default scheduler. Measured on the dev machine (docs/process/testing.md, "Time"), `all` took the integration suite
+  # from 155 to 143 s and the end-to-end suite from 99 to 88 s with every test passing; the aggressive scheduler gained
+  # nothing more and failed five load-sensitive end-to-end tests. The tests already isolate their data by organization;
+  # the collections that must run alone (WorkerLifecycle, DevelopmentDemoRun) say DisableParallelization, which `all`
+  # honors. Local runs keep xUnit's defaults, because the dev machine runs several gates at once.
+  TEST_PARALLEL_FLAGS: --parallel all
+
+jobs:
+  # Build with warnings as errors, the API contract, type checks, the frontend builds, the small Vitest suites and the
+  # .NET unit tests. Every step runs even after one fails (`!cancelled()`), and the last step fails the job if any did,
+  # so one failure never hides another and a run reports every broken check at once.
+  checks:
+    name: Build, contract, checks, unit tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up the toolchain
+        uses: ./.github/actions/setup
+      - name: Build the solution, warnings as errors (verify:dotnet)
+        id: dotnet
+        if: ${{ !cancelled() }}
+        run: pnpm verify:dotnet
+      - name: API contract drift (verify:contract)
+        id: contract
+        if: ${{ !cancelled() }}
+        run: pnpm verify:contract
+      - name: Type checks (pnpm check)
+        id: check
+        if: ${{ !cancelled() }}
+        run: pnpm check
+      - name: Frontend builds (pnpm -r build)
+        id: build
+        if: ${{ !cancelled() }}
+        run: pnpm -r build
+      # Every Vitest suite but the dashboard's, which runs in the vitest matrix below.
+      - name: Vitest, every package but the dashboard
+        id: vitest
+        if: ${{ !cancelled() }}
+        run: pnpm -r --if-present --filter '!@screenhire/dashboard' test
+      - name: .NET unit tests
+        id: unit
+        if: ${{ !cancelled() }}
+        run: dotnet test --project tests/ScreenHire.UnitTests
+      - name: Summarize
+        if: ${{ !cancelled() }}
+        env:
+          DOTNET: ${{ steps.dotnet.outcome }}
+          CONTRACT: ${{ steps.contract.outcome }}
+          CHECK: ${{ steps.check.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          VITEST: ${{ steps.vitest.outcome }}
+          UNIT: ${{ steps.unit.outcome }}
+        run: |
+          status=0
+          report() {
+            if [ "$2" = success ]; then echo "passed: $1"; else echo "FAILED: $1 ($2)"; status=1; fi
+          }
+          report "verify:dotnet" "$DOTNET"
+          report "verify:contract" "$CONTRACT"
+          report "pnpm check" "$CHECK"
+          report "pnpm -r build" "$BUILD"
+          report "Vitest" "$VITEST"
+          report ".NET unit tests" "$UNIT"
+          exit $status
+
+  # The dashboard's Vitest suite, the longest on these runners, in Vitest's own shards. No .NET.
+  vitest:
+    name: Vitest, dashboard (${{ matrix.shard }}/${{ matrix.shards }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+        shards: [2]
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up the toolchain
+        uses: ./.github/actions/setup
+        with:
+          dotnet: 'false'
+      - name: Vitest, dashboard (shard ${{ matrix.shard }}/${{ matrix.shards }})
+        run: pnpm --filter @screenhire/dashboard run test --shard=${{ matrix.shard }}/${{ matrix.shards }}
+
+  # tests/ScreenHire.IntegrationTests on the runner's Docker Engine, its test classes split over the shards.
+  integration:
+    name: Integration tests (${{ matrix.shard }}/${{ matrix.shards }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        shards: [8]
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up the toolchain
+        uses: ./.github/actions/setup
+        with:
+          node: 'false'
+          nuget-cache: integration
+      - name: Pull the AppHost's container images
+        run: printf '%s\n' $APPHOST_IMAGES | xargs -P 5 -n 1 docker pull -q
+      - name: Build the integration tests
+        run: dotnet build tests/ScreenHire.IntegrationTests $TEST_BUILD_FLAGS
+      - name: Integration tests (shard ${{ matrix.shard }}/${{ matrix.shards }})
+        env:
+          SHARD: ${{ matrix.shard }}
+          SHARDS: ${{ matrix.shards }}
+        run: |
+          node scripts/test-shard.mjs tests/ScreenHire.IntegrationTests "$SHARD" "$SHARDS" > "$RUNNER_TEMP/shard.args"
+          mapfile -t filters < "$RUNNER_TEMP/shard.args"
+          dotnet test --project tests/ScreenHire.IntegrationTests --no-build "${filters[@]}" $TEST_PARALLEL_FLAGS \
+            --show-slowest-tests 15 --report-xunit-ctrf --report-xunit-ctrf-filename "integration-$SHARD.ctrf.json"
+      # Every shard's test durations (CTRF), kept even when it passes: they show where the time goes, and
+      # scripts/test-shard.mjs balances the shards on them.
+      - name: Upload test durations
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: durations-integration-${{ matrix.shard }}
+          path: TestResults/*.ctrf.json
+          retention-days: 7
+          if-no-files-found: ignore
+      # The fixture writes every resource's console log here (docs/process/testing.md, "AppHostFixture").
+      - name: Upload resource logs
+        if: ${{ failure() || cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-logs-${{ matrix.shard }}
+          path: tests/ScreenHire.IntegrationTests/bin/Debug/net10.0/TestResults/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # tests/ScreenHire.E2E: Playwright's Chromium against the production builds (Frontends=Built), its test classes
+  # split over the shards.
+  e2e:
+    name: End-to-end tests (${{ matrix.shard }}/${{ matrix.shards }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        shards: [8]
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up the toolchain
+        uses: ./.github/actions/setup
+        with:
+          playwright: 'true'
+      - name: Pull the AppHost's container images
+        run: printf '%s\n' $APPHOST_IMAGES | xargs -P 5 -n 1 docker pull -q
+      - name: Frontend builds (pnpm -r build)
+        run: pnpm -r build
+      - name: Build the end-to-end tests
+        run: dotnet build tests/ScreenHire.E2E $TEST_BUILD_FLAGS
+      # The Chromium revision the built Microsoft.Playwright driver wants, from the cache when it holds it. No
+      # install-deps: the ubuntu-24.04 image already has Chromium's system libraries.
+      - name: Install Playwright's Chromium
+        run: node scripts/install-browsers.mjs --no-build
+      - name: End-to-end tests (shard ${{ matrix.shard }}/${{ matrix.shards }})
+        env:
+          SHARD: ${{ matrix.shard }}
+          SHARDS: ${{ matrix.shards }}
+        run: |
+          node scripts/test-shard.mjs tests/ScreenHire.E2E "$SHARD" "$SHARDS" > "$RUNNER_TEMP/shard.args"
+          mapfile -t filters < "$RUNNER_TEMP/shard.args"
+          dotnet test --project tests/ScreenHire.E2E --no-build "${filters[@]}" $TEST_PARALLEL_FLAGS \
+            --show-slowest-tests 15 --report-xunit-ctrf --report-xunit-ctrf-filename "e2e-$SHARD.ctrf.json"
+      - name: Upload test durations
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: durations-e2e-${{ matrix.shard }}
+          path: TestResults/*.ctrf.json
+          retention-days: 7
+          if-no-files-found: ignore
+      # Resource logs, plus a full-page screenshot of every failed test (TestResults/screenshots).
+      - name: Upload resource logs and screenshots
+        if: ${{ failure() || cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-results-${{ matrix.shard }}
+          path: tests/ScreenHire.E2E/bin/Debug/net10.0/TestResults/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # The marketing budgets (mobile LCP under 1.8 s, CLS under 0.05), only when the change touches what the marketing
+  # build outputs, as the Testing column decides locally. Report-only and not in the gate: the LCP margin is about
+  # 300 ms, and shared runners have no baseline yet. A miss is a warning on the run, not a red check.
+  lighthouse:
+    name: Lighthouse (report-only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Does the change touch the marketing build?
+        id: changes
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          case "$EVENT" in
+            pull_request) base="$PR_BASE" ;;
+            push) base="$PUSH_BEFORE" ;;
+            *) base="" ;;
+          esac
+          # workflow_dispatch, or a push that opens a ref (its "before" is all zeros): no base to compare, so run.
+          if [ -z "$base" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "marketing=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if git diff --quiet "$base" HEAD -- apps/marketing packages/ui pnpm-lock.yaml; then
+            echo "::notice::No change to apps/marketing, packages/ui or pnpm-lock.yaml, so Lighthouse did not run."
+            echo "marketing=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "marketing=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Set up the toolchain
+        if: ${{ steps.changes.outputs.marketing == 'true' }}
+        uses: ./.github/actions/setup
+        with:
+          playwright: 'true'
+      - name: Install Playwright's Chromium
+        if: ${{ steps.changes.outputs.marketing == 'true' }}
+        run: pnpm e2e:install
+      - name: Build the marketing site
+        if: ${{ steps.changes.outputs.marketing == 'true' }}
+        run: pnpm --filter @screenhire/marketing build
+      - name: Lighthouse budgets (verify:lighthouse)
+        id: lighthouse
+        if: ${{ steps.changes.outputs.marketing == 'true' }}
+        continue-on-error: true
+        run: pnpm verify:lighthouse
+      - name: Report a budget miss
+        if: ${{ steps.lighthouse.outcome == 'failure' }}
+        run: echo "::warning::Lighthouse budgets failed on this runner (report-only). The step's log names the pages."
+
+  # The one check branch protection requires. It runs whatever happened upstream (`always()`) and fails unless every
+  # test job succeeded, each matrix's shards included, so a skipped or cancelled job never reads as a pass.
+  gate:
+    name: Gate
+    needs: [checks, vitest, integration, e2e]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every test job
+        env:
+          CHECKS: ${{ needs.checks.result }}
+          VITEST: ${{ needs.vitest.result }}
+          INTEGRATION: ${{ needs.integration.result }}
+          E2E: ${{ needs.e2e.result }}
+        run: |
+          status=0
+          for pair in "checks=$CHECKS" "vitest=$VITEST" "integration=$INTEGRATION" "e2e=$E2E"; do
+            if [ "${pair#*=}" = success ]; then echo "passed: ${pair%%=*}"; else echo "FAILED: ${pair%%=*} (${pair#*=})"; status=1; fi
+          done
+          exit $status

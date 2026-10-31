@@ -286,7 +286,10 @@ async function main() {
   const failures = [];
   try {
     const chromePath = process.env.CHROME_PATH ?? playwrightChromium();
-    chrome = await chromeLauncher.launch({ chromeFlags: ['--headless=new', '--no-first-run'], chromePath });
+    // Linux: Ubuntu 24.04 (the CI runners) restricts unprivileged user namespaces through AppArmor, so Chromium's
+    // sandbox cannot start there. Playwright's own launches, the end-to-end tests' included, run without it by default.
+    const sandbox = process.platform === 'linux' ? ['--no-sandbox'] : [];
+    chrome = await chromeLauncher.launch({ chromeFlags: ['--headless=new', '--no-first-run', ...sandbox], chromePath });
     console.log(`lighthouse: ${paths.length} page(s), mobile, ${chromePath ?? 'installed Chrome'} (pid ${chrome.pid})`);
     for (const path of paths) {
       const url = `http://127.0.0.1:${port}${path}`;

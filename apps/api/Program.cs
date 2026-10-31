@@ -63,7 +63,8 @@ builder.Services.AddProblemDetails();
 // limit) is the caller's mistake: answer with its own status. Minimal APIs throw these in Development rather than answer.
 builder.Services.Configure<ExceptionHandlerOptions>(options => options.StatusCodeSelector = exception =>
     exception is BadHttpRequestException bad ? bad.StatusCode : StatusCodes.Status500InternalServerError);
-builder.Services.AddOpenApi(options => options.AddSchemaTransformer(DefinitionSchemas.LinkFromOpenApi).AddScreenHireSecuritySchemes());
+builder.Services.AddOpenApi(options => options.AddSchemaTransformer(DefinitionSchemas.LinkFromOpenApi).AddScreenHireSecuritySchemes()
+    .UseUnixLineEndings());
 builder.Services.AddHiringValidation();
 builder.AddJobDistribution();
 // Webhook subscriptions: the API shows each endpoint's secret once and checks URLs against the same address rule the

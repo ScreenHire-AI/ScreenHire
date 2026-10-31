@@ -1,0 +1,95 @@
+name: Set up the toolchain
+description: >-
+  pnpm, Node, the .NET SDK, the workspace's packages, the repo-local .NET tools and the Aspire CLI bundle (DCP and
+  the dashboard), with the pnpm store and NuGet packages cached. With playwright set, also the cache of Playwright's Chromium.
+  Every job in ci.yml uses it after its checkout, so the jobs set up the same way a dev machine does.
+
+inputs:
+  node:
+    description: >-
+      Set up pnpm and Node 24 and install the workspace's packages ('true' or 'false'). The integration shards skip it:
+      they start no frontend, and scripts/test-shard.mjs needs only the runner's own Node.
+    default: 'true'
+  nuget-cache:
+    description: >-
+      The NuGet cache's name. Each suite keeps its own, holding only what its projects restore: the integration shards'
+      leaves out Playwright's browser drivers, so they restore less.
+    default: all
+  dotnet:
+    description: Set up .NET, the repo-local tools and the Aspire bundle ('true' or 'false'). Vitest-only jobs skip it.
+    default: 'true'
+  playwright:
+    description: Restore the cached Chromium the end-to-end tests and Lighthouse drive ('true' or 'false'); the job installs it.
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    # pnpm first: setup-node's pnpm cache asks pnpm where its store is. No version: the action reads packageManager
+    # from the root package.json.
+    - name: Set up pnpm
+      if: ${{ inputs.node == 'true' }}
+      uses: pnpm/action-setup@v6
+
+    # Node 24, the dev machine's major. package.json's engines (>=22.22.0) is only the floor, and setup-node would
+    # resolve that range to the newest release, which the dev machine does not run.
+    - name: Set up Node.js 24
+      if: ${{ inputs.node == 'true' }}
+      uses: actions/setup-node@v7
+      with:
+        node-version: 24
+        cache: pnpm
+
+    - name: Set up .NET (global.json)
+      if: ${{ inputs.dotnet == 'true' }}
+      uses: actions/setup-dotnet@v6
+      with:
+        global-json-file: global.json
+
+    # The repo has no NuGet lock files, so the key is every file that pins a package or a tool.
+    - name: Cache NuGet packages
+      if: ${{ inputs.dotnet == 'true' }}
+      uses: actions/cache@v6
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ inputs.nuget-cache }}-${{ hashFiles('global.json', 'dotnet-tools.json', 'Directory.Packages.props', '**/*.csproj') }}
+        restore-keys: ${{ runner.os }}-nuget-${{ inputs.nuget-cache }}-
+
+    - name: Install packages (pnpm install --frozen-lockfile)
+      if: ${{ inputs.node == 'true' }}
+      shell: bash
+      run: pnpm install --frozen-lockfile
+
+    - name: Restore the repo-local .NET tools
+      if: ${{ inputs.dotnet == 'true' }}
+      shell: bash
+      run: dotnet tool restore
+
+    # apps/apphost sets AspireUseCliBundle=true, so the AppHost's build reads DCP and the dashboard from the Aspire
+    # CLI's bundle under ~/.aspire. A dev machine has it from the CLI's first run; a fresh runner does not. `aspire
+    # setup` extracts the bundle the CLI carries, the same command the CLI runs on a dev machine, so CI uses the same
+    # DCP as local runs. The check fails here, where the cause is plain, rather than inside a test fixture.
+    - name: Lay out the Aspire CLI bundle (DCP and dashboard)
+      if: ${{ inputs.dotnet == 'true' }}
+      shell: bash
+      run: |
+        dotnet aspire setup --install-path "$HOME/.aspire"
+        test -d "$HOME/.aspire/bundle/dcp" || { echo "::error::No DCP under ~/.aspire/bundle after aspire setup"; ls -la "$HOME/.aspire" || true; exit 1; }
+
+    # The browser revision follows the Microsoft.Playwright package (scripts/install-browsers.mjs), so its version is
+    # the cache key.
+    - name: Read the Microsoft.Playwright version
+      id: playwright
+      if: ${{ inputs.playwright == 'true' }}
+      shell: bash
+      run: |
+        version=$(sed -n 's/.*Include="Microsoft.Playwright" Version="\([^"]*\)".*/\1/p' Directory.Packages.props)
+        test -n "$version" || { echo "::error::No Microsoft.Playwright version in Directory.Packages.props"; exit 1; }
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+
+    - name: Cache Playwright's Chromium
+      if: ${{ inputs.playwright == 'true' }}
+      uses: actions/cache@v6
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ steps.playwright.outputs.version }}

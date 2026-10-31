@@ -1,7 +1,7 @@
 ---
 type: Guide
 title: "Testing"
-description: "Which test tier proves what (xUnit, Vitest, Aspire integration, Playwright), running one test, the shared AppHostFixture, isolating data by organization, golden files, the marketing JS and Lighthouse checks, the flake policy and its history, and gate time."
+description: "Which test tier proves what (xUnit, Vitest, Aspire integration, Playwright), running one test, the shared AppHostFixture, isolating data by organization, golden files, the marketing JS and Lighthouse checks, CI on GitHub Actions and how to read a failed run, the flake policy and its history, and gate time."
 tags: [testing, xunit, playwright, vitest]
 sources:
   - resource: tests/ScreenHire.Testing/AppHostFixture.cs
@@ -11,11 +11,15 @@ sources:
   - resource: apps/marketing/scripts/lighthouse.mjs
   - resource: scripts/install-browsers.mjs
   - resource: global.json
+  - resource: .github/workflows/ci.yml
+  - resource: .github/actions/setup/action.yml
+  - resource: scripts/test-shard.mjs
 ---
 # Testing
 
-Every tier of test has a home, a pattern and a place in `pnpm verify`, so a feature task only adds tests. The gate is
-the only CI for now ([`/verify`](../../.claude/skills/verify/SKILL.md)); a suite that is not in it does not exist.
+Every tier of test has a home, a pattern and a place in `pnpm verify`, so a feature task only adds tests. The local
+gate ([`/verify`](../../.claude/skills/verify/SKILL.md)) is the board's gate, and CI runs the same suites on Linux for
+every pull request ([Continuous integration](#continuous-integration)); a suite that is in neither does not exist.
 
 ## Which tier for what
 
@@ -252,12 +256,13 @@ The marketing site's SEO and performance budgets (ADR-0003) are checked at three
 |---|---|---|
 | Unique titles and descriptions in the page registry, JSON-LD builders, pricing placeholders | Vitest, `apps/marketing/src/lib/*.test.ts` | `pnpm -r --if-present test` |
 | At most 15 KB of brotli JS per page (JSON-LD excluded), no broken internal links or Open Graph images, a body-font preload on every page | `apps/marketing/scripts/check-dist.mjs`, after `astro build` | `pnpm -r build` |
-| Mobile LCP under 1.8 s, CLS under 0.05, JS bytes, on every page in the sitemap | `apps/marketing/scripts/lighthouse.mjs` (Lighthouse on Astro's preview server) | `verify:lighthouse`, run by the Testing column (`/pull-request`) for a branch that changes `apps/marketing`, `packages/ui` or `pnpm-lock.yaml`; not in `pnpm verify` |
+| Mobile LCP under 1.8 s, CLS under 0.05, JS bytes, on every page in the sitemap | `apps/marketing/scripts/lighthouse.mjs` (Lighthouse on Astro's preview server) | `verify:lighthouse`, run by the Testing column (`/pull-request`) for a branch that changes `apps/marketing`, `packages/ui` or `pnpm-lock.yaml`, and by CI's report-only `lighthouse` job for the same paths; not in `pnpm verify` |
 | Unique title, description and canonical; hreflang; Open Graph image; JSON-LD types per page; no script but JSON-LD; axe; no sideways scroll at 390px; 404 | `tests/ScreenHire.E2E/MarketingTests.cs` | `verify:test` |
 
 `MarketingTests` keeps a table of every indexable page and the schema.org types it must carry, and fails if the
 sitemap lists a page the table does not, so a new page cannot skip the checks. Lighthouse uses CHROME_PATH, then
-Playwright's Chromium, then an installed Chrome. Its simulated mobile numbers were identical to within 3 ms across
+Playwright's Chromium, then an installed Chrome. On Linux it starts Chrome with `--no-sandbox`, because Ubuntu 24.04
+restricts the user namespaces Chromium's sandbox needs; Playwright's own launches run without it by default. Its simulated mobile numbers were identical to within 3 ms across
 two consecutive full runs (about 90 s each). Run a subset with
 `pnpm --filter @screenhire/marketing lighthouse / /pricing/`; in Git Bash set `MSYS_NO_PATHCONV=1` first, or the
 paths are rewritten into Windows paths.
@@ -313,6 +318,166 @@ What the agent browser lacks, so the trial cannot stand in for the budget:
 It is still useful while working on a page: a quick look for layout shifts and their sources, or for a script that
 should not be there. The budget stays with Lighthouse.
 
+## Continuous integration
+
+[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs the gate's suites on GitHub's hosted Linux runners
+for every pull request to `main`, every push to `main`, and on demand (`workflow_dispatch`). A newer push to the same
+branch cancels the run before it. The board still gates on the local `pnpm verify`; CI is the second opinion on
+another OS until the board moves to it.
+
+The runners have 4 cores and each long suite is CPU-bound there, so the long suites run as matrix shards on separate
+runners. Every matrix sets `fail-fast: false`, so one shard's failure never hides
+another's.
+
+| Job | Runs | Timeout |
+|---|---|---|
+| `checks` | `pnpm verify:dotnet`, `pnpm verify:contract`, `pnpm check`, `pnpm -r build`, Vitest for every package but the dashboard, and `dotnet test --project tests/ScreenHire.UnitTests`. Every step runs even when an earlier one failed, and the last step fails the job if any did, so a run reports every broken check at once | 20 min |
+| `vitest` (2 shards) | The dashboard's Vitest suite with Vitest's own `--shard`. No .NET | 15 min |
+| `integration` (8 shards) | `tests/ScreenHire.IntegrationTests` on the runner's Docker Engine, one AppHost per shard | 25 min |
+| `e2e` (8 shards) | `pnpm -r build`, then `tests/ScreenHire.E2E` with Playwright's Chromium, one AppHost per shard | 25 min |
+| `lighthouse` | `pnpm verify:lighthouse` on the marketing build, only when the change touches `apps/marketing`, `packages/ui` or `pnpm-lock.yaml` (otherwise a notice says so). Report-only: a budget miss is a warning, the job stays green, and it is not in the gate, because shared runners have no LCP baseline yet | 20 min |
+| `gate` (`Gate`) | Nothing but a check that `checks` and every shard of `vitest`, `integration` and `e2e` succeeded. It runs even when they fail (`always()`), so a skipped or cancelled job never reads as a pass. It is the one check branch protection requires | 5 min |
+
+xUnit and Microsoft Testing Platform have no shard option, so [`scripts/test-shard.mjs`](../../scripts/test-shard.mjs)
+splits a .NET test project by class:
+- it lists the built project's tests (`dotnet test --list-tests`);
+- it weighs each class by its measured seconds in [`tests/shard-durations.json`](../../tests/shard-durations.json), or,
+  for a class with no measurement, by its test count times the median seconds per test;
+- it gives each class, whole, to the lightest shard, heaviest class first;
+- it prints one shard's `--filter-class` arguments.
+
+A class stays whole because a class fixture can boot a stack of its own (`DevelopmentDemoFixture`). A shard with no
+class fails rather than run everything. After a build, `node scripts/test-shard.mjs tests/ScreenHire.E2E 2 8` prints
+what CI's second end-to-end shard runs.
+
+Every Aspire shard writes xUnit's CTRF report (`TestResults/*.ctrf.json`, uploaded as `durations-<suite>-<shard>` on
+every run) and prints its 15 slowest tests. When the shards drift apart, refresh the measurements from a green run:
+
+```
+gh run download <run-id> -p "durations-*" -D TestResults/durations
+node scripts/test-shard.mjs --record TestResults/durations > tests/shard-durations.json
+```
+
+A stale file still splits correctly, only less evenly, and a new class gets its estimate until the next refresh.
+
+Meziantou.ShardedTest does the same per test, but it has no licence (ADR-0008), and it builds a VSTest `--filter`,
+which `dotnet test` on this platform does not take. Each Aspire shard boots its own AppHost, about 40 s, so a shard is
+worth adding while its tests run well past that. Raise a matrix's `shard` list and `shards` value together.
+
+Three settings make each shard faster without changing what it proves:
+- **Test-only builds** (`TEST_BUILD_FLAGS`): no analyzers, no code-style enforcement and no build-time OpenAPI
+  document, about a third less compile time. `checks` builds with all of them and warnings as errors.
+- **Every test in parallel** (`TEST_PARALLEL_FLAGS`, xUnit's `--parallel all`): tests in one class run side by side.
+  Within one class xUnit otherwise runs tests one after another, so a shard's floor was its slowest whole class. The
+  aggressive scheduler (`--parallel-algorithm aggressive`) gained nothing more and failed five load-sensitive
+  end-to-end tests, so CI keeps the default one. The collections that
+  must run alone say `DisableParallelization`, which `all` honors. Local runs keep xUnit's defaults, because the dev
+  machine runs several gates at once.
+- **No SQL in the test stacks' logs**: `AppHostFixture` sets `Microsoft.EntityFrameworkCore.Database.Command` to
+  Warning for the API and the worker. Logging every command was 80 MB of console output per integration stack; failed
+  commands still log. The same method turns the API's request log on (`Microsoft.AspNetCore.Hosting.Diagnostics` at
+  Information), one line per request with its path, status and time, so a test that waits out a slow request names
+  it in `api.log`.
+
+Every job runs on `ubuntu-24.04`, pinned, and sets up through
+[`.github/actions/setup`](../../.github/actions/setup/action.yml):
+- pnpm (from `packageManager`), Node 24 with the pnpm store cached, and the .NET SDK from `global.json` with NuGet
+  packages cached;
+- `pnpm install --frozen-lockfile` and `dotnet tool restore`;
+- `dotnet aspire setup`, which lays out the Aspire CLI's bundle (DCP and the dashboard) under `~/.aspire`. The AppHost
+  sets `AspireUseCliBundle=true` and reads DCP from there, as on a dev machine;
+- for `vitest`, none of the .NET steps; for `integration`, no Node or pnpm (no frontend starts, and
+  `scripts/test-shard.mjs` runs on the runner's own Node) and a NuGet cache of its own without Playwright's browser
+  drivers, which restores faster than the full 1.5 GB one;
+- for `e2e` and `lighthouse`, Playwright's browsers cached on the `Microsoft.Playwright` version. The `e2e` job
+  installs Chromium with `node scripts/install-browsers.mjs --no-build` after its test-only build, `lighthouse` with
+  `pnpm e2e:install`.
+
+The integration and end-to-end jobs pull the AppHost's container images (`APPHOST_IMAGES` in the workflow) before
+the tests, so the pulls do not count against the fixture's 3-minute start. DCP builds its own small container-tunnel
+image at the first start; it is not on the list.
+
+CI never sees a secret: the repository's logs and artifacts are public, and nothing in the stack needs a real
+credential (the consistency check's LLM is the Development fake). No test retries in CI either (flake policy).
+`CiWorkflowTests` (`tests/ScreenHire.UnitTests/Tooling/`) fails when a job leaves `ubuntu-24.04` or has no timeout,
+when `Gate` does not need every test job, when a matrix's `shard` list is not 1 to its `shards` value, when anything under `.github/` reads `secrets.` or runs on a self-hosted
+runner, and when `APPHOST_IMAGES` differs from the images `apps/apphost/AppHost.cs` names. That is why `AppHost.cs`
+names Azurite's and Mailpit's tags itself: bump them with the Aspire packages.
+
+### What differs on Linux
+
+The first runs found two differences from the Windows dev machine. Both were fixed at their cause:
+
+- **Line endings in the contract.** The OpenAPI XML-comment generator joins a doc comment's lines with the build
+  machine's newline, so `openapi.json` had `\r\n` from Windows and `\n` from Linux, and `verify:contract` failed on
+  one of them. The API's last OpenAPI transformer (`OpenApiLineEndings`) writes `\n` on both.
+- **Graceful stops.** On Windows DCP stops a process by killing it; on Linux it sends SIGTERM and waits about 12 s.
+  The test stack has no dashboard, but Aspire's testing builder still pointed every service's telemetry exporter at
+  `localhost:4317`, with retries on, so the worker spent its shutdown retrying exports and the restart test's stop
+  timed out. `AppHostFixture` now clears `OTEL_EXPORTER_OTLP_ENDPOINT` in the test stacks, so no exporter is added.
+
+### What each speed-up saved
+
+Measured on the dev machine on 2026-10-31, one configuration at a time with nothing else of this task running, each
+change added to the ones above it. Every run passed every test unless the table says otherwise.
+
+| Change | Integration (622 tests) | End-to-end (111 tests) |
+|---|---|---|
+| Before | 177 s | 100 s |
+| No SQL in the test stacks' logs (`AppHostFixture`) | 158 s | |
+| Analyses and consistency checks ordered per application (messaging.md, "Ordering") | 155 s | 99 s (1 failure, below) |
+| `--parallel all` | 143 s | 88 s |
+| `--parallel all --parallel-algorithm aggressive` | 144 s | 84 s, 5 failures: not used |
+
+So the two suites went from 277 s to 231 s, 17% less, before sharding. On CI the same changes apply to every shard,
+and the test-only build flags take about a third off each shard's compile on top.
+
+### Reading a failed run
+
+1. `gh run list --branch <branch> --workflow CI` finds the run, and `gh pr checks <number>` shows each job on a PR.
+2. `gh run view <run-id> --log-failed` prints the log of each failed step only. A test failure names the test and
+   its assertion there, as it does locally.
+3. When `integration` or `e2e` fails or is cancelled (a timeout included), the job uploads its `TestResults` folder as
+   an artifact for 7 days: `integration-logs-<shard>` or `e2e-results-<shard>`, with each resource's console log in `logs/` and a
+   screenshot of every failed end-to-end test in `screenshots/`. `gh run download <run-id> -n e2e-results-2` fetches the second shard's.
+   Read the resource logs first, as locally ([`AppHostFixture`](#apphostfixture-testsscreenhiretesting)).
+4. Rerun a job only to tell a flake from a defect, and record a flake in [Flake history](#flake-history) as for a
+   local run.
+
+### Time
+
+With the sharded layout and every speed-up above, run 41246212243 (2026-10-31, commit `c8493aa6`) took 9 min 0 s
+from start to `Gate`. The jobs themselves were short:
+
+| Job | Wall clock per job |
+|---|---|
+| `checks` | 3.4 min |
+| `vitest` (2 shards) | 1.7 to 2.0 min |
+| `integration` (8 shards) | 1.9 to 4.0 min |
+| `e2e` (8 shards) | 2.8 to 4.1 min |
+| `lighthouse` | 3.5 min |
+
+The rest was queueing. The organization, created on 2026-10-31, shows a limit of 20 concurrent jobs in its runner
+settings, but its runs got at most 5, 6, 8, 9 and then 10 runners at once, and the other jobs waited for one. With 20
+at once, the same run takes about 4.5 minutes, with no change to the workflow. Its test counts matched the local gate on
+the same commit: 1333 unit, 623 integration and 111 end-to-end tests, and 1393 Vitest tests.
+
+The first green run, before the suites were sharded, on 2026-10-31 at commit `579ed99b` (run 41213499536), took 13 min 6 s from start to `Gate`, with
+the caches the run before it saved (NuGet, the pnpm store, Playwright's Chromium):
+
+| Job | Wall clock | Its longest steps |
+|---|---|---|
+| `checks` | 12 min 17 s | Vitest 7 min 0 s, `verify:dotnet` 2 min 3 s, `pnpm check` 1 min 9 s, setup 54 s, .NET unit tests 25 s |
+| `integration` | 10 min 54 s | the tests 9 min 32 s (622), setup 49 s |
+| `e2e` | 13 min 1 s | the tests 9 min 18 s (111), setup with Chromium 2 min 32 s, `pnpm -r build` 32 s, image pulls 23 s |
+| `lighthouse` | 4 min 33 s | setup with Chromium 2 min 31 s, 15 pages 1 min 40 s (every LCP 1505 to 1521 ms, CLS 0) |
+| `gate` | 3 s | |
+
+The test counts were the local gate's on the same commit: 1324 unit, 622 integration and 111 end-to-end tests, and
+1401 Vitest tests (dashboard 1101, careers 127, realtime 81, marketing 64, telemetry 15, api-client 13). The runners
+have 4 cores, so Vitest is the longest step of `checks`: the dashboard's suite took 409 s there and 47 s on the dev
+machine.
+
 ## Flake policy
 
 A test that passes on a rerun with no change is a bug. Fix the cause: an unawaited task, a fixed delay, a shared
@@ -355,6 +520,9 @@ What failed the gate with no change, and the cause that was fixed, so the next f
 | 2026-10-31 | After merging `main` (which brought `AppHostFixture.WaitUntilWorkerListensAsync`) into the reports branch, the realtime and email tests above passed in the full gate, and 3 of 1775 end-to-end tests failed instead: `CandidateNotesTests` and `TalentPoolTests` waited 5 s for the Jobs heading after signing in, and `ScorecardRequestTests` found the "Ask for a scorecard" sheet's Scorecard list still empty. All three, with `ReportsTests`, passed 5 of 5 alone straight after, and the next full gate passed 1775 of 1775. The gate after that failed 1 of 1775: `IntegrityPanelTests` waited 60 s for Alex Reed's authenticity chip to leave No concerns, and passed alone straight after | Not proven. Each failure is a first load that did not finish inside its wait while the integration and end-to-end stacks ran side by side, and none of the three touches Reports. If the sign-in wait recurs on a quiet machine, check how long the dashboard's first `GET /v1/auth/me` takes in the end-to-end stack's API log. |
 | 2026-10-31 | On the verification branch, seven full gate runs failed in different places while other worktrees ran their stacks: 32, then 7, then 3 integration tests waiting on the worker (automations, realtime, the integrity pipeline); one run stopped by Claude Code for low memory with about 5 GB free; one with 4 dashboard Vitest workers exiting at start with Windows' 0xC0000142; and two with 5 and 27 end-to-end tests on a blank page, the first page's heading missing within 5 s while the API logged 2,000 to 3,800 lines a second as every end-to-end test signed in at once beside the integration suite. Every failing test passed alone straight after, and the next gate, with no other stacks on the machine, passed 1894 of 1894 | Not proven beyond load. The realtime trio stopped failing once `main`'s `WaitUntilWorkerListensAsync` was merged. The end-to-end failures all fell in the first 30 s of the project's run, so if they recur on a quiet machine, check whether the fixture should let the API settle before the first sign-ins, and keep `TestResults/logs` first |
 | 2026-10-31 | On the verification rename branch, one full gate run failed 1 of 2003: `DistributionTests.The_indexing_dispatcher_sends_queued_notifications_and_google_never_reaches_closed` waited 60 s for the Google posting to reach Submitted. The test publishes the dispatch message itself, so the worker's once-a-minute cron is not what it waits on. The whole `DistributionTests` class passed alone straight after (10 of 10), and the gate run before the code review commits passed 2001 of 2001. Other worktrees' stacks were running beside it | Not proven beyond load on the worker's queue, like the rows above. Nothing in the rename touches distribution. If it recurs on a quiet machine, read the worker's log for the `SyncJobPosting` command of that job before changing the 60 s wait |
+
+| 2026-10-31 | `ApplyTests.Candidate_applies_with_JavaScript_turned_off` failed twice: once in a local end-to-end benchmark run and once on CI (run 41247065921, end-to-end shard 6/8). Both times `ApplySteps.ApplyAsync` waited 30 s for the applied page after the last "Send application", Playwright logged no navigation in that time, and the failure screenshot shows "Application sent": the submission landed, more than 30 s late. Three local end-to-end runs straight after passed it | Not proven. The API checked the upload (the blob reads every submission makes, all under 0.1 s) about 30 s before the wait ran out, so the time went after that check, in the submit or in the careers server's redirect. Neither the API nor the careers server logged requests, so nothing named the slow one. The test stacks now log every API request with its duration (`AppHostFixture`, `Microsoft.AspNetCore.Hosting.Diagnostics`): if it recurs, read the `POST /v1/public/...applications` line in the artifact's `api.log` to see whether the API was slow or the careers server was |
+| 2026-10-31 | CI run 41244830579, integration shard 4/8: `PublicApplicationTests.Submission_creates_the_candidate_and_application_and_publishes_its_event` threw "Sequence contains more than one element" reading the application's timeline | The test took the timeline's only entry as the submission. Once analyses of one application stopped racing (messaging.md, "Ordering"), the worker's `VerificationAssessed` entry landed within about 400 ms, before the test read. It now picks the entry by type, `Submitted`. |
 
 ## Gate time
 

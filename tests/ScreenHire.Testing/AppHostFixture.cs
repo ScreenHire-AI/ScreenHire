@@ -115,6 +115,8 @@ public class AppHostFixture : IAsyncLifetime
                 .. ExtraArguments,
             ],
             startup.Token);
+        WithoutTelemetryExport(builder);
+        WithTestLogLevels(builder);
         Configure(builder);
         app = await builder.BuildAsync(startup.Token);
         watcher = WatchResourcesAsync(app, watching.Token);
@@ -129,6 +131,42 @@ public class AppHostFixture : IAsyncLifetime
             // A failed start must not leave containers and processes behind, whether or not xUnit disposes us.
             await DisposeAppAsync();
             throw;
+        }
+    }
+
+    // The test stack has no Aspire dashboard, yet the testing builder still points every service's OTLP exporter at
+    // http://localhost:4317, where nothing listens, and Aspire turns on the exporter's in-memory retry. A service then
+    // spends its shutdown retrying exports. On Linux, where DCP stops a process gracefully, the worker outlived DCP's stop
+    // timeout and the stop command failed (docs/process/testing.md, "Continuous integration"); on Windows DCP kills it,
+    // which hid this. With no endpoint, ServiceDefaults adds no exporter, so there is nothing to flush.
+    private static void WithoutTelemetryExport(IDistributedApplicationTestingBuilder builder)
+    {
+        foreach (var resource in builder.Resources.OfType<IResourceWithEnvironment>()
+                     .Where(resource => resource.Annotations.OfType<OtlpExporterAnnotation>().Any()))
+        {
+            resource.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
+                context.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = ""));
+        }
+    }
+
+    // EF Core logs every SQL command it runs at Information. In a test stack that is most of the API's and the worker's
+    // console output: one integration run wrote about 58,000 commands, 80 MB through DCP, Aspire's log service and
+    // CopyLogAsync, on runners that also host Postgres, the browser and the tests. Commands that fail still log, at
+    // Warning and above. `pnpm dev` keeps them, for the Aspire dashboard.
+    // The API's request log goes the other way, on: one line per request with its path, status and time ("Request
+    // finished ... in 31234 ms"), so a test that waits out a slow request names the request in api.log. The line holds
+    // the full URL, the candidate tokens in the public questionnaire, draft and talent-pool routes included, and CI
+    // uploads api.log as a public artifact on failure. That is fine because a test stack's data and tokens are throwaway
+    // values in a database that is gone when the run ends; never turn this on for a stack that holds real data.
+    private static void WithTestLogLevels(IDistributedApplicationTestingBuilder builder)
+    {
+        foreach (var project in builder.Resources.OfType<ProjectResource>())
+        {
+            project.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
+            {
+                context.EnvironmentVariables["Logging__LogLevel__Microsoft.EntityFrameworkCore.Database.Command"] = "Warning";
+                context.EnvironmentVariables["Logging__LogLevel__Microsoft.AspNetCore.Hosting.Diagnostics"] = "Information";
+            }));
         }
     }
 
