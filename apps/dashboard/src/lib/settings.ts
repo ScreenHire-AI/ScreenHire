@@ -1,3 +1,4 @@
+import BookmarkIcon from '@lucide/svelte/icons/bookmark';
 import Building2Icon from '@lucide/svelte/icons/building-2';
 import KeyRoundIcon from '@lucide/svelte/icons/key-round';
 import PlugIcon from '@lucide/svelte/icons/plug';
@@ -9,6 +10,9 @@ import WebhookIcon from '@lucide/svelte/icons/webhook';
 import type { CurrentUser, JobAccess, OrganizationRole, Permission, RoleSummary } from '@screenhire/api-client';
 import { can, seesAllJobs } from '#lib/permissions.js';
 import type { LucideIcon } from '#lib/shell.js';
+
+/** The team's history and its Last updated (`/team/history`, `/team/last-update`): invalidate it with every team change. */
+export const teamPath = '/v1/organization/team';
 
 /**
  * The Settings menu's pages (design system section 11), each with the permission its changes need: the sidebar's one
@@ -22,6 +26,7 @@ export const settingsSections: readonly { label: string; href: string; icon: Luc
   { label: 'Roles', href: '/settings/roles', icon: ShieldUserIcon, permission: 'ManageTeam' },
   { label: 'Branding', href: '/settings/branding', icon: PaletteIcon, permission: 'EditSettings' },
   { label: 'Verification', href: '/settings/verification', icon: ShieldCheckIcon, permission: 'EditSettings' },
+  { label: 'Talent pool', href: '/settings/talent-pool', icon: BookmarkIcon, permission: 'EditSettings' },
   { label: 'API keys', href: '/settings/api-keys', icon: KeyRoundIcon, permission: 'ManageApiKeys', allJobs: true },
   { label: 'Webhooks', href: '/settings/webhooks', icon: WebhookIcon, permission: 'ManageWebhooks', allJobs: true },
   // The MCP server signs in with an API key, so it needs what API keys need.

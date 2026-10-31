@@ -9,11 +9,17 @@ sources:
   - resource: apps/dashboard/src/lib/status.ts
   - resource: apps/marketing/src/components/StatusIcon.astro
   - resource: apps/dashboard/src/routes/(dev)/style-guide/style-guide.svelte
+  - resource: apps/dashboard/src/lib/components/rich-text-editor.svelte
+  - resource: apps/dashboard/src/lib/components/rich-text-toolbar.svelte
+  - resource: apps/dashboard/src/lib/rich-text.ts
   - resource: apps/dashboard/src/lib/table-sort.svelte.ts
   - resource: apps/dashboard/src/lib/preview-window.svelte.ts
   - resource: apps/dashboard/src/lib/form-builder.ts
   - resource: apps/dashboard/src/lib/form-sections.ts
   - resource: apps/dashboard/src/lib/templates.ts
+  - resource: apps/dashboard/src/lib/components/color-field.svelte
+  - resource: apps/dashboard/src/lib/components/image-field.svelte
+  - resource: apps/dashboard/src/lib/components/branding-preview.svelte
 ---
 # ScreenHire design system
 
@@ -89,10 +95,11 @@ Authors check their screens against this list, and the `design-review` agent rep
   can enable (Save until the form is valid), with the reason beside it.
 - **A4** Icon-only buttons have an `aria-label` and a tooltip.
 - **A5** Links go somewhere: another page, tab or record, as underlined text; navigation and a table row's name
-  underline on hover. Buttons do something: act, or open a sheet, a menu or a dialog. A link never opens a sheet, and a
-  button never navigates, with one exception: a page's own action that opens another page to do it (New job, Edit,
+  underline on hover. Buttons do something: act, or open a sheet, a menu or a dialog. A link never opens a sheet on the
+  page it sits on, and a button never navigates, with one exception: a page's own action that opens another page to do it (New job, Edit,
   Cancel on a form, Back) is an outline or primary button that renders as a link (`<a>`), because it starts that
-  action. A menu item that opens a page is a link inside the menu. Badges, pills and counts are never clickable,
+  action. A link to a record may arrive with the sheet for its work open there, as a requested scorecard's does. A
+  menu item that opens a page is a link inside the menu. Badges, pills and counts are never clickable,
   except a count button in a header (T4).
 - **A6** A button with a text label has a border or a fill, never bare coloured text, and its label starts with a verb
   (Mark done, not Complete). An icon button (More, Close) may be bare, with its label in a tooltip (A4). A sortable
@@ -159,7 +166,8 @@ Authors check their screens against this list, and the `design-review` agent rep
 - **T5** Times follow section 13: time ago in text, dates in tables, the browser's locale, the exact time on hover.
 - **T6** Anything people edit says who updated it last and how long ago: the last fact in its header ("2 hours ago by
   Avery Quinn") with History beside it, and a Last updated column in its list. ScreenHire's own templates and roles
-  say "by ScreenHire". History opens a sheet with every change, newest first and grouped by day: who, when and what,
+  say "by ScreenHire". Something nothing has changed since it was created says so: the fact is Created, "2 hours ago by
+  Avery Quinn", never Updated with nobody, and no second Created fact repeats it (W7). History opens a sheet with every change, newest first and grouped by day: who, when and what,
   with before and after on request. The one exception is a record whose row holds a secret (a webhook endpoint):
   change history never reads it, so its header says when it was added and when its secret was last rotated instead
   (ADR-0016).
@@ -298,7 +306,9 @@ higher layers get lighter (section 6), and the surface shadow is darker so it st
 | `candidate-chip` | `#F3E7D6` (text `#5A4630`) | `#2E2A25` |
 | `candidate-cta` | `#C2462F` (white text, 4.98:1) | `#F08A6E` (text `#1A1310`) |
 
-On tenant careers pages, `candidate-cta` and the header mark take the employer brand tokens (section 18).
+On tenant careers pages, `candidate-cta` and the header mark take the employer brand tokens, and `candidate-header`
+and `candidate-header-foreground` (the header band, default the page background and ink) take the second colour
+(section 18).
 
 ## 4. Type
 
@@ -330,7 +340,7 @@ weight and tracking. The family is its own class: `font-display` for the two tit
 
 ### 4.3 Candidate and marketing pages
 
-Base 15px, display 30px, inputs 16px (no zoom on iOS), hints under a field 13px: `text-candidate-body`,
+Titles take the employer's heading font where one is set (section 18), otherwise Bricolage Grotesque. Base 15px, display 30px, inputs 16px (no zoom on iOS), hints under a field 13px: `text-candidate-body`,
 `text-candidate-input` and `text-candidate-hint` in `packages/ui`. A form of several pages shows `PageProgress`
 (`packages/ui/src/questions`) above its fields: a bar of one segment per step, then "Step 2 of 4" and "9 of 24
 answered" in the hint size, the step semibold; each page's heading is its section's name. Marketing display goes up to 64px. The dashboard's
@@ -376,7 +386,7 @@ Atlassian's surfaces.
 
 | Template | For | Anatomy |
 |---|---|---|
-| List | Candidates, jobs, templates, My tasks; the team, roles, API keys and webhooks in Settings | Header band (title, count, page actions); one full-width table panel whose header holds its title, search and filters, with no side column (S7). A list with no search (My tasks) puts its toggles in a row under the panel header |
+| List | Candidates, jobs, the talent pool, templates, My tasks; the team, roles, API keys and webhooks in Settings | Header band (title, count, page actions); one full-width table panel whose header holds its title, search and filters, with no side column (S7). A list with no search (My tasks) puts its toggles in a row under the panel header |
 | Detail | A candidate, a job, a webhook endpoint | Header band (identity, status badges, a contact line for a person, actions, the facts row); tabs in a fixed order under it; the content in panels below, in a grid of two columns on a wide page and one on a narrow one (S7) |
 | Read-only view | A ScreenHire template, anything you cannot edit | As detail; data as labels and values, never disabled inputs; it says why it is read only and what to do (E3); Copy or Edit as the primary action |
 | Form | Creating or editing a record; a settings page such as Organization, Branding or Integrity | One column, 688px wide, labels above fields, actions at the end |
@@ -457,7 +467,7 @@ in a development build, shows every component in each state, and its test fails 
 | Overdue badge | `OverdueBadge` on `StatusBadge` and `Hint` | Section 3.2: the review badge, "Overdue by" and how long, the due time in a tooltip that opens on hover, focus or tap. First in the stage cell of a candidate table and list item, first in a board card's status row, and beside the title on an application's page (S2, T2). Never on a hired, rejected or withdrawn stage |
 | Fact pill | `Badge` muted variant | `secondary` fill, `input` edge, 12px; only on white surfaces. For tags, for facts in a list item or a sheet, and for the stage in a record's meta line and a policy beside an integrity level; never in a labelled facts row or a table cell (W3, L1) |
 | Count | `Badge` count variant | The grey count badge (min 28px) after its label on a control (T4); plain text in a table |
-| Toggle | shadcn `Toggle`, in a labelled `role="group"` | Filters with a few choices and peer views (Table, Board; the apply form and each follow-up questionnaire in the workflow builder). The pressed one takes `accent`; its count follows the label in the count badge, white on the pressed one (T4). One line that scrolls inside its panel, never wraps (F5). In a narrow container a few short toggles whose every choice matters at a glance (a job's authenticity levels) stack one per line instead |
+| Toggle | shadcn `Toggle`, in a labelled `role="group"`, or the rich text editor's `role="toolbar"` | Filters with a few choices and peer views (Table, Board; the apply form and each follow-up questionnaire in the workflow builder), and the formatting toggles of the rich text editor. The pressed one takes `accent`; its count follows the label in the count badge, white on the pressed one (T4). One line that scrolls inside its panel, never wraps (F5). In a narrow container a few short toggles whose every choice matters at a glance (a job's authenticity levels) stack one per line instead |
 | More menu | `MoreMenu` on shadcn `DropdownMenu` | An icon button with its label in a tooltip (A4). Holds extra actions, folded ones on phones and destructive items (A2, section 10) |
 | Step marker | `StepMarkers` (across), `StepLine` (down) | 28px square, radius 7, white with an edge, joined by a line: across for progress, down for a workflow's stages |
 | Summary list | `<dl>` | Labels and values for read-only data; one Edit per section when you can edit |
@@ -466,28 +476,30 @@ in a development build, shows every component in each state, and its test fails 
 | Icon button | `IconButton`: ghost `Button` and `Tooltip` | A quiet row action; its label is both the `aria-label` and the tooltip (A4) |
 | Empty state | shadcn `Empty` | One line saying why, and the one action |
 | Shortcuts dialog | shadcn `Dialog` | Opens on `?`; lists every shortcut; holds the single-key toggle |
-| Sidebar | shadcn `Sidebar` | Section 8. The sections, the saved views, then one Settings item for anyone whose role has a settings permission, which opens the first Settings page they may use; nobody else sees it |
+| Sidebar | shadcn `Sidebar` | Section 8. The sections (Jobs, Candidates, Talent pool, Templates, My tasks), the saved views, then one Settings item for anyone whose role has a settings permission, which opens the first Settings page they may use; nobody else sees it |
 | Brand bar | Our component (`BrandBar`) | The top bar of a page outside the app shell: the logo mark and name only (section 7) |
-| Table, list item | TanStack table; our list item | 48px rows; list items on phones. Two text styles and one-line cells (L1); every column sorts through the sort header (L2) |
+| Table, list item | TanStack table; our list item | 48px rows; list items on phones. Two text styles and one-line cells (L1); every column sorts through the sort header (L2). A list whose actions live only on its rows (the talent pool) ends each list item with the row's More menu, which stays clickable above the item's link |
 | Search field | Our component | A list's search, in its table panel's header (section 7); 16px text on touch |
 | Activity | `ActivityList`; on a candidate `ActivityPanel` | Icon in a circle, event, who did it, time ago; a note left with it is quoted below. People and API keys show by name ("by Robin Ashby", "by you", "by ATS sync"). A candidate's Activity lists everything newest first, filtered by kind (All, Notes, Emails, Scorecards, Stage and tags) with a count on each, and opens with the note box; Overview shows the last five and links to the rest. A team note shows its latest text through `NoteText`, with "Edited" after it and when in a tooltip; its More menu holds Edit for the author and Delete for the author, an Owner or an Admin, confirmed in a dialog, and anyone else sees no menu. Editing turns the note into its own box in place. A deleted note leaves one line, "Deleted a note" and who, never its text |
 | Mention | `MentionField` on shadcn `Textarea`; `NoteForm` for the note box and editing in place; `NoteText` | @ opens the organization's members, without yourself, narrowing as you type: arrow keys move, Enter or Tab picks, Esc closes the list only. The list sits under the field, each member an avatar, name and role; the field points at it with `aria-controls` and `aria-activedescendant`, because a textarea cannot be a combobox. An @ button (Mention someone) starts one below `md`. Ctrl or Cmd Enter saves, hinted in the Save tooltip. A mention is stored as the member's user id and shows their current name ("@former teammate" once they leave). The person mentioned gets a notification card and an email that says who and where and never quotes the note; a mention an edit adds notifies only that person. Save is outline, because the page's primary is Move to stage (A1) |
+| Rich text editor | `RichTextEditor` and `RichTextToolbar` on Tiptap 3, with shadcn `Toggle`, `Tooltip` and `Popover` | A job's description (New job, Edit details), an email template's message and the email composer's (docs/architecture/rich-text.md). A box with the input edge, a toolbar across its top and the text under it; the label above it names the text area (`aria-labelledby`, because a contenteditable has no `for`), and clicking the label focuses it. The toolbar holds Bold, Italic, Heading, Subheading, Bulleted list, Numbered list and Link, in that order: one tab stop, the arrow keys, Home and End move between them, each an icon toggle with its name and key caps in a tooltip (A4, K1), the pressed ones `accent` (A6), one line that scrolls rather than wraps (F5), 44px on touch (F4). Link opens a popover with the address field, Apply and, on a link, Remove link; a bare host gets https, an email address mailto, and anything else says what to enter. Headings are two levels (the careers page's h1 is the job title), lists do not nest, and Tab always leaves the editor. In an email, each variable is a chip: a muted word with its label (First name), kept whole, and Insert variable adds one at the caret; End goes past a chip that ends a line. Read-only, the same text without the toolbar. No hint under it: the toolbar says what it does (W4) |
 | Tag list | `TagList` | Each tag a fact pill with its own Remove icon button beside it, never inside it (A5), then a field and Add tag. Removing is not destructive: adding the tag again undoes it (section 10). Without a role that changes hiring data, the pills only |
-| Task list | `TaskList` | Icon in a circle, what to do, then its kind and who it is for as fact pills and time ago; a done task says when and by whom. A task is ticked off where its work is done: on the candidate's Next steps, for a role that changes hiring data, an open task has the task checkbox in its icon's place. On My tasks each whole row links to that work, with the candidate's name and the job as a pill, and has no checkbox |
+| Task list | `TaskList` | Icon in a circle, what to do, then its kind and who it is for as fact pills and time ago; a done task says when and by whom. A task is ticked off where its work is done: on the candidate's Next steps, for a role that changes hiring data, an open to-do or rejection review has the task checkbox in its icon's place. A review and a requested scorecard (kind Scorecard) have no checkbox: submitting the scorecard finishes them, and for the person they are for (anyone, for a review for the whole team) their row ends in a Fill in link to the Scorecards tab, a requested scorecard's with its sheet open. On My tasks each whole row links to that work, with the candidate's name and the job as a pill, and has no checkbox: a requested scorecard to the Scorecards tab with the sheet open on it, every other task to the candidate's Overview |
 | Task checkbox | shadcn `Checkbox` in `TaskList`; `createTaskCompletion` in `#lib/tasks.svelte.ts` | Ticking marks the task done on the server at once, so leaving the page keeps it done. The row stays where it is for 10 seconds, ticked and struck through, with an outline Undo; Undo, or unticking, opens the task again. Then a done task leaves an open list. Its label names the task. A tick that fails unticks and says why (`FailureText`). Its hit area is 44px on touch (F4) |
-| Scorecard | `ScorecardList`; `ScorecardSheet` to fill one; `ScorecardBuilder` for a library scorecard's questions; `ScorecardPicker` in the workflow builder | A submitted scorecard is an icon in a circle, the recommendation in words and who gave it, the stage as a fact pill and time ago, then each question and its answer as a summary list ("Not answered" when left out) and the note quoted. Every scorecard ends with an overall recommendation, in words, and a note. `ScorecardFields` draws what a reviewer fills in, for the sheet and for the library scorecard's Preview, which shows it at the sheet's width for a sample candidate; `ScorecardQuestionList` reads a scorecard's questions as content. Questions are built in the form builder with the answer menu, on a library scorecard (built-in or the team's own); a stage picks one, and a job keeps its own copy of the questions; rating questions answer on one row of joined buttons and make the candidate's rating, the one average anything takes of scorecards (Rating, below). The sheet never shows integrity output. Fill scorecard (outline) is in the panel header for a role that changes hiring data, while a reached stage with a scorecard is left to score. Questions ask about the work and the skills the job needs, never personality, emotion or honesty |
+| Scorecard | `ScorecardList`; `ScorecardSheet` to fill one; `AskScorecardSheet` to ask a teammate for one; `ScorecardBuilder` for a library scorecard's questions; `ScorecardPicker` in the workflow builder | A submitted scorecard is an icon in a circle, the recommendation in words and who gave it, the scorecard's name (when it is not the stage's) and the stage as fact pills and time ago, then each question and its answer as a summary list ("Not answered" when left out) and the note quoted. Every scorecard ends with an overall recommendation, in words, and a note. `ScorecardFields` draws what a reviewer fills in, for the sheet and for the library scorecard's Preview, which shows it at the sheet's width for a sample candidate; `ScorecardQuestionList` reads a scorecard's questions as content. Questions are built in the form builder with the answer menu, on a library scorecard (built-in or the team's own); a stage picks one, and a job keeps its own copy of the questions; rating questions answer on one row of joined buttons and make the candidate's rating, the one average anything takes of scorecards (Rating, below). The sheet never shows integrity output. The panel header has two outline buttons: Fill in, for a role that fills in scorecards, and Ask for one, for a role that creates tasks. Fill in opens the sheet with a Scorecard select first: the reached stages' own scorecards the reader has not given (the current stage first, which it starts on), then the built-ins and the team's own, which are given at the stage the candidate is in now; an archived one only when a link names it. Ask for one opens a sheet with Teammate (the people who see the job and whose role fills in scorecards, never yourself; with nobody, one line says why), Scorecard (the current stage's own first, then the library without archived ones), an optional Note and Ask; the teammate gets a Scorecard task, done when they submit it. Questions ask about the work and the skills the job needs, never personality, emotion or honesty |
 | Notification tray | `NotificationTray` | Overlay cards in the bottom corner (above the action bar on phones), newest first, at most three: an icon for what raised it (`bell` for the team, `at-sign` for a mention), the record as a link, one line and Dismiss. They never time out, because each holds a link (WCAG 2.2.1), and a polite live region announces them |
-| Sheet | shadcn `Sheet` (`MoveNoteSheet`, `ScorecardSheet`, the workflow builder's automations and scorecards) | Quick work in place (section 9): the title, one line of description, the form, then Cancel and the one primary action (A1). The record stays behind it. History (T6), the items behind a count (T4), Invite and the email composer are sheets too |
-| History sheet | `HistorySheet` on shadcn `Sheet`; `LastUpdated` for the fact; `HistoryFact` puts both in a header that shows nothing else of the history (the settings pages) | T6: Last updated is the last fact of the header, time ago and who ("2 hours ago by Avery Quinn", "By ScreenHire" for an untouched built-in), then an outline History button that opens the sheet. The sheet's title is History and its one line the record's name; changes come newest first under a heading per day (Today, Yesterday, Oct 22). Each change is the person's avatar, their name starting the first line, one line per thing that changed ("changed **.NET and C#** from 1 to 5 to 1 to 10"), and time ago. Show the change is an outline button (A6) that reveals before, struck through, and after for each value, and "Unchanged" for the context. Show older changes loads the next page. A ScreenHire template has no History button, because nobody can change it |
+| Sheet | shadcn `Sheet` (`MoveNoteSheet`, `ScorecardSheet`, `AskScorecardSheet`, the workflow builder's automations and scorecards) | Quick work in place (section 9): the title, one line of description, the form, then Cancel and the one primary action (A1). The record stays behind it. History (T6), the items behind a count (T4), Invite and the email composer are sheets too |
+| History sheet | `HistorySheet` on shadcn `Sheet`; `LastUpdated` for the fact; `HistoryFact` puts both in a header that shows nothing else of the history (the settings pages) | T6: Last updated is the last fact of the header, time ago and who ("2 hours ago by Avery Quinn", "By ScreenHire" for an untouched built-in), then an outline History button that opens the sheet. While nothing has changed the object since it was created, the fact's label is Created. On a settings page's title row, where no label shows, the fact starts with its verb ("Created 2 hours ago by Avery Quinn", "Updated yesterday by you"). The sheet's title is History and its one line the record's name; changes come newest first under a heading per day (Today, Yesterday, Oct 22). Each change is the person's avatar, their name starting the first line, one line per thing that changed ("changed **.NET and C#** from 1 to 5 to 1 to 10"), and time ago. Show the change is an outline button (A6) that reveals before, struck through, and after for each value, and "Unchanged" for the context. Show older changes loads the next page. A ScreenHire template has no History button, because nobody can change it |
 | Action bar | Our component (`ActionBar`) | A phone's primary action in a bar fixed to the bottom, over the safe area (section 8) |
 | Relative time, truncated text | Our components on `Hint` | Time ago, or text cut with an ellipsis (on one line, or on two as a workflow graph node's title); the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5). A truncated link is one tab stop, with an optional icon before its text |
 | Table date | `DateText` on `Hint` | A date in a table or list item, the exact time in its tooltip (T5, section 13) |
 | Form field | shadcn `Field` (`Field.Error`); `FieldErrors` in the workflow builder | Label above the control, a description of one line at most, and each error under it with the problem icon and the verify colour (T1, section 14) |
-| Move to stage | `MoveToStage` on shadcn `DropdownMenu` | The non-drag way to move a candidate (section 17): a button that opens the stages, the current one marked. On a detail page a last item, With a note, opens the move in a sheet with a note |
-| Confirm dialog | shadcn `Dialog` (`ConfirmDialog`, `CloseJobDialog`, `LeaveDialog`) | Section 9: the question as its title, what happens in one line, the outline way back and the action, in `destructive` when it destroys (A2). A choice that goes with the action (also revoke a removed member's keys) sits under the line as a checkbox. A failure stays in the dialog as `FailureText` |
+| Move to stage | `MoveToStage` on shadcn `DropdownMenu` | The non-drag way to move a candidate (section 17): a button that opens the stages, the current one marked. On a candidate's page, Keep in mind follows the stages, beside Rejected, for a candidate whose permission for future roles holds; it opens a sheet (`KeepInMindSheet`) with Why and Keep in mind as its primary. On a detail page a last item, With a note, opens the move in a sheet with a note. A candidate kept in mind has no current stage: moving them brings them back to the job |
+| Confirm dialog | shadcn `Dialog` (`ConfirmDialog`, `CloseJobDialog`, `LeaveDialog`) | Section 9: the question as its title, what happens in one line, the outline way back and the action, in `destructive` when it destroys (A2). A choice that goes with the action (also revoke a removed member's keys, also keep in mind a closing job's candidates who allowed it) sits under the line as a checkbox. A failure stays in the dialog as `FailureText` |
 | Secret dialog | shadcn `Dialog` (`SecretDialog`) | A secret the API shows once (an API key, a webhook signing secret): "Copy it now. You will not see it again.", the value in a read-only monospace field with Copy, and Done. The value lives only while the dialog is open; never in the query cache, the address or storage |
 | Email preview | `EmailPreview` | An email as the candidate receives it: the subject, then Email or Plain text (Toggle). The HTML renders in a sandboxed frame with no scripts, in an inset, never in the page, because a tenant wrote the template. The composer's preview, and a sent email opened in Messages (`SentEmail`), as it went |
-| Email composer | `EmailComposer`; `EmailComposerSheet` on shadcn `Sheet` | Email one candidate or a selection: in a sheet from a list's selection bar and the candidate's header (section 9, in place), and inline at the top of the Messages tab, titled Email and the candidate's name. To, then Start from: Blank email, the default, or one of the organization's templates, which fills Subject and Message. The rejection and follow-up questions emails are never offered, because only their actions send them (`docs/architecture/email.md`), and a blank email never becomes a template. The Edit / Preview switch (A8, no window) and Insert variable, a menu of the variables that puts `{{ name }}` at the caret of the field last used. Changing a template's wording changes this email only, and one muted line under the message says so and that the template stays as it is. Preview is the first candidate's email, rendered by the API with their details ("Preview for" and their name in a selection); each candidate's own copy is rendered with theirs. Send is the sheet's one primary ("Send 3 emails" for a selection); inline on Messages it is outline, because the page's primary is Move to stage (A1), and empty fields say what they need when it is pressed. Each email lands in Activity and Messages as it went. No bulk email while an integrity filter or view picked the rows |
+| Email composer | `EmailComposer`; `EmailComposerSheet` on shadcn `Sheet` | Email one candidate or a selection: in a sheet from a list's selection bar and the candidate's header (section 9, in place), and inline at the top of the Messages tab, titled Email and the candidate's name. To, then Start from: Blank email, the default, or one of the organization's templates, which fills Subject and Message. The rejection and follow-up questions emails are never offered, because only their actions send them (`docs/architecture/email.md`), and a blank email never becomes a template. The Edit / Preview switch (A8, no window) and Insert variable, a menu of the variables that puts one at the caret of the field last used: a chip in the message, `{{ name }}` in the subject. Changing a template's wording changes this email only, and one muted line under the message says so and that the template stays as it is. Preview is the first candidate's email, rendered by the API with their details ("Preview for" and their name in a selection); each candidate's own copy is rendered with theirs. Send is the sheet's one primary ("Send 3 emails" for a selection); inline on Messages it is outline, because the page's primary is Move to stage (A1), and empty fields say what they need when it is pressed. Each email lands in Activity and Messages as it went. No bulk email while an integrity filter or view picked the rows |
+| Add candidate sheet | `AddCandidateSheet` on shadcn `Sheet` | A recruiter adds a candidate by hand: Job (only the drafts and open jobs, and left out on a job's page, where the job is preset), First name, Last name, Email, Phone and Resume, then Cancel and Add candidate. Last name, Phone and Resume say "(optional)", the exception here (W6). No Source field: the API sets Recruiter (W6). No notice, telemetry or declarations: the Verification tab says which checks had nothing to look at (section 16). The resume goes straight to storage, as on the careers form. The page's primary on Candidates (in the action bar on a phone); outline on a job's page, where Publish is the primary, in More on a phone, and absent on a closed job; never without Add candidates (A3). A refusal (a closed job, someone who already applied, someone on a job the person does not see) is `FailureText` in the sheet; on success the page's status line names the candidate as a link to their page |
 | Live indicator | `LiveIndicator` | The live updates status as a pill in the top bar, beside Search, on every page: icon, colour and label (T1), from section 3.2 (Live, Connecting, Offline). While live, its icon has a slow, soft pulse behind it, which stops for reduced motion. On a phone only the icon shows; screen readers hear the label |
 | Failure text | `FailureText` with `ProblemIcon` | A failed action or form, in one line where it happened: the problem icon, the verify colour and the reason (T1, section 14). A section that cannot load uses `QueryError` |
 | Integrity chip and panel | `IntegrityChip`, `SignalEvidence`, `ReviewLog`, `LevelScale`; `IntegrityPanel` is the candidate's Verification tab | Section 16. `LevelScale` draws a level on its three steps. A summary card per kind of check: Network, Identity, Automation and Content always, Files and Form activity (the telemetry aggregates) only when they found something, each named for what was looked at, never for what it means about the person. Reasons expand one by one or with Expand all. The review log is its own panel: dismissals and review notes as Activity, and Add review note, named apart from Activity's Add note |
@@ -502,7 +514,7 @@ in a development build, shows every component in each state, and its test fails 
 | Sort header | `SortHeader` in the TanStack table header; `SortMenu` on phones; `#lib/table-sort.svelte.ts` | L2: the header text and `chevrons-up-down`, which turns into `arrow-up` or `arrow-down` on the sorted column; `aria-sort` on that header; a second click reverses. Each table opens on its default (a job's candidates on Stage, those needing attention first: overdue, the longest first, then pipeline order; candidates across jobs on Applied, newest first), and each person's sort is remembered per table in the browser (`preferences`), so it does not follow them to another browser. The Sort chip offers the same choices on a phone, above the list items |
 | Built in badge | `BuiltInBadge` on `Badge` muted variant | After the name of a template or role ScreenHire supplies; nothing marks your own (W6) |
 | Reorder grip | `ReorderList` and `ReorderGrip` on svelte-dnd-action | A7: a drag handle whose click (or Enter) opens Move up, Move down, Move to top and Move to bottom, leaving out moves that do not apply; Space picks the item up and the arrow keys move it. Each list has its own drag zone, so lists on one page never trade items |
-| Settings menu | `SettingsMenu`; its pages are `settingsSections` in `#lib/settings.ts` | Settings is one sidebar item; its pages share this menu: Organization, Team, Roles, Branding, Verification, API keys, Webhooks and MCP server. Email templates are on the Templates page (section 21), and their old Settings addresses redirect there. A surface under the header band: from `lg` a 200px column left of the page's content, the one side column S7 allows; below `lg` one row above the content that scrolls sideways and never wraps (F5). Each entry is a link with its icon; the current page takes `accent` and `aria-current`, and the row scrolls to show it. The menu lists only the pages the person's role may use, each behind its permission. A record under a settings page (a webhook endpoint, a role) is a page with no menu: a detail page when it has the details rail, the form template when it does not. On a settings page the header band fills the window and its title lines up with the menu, not with the form column |
+| Settings menu | `SettingsMenu`; its pages are `settingsSections` in `#lib/settings.ts` | Settings is one sidebar item; its pages share this menu: Organization, Team, Roles, Branding, Verification, Talent pool, API keys, Webhooks and MCP server. Email templates are on the Templates page (section 21), and their old Settings addresses redirect there. A surface under the header band: from `lg` a 200px column left of the page's content, the one side column S7 allows; below `lg` one row above the content that scrolls sideways and never wraps (F5). Each entry is a link with its icon; the current page takes `accent` and `aria-current`, and the row scrolls to show it. The menu lists only the pages the person's role may use, each behind its permission. A record under a settings page (a webhook endpoint, a role) is a page with no menu: a detail page when it has the details rail, the form template when it does not. On a settings page the header band fills the window and its title lines up with the menu, not with the form column |
 | Form builder | `FormBuilder` and `AnswerMenu` on `Panel`, `ReorderList` and shadcn `Switch`; `#lib/form-builder.ts`, `#lib/form-sections.ts` | One builder for application questions, follow-up questionnaires and scorecards, modelled on Google Forms. The questions are rows in one panel with their count (S4), and every row starts closed. A closed row reads as text: the question, an asterisk when required, its answer kind's icon and name top right, the help line, and the options with the mark the person will see (a circle for Choice, a square for Multi-choice). The row is one button that opens it, beside its grip. Only one question is open at a time, with a `primary` bar down its left edge: its text, the answer kind button top right (the answer menu), the help line, the options with their own grip list ending in an outline Add option, then what the kind needs (a knockout, a number's range, a file's types). Its footer holds Duplicate and Delete icon buttons and the Required switch. Duplicate puts the copy straight after the original and opens it. Deleting changes nothing until Save, so it does not confirm (section 10). A problem shows under its question whether the row is open or closed (W7). Add a question, under the list, opens the answer menu. Questions and options reorder with a grip (A7). The editor that mounts it has the Edit / Preview switch at its top (A8). Changing a question never changes answers already given. A questionnaire (never a scorecard) may have named sections, each a page for the candidate: an outline Add a section beside Add a question, and each section a row in the same list, on the `muted` fill, with its grip, an inline name field, its question count and a Delete section icon button. A section row starts its section, so moving a question past one, by drag or the grip's Move up and Move down, moves it into that section; the list stays one panel with one open question. Deleting a section gives its questions to the section before it and does not confirm (section 10). The preview stacks the candidate's pages, each opening with `PageProgress` |
 | Answer menu | `AnswerMenu` on shadcn `DropdownMenu` | Picks a question's answer kind, each group under its heading and each kind with its icon; the current kind is ticked, and Add a question opens the same menu with nothing ticked. General: Yes or no, Choice (pick one), Multi-choice (pick any), Short text, Long text. Application questions add More: Number, Link and File. A follow-up questionnaire offers the same without File, because its page takes no uploads. A scorecard offers General and Rating, each rating with a star: 1 to 5, 1 to 10, Yes or no |
 | Rating | `Rating`; `#lib/rating-column.ts` for a job's table | The candidate's rating: one to five stars filled to the tenth, the number and how many scorecards it comes from (in words in the count's tooltip), opening, from a small outline button (A6), to each scorecard that counts with its own number and recommendation. It averages people's rating questions only, never integrity results, AI signals or the stage; a reviewer with a scorecard to give reads "Rating after your scorecard" ("After yours" in a table cell, the rest in its tooltip) until they submit their own; no automation acts on it. "Not rated yet" until a scorecard counts. A job's table has a Rating column, highest first, the unrated last |
@@ -510,6 +522,9 @@ in a development build, shows every component in each state, and its test fails 
 | Choice card | `ChoiceCard`: a native radio in a labelled card | A choice of a few options in a `radiogroup` with its label: each a bordered card with its name and one muted line, and the whole card is the target. The chosen card takes the `primary` edge and `accent` fill. A member's jobs (All jobs or Only jobs they're on), the role in Invite, and the role to copy in New role |
 | Filter menu | `FilterMenu` (one choice), `MultiFilterMenu` (several) | An outline button that names the filter and its choice ("Stage: All", "Job: 2 chosen"), `primary` while set, opening each choice with its count. `MultiFilterMenu` shows a box on every choice, ticked or not, and with two or more chosen each one is a pill with its own remove button beside the button. Filters sit in one row under a list panel's header that scrolls rather than wraps (F5); the page applies them to the rows |
 | Picker | shadcn `Popover` and `Command` | An outline button with a verb ("Add a person", "Copy from another job") that opens a searchable list; typing filters by name, a pick closes it. The list keeps a 16px gutter from the window's edge. Nothing left to pick is said in the list, never by disabling the button (A3) |
+| Colour field | `ColorField` on shadcn `Field` and `Input` | A colour for Branding: the native colour picker beside a hex field (16px on touch, F4), empty for its default (its placeholder names it: "ScreenHire's" for the brand colour, "None" for the second colour), with one line saying where the colour goes. As someone types a whole colour, the API checks it (section 18); each pair it fails is a line under the field in words ("Links in #ffd400 are hard to read on the page: 1.4:1, and they need 4.5:1."), and the nearest passing shade is an outline button on that row (F6), "Use #8a6d00", which fills the field. A refused save's messages take the same place |
+| Image field | `ImageField` on shadcn `Field`; `BrandImageSlot` in `#lib/brand-images.svelte.ts` for the upload | A brand image: the image in use at 48px tall with its pixel size and file size, or "No logo"; Upload or Replace (outline, opening the file picker) and Remove, which changes nothing until Save. While the malware scan runs it shows the grey Scanning badge (T3) and the page's Save waits, saying why (A3); a file the scan blocked says so with `FailureText`. The upload goes straight to storage, as a candidate's does |
+| Branding preview | `BrandingPreview` in `PreviewFrame` | Branding's result beside its form (A8): the careers page (the tab with the favicon, the header band, a heading and a job in the heading font, a brand link and the Apply button), the shared link card with the sharing image, and the top of an email. It draws the form's values as typed, failing ones included, so the person sees the problem the check names |
 
 ## 12. Words
 
@@ -543,7 +558,7 @@ Helper text only when a label cannot say it. Copy follows `.claude/rules/writing
 | Text, headers, activity | Time ago, exact date and time on hover | 2 hours ago |
 | Tables | The date, so the column lines up and sorts | Oct 20, 2026 |
 | Older than 7 days | The date | Oct 3, 2026 |
-| Last updated (T6) | Time ago and who, the exact time on hover | 2 hours ago by Avery Quinn |
+| Last updated (T6) | Time ago and who, the exact time on hover; Created until the first change | 2 hours ago by Avery Quinn; Created 2 hours ago by Avery Quinn |
 
 Always the browser's locale (US English by default), through one shared formatter on `Intl.DateTimeFormat` and
 `Intl.RelativeTimeFormat` (`#lib/dates.ts`). The API never sends formatted dates (`.claude/rules/utc-timestamps.md`).
@@ -560,10 +575,16 @@ never stands in for a badge.
 
 ## 15. Shortcuts
 
-Ctrl K or Cmd K opens the command palette. `?` opens the shortcuts dialog, and so does its command in the palette.
+Ctrl K or Cmd K opens the command palette. From two characters it searches on the server once typing pauses
+(`GET /v1/search`): candidates by name or email, each on a job, and jobs by title, within the jobs the person sees. A
+list page's own search still filters the rows it loaded. `?` opens the shortcuts dialog, and so does its command in the
+palette.
 Hints appear as `Kbd` key caps in tooltips and menus, never as an always-on bar. Single-key shortcuts (the G chords, J
 and K, X, V and `?`) can be turned off (WCAG 2.1.4), skip text fields, menus and dialogs, and work only while their
-table or board has focus, except the G chords and `?`.
+table or board has focus, except the G chords and `?`. The rich text editor's shortcuts all have a modifier (Ctrl or
+Cmd B and I, with Alt 2 and 3 for the headings, with Shift 8 and 7 for the lists) and Link has none, because Ctrl K is
+the palette. Typing "- ", "1. " or "## " starts a list or a heading only while single-key shortcuts are on: for speech
+input those sequences act like single-key shortcuts.
 
 ## 16. Integrity UI
 
@@ -589,6 +610,10 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
   facts row, any counter-evidence in its own card, and its code. The panel ends with Dismiss on the left and "Assessed 2
   hours ago" and "Ruleset" in caption size on the right. A calm result has no list of empty checks: its summary already
   says so.
+- A candidate added by hand came through no careers form, so the authenticity result says so in one quiet line ("Added
+  by hand, so the network, automation and form activity checks had nothing to look at."), and Network and Automation
+  read "Not checked" rather than "Nothing found" when the reasons show. It goes by the source alone; a careers
+  applicant's checks never say this, so nothing tells an assistive-technology opt-out apart.
 - Labels keep their full names: Verification suggested, mirroring Review suggested. AI assistance reads No signs,
   Some signs or Strong signs of AI help.
 
@@ -606,20 +631,34 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
 - axe runs in component tests and Playwright; manual NVDA and VoiceOver passes per release; an external audit before
   general availability.
 
-## 18. Employer branding (careers pages)
+## 18. Employer branding
 
-Tenants set a brand colour and logo. On save, the server derives and validates:
+Settings, Branding (ADR-0018, `docs/architecture/branding.md`) sets a brand colour, a second colour, a heading font,
+a logo, a favicon and a sharing image, each optional and shown next to ScreenHire's default (principle 10). They apply
+to the careers pages, the apply flow, the embeddable widget and the top of every email to a candidate.
 
-| Token | Purpose | Minimum |
+| Part | Where | Check before it saves |
 |---|---|---|
-| `brand` | Tenant colour | |
-| `on-brand` | Text on brand fills | 4.5:1 |
-| `brand-text` | Brand-coloured text on the page background | 4.5:1 |
-| `brand-ui` | Borders, focus rings | 3:1 |
+| Brand colour | The Apply button and every filled button, links, focus rings | White or ink on it at 4.5:1 ("Text on buttons"); it on the page background at 4.5:1 ("Links") |
+| Second colour | The careers header band, the email's top band | White or ink on it at 4.5:1 ("Text on a header") |
+| Heading font | Every careers title (`font-display`) | One of six self-hosted OFL fonts: Bricolage Grotesque (ScreenHire's), Inter, Montserrat, Nunito, Fraunces, Playfair Display |
+| Logo | The careers header in place of the letter mark and name; the email's top | PNG or JPEG, up to 1 MB, malware scan |
+| Favicon | The browser tab | Square PNG or JPEG, at least 32px, up to 256 KB, malware scan |
+| Sharing image | `og:image` when a link is shared | PNG or JPEG, at least 600 by 315px, up to 5 MB, malware scan |
 
-Failing colours are adjusted in tone (OKLCH lightness) or rejected with an explanation, and shipped as a hashed
-per-tenant stylesheet (strict CSP, no inline styles). Brand never overrides status colours, the privacy notice or the
-"Powered by ScreenHire" footer.
+- A colour is used as it is given. One that fails a pair is refused, never adjusted: the field says which pair fails
+  in words, with its ratio cut down so a failing one never reads as its minimum, and offers the nearest passing shade
+  as a button that fills the field (Colour field, section 11). The page checks as someone types; Save checks again.
+- Everything inside the careers header, its links and focus ring included, takes `candidate-header-foreground`, the
+  white or ink the check chose, so a dark brand focus ring never sits on a dark band.
+- The palette ships as the hashed per-tenant stylesheet (strict CSP, no inline styles), and images from the careers
+  origin, so `img-src 'self'` holds. Brand never overrides status colours, the privacy notice or the "Powered by
+  ScreenHire" footer.
+- The email's logo is a plain image at one address for every recipient, never a tracking pixel. Emails load no web
+  font.
+- The page is the form template with its preview beside it where both fit (A8): the careers page, the shared link and
+  the email's top (Branding preview, section 11). Nothing changes for candidates until Save, which waits for any image
+  still being scanned and says so.
 
 ## 19. Assets
 
@@ -652,6 +691,11 @@ per-tenant stylesheet (strict CSP, no inline styles). Brand never overrides stat
   of the people on the job, each with their role, "Only jobs they're on" for someone who sees only their own (W6), a
   remove button, and Add a person and Copy from another job (Pickers). Changes land on Save. Without Edit jobs the sheet lists the people and says why (E3). A hiring
   template's header has Default hiring team as a fact whose count opens the same sheet, without Copy.
+- **Candidates:** every candidate table (Candidates and a job's) has Last activity after Applied: the date anything
+  last happened to the application, from the candidate (applied, answered a questionnaire) or the team (moved, noted,
+  tagged, emailed, scored, a task given or done), never the checks. It sorts, newest first on the first click, and live
+  events keep it current; the tables keep their default sorts (L2). Add candidate opens the Add candidate sheet (section
+  11), and Ctrl K searches on the server (section 15).
 - **Candidate:** the same tabs in the same order for everyone: Overview (what needs you now, the last five things
   anyone did with a box for a note, and the answers), Application, Messages (every email with the candidate, both
   ways, and the reply box), Scorecards, Integrity, Activity. Activity lists everything newest first, saying who and
@@ -660,7 +704,8 @@ per-tenant stylesheet (strict CSP, no inline styles). Brand never overrides stat
   authenticity level as a status badge beside the name when it needs a look, contact on the line under it, then a meta
   line: the stage as a muted pill, the job, "Applied 2 hours ago via the careers page" and the rating. Overview
   is a grid of panels: Next steps and Activity on the left, Files, Tags and Answers on the right. Next steps is one row
-  per step: a round to-do tick or the level's icon, the step, its facts, and its link on the right.
+  per step: a round to-do tick or the level's icon, the step, its facts, and its link on the right. A review or a
+  requested scorecard has no tick; its link is Fill in, to the Scorecards tab.
   Built: Messages lists every email to the candidate, about any of their applications, newest first, with the email
   composer on top for people who can send. Each row opens to the email as it went; one sent before ScreenHire kept a
   copy of each email says only its subject was kept. Replies wait for roadmap item 1, so the tab says nothing about
@@ -686,7 +731,8 @@ per-tenant stylesheet (strict CSP, no inline styles). Brand never overrides stat
 - **Settings:** one sidebar item with its own menu (section 11). Careers branding becomes Branding, and email
   templates move to Templates.
 - **Team and Roles:** Team lists the members full width, each role by its name alone: a custom role has no Custom label
-  (W6). Invite opens a sheet that describes each role, built-in or custom, starts at Viewer, the least access, and links
+  (W6). Its title's row has Last updated and History (S8) for every change to the team: invitations sent and revoked,
+  joins, role and job access changes, and removals. Invite opens a sheet that describes each role, built-in or custom, starts at Viewer, the least access, and links
   to Compare roles. Roles is its own page on the list template: every role, the built-in ones marked Built in, with what
   it can do, how many people have it and Last updated ("By ScreenHire" for a built-in). Its header has Compare roles and
   New role. New role opens a sheet with a name and the role to copy, never Owner, then Create and edit opens the copy's
@@ -706,15 +752,28 @@ per-tenant stylesheet (strict CSP, no inline styles). Brand never overrides stat
   they're on, then the jobs whose hiring team they are on as links, read only, with one line saying each job's Hiring
   team changes them (W6). For an Owner or Admin the choice is a line saying they see all jobs. Invite asks the same,
   starting at All jobs. Someone who sees only their own jobs is offered only Only jobs they're on (A3).
-- **Tasks:** Mine, For the team and Everyone's, each completed with a checkbox.
+- **Talent pool:** a sidebar item after Candidates (G then P), on the list template: the people the team kept in mind,
+  with search, Kept from and Tag filters, and columns Candidate, Why, Tags, Kept from, Kept and Permission ends, sorted
+  by name. A row's menu has Invite to apply, Add to a job and Remove from talent pool (destructive, with "They asked to be
+  removed" as its checkbox); a selection gets Invite to apply and Add to a job. Invite to apply is a sheet with the job
+  and the email's preview; it has no wording to change, because only Templates rewords the invitation. No Verification
+  column or filter (ADR-0004). Keep in mind sits in Move to stage on the candidate's page, beside Move on a job's
+  selection bar (hidden under a Verification filter, as Email is) and in the close dialog. A kept candidate's stage
+  reads "Kept in mind" in every list and header, and they count in a board's Closed column. The candidate's Overview
+  lists their other applications as links, so an application from the talent pool and the one it came from link to
+  each other ([talent pool](../architecture/talent-pool.md)).
+- **Tasks:** Mine, For the team and Everyone's, each row a link to where the task is done.
   Built: Mine is the tasks assigned to the person, For the team the tasks assigned to nobody in particular, and
   Everyone's every task the person can see, which job access limits (ADR-0015). Each is a toggle with its count, so the
-  header band shows none (W7); Open and Done are the other toggle group (section 7). The task checkbox (section 11)
-  completes a task on My tasks and on the candidate's Overview.
+  header band shows none (W7); Open and Done are the other toggle group (section 7). A row has no checkbox (ADR-0017
+  decision 11): a requested scorecard opens the candidate's Scorecards tab with the sheet open on it, and every other
+  task the candidate's Overview, where Next steps ticks a to-do or a rejection review. A review and a requested
+  scorecard are done when the scorecard is submitted.
 - **Saved views:** each shows its status icon and a short name (To verify), so nothing is cut off.
   Built: To review, To verify and Overdue show their status's icon; New today, Not screened and Interviewing an
   ordinary one. The short name is also the candidates page's title for the view.
 - **API keys and webhooks:** each page says what it is for, how to call it and where the reference is. The API
-  reference is served in production.
+  reference is served in production. API keys has Last updated and History on its title's row: each key created and
+  revoked, with its name, access and who. A webhook endpoint keeps Added and Secret rotated instead (T6).
 - **MCP server:** the values any MCP client needs (this deployment's server URL, the transport, the header), the
   key's access, the tools as pills, one generic config and a link to API keys. Never one client's setup steps.

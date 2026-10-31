@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
+using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
 
 namespace ScreenHire.Infrastructure.Persistence.Configurations;
@@ -111,6 +112,8 @@ internal sealed class ApplicationScorecardConfiguration : IEntityTypeConfigurati
     public void Configure(EntityTypeBuilder<ApplicationScorecard> builder)
     {
         builder.Property(s => s.StageId).HasMaxLength(40);
+        builder.Property(s => s.ScorecardTemplateId).HasMaxLength(40);
+        builder.Property(s => s.ScorecardName).HasMaxLength(ScorecardTemplate.MaxNameLength);
         builder.Property(s => s.Ratings).HasJsonColumn();
         builder.Property(s => s.Answers).HasJsonColumn().HasDefaultValueSql("'[]'::jsonb");
         builder.Property(s => s.Recommendation).HasConversion<string>().HasMaxLength(20);
@@ -125,9 +128,12 @@ internal sealed class ApplicationScorecardConfiguration : IEntityTypeConfigurati
             .HasForeignKey(s => new { s.OrganizationId, s.JobId })
             .HasPrincipalKey(j => new { j.OrganizationId, j.Id })
             .OnDelete(DeleteBehavior.Cascade);
-        // One judgement per reviewer per stage: a second submission is the same request again or a conflict, and two
-        // submissions racing each other hit this index.
-        builder.HasIndex(s => new { s.OrganizationId, s.ApplicationId, s.StageId, s.ReviewerUserId }).IsUnique();
+        // One judgement per reviewer, stage and scorecard: a second submission is the same request again or a conflict,
+        // and two submissions racing each other hit this index. Nulls are not distinct, so a stage copy that names no
+        // library scorecard (and every scorecard given before submissions kept one) is still one per reviewer and stage.
+        builder.HasIndex(s => new { s.OrganizationId, s.ApplicationId, s.StageId, s.ReviewerUserId, s.ScorecardTemplateId })
+            .IsUnique()
+            .AreNullsDistinct(false);
     }
 }
 

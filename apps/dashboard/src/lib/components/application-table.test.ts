@@ -30,11 +30,11 @@ describe('candidate table', () => {
   it('shows a 48px row per application with its stage, source and date as plain text, newest first (L1)', () => {
     render(WithTooltips, { props: { component: ApplicationTable, props: { applications } } });
 
-    expect(headerTexts()).toEqual(['', 'Candidate', 'Stage', 'Source', 'Applied']);
+    expect(headerTexts()).toEqual(['', 'Candidate', 'Stage', 'Source', 'Applied', 'Last activity']);
     expect(dataRows().map((row) => within(row).getAllByRole('cell').slice(1).map((cell) => cell.textContent?.trim()))).toEqual([
-      ['CM Casey Morgan', 'Applied', 'Careers page', 'Oct 20, 2026'],
-      ['JL Jordan Lee', 'Screening', 'Recruiter', 'Oct 19, 2026'],
-      ['ST Sam Taylor', 'Applied', 'Careers page', 'Oct 17, 2026'],
+      ['CM Casey Morgan', 'Applied', 'Careers page', 'Oct 20, 2026', 'Oct 20, 2026'],
+      ['JL Jordan Lee', 'Screening', 'Recruiter', 'Oct 19, 2026', 'Oct 19, 2026'],
+      ['ST Sam Taylor', 'Applied', 'Careers page', 'Oct 17, 2026', 'Oct 20, 2026'],
     ]);
     expect(dataRows().every((row) => row.classList.contains('h-12'))).toBe(true);
     // No pills in cells (L1): the stage is plain text, and the row's name is semibold.
@@ -76,7 +76,7 @@ describe('candidate table', () => {
   it('adds the job column for the table across jobs', () => {
     render(WithTooltips, { props: { component: ApplicationTable, props: { applications, showJob: true } } });
 
-    expect(headerTexts()).toEqual(['', 'Candidate', 'Job', 'Stage', 'Source', 'Applied']);
+    expect(headerTexts()).toEqual(['', 'Candidate', 'Job', 'Stage', 'Source', 'Applied', 'Last activity']);
     expect(within(rowOf('Casey Morgan')).getByRole('link', { name: 'Senior .NET Engineer' })).toBeInTheDocument();
   });
 
@@ -87,7 +87,7 @@ describe('candidate table', () => {
     ];
     render(WithTooltips, { props: { component: ApplicationTable, props: { applications, extraColumns } } });
 
-    expect(headerTexts()).toEqual(['', 'Candidate', 'Authenticity', 'Stage', 'Source', 'Applied']);
+    expect(headerTexts()).toEqual(['', 'Candidate', 'Authenticity', 'Stage', 'Source', 'Applied', 'Last activity']);
     expect(within(rowOf('Jordan Lee')).getByText('Level for Jordan Lee')).toBeInTheDocument();
   });
 
@@ -101,7 +101,7 @@ describe('candidate table', () => {
     const names = () => dataRows().map((row) => within(row).getAllByRole('link')[0]!.textContent);
     const header = () => screen.getByRole('columnheader', { name: /Authenticity/ });
 
-    expect(headerTexts()).toEqual(['', 'Candidate', 'Authenticity', 'AI assistance', 'Stage', 'Source', 'Applied']);
+    expect(headerTexts()).toEqual(['', 'Candidate', 'Authenticity', 'AI assistance', 'Stage', 'Source', 'Applied', 'Last activity']);
     expect(within(rowOf('Sam Taylor')).getByText('Authenticity: Verification suggested, 2 reasons')).toBeInTheDocument();
     expect(within(rowOf('Casey Morgan')).getByText('AI assistance: Some signs of AI help, 1 reason')).toBeInTheDocument();
     expect(within(rowOf('Jordan Lee')).getByText('Authenticity: Checks pending')).toBeInTheDocument();
@@ -152,7 +152,7 @@ describe('candidate table', () => {
     expect(screen.getByRole('columnheader', { name: /Applied/ })).toHaveAttribute('aria-sort', 'descending');
     // Every column with a value has a sort button (L2); the checkbox column has none.
     const sortable = screen.getAllByRole('columnheader').filter((header) => within(header).queryByRole('button'));
-    expect(sortable.map((header) => header.textContent?.trim())).toEqual(['Candidate', 'Job', 'Stage', 'Source', 'Applied']);
+    expect(sortable.map((header) => header.textContent?.trim())).toEqual(['Candidate', 'Job', 'Stage', 'Source', 'Applied', 'Last activity']);
 
     await fireEvent.click(screen.getByRole('button', { name: 'Candidate' }));
     expect(names()).toEqual(['Casey Morgan', 'Jordan Lee', 'Sam Taylor']);
@@ -160,6 +160,19 @@ describe('candidate table', () => {
 
     await fireEvent.click(screen.getByRole('button', { name: 'Stage' }));
     expect(dataRows().map((row) => within(row).getByText(/^(Applied|Screening)$/).textContent)).toEqual(['Applied', 'Applied', 'Screening']);
+  });
+
+  it('sorts by Last activity, the latest first on the first click, and remembers it', async () => {
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications, showJob: true, sortId: 'candidates' } } });
+    const names = () => dataRows().map((row) => within(row).getAllByRole('link')[0]!.textContent);
+
+    // Sam Taylor applied first, but a note half an hour ago is the latest activity of all.
+    await fireEvent.click(screen.getByRole('button', { name: 'Last activity' }));
+    expect(names()).toEqual(['Sam Taylor', 'Casey Morgan', 'Jordan Lee']);
+    expect(screen.getByRole('columnheader', { name: /Last activity/ })).toHaveAttribute('aria-sort', 'descending');
+    await fireEvent.click(screen.getByRole('button', { name: 'Last activity' }));
+    expect(names()).toEqual(['Jordan Lee', 'Casey Morgan', 'Sam Taylor']);
+    expect(JSON.parse(localStorage.getItem('screenhire:sort:candidates')!)).toEqual({ id: 'lastActivity', desc: false });
   });
 
   it('opens on its default when the remembered sort names a column the table does not have', () => {

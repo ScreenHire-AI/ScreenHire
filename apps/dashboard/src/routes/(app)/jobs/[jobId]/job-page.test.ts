@@ -1,8 +1,8 @@
 import type { JobDetail } from '@screenhire/api-client';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { page } from '$app/state';
-import { apiStub, applications, board, jobId, posting, stages, user } from '../../../../test-support/fixtures.js';
+import { apiStub, applications, board, jobId, posting, stages, user, userAs } from '../../../../test-support/fixtures.js';
 import { stubViewport } from '../../../../test-support/viewport.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
@@ -121,6 +121,19 @@ describe('job page', () => {
     expect(screen.queryByRole('region', { name: 'Distribution' })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Selected candidate' })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Authenticity' })).not.toBeInTheDocument();
+  });
+
+  it("says a draft's creation once: as its last fact while nothing has changed it, else as its own Created fact (W7)", async () => {
+    const draft = { ...job, status: 'Draft', publishedAt: null } as JobDetail;
+    stub({ ...draft, lastUpdated: { at: job.createdAt, by: 'Member', userId: user.id, created: true } } as JobDetail);
+    await screen.findByRole('heading', { level: 1 });
+    const terms = () => within(document.querySelector<HTMLElement>('[data-slot=header-band]')!).getAllByRole('term').map((term) => term.textContent);
+    expect(terms()).toEqual(['Location', 'Type', 'Salary', 'Created']);
+    cleanup();
+
+    stub(draft);
+    await screen.findByRole('heading', { level: 1 });
+    expect(terms()).toEqual(['Location', 'Type', 'Salary', 'Created', 'Last updated']);
   });
 
   it('has a Candidates tab with its count and a Distribution tab whose count says how many boards the job is on (E2)', async () => {
@@ -280,6 +293,44 @@ describe('job page', () => {
     ]);
     const band = document.querySelector<HTMLElement>('[data-slot=header-band]')!;
     expect(within(band).queryByRole('link', { name: 'Edit details' })).not.toBeInTheDocument();
+  });
+
+  it('offers Add candidate as an outline button for this job to a role that adds candidates', async () => {
+    page.data = { user };
+    stub(job);
+
+    const add = await screen.findByRole('button', { name: 'Add candidate' });
+    expect(add.closest('[data-slot=header-band]')).not.toBeNull();
+    // Publish is the page's primary (A1), so this one is outline.
+    expect(add).toHaveClass('bg-card');
+    expect(add).not.toHaveClass('bg-primary');
+    await fireEvent.click(add);
+    const sheet = await screen.findByRole('dialog', { name: 'Add candidate' });
+    expect(sheet).toHaveTextContent('They join Senior .NET Engineer in its first stage.');
+    expect(within(sheet).queryByLabelText('Job')).toBeNull();
+  });
+
+  it('has no Add candidate for a role that cannot add candidates (A3)', async () => {
+    page.data = { user: userAs('Viewer') };
+    stub(job);
+    await screen.findByRole('button', { name: /Hiring team/ });
+    expect(screen.queryByRole('button', { name: 'Add candidate' })).not.toBeInTheDocument();
+  });
+
+  it('has no Add candidate on a closed job, which takes no applications', async () => {
+    page.data = { user };
+    stub({ ...job, status: 'Closed', closedAt: '2026-10-20T10:00:00Z' });
+    await screen.findByRole('button', { name: /Hiring team/ });
+    expect(screen.queryByRole('button', { name: 'Add candidate' })).not.toBeInTheDocument();
+  });
+
+  it('puts Add candidate in More on a phone', async () => {
+    page.data = { user };
+    stubViewport(360);
+    stub(job);
+
+    const menu = await openMoreActions();
+    expect(within(menu).getByRole('menuitem', { name: 'Add candidate' })).toBeInTheDocument();
   });
 
   it("puts a draft's publish in the action bar on a phone", async () => {

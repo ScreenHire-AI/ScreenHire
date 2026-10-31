@@ -44,7 +44,7 @@ never calls the API.
 | Path (under `/{organization}`, or `/` on a tenant host) | What it is |
 |---|---|
 | `/jobs/{job}` | The job, the "How we keep this fair" notice and an Apply link. 410 once the job closes, 404 if unknown. |
-| `/jobs/{job}/apply` | The form: **details** (notice, assistive-technology switch, first name, last name (optional), email, phone, resume), one **page** per section of the job's questionnaire (none when it has no questions beyond the resume; §7), **review** (summary, AI-use declaration, send). `?draft={token}` fills it from a saved draft. |
+| `/jobs/{job}/apply` | The form: **details** (notice, assistive-technology switch, first name, last name (optional), email, phone, resume), one **page** per section of the job's questionnaire (none when it has no questions beyond the resume; §7), **review** (summary, AI-use declaration, the optional "Keep my details for future roles" box, send). `?draft={token}` fills it from a saved draft. |
 | `/jobs/{job}/applied` | The confirmation, after a POST-redirect-GET. The same page whether the application is new or the email had already applied, so the form never reveals who applied. |
 | `/privacy` | "What we collect and why", the full notice. Its version (`NOTICE_VERSION` in `src/lib/apply.ts`) is recorded on every application. |
 | `/brand/{hash}.css` | The employer's brand stylesheet (section 5). |
@@ -52,6 +52,8 @@ never calls the API.
 | `/telemetry?job={id}` | Relay for the telemetry module's beacons to the API (integrity-engine.md §10.2, "Form telemetry"). |
 | `/questionnaires/{token}` | A follow-up questionnaire, opened from the signed link a SendQuestionnaire automation emailed (section 8). |
 | `/questionnaires/sent` | Where answered follow-up questions land, after a POST-redirect-GET, with no token in the address. |
+| `/talent-pool/{token}` | Where a candidate stops the employer keeping their details for future roles, from the signed link in a talent pool invitation ([talent pool](talent-pool.md)). One native form, no JavaScript, `no-store`, `noindex` and `no-referrer`. |
+| `/talent-pool/stopped` | Where stopping lands, after a POST-redirect-GET, with no token in the address. |
 
 Each step is a native `<form method="POST" enctype="multipart/form-data">` posted to the `apply` Astro Action
 (`src/actions/index.ts`), which re-renders the same page with the next step. What the candidate has entered travels
@@ -100,8 +102,14 @@ organization and never stores it as sent, and keeps it only on the job's device-
 (the EU and EEA by default), the details step shows an optional "Check this device for repeat applications" box and the
 fingerprint is kept only when it is ticked. The observation and the telemetry are deleted after 30 days. The notice and
 the privacy page say all of this, and that the employer may email a follow-up questionnaire whose page keeps the
-answers only, and that a saved draft keeps the details and answers only, for 30 days (`NOTICE_VERSION`
-`2026-10-30.1`).
+answers only, and that a saved draft keeps the details and answers only, for 30 days (`NOTICE_VERSION` `2026-10-31.1`).
+
+The review step also asks, optionally and unticked, "Keep my details for future roles", with one line saying the
+employer keeps the application for its talent pool period (`talentPoolMonths` on the application form, 12 months by
+default) and may invite them to apply for other roles, and that every invitation has a link to stop. The careers server
+sends `keepForFutureRoles`; the API records the permission, with that period, on the application only, never on the
+candidate ([talent pool](talent-pool.md)). The privacy page's "Future roles" section says the same
+(notice version `2026-10-30.1`).
 
 ## 3. Uploads
 
@@ -126,6 +134,11 @@ stores an `ApplicationFile` per file and publishes one `ScanApplicationFile` mes
 
 Because an upload id can only be claimed under the organization and job in the route, another tenant's upload, or
 another job's, is simply not found.
+
+A recruiter adding a candidate by hand uploads their resume the same way from the dashboard:
+`POST /v1/jobs/{jobId}/applications/resume-uploads` (Add candidates, antiforgery) checks the name and size against the
+job's resume question and returns the same create-only link, the browser PUTs the bytes, and
+`POST /v1/jobs/{jobId}/applications` with `resumeUploadId` runs the same check and keeps the file as the resume.
 
 Reviewers download a file the same way, without the bytes passing through the API.
 `GET /v1/applications/{applicationId}/files/{fileId}` redirects to a read-only SAS URL for that one blob, valid for
@@ -160,13 +173,12 @@ The careers server forwards the candidate's address in `X-Forwarded-For`. The AP
 
 ## 5. Employer branding and the content security policy
 
-An organization's `BrandColor` becomes a `BrandPalette` on the server (`src/ScreenHire.Domain/Organizations`):
-`brand` and `onBrand` (white or ink, 4.5:1), `brandText` (4.5:1 on the page and on cards) and `brandUi` (3:1). A
-colour that fails is darkened in OKLCH lightness, keeping its hue, until it passes. The public organization and board
-responses carry the palette; the careers server turns it into a stylesheet named by a hash of its content
-(`src/lib/brand.ts`), cached for a year. Brand never restyles status colours, the privacy notice or the footer. Owners
-and admins set the colour with `PUT /v1/organization/branding`, which returns the derived palette, from the
-dashboard's Settings > Branding page; the Development seed gives Brightwater one.
+An organization's branding (colours, heading font, logo, favicon, sharing image) is
+[branding.md](branding.md): colours are checked against WCAG 2.2 AA before they save, and images are served on the
+careers origin at `/brand/images/{id}.{png|jpg}`. The public organization and board responses carry `branding`; the
+careers server turns its palette, header colours and font into a stylesheet named by a hash of its content
+(`src/lib/brand.ts`), cached for a year. Brand never restyles status colours, the privacy notice or the footer. The
+Development seed gives Brightwater a brand colour.
 
 Careers pages run under a strict policy: Astro's `security.csp` (hashes for what Astro emits, `default-src 'none'`,
 no `unsafe-inline`), stylesheets never inlined, the apply page adding `connect-src` for the upload origin (and
@@ -243,7 +255,7 @@ unknown one "We could not find your saved answers", and both offer a fresh form.
 
 **Deletion.** Sending the application deletes the job's drafts for that email in the same save, and the one saved last
 tells the observation that the application was resumed and which answers it carried over (integrity-engine.md §10.2).
-`PurgeExpiredApplicationDrafts` runs daily at 03:47 UTC and deletes drafts 30 days after their first save; later saves
+`PurgeExpiredApplicationDrafts` runs daily at 03:57 UTC and deletes drafts 30 days after their first save; later saves
 never move that date. A link stays readable for 30 days past its draft's expiry, but once the sweep has run the draft
 is gone, so the page says "We could not find your saved answers" (whose text covers answers sent or deleted) rather
 than "expired". Two sends of one resumed form at the same moment can fail the second on the draft delete; sending
@@ -280,8 +292,8 @@ answers" on the last page.
 
 ## 9. Owner actions before production
 
-- Storage account: create the applicant uploads container, a CORS rule allowing `PUT` from the careers hosts and `GET`
-  from the dashboard host (the file viewer), and a lifecycle rule that deletes unclaimed uploads (blobs with no
+- Storage account: create the applicant uploads container, a CORS rule allowing `PUT` from the careers hosts, and `GET`
+  and `PUT` from the dashboard host (the file viewer, and a resume a recruiter adds by hand), and a lifecycle rule that deletes unclaimed uploads (blobs with no
   application) after a day. Development does the first two at startup
   (`ApplicantUploads.ProvisionDevelopmentStorageAsync`).
 - Add the careers servers to `ScreenHire:Auth:TrustedProxies`.

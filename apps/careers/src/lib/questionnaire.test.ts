@@ -50,7 +50,7 @@ describe('answering a questionnaire', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   const open = {
-    organization: { name: 'Acme', slug: 'acme', branding: null },
+    organization: { name: 'Acme', slug: 'acme', branding: { colors: null, header: null, headingFont: null, logo: null, favicon: null, sharingImage: null } },
     jobTitle: 'Warehouse lead',
     name: 'Availability',
     status: 'Open',

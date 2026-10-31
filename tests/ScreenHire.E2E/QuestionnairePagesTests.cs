@@ -19,6 +19,9 @@ public sealed partial class QuestionnairePagesTests(E2EFixture fixture) : Browse
 {
     private static readonly byte[] Pdf = Encoding.ASCII.GetBytes("%PDF-1.7\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n");
 
+    // The questions of the first section: the resume and the right to work.
+    private static readonly string[] FirstSection = ["resume", "work_authorization"];
+
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
@@ -161,7 +164,6 @@ public sealed partial class QuestionnairePagesTests(E2EFixture fixture) : Browse
             job = TestData.NewJob(org, "engineer", "Platform Engineer");
             job.UseTemplate(engineering);
             var questions = job.Workflow.Questionnaire.Questions;
-            var first = new[] { "resume", "work_authorization" };
             job.ReviseWorkflow(
                 job.Workflow with
                 {
@@ -169,8 +171,8 @@ public sealed partial class QuestionnairePagesTests(E2EFixture fixture) : Browse
                     {
                         Sections =
                         [
-                            new QuestionSection("eligibility", "Eligibility", [.. questions.Select(q => q.Id).Where(first.Contains)]),
-                            new QuestionSection("experience", "Your experience", [.. questions.Select(q => q.Id).Where(id => !first.Contains(id))]),
+                            new QuestionSection("eligibility", "Eligibility", [.. questions.Select(q => q.Id).Where(FirstSection.Contains)]),
+                            new QuestionSection("experience", "Your experience", [.. questions.Select(q => q.Id).Where(id => !FirstSection.Contains(id))]),
                         ],
                     },
                 },

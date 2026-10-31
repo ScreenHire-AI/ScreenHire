@@ -181,6 +181,15 @@ describe('reading a step', () => {
     expect(readDetails(form([]), { ...emptyState(), deviceCheckConsent: true }).deviceCheckConsent).toBe(false);
   });
 
+  it('reads "Keep my details for future roles" on the review step, unticked unless the candidate ticks it', () => {
+    expect(emptyState().keepForFutureRoles).toBe(false);
+    expect(readReview(form([['keepForFutureRoles', 'on']]), emptyState()).keepForFutureRoles).toBe(true);
+    expect(readReview(form([]), { ...emptyState(), keepForFutureRoles: true }).keepForFutureRoles).toBe(false);
+    expect(parseState(JSON.stringify({ keepForFutureRoles: true })).keepForFutureRoles).toBe(true);
+    expect(parseState(JSON.stringify({ keepForFutureRoles: 'yes' })).keepForFutureRoles).toBe(false);
+    expect(toRequest({ ...emptyState(), keepForFutureRoles: true }, [], { honeypotFilled: false, botCheckToken: null }).keepForFutureRoles).toBe(true);
+  });
+
   it('reads answers, multiple choices and the upload the island left behind', () => {
     const state = readAnswers(
       form([
@@ -283,6 +292,7 @@ describe('toRequest', () => {
       automationMarkers: [],
       deviceFingerprint: null,
       deviceCheckConsent: false,
+      keepForFutureRoles: false,
       telemetrySessionToken: null,
       telemetry: null,
     });

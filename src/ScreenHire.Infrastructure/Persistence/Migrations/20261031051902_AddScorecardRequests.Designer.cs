@@ -13,8 +13,8 @@ using ScreenHire.Infrastructure.Persistence;
 namespace ScreenHire.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ScreenHireDbContext))]
-    [Migration("20261031001715_AddApplicationDrafts")]
-    partial class AddApplicationDrafts
+    [Migration("20261031051902_AddScorecardRequests")]
+    partial class AddScorecardRequests
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -128,90 +128,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasName("pk_user_tokens");
 
                     b.ToTable("user_tokens", (string)null);
-                });
-
-            modelBuilder.Entity("ScreenHire.Domain.Applications.ApplicationDraft", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<bool>("AccommodationRequested")
-                        .HasColumnType("boolean")
-                        .HasColumnName("accommodation_requested");
-
-                    b.Property<string>("AiUseDeclaration")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("ai_use_declaration");
-
-                    b.Property<string>("AiUseDetails")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)")
-                        .HasColumnName("ai_use_details");
-
-                    b.Property<string>("Answers")
-                        .IsRequired()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("answers");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(320)
-                        .HasColumnType("character varying(320)")
-                        .HasColumnName("email");
-
-                    b.Property<DateTimeOffset>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("expires_at");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("first_name");
-
-                    b.Property<Guid>("JobId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("job_id");
-
-                    b.Property<string>("LastName")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("last_name");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("organization_id");
-
-                    b.Property<string>("Phone")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("phone");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_application_drafts");
-
-                    b.HasIndex("OrganizationId", "ExpiresAt")
-                        .HasDatabaseName("ix_application_drafts_organization_id_expires_at");
-
-                    b.HasIndex("OrganizationId", "Email", "CreatedAt")
-                        .HasDatabaseName("ix_application_drafts_organization_id_email_created_at");
-
-                    b.HasIndex("OrganizationId", "JobId", "Email")
-                        .HasDatabaseName("ix_application_drafts_organization_id_job_id_email");
-
-                    b.ToTable("application_drafts", (string)null);
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Applications.ApplicationEmail", b =>
@@ -533,6 +449,16 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("reviewer_user_id");
 
+                    b.Property<string>("ScorecardName")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("scorecard_name");
+
+                    b.Property<string>("ScorecardTemplateId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("scorecard_template_id");
+
                     b.Property<string>("StageId")
                         .IsRequired()
                         .HasMaxLength(40)
@@ -557,9 +483,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.HasIndex("OrganizationId", "JobId")
                         .HasDatabaseName("ix_application_scorecards_organization_id_job_id");
 
-                    b.HasIndex("OrganizationId", "ApplicationId", "StageId", "ReviewerUserId")
+                    b.HasIndex("OrganizationId", "ApplicationId", "StageId", "ReviewerUserId", "ScorecardTemplateId")
                         .IsUnique()
                         .HasDatabaseName("ix_application_scorecards_organization_id_application_id_stage");
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("OrganizationId", "ApplicationId", "StageId", "ReviewerUserId", "ScorecardTemplateId"), false);
 
                     b.ToTable("application_scorecards", (string)null);
                 });
@@ -698,21 +626,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("completed_event_id");
 
-                    b.Property<string>("DraftAnswers")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("draft_answers")
-                        .HasDefaultValueSql("'[]'::jsonb");
-
-                    b.Property<DateTimeOffset?>("DraftExpiresAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("draft_expires_at");
-
-                    b.Property<DateTimeOffset?>("DraftSavedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("draft_saved_at");
-
                     b.Property<DateTimeOffset>("ExpiresAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at");
@@ -820,6 +733,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
                         .HasColumnName("organization_id");
+
+                    b.Property<string>("ScorecardTemplateId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("scorecard_template_id");
 
                     b.Property<string>("StageId")
                         .HasMaxLength(40)
@@ -2228,13 +2146,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("text[]")
                         .HasColumnName("automation_markers");
 
-                    b.PrimitiveCollection<List<string>>("CarriedOverQuestionIds")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("text[]")
-                        .HasColumnName("carried_over_question_ids")
-                        .HasDefaultValueSql("'{}'::text[]");
-
                     b.Property<string>("DeviceHash")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
@@ -2260,17 +2171,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
                         .HasColumnName("organization_id");
-
-                    b.Property<string>("PageTimes")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("page_times")
-                        .HasDefaultValueSql("'[]'::jsonb");
-
-                    b.Property<bool>("ResumedFromDraft")
-                        .HasColumnType("boolean")
-                        .HasColumnName("resumed_from_draft");
 
                     b.Property<string>("UserAgent")
                         .HasMaxLength(512)
@@ -2634,6 +2534,73 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.ToTable("api_keys", (string)null);
                 });
 
+            modelBuilder.Entity("ScreenHire.Domain.Organizations.BrandImage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("BlobName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("blob_name");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("content_type");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("integer")
+                        .HasColumnName("height");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("ScanStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("scan_status");
+
+                    b.Property<DateTimeOffset?>("ScannedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("scanned_at");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("size_bytes");
+
+                    b.Property<DateTimeOffset>("UploadedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("uploaded_at");
+
+                    b.Property<Guid?>("UploadedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("uploaded_by_user_id");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("integer")
+                        .HasColumnName("width");
+
+                    b.HasKey("Id")
+                        .HasName("pk_brand_images");
+
+                    b.HasIndex("OrganizationId", "Kind")
+                        .HasDatabaseName("ix_brand_images_organization_id_kind");
+
+                    b.ToTable("brand_images", (string)null);
+                });
+
             modelBuilder.Entity("ScreenHire.Domain.Organizations.CustomRole", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2797,6 +2764,15 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<Guid?>("FaviconImageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("favicon_image_id");
+
+                    b.Property<string>("HeadingFont")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("heading_font");
+
                     b.Property<string>("HomeRegion")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -2811,15 +2787,24 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_trial");
 
+                    b.Property<Guid?>("LogoImageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("logo_image_id");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("name");
 
-                    b.Property<int>("QuestionsPerPage")
-                        .HasColumnType("integer")
-                        .HasColumnName("questions_per_page");
+                    b.Property<string>("SecondColor")
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)")
+                        .HasColumnName("second_color");
+
+                    b.Property<Guid?>("SharingImageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sharing_image_id");
 
                     b.Property<bool>("SignalNetworkOptIn")
                         .HasColumnType("boolean")
@@ -3311,17 +3296,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_user_tokens_users_user_id");
                 });
 
-            modelBuilder.Entity("ScreenHire.Domain.Applications.ApplicationDraft", b =>
-                {
-                    b.HasOne("ScreenHire.Domain.Jobs.Job", null)
-                        .WithMany()
-                        .HasForeignKey("OrganizationId", "JobId")
-                        .HasPrincipalKey("OrganizationId", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_application_drafts_jobs_organization_id_job_id");
-                });
-
             modelBuilder.Entity("ScreenHire.Domain.Applications.ApplicationEmail", b =>
                 {
                     b.HasOne("ScreenHire.Domain.Applications.JobApplication", null)
@@ -3765,6 +3739,16 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_api_keys_organizations_organization_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Organizations.BrandImage", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_brand_images_organizations_organization_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Organizations.CustomRole", b =>

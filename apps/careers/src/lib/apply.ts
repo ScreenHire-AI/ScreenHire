@@ -17,7 +17,7 @@ import { DEFAULT_QUESTIONS_PER_PAGE, fieldId, fields, questionPages, RESUME_QUES
  * The version of "What we collect and why" (pages/[organization]/privacy.astro). Every application records the version
  * its candidate was shown before anything was collected. Change it whenever that page's substance changes.
  */
-export const NOTICE_VERSION = '2026-10-30.1';
+export const NOTICE_VERSION = '2026-10-31.1';
 
 // Field names and ids come from the shared question components (packages/ui), which render the question fields; the
 // error summary's links depend on them matching. The form asks for the resume first, on the details step.
@@ -82,6 +82,11 @@ export interface ApplyState {
   telemetrySession: string;
   /** The candidate ticked the device check, where the job's basis asks for consent. */
   deviceCheckConsent: boolean;
+  /**
+   * The candidate ticked "Keep my details for future roles": the employer may keep this application for the period the
+   * form shows and invite them to apply for other jobs (docs/architecture/talent-pool.md). Unticked unless they tick it.
+   */
+  keepForFutureRoles: boolean;
 }
 
 /** Problems to show, by form field name, worded for the candidate. */
@@ -114,6 +119,7 @@ export const emptyState = (telemetrySession = ''): ApplyState => ({
   draft: null,
   telemetrySession,
   deviceCheckConsent: false,
+  keepForFutureRoles: false,
 });
 
 /** A time stamp as this server writes it: an ISO 8601 instant that parses, or empty. */
@@ -218,6 +224,7 @@ export function parseState(raw: FormDataEntryValue | null | undefined): ApplySta
     }
   }
   state.deviceCheckConsent = input.deviceCheckConsent === true;
+  state.keepForFutureRoles = input.keepForFutureRoles === true;
 
   if (typeof input.answers === 'object' && input.answers !== null) {
     for (const [id, answer] of Object.entries(input.answers as Record<string, unknown>)) {
@@ -285,11 +292,12 @@ export function readAnswers(form: FormData, questions: readonly PublicQuestion[]
   return { ...state, answers, files };
 }
 
-/** The review step's AI-use answer over `state`. */
+/** The review step's AI-use answer and the "Keep my details for future roles" box over `state`. */
 export function readReview(form: FormData, state: ApplyState): ApplyState {
   const declaration = form.get('aiUseDeclaration');
   return {
     ...state,
+    keepForFutureRoles: form.get('keepForFutureRoles') === 'on',
     aiUseDeclaration: isAiUseAnswer(declaration) ? declaration : 'NotProvided',
     // Details only go with a "yes": a "no" with leftover text from an earlier choice would contradict itself.
     aiUseDetails: declaration === 'Used' ? text(form, 'aiUseDetails') : '',
@@ -428,6 +436,7 @@ export function toRequest(
     automationMarkers: measured ? (checks.automationMarkers ?? []) : [],
     deviceFingerprint: measured ? (checks.deviceFingerprint ?? null) : null,
     deviceCheckConsent: state.deviceCheckConsent,
+    keepForFutureRoles: state.keepForFutureRoles,
     telemetrySessionToken: state.telemetrySession || null,
     telemetry: measured ? (checks.telemetry ?? null) : null,
   };

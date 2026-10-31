@@ -117,7 +117,7 @@ numbers are made up.
 | Senior .NET Engineer | Open, from the "Software engineer" template | Every board | The synthetic applicants: Robin Ashby (genuine), Sam Okafor (used AI and said so, through a VPN), Jordan Vale (a bot) and a three-person application farm, all in Applied. Joel Mensah, a genuine candidate, is in Technical exercise with a note, and his Activity has two notes from the team: Jordan Ellis mentions Avery Quinn, and Avery mentions Jordan in a note she then edited. His Messages tab has the "Interview invitation" email Avery changed for him alone, with a sentence about his billing ledger answer that the template does not have. Its Interview stage uses Brightwater's own "Technical interview" scorecard, which asks every answer kind |
 | Senior Product Designer | Open, with the demo's designer questionnaire | Every board | Three candidates in Applied, Screening and Interview. Jordan Ellis scored Priya Natarajan's interview, and Avery Quinn has a review to give on her, so signed in as Avery her rating reads "Rating after your scorecard" (Jordan sees it) |
 | Frontend Engineer (Svelte) | Open, with the demo's frontend questionnaire | Careers page and sandbox board only | Three candidates in Screening, Interview and Offer (with a note). Hannah Okoro is rated 4.2 from Avery's and Jordan's interview scorecards and Eli Thompson 3.5 from Jordan's screening one; the Rating column sorts them |
-| Support Engineer | Closed, from Brightwater's own template | Removed everywhere | Three candidates who went through the stages: one Hired, one Rejected and one Withdrawn, each with the recruiter's notes. Its careers page answers "This job has closed" |
+| Support Engineer | Closed, from Brightwater's own template | Removed everywhere | Four candidates who went through the stages: one Hired, one Rejected, one Withdrawn, each with the recruiter's notes, and Grace Adeyemi, the runner-up, kept in mind for future roles, so the Talent pool has her with the note saying why. Priya Natarajan and Hannah Okoro also allowed it, so Keep in mind shows in their Move to stage. Its careers page answers "This job has closed" |
 | Backend Engineer (Payments) | Draft, from Brightwater's own template | None | Ready to publish during the demo |
 | Customer Success Lead | Draft, with the demo's customer success questionnaire | None | No template, an on-site job in Manchester |
 
@@ -192,7 +192,8 @@ built-in rejection email. The jobs `DevelopmentDataSeeder` makes have no history
 Extras if there is time: the Rating column on Frontend Engineer and a candidate's stars, which open to each scorecard; Joel Mensah's Messages (open the changed interview email as it went, or email him from the box at the top: start from a template, change it, and Preview shows it with his first name), his notes (type @ in the note box to mention a teammate; the mention emails are in
 Mailpit and never quote the note; Avery's own note offers Edit and Delete in its menu), a resume opened full window
 from the details rail's View, Support Engineer for a closed job and its candidates' activity with the recruiter's notes,
-the Templates page (below) and its builder (questions, automations and the guardrail that refuses an
+the Talent pool (Grace Adeyemi, kept from Support Engineer: Invite to apply sends the invitation to Mailpit with the
+job's link and her link to stop being kept, which opens on the careers site), the Templates page (below) and its builder (questions, automations and the guardrail that refuses an
 integrity-driven rejection), the workflow graph and "Simulate", Ctrl K for the command palette, the dark theme, and a
 second browser window on the same job to show live updates.
 
@@ -226,9 +227,11 @@ Settings is one item at the bottom of the sidebar; its pages share the Settings 
   (on every job) and, on the .NET job, Robin; **Add a person** and **Copy from another job** change it. Sign in as Robin
   through Dev SSO: Jobs lists only Senior .NET Engineer, another job's address says it is not found, and the
   candidates, saved views and My tasks hold only that job's.
-- **Branding.** Brightwater's teal is saved. Change it, press **Save colour**, and reload
-  http://localhost:4322/brightwater: the Apply buttons and the header mark take the new colour. A pale colour comes
-  back darkened, with "Darkened so text on it stays readable", and the colours the careers pages will use.
+- **Branding.** Brightwater's teal is saved. Type a pale brand colour such as ffd400: the field says links in it are
+  hard to read and offers the nearest shade that passes; **Use** fills it in. Pick a second colour and a heading font,
+  upload a PNG logo, watch it say Scanning for a moment, then press **Save branding**. Reload
+  http://localhost:4322/brightwater: the header band, the logo, the titles' font and the Apply buttons follow, and an
+  email from the Templates page's test send starts with the logo. History lists each change.
 - **API keys.** **Create key** shows the key once, with Copy; afterwards the list shows only its first characters.
   Under the keys, "Use the ScreenHire API" gives the base URL and links the API reference.
   `curl -H "Authorization: Bearer <key>" http://localhost:5080/v1/jobs` lists Brightwater's jobs until you revoke it

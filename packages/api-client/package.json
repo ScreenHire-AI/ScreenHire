@@ -12,7 +12,7 @@
   "scripts": {
     "generate": "orval --config orval.config.ts",
     "check": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run --fsModuleCachePath=node_modules/.vitest-cache"
   },
   "dependencies": {
     "zod": "^4.6.7"

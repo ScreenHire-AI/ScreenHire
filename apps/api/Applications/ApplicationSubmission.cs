@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Applications;
+using ScreenHire.Application.TalentPool;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Integrity;
@@ -49,7 +50,9 @@ internal static class ApplicationSubmission
     /// <summary>The new application and its candidate, or null when the candidate has already applied to the job.</summary>
     /// <remarks>
     /// An existing candidate's name and phone are left as they are. Anyone can type any email address into a careers
-    /// form, so a submission never changes the details of a candidate who already exists.
+    /// form, so a submission never changes the details of a candidate who already exists. With <paramref name="commit"/>
+    /// false the caller saves and flushes once for several submissions: an outbox that has flushed once keeps later
+    /// messages in its table without sending them.
     /// </remarks>
     public static async Task<(JobApplication Application, Candidate Candidate)?> SubmitAsync(
         IDbContextOutbox<ScreenHireDbContext> outbox,
@@ -64,7 +67,8 @@ internal static class ApplicationSubmission
         SubmissionSession? session = null,
         IntegrityOptions? integrity = null,
         TelemetryBinding? telemetry = null,
-        Guid? actorApiKeyId = null)
+        Guid? actorApiKeyId = null,
+        bool commit = true)
     {
         var db = outbox.DbContext;
         var email = Candidate.Normalize(input.Email);
@@ -117,6 +121,17 @@ internal static class ApplicationSubmission
         await outbox.PublishAsync(new ApplicationSubmitted(
             application.OrganizationId, application.Id, job.Id, application.CurrentStageId, submitted.Id, now));
 
+        // A candidate in the talent pool who applies again, or whom a person adds to a job, is back in a job: they leave
+        // the pool, and the application they were kept from names this one (docs/architecture/talent-pool.md). A member on
+        // Only jobs they're on cannot see an entry kept from another job, so adding such a candidate by hand leaves it.
+        if (await TalentPoolMembership.LeaveForNewApplicationAsync(
+                db, candidate.Id, application,
+                application.Source == ApplicationSource.CareersSite ? TalentPoolExit.AppliedAgain : TalentPoolExit.AddedToJob,
+                now, actorUserId, cancellationToken) is { } left)
+        {
+            await outbox.PublishAsync(left);
+        }
+
         foreach (var upload in files)
         {
             var file = new ApplicationFile
@@ -134,6 +149,11 @@ internal static class ApplicationSubmission
             };
             db.ApplicationFiles.Add(file);
             await outbox.PublishAsync(new ScanApplicationFile(file.OrganizationId, application.Id, file.Id));
+        }
+
+        if (!commit)
+        {
+            return (application, candidate);
         }
 
         try

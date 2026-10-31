@@ -114,4 +114,6 @@
   --color-candidate-cta-foreground: var(--candidate-cta-foreground);
   --color-candidate-brand-text: var(--candidate-brand-text);
   --color-candidate-brand-ui: var(--candidate-brand-ui);
+  --color-candidate-header: var(--candidate-header);
+  --color-candidate-header-foreground: var(--candidate-header-foreground);
 }

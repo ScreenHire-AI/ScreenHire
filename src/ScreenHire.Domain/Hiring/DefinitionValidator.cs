@@ -946,6 +946,11 @@ public static partial class DefinitionValidator
             // Its link is made for one questionnaire request, which only a SendQuestionnaire action creates.
             errors.Add(new(Join(path, "emailTemplate"), "The follow-up questions email is sent only by a SendQuestionnaire action, with its link."));
         }
+        else if (action.EmailTemplate == EmailTemplateIds.TalentPoolInvitation)
+        {
+            // Its links are for one candidate and one job, which only a person's Invite to apply chooses.
+            errors.Add(new(Join(path, "emailTemplate"), "The invitation to apply is sent only from the talent pool, by a person."));
+        }
         else if (action.Type == ActionType.Reject && action.EmailTemplate is not null && action.EmailTemplate != EmailTemplateIds.ApplicationRejected)
         {
             errors.Add(new(Join(path, "emailTemplate"), $"A Reject action sends {EmailTemplateIds.ApplicationRejected}, with its reason; leave emailTemplate out."));

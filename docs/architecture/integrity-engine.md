@@ -241,7 +241,11 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   stay quiet in lists, so they read as information. While an integrity filter is set, the job page's bulk move offers no
   Rejected or Withdrawn stage, and a new filter clears the selection (`bulkMoveStages` in `#lib/integrity.ts`): a
   filtered "select all" must not become rejection driven by integrity signals. Moving one candidate stays a person's
-  decision about that candidate.
+  decision about that candidate. A candidate a recruiter added by hand came through no careers form, so `network` and
+  `automation` had nothing to read and `behavioural` no telemetry: their authenticity panel says so in one quiet line,
+  and Network and Automation read "Not checked" instead of "Nothing found" (`uncheckedCategories` in
+  `#lib/integrity.ts`). It goes by the application's source alone, so a careers applicant who turned telemetry off with
+  the assistive-technology switch is never told apart; the ruleset is unchanged.
 - **Candidate**: notice before collection, accommodation toggle, AI-use declaration, a "why we asked you to verify"
   page, and an **appeal / human-review request** flow (UK Art. 22C, CCPA ADMT, Colorado notices).
 

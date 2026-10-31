@@ -41,11 +41,14 @@
   const terminalKinds = new Set<StageKind>(['Hired', 'Rejected', 'Withdrawn']);
   const openStages = $derived(stages.filter((stage) => !terminalKinds.has(stage.kind)));
   const closedStages = $derived(stages.filter((stage) => terminalKinds.has(stage.kind)));
-  const countIn = (stageId: string) => applications.filter((application) => application.stage.id === stageId).length;
-  const closedCount = $derived(closedStages.reduce((sum, stage) => sum + countIn(stage.id), 0));
+  // A candidate kept in mind has left the job (docs/architecture/talent-pool.md): their stage is where they stood, so
+  // they count in Closed, never in that stage's column.
+  const stillIn = $derived(applications.filter((application) => !application.keptInMindAt));
+  const countIn = (stageId: string) => stillIn.filter((application) => application.stage.id === stageId).length;
+  const closedCount = $derived(closedStages.reduce((sum, stage) => sum + countIn(stage.id), 0) + (applications.length - stillIn.length));
 
   function build(): Column[] {
-    return openStages.map((stage) => ({ stage, cards: applications.filter((application) => application.stage.id === stage.id) }));
+    return openStages.map((stage) => ({ stage, cards: stillIn.filter((application) => application.stage.id === stage.id) }));
   }
 
   // Rebuilt whenever the applications change; a drag reassigns it while the card is in flight.

@@ -1,5 +1,6 @@
 <script lang="ts">
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
+  import BookmarkIcon from '@lucide/svelte/icons/bookmark';
   import BriefcaseBusinessIcon from '@lucide/svelte/icons/briefcase-business';
   import CalendarIcon from '@lucide/svelte/icons/calendar';
   import MailIcon from '@lucide/svelte/icons/mail';
@@ -14,6 +15,9 @@
     createListCandidateEmails,
     createListEmailTemplates,
     createGetJobHiringTeam,
+    createListJobs,
+    createListRoles,
+    createListScorecardTemplates,
     createListTeamMembers,
   } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
@@ -22,6 +26,7 @@
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
   import ActivityPanel from '#lib/components/candidate/activity-panel.svelte';
+  import AskScorecardSheet from '#lib/components/ask-scorecard-sheet.svelte';
   import PhoneIcon from '@lucide/svelte/icons/phone';
   import ApplicationTab from '#lib/components/candidate/application-tab.svelte';
   import MessagesTab from '#lib/components/candidate/messages-tab.svelte';
@@ -31,6 +36,7 @@
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import IntegrityPanel from '#lib/components/integrity-panel.svelte';
+  import KeepInMindSheet from '#lib/components/keep-in-mind-sheet.svelte';
   import MetaItem from '#lib/components/meta-item.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import MoveNoteSheet from '#lib/components/move-note-sheet.svelte';
@@ -56,10 +62,14 @@
   import { visibleEntries, type ActivityNames } from '#lib/activity.js';
   import { authenticityLevels } from '#lib/integrity.js';
   import { createMoves } from '#lib/moves.svelte.js';
+  import { formatDate } from '#lib/dates.js';
+  import { canKeepInMind, stageLabel } from '#lib/talent-pool.js';
   import { membersWhoSee } from '#lib/hiring-team.js';
   import { can } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { applicationsPath } from '#lib/realtime.js';
+  import { choiceFor, defaultChoice, scorecardChoices } from '#lib/scorecard-choices.js';
+  import { membersWith } from '#lib/team.js';
   import type { PageProps } from './$types';
 
   let { params }: PageProps = $props();
@@ -101,8 +111,14 @@
   const mayMove = $derived(can(page.data.user, 'MoveCandidates'));
   const mayNote = $derived(can(page.data.user, 'AddNotesAndTags'));
   const mayScore = $derived(can(page.data.user, 'FillInScorecards'));
+  const mayAsk = $derived(can(page.data.user, 'CreateTasks'));
   let moveNoteOpen = $state(false);
+  // Keep in mind (docs/architecture/talent-pool.md) sits in Move to stage beside Rejected, for a candidate who allowed it.
+  let keepOpen = $state(false);
+  let keptMessage = $state('');
   let scorecardOpen = $state(false);
+  let scorecardInitial = $state<string | undefined>();
+  let askOpen = $state(false);
   let scorecardAnnouncement = $state('');
   // The job's workflow names the stages and labels the questions.
   const job = createGetJob(
@@ -139,23 +155,56 @@
   const questions = $derived(new Map((workflow?.questionnaire.questions ?? []).map((question) => [question.id, question])));
   const followUpName = (requestId: string | null | undefined) =>
     detail?.followUps.find((followUp) => followUp.id === requestId)?.name ?? 'a follow-up questionnaire';
-  const names: ActivityNames = { stageName, followUpName };
+  // The talent pool's entries name other jobs: where the candidate was invited, added or applied.
+  const jobs = createListJobs();
+  const jobName = (id: string | null | undefined) => jobs.data?.data.find((candidate) => candidate.id === id)?.title ?? 'another job';
+  const names: ActivityNames = { stageName, followUpName, jobName };
   const entries = $derived(timeline.data?.data);
 
-  // A reviewer scores a stage that has a scorecard, that the application has reached, and that they have not scored yet;
-  // the current stage first.
+  // Fill in offers every scorecard the reader can still give: the stages the application reached that have one (the
+  // current stage first), then the library's, given at the current stage. A link names one (?scorecard=, My tasks' row
+  // for a requested scorecard), and the sheet opens on it.
+  const library = createListScorecardTemplates();
+  const linkedScorecard = $derived(page.url.searchParams.get('scorecard'));
   const reached = $derived(
     new Set([
       ...(detail ? [detail.stage.id] : []),
-      ...(entries ?? []).filter((entry) => entry.type === 'Submitted' || entry.type === 'StageChanged').map((entry) => entry.toStageId),
+      ...(entries ?? []).filter((entry) => entry.type === 'Submitted' || entry.type === 'StageChanged').flatMap((entry) => entry.toStageId ?? []),
     ]),
   );
-  const scoredByMe = $derived(new Set((scorecards.data?.data ?? []).filter((card) => card.reviewerUserId === currentUserId).map((card) => card.stageId)));
-  const scoreable = $derived(
-    stages
-      .filter((stage) => stage.scorecard && reached.has(stage.id) && !scoredByMe.has(stage.id))
-      .toSorted((a, b) => Number(b.id === detail?.stage.id) - Number(a.id === detail?.stage.id)),
+  const choices = $derived(
+    scorecardChoices({
+      stages,
+      reached,
+      currentStageId: detail?.stage.id,
+      library: library.data?.data ?? [],
+      mine: (scorecards.data?.data ?? []).filter((card) => card.reviewerUserId === currentUserId),
+      alsoOffer: linkedScorecard,
+    }),
   );
+  // Ask for one names the teammates who can see this job (ADR-0015) and whose role fills in scorecards, never yourself.
+  const roles = createListRoles(() => ({ query: { enabled: mayAsk } }));
+  const teammates = $derived(
+    mentionable && roles.data
+      ? membersWith(mentionable, roles.data.data.roles, 'FillInScorecards').filter((member) => member.userId !== currentUserId)
+      : undefined,
+  );
+
+  function fillIn(value?: string) {
+    scorecardInitial = value ?? defaultChoice(choices, detail?.stage.id)?.value;
+    scorecardOpen = true;
+  }
+
+  // A link to a scorecard opens the sheet on it once everything it needs has loaded, once per visit. A scorecard the
+  // reader gave already offers nothing, so the tab simply shows.
+  let openedFromLink = false;
+  $effect(() => {
+    const key = linkedScorecard;
+    if (!key || openedFromLink || !mayScore || !detail || !job.isSuccess || !scorecards.isSuccess || !timeline.isSuccess || !library.isSuccess) return;
+    openedFromLink = true;
+    const choice = choiceFor(choices, key);
+    if (choice) fillIn(choice.value);
+  });
 
   // A count on each tab where one fits (E2). When the authenticity level needs a look, Integrity's count is the signals
   // behind it, in the same grey as every tab, and the level is the candidate's status beside the name (W7).
@@ -206,13 +255,14 @@
   {#if detail && stages.length > 0 && mayMove}
     <MoveToStage
       candidateName={detail.candidate.fullName}
-      currentStageId={detail.stage.id}
+      currentStageId={detail.keptInMindAt ? '' : detail.stage.id}
       {stages}
       variant="default"
       size="lg"
       disabled={moves.pending}
       onmove={(stage) => moves.move({ id: detail.id, jobId: detail.jobId, candidateName: detail.candidate.fullName }, stage)}
       onnote={() => (moveNoteOpen = true)}
+      onkeep={canKeepInMind(detail) ? () => (keepOpen = true) : undefined}
     />
   {/if}
 {/snippet}
@@ -284,7 +334,8 @@
         {/snippet}
         {#snippet meta()}
           <!-- The stage is the one fact a recruiter acts on, so it is a muted pill: a fact, not a second status (T2). -->
-          <MetaItem label="Stage"><Badge variant="muted">{detail.stage.name}</Badge></MetaItem>
+          <!-- A candidate kept in mind has left the job: the pill says so where the stage was. -->
+          <MetaItem label="Stage"><Badge variant="muted">{stageLabel(detail)}</Badge></MetaItem>
           <MetaItem label="Job" icon={BriefcaseBusinessIcon}><TruncatedText text={detail.jobTitle} href={`/jobs/${detail.jobId}`} underlined /></MetaItem>
           <!-- When and where from, as one phrase that reads without its label. -->
           <MetaItem label="Applied" icon={CalendarIcon}>
@@ -293,6 +344,9 @@
                 recruiter <RelativeTime at={detail.submittedAt} class="inline" />{/if}
             </span>
           </MetaItem>
+          {#if detail.inTalentPool && detail.futureRolesUntil}
+            <MetaItem label="Talent pool" icon={BookmarkIcon}><span>In the talent pool until {formatDate(detail.futureRolesUntil)}</span></MetaItem>
+          {/if}
           <MetaItem label="Rating" icon={StarIcon}>
             <!-- From people's scorecards only (ADR-0013); it opens to each scorecard. -->
             <Rating rating={detail.rating} scorecards={scorecards.data?.data} stageName={(id) => stageName(id)} {members} {currentUserId} />
@@ -305,6 +359,7 @@
              shows in the header band, beside Move to stage. -->
         <p role="status" class="sr-only">{moves.failure ? '' : moves.announcement}</p>
         <p role="status" class="sr-only">{emailed}</p>
+        <p role="status" class="sr-only">{keptMessage}</p>
 
         <!-- Only the selected tab's body is rendered: each loads what it shows, and a note's anchor is on the page once. -->
         <div class="flex min-w-0 flex-col gap-5">
@@ -355,13 +410,14 @@
                 {currentUserId}
                 announcement={scorecardAnnouncement}
                 withheld={detail.rating?.state === 'AfterYourScorecard'}
-                onfill={mayScore && scoreable.length > 0 ? () => (scorecardOpen = true) : undefined}
+                onfill={mayScore ? () => fillIn() : undefined}
+                onask={mayAsk ? () => (askOpen = true) : undefined}
               />
             {/if}
           </Tabs.Content>
           <Tabs.Content value="verification" class="flex min-w-0 flex-col gap-5">
             {#if tab === 'verification'}
-              <IntegrityPanel applicationId={detail.id} />
+              <IntegrityPanel applicationId={detail.id} source={detail.source} />
               <ReviewLog applicationId={detail.id} />
             {/if}
           </Tabs.Content>
@@ -397,13 +453,39 @@
     {/if}
 
     {#if mayScore}
-      <ScorecardSheet bind:open={scorecardOpen} applicationId={detail.id} stages={scoreable} ondone={scorecardSubmitted} />
+      <ScorecardSheet
+        bind:open={scorecardOpen}
+        applicationId={detail.id}
+        {choices}
+        initial={scorecardInitial}
+        loadingChoices={library.isPending || scorecards.isPending || !workflow}
+        libraryError={library.error ?? undefined}
+        onretrylibrary={() => library.refetch()}
+        ondone={scorecardSubmitted}
+      />
+    {/if}
+    {#if mayAsk}
+      <AskScorecardSheet
+        bind:open={askOpen}
+        applicationId={detail.id}
+        {teammates}
+        library={library.data?.data ?? []}
+        currentStage={stages.find((stage) => stage.id === detail?.stage.id)}
+        ondone={scorecardSubmitted}
+      />
     {/if}
     {#if mayMove}
+      <KeepInMindSheet
+        bind:open={keepOpen}
+        applicationIds={[detail.id]}
+        candidateName={detail.candidate.fullName}
+        until={detail.futureRolesUntil}
+        ondone={(message) => (keptMessage = message)}
+      />
       <MoveNoteSheet
         bind:open={moveNoteOpen}
         candidateName={detail.candidate.fullName}
-        currentStageId={detail.stage.id}
+        currentStageId={detail.keptInMindAt ? '' : detail.stage.id}
         {stages}
         failure={moves.failure}
         onmove={(stage, note) => moves.move({ id: detail.id, jobId: detail.jobId, candidateName: detail.candidate.fullName }, stage, note)}
