@@ -69,6 +69,8 @@ public sealed class VerificationRenameMigrationTests(AppHostFixture fixture)
                 .Should().Be(4, "job_scope stays restrictive on the four rows under one application");
             (await ScalarAsync<bool>(connectionString, "SELECT has_table_privilege('screenhire_app', 'verification_review_actions', 'UPDATE') OR has_table_privilege('screenhire_app', 'verification_review_actions', 'DELETE') OR has_table_privilege('screenhire_app', 'verification_settings', 'DELETE')", ct))
                 .Should().BeFalse("the revoked grants follow their tables");
+            (await ScalarAsync<bool>(connectionString, "SELECT has_table_privilege('screenhire_app', 'verification_review_actions', 'INSERT') AND has_table_privilege('screenhire_app', 'verification_settings', 'UPDATE')", ct))
+                .Should().BeTrue("the grants that were kept follow their tables too");
             (await IntegrityNamesAsync(connectionString, ct)).Should().BeEmpty();
             (await UnforcedAsync(connectionString, ct)).Should().BeEmpty("FORCE comes back on every table the migration lifted it from");
 

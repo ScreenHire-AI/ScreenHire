@@ -238,7 +238,8 @@ public sealed class DefinitionValidatorTests
                 Action(ActionType.Reject), allowAutoReject: true),
         ]);
 
-        DefinitionValidator.Validate(workflow).Should().Contain(e => e.Path == "automations[0].actions[0]" && e.Message.Contains("ADR-0004"));
+        DefinitionValidator.Validate(workflow).Should().ContainSingle(e => e.Path == "automations[0].actions[0]")
+            .Which.Message.Should().Contain("ADR-0004");
     }
 
     [Theory]
