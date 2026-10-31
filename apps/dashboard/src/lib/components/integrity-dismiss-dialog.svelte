@@ -87,7 +87,8 @@
       </Dialog.Description>
     </Dialog.Header>
     {#if explained.length > 0}
-      <ul aria-label="Explained reasons" class="flex flex-col gap-2" data-explained-reasons>
+      <p id="dismiss-explained-label" class="text-caption font-semibold text-muted-foreground">Explained reasons</p>
+      <ul aria-labelledby="dismiss-explained-label" class="-mt-2 flex flex-col gap-2" data-explained-reasons>
         {#each explained as item (item.id)}
           <li class="flex flex-col gap-0.5">
             <span class="font-semibold">{item.title}</span>

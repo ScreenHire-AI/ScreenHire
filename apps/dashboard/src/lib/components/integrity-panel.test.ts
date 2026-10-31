@@ -368,6 +368,8 @@ describe('integrity panel', () => {
     await waitFor(() => expect(reasonRow('AUTO_WEBDRIVER').querySelector('details')!.open).toBe(true));
 
     expect(screen.queryByRole('button', { name: /Mark explained|Undo|Dismiss|Add review note/ })).not.toBeInTheDocument();
+    // Read-only says why (E3).
+    expect(section('Authenticity')).toHaveTextContent('Your role can read these checks. A reviewer explains reasons and dismisses.');
     expect(reasonRow('NET_DATACENTER_IP').querySelector('[data-explanation]')).toHaveTextContent(/^Explained by you/);
   });
 

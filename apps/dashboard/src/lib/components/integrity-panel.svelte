@@ -175,9 +175,9 @@
 {#snippet signalItem(signal: IntegritySignalView, showCheck: boolean, review: ReviewContext)}
   {@const short = signal.evidence.filter((evidence) => !isWideEvidence(evidence))}
   {@const wide = signal.evidence.filter(isWideEvidence)}
-  <li data-signal={signal.code} data-explained={signal.explained ? '' : undefined}>
-    <!-- Open, the reason's title and its detail share one soft background, with nothing boxed inside it. -->
-    <details bind:open={() => expanded[signal.id] ?? false, (open) => (expanded = { ...expanded, [signal.id]: open })} class="group open:bg-secondary/60">
+  <!-- Open, the reason's title, its detail and any explanation share one soft background, with nothing boxed inside it. -->
+  <li data-signal={signal.code} data-explained={signal.explained ? '' : undefined} class="has-[details[open]]:bg-secondary/60">
+    <details bind:open={() => expanded[signal.id] ?? false, (open) => (expanded = { ...expanded, [signal.id]: open })} class="group">
       <!-- It opens in place, so it shows the chevron that says so, turning up when open (A9). -->
       <summary class="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2.5 hover:bg-secondary/60 [&::-webkit-details-marker]:hidden">
         <span class="min-w-0 flex-1 font-semibold">{signal.title}</span>
@@ -336,6 +336,9 @@
           <!-- One button: it reads Dismiss all once every reason that counts is explained, never a second Dismiss (W7).
                Either way it is one dismissal with its own reason. -->
           <Button variant="outline" size="lg" onclick={() => startDismiss(kind, view)}>{everyReasonExplained(view.signals) ? 'Dismiss all' : 'Dismiss'}</Button>
+        {:else if level.rank > 0}
+          <!-- Read-only says why (E3). -->
+          <p class="max-w-measure text-muted-foreground">Your role can read these checks. A reviewer explains reasons and dismisses.</p>
         {:else}
           <span></span>
         {/if}

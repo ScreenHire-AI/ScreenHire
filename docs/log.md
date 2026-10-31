@@ -6,7 +6,8 @@
 with a short reason and an optional note, and its author can undo it; both go in the review log. Once every reason that
 counts is explained, Dismiss reads Dismiss all and the dismiss dialog lists the notes. Explaining changes no level and
 nothing reads it but the panel; only a dismissal sets an assessment aside. The AI assistance summary no longer repeats
-the job's policy, which the panel shows as a pill.
+the job's policy, which the panel shows as a pill. That is wording, not a rule, so the ruleset version stays and
+assessments already stored keep the old sentence until they are reassessed.
 
 **The owner reviewed the v0.3 build** ([ADR-0017](adr/0017-design-system-v0-3-owner-review.md)) and the dashboard
 changed with it. The candidate page has no details rail: who they are and where they stand is one meta line in the

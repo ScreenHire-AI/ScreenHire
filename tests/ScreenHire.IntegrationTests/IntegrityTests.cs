@@ -169,6 +169,10 @@ public sealed class IntegrityTests(AppHostFixture fixture)
             .ProblemKeys().Should().Equal("note");
         (await viewer.PostAsync(Reason(first, "explain"), new JsonObject { ["reason"] = "ExpectedForRole" })).Expect(HttpStatusCode.Forbidden);
         (await owner.PostAsync(Reason(Guid.CreateVersion7(), "explain"), new JsonObject { ["reason"] = "ExpectedForRole" })).Expect(HttpStatusCode.NotFound);
+        // A reason of one assessment is not a reason of the other.
+        (await owner.PostAsync(
+            $"/v1/applications/{bot}/integrity/assessments/{integrity.Id("aiAssistance.id")}/signals/{first}/explain",
+            new JsonObject { ["reason"] = "ExpectedForRole" })).Expect(HttpStatusCode.NotFound);
 
         var explained = (await owner.PostAsync(Reason(first, "explain"), new JsonObject { ["reason"] = "ExpectedForRole", ["note"] = "Remote role." }))
             .Expect(HttpStatusCode.OK);
