@@ -2,7 +2,7 @@ import type { JobDetail } from '@screenhire/api-client';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { page } from '$app/state';
-import { apiStub, applications, board, jobId, posting, stages, user } from '../../../../test-support/fixtures.js';
+import { apiStub, applications, board, jobId, posting, stages, user, userAs } from '../../../../test-support/fixtures.js';
 import { stubViewport } from '../../../../test-support/viewport.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
@@ -293,6 +293,44 @@ describe('job page', () => {
     ]);
     const band = document.querySelector<HTMLElement>('[data-slot=header-band]')!;
     expect(within(band).queryByRole('link', { name: 'Edit details' })).not.toBeInTheDocument();
+  });
+
+  it('offers Add candidate as an outline button for this job to a role that adds candidates', async () => {
+    page.data = { user };
+    stub(job);
+
+    const add = await screen.findByRole('button', { name: 'Add candidate' });
+    expect(add.closest('[data-slot=header-band]')).not.toBeNull();
+    // Publish is the page's primary (A1), so this one is outline.
+    expect(add).toHaveClass('bg-card');
+    expect(add).not.toHaveClass('bg-primary');
+    await fireEvent.click(add);
+    const sheet = await screen.findByRole('dialog', { name: 'Add candidate' });
+    expect(sheet).toHaveTextContent('They join Senior .NET Engineer in its first stage.');
+    expect(within(sheet).queryByLabelText('Job')).toBeNull();
+  });
+
+  it('has no Add candidate for a role that cannot add candidates (A3)', async () => {
+    page.data = { user: userAs('Viewer') };
+    stub(job);
+    await screen.findByRole('button', { name: /Hiring team/ });
+    expect(screen.queryByRole('button', { name: 'Add candidate' })).not.toBeInTheDocument();
+  });
+
+  it('has no Add candidate on a closed job, which takes no applications', async () => {
+    page.data = { user };
+    stub({ ...job, status: 'Closed', closedAt: '2026-10-20T10:00:00Z' });
+    await screen.findByRole('button', { name: /Hiring team/ });
+    expect(screen.queryByRole('button', { name: 'Add candidate' })).not.toBeInTheDocument();
+  });
+
+  it('puts Add candidate in More on a phone', async () => {
+    page.data = { user };
+    stubViewport(360);
+    stub(job);
+
+    const menu = await openMoreActions();
+    expect(within(menu).getByRole('menuitem', { name: 'Add candidate' })).toBeInTheDocument();
   });
 
   it("puts a draft's publish in the action bar on a phone", async () => {

@@ -39,7 +39,10 @@ public sealed record ApplicationStage(string Id, string Name, StageKind Kind);
 /// has been assessed, and always null for an API key, because integrity evidence is for a person reviewing the
 /// application (ADR-0011). <c>slaDueAt</c> is when the application passes its stage's time limit: overdue from then
 /// on, which measures the hiring team's delay and never counts against the candidate. Null when the stage has no limit.
-/// <c>rating</c> is the candidate's rating as the reader may see it (<c>ApplicationRating</c>).
+/// <c>rating</c> is the candidate's rating as the reader may see it (<c>ApplicationRating</c>). <c>lastActivityAt</c> is
+/// when anything last happened to the application, from the candidate (applied, answered a questionnaire) or the team
+/// (moved, noted, tagged, emailed, scored, gave or finished a task); never earlier than <c>submittedAt</c>. The integrity
+/// checks do not move it.
 /// </remarks>
 public sealed record ApplicationSummary(
     Guid Id,
@@ -49,6 +52,7 @@ public sealed record ApplicationSummary(
     ApplicationStage Stage,
     DateTimeOffset SubmittedAt,
     DateTimeOffset StageEnteredAt,
+    DateTimeOffset LastActivityAt,
     string JobTitle,
     ApplicationSource Source,
     IReadOnlyList<string> Tags,
@@ -195,11 +199,16 @@ public sealed record ApplicationNoteDetail(
 /// A recruiter adds an application by hand, for a candidate who applied another way. The candidate is matched by email
 /// within the organization and created if new. The public apply flow is the careers site's.
 /// </summary>
+/// <remarks>
+/// <c>resumeUploadId</c> is an upload from <c>CreateResumeUpload</c> for this job, once its bytes are in storage; the
+/// file is checked here and kept as the candidate's resume.
+/// </remarks>
 public sealed record CreateApplicationRequest(
     CandidateInput Candidate,
     bool AccommodationRequested = false,
     AiUseDeclaration AiUseDeclaration = AiUseDeclaration.NotProvided,
-    string? AiUseDetails = null);
+    string? AiUseDetails = null,
+    Guid? ResumeUploadId = null);
 
 /// <summary>The candidate of an application a person or an API key adds.</summary>
 /// <remarks>
@@ -253,9 +262,10 @@ internal static class ApplicationMappings
         job.Workflow.FindStage(application.CurrentStageId)?.SlaDueAt(application.StageEnteredAt);
 
     public static ApplicationSummary ToSummary(
-        this JobApplication application, Job job, Candidate candidate, IntegritySummary? integrity = null, ApplicationRating? rating = null) =>
+        this JobApplication application, Job job, Candidate candidate, DateTimeOffset lastActivityAt, IntegritySummary? integrity = null,
+        ApplicationRating? rating = null) =>
         new(application.Id, application.JobId, application.CandidateId, candidate.FullName, application.StageIn(job),
-            application.SubmittedAt, application.StageEnteredAt, job.Title, application.Source, application.Tags, integrity,
+            application.SubmittedAt, application.StageEnteredAt, lastActivityAt, job.Title, application.Source, application.Tags, integrity,
             application.SlaDueAt(job), rating ?? ApplicationRating.NotRated);
 
     public static ApplicationDetail ToDetail(

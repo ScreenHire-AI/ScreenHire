@@ -44,6 +44,13 @@ public class AppHostFixture : IAsyncLifetime
     private readonly ConcurrentDictionary<string, string> stopped = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, OwnProcess> processes = new(StringComparer.Ordinal);
     private Task? watcher;
+
+    // The worker's own word that it takes messages. Aspire counts a project with no health check as up once its process
+    // starts, and the worker (a generic host, no HTTP endpoint) is that, so on a loaded machine a test could publish and
+    // wait out its deadline while the worker was still building and starting (docs/process/testing.md, flake history,
+    // 2026-10-31). Wolverine logs this line when it listens on the worker's queue (MessagingSettings.WorkerQueue).
+    private const string WorkerListening = "Started message listening at postgresql://worker/";
+    private readonly TaskCompletionSource workerListening = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private DistributedApplication? app;
 
     /// <summary>
@@ -110,7 +117,7 @@ public class AppHostFixture : IAsyncLifetime
         {
             await app.StartAsync(startup.Token);
             await Task.WhenAll(RequiredResources.Select(resource => WaitUntilHealthyAsync(app, resource, startup.Token)));
-            await WaitUntilWorkerStartedAsync(app, startup.Token);
+            await WaitUntilWorkerListensAsync(app, startup.Token);
         }
         catch
         {
@@ -138,35 +145,23 @@ public class AppHostFixture : IAsyncLifetime
         }
     }
 
-    // The worker is a generic host with no health endpoint, so Aspire calls it healthy as soon as its process runs, and it
-    // starts only once the API is healthy. A test that publishes a message at once would spend its wait on the worker's
-    // own start (20 s on a busy machine) and time out. Its host's "Application started" line, from Aspire's log stream,
-    // says its handlers are listening.
-    private async Task WaitUntilWorkerStartedAsync(DistributedApplication app, CancellationToken cancellationToken)
+    // Only an AppHost that has the worker waits for it (the production fixture removes it).
+    private async Task WaitUntilWorkerListensAsync(DistributedApplication started, CancellationToken cancellationToken)
     {
-        // A fixture can take the worker out of its stack (ProductionApiFixture does); then there is nothing to wait for.
-        if (!app.Services.GetRequiredService<DistributedApplicationModel>().Resources.Any(resource => resource.Name == "worker"))
+        if (!started.Services.GetRequiredService<DistributedApplicationModel>().Resources.Any(resource => resource.Name == "worker"))
         {
             return;
         }
 
         try
         {
-            var running = await app.ResourceNotifications.WaitForResourceAsync(
-                "worker", update => update.Snapshot.State?.Text == KnownResourceStates.Running, cancellationToken);
-            var logs = app.Services.GetRequiredService<ResourceLoggerService>();
-            await foreach (var batch in logs.WatchAsync(running.ResourceId).WithCancellation(cancellationToken))
-            {
-                if (batch.Any(line => line.Content.Contains("Application started", StringComparison.Ordinal)))
-                {
-                    return;
-                }
-            }
+            await workerListening.Task.WaitAsync(cancellationToken);
         }
         catch (OperationCanceledException exception) when (!TestContext.Current.CancellationToken.IsCancellationRequested)
         {
             throw new TimeoutException(
-                $"The AppHost resource 'worker' did not start within {StartupTimeout.TotalMinutes:0} minutes. Check its log in {LogDirectory}.",
+                $"The AppHost resource 'worker' did not start listening for messages within {StartupTimeout.TotalMinutes:0} minutes. " +
+                $"Check its log in {LogDirectory}.",
                 exception);
         }
     }
@@ -197,7 +192,10 @@ public class AppHostFixture : IAsyncLifetime
             {
                 var path = Path.Combine(directory, $"{update.Resource.Name}.log");
                 // By instance id, not by name: the log stream of a running project carries a suffix after its name.
-                _ = logging.GetOrAdd(update.ResourceId, id => Task.Run(() => CopyLogAsync(logs, id, path, cancellationToken), cancellationToken));
+                Action<string>? onLine = update.Resource.Name == "worker"
+                    ? line => { if (line.Contains(WorkerListening, StringComparison.Ordinal)) workerListening.TrySetResult(); }
+                    : null;
+                _ = logging.GetOrAdd(update.ResourceId, id => Task.Run(() => CopyLogAsync(logs, id, path, onLine, cancellationToken), cancellationToken));
 
                 var snapshot = update.Snapshot;
                 RecordProcess(update.ResourceId, snapshot);
@@ -279,7 +277,8 @@ public class AppHostFixture : IAsyncLifetime
     }
 
     // A file that cannot be written loses its log, not the run. The watcher's task is awaited when the stack is disposed.
-    private static async Task CopyLogAsync(ResourceLoggerService logs, string resourceId, string path, CancellationToken cancellationToken)
+    private static async Task CopyLogAsync(
+        ResourceLoggerService logs, string resourceId, string path, Action<string>? onLine, CancellationToken cancellationToken)
     {
         try
         {
@@ -289,6 +288,7 @@ public class AppHostFixture : IAsyncLifetime
                 foreach (var line in batch)
                 {
                     await file.WriteLineAsync($"{(line.IsErrorMessage ? "ERR " : "")}{line.Content}");
+                    onLine?.Invoke(line.Content);
                 }
             }
         }

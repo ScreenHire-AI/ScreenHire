@@ -47,6 +47,7 @@
       'stage',
       'source',
       'applied',
+      'lastActivity',
     ]),
   }: {
     applications: readonly ApplicationSummary[];
@@ -106,6 +107,9 @@
     { id: 'source', header: 'Source', accessorFn: (application) => sourceLabel(application.source), sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(sourceCell, row.original) },
     // Applied sorts, newest first: the order every candidate table opens on (L2).
     { id: 'applied', header: 'Applied', accessorFn: (application) => application.submittedAt, sortFn: 'basic', sortDescFirst: true, cell: ({ row }) => renderSnippet(appliedCell, row.original) },
+    // When anything last happened to the application, from the candidate or the team (the API's lastActivityAt), newest
+    // first. The integrity checks never move it.
+    { id: 'lastActivity', header: 'Last activity', accessorFn: (application) => application.lastActivityAt, sortFn: 'basic', sortDescFirst: true, cell: ({ row }) => renderSnippet(lastActivityCell, row.original) },
     ...(stages && moves?.allowed ? [{ id: 'move', header: () => renderSnippet(moveHeader, undefined), cell: ({ row }) => renderSnippet(moveCell, row.original) } satisfies CandidateColumn] : []),
   ]);
 
@@ -124,8 +128,9 @@
   const selectColumn = 'sticky left-0 w-10 min-w-10 px-2 pointer-coarse:w-15 pointer-coarse:min-w-15';
   const nameColumn = 'sticky left-10 pointer-coarse:left-15';
   // Source is an optional column (section 8): it shows only where the table has room, so a job's pipeline beside its
-  // side column fits a laptop without scrolling sideways.
-  const optionalColumn = '@max-5xl/table:hidden';
+  // side column fits a laptop without scrolling sideways. The table across jobs has a Job column as well, so Source steps
+  // aside sooner there: with it, Candidates beside the full sidebar on a 1440px laptop was 19px too wide.
+  const optionalColumn = $derived(showJob ? '@max-6xl/table:hidden' : '@max-5xl/table:hidden');
   // While the table is scrolled sideways, the name column has an edge, so cells sliding under it do not show beside it.
   let scrolledSideways = $state(false);
   const nameEdge = 'after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border';
@@ -282,6 +287,10 @@
   <DateText at={application.submittedAt} class="text-muted-foreground" />
 {/snippet}
 
+{#snippet lastActivityCell(application: ApplicationSummary)}
+  <DateText at={application.lastActivityAt} class="text-muted-foreground" />
+{/snippet}
+
 {#snippet moveHeader()}
   <span class="sr-only">Move</span>
 {/snippet}
@@ -387,7 +396,7 @@
                     (header.id === 'select' || header.id === 'candidate') && 'z-[1] bg-muted',
                     header.id === 'move' && 'w-10',
                     header.id === 'source' && optionalColumn,
-                    (header.id === 'applied' || header.id === 'move') && 'text-right',
+                    (header.id === 'applied' || header.id === 'lastActivity' || header.id === 'move') && 'text-right',
                   ]}
                 />
               {/each}
@@ -412,7 +421,7 @@
                       cell.column.id === 'candidate' && scrolledSideways && nameEdge,
                       // A stuck cell covers what scrolls under it, so it carries the row's tint itself.
                       (cell.column.id === 'select' || cell.column.id === 'candidate') && ['z-[1]', tinted ? 'bg-row-selected' : 'bg-card group-hover:bg-muted'],
-                      (cell.column.id === 'applied' || cell.column.id === 'move') && 'text-right',
+                      (cell.column.id === 'applied' || cell.column.id === 'lastActivity' || cell.column.id === 'move') && 'text-right',
                       cell.column.id === 'source' && optionalColumn,
                     ]}
                   >

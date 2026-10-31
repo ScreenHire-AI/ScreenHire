@@ -74,6 +74,7 @@ const panels: Record<string, string[]> = {
   'Secret dialog': ['Secret dialog'],
   'Email preview': ['Email preview'],
   'Email composer': ['Email composer'],
+  'Add candidate sheet': ['Add candidate sheet'],
   'Live indicator': ['Live indicator'],
   'Integrity chip and panel': ['Integrity chip and evidence'],
   Tabs: ['Tabs'],
