@@ -444,6 +444,22 @@ and the test-only build flags take about a third off each shard's compile on top
 
 ### Time
 
+With the sharded layout and every speed-up above, run 41246212243 (2026-10-31, commit `c8493aa6`) took 9 min 0 s
+from start to `Gate`. The jobs themselves were short:
+
+| Job | Wall clock per job |
+|---|---|
+| `checks` | 3.4 min |
+| `vitest` (2 shards) | 1.7 to 2.0 min |
+| `integration` (8 shards) | 1.9 to 4.0 min |
+| `e2e` (8 shards) | 2.8 to 4.1 min |
+| `lighthouse` | 3.5 min |
+
+The rest was queueing. The organization, created on 2026-10-31, shows a limit of 20 concurrent jobs in its runner
+settings, but its runs got at most 5, 6, 8, 9 and then 10 runners at once, and the other jobs waited for one. With 20
+at once, the same run takes about 4.5 minutes, with no change to the workflow. Its test counts matched the local gate on
+the same commit: 1333 unit, 623 integration and 111 end-to-end tests, and 1393 Vitest tests.
+
 The first green run, before the suites were sharded, on 2026-10-31 at commit `579ed99b` (run 41213499536), took 13 min 6 s from start to `Gate`, with
 the caches the run before it saved (NuGet, the pnpm store, Playwright's Chromium):
 
