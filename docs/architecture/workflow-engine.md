@@ -244,6 +244,8 @@ the open problems in a "Problems to fix" panel above every tab; a read-only view
 - `GET/POST /v1/templates`, `POST /v1/templates/{id}/versions`, `POST /v1/templates/{id}/versions/{v}/publish`
 - `POST /v1/jobs` (from template version), `PUT /v1/jobs/{id}/workflow`, `POST /v1/jobs/{id}/workflow/apply-template-update`
 - `POST /v1/workflows/validate`, `POST /v1/workflows/simulate`
+- `POST /v1/jobs/{id}/applications` (add a candidate by hand) and `POST /v1/jobs/{id}/applications/resume-uploads`
+  (its resume's upload link), both Add candidates
 - `POST /v1/applications/{id}/move`, `GET /v1/applications/{id}/timeline`, `POST /v1/applications/{id}/notes`,
   `POST` and `DELETE /v1/applications/{id}/tags`, `POST /v1/applications/{id}/tasks` (Create tasks; a Write key too)
 - `GET /v1/tasks`, `POST /v1/tasks/{id}/complete` (signed-in people only: "mine" needs a person)
@@ -408,7 +410,12 @@ The data model and API from the jobs and templates task, and the engine that run
   or moves to that stage in between is not caught.
 - **Applications** start in the first stage. `POST /v1/applications/{id}/move` is the only way they move, always by a
   person, and every change appends to `application_events`. Recruiters add applications by hand with
-  `POST /v1/jobs/{jobId}/applications`; the careers apply flow is its own task.
+  `POST /v1/jobs/{jobId}/applications`, optionally with `resumeUploadId` from
+  `POST /v1/jobs/{jobId}/applications/resume-uploads` (Add candidates), which issues a create-only upload link for the
+  job's resume question as the careers form's uploads get ([apply flow](apply-flow.md) §3); the careers apply flow is
+  its own task. A hand-added application stores no notice, network or session data or telemetry. Every list's
+  `lastActivityAt` is the latest of its submission, its timeline entries except `IntegrityAssessed`, and its finished
+  tasks (`ApplicationActivity`), read in the list's own query.
 - **Events** through the outbox: `JobPublished` (with the job version), `JobClosed`, `ApplicationSubmitted`,
   `ApplicationMoved` (both carrying the timeline event id, the engine's idempotency key) and
   `HiringTemplateVersionPublished`.

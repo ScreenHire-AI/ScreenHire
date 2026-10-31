@@ -486,6 +486,7 @@ in a development build, shows every component in each state, and its test fails 
 | Secret dialog | shadcn `Dialog` (`SecretDialog`) | A secret the API shows once (an API key, a webhook signing secret): "Copy it now. You will not see it again.", the value in a read-only monospace field with Copy, and Done. The value lives only while the dialog is open; never in the query cache, the address or storage |
 | Email preview | `EmailPreview` | An email as the candidate receives it: the subject, then Email or Plain text (Toggle). The HTML renders in a sandboxed frame with no scripts, in an inset, never in the page, because a tenant wrote the template. The composer's preview, and a sent email opened in Messages (`SentEmail`), as it went |
 | Email composer | `EmailComposer`; `EmailComposerSheet` on shadcn `Sheet` | Email one candidate or a selection: in a sheet from a list's selection bar and the candidate's header (section 9, in place), and inline at the top of the Messages tab, titled Email and the candidate's name. To, then Start from: Blank email, the default, or one of the organization's templates, which fills Subject and Message. The rejection and follow-up questions emails are never offered, because only their actions send them (`docs/architecture/email.md`), and a blank email never becomes a template. The Edit / Preview switch (A8, no window) and Insert variable, a menu of the variables that puts one at the caret of the field last used: a chip in the message, `{{ name }}` in the subject. Changing a template's wording changes this email only, and one muted line under the message says so and that the template stays as it is. Preview is the first candidate's email, rendered by the API with their details ("Preview for" and their name in a selection); each candidate's own copy is rendered with theirs. Send is the sheet's one primary ("Send 3 emails" for a selection); inline on Messages it is outline, because the page's primary is Move to stage (A1), and empty fields say what they need when it is pressed. Each email lands in Activity and Messages as it went. No bulk email while an integrity filter or view picked the rows |
+| Add candidate sheet | `AddCandidateSheet` on shadcn `Sheet` | A recruiter adds a candidate by hand: Job (only the drafts and open jobs, and left out on a job's page, where the job is preset), First name, Last name, Email, Phone and Resume, then Cancel and Add candidate. Last name, Phone and Resume say "(optional)", the exception here (W6). No Source field: the API sets Recruiter (W6). No notice, telemetry or declarations: the Verification tab says which checks had nothing to look at (section 16). The resume goes straight to storage, as on the careers form. The page's primary on Candidates (in the action bar on a phone); outline on a job's page, where Publish is the primary, in More on a phone, and absent on a closed job; never without Add candidates (A3). A refusal (a closed job, someone who already applied, someone on a job the person does not see) is `FailureText` in the sheet; on success the page's status line names the candidate as a link to their page |
 | Live indicator | `LiveIndicator` | The live updates status as a pill in the top bar, beside Search, on every page: icon, colour and label (T1), from section 3.2 (Live, Connecting, Offline). While live, its icon has a slow, soft pulse behind it, which stops for reduced motion. On a phone only the icon shows; screen readers hear the label |
 | Failure text | `FailureText` with `ProblemIcon` | A failed action or form, in one line where it happened: the problem icon, the verify colour and the reason (T1, section 14). A section that cannot load uses `QueryError` |
 | Integrity chip and panel | `IntegrityChip`, `SignalEvidence`, `ReviewLog`, `LevelScale`; `IntegrityPanel` is the candidate's Verification tab | Section 16. `LevelScale` draws a level on its three steps. A summary card per kind of check: Network, Identity, Automation and Content always, Files and Form activity (the telemetry aggregates) only when they found something, each named for what was looked at, never for what it means about the person. Reasons expand one by one or with Expand all. The review log is its own panel: dismissals and review notes as Activity, and Add review note, named apart from Activity's Add note |
@@ -558,7 +559,10 @@ never stands in for a badge.
 
 ## 15. Shortcuts
 
-Ctrl K or Cmd K opens the command palette. `?` opens the shortcuts dialog, and so does its command in the palette.
+Ctrl K or Cmd K opens the command palette. From two characters it searches on the server once typing pauses
+(`GET /v1/search`): candidates by name or email, each on a job, and jobs by title, within the jobs the person sees. A
+list page's own search still filters the rows it loaded. `?` opens the shortcuts dialog, and so does its command in the
+palette.
 Hints appear as `Kbd` key caps in tooltips and menus, never as an always-on bar. Single-key shortcuts (the G chords, J
 and K, X, V and `?`) can be turned off (WCAG 2.1.4), skip text fields, menus and dialogs, and work only while their
 table or board has focus, except the G chords and `?`. The rich text editor's shortcuts all have a modifier (Ctrl or
@@ -590,6 +594,10 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
   facts row, any counter-evidence in its own card, and its code. The panel ends with Dismiss on the left and "Assessed 2
   hours ago" and "Ruleset" in caption size on the right. A calm result has no list of empty checks: its summary already
   says so.
+- A candidate added by hand came through no careers form, so the authenticity result says so in one quiet line ("Added
+  by hand, so the network, automation and form activity checks had nothing to look at."), and Network and Automation
+  read "Not checked" rather than "Nothing found" when the reasons show. It goes by the source alone; a careers
+  applicant's checks never say this, so nothing tells an assistive-technology opt-out apart.
 - Labels keep their full names: Verification suggested, mirroring Review suggested. AI assistance reads No signs,
   Some signs or Strong signs of AI help.
 
@@ -653,6 +661,11 @@ per-tenant stylesheet (strict CSP, no inline styles). Brand never overrides stat
   of the people on the job, each with their role, "Only jobs they're on" for someone who sees only their own (W6), a
   remove button, and Add a person and Copy from another job (Pickers). Changes land on Save. Without Edit jobs the sheet lists the people and says why (E3). A hiring
   template's header has Default hiring team as a fact whose count opens the same sheet, without Copy.
+- **Candidates:** every candidate table (Candidates and a job's) has Last activity after Applied: the date anything
+  last happened to the application, from the candidate (applied, answered a questionnaire) or the team (moved, noted,
+  tagged, emailed, scored, a task given or done), never the checks. It sorts, newest first on the first click, and live
+  events keep it current; the tables keep their default sorts (L2). Add candidate opens the Add candidate sheet (section
+  11), and Ctrl K searches on the server (section 15).
 - **Candidate:** the same tabs in the same order for everyone: Overview (what needs you now, the last five things
   anyone did with a box for a note, and the answers), Application, Messages (every email with the candidate, both
   ways, and the reply box), Scorecards, Integrity, Activity. Activity lists everything newest first, saying who and

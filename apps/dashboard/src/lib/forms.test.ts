@@ -17,6 +17,15 @@ describe('applyValidationProblem', () => {
     expect(form.errors._errors).toEqual(['Try again.']);
   });
 
+  it('maps a field name the API nests onto the flat form', () => {
+    const form = defaults(zod4(CompleteOnboardingBody));
+
+    applyValidationProblem(form, { errors: { 'organization.slug': ['That address is taken.'] } }, (field) => field.replace(/^organization\./, ''));
+
+    expect(form.errors.slug).toEqual(['That address is taken.']);
+    expect(form.errors._errors).toBeUndefined();
+  });
+
   it('leaves the form alone when the problem has no field errors', () => {
     const form = defaults(zod4(CompleteOnboardingBody));
 

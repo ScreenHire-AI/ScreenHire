@@ -104,6 +104,8 @@ import type {
   ScorecardEntry,
   ScorecardTemplateDetail,
   ScorecardTemplateSummary,
+  SearchParams,
+  SearchResults,
   SendEmailsRequest,
   SentEmail,
   SignInMethods,
@@ -2965,6 +2967,86 @@ return apiFetch<createApplicationResponse>(getCreateApplicationUrl(jobId),
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(createApplicationRequest)
+  }
+);}
+
+
+
+export type createResumeUploadResponse200 = {
+  data: UploadTicket
+  status: 200
+}
+
+export type createResumeUploadResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createResumeUploadResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createResumeUploadResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type createResumeUploadResponse404 = {
+  data: void
+  status: 404
+}
+
+export type createResumeUploadResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type createResumeUploadResponse429 = {
+  data: void
+  status: 429
+}
+
+export type createResumeUploadResponseSuccess = (createResumeUploadResponse200) & {
+  headers: Headers;
+};
+export type createResumeUploadResponseError = (createResumeUploadResponse400 | createResumeUploadResponse401 | createResumeUploadResponse403 | createResumeUploadResponse404 | createResumeUploadResponse409 | createResumeUploadResponse429) & {
+  headers: Headers;
+};
+
+export type createResumeUploadResponse = (createResumeUploadResponseSuccess | createResumeUploadResponseError)
+
+export const getCreateResumeUploadUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/applications/resume-uploads`
+}
+
+export const createResumeUpload = async (jobId: string,
+    uploadRequest: UploadRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createResumeUploadResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createResumeUploadResponse>(getCreateResumeUploadUrl(jobId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(uploadRequest)
   }
 );}
 
@@ -8413,6 +8495,58 @@ export const getGetQuestionnaireSchemaUrl = () => {
 export const getQuestionnaireSchema = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getQuestionnaireSchemaResponse> => {
 
   return apiFetch<getQuestionnaireSchemaResponse>(getGetQuestionnaireSchemaUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type searchResponse200 = {
+  data: SearchResults
+  status: 200
+}
+
+export type searchResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type searchResponse401 = {
+  data: void
+  status: 401
+}
+
+export type searchResponseSuccess = (searchResponse200) & {
+  headers: Headers;
+};
+export type searchResponseError = (searchResponse400 | searchResponse401) & {
+  headers: Headers;
+};
+
+export type searchResponse = (searchResponseSuccess | searchResponseError)
+
+export const getSearchUrl = (params?: SearchParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/search?${stringifiedParams}` : `/v1/search`
+}
+
+export const search = async (params?: SearchParams, options?: Parameters<typeof apiFetch>[1]): Promise<searchResponse> => {
+
+  return apiFetch<searchResponse>(getSearchUrl(params),
   {
     ...options,
     method: 'GET'
