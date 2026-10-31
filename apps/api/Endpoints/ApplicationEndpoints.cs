@@ -7,6 +7,7 @@ using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Applications;
+using ScreenHire.Application.Slack;
 using ScreenHire.Application.TalentPool;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
@@ -243,9 +244,10 @@ internal static class ApplicationEndpoints
         IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
         ClaimsPrincipal user,
+        SlackAccess slack,
         TimeProvider time,
         CancellationToken cancellationToken) =>
-        ApplicationChanges.AddNoteAsync(applicationId, request, validator, outbox, tenant, user, time, cancellationToken);
+        ApplicationChanges.AddNoteAsync(applicationId, request, validator, outbox, tenant, user, slack, time, cancellationToken);
 
     // Only the author edits a note (NotePolicy), at any time. The note keeps its latest text only, the timeline gains a
     // NoteEdited entry, and a mention the edit adds notifies only that person. The same text again changes nothing.
@@ -257,6 +259,7 @@ internal static class ApplicationEndpoints
         IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
         ClaimsPrincipal user,
+        SlackAccess slack,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
@@ -289,7 +292,7 @@ internal static class ApplicationEndpoints
             // existing row and updated.
             db.ApplicationNoteMentions.AddRange(added);
             await outbox.PublishAsync(new ApplicationNoteEdited(application.OrganizationId, application.Id, application.JobId, note.Id, now));
-            await ApplicationChanges.PublishMentionsAsync(outbox, application, note, added, now);
+            await ApplicationChanges.PublishMentionsAsync(outbox, slack, application, note, added, now);
             try
             {
                 await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
@@ -396,9 +399,10 @@ internal static class ApplicationEndpoints
         IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
         ClaimsPrincipal user,
+        SlackAccess slack,
         TimeProvider time,
         CancellationToken cancellationToken) =>
-        ApplicationChanges.CreateTaskAsync(applicationId, request, validator, outbox, tenant, user, time, cancellationToken);
+        ApplicationChanges.CreateTaskAsync(applicationId, request, validator, outbox, tenant, user, slack, time, cancellationToken);
 
     private static async Task<Results<Ok<List<ApplicationTimelineEntry>>, NotFound>> GetApplicationTimeline(
         Guid applicationId, ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, CancellationToken cancellationToken) =>

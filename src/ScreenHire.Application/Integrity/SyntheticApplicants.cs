@@ -198,6 +198,17 @@ public sealed record SyntheticApplicant(
     /// <summary>The name as the dashboard shows it: the first name and the last.</summary>
     public string FullName => $"{FirstName} {LastName}";
 
+    /// <summary>
+    /// <see cref="TimeToComplete"/> as the careers server measures it, the active seconds on each page of the form: a
+    /// fifth on the details, the rest on the questions (the "Software engineer" questions fit one page).
+    /// </summary>
+    public IReadOnlyList<PageTime> PageTimes()
+    {
+        var total = (int)Math.Floor(TimeToComplete.TotalSeconds);
+        var details = total / 5;
+        return [new("details", details), new("page-1", total - details)];
+    }
+
     /// <summary>The resume as a readable PDF; identical inputs give identical bytes, so the farm shares one file.</summary>
     public byte[] ResumeBytes() => SyntheticDocuments.Pdf(ResumeText, ResumeProducer, ResumeHiddenText, ResumeCreatedAt);
 }

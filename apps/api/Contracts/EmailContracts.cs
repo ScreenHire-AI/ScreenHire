@@ -103,7 +103,7 @@ internal static class EmailMappings
     public static EmailTemplateEntry ToEntry(this OrganizationEmailTemplate template, ChangeStamp? lastChange) =>
         new(template.Id, template.Name, template.BuiltIn, template.Edited, template.Id == EmailTemplateIds.ApplicationRejected,
             template.Content.Subject, template.Content.Body, template.UpdatedAt,
-            lastChange is null && template.BuiltIn && !template.Edited ? LastUpdate.ByScreenHire(null) : LastUpdate.From(lastChange, template.UpdatedAt),
+            lastChange is null && template.BuiltIn && !template.Edited ? LastUpdate.ByScreenHire(null) : LastUpdate.FromChange(lastChange, template.UpdatedAt),
             template.Id == EmailTemplateIds.QuestionnaireRequest, template.Archived, template.Id == EmailTemplateIds.TalentPoolInvitation);
 
     public static EmailPreview ToPreview(this EmailMessage message) => new(message.Subject, message.HtmlBody ?? "", message.TextBody);

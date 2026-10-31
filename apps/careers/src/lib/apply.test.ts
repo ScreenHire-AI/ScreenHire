@@ -6,11 +6,17 @@ import {
   fieldId,
   fields,
   NOTICE_VERSION,
+  pagesFor,
   parseState,
+  postedQuestions,
+  questionsOn,
   readAnswers,
   readDetails,
   readReview,
+  recordTime,
+  stepOf,
   stepsFor,
+  toDraftRequest,
   toRequest,
   validateAnswers,
   validateDetails,
@@ -60,9 +66,60 @@ const form = (entries: [string, string][]): FormData => {
 };
 
 describe('steps', () => {
-  it('skips the questions step when the job asks only for a resume', () => {
-    expect(stepsFor([resume])).toEqual(['details', 'review']);
-    expect(stepsFor(questions)).toEqual(['details', 'questions', 'review']);
+  it('skips the pages of questions when the job asks only for a resume', () => {
+    expect(stepsFor({ questions: [resume] })).toEqual(['details', 'review']);
+    expect(stepsFor({ questions, questionsPerPage: 8 })).toEqual(['details', 'page-1', 'review']);
+  });
+
+  it("splits the questions into pages of the organization's size, the resume on the details step", () => {
+    const shape = { questions, questionsPerPage: 2 };
+
+    expect(stepsFor(shape)).toEqual(['details', 'page-1', 'page-2', 'page-3', 'review']);
+    expect(questionsOn('details', shape).map((q) => q.id)).toEqual(['resume']);
+    expect(questionsOn('page-2', shape).map((q) => q.id)).toEqual(['shifts', 'years']);
+    expect(pagesFor(shape).every((page) => page.name === null)).toBe(true);
+    expect(stepOf('portfolio', shape)).toBe('page-3');
+    expect(stepOf('resume', shape)).toBe('details');
+  });
+
+  it('shows one named section a page, whatever the page size', () => {
+    const shape = {
+      questions,
+      questionsPerPage: 1,
+      sections: [
+        { id: 'eligibility', name: 'Eligibility', questionIds: ['work_authorization'] },
+        { id: 'experience', name: 'Your experience', questionIds: ['experience', 'shifts', 'years', 'portfolio'] },
+      ],
+    };
+
+    expect(pagesFor(shape).map((page) => [page.step, page.name, page.questions.length])).toEqual([
+      ['page-1', 'Eligibility', 1],
+      ['page-2', 'Your experience', 4],
+    ]);
+  });
+
+  it('reads only the questions the posted page showed', () => {
+    const posted = form([['pageQuestions', 'experience,unknown']]);
+
+    expect(postedQuestions(posted, questions).map((q) => q.id)).toEqual(['experience']);
+  });
+});
+
+describe('time on each page', () => {
+  const shown = { ...emptyState(), pageShownAt: '2026-10-30T09:00:00.000Z' };
+
+  it('adds the seconds since the page was shown to that page', () => {
+    const once = recordTime(shown, 'page-1', new Date('2026-10-30T09:00:42.000Z'));
+    const twice = recordTime({ ...once, pageShownAt: '2026-10-30T10:00:00.000Z' }, 'page-1', new Date('2026-10-30T10:00:08.000Z'));
+
+    expect(once.pageSeconds).toEqual({ 'page-1': 42 });
+    expect(twice.pageSeconds).toEqual({ 'page-1': 50 });
+  });
+
+  it('counts at most 30 minutes a page, nothing for a clock that went back, and nothing without a stamp', () => {
+    expect(recordTime(shown, 'details', new Date('2026-10-31T09:00:00.000Z')).pageSeconds).toEqual({ details: 1800 });
+    expect(recordTime(shown, 'details', new Date('2026-10-30T08:00:00.000Z')).pageSeconds).toEqual({ details: 0 });
+    expect(recordTime(emptyState(), 'details', new Date()).pageSeconds).toEqual({});
   });
 });
 
@@ -83,10 +140,25 @@ describe('parseState', () => {
     expect(parseState(JSON.stringify({ deviceCheckConsent: 'yes' })).deviceCheckConsent).toBe(false);
   });
 
-  it('keeps a start time only when it is an ISO instant', () => {
-    expect(parseState(JSON.stringify({ startedAt: '2026-10-20T09:00:00.000Z' })).startedAt).toBe('2026-10-20T09:00:00.000Z');
-    expect(parseState(JSON.stringify({ startedAt: 'yesterday' })).startedAt).toBe('');
-    expect(parseState(JSON.stringify({ startedAt: 1760950800000 })).startedAt).toBe('');
+  it('keeps the page stamp only when it is an ISO instant', () => {
+    expect(parseState(JSON.stringify({ pageShownAt: '2026-10-20T09:00:00.000Z' })).pageShownAt).toBe('2026-10-20T09:00:00.000Z');
+    expect(parseState(JSON.stringify({ pageShownAt: 'yesterday' })).pageShownAt).toBe('');
+    expect(parseState(JSON.stringify({ pageShownAt: 1760950800000 })).pageShownAt).toBe('');
+  });
+
+  it('keeps page times, the way back to the review and the draft only in their shapes', () => {
+    const parsed = parseState(
+      JSON.stringify({
+        pageSeconds: { details: 12, 'page-2': 40, 'page-x': 5, review: 1801, other: 3 },
+        returnTo: 'review',
+        draft: { token: 'CfDJ8draft_-', email: 'casey@example.com' },
+      }),
+    );
+
+    expect(parsed.pageSeconds).toEqual({ details: 12, 'page-2': 40 });
+    expect(parsed.returnTo).toBe('review');
+    expect(parsed.draft).toEqual({ token: 'CfDJ8draft_-', email: 'casey@example.com' });
+    expect(parseState(JSON.stringify({ returnTo: 'page-1', draft: { token: '<x>', email: 'a' } }))).toMatchObject({ returnTo: '', draft: null });
   });
 
   it('falls back to empty for anything malformed, and drops bad uploads', () => {
@@ -198,7 +270,7 @@ describe('toRequest', () => {
       files: { resume: upload },
       aiUseDeclaration: 'Used' as const,
       aiUseDetails: 'Grammar',
-      startedAt: '2026-10-20T09:00:00.000Z',
+      pageSeconds: { details: 20, 'page-1': 45 },
     };
 
     expect(toRequest(state, questions, { honeypotFilled: true, botCheckToken: null, userAgent: 'Mozilla/5.0 (Example)' })).toEqual({
@@ -215,8 +287,8 @@ describe('toRequest', () => {
       honeypotFilled: true,
       botCheckToken: null,
       userAgent: 'Mozilla/5.0 (Example)',
-      formStartedAt: '2026-10-20T09:00:00.000Z',
-      // With the assistive-technology switch on, nothing from the telemetry module goes with it.
+      // With the assistive-technology switch on, no time on the pages and nothing from the telemetry module goes with it.
+      pageTimes: null,
       automationMarkers: [],
       deviceFingerprint: null,
       deviceCheckConsent: false,
@@ -227,7 +299,7 @@ describe('toRequest', () => {
   });
 
   it("sends the telemetry session and what the module left in the form", () => {
-    const state = { ...emptyState('', 'CfDJ8token_-'), deviceCheckConsent: true };
+    const state = { ...emptyState('CfDJ8token_-'), deviceCheckConsent: true, pageSeconds: { details: 20, 'page-1': 45 } };
     const snapshot = {
       sessionToken: 'CfDJ8token_-',
       pageViewId: '0199e8a0-0000-7000-8000-00000000aaaa',
@@ -245,6 +317,10 @@ describe('toRequest', () => {
     });
 
     expect(request).toMatchObject({
+      pageTimes: [
+        { page: 'details', seconds: 20 },
+        { page: 'page-1', seconds: 45 },
+      ],
       telemetrySessionToken: 'CfDJ8token_-',
       telemetry: snapshot,
       deviceFingerprint: 'a'.repeat(64),
@@ -257,7 +333,32 @@ describe('toRequest', () => {
     const request = toRequest(emptyState(), [resume], { honeypotFilled: false, botCheckToken: null });
 
     expect(request.userAgent).toBeNull();
-    expect(request.formStartedAt).toBeNull();
+    expect(request.pageTimes).toEqual([]);
+  });
+});
+
+describe('toDraftRequest', () => {
+  it('keeps the details and the non-file answers, never files, the session or the time on the pages', () => {
+    const state = {
+      ...emptyState('CfDJ8token_-'),
+      firstName: 'Casey',
+      email: 'casey@example.com',
+      answers: { work_authorization: 'no', shifts: ['evenings'] },
+      files: { resume: upload },
+      pageSeconds: { details: 30 },
+      deviceCheckConsent: true,
+    };
+
+    expect(toDraftRequest(state, questions)).toEqual({
+      candidate: { firstName: 'Casey', lastName: null, email: 'casey@example.com', phone: null },
+      answers: [
+        { questionId: 'work_authorization', value: 'no' },
+        { questionId: 'shifts', values: ['evenings'] },
+      ],
+      accommodationRequested: false,
+      aiUseDeclaration: 'NotProvided',
+      aiUseDetails: null,
+    });
   });
 });
 
@@ -280,6 +381,15 @@ describe('errorsFromProblem', () => {
       aiUseDeclaration: 'Tell us.',
     });
     expect(placed.unplaced).toEqual(['Required.']);
+  });
+
+  it('lands on the page that asks the first question with a problem', () => {
+    const placed = errorsFromProblem({ 'answers.portfolio': ['Enter a full web address.'], 'answers.shifts': ['Choose.'] }, questions, {
+      questions,
+      questionsPerPage: 2,
+    });
+
+    expect(placed.step).toBe('page-2');
   });
 });
 

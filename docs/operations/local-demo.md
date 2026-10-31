@@ -241,6 +241,14 @@ Settings is one item at the bottom of the sidebar; its pages share the Settings 
 - **Team**, **Organization** (rename; the careers address stays), **Integrity** (the consistency check, off until
   turned on; the Fake model answers locally) and **Webhooks** (add an endpoint, see its signing secret once, then its
   delivery log with replay).
+- **Slack.** With no Slack app it says "Slack is not set up here", as `pnpm dev` starts. To try it, turn on the local
+  sandbox workspace before starting: `dotnet user-secrets set ScreenHire:Slack:Sandbox:Enabled true --project apps/apphost`
+  (or `ScreenHire__Slack__Sandbox__Enabled=true` in the environment of `dotnet aspire start`; `dotnet user-secrets
+  remove ScreenHire:Slack:Sandbox:Enabled --project apps/apphost` turns it off again). **Add to Slack** comes straight
+  back connected to "ScreenHire sandbox"; pick `#hiring` and the events, and **Save**. Avery's menu, at the foot of the
+  sidebar, then has **Slack account**, which links Avery's own account. Submit an application on the careers page, or
+  mention Avery in a note, and open http://localhost:5080/v1/slack/sandbox/messages in the signed-in browser to read
+  what the sandbox received ([Slack](../architecture/slack.md)).
 
 ## What is faked locally
 
@@ -254,6 +262,7 @@ Settings is one item at the bottom of the sidebar; its pages share the Settings 
 | IP intelligence | Development's fixed ranges for the RFC 5737 documentation addresses the synthetic applicants use | `ScreenHire:Integrity:Network` (worker) |
 | Bot challenge (Turnstile) | Not configured, so recorded as "not checked"; the honeypot still works | `ScreenHire:Turnstile` |
 | Malware scanning | `NoMalwareScanner`, which records every file as "not scanned" | `IMalwareScanner` |
+| Slack | Off, so Settings > Slack says it is not set up; the sandbox workspace when turned on, whose messages `/v1/slack/sandbox/messages` lists | `ScreenHire:Slack` |
 
 The [MVP status](../status.md#owner-actions) lists what each of these needs before real use.
 

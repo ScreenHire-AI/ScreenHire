@@ -237,3 +237,79 @@ describe('form builder', () => {
     expect(text).toHaveAccessibleDescription('Give the question its text.');
   });
 });
+
+describe('form builder sections', () => {
+  type Section = { id: string; name: string; questionIds: string[] };
+  function sectioned(initialSections: Section[] | null = null) {
+    let latest: Question[] = questions;
+    let sections: Section[] | null = initialSections;
+    const view = render(FormBuilderHarness, {
+      props: {
+        initial: questions,
+        withSections: true,
+        initialSections,
+        onchange: (next: Question[]) => (latest = next),
+        onsections: (next: Section[] | null) => (sections = next),
+      },
+    });
+    return { ...view, list: () => latest, sections: () => sections };
+  }
+
+  const twoSections: Section[] = [
+    { id: 'eligibility', name: 'Eligibility', questionIds: ['right_to_work'] },
+    { id: 'experience', name: 'Experience', questionIds: ['years', 'notice'] },
+  ];
+
+  it('offers Add a section only to a questionnaire, never to a scorecard', () => {
+    setup();
+    expect(within(panel()).queryByRole('button', { name: 'Add a section' })).toBeNull();
+  });
+
+  it('puts every question in a first section and opens a second, empty one at its name', async () => {
+    const { sections, container } = sectioned();
+
+    await fireEvent.click(within(panel()).getByRole('button', { name: 'Add a section' }));
+
+    expect(sections()).toEqual([
+      { id: 'section_1', name: 'Section 1', questionIds: ['right_to_work', 'years', 'notice'] },
+      { id: 'section_2', name: 'Section 2', questionIds: [] },
+    ]);
+    await waitFor(() => expect(screen.getByRole('textbox', { name: 'Section 2 name' })).toHaveFocus());
+    expect(within(panel()).getByText('3 questions')).toBeInTheDocument();
+    await expectNoAxeViolations(container);
+  });
+
+  it('reads each section as a row before its questions, and renames it in place', async () => {
+    const { sections } = sectioned(twoSections);
+
+    const rows = [...panel().querySelectorAll('[data-section-row], [data-question-row]')].map(
+      (row) => row.getAttribute('data-section-row') ?? row.getAttribute('data-question-row'),
+    );
+    expect(rows).toEqual(['eligibility', 'right_to_work', 'experience', 'years', 'notice']);
+
+    await fireEvent.input(screen.getByRole('textbox', { name: 'Section 2 name' }), { target: { value: 'Your experience' } });
+    expect(sections()?.[1]?.name).toBe('Your experience');
+  });
+
+  it('moves a question into the section before it with Move up across the section row', async () => {
+    const { sections, list } = sectioned(twoSections);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Reorder How many years have you worked in support?' }));
+    await fireEvent.click(await screen.findByRole('menuitem', { name: 'Move up' }));
+
+    expect(sections()?.map((section) => section.questionIds)).toEqual([['right_to_work', 'years'], ['notice']]);
+    expect(list().map((question) => question.id)).toEqual(['right_to_work', 'years', 'notice']);
+  });
+
+  it('gives a deleted section its questions, and deleting the last goes back to automatic pages', async () => {
+    const { sections, list } = sectioned(twoSections);
+
+    await fireEvent.click(within(panel()).getByRole('button', { name: 'Delete section Experience' }));
+
+    expect(sections()).toEqual([{ id: 'eligibility', name: 'Eligibility', questionIds: ['right_to_work', 'years', 'notice'] }]);
+    expect(list().map((question) => question.id)).toEqual(['right_to_work', 'years', 'notice']);
+
+    await fireEvent.click(within(panel()).getByRole('button', { name: 'Delete section Eligibility' }));
+    expect(sections()).toBeNull();
+  });
+});

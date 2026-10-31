@@ -8,6 +8,7 @@ using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.TalentPool;
 using ScreenHire.Application.Automations;
+using ScreenHire.Application.Slack;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Organizations;
@@ -100,6 +101,7 @@ internal static class ApplicationChanges
         IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
         ClaimsPrincipal user,
+        SlackAccess slack,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
@@ -125,7 +127,7 @@ internal static class ApplicationChanges
         db.ApplicationNotes.Add(note);
         db.ApplicationEvents.Add(entry);
         await outbox.PublishAsync(new ApplicationNoteAdded(application.OrganizationId, application.Id, application.JobId, entry.Id, now));
-        await PublishMentionsAsync(outbox, application, note, note.Mentions, now);
+        await PublishMentionsAsync(outbox, slack, application, note, note.Mentions, now);
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
         return TypedResults.Created(
             $"/v1/applications/{application.Id}/timeline", entry.ToTimelineEntry(note, await ApiKeyNameAsync(db, user, cancellationToken)));
@@ -186,6 +188,7 @@ internal static class ApplicationChanges
         IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
         ClaimsPrincipal user,
+        SlackAccess slack,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
@@ -216,6 +219,13 @@ internal static class ApplicationChanges
         db.ApplicationTasks.Add(task);
         db.ApplicationEvents.Add(entry);
         await outbox.PublishAsync(new ApplicationTaskCreated(application.OrganizationId, task.Id, application.Id, application.JobId, now));
+        // A task given to someone else reaches them in Slack too, when they linked it (docs/architecture/slack.md).
+        if (slack.IsConfigured && task.AssigneeUserId is { } assigneeId && assigneeId != tenant.UserId)
+        {
+            await outbox.PublishAsync(new SendSlackDirectMessage(
+                application.OrganizationId, SlackDirectMessageKind.Task, task.Id, assigneeId, application.Id, application.JobId, tenant.UserId));
+        }
+
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
         return TypedResults.Created($"/v1/applications/{application.Id}/tasks", task.ToEntry());
     }
@@ -233,6 +243,7 @@ internal static class ApplicationChanges
         IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
         ClaimsPrincipal user,
+        SlackAccess slack,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
@@ -298,6 +309,13 @@ internal static class ApplicationChanges
         db.ApplicationTasks.Add(task);
         db.ApplicationEvents.Add(entry);
         await outbox.PublishAsync(new ApplicationTaskCreated(application.OrganizationId, task.Id, application.Id, application.JobId, now));
+        // A requested scorecard is a task given to them, so it reaches them in Slack too (docs/architecture/slack.md).
+        if (slack.IsConfigured && request.AssigneeUserId != tenant.UserId)
+        {
+            await outbox.PublishAsync(new SendSlackDirectMessage(
+                application.OrganizationId, SlackDirectMessageKind.Task, task.Id, request.AssigneeUserId, application.Id, application.JobId, tenant.UserId));
+        }
+
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
         return TypedResults.Created($"/v1/applications/{application.Id}/tasks", task.ToEntry());
     }
@@ -320,15 +338,24 @@ internal static class ApplicationChanges
         };
     }
 
-    /// <summary>A card and an email for each teammate newly mentioned, never for the note's own author.</summary>
+    /// <summary>
+    /// A card, an email and a Slack message for each teammate newly mentioned, never for the note's own author. The
+    /// Slack message is its own message, so a failing email never holds it up.
+    /// </summary>
     public static async Task PublishMentionsAsync(
-        IDbContextOutbox<ScreenHireDbContext> outbox, JobApplication application, ApplicationNote note,
+        IDbContextOutbox<ScreenHireDbContext> outbox, SlackAccess slack, JobApplication application, ApplicationNote note,
         IEnumerable<ApplicationNoteMention> mentions, DateTimeOffset now)
     {
         foreach (var mention in mentions.Where(m => m.UserId != note.AuthorUserId))
         {
             await outbox.PublishAsync(new TeammateMentioned(
                 application.OrganizationId, application.Id, application.JobId, note.Id, mention.Id, mention.UserId, note.AuthorUserId, now));
+            if (slack.IsConfigured)
+            {
+                await outbox.PublishAsync(new SendSlackDirectMessage(
+                    application.OrganizationId, SlackDirectMessageKind.Mention, mention.Id, mention.UserId, application.Id, application.JobId,
+                    note.AuthorUserId));
+            }
         }
     }
 

@@ -1,8 +1,10 @@
 // The apply flow on the careers server: one step of the form per request, and the uploads it makes for a browser
 // without JavaScript. Server-only (it calls the API); the rules themselves are in ./apply and ./files.
 import {
+  createPublicApplicationDraft,
   createPublicUpload,
   getPublicApplicationForm,
+  savePublicApplicationDraft,
   submitPublicApplication,
   verifyPublicUpload,
   type PublicQuestion,
@@ -14,19 +16,22 @@ import {
   errorsFromProblem,
   fields,
   parseState,
+  postedQuestions,
   questionsOn,
   readAnswers,
   readDetails,
   readReview,
-  screeningQuestions,
+  recordTime,
   stepsFor,
   text,
+  toDraftRequest,
   toRequest,
   validateAnswers,
   validateDetails,
   validateReview,
   type ApplyState,
   type FieldErrors,
+  type FormShape,
   type Step,
 } from './apply';
 import { fileProblem, type UploadRef } from '@screenhire/ui/questions/files';
@@ -46,6 +51,8 @@ export interface ApplyResult {
   /** A problem that belongs to no field, shown at the top of the step. */
   formError?: string;
   outcome?: 'submitted' | 'closed' | 'not-found';
+  /** The draft was saved: where its link went, whether this save emailed it, and when the draft is deleted. */
+  saved?: { email: string; expiresAt: string; emailed: boolean };
 }
 
 const SERVER_PROBLEM = 'Something went wrong on our side. Your answers are still here, so try again in a moment.';
@@ -58,11 +65,18 @@ export const forwardedFor = (address: string | undefined): RequestInit | undefin
   address ? { headers: { 'X-Forwarded-For': address } } : undefined;
 
 /**
- * Handles one posted step. Back and change buttons (`intent` = `go:<step>`) keep what was typed without checking it.
- * Next checks the step and moves on. On the last step, everything is checked again and sent to the API, with the
- * candidate's browser (`userAgent`) and what the telemetry module left in the form for the integrity engine.
+ * Handles one posted step. Back and Change buttons (`intent` = `go:<step>`, or `change:<step>` from the review, which
+ * brings the candidate back to it) keep what was typed without checking it, and so does Save (`intent` = `save`), which
+ * keeps a draft to finish later. Next checks the step and moves on. On the last step, everything is checked again and
+ * sent to the API, with the candidate's browser (`userAgent`), the time on each page and what the telemetry module left
+ * in the form for the integrity engine.
  */
-export async function applyStep(form: FormData, clientAddress: string | undefined, userAgent?: string | null): Promise<ApplyResult> {
+export async function applyStep(
+  form: FormData,
+  clientAddress: string | undefined,
+  userAgent?: string | null,
+  now: Date = new Date(),
+): Promise<ApplyResult> {
   const organization = text(form, 'organization');
   const jobSlug = text(form, 'job');
   const forwarded = forwardedFor(clientAddress);
@@ -72,17 +86,21 @@ export async function applyStep(form: FormData, clientAddress: string | undefine
 
   const definition = response.data;
   const questions = definition.questions;
-  const steps = stepsFor(questions);
+  const steps = stepsFor(definition);
   const posted = text(form, 'step') as Step;
   const step: Step = steps.includes(posted) ? posted : 'details';
 
   let state = parseState(form.get('state'));
   if (step === 'details') state = readDetails(form, state);
-  state = step === 'review' ? readReview(form, state) : readAnswers(form, questionsOn(step, questions), state);
+  // The time on this step goes in before the step is handled: Back, Save and a step with a problem all count. With the
+  // assistive-technology switch on, no time is kept at all (CLAUDE.md non-negotiable 4).
+  state = state.accommodationRequested ? { ...state, pageSeconds: {} } : recordTime(state, step, now);
+  const shown = postedQuestions(form, questions);
+  state = step === 'review' ? readReview(form, state) : readAnswers(form, shown, state);
 
   // Files posted without JavaScript: the careers server uploads them the way the island would have.
   const errors: FieldErrors = {};
-  for (const question of questionsOn(step, questions).filter((q) => q.type === 'File')) {
+  for (const question of shown.filter((q) => q.type === 'File')) {
     const file = form.get(fields.file(question.id));
     if (!(file instanceof File) || file.name === '') continue;
     const uploaded = await uploadFile(organization, definition.job.id, question, file, definition.uploads.maxBytes, forwarded);
@@ -91,17 +109,27 @@ export async function applyStep(form: FormData, clientAddress: string | undefine
   }
 
   const intent = text(form, 'intent');
-  const target = intent.startsWith('go:') ? (intent.slice(3) as Step) : null;
-  if (target && steps.includes(target)) return { step: target, state, errors: {} };
+  const [move, target] = intent.split(':') as [string, Step | undefined];
+  if ((move === 'go' || move === 'change') && target && steps.includes(target)) {
+    const returnTo = target === 'review' ? '' : move === 'change' ? 'review' : state.returnTo;
+    return { step: target, state: { ...state, returnTo }, errors: {} };
+  }
+
+  if (intent === 'save' && definition.saveDraftEnabled) {
+    return saveDraft(organization, definition.job.id, step, state, questions, forwarded);
+  }
 
   // An upload's own problem ("larger than 10 MB") says more than the step's "Add a file." for the same field.
-  const problems = { ...stepErrors(step, state, questions, definition.aiUsePolicy), ...errors };
+  const problems = { ...stepErrors(step, state, definition), ...errors };
   if (Object.keys(problems).length > 0) return { step, state, errors: problems };
-  if (step !== 'review') return { step: steps[steps.indexOf(step) + 1]!, state, errors: {} };
+  if (step !== 'review') {
+    const next = state.returnTo === 'review' ? 'review' : steps[steps.indexOf(step) + 1]!;
+    return { step: next, state: next === 'review' ? { ...state, returnTo: '' } : state, errors: {} };
+  }
 
   // Every step again: the state came back from the browser, and a step can be skipped by posting straight to the last.
   for (const each of steps) {
-    const problems = stepErrors(each, state, questions, definition.aiUsePolicy);
+    const problems = stepErrors(each, state, definition);
     if (Object.keys(problems).length > 0) return { step: each, state, errors: problems };
   }
 
@@ -122,7 +150,7 @@ export async function applyStep(form: FormData, clientAddress: string | undefine
     case 410:
       return { step, state, errors: {}, outcome: 'closed' };
     case 400: {
-      const placed = errorsFromProblem(submitted.data.errors ?? {}, questions);
+      const placed = errorsFromProblem(submitted.data.errors ?? {}, questions, definition);
       return {
         step: steps.includes(placed.step) ? placed.step : 'review',
         state,
@@ -137,14 +165,72 @@ export async function applyStep(form: FormData, clientAddress: string | undefine
   }
 }
 
-function stepErrors(step: Step, state: ApplyState, questions: readonly PublicQuestion[], policy: AiUsePolicy) {
+/**
+ * Keeps what the candidate typed as a draft to finish later (apply-flow.md §7). The draft in the state is saved again
+ * while the email is the one its link went to; otherwise a new draft is made and the API emails its link. Either way
+ * the candidate stays on the step, with a notice that says where the link went.
+ */
+async function saveDraft(
+  organization: string,
+  jobId: string,
+  step: Step,
+  state: ApplyState,
+  questions: readonly PublicQuestion[],
+  forwarded: RequestInit | undefined,
+): Promise<ApplyResult> {
+  const body = toDraftRequest(state, questions);
+  const sameEmail = state.draft && state.draft.email.trim().toLowerCase() === state.email.trim().toLowerCase();
+  if (state.draft && sameEmail) {
+    const updated = await savePublicApplicationDraft(organization, state.draft.token, body, forwarded);
+    switch (updated.status) {
+      case 200:
+        return { step, state, errors: {}, saved: { email: state.draft.email, expiresAt: updated.data.expiresAt, emailed: false } };
+      // A draft the sweep deleted, or one that expired: make a new one below, as on a first save.
+      case 404:
+      case 410:
+        break;
+      // Anything else is not a missing draft: a new one would send the candidate a second link for nothing.
+      case 429:
+        return { step, state, errors: {}, formError: 'Too many attempts from your network. Wait a minute, then save again.' };
+      default:
+        return { step, state, errors: {}, formError: 'We could not save your answers. Try again in a moment, or send your application now.' };
+    }
+  }
+
+  const created = await createPublicApplicationDraft(organization, jobId, body, forwarded);
+  switch (created.status) {
+    case 201:
+      return {
+        step,
+        state: { ...state, draft: { token: created.data.token, email: state.email } },
+        errors: {},
+        saved: { email: state.email, expiresAt: created.data.expiresAt, emailed: true },
+      };
+    case 410:
+      return { step, state, errors: {}, outcome: 'closed' };
+    case 429:
+      return {
+        step,
+        state,
+        errors: {},
+        // The API's own cap names itself; the network's rate limit sends no body.
+        formError: created.data?.title
+          ? 'We have emailed this address several links today. Use one of them to finish, or send your application now.'
+          : 'Too many attempts from your network. Wait a minute, then save again.',
+      };
+    default:
+      return { step, state, errors: {}, formError: 'We could not save your answers. Try again in a moment, or send your application now.' };
+  }
+}
+
+function stepErrors(step: Step, state: ApplyState, form: FormShape & { aiUsePolicy: AiUsePolicy }) {
   switch (step) {
     case 'details':
-      return validateDetails(state, questions);
-    case 'questions':
-      return validateAnswers(state, screeningQuestions(questions));
+      return validateDetails(state, form.questions);
     case 'review':
-      return validateReview(state, policy);
+      return validateReview(state, form.aiUsePolicy);
+    default:
+      return validateAnswers(state, questionsOn(step, form));
   }
 }
 

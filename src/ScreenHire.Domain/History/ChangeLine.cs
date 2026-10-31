@@ -15,14 +15,29 @@ public sealed record ChangeLine(IReadOnlyList<ChangeText> Parts, IReadOnlyList<C
     public static ChangeLine Plain(string text, IReadOnlyList<ChangeDetail>? details = null) =>
         new([new(text)], details is { Count: > 0 } ? details : null);
 
+    /// <summary>A line of runs as given, such as "changed " then a person then "'s role from Viewer to Admin".</summary>
+    public static ChangeLine Of(IEnumerable<ChangeText> parts, IReadOnlyList<ChangeDetail>? details = null) =>
+        new([.. parts.Where(p => p.Text.Length > 0)], details is { Count: > 0 } ? details : null);
+
     /// <summary>The sentence as plain text.</summary>
     public string Sentence() => string.Concat(Parts.Select(p => p.Text));
 
     private static IEnumerable<ChangeText> Part(string text, bool strong) => text.Length == 0 ? [] : [new(text, strong)];
 }
 
-/// <summary>A run of a line's text; <see cref="Strong"/> marks the name of the thing that changed.</summary>
-public sealed record ChangeText(string Text, bool Strong = false);
+/// <summary>
+/// A run of a line's text; <see cref="Strong"/> marks the name of the thing that changed. A run with
+/// <see cref="UserId"/> names a member: the history stores the id, never the name, and the API puts the person's
+/// current name in when it reads the line (<see cref="Person"/>).
+/// </summary>
+public sealed record ChangeText(string Text, bool Strong = false, Guid? UserId = null)
+{
+    /// <summary>What a person's run reads when nothing has named them yet.</summary>
+    public const string Unnamed = "a teammate";
+
+    /// <summary>A member, by id, marked strong.</summary>
+    public static ChangeText Person(Guid userId) => new(Unnamed, true, userId);
+}
 
 /// <summary>
 /// One value before and after the change. Equal values mean it did not change and is shown for context; a null

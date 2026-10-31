@@ -96,7 +96,7 @@ internal sealed partial class DevelopmentDemo(
     public const string ClosedJobSlug = DemoCandidates.SupportEngineer;
 
     /// <summary>The careers notice version the demo applicants "saw" (NOTICE_VERSION in apps/careers/src/lib/apply.ts).</summary>
-    public const string PrivacyNoticeVersion = "2026-10-30.1";
+    public const string PrivacyNoticeVersion = "2026-10-31.1";
 
     /// <summary>The seeded open jobs that get the candidate emails, and the boards each is posted to (null: every board).</summary>
     public static IReadOnlyList<(string Slug, IReadOnlyList<string>? Boards)> OpenJobs { get; } =
@@ -972,7 +972,9 @@ internal sealed partial class DevelopmentDemo(
             step.Outbox, job, new ApplicationSubmission.CandidateDetails(applicant.FirstName, applicant.LastName, applicant.Email, applicant.Phone),
             new ApplicationDeclarations(false, applicant.AiUseDeclaration, applicant.AiUseDetails),
             intake, [upload], submittedAt, actorUserId: null, cancellationToken,
-            new SubmissionSession(applicant.IpAddress, applicant.UserAgent, applicant.DeviceFingerprint, submittedAt - applicant.TimeToComplete, applicant.AutomationMarkers),
+            new SubmissionSession(
+                applicant.IpAddress, applicant.UserAgent, applicant.DeviceFingerprint,
+                [.. applicant.PageTimes().Select(p => new PageTimeInput(p.Page, p.Seconds))], applicant.AutomationMarkers),
             step.Services.GetRequiredService<IOptions<IntegrityOptions>>().Value,
             Telemetry(applicant));
         if (created is not (var application, _))

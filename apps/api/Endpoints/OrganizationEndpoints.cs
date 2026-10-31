@@ -83,7 +83,8 @@ internal static class OrganizationEndpoints
         return organization is null ? TypedResults.NotFound() : TypedResults.Ok(await ToProfileAsync(db, organization, domains.Value, cancellationToken));
     }
 
-    // Renames only. The slug is the careers address boards and candidates already link to, so it stays.
+    // The name and the questions per page. The slug is the careers address boards and candidates already link to, so it
+    // stays.
     private static async Task<Results<Ok<OrganizationProfile>, NotFound, ValidationProblem>> UpdateOrganization(
         UpdateOrganizationRequest request, IValidator<UpdateOrganizationRequest> validator, ScreenHireDbContext db, ITenantContext tenant,
         IOptions<DomainOptions> domains, CancellationToken cancellationToken)
@@ -100,6 +101,11 @@ internal static class OrganizationEndpoints
         }
 
         organization.Name = request.Name.Trim();
+        if (request.QuestionsPerPage is { } questionsPerPage)
+        {
+            organization.SetQuestionsPerPage(questionsPerPage);
+        }
+
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.Ok(await ToProfileAsync(db, organization, domains.Value, cancellationToken));
     }
@@ -109,11 +115,11 @@ internal static class OrganizationEndpoints
     {
         var last = await ChangeHistoryQueries.LastAsync(db, ChangeSubjectKind.Organization, SubjectId(organization.Id), cancellationToken);
         return new(organization.Id, organization.Name, organization.Slug, organization.HomeRegion, domains.CareersBoardUrl(organization.Slug),
-            organization.CreatedAt, LastUpdate.From(last, organization.CreatedAt));
+            organization.CreatedAt, LastUpdate.From(last, organization.CreatedAt), organization.QuestionsPerPage);
     }
 
     // Every settings history's subject is the organization itself.
-    private static string SubjectId(Guid organizationId) => organizationId.ToString("D");
+    private static string SubjectId(Guid organizationId) => ChangeHistoryRoutes.SubjectId(organizationId);
 
     private static Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> GetOrganizationHistory(
         Guid? before, int? limit, ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
@@ -182,28 +188,14 @@ internal static class OrganizationEndpoints
             ? null
             : await ChangeHistoryQueries.LastAsync(db, ChangeSubjectKind.TalentPoolSettings, SubjectId(settings.OrganizationId), cancellationToken);
         // No row is ScreenHire's default, which nobody in the organization has changed.
-        var lastUpdated = settings is null ? LastUpdate.ByScreenHire(null) : LastUpdate.From(last, settings.UpdatedAt);
+        var lastUpdated = settings is null ? LastUpdate.ByScreenHire(null) : LastUpdate.FromChange(last, settings.UpdatedAt);
         return new OrganizationTalentPoolSettings(
             TalentPoolSettings.MonthsOf(settings), TalentPoolSettings.MinMonths, TalentPoolSettings.MaxMonths, lastUpdated);
     }
 
-    private static async Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> HistoryAsync(
-        ChangeSubjectKind kind, Guid? before, int? limit, ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken)
-    {
-        if (ChangeHistoryRoutes.LimitProblem(limit) is { } problem)
-        {
-            return problem;
-        }
-
-        if (tenant.OrganizationId is not { } organizationId)
-        {
-            return TypedResults.NotFound();
-        }
-
-        return await ChangeHistoryRoutes.PageAsync(db, kind, SubjectId(organizationId), before, limit, cancellationToken) is { } page
-            ? TypedResults.Ok(page)
-            : ChangeHistoryRoutes.CursorProblem();
-    }
+    private static Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> HistoryAsync(
+        ChangeSubjectKind kind, Guid? before, int? limit, ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
+        ChangeHistoryRoutes.OrganizationPageAsync(kind, before, limit, db, tenant, cancellationToken);
 
     private static async Task<Ok<OrganizationIntegritySettings>> GetIntegritySettings(
         ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken)
@@ -264,7 +256,7 @@ internal static class OrganizationEndpoints
             ? null
             : await ChangeHistoryQueries.LastAsync(db, ChangeSubjectKind.IntegritySettings, SubjectId(settings.OrganizationId), cancellationToken);
         // No row is ScreenHire's defaults, which nobody in the organization has changed.
-        var lastUpdated = settings is null ? LastUpdate.ByScreenHire(null) : LastUpdate.From(last, settings.UpdatedAt);
+        var lastUpdated = settings is null ? LastUpdate.ByScreenHire(null) : LastUpdate.FromChange(last, settings.UpdatedAt);
         return new OrganizationIntegritySettings(settings?.LlmConsistencyCheckEnabled ?? false, settings?.MonthlyTokenBudget, used, lastUpdated);
     }
 
@@ -467,7 +459,7 @@ internal static class OrganizationEndpoints
         // ScreenHire's default branding, never changed, is by ScreenHire; branding set before the history began has only a time.
         var isDefault = organization.BrandColor is null && organization.SecondColor is null && organization.HeadingFont is null
             && organization.LogoImageId is null && organization.FaviconImageId is null && organization.SharingImageId is null;
-        var lastUpdated = last is null && isDefault ? LastUpdate.ByScreenHire(null) : LastUpdate.From(last, organization.CreatedAt);
+        var lastUpdated = last is null && isDefault ? LastUpdate.ByScreenHire(null) : LastUpdate.FromChange(last, organization.CreatedAt);
 
         Guid?[] wanted = [organization.LogoImageId, organization.FaviconImageId, organization.SharingImageId];
         var ids = wanted.OfType<Guid>().ToList();

@@ -32,4 +32,5 @@ export const Permission = {
   ManageOwners: 'ManageOwners',
   DeleteAnyNote: 'DeleteAnyNote',
   CreateTasks: 'CreateTasks',
+  ManageIntegrations: 'ManageIntegrations',
 } as const;

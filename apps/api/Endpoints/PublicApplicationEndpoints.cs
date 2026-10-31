@@ -233,7 +233,7 @@ internal static class PublicApplicationEndpoints
             outbox, job, ApplicationSubmission.CandidateDetails.From(request.Candidate),
             new ApplicationDeclarations(request.AccommodationRequested, request.AiUseDeclaration, request.AiUseDetails),
             intake, files, now, actorUserId: null, cancellationToken,
-            new SubmissionSession(remoteAddress, request.UserAgent, fingerprint, request.FormStartedAt, request.AutomationMarkers),
+            new SubmissionSession(remoteAddress, request.UserAgent, fingerprint, request.PageTimes, request.AutomationMarkers),
             integrity.Value,
             binding);
         if (submitted is not { } created)

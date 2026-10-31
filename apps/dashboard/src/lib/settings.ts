@@ -1,5 +1,6 @@
 import BookmarkIcon from '@lucide/svelte/icons/bookmark';
 import Building2Icon from '@lucide/svelte/icons/building-2';
+import HashIcon from '@lucide/svelte/icons/hash';
 import KeyRoundIcon from '@lucide/svelte/icons/key-round';
 import PlugIcon from '@lucide/svelte/icons/plug';
 import PaletteIcon from '@lucide/svelte/icons/palette';
@@ -10,6 +11,9 @@ import WebhookIcon from '@lucide/svelte/icons/webhook';
 import type { CurrentUser, JobAccess, OrganizationRole, Permission, RoleSummary } from '@screenhire/api-client';
 import { can, seesAllJobs } from '#lib/permissions.js';
 import type { LucideIcon } from '#lib/shell.js';
+
+/** The team's history and its Last updated (`/team/history`, `/team/last-update`): invalidate it with every team change. */
+export const teamPath = '/v1/organization/team';
 
 /**
  * The Settings menu's pages (design system section 11), each with the permission its changes need: the sidebar's one
@@ -28,10 +32,13 @@ export const settingsSections: readonly { label: string; href: string; icon: Luc
   { label: 'Webhooks', href: '/settings/webhooks', icon: WebhookIcon, permission: 'ManageWebhooks', allJobs: true },
   // The MCP server signs in with an API key, so it needs what API keys need.
   { label: 'MCP server', href: '/settings/mcp-server', icon: PlugIcon, permission: 'ManageApiKeys', allJobs: true },
+  // A channel post reaches everyone in the channel, whatever jobs they see, so Slack needs all jobs too. Each person links
+  // their own account from their menu (SlackAccountSheet), not here.
+  { label: 'Slack', href: '/settings/slack', icon: HashIcon, permission: 'ManageIntegrations', allJobs: true },
 ];
 
 /**
- * The Settings pages the person's role may use: none means no Settings item at all. API keys and webhooks reach every
+ * The Settings pages the person's role may use: none means no Settings item at all. API keys, webhooks and Slack reach every
  * job, so they also need all jobs (ADR-0015); the API refuses them otherwise with 403 "Needs all jobs".
  */
 export const visibleSettingsSections = (user: CurrentUser | null | undefined) =>

@@ -23,12 +23,12 @@
         "contextOnly": false,
         "informational": false,
         "accessibilitySensitive": true,
-        "source": "automation@1",
-        "explanation": "The form was completed in 20 seconds, faster than reading and answering it plausibly takes (at least 32 seconds).",
+        "source": "automation@2",
+        "explanation": "The form's pages were open for 20 seconds in all, faster than reading and answering them plausibly takes (at least 32 seconds).",
         "evidence": [
           {
             "kind": "Metric",
-            "label": "Time from opening the form to sending it",
+            "label": "Active time on the form's pages",
             "amount": 20,
             "unit": "seconds",
             "reference": 32,

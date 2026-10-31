@@ -13,6 +13,7 @@ using ScreenHire.Domain.History;
 using ScreenHire.Domain.Integrity;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.Slack;
 using ScreenHire.Domain.TalentPool;
 using ScreenHire.Domain.Webhooks;
 using ScreenHire.Infrastructure.Identity;
@@ -134,6 +135,17 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
 
+    /// <summary>An organization's Slack workspace, one at most (docs/architecture/slack.md).</summary>
+    public DbSet<SlackInstallation> SlackInstallations => Set<SlackInstallation>();
+
+    public DbSet<SlackAccountLink> SlackAccountLinks => Set<SlackAccountLink>();
+
+    /// <summary>The Slack handlers' effect check: one row per message posted or refused, no text.</summary>
+    public DbSet<SlackMessageRecord> SlackMessages => Set<SlackMessageRecord>();
+
+    /// <summary>What the local sandbox workspace received (see <see cref="SlackSandboxMessage"/>).</summary>
+    public DbSet<SlackSandboxMessage> SlackSandboxMessages => Set<SlackSandboxMessage>();
+
     /// <summary>
     /// The cross-employer Signal Network (ADR-0005). Not tenant-owned; the application role has no access to the table,
     /// and nothing uses it while the network's feature flag is off.
@@ -143,6 +155,8 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     public DbSet<MagicLinkToken> MagicLinkTokens => Set<MagicLinkToken>();
 
     public DbSet<QuestionnaireRequest> QuestionnaireRequests => Set<QuestionnaireRequest>();
+
+    public DbSet<ApplicationDraft> ApplicationDrafts => Set<ApplicationDraft>();
 
     public DbSet<TalentPoolEntry> TalentPoolEntries => Set<TalentPoolEntry>();
 

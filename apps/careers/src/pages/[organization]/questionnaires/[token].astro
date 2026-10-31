@@ -1,16 +1,17 @@
 ---
 // A follow-up questionnaire (workflow-engine.md §8), opened from the signed link a SendQuestionnaire automation emailed.
-// One native form posted to the `questionnaire` action, so it works with JavaScript off; the fields are the shared
-// question components (packages/ui), rendered on the server only. It collects the answers and nothing else: no device
-// check, no form telemetry, no uploads (CLAUDE.md non-negotiable 4). An expired, answered or closed link says so.
+// A native form per page, posted to the `questionnaire` action, so it works with JavaScript off; the fields are the
+// shared question components (packages/ui), rendered on the server only. It collects the answers and nothing else: no
+// device check, no form telemetry, no uploads, no time on the pages (CLAUDE.md non-negotiable 4). The candidate can save
+// the answers to finish later through the same link (apply-flow.md §8). An expired, answered or closed link says so.
 import { actions } from 'astro:actions';
 import ErrorSummary from '../../../components/ErrorSummary.astro';
 import CareersLayout from '../../../layouts/CareersLayout.astro';
 import { getPublicOrganization, getPublicQuestionnaire } from '../../../lib/api';
-import { fields } from '../../../lib/apply';
+import { fields, pagesFor } from '../../../lib/apply';
 import { basePath } from '../../../lib/host';
-import { isToken } from '../../../lib/questionnaire';
-import { QuestionField } from '@screenhire/ui/questions';
+import { answersFrom, isToken } from '../../../lib/questionnaire';
+import { answeredCount, PageProgress, QuestionField } from '@screenhire/ui/questions';
 
 const { organization, token } = Astro.params;
 const base = basePath(Astro.request, organization!);
@@ -41,8 +42,16 @@ const status = !questionnaire || outcome === 'not-found'
         : 'open';
 Astro.response.status = status === 'not-found' ? 404 : status === 'expired' || status === 'closed' ? 410 : 200;
 
-const answers = result?.data?.answers ?? {};
+const answers = result?.data?.answers ?? (questionnaire ? answersFrom(questionnaire.draft) : {});
+const resumed = !result && (questionnaire?.draft.length ?? 0) > 0;
 const errors = result?.data?.errors ?? {};
+const pages = questionnaire ? pagesFor(questionnaire) : [];
+const steps = pages.map((page) => page.step);
+const step = result?.data && steps.includes(result.data.step) ? result.data.step : (steps[0] ?? 'page-1');
+const page = pages.find((p) => p.step === step) ?? pages[0];
+const index = Math.max(0, steps.indexOf(step));
+const last = index === steps.length - 1;
+const previous = steps[index - 1];
 const formError =
   result?.data?.formError ?? (result?.error ? 'Something went wrong on our side. Try again in a moment.' : undefined);
 
@@ -92,23 +101,54 @@ const message = {
           <p class="text-candidate-body text-candidate-muted-foreground">
             {employer.name} has a few more questions about your application for {questionnaire.jobTitle}. A person reads your answers.
           </p>
+          {steps.length > 1 && (
+            <nav aria-label="Question pages">
+              <PageProgress step={index + 1} steps={steps.length} answered={answeredCount(questionnaire.questions, answers)} total={questionnaire.questions.length} />
+            </nav>
+          )}
         </div>
 
         <form method="POST" action={actions.questionnaire} novalidate aria-labelledby="questions-heading" class="mt-5 flex flex-col gap-4">
           <input type="hidden" name="organization" value={employer.slug} />
           <input type="hidden" name="token" value={token} />
-          <h2 id="questions-heading" class="sr-only">Questions</h2>
+          <input type="hidden" name="step" value={step} />
+          <input type="hidden" name="state" value={JSON.stringify({ answers })} />
+          <input type="hidden" name="pageQuestions" value={(page?.questions ?? []).map((q) => q.id).join(',')} />
+          {page?.name ? (
+            <h2 id="questions-heading" class="font-display text-xl leading-tight font-bold">{page.name}</h2>
+          ) : (
+            <h2 id="questions-heading" class="sr-only">Questions</h2>
+          )}
 
           <ErrorSummary errors={errors} formError={formError} />
 
-          {questionnaire.questions.map((question) => (
+          {result?.data?.saved && (
+            <div role="status" class="rounded-2xl border border-candidate-border bg-candidate-surface px-4 py-3.5 text-sm">
+              <p class="font-bold">Saved. Open the link in your email to finish.</p>
+              <p class="mt-1 text-candidate-muted-foreground">It opens these answers again while the link works. You can also carry on now.</p>
+            </div>
+          )}
+          {resumed && (
+            <div role="status" class="rounded-2xl border border-candidate-border bg-candidate-surface px-4 py-3.5 text-sm">
+              <p class="font-bold">Welcome back. Your saved answers are filled in.</p>
+            </div>
+          )}
+
+          {(page?.questions ?? []).map((question) => (
             <QuestionField question={question} answer={answers[question.id]} error={errors[fields.answer(question.id)] ?? null} />
           ))}
 
           <p class="text-candidate-hint text-candidate-muted-foreground">We send only your answers, nothing about your device.</p>
 
           <div class="mt-2 flex flex-col gap-3 sm:flex-row">
-            <button type="submit" class="button-primary">Send answers</button>
+            {/* First in the document, so pressing Enter in a field moves forward rather than back. */}
+            <button type="submit" name="intent" value="next" class="button-primary">{last ? 'Send answers' : 'Continue'}</button>
+            {previous && (
+              <button type="submit" name="intent" value={`go:${previous}`} class="button-secondary">
+                Back
+              </button>
+            )}
+            <button type="submit" name="intent" value="save" class="button-secondary sm:ml-auto">Save and finish later</button>
           </div>
         </form>
 

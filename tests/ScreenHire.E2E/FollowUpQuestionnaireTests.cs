@@ -74,9 +74,44 @@ public sealed partial class FollowUpQuestionnaireTests(E2EFixture fixture) : Bro
         await ExpectNoAccessibilityViolationsAsync();
     }
 
+    [Fact]
+    public async Task A_questionnaire_in_sections_goes_a_page_at_a_time_and_saved_answers_come_back_through_the_link()
+    {
+        var owner = ApiSession.NewEmail("e2e-followup");
+        var candidate = ApiSession.NewEmail("candidate");
+        await SceneAsync(owner, candidate, sectioned: true);
+        var link = QuestionnaireLink().Match((await Fixture.Mailpit.WaitForMessagesAsync(candidate, 1, Ct))[0].Text);
+
+        await WithoutJavaScriptAsync();
+        await Page.GotoAsync(link.Value);
+        await Expect(Page.Locator("[data-page-progress]")).ToContainTextAsync("Step 1 of 2");
+        await Expect(Page.Locator("[data-page-progress]")).ToContainTextAsync("0 of 2 answered");
+        await Expect(Page.Locator("#questions-heading")).ToHaveTextAsync("When you can start");
+        await Expect(Page.GetByLabel("Do you hold a forklift licence?")).ToHaveCountAsync(0);
+        await Page.GetByLabel("When could you start?").FillAsync("In two weeks");
+
+        // Saved to finish later: the same link opens the answers again.
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Save and finish later" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Status).First).ToContainTextAsync("Saved. Open the link in your email to finish.");
+        await ExpectNoAccessibilityViolationsAsync();
+        await Page.GotoAsync(link.Value);
+        await Expect(Page.GetByText("Welcome back. Your saved answers are filled in.")).ToBeVisibleAsync();
+        await Expect(Page.GetByLabel("When could you start?")).ToHaveValueAsync("In two weeks");
+
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Continue" }).ClickAsync();
+        await Expect(Page.Locator("#questions-heading")).ToHaveTextAsync("Your licence");
+        await Expect(Page.Locator("[data-page-progress]")).ToContainTextAsync("Step 2 of 2");
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Send answers" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Alert)).ToContainTextAsync("Answer this question.");
+        await Page.GetByLabel("Yes").CheckAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Send answers" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Answers sent");
+    }
+
     // A new organization whose job sends "Availability" on entering Screening and tags the application when it is
-    // answered; one candidate added and moved into Screening through the API, which sends the email.
-    private async Task<(Guid ApplicationId, string Title)> SceneAsync(string owner, string candidate)
+    // answered; one candidate added and moved into Screening through the API, which sends the email. `sectioned` puts
+    // each of its two questions on a page of its own.
+    private async Task<(Guid ApplicationId, string Title)> SceneAsync(string owner, string candidate, bool sectioned = false)
     {
         var title = $"Warehouse lead {Guid.NewGuid().ToString("N")[..4]}";
         using var session = new ApiSession(Fixture);
@@ -87,7 +122,7 @@ public sealed partial class FollowUpQuestionnaireTests(E2EFixture fixture) : Bro
         var template = await ReadAsync(await session.PostAsync("/v1/templates", new { name = $"{title} template" }, Ct), HttpStatusCode.Created);
         var templateId = template.GetProperty("id").GetGuid();
         var draft = await ReadAsync(await session.Client.GetAsync($"/v1/templates/{templateId}/versions/1", Ct), HttpStatusCode.OK);
-        await ReadAsync(await session.PutAsync($"/v1/templates/{templateId}/versions/1", new { definition = Definition(draft.GetProperty("definition")) }, Ct), HttpStatusCode.OK);
+        await ReadAsync(await session.PutAsync($"/v1/templates/{templateId}/versions/1", new { definition = Definition(draft.GetProperty("definition"), sectioned) }, Ct), HttpStatusCode.OK);
         var version = await ReadAsync(await session.PostAsync($"/v1/templates/{templateId}/versions/1/publish", new { }, Ct), HttpStatusCode.OK);
 
         var job = await ReadAsync(await session.PostAsync(
@@ -111,7 +146,7 @@ public sealed partial class FollowUpQuestionnaireTests(E2EFixture fixture) : Bro
     }
 
     // The definition with one follow-up questionnaire and the two automations around it.
-    private static System.Text.Json.Nodes.JsonObject Definition(JsonElement draft)
+    private static System.Text.Json.Nodes.JsonObject Definition(JsonElement draft, bool sectioned)
     {
         var definition = System.Text.Json.Nodes.JsonNode.Parse(draft.GetRawText())!.AsObject();
         var workflow = definition["workflow"]!.AsObject();
@@ -125,6 +160,16 @@ public sealed partial class FollowUpQuestionnaireTests(E2EFixture fixture) : Bro
               ]
             }]
             """);
+        if (sectioned)
+        {
+            workflow["followUpQuestionnaires"]![0]!["sections"] = System.Text.Json.Nodes.JsonNode.Parse("""
+                [
+                  { "id": "when", "name": "When you can start", "questionIds": ["start_date"] },
+                  { "id": "licence", "name": "Your licence", "questionIds": ["forklift_licence"] }
+                ]
+                """);
+        }
+
         workflow["automations"] = System.Text.Json.Nodes.JsonNode.Parse("""
             [
               { "id": "send-on-screening", "name": "Ask about availability",

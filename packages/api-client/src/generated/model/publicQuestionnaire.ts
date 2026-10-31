@@ -4,13 +4,17 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { ApplicationAnswer } from './applicationAnswer.ts';
 import type { PublicOrganization } from './publicOrganization.ts';
 import type { PublicQuestion } from './publicQuestion.ts';
 import type { PublicQuestionnaireStatus } from './publicQuestionnaireStatus.ts';
+import type { QuestionSection } from './questionSection.ts';
 
 /**
  * A follow-up questionnaire as its careers page shows it, through the signed link in the candidate's email.
- * `questions` are listed only while the link is `Open`; knockout settings stay on the server.
+ * `questions`, `sections` and `draft` are listed only while the link is `Open`; knockout settings stay
+ * on the server. `sections` are its named pages, or null to split it into pages of `questionsPerPage`.
+ * `draft` holds the answers the candidate saved to finish later, empty when there are none.
  */
 export interface PublicQuestionnaire {
   organization: PublicOrganization;
@@ -18,4 +22,8 @@ export interface PublicQuestionnaire {
   name: string;
   status: PublicQuestionnaireStatus;
   questions: PublicQuestion[];
+  /** @nullable */
+  sections: QuestionSection[] | null;
+  questionsPerPage: number;
+  draft: ApplicationAnswer[];
 }

@@ -74,6 +74,8 @@ public sealed partial class RolePermissionsTests
         ["CreateApiKey"] = Permission.ManageApiKeys,
         ["GetApiKey"] = Permission.ManageApiKeys,
         ["RevokeApiKey"] = Permission.ManageApiKeys,
+        ["GetApiKeysHistory"] = Permission.ManageApiKeys,
+        ["GetApiKeysLastUpdate"] = Permission.ManageApiKeys,
         ["ListWebhookEndpoints"] = Permission.ManageWebhooks,
         ["CreateWebhookEndpoint"] = Permission.ManageWebhooks,
         ["GetWebhookEndpoint"] = Permission.ManageWebhooks,
@@ -82,8 +84,15 @@ public sealed partial class RolePermissionsTests
         ["RotateWebhookSecret"] = Permission.ManageWebhooks,
         ["ListWebhookDeliveries"] = Permission.ManageWebhooks,
         ["ReplayWebhookDelivery"] = Permission.ManageWebhooks,
+        ["StartSlackInstall"] = Permission.ManageIntegrations,
+        ["ListSlackChannels"] = Permission.ManageIntegrations,
+        ["UpdateSlackChannel"] = Permission.ManageIntegrations,
+        ["SendSlackTestMessage"] = Permission.ManageIntegrations,
+        ["DisconnectSlack"] = Permission.ManageIntegrations,
         ["ListInvitations"] = Permission.ManageTeam,
         ["ListMembershipLog"] = Permission.ManageTeam,
+        ["GetTeamHistory"] = Permission.ManageTeam,
+        ["GetTeamLastUpdate"] = Permission.ManageTeam,
         ["ChangeMemberRole"] = Permission.ManageTeam,
         ["ChangeMemberJobAccess"] = Permission.ManageTeam,
         ["RemoveMember"] = Permission.ManageTeam,
@@ -107,7 +116,8 @@ public sealed partial class RolePermissionsTests
     public void Built_in_roles_keep_exactly_the_access_they_had()
     {
         // Written out, not derived: these are the sets the role-name checks allowed before custom roles, plus Create tasks,
-        // which came with the task route and went to every role that writes hiring data (custom roles do not get it).
+        // which came with the task route and went to every role that writes hiring data (custom roles do not get it), and Manage
+        // integrations, which came with Slack and went to Owners and Admins.
         Permission[] viewer = [Permission.ViewHiring];
         Permission[] recruiter =
         [
@@ -118,7 +128,7 @@ public sealed partial class RolePermissionsTests
         Permission[] admin =
         [
             .. recruiter, Permission.DeleteAnyNote, Permission.EditEmailTemplates, Permission.EditSettings, Permission.ManageApiKeys, Permission.ManageWebhooks,
-            Permission.ManageTeam,
+            Permission.ManageIntegrations, Permission.ManageTeam,
         ];
         Permission[] owner = [.. admin, Permission.ManageOwners];
 

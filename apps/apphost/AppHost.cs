@@ -31,6 +31,11 @@
 //                               machine works; never in production), RetryDelays:0..n and DisableAfterFailedDeliveries
 //                               (the tests shorten both). The signing key comes from the webhook-signing-key parameter,
 //                               never from these keys.
+//   Slack:*                     Slack (ScreenHire.Application SlackOptions, docs/architecture/slack.md), forwarded to the
+//                               API and the worker. Off unless configured: real Slack once ClientId is set and the
+//                               slack-client-secret parameter has the app's secret; Sandbox:Enabled=true is the local
+//                               sandbox workspace instead (Development only; the test stacks turn it on). The secret
+//                               comes from that parameter, never from these keys.
 // Avoid :5173 — Kangentic's own dev server uses it on this machine.
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
@@ -174,6 +179,27 @@ foreach (var (key, value) in settings.GetSection("Webhooks").AsEnumerable(makePa
         api.WithEnvironment(name, value);
         worker.WithEnvironment(name, value);
     }
+}
+
+foreach (var (key, value) in settings.GetSection("Slack").AsEnumerable(makePathsRelative: true))
+{
+    // The client secret is a secret: it goes through the parameter below, never as plain configuration.
+    if (value is not null && !key.Equals("ClientSecret", StringComparison.OrdinalIgnoreCase))
+    {
+        var name = $"ScreenHire__Slack__{key.Replace(":", "__", StringComparison.Ordinal)}";
+        api.WithEnvironment(name, value);
+        worker.WithEnvironment(name, value);
+    }
+}
+
+// The Slack app's client secret (docs/architecture/slack.md), only once a client id is set: a secret parameter, set with
+// `dotnet user-secrets set Parameters:slack-client-secret "<secret>"` in apps/apphost or by the deployment's secret store.
+// Both hosts get it, so both work out the same mode from the same settings. With no client id nothing asks for it.
+if (!string.IsNullOrWhiteSpace(settings["Slack:ClientId"]))
+{
+    var slackSecret = builder.AddParameter("slack-client-secret", secret: true);
+    api.WithEnvironment("ScreenHire__Slack__ClientSecret", slackSecret);
+    worker.WithEnvironment("ScreenHire__Slack__ClientSecret", slackSecret);
 }
 
 // The real Indexing API's service account key (job-distribution.md section 5), only in Google mode: a secret parameter,

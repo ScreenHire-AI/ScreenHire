@@ -66,6 +66,7 @@ internal sealed class QuestionnaireRequestConfiguration : IEntityTypeConfigurati
         builder.Property(r => r.QuestionnaireName).HasMaxLength(80);
         builder.Property(r => r.Questions).HasJsonColumn();
         builder.Property(r => r.Answers).HasJsonColumn();
+        builder.Property(r => r.DraftAnswers).HasJsonColumn().HasDefaultValueSql("'[]'::jsonb");
         // Optimistic concurrency on xmin: two answers to one link racing each other give one success and one conflict.
         builder.Property<uint>("Version").IsRowVersion();
 
@@ -79,6 +80,30 @@ internal sealed class QuestionnaireRequestConfiguration : IEntityTypeConfigurati
             .OnDelete(DeleteBehavior.Cascade);
         // One request per application and questionnaire: sending again finds it, and two sends racing hit this index.
         builder.HasIndex(r => new { r.OrganizationId, r.ApplicationId, r.QuestionnaireId }).IsUnique();
+    }
+}
+
+internal sealed class ApplicationDraftConfiguration : IEntityTypeConfiguration<ApplicationDraft>
+{
+    public void Configure(EntityTypeBuilder<ApplicationDraft> builder)
+    {
+        builder.Property(d => d.Email).HasMaxLength(320);
+        builder.Property(d => d.FirstName).HasMaxLength(Candidate.MaxNamePartLength);
+        builder.Property(d => d.LastName).HasMaxLength(Candidate.MaxNamePartLength);
+        builder.Property(d => d.Phone).HasMaxLength(50);
+        builder.Property(d => d.Answers).HasJsonColumn();
+        builder.Property(d => d.AiUseDeclaration).HasConversion<string>().HasMaxLength(20);
+        builder.Property(d => d.AiUseDetails).HasMaxLength(2000);
+
+        builder.HasOne<Job>().WithMany()
+            .HasForeignKey(d => new { d.OrganizationId, d.JobId })
+            .HasPrincipalKey(j => new { j.OrganizationId, j.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        // Submission finds the job's drafts for the email; the link cap counts an address's drafts of the last day; the
+        // daily sweep finds the expired ones.
+        builder.HasIndex(d => new { d.OrganizationId, d.JobId, d.Email });
+        builder.HasIndex(d => new { d.OrganizationId, d.Email, d.CreatedAt });
+        builder.HasIndex(d => new { d.OrganizationId, d.ExpiresAt });
     }
 }
 

@@ -11,7 +11,9 @@ public sealed class ApiReferenceTests(ProductionApiFixture fixture) : IClassFixt
 {
     private static readonly TimeSpan StartTimeout = TimeSpan.FromMinutes(3);
 
-    private static readonly TimeSpan ListenTimeout = TimeSpan.FromMinutes(1);
+    // As long as every other fixture gives an API process to answer (AppHostFixture's 3 minutes): a cold `dotnet run` beside
+    // the end-to-end suite on a busy machine printed nothing for over a minute, then served normally.
+    private static readonly TimeSpan ListenTimeout = TimeSpan.FromMinutes(3);
 
     [Fact]
     public async Task The_api_reference_and_its_openapi_file_are_served_with_production_settings()

@@ -13,6 +13,7 @@ using ScreenHire.Api.Realtime;
 using ScreenHire.Application.Automations;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Messaging;
+using ScreenHire.Application.Slack;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
 
@@ -67,6 +68,8 @@ builder.AddJobDistribution();
 // Webhook subscriptions: the API shows each endpoint's secret once and checks URLs against the same address rule the
 // worker applies (docs/architecture/workflow-engine.md section 5).
 builder.Services.AddOptions<WebhookOptions>().BindConfiguration(WebhookOptions.Section);
+// Slack (docs/architecture/slack.md): connecting a workspace and linking accounts happen here; the worker posts.
+builder.Services.AddScreenHireSlack();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     // Strict numbers keep OpenAPI integer/number types clean for the generated TypeScript client.
@@ -96,6 +99,7 @@ app.MapMetaEndpoints();
 app.MapAuthEndpoints();
 app.MapPublicJobEndpoints();
 app.MapPublicApplicationEndpoints();
+app.MapPublicApplicationDraftEndpoints();
 app.MapPublicQuestionnaireEndpoints();
 app.MapPublicTalentPoolEndpoints();
 app.MapPublicTelemetryEndpoints();
@@ -118,6 +122,7 @@ app.MapScorecardEndpoints();
 app.MapScorecardTemplateEndpoints();
 app.MapTemplateUsageEndpoints();
 app.MapWebhookEndpoints();
+app.MapSlackEndpoints();
 app.MapEmailEndpoints();
 app.MapTalentPoolEndpoints();
 app.MapSchemaEndpoints();

@@ -8,6 +8,7 @@ using ScreenHire.Api.Applications;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.Automations;
+using ScreenHire.Application.Slack;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Hiring;
@@ -73,9 +74,10 @@ internal static class ScorecardEndpoints
         IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
         ClaimsPrincipal user,
+        SlackAccess slack,
         TimeProvider time,
         CancellationToken cancellationToken) =>
-        ApplicationChanges.RequestScorecardAsync(applicationId, request, validator, outbox, tenant, user, time, cancellationToken);
+        ApplicationChanges.RequestScorecardAsync(applicationId, request, validator, outbox, tenant, user, slack, time, cancellationToken);
 
     // The signed-in reviewer's scorecard: a stage's own (one the application has been in) or a library scorecard, given
     // at the stage the application is in now. One per reviewer, stage and scorecard: the same submission again (a

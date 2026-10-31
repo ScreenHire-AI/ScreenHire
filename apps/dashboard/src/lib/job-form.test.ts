@@ -17,25 +17,23 @@ const problems = <T>(check: (value: T, issue: (path: string, message: string) =>
   return found;
 };
 
-const where = (overrides: Partial<WhereFields>): WhereFields => ({ workplaceType: 'Remote', countries: '', city: '', country: '', ...overrides });
+const where = (overrides: Partial<WhereFields>): WhereFields => ({ workplaceType: 'Remote', countries: [], city: '', country: '', ...overrides });
 const salary = (overrides: Partial<SalaryFields>): SalaryFields => ({ salaryMin: '', salaryMax: '', currency: 'GBP', period: 'Year', ...overrides });
 
 describe('where the work happens', () => {
-  it('needs a workplace, countries for a remote job and a country code otherwise', () => {
+  it('needs a workplace, countries for a remote job and a country otherwise', () => {
     expect(problems(checkWhere, where({ workplaceType: '' }))).toEqual({ workplaceType: 'Choose where the work happens.' });
-    expect(problems(checkWhere, where({}))).toEqual({ countries: 'List the countries candidates can work from, such as GB, IE.' });
-    expect(problems(checkWhere, where({ countries: 'England' }))).toEqual({ countries: 'Use two-letter country codes, such as GB.' });
-    expect(problems(checkWhere, where({ workplaceType: 'Onsite', country: 'England' }))).toEqual({
-      country: 'Give the country as a two-letter code, such as GB.',
-    });
-    expect(problems(checkWhere, where({ workplaceType: 'Hybrid', city: 'Leeds', country: 'gb' }))).toEqual({});
+    expect(problems(checkWhere, where({}))).toEqual({ countries: 'Choose at least one country candidates can work from.' });
+    expect(problems(checkWhere, where({ countries: ['GB'] }))).toEqual({});
+    expect(problems(checkWhere, where({ workplaceType: 'Onsite' }))).toEqual({ country: 'Choose the country the job is in.' });
+    expect(problems(checkWhere, where({ workplaceType: 'Hybrid', city: 'Leeds', country: 'GB' }))).toEqual({});
   });
 
   it('sends countries for a remote job and the edited location first for any other', () => {
-    expect(whereBody(where({ countries: 'gb ie' }))).toEqual({ workplaceType: 'Remote', applicantLocationRequirements: ['GB', 'IE'], locations: null });
+    expect(whereBody(where({ countries: ['GB', 'IE'] }))).toEqual({ workplaceType: 'Remote', applicantLocationRequirements: ['GB', 'IE'], locations: null });
     const leeds = { city: 'Leeds', region: 'West Yorkshire', country: 'GB' };
     const york = { city: 'York', region: null, country: 'GB' };
-    expect(whereBody(where({ workplaceType: 'Onsite', city: ' Leeds ', country: 'gb' }), [leeds, york])).toEqual({
+    expect(whereBody(where({ workplaceType: 'Onsite', city: ' Leeds ', country: 'GB' }), [leeds, york])).toEqual({
       workplaceType: 'Onsite',
       applicantLocationRequirements: null,
       locations: [leeds, york],
@@ -50,7 +48,7 @@ describe('where the work happens', () => {
   it("reads a job's fields back into the form", () => {
     expect(whereFields({ workplaceType: 'Remote', applicantLocationRequirements: ['GB', 'IE'], locations: [] })).toEqual({
       workplaceType: 'Remote',
-      countries: 'GB, IE',
+      countries: ['GB', 'IE'],
       city: '',
       country: '',
     });

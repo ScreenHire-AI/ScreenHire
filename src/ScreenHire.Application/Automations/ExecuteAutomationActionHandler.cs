@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScreenHire.Application.Applications;
+using ScreenHire.Application.Slack;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Hiring;
@@ -34,6 +35,7 @@ public static partial class ExecuteAutomationActionHandler
         EmailTemplateStore templates,
         IWebhookSender webhooks,
         QuestionnaireLinks links,
+        SlackAccess slack,
         TimeProvider time,
         ILogger<ExecuteAutomationAction> logger,
         CancellationToken cancellationToken)
@@ -49,7 +51,7 @@ public static partial class ExecuteAutomationActionHandler
 
         var application = await db.Applications.SingleAsync(a => a.Id == run.ApplicationId, cancellationToken);
         var job = await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == run.JobId, cancellationToken);
-        var context = new ActionContext(db, email, templates, webhooks, links, run, action, application, job, time.GetUtcNow(), outgoing);
+        var context = new ActionContext(db, email, templates, webhooks, links, slack, run, action, application, job, time.GetUtcNow(), outgoing);
 
         var (status, detail) = await ExecuteAsync(context, cancellationToken);
         var now = context.Now;
@@ -284,7 +286,7 @@ public static partial class ExecuteAutomationActionHandler
     private static (AutomationActionStatus, string) AddTask(
         ActionContext context, ApplicationTaskKind kind, string note, Guid? assigneeUserId, string detail)
     {
-        context.Db.ApplicationTasks.Add(new ApplicationTask
+        var task = new ApplicationTask
         {
             OrganizationId = context.Run.OrganizationId,
             ApplicationId = context.Application.Id,
@@ -294,7 +296,15 @@ public static partial class ExecuteAutomationActionHandler
             StageId = context.Application.CurrentStageId,
             AutomationRunId = context.Run.Id,
             CreatedAt = context.Now,
-        });
+        };
+        context.Db.ApplicationTasks.Add(task);
+        // A task given to one person reaches them in Slack too, when they linked it (docs/architecture/slack.md).
+        if (assigneeUserId is { } assignee && context.Slack.IsConfigured)
+        {
+            context.Outgoing.Add(new SendSlackDirectMessage(
+                task.OrganizationId, SlackDirectMessageKind.Task, task.Id, assignee, task.ApplicationId, context.Application.JobId, ActorUserId: null));
+        }
+
         return Completed(detail);
     }
 
@@ -369,6 +379,7 @@ public static partial class ExecuteAutomationActionHandler
         EmailTemplateStore Templates,
         IWebhookSender Webhooks,
         QuestionnaireLinks Links,
+        SlackAccess Slack,
         AutomationRun Run,
         AutomationActionRun Action,
         JobApplication Application,

@@ -62,6 +62,20 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
         unmet.Should().AllSatisfy(problem => problem.Should().BeNull());
     }
 
+    // `pnpm dev` with no Slack app configured (the fixture turns the sandbox off): the page says so, and starting a
+    // connection finds nothing there. Nothing is written, so the read-only Brightwater is safe.
+    [Fact]
+    public async Task Slack_is_hidden_when_no_slack_app_is_configured()
+    {
+        using var owner = await SignedInOwnerAsync();
+
+        (await GetAsync(owner, "/v1/slack")).GetProperty("available").GetBoolean().Should().BeFalse();
+        using var install = await owner.PostAsync("/v1/slack/install", new { }, Ct);
+        install.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        using var sandbox = await owner.Client.GetAsync("/v1/slack/sandbox/messages", Ct);
+        sandbox.StatusCode.Should().Be(HttpStatusCode.NotFound, "the sandbox's routes exist only when it is on");
+    }
+
     [Fact]
     public async Task The_brightwater_engineering_template_is_published()
     {
