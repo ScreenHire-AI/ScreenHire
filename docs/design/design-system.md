@@ -88,8 +88,9 @@ Authors check their screens against this list, and the `design-review` agent rep
   can enable (Save until the form is valid), with the reason beside it.
 - **A4** Icon-only buttons have an `aria-label` and a tooltip.
 - **A5** Links go somewhere: another page, tab or record, as underlined text; navigation and a table row's name
-  underline on hover. Buttons do something: act, or open a sheet, a menu or a dialog. A link never opens a sheet, and a
-  button never navigates, with one exception: a page's own action that opens another page to do it (New job, Edit,
+  underline on hover. Buttons do something: act, or open a sheet, a menu or a dialog. A link never opens a sheet on the
+  page it sits on (a link to a record may arrive with the sheet for its work open there, as a requested scorecard's
+  does), and a button never navigates, with one exception: a page's own action that opens another page to do it (New job, Edit,
   Cancel on a form, Back) is an outline or primary button that renders as a link (`<a>`), because it starts that
   action. A menu item that opens a page is a link inside the menu. Badges, pills and counts are never clickable,
   except a count button in a header (T4).
