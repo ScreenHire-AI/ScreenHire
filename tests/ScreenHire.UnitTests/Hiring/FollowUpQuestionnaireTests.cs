@@ -255,7 +255,7 @@ public sealed class FollowUpQuestionnaireTests
 
         email.Subject.Should().Be("A few more questions about your application for Warehouse lead");
         email.TextBody.Should().Contain(link);
-        email.HtmlBody.Should().Contain($"<a href=\"{link}\">{link}</a>");
+        email.HtmlBody.Should().Contain($"<a href=\"{link}\" rel=\"nofollow noopener noreferrer\">{link}</a>");
     }
 
     [Fact]

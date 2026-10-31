@@ -1,5 +1,6 @@
 using FluentValidation;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Infrastructure.Content;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence.History;
 
@@ -112,13 +113,31 @@ internal static class EmailMappings
         problems.Count == 0 ? null : problems.GroupBy(p => p.Field).ToDictionary(g => g.Key, g => g.Select(p => p.Message).ToArray());
 }
 
+/// <summary>
+/// A message's rules. It is rich text (<see cref="RichText"/>): input far over the limit is refused before it is parsed,
+/// and the limit itself applies to the sanitized HTML, which is what is stored.
+/// </summary>
+internal static class EmailBodies
+{
+    public const int MaxInputLength = EmailTemplate.MaxBodyLength * 2;
+
+    public const string Empty = "Enter the message.";
+
+    public static readonly string TooLong = $"The message is too long: at most {EmailTemplate.MaxBodyLength:N0} characters with its formatting.";
+
+    public static bool HasText(string? body) => !RichText.IsBlank(body);
+
+    public static bool Fits(string? body) => RichText.Sanitize(body).Length <= EmailTemplate.MaxBodyLength;
+}
+
 internal sealed class CreateEmailTemplateRequestValidator : AbstractValidator<CreateEmailTemplateRequest>
 {
     public CreateEmailTemplateRequestValidator()
     {
         RuleFor(r => r.Name).Must(name => !string.IsNullOrWhiteSpace(name)).WithMessage("Enter a name.").MaximumLength(EmailTemplate.MaxNameLength);
         RuleFor(r => r.Subject).Must(subject => !string.IsNullOrWhiteSpace(subject)).WithMessage("Enter a subject.").MaximumLength(EmailTemplate.MaxSubjectLength);
-        RuleFor(r => r.Body).Must(body => !string.IsNullOrWhiteSpace(body)).WithMessage("Enter the message.").MaximumLength(EmailTemplate.MaxBodyLength);
+        RuleFor(r => r.Body).Cascade(CascadeMode.Stop).MaximumLength(EmailBodies.MaxInputLength)
+            .Must(EmailBodies.HasText).WithMessage(EmailBodies.Empty).Must(EmailBodies.Fits).WithMessage(EmailBodies.TooLong);
     }
 }
 
@@ -129,7 +148,8 @@ internal sealed class UpdateEmailTemplateRequestValidator : AbstractValidator<Up
         RuleFor(r => r.Name).Must(name => !string.IsNullOrWhiteSpace(name)).WithMessage("Enter a name.").MaximumLength(EmailTemplate.MaxNameLength)
             .When(r => r.Name is not null);
         RuleFor(r => r.Subject).Must(subject => !string.IsNullOrWhiteSpace(subject)).WithMessage("Enter a subject.").MaximumLength(EmailTemplate.MaxSubjectLength);
-        RuleFor(r => r.Body).Must(body => !string.IsNullOrWhiteSpace(body)).WithMessage("Enter the message.").MaximumLength(EmailTemplate.MaxBodyLength);
+        RuleFor(r => r.Body).Cascade(CascadeMode.Stop).MaximumLength(EmailBodies.MaxInputLength)
+            .Must(EmailBodies.HasText).WithMessage(EmailBodies.Empty).Must(EmailBodies.Fits).WithMessage(EmailBodies.TooLong);
     }
 }
 
@@ -138,7 +158,7 @@ internal sealed class EmailTemplateDraftValidator : AbstractValidator<EmailTempl
     public EmailTemplateDraftValidator()
     {
         RuleFor(r => r.Subject).NotNull().MaximumLength(EmailTemplate.MaxSubjectLength);
-        RuleFor(r => r.Body).NotNull().MaximumLength(EmailTemplate.MaxBodyLength);
+        RuleFor(r => r.Body).NotNull().MaximumLength(EmailBodies.MaxInputLength);
         RuleFor(r => r.TemplateId).MaximumLength(40);
     }
 }
@@ -158,8 +178,8 @@ internal sealed class SendEmailsRequestValidator : AbstractValidator<SendEmailsR
         RuleFor(r => r.Subject).Must(subject => !string.IsNullOrWhiteSpace(subject)).WithMessage("Enter a subject.")
             .MaximumLength(EmailTemplate.MaxSubjectLength)
             .When(r => r.Subject is not null || r.Body is not null);
-        RuleFor(r => r.Body).Must(body => !string.IsNullOrWhiteSpace(body)).WithMessage("Enter the message.")
-            .MaximumLength(EmailTemplate.MaxBodyLength)
+        RuleFor(r => r.Body).Cascade(CascadeMode.Stop).MaximumLength(EmailBodies.MaxInputLength)
+            .Must(EmailBodies.HasText).WithMessage(EmailBodies.Empty).Must(EmailBodies.Fits).WithMessage(EmailBodies.TooLong)
             .When(r => r.Subject is not null || r.Body is not null);
         RuleFor(r => r.TemplateId).NotEmpty().MaximumLength(40)
             .Must(id => id != EmailTemplateIds.ApplicationRejected)
@@ -177,6 +197,6 @@ internal sealed class ApplicationEmailDraftValidator : AbstractValidator<Applica
     public ApplicationEmailDraftValidator()
     {
         RuleFor(r => r.Subject).NotNull().MaximumLength(EmailTemplate.MaxSubjectLength);
-        RuleFor(r => r.Body).NotNull().MaximumLength(EmailTemplate.MaxBodyLength);
+        RuleFor(r => r.Body).NotNull().MaximumLength(EmailBodies.MaxInputLength);
     }
 }

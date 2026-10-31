@@ -87,11 +87,13 @@ public sealed class EmailTests(AppHostFixture fixture)
         var preview = (await owner.PostAsync("/v1/email-templates/preview", new JsonObject
         {
             ["subject"] = "Hello {{ candidateName }}",
-            ["body"] = "Hi {{ candidateName }},\n\n<b>Welcome</b> to {{ organizationName }}.",
+            ["body"] = "<h2>Hi {{ candidateName }},</h2><p><b>Welcome</b> to {{ organizationName }}.</p><ul><li>Bring ID</li></ul>"
+                + "<img src=\"https://tracker.example.com/p.gif\">",
         })).Expect(HttpStatusCode.OK);
         preview.Text("subject").Should().Be("Hello Jordan Lee");
-        preview.Text("text").Should().Contain("<b>Welcome</b>");
-        preview.Text("html").Should().Contain("&lt;b&gt;Welcome&lt;/b&gt;").And.NotContain("<b>");
+        preview.Text("html").Should().Contain("<h2>Hi Jordan Lee,</h2><p><strong>Welcome</strong> to").And.Contain("<ul><li>Bring ID</li></ul>")
+            .And.NotContain("<img");
+        preview.Text("text").Should().Contain("Hi Jordan Lee,").And.Contain("- Bring ID").And.NotContain("<");
 
         (await owner.PostAsync("/v1/email-templates/preview", new JsonObject { ["subject"] = "{{ nope }}", ["body"] = "Hi" }))
             .Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("subject");
@@ -293,7 +295,7 @@ public sealed class EmailTests(AppHostFixture fixture)
 
         var unchanged = (await owner.GetAsync($"/v1/email-templates/{template}")).Expect(HttpStatusCode.OK);
         unchanged.Text("subject").Should().Be("Interview for {{ jobTitle }}");
-        unchanged.Text("body").Should().Be("Hi {{ firstName }}, let us talk.");
+        unchanged.Text("body").Should().Be("<p>Hi {{ firstName }}, let us talk.</p>", "the template is stored as rich text");
 
         var entry = await SentEntryAsync(owner, applications[0]);
         entry.GetProperty("emailTemplateId").GetString().Should().Be(template);

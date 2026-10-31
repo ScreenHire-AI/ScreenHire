@@ -159,6 +159,20 @@ public sealed class TalentPoolTests
     }
 
     [Fact]
+    public void The_invitation_shows_the_job_link_and_the_way_to_stop_as_links_the_candidate_can_follow()
+    {
+        var job = "https://acme.careers.example.com/jobs/support-engineer";
+        var stop = "https://acme.careers.example.com/talent-pool/token-123";
+
+        var email = new EmailTemplates().Render(EmailTemplateIds.TalentPoolInvitation, "sam@example.com",
+            new EmailTemplateModel("Sam Rivera", "Support engineer", "Acme", FirstName: "Sam", JobLink: job, RemoveLink: stop));
+
+        email.Subject.Should().Be("Acme would like you to apply for Support engineer");
+        email.HtmlBody.Should().Contain($"<a href=\"{job}\"").And.Contain($"<a href=\"{stop}\"");
+        email.TextBody.Should().Contain(job).And.Contain(stop);
+    }
+
+    [Fact]
     public void A_remove_link_reads_back_and_a_forged_or_questionnaire_token_does_not()
     {
         var provider = new EphemeralDataProtectionProvider();

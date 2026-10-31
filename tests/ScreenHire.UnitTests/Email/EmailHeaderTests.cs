@@ -81,7 +81,8 @@ public sealed partial class EmailHeaderTests
         EmailLogo.Scaled("https://example.com/l.png", width, height).Should().Be(new EmailLogo("https://example.com/l.png", drawnWidth, drawnHeight));
     }
 
-    // The template's own markup is still text: the header's logo is the only image an email carries.
+    // The template's own image is removed by the sanitizer (docs/architecture/rich-text.md): the header's logo, written by
+    // ScreenHire after it, is the only image an email carries.
     [Fact]
     public void Markup_in_a_template_never_becomes_a_second_image()
     {
@@ -91,7 +92,7 @@ public sealed partial class EmailHeaderTests
             header: EmailHeader.For(organization, logo, Board));
 
         Images().Matches(email.HtmlBody!).Should().ContainSingle();
-        email.HtmlBody.Should().Contain("&lt;img src=&quot;", "the template's tag reads as text");
+        email.HtmlBody.Should().NotContain("tracker.example.com", "the template's image never reaches the email");
     }
 
     private static EmailTemplateModel Model(string name) => new(name, "Warehouse lead", "Brightwater Studio", "Phone screen");

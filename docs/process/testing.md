@@ -41,7 +41,7 @@ covers the endpoint. End-to-end tests prove that the pieces connect and render; 
 | One .NET test or class | `dotnet test --project tests/ScreenHire.UnitTests --filter-method "*closed_job_cannot*"` (also `--filter-class`, `--filter-trait`) |
 | All Vitest suites | `pnpm -r --if-present test` |
 | One Vitest file or test | `pnpm --filter @screenhire/careers exec vitest run src/lib/format.test.ts -t formatSalary` |
-| Watch a Vitest suite | `pnpm --filter @screenhire/dashboard exec vitest` (the `test` scripts use `vitest run`, which never watches, so the gate cannot hang) |
+| Watch a Vitest suite | `pnpm --filter @screenhire/dashboard exec vitest` (the `test` scripts use `vitest run`, which never watches, so the gate cannot hang; each also sets its own `--fsModuleCachePath`, because packages that share Vitest's default cache folder race to clear it on Windows) |
 
 The .NET suites run on Microsoft Testing Platform (`global.json`); `dotnet test` runs the test projects in parallel.
 

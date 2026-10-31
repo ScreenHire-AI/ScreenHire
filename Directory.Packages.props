@@ -41,7 +41,7 @@
     <PackageVersion Include="Scalar.AspNetCore" Version="2.18.0" />
     <PackageVersion Include="FluentValidation" Version="12.2.0" />
     <PackageVersion Include="MailKit" Version="4.18.1" />
-    <!-- Job description rich text. MIT, as are its AngleSharp and AngleSharp.Css dependencies. -->
+    <!-- Rich text (job descriptions, email bodies). MIT, as are its AngleSharp and AngleSharp.Css dependencies. -->
     <PackageVersion Include="HtmlSanitizer" Version="9.2.1039" />
     <!-- Apache-2.0, as are ModelContextProtocol and ModelContextProtocol.Core it brings. The remote MCP server at /v1/mcp
          for AI assistants signed in with an API key (docs/architecture/mcp-server.md). -->

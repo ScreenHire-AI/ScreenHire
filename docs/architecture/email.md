@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Email to candidates"
-description: "Organization email templates in Liquid with a plain-text body over fixed variables, the email composer (a template or a blank email changed for one send, previewed with the candidate's details), each email kept as it went for Messages, sending through the worker, the rules that the rejection email goes only with Reject, the follow-up questions email only with SendQuestionnaire and the talent pool invitation only with Invite to apply, and what is not built (replies, an inbox)."
+description: "Organization email templates in Liquid with a rich-text body over fixed variables, the email composer (a template or a blank email changed for one send, previewed with the candidate's details), each email kept as it went for Messages, sending through the worker, the rules that the rejection email goes only with Reject, the follow-up questions email only with SendQuestionnaire and the talent pool invitation only with Invite to apply, and what is not built (replies, an inbox)."
 tags: [email, templates, liquid]
 sources:
   - resource: src/ScreenHire.Domain/Hiring/EmailTemplate.cs
@@ -53,13 +53,18 @@ There are two kinds, both listed by `GET /v1/email-templates` and edited on the 
   it back. An archived template reads only until it is restored (409 on an edit). The dashboard offers Archive in
   place of delete; `DELETE` still deletes one no automation names.
 
-A template is a Liquid subject and a Liquid plain-text body (Fluid, ADR-0008). The body is text, not HTML: the email's
-HTML part is built from the rendered text (a paragraph per blank line, links that show their own address, everything
-else encoded), and the text part is the rendered text itself. So a template cannot carry a hidden link, a tracking
-image or a script, and a candidate's name cannot inject markup. ScreenHire puts the organization's header first: its
-logo, a plain image at one address for every recipient, or its name, on its second colour (`EmailHeader`,
-[branding.md](branding.md) section 6). That logo is the only image an email carries. The rendered subject is one line, cut at 1,000
-characters (`ApplicationEmail.MaxSubjectLength`): variables can make it far longer than its 200-character wording.
+A template is a Liquid plain-text subject and a Liquid rich-text body (Fluid, ADR-0008). The body is sanitized HTML
+limited to the editor's elements (bold, italic, two heading levels, lists and links), at most 20,000 characters with
+its formatting; [rich text](rich-text.md) has the canonical form and the render. Values are HTML-encoded as they
+render, the template's own addresses and the questionnaire link become links that show themselves, and the result is sanitized again, so a template
+cannot carry a script, an image or a tracking pixel, and a candidate's name cannot inject markup. A link may have its
+own text ("Apply here"), and the text part then prints its address after it; a link's address may not hold a variable,
+so a candidate's details never go to another site in a URL. ScreenHire adds no click tracking. The text part is the
+HTML as plain text. In the dashboard, each variable in the message is a chip. ScreenHire puts the organization's header
+first in the HTML part, after the body is sanitized: its logo, a plain image at one address for every recipient, or its
+name, on its second colour (`EmailHeader`, [branding.md](branding.md) section 6). That logo is the only image an email
+carries, and a template cannot add one. The rendered subject is one line, cut at
+1,000 characters (`ApplicationEmail.MaxSubjectLength`): variables can make it far longer than its 200-character wording.
 
 `EmailTemplates.Validate` checks wording on every save, preview and test send:
 
@@ -67,7 +72,7 @@ characters (`ApplicationEmail.MaxSubjectLength`): variables can make it far long
   `reason` in the rejection email only, and `questionnaireLink` in the follow-up questions email only. Nothing else, and
   no member access (`candidateName.size`). A candidate from before the apply form asked for two names has their whole
   name as `firstName` and an empty `lastName`. The built-in templates greet the candidate by `firstName`.
-- Tags: `if`, `unless`, `case` and comments. No `assign`, `for`, `include`, `render` or other tags, and no ranges, so a
+- Tags: `if`, `unless`, `case` and comments. No `assign`, `for`, `include`, `render`, `raw` or other tags, and no ranges, so a
   template cannot loop or read anything beyond its values. Rendering also has a step limit.
 - Filters: `capitalize`, `default`, `downcase`, `strip`, `truncate`, `upcase`.
 - The rejection email must use `{{ reason }}`: a `Reject` action's reason goes into it, and the candidate must be told
@@ -87,7 +92,7 @@ The email composer (`EmailComposer`, design system section 11) opens in a sheet 
 candidate's header, and sits at the top of the candidate's Messages tab. Start from offers a blank email and every
 template but the rejection and follow-up questions emails. Picking a template fills the subject and the message with its
 wording; changing them changes this email only, and the template stays as it was. A blank email has no template, and
-nothing turns it into one. Insert variable puts a variable at the caret. Preview asks the API for the first candidate's
+nothing turns it into one. Insert variable puts a variable at the caret: a chip in the message, `{{ name }}` in the subject. Preview asks the API for the first candidate's
 email (`POST /v1/emails/preview` with the application and the wording), rendered with that candidate's details; a
 person's wording may use the general variables only, so `{{ reason }}` and `{{ questionnaireLink }}` are refused.
 

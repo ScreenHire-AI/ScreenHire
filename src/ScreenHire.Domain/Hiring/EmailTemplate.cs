@@ -5,8 +5,8 @@ namespace ScreenHire.Domain.Hiring;
 /// <summary>
 /// One of an organization's email templates: its own (<see cref="BuiltInId"/> null), or its wording of a built-in one
 /// (<see cref="EmailTemplateIds.BuiltIn"/>). A built-in with no row sends ScreenHire's default wording, so deleting the
-/// row restores it. Subject and body are Liquid over a fixed list of variables; the body is plain text, and the HTML
-/// part of the email is built from it, so a template can never carry markup.
+/// row restores it. Subject and body are Liquid over a fixed list of variables; the subject is plain text and the body is
+/// rich text, sanitized HTML limited to the editor's elements (docs/architecture/rich-text.md).
 /// </summary>
 public sealed class EmailTemplate : ITenantOwned
 {
@@ -14,7 +14,8 @@ public sealed class EmailTemplate : ITenantOwned
 
     public const int MaxSubjectLength = 200;
 
-    public const int MaxBodyLength = 10_000;
+    /// <summary>The sanitized HTML's length, formatting included.</summary>
+    public const int MaxBodyLength = 20_000;
 
     public Guid Id { get; init; } = Guid.CreateVersion7();
 

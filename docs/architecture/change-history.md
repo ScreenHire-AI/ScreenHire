@@ -71,7 +71,9 @@ owner-run seeder, the design-time factory and the test contexts write no history
 `ITenantContext`: `UserId` for a signed-in member, `ApiKeyId` (set by `TenantResolutionMiddleware`) for a key.
 
 An edit that skips the change tracker (`ExecuteUpdate`, `ExecuteDelete`, raw SQL) is not recorded. Tracked objects
-change through the tracker; the email template endpoints delete through it for this reason.
+change through the tracker; the email template endpoints delete through it for this reason. The one deliberate
+exception is a data migration that changes markup and not anyone's words: `ConvertPlainTextToRichText` turned plain-text
+email bodies and descriptions into paragraphs and lists ([rich text](rich-text.md)), and History does not show it.
 
 ## How the lines read
 
@@ -87,7 +89,10 @@ The describers in `src/ScreenHire.Domain/History` are pure functions from the en
   edit compares against ScreenHire's wording, and deleting its row reads "restored the original wording". Archiving a
   template of the team's own reads "archived the template" (or "the scorecard"), and restoring it "restored the
   template from the archive" (`Archive.Line`), so each moves Last updated. A job's
-  description is sanitized HTML, so `RichTextToPlain` turns it to text first. A time, such as when a posting expires,
+  description and an email template's message are rich text, sanitized HTML, so `RichTextToPlain` turns them to text
+  first: a blank line between blocks, list items marked, and a link's address after its text. When the HTML changed
+  but the text did not (bold, a heading, a list), the line is "changed the formatting of the description" or "of the
+  message", with no before and after. A time, such as when a posting expires,
   is an `Instant` detail in ISO 8601, which the browser formats.
 - Bookkeeping makes no line: `updated_at`, workflow and publish counters, the row version.
 

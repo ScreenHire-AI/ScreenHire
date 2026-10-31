@@ -62,6 +62,7 @@
   import RelativeTime from '#lib/components/relative-time.svelte';
   import LevelScale from '#lib/components/level-scale.svelte';
   import MentionField from '#lib/components/mention-field.svelte';
+  import RichTextEditor from '#lib/components/rich-text-editor.svelte';
   import NoteText from '#lib/components/note-text.svelte';
   import Rating from '#lib/components/rating.svelte';
   import RatingAnswer from '#lib/components/rating-answer.svelte';
@@ -259,6 +260,8 @@
   ];
   let mentionText = $state('Can you book the call once they confirm, @Ro');
   let mentionPicked = $state<PickedMention[]>([]);
+  let richTextEditor = $state<ReturnType<typeof RichTextEditor> | null>(null);
+  let richText = $state('<h2>Next steps</h2><p>Hi {{ firstName }}, thank you for applying for <strong>{{ jobTitle }}</strong>.</p><ul><li>Book a time</li><li>Bring your portfolio</li></ul>');
   const sampleTasks: TaskRow[] = [
     { id: 't1', applicationId: 'a1', kind: 'Review', note: 'Review this application.', assigneeUserId: 'u1', createdAt: ago(2 * hour), completedAt: null, completedByUserId: null },
     { id: 't2', applicationId: 'a1', kind: 'RejectionReview', note: 'Not authorised to work in the UK.', assigneeUserId: null, createdAt: ago(day), completedAt: null, completedByUserId: null },
@@ -817,6 +820,21 @@
               <MentionField id="style-guide-mention" bind:value={mentionText} bind:picked={mentionPicked} members={mentionTeam} currentUserId={mentionTeam[0].userId} />
             </div>
             <NoteText text={`Good detail on the payments service. ${mentionToken(mentionTeam[1].userId)}, ask how they measured it.`} members={mentionTeam} editedAt={ago(2 * minute)} />
+          </div>
+        </Panel>
+        <Panel title="Rich text editor" class="flex-[1_1_320px]">
+          <div class="flex flex-col gap-2">
+            <Field.Label id="style-guide-rich-text-label" for="style-guide-rich-text" class="text-caption font-semibold text-muted-foreground" onclick={() => richTextEditor?.focus()}>Message</Field.Label>
+            <RichTextEditor
+              bind:this={richTextEditor}
+              bind:value={richText}
+              id="style-guide-rich-text"
+              labelledBy="style-guide-rich-text-label"
+              variables={[
+                { name: 'firstName', label: 'First name' },
+                { name: 'jobTitle', label: 'Job title' },
+              ]}
+            />
           </div>
         </Panel>
       </div>
