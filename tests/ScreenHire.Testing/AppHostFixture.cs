@@ -7,6 +7,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using Xunit;
@@ -44,6 +45,13 @@ public class AppHostFixture : IAsyncLifetime
     private readonly ConcurrentDictionary<string, string> stopped = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, OwnProcess> processes = new(StringComparer.Ordinal);
     private Task? watcher;
+
+    // The worker's own word that it takes messages. Aspire counts a project with no health check as up once its process
+    // starts, and the worker (a generic host, no HTTP endpoint) is that, so on a loaded machine a test could publish and
+    // wait out its deadline while the worker was still building and starting (docs/process/testing.md, flake history,
+    // 2026-10-31). Wolverine logs this line when it listens on the worker's queue (MessagingSettings.WorkerQueue).
+    private const string WorkerListening = "Started message listening at postgresql://worker/";
+    private readonly TaskCompletionSource workerListening = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private DistributedApplication? app;
 
     /// <summary>
@@ -100,6 +108,8 @@ public class AppHostFixture : IAsyncLifetime
                 $"--ScreenHire:Webhooks:RetryDelays:0={WebhookRetryDelays[0]}",
                 $"--ScreenHire:Webhooks:RetryDelays:1={WebhookRetryDelays[1]}",
                 $"--ScreenHire:Webhooks:DisableAfterFailedDeliveries={WebhookDisableAfterFailedDeliveries}",
+                // Slack: the local sandbox workspace (docs/architecture/slack.md), so connecting and posting run with no Slack.
+                "--ScreenHire:Slack:Sandbox:Enabled=true",
                 .. ExtraArguments,
             ],
             startup.Token);
@@ -110,6 +120,7 @@ public class AppHostFixture : IAsyncLifetime
         {
             await app.StartAsync(startup.Token);
             await Task.WhenAll(RequiredResources.Select(resource => WaitUntilHealthyAsync(app, resource, startup.Token)));
+            await WaitUntilWorkerListensAsync(app, startup.Token);
         }
         catch
         {
@@ -135,6 +146,63 @@ public class AppHostFixture : IAsyncLifetime
                 $"Check its log in {LogDirectory}.",
                 exception);
         }
+    }
+
+    // Only an AppHost that has the worker waits for it (the production fixture removes it).
+    private async Task WaitUntilWorkerListensAsync(DistributedApplication started, CancellationToken cancellationToken)
+    {
+        if (!started.Services.GetRequiredService<DistributedApplicationModel>().Resources.Any(resource => resource.Name == "worker"))
+        {
+            return;
+        }
+
+        try
+        {
+            await workerListening.Task.WaitAsync(cancellationToken);
+            // Listening is not yet leading: the durability agent (scheduled messages, outbox recovery) starts once the
+            // worker's node takes leadership, about 13 s later on a busy machine.
+            await WaitUntilWorkerRunsAgentsAsync(DateTimeOffset.MinValue, cancellationToken);
+        }
+        catch (OperationCanceledException exception) when (!TestContext.Current.CancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException(
+                $"The AppHost resource 'worker' did not start listening for messages within {StartupTimeout.TotalMinutes:0} minutes. " +
+                $"Check its log in {LogDirectory}.",
+                exception);
+        }
+    }
+
+    /// <summary>
+    /// Waits until a worker's Wolverine node that took its agents after <paramref name="since"/> (the database's clock,
+    /// from <see cref="GetDatabaseTimeAsync"/>) runs the durability agent, which Wolverine assigns once the node leads:
+    /// the worker then handles messages, scheduled ones included. At startup every run has a fresh database, so any
+    /// such row is this worker's; a test that restarts the worker passes the time from before the restart, because
+    /// Aspire calls the new process running up to a minute before it listens.
+    /// </summary>
+    public async Task WaitUntilWorkerRunsAgentsAsync(DateTimeOffset since, CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(await GetOwnerConnectionStringAsync(cancellationToken));
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(
+            $"SELECT EXISTS (SELECT 1 FROM {DatabaseRegistration.MessagingSchema}.wolverine_node_assignments " +
+            "WHERE id LIKE 'wolverinedb://%' AND started > @since)",
+            connection);
+        command.Parameters.AddWithValue("since", since);
+        while (await command.ExecuteScalarAsync(cancellationToken) is not true)
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
+        }
+    }
+
+    /// <summary>The database's clock, for <see cref="WaitUntilWorkerRunsAgentsAsync"/>.</summary>
+    public async Task<DateTimeOffset> GetDatabaseTimeAsync(CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(await GetOwnerConnectionStringAsync(cancellationToken));
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand("SELECT now()", connection);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        await reader.ReadAsync(cancellationToken);
+        return await reader.GetFieldValueAsync<DateTimeOffset>(0, cancellationToken);
     }
 
     // Writes each resource instance's console log to its file as it arrives, and keeps every resource that stops with an
@@ -163,7 +231,10 @@ public class AppHostFixture : IAsyncLifetime
             {
                 var path = Path.Combine(directory, $"{update.Resource.Name}.log");
                 // By instance id, not by name: the log stream of a running project carries a suffix after its name.
-                _ = logging.GetOrAdd(update.ResourceId, id => Task.Run(() => CopyLogAsync(logs, id, path, cancellationToken), cancellationToken));
+                Action<string>? onLine = update.Resource.Name == "worker"
+                    ? line => { if (line.Contains(WorkerListening, StringComparison.Ordinal)) workerListening.TrySetResult(); }
+                    : null;
+                _ = logging.GetOrAdd(update.ResourceId, id => Task.Run(() => CopyLogAsync(logs, id, path, onLine, cancellationToken), cancellationToken));
 
                 var snapshot = update.Snapshot;
                 RecordProcess(update.ResourceId, snapshot);
@@ -245,7 +316,8 @@ public class AppHostFixture : IAsyncLifetime
     }
 
     // A file that cannot be written loses its log, not the run. The watcher's task is awaited when the stack is disposed.
-    private static async Task CopyLogAsync(ResourceLoggerService logs, string resourceId, string path, CancellationToken cancellationToken)
+    private static async Task CopyLogAsync(
+        ResourceLoggerService logs, string resourceId, string path, Action<string>? onLine, CancellationToken cancellationToken)
     {
         try
         {
@@ -255,6 +327,7 @@ public class AppHostFixture : IAsyncLifetime
                 foreach (var line in batch)
                 {
                     await file.WriteLineAsync($"{(line.IsErrorMessage ? "ERR " : "")}{line.Content}");
+                    onLine?.Invoke(line.Content);
                 }
             }
         }

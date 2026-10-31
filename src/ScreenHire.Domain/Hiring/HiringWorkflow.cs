@@ -115,8 +115,10 @@ public sealed record HiringWorkflow(
 /// <remarks>
 /// <c>id</c>: Stable key, unique among the workflow's follow-up questionnaires; the trigger and the action name it.
 /// <c>name</c>: What the hiring team calls it, such as "Availability"; the candidate sees it as the page's heading.
+/// <c>sections</c>: Optional; named pages of its questions, as on <see cref="Questionnaire"/>.
 /// </remarks>
-public sealed record FollowUpQuestionnaire(string Id, string Name, IReadOnlyList<Question> Questions);
+public sealed record FollowUpQuestionnaire(
+    string Id, string Name, IReadOnlyList<Question> Questions, IReadOnlyList<QuestionSection>? Sections = null);
 
 /// <summary>A hiring template version's full definition: the workflow a job copies, plus defaults for the job's posting.</summary>
 public sealed record HiringTemplateDefinition(HiringWorkflow Workflow, PostingDefaults PostingDefaults)
@@ -249,7 +251,18 @@ public enum StageKind
 }
 
 /// <summary>The screening questions a candidate answers when applying.</summary>
-public sealed record Questionnaire(IReadOnlyList<Question> Questions);
+/// <remarks>
+/// <c>sections</c>: Optional; the questions grouped into named pages, one page each on the careers site. Every question
+/// is in exactly one section, and the sections list them in the order of <c>questions</c>. Without sections the careers
+/// site splits the questions into pages of the organization's page size (<c>questionsPerPage</c>).
+/// </remarks>
+public sealed record Questionnaire(IReadOnlyList<Question> Questions, IReadOnlyList<QuestionSection>? Sections = null);
+
+/// <summary>One named page of a questionnaire: its name, the page's heading, and the ids of its questions in order.</summary>
+/// <remarks>
+/// <c>id</c>: Stable key, unique within the questionnaire.
+/// </remarks>
+public sealed record QuestionSection(string Id, string Name, IReadOnlyList<string> QuestionIds);
 
 /// <summary>
 /// One screening question. Which optional members apply depends on <see cref="Type"/>: <see cref="Options"/> for the

@@ -5,6 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { DismissReason } from './dismissReason.ts';
+import type { ExplainReason } from './explainReason.ts';
 import type { IntegrityAssessmentKind } from './integrityAssessmentKind.ts';
 import type { IntegrityReviewActionType } from './integrityReviewActionType.ts';
 
@@ -24,4 +25,9 @@ export interface IntegrityReviewEntry {
   /** @nullable */
   actorName: string | null;
   occurredAt: string;
+  /** @nullable */
+  signalId: string | null;
+  /** @nullable */
+  signalTitle: string | null;
+  explainReason: null | ExplainReason;
 }

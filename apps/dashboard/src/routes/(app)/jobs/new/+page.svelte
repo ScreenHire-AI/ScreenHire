@@ -8,24 +8,29 @@
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
   import { goto } from '$app/navigation';
+  import CountryPicker from '#lib/components/country-picker.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import Panel from '#lib/components/panel.svelte';
+  import RichTextEditor from '#lib/components/rich-text-editor.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
-  import { Textarea } from '#lib/components/ui/textarea/index.js';
   import { selectClass } from '#lib/components/workflow/controls.js';
-  import { applyValidationProblem, paragraphs } from '#lib/forms.js';
+  import { countryOptions } from '#lib/countries.js';
+  import { locales } from '#lib/dates.js';
+  import { applyValidationProblem } from '#lib/forms.js';
   import { checkWhere, whereBody, workplaceOptions, workplaceValues } from '#lib/job-form.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
+  import { isBlank } from '#lib/rich-text.js';
 
   // A new job is a draft with its own copy of a published template version's workflow (workflow-engine.md §1).
   const queryClient = useQueryClient();
   const create = createCreateJob(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, jobsPath) } }));
   const templates = createListHiringTemplates();
+  let descriptionEditor = $state<ReturnType<typeof RichTextEditor> | null>(null);
   // An archived template is out of the pickers: no new job starts from it.
   const usable = $derived((templates.data?.data ?? []).filter((template) => template.latestPublishedVersionId && !template.archived));
 
@@ -37,7 +42,7 @@
       title: z.string().trim().min(1, 'Give the job a title.'),
       templateVersionId: z.string(),
       workplaceType: z.enum(workplaceValues),
-      countries: z.string(),
+      countries: z.array(z.string()),
       city: z.string().max(100, 'Keep the city to 100 characters or fewer.'),
       country: z.string(),
       description: z.string(),
@@ -45,9 +50,10 @@
     .superRefine((value, context) => {
       const issue = (path: string, message: string) => context.addIssue({ code: 'custom', path: [path], message });
       checkWhere(value, issue);
-      if (!value.templateVersionId && !value.description.trim()) issue('description', 'Describe the job, or choose a template that has a description.');
+      if (!value.templateVersionId && isBlank(value.description)) issue('description', 'Describe the job, or choose a template that has a description.');
     });
-  const empty = { title: '', templateVersionId: '', workplaceType: '', countries: '', city: '', country: '', description: '' } as const;
+  const empty = { title: '', templateVersionId: '', workplaceType: '' as const, countries: [] as string[], city: '', country: '', description: '' };
+  const countries = countryOptions(locales);
   const { form, errors, enhance, submitting } = superForm(defaults({ ...empty }, zod4(schema)), {
     SPA: true,
     validators: zod4(schema),
@@ -63,7 +69,8 @@
             title: title.trim(),
             templateVersionId: templateVersionId || null,
             ...whereBody(submitted.data),
-            description: description.trim() ? paragraphs(description) : null,
+            // An empty editor sends nothing, so a template's description still applies.
+            description: isBlank(description) ? null : description,
           },
         });
         await goto(`/jobs/${response.data.id}`);
@@ -142,19 +149,15 @@
             <Field.Error id="new-job-workplace-error" errors={$errors.workplaceType?.map((message) => ({ message }))} />
           </Field.Field>
           {#if $form.workplaceType === 'Remote'}
-            <Field.Field data-invalid={$errors.countries ? true : undefined}>
+            <Field.Field data-invalid={$errors.countries?._errors ? true : undefined}>
               <Field.Label for="new-job-countries">Countries candidates can work from</Field.Label>
-              <Input
+              <CountryPicker
                 id="new-job-countries"
-                name="countries"
-                required
-                autocomplete="off"
                 bind:value={$form.countries}
-                aria-invalid={$errors.countries ? 'true' : undefined}
-                aria-describedby={describedBy('new-job-countries-error', $errors.countries, 'new-job-countries-hint')}
+                invalid={!!$errors.countries?._errors}
+                describedby={describedBy('new-job-countries-error', $errors.countries?._errors)}
               />
-              <Field.Description id="new-job-countries-hint">Two-letter codes, separated by commas, such as GB, IE.</Field.Description>
-              <Field.Error id="new-job-countries-error" errors={$errors.countries?.map((message) => ({ message }))} />
+              <Field.Error id="new-job-countries-error" errors={$errors.countries?._errors?.map((message) => ({ message }))} />
             </Field.Field>
           {:else if $form.workplaceType}
             <div class="@container">
@@ -172,31 +175,34 @@
                   <Field.Error id="new-job-city-error" errors={$errors.city?.map((message) => ({ message }))} />
                 </Field.Field>
                 <Field.Field data-invalid={$errors.country ? true : undefined}>
-                  <Field.Label for="new-job-country">Country code</Field.Label>
-                  <Input
+                  <Field.Label for="new-job-country">Country</Field.Label>
+                  <!-- Picked by name, never typed as a code (W8); the value is the ISO code the API takes. -->
+                  <select
                     id="new-job-country"
                     name="country"
+                    class={selectClass}
                     required
-                    maxlength={2}
-                    autocomplete="off"
                     bind:value={$form.country}
                     aria-invalid={$errors.country ? 'true' : undefined}
                     aria-describedby={describedBy('new-job-country-error', $errors.country)}
-                  />
+                  >
+                    <option value="">Select</option>
+                    {#each countries as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
+                  </select>
                   <Field.Error id="new-job-country-error" errors={$errors.country?.map((message) => ({ message }))} />
                 </Field.Field>
               </div>
             </div>
           {/if}
           <Field.Field data-invalid={$errors.description ? true : undefined}>
-            <Field.Label for="new-job-description">Description</Field.Label>
-            <Textarea
-              id="new-job-description"
-              name="description"
-              rows={6}
+            <Field.Label id="new-job-description-label" for="new-job-description" onclick={() => descriptionEditor?.focus()}>Description</Field.Label>
+            <RichTextEditor
+              bind:this={descriptionEditor}
               bind:value={$form.description}
-              aria-invalid={$errors.description ? 'true' : undefined}
-              aria-describedby={describedBy('new-job-description-error', $errors.description, $form.templateVersionId ? 'new-job-description-hint' : undefined)}
+              id="new-job-description"
+              labelledBy="new-job-description-label"
+              describedBy={describedBy('new-job-description-error', $errors.description, $form.templateVersionId ? 'new-job-description-hint' : undefined)}
+              invalid={!!$errors.description}
             />
             {#if $form.templateVersionId}
               <Field.Description id="new-job-description-hint">Optional: empty keeps the template's description.</Field.Description>

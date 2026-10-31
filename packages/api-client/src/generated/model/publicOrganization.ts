@@ -7,10 +7,10 @@
 import type { PublicBranding } from './publicBranding.ts';
 
 /**
- * An organization as its careers pages show it.
+ * An organization as its careers pages show it, with its branding (each part null for ScreenHire's).
  */
 export interface PublicOrganization {
   name: string;
   slug: string;
-  branding: null | PublicBranding;
+  branding: PublicBranding;
 }

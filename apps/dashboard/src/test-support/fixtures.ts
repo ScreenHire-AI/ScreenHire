@@ -21,7 +21,7 @@ const recruiterPermissions: Permission[] = [
 export const ownerPermissions: Permission[] = [
   'ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'DeleteAnyNote', 'CreateTasks', 'CompleteTasks',
   'EmailCandidates', 'FillInScorecards', 'ReviewIntegrity', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates',
-  'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners',
+  'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageIntegrations', 'ManageTeam', 'ManageOwners',
 ];
 
 /** What each built-in role has, as the API's catalogue says (RolePermissions.cs). */
@@ -149,6 +149,8 @@ function application(index: number, candidateName: string, stage: WorkflowStage,
     stage: { id: stage.id, name: stage.name, kind: stage.kind },
     submittedAt,
     stageEnteredAt: submittedAt,
+    // The oldest application had the latest activity (a note half an hour ago), so Last activity and Applied sort apart.
+    lastActivityAt: index === 2 ? '2026-10-20T11:30:00Z' : submittedAt,
     jobTitle: 'Senior .NET Engineer',
     source: index % 2 === 0 ? 'CareersSite' : 'Recruiter',
     tags: index === 1 ? ['Referral'] : [],

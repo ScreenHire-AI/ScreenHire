@@ -1,6 +1,7 @@
 using System.Net;
 using Microsoft.Extensions.Options;
 using ScreenHire.Api.Applications;
+using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Demo;
 using ScreenHire.Application.Integrity;
 using ScreenHire.Domain.Applications;
@@ -215,22 +216,55 @@ public sealed class IntegrityAdapterTests
     }
 
     [Fact]
-    public void A_submission_stores_a_salted_device_hash_clean_markers_and_a_plausible_start_only()
+    public void A_submission_stores_a_salted_device_hash_clean_markers_and_page_times_in_range_only()
     {
         var application = Application();
         var options = new IntegrityOptions { DeviceHashKey = new string('k', 40) };
+        IReadOnlyList<PageTimeInput> pages =
+        [
+            new("details", 30), new("page-1", 95), new("page-1", 5), new("review", 1801), new("page-2", -1), new("<script>", 3),
+            new("a-much-too-long-page-name", 3),
+        ];
 
-        var observation = new SubmissionSession(
-            "192.0.2.10", "Mozilla/5.0", "device-1", Now.AddMinutes(-5), ["WebDriver", "webdriver", "bad marker!", ""])
+        var observation = new SubmissionSession("192.0.2.10", "Mozilla/5.0", "device-1", pages, ["WebDriver", "webdriver", "bad marker!", ""])
             .ToObservation(application, options, Now);
-        var future = new SubmissionSession(null, null, "device-1", Now.AddMinutes(5), null).ToObservation(application, new IntegrityOptions(), Now);
+        var keyless = new SubmissionSession(null, null, "device-1", null, null).ToObservation(application, new IntegrityOptions(), Now);
+        var tooMany = new SubmissionSession(null, null, null, [.. Enumerable.Range(1, 61).Select(i => new PageTimeInput($"page-{i}", 1))], null)
+            .ToObservation(application, new IntegrityOptions(), Now);
 
         observation.DeviceHash.Should().Be(KeyedHashing.DeviceHash(KeyedHashing.ParseKey(options.DeviceHashKey)!, application.OrganizationId, "device-1"));
         observation.AutomationMarkers.Should().Equal("webdriver");
-        observation.FormStartedAt.Should().Be(Now.AddMinutes(-5));
+        observation.PageTimes.Should().Equal(new PageTime("details", 30), new PageTime("page-1", 95));
+        observation.FormStartedAt.Should().BeNull("submit velocity reads the time on each page, not a start time");
+        observation.ResumedFromDraft.Should().BeFalse();
         observation.ExpiresAt.Should().Be(Now.AddDays(30));
-        future.FormStartedAt.Should().BeNull("a start in the future is not believable");
-        future.DeviceHash.Should().BeNull("without a key, no fingerprint is stored");
+        keyless.DeviceHash.Should().BeNull("without a key, no fingerprint is stored");
+        keyless.PageTimes.Should().BeEmpty();
+        tooMany.PageTimes.Should().BeEmpty("more pages than any form has is not believable, and never refuses the application");
+    }
+
+    [Fact]
+    public void A_submission_from_a_draft_records_which_answers_it_carried_over()
+    {
+        var organization = Guid.CreateVersion7();
+        var job = new Job { OrganizationId = organization, Title = "Engineer", Slug = "engineer" };
+        var candidate = Candidate.Create(organization, "Casey", "Morgan", "casey@example.com", null, Now);
+        var intake = new ApplicationIntake(
+            ApplicationSource.CareersSite,
+            [new ApplicationAnswer("notice", "Two weeks"), new ApplicationAnswer("shifts", Values: ["a", "b"]), new ApplicationAnswer("why", "Changed my mind")],
+            "notice-version", false, BotCheckResult.NotChecked);
+        var application = JobApplication.Submit(job, candidate, false, AiUseDeclaration.NotProvided, null, Now, null, intake).Application;
+        var draft = ApplicationDraft.Create(organization, job.Id, "Casey@Example.com ", new ApplicationDraftContent(
+            "Casey", null, null,
+            [new ApplicationAnswer("notice", "Two weeks"), new ApplicationAnswer("shifts", Values: ["a", "b"]), new ApplicationAnswer("why", "Because")],
+            false, AiUseDeclaration.NotProvided, null), Now.AddDays(-2));
+
+        var observation = new SubmissionSession(null, null, null, [new("page-1", 20)], null)
+            .ToObservation(application, new IntegrityOptions(), Now, draft);
+
+        draft.Email.Should().Be("casey@example.com");
+        observation.ResumedFromDraft.Should().BeTrue();
+        observation.CarriedOverQuestionIds.Should().Equal("notice", "shifts");
     }
 
     [Fact]
@@ -241,9 +275,10 @@ public sealed class IntegrityAdapterTests
         var candidate = Candidate.Create(organization, "Casey", "Morgan", "casey@example.com", null, Now);
         var application = JobApplication.Submit(job, candidate, true, AiUseDeclaration.NotProvided, null, Now, null).Application;
 
-        var observation = new SubmissionSession("192.0.2.10", "Mozilla/5.0", null, Now.AddMinutes(-5), null)
+        var observation = new SubmissionSession("192.0.2.10", "Mozilla/5.0", null, [new("details", 30)], null)
             .ToObservation(application, new IntegrityOptions(), Now);
 
+        observation.PageTimes.Should().BeEmpty();
         observation.FormStartedAt.Should().BeNull();
     }
 

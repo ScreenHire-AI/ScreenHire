@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScreenHire.Application.Automations;
 using ScreenHire.Application.Messaging;
+using ScreenHire.Application.Slack;
 using ScreenHire.Application.Webhooks;
 using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Hiring;
@@ -24,12 +25,12 @@ public sealed record ApplicationMoved(
 /// Runs in the worker once per <see cref="ApplicationMoved"/>: the workflow engine's <c>StageExited</c> trigger for the
 /// stage left and <c>StageEntered</c> for the stage entered, which also starts that stage's TimeElapsed timers. A move an
 /// automation made links its timeline entry to that run, so the engine can follow the chain (depth limit, cycles). It
-/// also raises the <c>application.moved</c> webhook event (<see cref="WebhookEvents"/>).
+/// also raises the <c>application.moved</c> webhook event (<see cref="WebhookEvents"/>) and its Slack post (<see cref="SlackEvents"/>).
 /// </summary>
 public static partial class ApplicationMovedHandler
 {
     public static async Task<OutgoingMessages> Handle(
-        ApplicationMoved message, ScreenHireDbContext db, TimeProvider time, ILogger<ApplicationMoved> logger, CancellationToken cancellationToken)
+        ApplicationMoved message, ScreenHireDbContext db, SlackAccess slack, TimeProvider time, ILogger<ApplicationMoved> logger, CancellationToken cancellationToken)
     {
         var application = await db.Applications.AsNoTracking().SingleOrDefaultAsync(a => a.Id == message.ApplicationId, cancellationToken)
             ?? throw new InvalidOperationException($"Application {message.ApplicationId} is not visible to organization {message.OrganizationId}.");
@@ -49,6 +50,11 @@ public static partial class ApplicationMovedHandler
             onlyAutomationId: null,
             cancellationToken);
         outgoing.Add(WebhookEvents.From(message));
+        if (SlackEvents.From(message, slack) is { } post)
+        {
+            outgoing.Add(post);
+        }
+
         return outgoing;
     }
 

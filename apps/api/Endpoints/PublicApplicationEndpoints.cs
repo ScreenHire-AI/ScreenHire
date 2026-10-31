@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Applications;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Application.TalentPool;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
@@ -215,18 +216,24 @@ internal static class PublicApplicationEndpoints
         var binding = await TelemetryBindingAsync(request, job, telemetry, telemetryValidator, cancellationToken);
 
         var remoteAddress = http.Connection.RemoteIpAddress?.ToString();
+        var now = time.GetUtcNow();
+        // The candidate's own permission for future roles, for the period in force now, which the form showed them.
+        var futureRoles = request.KeepForFutureRoles
+            ? new FutureRolesConsent(now, await TalentPoolMembership.MonthsAsync(outbox.DbContext, cancellationToken))
+            : null;
         var intake = new ApplicationIntake(
             ApplicationSource.CareersSite,
             answers,
             request.PrivacyNoticeVersion.Trim(),
             request.HoneypotFilled,
-            await turnstile.VerifyAsync(request.BotCheckToken, remoteAddress, cancellationToken));
+            await turnstile.VerifyAsync(request.BotCheckToken, remoteAddress, cancellationToken),
+            futureRoles);
 
         var submitted = await ApplicationSubmission.SubmitAsync(
             outbox, job, ApplicationSubmission.CandidateDetails.From(request.Candidate),
             new ApplicationDeclarations(request.AccommodationRequested, request.AiUseDeclaration, request.AiUseDetails),
-            intake, files, time.GetUtcNow(), actorUserId: null, cancellationToken,
-            new SubmissionSession(remoteAddress, request.UserAgent, fingerprint, request.FormStartedAt, request.AutomationMarkers),
+            intake, files, now, actorUserId: null, cancellationToken,
+            new SubmissionSession(remoteAddress, request.UserAgent, fingerprint, request.PageTimes, request.AutomationMarkers),
             integrity.Value,
             binding);
         if (submitted is not { } created)

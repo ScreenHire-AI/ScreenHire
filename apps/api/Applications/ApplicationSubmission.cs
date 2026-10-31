@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Applications;
+using ScreenHire.Application.TalentPool;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Integrity;
@@ -49,7 +50,9 @@ internal static class ApplicationSubmission
     /// <summary>The new application and its candidate, or null when the candidate has already applied to the job.</summary>
     /// <remarks>
     /// An existing candidate's name and phone are left as they are. Anyone can type any email address into a careers
-    /// form, so a submission never changes the details of a candidate who already exists.
+    /// form, so a submission never changes the details of a candidate who already exists. With <paramref name="commit"/>
+    /// false the caller saves and flushes once for several submissions: an outbox that has flushed once keeps later
+    /// messages in its table without sending them.
     /// </remarks>
     public static async Task<(JobApplication Application, Candidate Candidate)?> SubmitAsync(
         IDbContextOutbox<ScreenHireDbContext> outbox,
@@ -64,7 +67,8 @@ internal static class ApplicationSubmission
         SubmissionSession? session = null,
         IntegrityOptions? integrity = null,
         TelemetryBinding? telemetry = null,
-        Guid? actorApiKeyId = null)
+        Guid? actorApiKeyId = null,
+        bool commit = true)
     {
         var db = outbox.DbContext;
         var email = Candidate.Normalize(input.Email);
@@ -74,13 +78,26 @@ internal static class ApplicationSubmission
         // this (ADR-0015). Once added, the candidate is visible to them through this job, with this job's application only.
         var candidate = await db.Candidates.IgnoreQueryFilters([ScreenHireDbContext.JobScopeFilter])
             .SingleOrDefaultAsync(c => c.NormalizedEmail == email, cancellationToken);
+        var existing = candidate is not null;
         if (candidate is null)
         {
             candidate = Candidate.Create(job.OrganizationId, input.FirstName, input.LastName, input.Email, input.Phone, now);
             db.Candidates.Add(candidate);
         }
-        else if (await db.Applications.AnyAsync(a => a.JobId == job.Id && a.CandidateId == candidate.Id, cancellationToken))
+
+        // Drafts saved to finish this application go with it (apply-flow.md §7), in the same save. The one saved last tells
+        // the integrity engine which answers came from an earlier sitting.
+        var drafts = await db.ApplicationDrafts.Where(d => d.JobId == job.Id && d.Email == email).ToListAsync(cancellationToken);
+        db.ApplicationDrafts.RemoveRange(drafts);
+        var draft = drafts.OrderByDescending(d => d.UpdatedAt).FirstOrDefault();
+
+        if (existing && await db.Applications.AnyAsync(a => a.JobId == job.Id && a.CandidateId == candidate.Id, cancellationToken))
         {
+            if (drafts.Count > 0)
+            {
+                await db.SaveChangesAsync(cancellationToken);
+            }
+
             return null;
         }
 
@@ -91,7 +108,7 @@ internal static class ApplicationSubmission
         db.ApplicationEvents.Add(submitted);
         if (session is not null && application.Source == ApplicationSource.CareersSite)
         {
-            db.SubmissionObservations.Add(session.ToObservation(application, integrity ?? new IntegrityOptions(), now));
+            db.SubmissionObservations.Add(session.ToObservation(application, integrity ?? new IntegrityOptions(), now, draft));
         }
 
         // Before the outbox flush publishes ApplicationSubmitted: the behavioural analyzer runs once and must find them.
@@ -103,6 +120,17 @@ internal static class ApplicationSubmission
 
         await outbox.PublishAsync(new ApplicationSubmitted(
             application.OrganizationId, application.Id, job.Id, application.CurrentStageId, submitted.Id, now, actorUserId));
+
+        // A candidate in the talent pool who applies again, or whom a person adds to a job, is back in a job: they leave
+        // the pool, and the application they were kept from names this one (docs/architecture/talent-pool.md). A member on
+        // Only jobs they're on cannot see an entry kept from another job, so adding such a candidate by hand leaves it.
+        if (await TalentPoolMembership.LeaveForNewApplicationAsync(
+                db, candidate.Id, application,
+                application.Source == ApplicationSource.CareersSite ? TalentPoolExit.AppliedAgain : TalentPoolExit.AddedToJob,
+                now, actorUserId, cancellationToken) is { } left)
+        {
+            await outbox.PublishAsync(left);
+        }
 
         foreach (var upload in files)
         {
@@ -121,6 +149,11 @@ internal static class ApplicationSubmission
             };
             db.ApplicationFiles.Add(file);
             await outbox.PublishAsync(new ScanApplicationFile(file.OrganizationId, application.Id, file.Id));
+        }
+
+        if (!commit)
+        {
+            return (application, candidate);
         }
 
         try
@@ -145,20 +178,22 @@ internal sealed record ApplicationDeclarations(bool AccommodationRequested, AiUs
 
 /// <summary>
 /// What the careers form's submission arrived with, for the integrity engine: the candidate's address and browser, the
-/// device fingerprint, when the form was first shown and the automation markers the page reported. Only for careers-site
-/// applications, collected after the notice (CLAUDE.md non-negotiable 4).
+/// device fingerprint, the active seconds on each page and the automation markers the page reported. Only for
+/// careers-site applications, collected after the notice (CLAUDE.md non-negotiable 4).
 /// </summary>
 internal sealed record SubmissionSession(
-    string? IpAddress, string? UserAgent, string? DeviceFingerprint, DateTimeOffset? FormStartedAt, IReadOnlyList<string>? AutomationMarkers)
+    string? IpAddress, string? UserAgent, string? DeviceFingerprint, IReadOnlyList<PageTimeInput>? PageTimes, IReadOnlyList<string>? AutomationMarkers)
 {
     /// <summary>
     /// The row to store. The fingerprint is hashed with the organization's salt and never stored as sent; without a
     /// device key it is dropped. Automation markers are kept only from the telemetry module's fixed list. With an
-    /// accommodation the fingerprint, the markers and the start time are all dropped: the assistive-technology switch
-    /// turns the whole telemetry module off, and the API does not trust the page to have done so. The start time is
-    /// also dropped when it is in the future or more than 30 days old.
+    /// accommodation the fingerprint, the markers and the page times are all dropped: the assistive-technology switch
+    /// turns the whole telemetry module off, and the API does not trust the page to have done so. A page time out of
+    /// range is dropped rather than refusing the application: the candidate cannot fix the form's hidden state.
+    /// <paramref name="draft"/> is the draft the application was finished from, if any: the API, not the page, says
+    /// which answers it carried over.
     /// </summary>
-    public SubmissionObservation ToObservation(JobApplication application, IntegrityOptions options, DateTimeOffset now)
+    public SubmissionObservation ToObservation(JobApplication application, IntegrityOptions options, DateTimeOffset now, ApplicationDraft? draft = null)
     {
         var key = KeyedHashing.ParseKey(options.DeviceHashKey);
         var measured = !application.AccommodationRequested;
@@ -176,12 +211,31 @@ internal sealed record SubmissionSession(
             UserAgent = UserAgent is { Length: > 0 } agent ? agent[..Math.Min(agent.Length, SubmissionObservation.MaxUserAgentLength)] : null,
             DeviceHash = key is null || !measured ? null : KeyedHashing.DeviceHash(key, application.OrganizationId, DeviceFingerprint),
             // Timing is never collected with the assistive-technology switch on (CLAUDE.md non-negotiable 4).
-            FormStartedAt = measured && FormStartedAt is { } started && started <= now && started > now - TimeSpan.FromDays(30)
-                ? started.ToUniversalTime().ToDatabasePrecision()
-                : null,
+            PageTimes = measured ? ValidPageTimes(PageTimes) : [],
+            ResumedFromDraft = draft is not null,
+            CarriedOverQuestionIds = draft is null ? [] : [.. draft.CarriedOver(application.Answers)],
             AutomationMarkers = markers,
             ObservedAt = now,
             ExpiresAt = now + TimeSpan.FromDays(options.Retention.RawNetworkDays), // 1 to 30, checked at startup (RetentionLimit)
         };
+    }
+
+    /// <summary>One entry per page, each a short page name and 0 to 30 minutes; anything else is left out.</summary>
+    internal static List<PageTime> ValidPageTimes(IReadOnlyList<PageTimeInput>? pageTimes)
+    {
+        if (pageTimes is null || pageTimes.Count > SubmissionObservation.MaxPages)
+        {
+            return [];
+        }
+
+        return
+        [
+            .. pageTimes
+                .Where(p => p is { Page.Length: > 0 and <= SubmissionObservation.MaxPageLength }
+                    && p.Page.All(c => char.IsAsciiLetterOrDigit(c) || c == '-')
+                    && p.Seconds is >= 0 and <= SubmissionObservation.MaxSecondsPerPage)
+                .DistinctBy(p => p.Page, StringComparer.Ordinal)
+                .Select(p => new PageTime(p.Page, p.Seconds)),
+        ];
     }
 }

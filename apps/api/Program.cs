@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using FluentValidation;
 using Scalar.AspNetCore;
 using ScreenHire.Api.Applications;
+using ScreenHire.Api.Branding;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Demo;
@@ -12,6 +13,7 @@ using ScreenHire.Api.Realtime;
 using ScreenHire.Application.Automations;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Messaging;
+using ScreenHire.Application.Slack;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
 
@@ -25,6 +27,7 @@ builder.AddScreenHireAuthentication();
 builder.AddScreenHireApiKeys();
 builder.AddScreenHireMcp();
 builder.AddScreenHireApply();
+builder.AddScreenHireBranding();
 
 // Wolverine: endpoints write through IDbContextOutbox<ScreenHireDbContext>, so a message commits with the data and the
 // worker handles it (docs/architecture/messaging.md). The API handles only tenant events from the real-time queue,
@@ -41,6 +44,9 @@ builder.Services.AddSingleton<IValidator<UpdateEmailTemplateRequest>, UpdateEmai
 builder.Services.AddSingleton<IValidator<EmailTemplateDraft>, EmailTemplateDraftValidator>();
 builder.Services.AddSingleton<IValidator<ApplicationEmailDraft>, ApplicationEmailDraftValidator>();
 builder.Services.AddSingleton<IValidator<SendEmailsRequest>, SendEmailsRequestValidator>();
+builder.Services.AddSingleton<IValidator<KeepInMindRequest>, KeepInMindRequestValidator>();
+builder.Services.AddSingleton<IValidator<InviteToApplyRequest>, InviteToApplyRequestValidator>();
+builder.Services.AddSingleton<IValidator<AddFromTalentPoolRequest>, AddFromTalentPoolRequestValidator>();
 if (builder.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("ScreenHire:Demo:Enabled"))
 {
     // The local demo's data: Brightwater's template, jobs on every board, a closed job, the synthetic applicants and
@@ -62,6 +68,8 @@ builder.AddJobDistribution();
 // Webhook subscriptions: the API shows each endpoint's secret once and checks URLs against the same address rule the
 // worker applies (docs/architecture/workflow-engine.md section 5).
 builder.Services.AddOptions<WebhookOptions>().BindConfiguration(WebhookOptions.Section);
+// Slack (docs/architecture/slack.md): connecting a workspace and linking accounts happen here; the worker posts.
+builder.Services.AddScreenHireSlack();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     // Strict numbers keep OpenAPI integer/number types clean for the generated TypeScript client.
@@ -91,7 +99,9 @@ app.MapMetaEndpoints();
 app.MapAuthEndpoints();
 app.MapPublicJobEndpoints();
 app.MapPublicApplicationEndpoints();
+app.MapPublicApplicationDraftEndpoints();
 app.MapPublicQuestionnaireEndpoints();
+app.MapPublicTalentPoolEndpoints();
 app.MapPublicTelemetryEndpoints();
 app.MapJobEndpoints();
 app.MapTemplateEndpoints();
@@ -108,12 +118,16 @@ app.MapApiKeyEndpoints();
 app.MapWorkflowEndpoints();
 app.MapAutomationEndpoints();
 app.MapTaskEndpoints();
+app.MapReportEndpoints();
 app.MapScorecardEndpoints();
 app.MapScorecardTemplateEndpoints();
 app.MapTemplateUsageEndpoints();
 app.MapWebhookEndpoints();
+app.MapSlackEndpoints();
 app.MapEmailEndpoints();
+app.MapTalentPoolEndpoints();
 app.MapSchemaEndpoints();
+app.MapSearchEndpoints();
 app.MapRealtimeEndpoints();
 app.MapScreenHireMcp();
 
@@ -128,6 +142,7 @@ if (app.Environment.IsDevelopment())
         ownerConnectionString, builder.Configuration.GetConnectionString(DatabaseRegistration.AppConnectionName)!, DatabasePrecisionTimeProvider.Instance);
     await ScreenHireMessaging.ProvisionStorageAsync(ownerConnectionString);
     await app.Services.GetRequiredService<ApplicantUploads>().ProvisionDevelopmentStorageAsync();
+    await app.Services.GetRequiredService<BrandImageUploads>().ProvisionDevelopmentStorageAsync();
 }
 
 await app.RunAsync();

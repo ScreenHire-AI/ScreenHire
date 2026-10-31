@@ -139,6 +139,9 @@ export const realtimeEventSchemas = {
   // A job's own workflow was edited or took a template update (workflow-engine.md §7): its stages may have changed.
   JobWorkflowChanged: z.object({ organizationId: id, jobId: id, workflowVersion: z.number().int(), changedAt: instant }),
   LiveUpdatesChecked: z.object({ organizationId: id, checkId: id }),
+  // Someone joined or left the talent pool, or was invited from it (docs/architecture/talent-pool.md). applicationId is
+  // the application they were kept in mind from.
+  TalentPoolChanged: z.object({ organizationId: id, applicationId: id, jobId: id, candidateId: id, changedAt: instant }),
   TeamNotified: z.object({ organizationId: id, applicationId: id, jobId: id, runId: id, notifiedAt: instant }),
 } as const;
 

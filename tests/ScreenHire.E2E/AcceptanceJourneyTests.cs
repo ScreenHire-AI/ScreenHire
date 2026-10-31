@@ -61,7 +61,16 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         await newJob.GetByLabel("Title").FillAsync(JobTitle);
         await newJob.GetByLabel("Hiring template").SelectOptionAsync(new SelectOptionValue { Label = $"{templateName} (v1)" });
         await newJob.GetByLabel("Workplace").SelectOptionAsync(new SelectOptionValue { Label = "Remote" });
-        await newJob.GetByLabel("Countries candidates can work from").FillAsync("GB, IE");
+        // Countries are picked by name (W8): typing finds one, a click adds it, and the list stays open for the next.
+        var countries = newJob.GetByRole(AriaRole.Combobox, new() { Name = "Countries candidates can work from" });
+        foreach (var country in new[] { "United Kingdom", "Ireland" })
+        {
+            await countries.PressSequentiallyAsync(country);
+            await Page.GetByRole(AriaRole.Option, new() { Name = country, Exact = true }).ClickAsync();
+        }
+        await Expect(newJob.GetByRole(AriaRole.List, new() { Name = "Chosen countries" }).GetByRole(AriaRole.Listitem)).ToHaveTextAsync(["United Kingdom", "Ireland"]);
+        await ExpectNoAccessibilityViolationsAsync();
+        await countries.PressAsync("Escape");
         await ExpectNoAccessibilityViolationsAsync();
         await newJob.GetByRole(AriaRole.Button, new() { Name = "Create job" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(JobTitle);
@@ -242,14 +251,14 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
     // The "Software engineer" questionnaire, which the job copied from the template.
     private static async Task AnswerQuestionsAsync(IPage page, string notice)
     {
-        await Expect(page.Locator("[aria-current='step']")).ToContainTextAsync("QUESTIONS");
+        await Expect(page.Locator("#step-heading")).ToHaveTextAsync("Questions");
         await page.GetByRole(AriaRole.Group, new() { Name = "Do you have the right to work in the country this job is in?" })
             .GetByLabel("Yes").CheckAsync();
         await page.GetByRole(AriaRole.Group, new() { Name = "How many years have you worked as a software engineer?" })
             .GetByLabel("6 to 9").CheckAsync();
         await page.GetByLabel("What is your notice period?").FillAsync(notice);
         await page.GetByRole(AriaRole.Button, new() { Name = "Continue to review" }).ClickAsync();
-        await Expect(page.Locator("[aria-current='step']")).ToContainTextAsync("REVIEW");
+        await Expect(page.Locator("#step-heading")).ToHaveTextAsync("Review and send");
     }
 
     // A person's click on the name, the first one on the page included: the side panel keeps its place, so the row

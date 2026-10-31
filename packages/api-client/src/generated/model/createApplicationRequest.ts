@@ -17,4 +17,6 @@ export interface CreateApplicationRequest {
   aiUseDeclaration?: AiUseDeclaration;
   /** @nullable */
   aiUseDetails?: string | null;
+  /** @nullable */
+  resumeUploadId?: string | null;
 }

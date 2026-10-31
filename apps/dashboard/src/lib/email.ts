@@ -8,10 +8,11 @@ export const emailTemplatesPath = '/v1/email-templates';
  * only a Reject action sends (workflow-engine.md section 2), the follow-up questions email, which only a
  * SendQuestionnaire action sends with its link, and an archived template, which is out of the pickers.
  */
-export function sendableTemplates<Template extends Pick<EmailTemplateEntry, 'rejectOnly'> & { questionnaireOnly?: boolean; archived?: boolean }>(
-  templates: readonly Template[],
-): Template[] {
-  return templates.filter((template) => !template.rejectOnly && !template.questionnaireOnly && !template.archived);
+export function sendableTemplates<
+  Template extends Pick<EmailTemplateEntry, 'rejectOnly'> & { questionnaireOnly?: boolean; invitationOnly?: boolean; archived?: boolean },
+>(templates: readonly Template[]): Template[] {
+  // The talent pool's invitation goes only with Invite to apply, which makes its links (docs/architecture/talent-pool.md).
+  return templates.filter((template) => !template.rejectOnly && !template.questionnaireOnly && !template.invitationOnly && !template.archived);
 }
 
 /**
@@ -19,7 +20,7 @@ export function sendableTemplates<Template extends Pick<EmailTemplateEntry, 'rej
  * email's link, which only their actions fill in.
  */
 export function sendableVariables(variables: readonly EmailTemplateVariableEntry[]): EmailTemplateVariableEntry[] {
-  return variables.filter((variable) => !variable.rejectOnly && !variable.questionnaireOnly);
+  return variables.filter((variable) => !variable.rejectOnly && !variable.questionnaireOnly && !variable.invitationOnly);
 }
 
 /** A variable as a template writes it. */

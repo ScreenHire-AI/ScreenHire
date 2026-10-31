@@ -29,12 +29,16 @@
   import ActionBar from '#lib/components/action-bar.svelte';
   import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
   import AnswerMenu from '#lib/components/answer-menu.svelte';
+  import BarChart, { type BarRow } from '#lib/components/bar-chart.svelte';
   import BrandBar from '#lib/components/brand-bar.svelte';
   import BuiltInBadge from '#lib/components/built-in-badge.svelte';
+  import ChartPanel, { type ChartColumn } from '#lib/components/chart-panel.svelte';
   import ChoiceCard from '#lib/components/choice-card.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import CountButton, { type CountItem } from '#lib/components/count-button.svelte';
+  import CountryPicker from '#lib/components/country-picker.svelte';
   import Picker from '#lib/components/picker.svelte';
+  import DateRangeFilter from '#lib/components/date-range-filter.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import EmailPreview from '#lib/components/email-preview.svelte';
   import Fact from '#lib/components/fact.svelte';
@@ -62,6 +66,7 @@
   import RelativeTime from '#lib/components/relative-time.svelte';
   import LevelScale from '#lib/components/level-scale.svelte';
   import MentionField from '#lib/components/mention-field.svelte';
+  import RichTextEditor from '#lib/components/rich-text-editor.svelte';
   import NoteText from '#lib/components/note-text.svelte';
   import Rating from '#lib/components/rating.svelte';
   import RatingAnswer from '#lib/components/rating-answer.svelte';
@@ -105,6 +110,8 @@
   import { sections } from '#lib/shell.js';
   import type { StatusName } from '#lib/status.js';
   import EditPreviewDemo from './edit-preview-demo.svelte';
+  import AddCandidateDemo from './add-candidate-demo.svelte';
+  import BrandingDemo from './branding-demo.svelte';
   import EmailComposerDemo, { demoEmail } from './email-composer-demo.svelte';
   import FormBuilderDemo from './form-builder-demo.svelte';
   import ReorderDemo from './reorder-demo.svelte';
@@ -170,6 +177,32 @@
   ];
   let candidateTab = $state('overview');
   let jobTab = $state('distribution');
+
+  // A report's charts (section 3.5): a funnel in one series, sources in two, and a chart panel with its table.
+  const guideFunnel: BarRow[] = [
+    { key: 'applied', label: 'Applied', values: [48], texts: ['48'], note: '63% moved on', summary: 'Applied: 48 applications, 63% moved on' },
+    { key: 'screening', label: 'Screening', values: [30], texts: ['30'], note: '40% moved on', summary: 'Screening: 30 applications, 40% moved on' },
+    { key: 'interview', label: 'Interview', values: [12], texts: ['12'], note: '25% moved on', summary: 'Interview: 12 applications, 25% moved on' },
+    { key: 'hired', label: 'Hired', values: [3], texts: ['3'], note: null, summary: 'Hired: 3 applications' },
+  ];
+  const guideSources: BarRow[] = [
+    { key: 'careers', label: 'Careers page', values: [41, 3], texts: ['41', '3'], summary: 'Careers page: 41 applications, 3 hires' },
+    { key: 'recruiter', label: 'Added by a recruiter', values: [7, 0], texts: ['7', '0'], summary: 'Added by a recruiter: 7 applications, 0 hires' },
+  ];
+  interface GuideHire {
+    job: string;
+    hires: number;
+    days: number;
+  }
+  const guideHires: GuideHire[] = [
+    { job: 'Support Engineer', hires: 2, days: 18 },
+    { job: 'Senior .NET Engineer', hires: 3, days: 34 },
+  ];
+  const guideHireColumns: ChartColumn<GuideHire>[] = [
+    { id: 'job', header: 'Job', text: (row) => row.job, sortBy: (row) => row.job },
+    { id: 'hires', header: 'Hires', text: (row) => String(row.hires), sortBy: (row) => row.hires },
+    { id: 'days', header: 'Median days', text: (row) => `${row.days} days`, sortBy: (row) => row.days },
+  ];
 
   // Twelve weeks of a metric, oldest first, for the metric cards.
   const weeks = (values: number[]): MetricPoint[] =>
@@ -246,6 +279,7 @@
   // Tags change in place here; nothing is saved.
   let sampleTags = $state(['Referral', 'Relocating to Leeds']);
   let jobsChoice = $state<'All' | 'HiringTeamOnly'>('All');
+  let countriesChoice = $state(['GB', 'IE']);
   const sampleTeam = [
     { id: 'm1', userId: 'u1', email: 'avery@example.com', displayName: 'Avery Quinn', role: 'Owner' as const, customRoleId: null, roleName: 'Owner', joinedAt: ago(30 * day), jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 },
     { id: 'm2', userId: 'u2', email: 'robin@example.com', displayName: 'Robin Ashby', role: 'Recruiter' as const, customRoleId: null, roleName: 'Recruiter', joinedAt: ago(20 * day), jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 },
@@ -258,10 +292,23 @@
   ];
   let mentionText = $state('Can you book the call once they confirm, @Ro');
   let mentionPicked = $state<PickedMention[]>([]);
+  let richTextEditor = $state<ReturnType<typeof RichTextEditor> | null>(null);
+  let richText = $state('<h2>Next steps</h2><p>Hi {{ firstName }}, thank you for applying for <strong>{{ jobTitle }}</strong>.</p><ul><li>Book a time</li><li>Bring your portfolio</li></ul>');
   const sampleTasks: TaskRow[] = [
     { id: 't1', applicationId: 'a1', kind: 'Review', note: 'Review this application.', assigneeUserId: 'u1', createdAt: ago(2 * hour), completedAt: null, completedByUserId: null },
     { id: 't2', applicationId: 'a1', kind: 'RejectionReview', note: 'Not authorised to work in the UK.', assigneeUserId: null, createdAt: ago(day), completedAt: null, completedByUserId: null },
     { id: 't3', applicationId: 'a1', kind: 'Task', note: 'Call the references.', assigneeUserId: null, createdAt: ago(3 * day), completedAt: ago(5 * hour), completedByUserId: 'u2' },
+    {
+      id: 't4',
+      applicationId: 'a1',
+      kind: 'Scorecard',
+      note: 'Fill in the Interview scorecard. Focus on the pairing exercise.',
+      assigneeUserId: 'u2',
+      scorecardTemplateId: 'interview',
+      createdAt: ago(4 * hour),
+      completedAt: null,
+      completedByUserId: null,
+    },
   ];
   const sampleScorecards: ScorecardEntry[] = [
     {
@@ -281,6 +328,8 @@
       workflowVersion: 1,
       timelineEventId: 'e1',
       submittedAt: ago(3 * hour),
+      scorecardTemplateId: 'interview',
+      scorecardName: 'Interview',
     },
   ];
   // Teammates' changes as toasts (one change, then several on one job), newest first, above a notification card (section 11, Notification tray).
@@ -605,6 +654,12 @@
             onpick={() => {}}
           />
         </Panel>
+        <Panel title="Country picker" class="flex-[1_1_320px]">
+          <div class="flex flex-col gap-2">
+            <label for="style-guide-countries" class="text-body font-medium">Countries candidates can work from</label>
+            <CountryPicker id="style-guide-countries" bind:value={countriesChoice} />
+          </div>
+        </Panel>
         <Panel title="Choice card" class="flex-[1_1_320px]">
           <div role="radiogroup" aria-label="Jobs" class="flex flex-col gap-2">
             <ChoiceCard name="style-guide-jobs" value="All" bind:group={jobsChoice} title="All jobs" description="Including jobs added later." />
@@ -688,6 +743,9 @@
         <Panel title="Email composer" class="flex-[1_1_320px]">
           <EmailComposerDemo />
         </Panel>
+        <Panel title="Add candidate sheet" class="flex-[1_1_320px]">
+          <AddCandidateDemo />
+        </Panel>
         <Panel title="Live indicator" class="flex-[1_1_320px]">
           <div class="flex flex-col gap-1">
             {#each ['connected', 'reconnecting', 'disconnected'] as const as status (status)}<LiveIndicator {status} />{/each}
@@ -698,6 +756,8 @@
       <Panel title="Email preview">
         <EmailPreview preview={demoEmail} />
       </Panel>
+
+      <BrandingDemo />
 
       <div class="flex flex-wrap items-start gap-5">
         <Panel title="Empty state" class="flex-[999_1_520px]">
@@ -810,6 +870,21 @@
             <NoteText text={`Good detail on the payments service. ${mentionToken(mentionTeam[1].userId)}, ask how they measured it.`} members={mentionTeam} editedAt={ago(2 * minute)} />
           </div>
         </Panel>
+        <Panel title="Rich text editor" class="flex-[1_1_320px]">
+          <div class="flex flex-col gap-2">
+            <Field.Label id="style-guide-rich-text-label" for="style-guide-rich-text" class="text-caption font-semibold text-muted-foreground" onclick={() => richTextEditor?.focus()}>Message</Field.Label>
+            <RichTextEditor
+              bind:this={richTextEditor}
+              bind:value={richText}
+              id="style-guide-rich-text"
+              labelledBy="style-guide-rich-text-label"
+              variables={[
+                { name: 'firstName', label: 'First name' },
+                { name: 'jobTitle', label: 'Job title' },
+              ]}
+            />
+          </div>
+        </Panel>
       </div>
 
       <div class="flex flex-wrap items-start gap-5">
@@ -866,7 +941,16 @@
               <Fact label="Last updated">
                 <LastUpdated value={{ at: null, by: 'ScreenHire' }} members={sampleTeam} currentUserId="u1" />
               </Fact>
+              <Fact label="Created">
+                <LastUpdated value={{ at: ago(2 * 60 * minute), by: 'Member', userId: 'u2', created: true }} members={sampleTeam} currentUserId="u1" />
+              </Fact>
             </dl>
+          </figure>
+          <figure class="mt-4 flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">On a settings page's title row, where no label shows, it starts with its verb</figcaption>
+            <p class="text-muted-foreground">
+              <LastUpdated value={{ at: ago(2 * 60 * minute), by: 'Member', userId: 'u2', created: true }} lead members={sampleTeam} currentUserId="u1" />
+            </p>
           </figure>
           <HistorySheet
             bind:open={historyOpen}
@@ -957,6 +1041,43 @@
           <MetricCard icon={HourglassIcon} title="Overdue now" value="3" change={2} period="last week" better="down" points={weeks([0, 2, 0, 2, 4, 2, 4, 2, 4, 4, 1, 3])} />
         </SummaryBand>
       </Panel>
+
+      <div class="flex flex-wrap items-start gap-5">
+        <Panel title="Bar chart" class="flex-[999_1_520px]">
+          <div class="flex flex-col gap-6">
+            <BarChart label="Funnel example" series={[{ label: 'Applications', tone: 'chart-1' }]} rows={guideFunnel} />
+            <BarChart
+              label="Sources example"
+              series={[
+                { label: 'Applications', tone: 'chart-2' },
+                { label: 'Hires', tone: 'chart-1' },
+              ]}
+              rows={guideSources}
+            />
+          </div>
+        </Panel>
+        <Panel title="Date range filter" class="flex-[1_1_320px]">
+          <div class="flex flex-wrap items-center gap-2"><DateRangeFilter /></div>
+        </Panel>
+      </div>
+
+      <ChartPanel
+        title="Chart panel"
+        basis="Median days from applying to being hired, for hires made in these dates."
+        tableId="style-guide-chart"
+        columns={guideHireColumns}
+        rows={guideHires}
+        rowKey={(row) => row.job}
+        defaultSort={{ id: 'days', desc: true }}
+      >
+        {#snippet chart()}
+          <BarChart
+            label="Time to hire example"
+            series={[{ label: 'Median days', tone: 'chart-1' }]}
+            rows={guideHires.toSorted((a, b) => b.days - a.days).map((row) => ({ key: row.job, label: row.job, values: [row.days], texts: [`${row.days} days`], note: `${row.hires} hires`, summary: `${row.job}: ${row.days} days` }))}
+          />
+        {/snippet}
+      </ChartPanel>
 
 
       <div class="flex flex-wrap items-start gap-5">

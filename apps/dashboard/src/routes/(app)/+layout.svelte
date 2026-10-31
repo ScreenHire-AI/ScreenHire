@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getApplication, listAutomationRuns, listTeamMembers } from '@screenhire/api-client';
   import {
+    createGetSlack,
     createListApplications,
     getGetApplicationQueryOptions,
     getGetHiringTemplateQueryOptions,
@@ -149,6 +150,9 @@
     ),
   );
 
+  // Slack, for the Slack account item in each person's menu (docs/architecture/slack.md); it changes rarely.
+  const slack = createGetSlack(() => ({ query: { enabled: Boolean(data.user?.organization), staleTime: 60_000 } }));
+
   // Tailwind's lg: from there up the sidebar is full; below it, the rail (md) or the phone sheet.
   const laptop = new MediaQuery('min-width: 1024px');
 </script>
@@ -158,7 +162,7 @@
 
 <!-- The full sidebar from lg, the icon rail at md, and a sheet behind the menu button on phones (design system section 8). -->
 <Sidebar.Provider open={laptop.current}>
-  <AppSidebar user={data.user} {viewCounts} />
+  <AppSidebar user={data.user} {viewCounts} slack={slack.data?.data} />
   <Sidebar.Inset class="min-w-0">
     {@render children()}
   </Sidebar.Inset>

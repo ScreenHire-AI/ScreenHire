@@ -64,6 +64,7 @@
     usedByNouns,
   } from '#lib/templates.js';
   import { problemErrors } from '#lib/workflow.js';
+  import { lastUpdateWords } from '#lib/history.js';
   import type { PageProps } from './$types';
 
   // One library scorecard in its editor (design system sections 7 and 21, builder): the header band with Used by (the
@@ -304,7 +305,7 @@
           {/if}
         </Fact>
         <Fact label="Rating questions"><span class="tabular-nums">{ratingCount}</span></Fact>
-        <Fact label="Last updated">
+        <Fact label={lastUpdateWords(detail.lastUpdated).label}>
           <LastUpdated value={detail.lastUpdated} {members} {currentUserId} onhistory={detail.builtIn ? undefined : () => (historyOpen = true)} />
         </Fact>
       {/snippet}

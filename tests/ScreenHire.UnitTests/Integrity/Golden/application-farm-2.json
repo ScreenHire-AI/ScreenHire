@@ -23,12 +23,12 @@
         "contextOnly": false,
         "informational": false,
         "accessibilitySensitive": true,
-        "source": "automation@1",
-        "explanation": "The form was completed in 20 seconds, faster than reading and answering it plausibly takes (at least 32 seconds).",
+        "source": "automation@2",
+        "explanation": "The form's pages were open for 20 seconds in all, faster than reading and answering them plausibly takes (at least 32 seconds).",
         "evidence": [
           {
             "kind": "Metric",
-            "label": "Time from opening the form to sending it",
+            "label": "Active time on the form's pages",
             "amount": 20,
             "unit": "seconds",
             "reference": 32,
@@ -180,7 +180,7 @@
     "level": "NotIndicated",
     "reasonCodes": [],
     "appliedRules": [],
-    "summary": "One observation from document checks, with nothing from a second, independent kind of check to back it up. Shown for context only. This job allows AI help when disclosed.",
+    "summary": "One observation from document checks, with nothing from a second, independent kind of check to back it up. Shown for context only.",
     "nextStep": "No action needed.",
     "policyContext": "NotDisclosed",
     "signals": [

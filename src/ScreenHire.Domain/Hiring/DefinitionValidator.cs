@@ -63,6 +63,7 @@ public static partial class DefinitionValidator
     public const int MaxActions = 10;
     public const int MaxScorecardQuestions = 20;
     public const int MaxFollowUpQuestionnaires = 10;
+    public const int MaxSections = 20;
 
     // Question ids the apply form gives meaning to (ApplicationForm): its resume question is there even when the apply
     // questionnaire has none, so a follow-up question with one of these ids would make answers.{id} name two questions.
@@ -284,6 +285,7 @@ public static partial class DefinitionValidator
         }
 
         ValidateQuestions(questions, path, followUp: false, byId, errors);
+        ValidateSections(questionnaire.Sections, questions, path, errors);
         return byId;
     }
 
@@ -325,6 +327,7 @@ public static partial class DefinitionValidator
             }
 
             ValidateQuestions(followUpQuestions, followUpPath, followUp: true, questions, errors);
+            ValidateSections(followUp.Sections, followUpQuestions, followUpPath, errors);
         }
 
         return byId;
@@ -368,6 +371,74 @@ public static partial class DefinitionValidator
                 // The follow-up page works without JavaScript and takes no uploads (workflow-engine.md §8).
                 errors.Add(new(Join(questionPath, "type"), "A follow-up questionnaire cannot ask for a file. Ask for files on the apply form."));
             }
+        }
+    }
+
+    // Named pages of a questionnaire (careers apply-flow.md §7). The questions stay one flat list, which every reader of
+    // answers.{id} uses; the sections only group it, so they must cover it exactly, once each and in its order.
+    private static void ValidateSections(
+        IReadOnlyList<QuestionSection>? sections, IReadOnlyList<Question> questions, string path, List<DefinitionError> errors)
+    {
+        if (sections is not { Count: > 0 })
+        {
+            return;
+        }
+
+        var sectionsPath = Join(path, "sections");
+        if (sections.Count > MaxSections)
+        {
+            errors.Add(new(sectionsPath, $"A questionnaire has at most {MaxSections} sections."));
+        }
+
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        var placed = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var known = questions.Where(q => q is not null).Select(q => q.Id).ToHashSet(StringComparer.Ordinal);
+        for (var i = 0; i < sections.Count; i++)
+        {
+            var sectionPath = $"{sectionsPath}[{i}]";
+            if (sections[i] is not { } section)
+            {
+                errors.Add(new(sectionPath, "A section is required."));
+                continue;
+            }
+
+            if (ValidateId(section.Id, Join(sectionPath, "id"), errors) && !ids.Add(section.Id))
+            {
+                errors.Add(new(Join(sectionPath, "id"), $"Section id '{section.Id}' is used twice."));
+            }
+
+            ValidateText(section.Name, Join(sectionPath, "name"), 80, required: true, errors);
+            if (section.QuestionIds is not { Count: > 0 } questionIds)
+            {
+                errors.Add(new(sectionPath, "Add a question to this section or delete it."));
+                continue;
+            }
+
+            foreach (var questionId in questionIds)
+            {
+                if (questionId is null || !known.Contains(questionId))
+                {
+                    errors.Add(new(Join(sectionPath, "questionIds"), $"This questionnaire has no question '{questionId}'."));
+                }
+                else if (!seen.Add(questionId))
+                {
+                    errors.Add(new(Join(sectionPath, "questionIds"), $"Question '{questionId}' is in two sections."));
+                }
+                else
+                {
+                    placed.Add(questionId);
+                }
+            }
+        }
+
+        if (known.Except(seen, StringComparer.Ordinal).Any())
+        {
+            errors.Add(new(sectionsPath, "Every question belongs to a section. Put each question in one."));
+        }
+        else if (!placed.SequenceEqual(questions.Where(q => q is not null).Select(q => q.Id), StringComparer.Ordinal))
+        {
+            errors.Add(new(sectionsPath, "The sections list the questions in a different order from the questionnaire."));
         }
     }
 
@@ -874,6 +945,11 @@ public static partial class DefinitionValidator
         {
             // Its link is made for one questionnaire request, which only a SendQuestionnaire action creates.
             errors.Add(new(Join(path, "emailTemplate"), "The follow-up questions email is sent only by a SendQuestionnaire action, with its link."));
+        }
+        else if (action.EmailTemplate == EmailTemplateIds.TalentPoolInvitation)
+        {
+            // Its links are for one candidate and one job, which only a person's Invite to apply chooses.
+            errors.Add(new(Join(path, "emailTemplate"), "The invitation to apply is sent only from the talent pool, by a person."));
         }
         else if (action.Type == ActionType.Reject && action.EmailTemplate is not null && action.EmailTemplate != EmailTemplateIds.ApplicationRejected)
         {

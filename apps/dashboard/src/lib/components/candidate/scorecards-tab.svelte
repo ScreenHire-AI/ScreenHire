@@ -1,5 +1,6 @@
 <script lang="ts">
   import ClipboardCheckIcon from '@lucide/svelte/icons/clipboard-check';
+  import SendIcon from '@lucide/svelte/icons/send';
   import type { ScorecardEntry, TeamMember } from '@screenhire/api-client';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
@@ -8,8 +9,8 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { describeError } from '#lib/query.js';
 
-  // The scorecards reviewers submitted, with Fill scorecard while a reached stage with a scorecard is left to score
-  // (design system section 11). A reviewer with their own scorecard to give reads only theirs until they give it: the
+  // The scorecards reviewers submitted, with Fill in (any scorecard: a reached stage's own or one from the library) and
+  // Ask for one, which gives a teammate a task done when they submit it (design system section 11). A reviewer with their own scorecard to give reads only theirs until they give it: the
   // API leaves the others out, so they cannot anchor the review (ADR-0013), and the panel says so.
   let {
     scorecards,
@@ -21,6 +22,7 @@
     announcement,
     withheld = false,
     onfill,
+    onask,
   }: {
     /** Undefined while they load. */
     scorecards: readonly ScorecardEntry[] | undefined;
@@ -32,15 +34,20 @@
     announcement: string;
     /** The reader has a review to give: the others' scorecards show once they submit theirs. */
     withheld?: boolean;
-    /** Opens the scorecard sheet; only for a role that changes hiring data, while a stage is left to score. */
+    /** Opens the scorecard sheet; only for a role that fills in scorecards. */
     onfill?: () => void;
+    /** Opens the sheet that asks a teammate for one; only for a role that creates tasks. */
+    onask?: () => void;
   } = $props();
 </script>
 
 <Panel title="Scorecards">
   {#snippet actions()}
     {#if onfill}
-      <Button variant="outline" onclick={onfill}><ClipboardCheckIcon aria-hidden="true" />Fill scorecard</Button>
+      <Button variant="outline" onclick={onfill}><ClipboardCheckIcon aria-hidden="true" />Fill in</Button>
+    {/if}
+    {#if onask}
+      <Button variant="outline" onclick={onask}><SendIcon aria-hidden="true" />Ask for one</Button>
     {/if}
   {/snippet}
   <div class="flex flex-col gap-3">

@@ -91,6 +91,8 @@ public sealed record AiAssistanceAssessmentView(
 /// level's reasons. <c>contextOnly</c>: shown for context and never a reason on its own (a VPN, a failed bot challenge).
 /// <c>source</c> and <c>sourceVersion</c>: the analyzer that observed it. <c>informational</c>: shown and never counted.
 /// <c>llm</c>: for a signal a language model helped derive, the prompt version and the models that answered.
+/// <c>explained</c>: a reviewer marked this reason explained, and nobody undid it. It decides nothing: the level and
+/// everything that reads it stay as assessed.
 /// </remarks>
 public sealed record IntegritySignalView(
     Guid Id,
@@ -109,13 +111,22 @@ public sealed record IntegritySignalView(
     int SourceVersion,
     DateTimeOffset ObservedAt,
     bool Informational,
-    LlmProvenance? Llm);
+    LlmProvenance? Llm,
+    IntegrityReasonExplanation? Explained);
+
+/// <summary>A reviewer marked one reason explained. <c>actorName</c> is the reviewer's display name, when they have one.</summary>
+public sealed record IntegrityReasonExplanation(
+    Guid ActionId, ExplainReason Reason, string? Note, Guid ActorUserId, string? ActorName, DateTimeOffset ExplainedAt);
 
 /// <summary>A reviewer set an assessment aside. <c>actorName</c> is the reviewer's display name, when they have one.</summary>
 public sealed record IntegrityDismissal(Guid ActionId, DismissReason Reason, string? Note, Guid ActorUserId, string? ActorName, DateTimeOffset DismissedAt);
 
 /// <summary>One entry of the integrity audit log, oldest first.</summary>
-/// <remarks><c>assessmentKind</c> and <c>assessmentId</c> are null for a note on the application's integrity as a whole.</remarks>
+/// <remarks>
+/// <c>assessmentKind</c> and <c>assessmentId</c> are null for a note on the application's integrity as a whole.
+/// <c>signalId</c> and <c>signalTitle</c> name the reason an explanation or its undo is about; <c>explainReason</c> is why
+/// it was explained.
+/// </remarks>
 public sealed record IntegrityReviewEntry(
     Guid Id,
     IntegrityReviewActionType Type,
@@ -125,7 +136,10 @@ public sealed record IntegrityReviewEntry(
     string? Note,
     Guid ActorUserId,
     string? ActorName,
-    DateTimeOffset OccurredAt);
+    DateTimeOffset OccurredAt,
+    Guid? SignalId,
+    string? SignalTitle,
+    ExplainReason? ExplainReason);
 
 /// <summary>Whether an action is offered, and why not when it is not.</summary>
 public sealed record IntegrityActionAvailability(bool Available, string? Reason);
@@ -145,6 +159,9 @@ public sealed record IntegritySummary(
 /// <summary>Sets an assessment aside. A reason is required; <c>Other</c> also needs a note.</summary>
 public sealed record DismissIntegrityAssessmentRequest(DismissReason Reason, string? Note = null);
 
+/// <summary>Marks one reason explained. A reason is required; <c>Other</c> also needs a note.</summary>
+public sealed record ExplainIntegrityReasonRequest(ExplainReason Reason, string? Note = null);
+
 /// <summary>Adds a note to the integrity audit log, about one assessment (<c>assessmentId</c>) or the application as a whole.</summary>
 public sealed record AddIntegrityNoteRequest(string Note, Guid? AssessmentId = null);
 
@@ -155,6 +172,16 @@ internal sealed class DismissIntegrityAssessmentRequestValidator : AbstractValid
         RuleFor(r => r.Reason).IsInEnum();
         RuleFor(r => r.Note).MaximumLength(IntegrityReviewAction.MaxNoteLength);
         RuleFor(r => r.Note).NotEmpty().WithMessage("Say why you are dismissing it.").When(r => r.Reason == DismissReason.Other);
+    }
+}
+
+internal sealed class ExplainIntegrityReasonRequestValidator : AbstractValidator<ExplainIntegrityReasonRequest>
+{
+    public ExplainIntegrityReasonRequestValidator()
+    {
+        RuleFor(r => r.Reason).IsInEnum();
+        RuleFor(r => r.Note).MaximumLength(IntegrityReviewAction.MaxNoteLength);
+        RuleFor(r => r.Note).NotEmpty().WithMessage("Say why it is explained.").When(r => r.Reason == ExplainReason.Other);
     }
 }
 

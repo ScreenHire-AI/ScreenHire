@@ -1,6 +1,7 @@
 using FluentValidation;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Infrastructure.Content;
 using ScreenHire.Infrastructure.Persistence.History;
 
 namespace ScreenHire.Api.Contracts;
@@ -34,11 +35,11 @@ public sealed record PublicJob(
     string Url);
 
 /// <summary>
-/// The public careers listing for one organization. <c>url</c> is the board's careers page; <c>branding</c> is null when it
-/// has no brand colour.
+/// The public careers listing for one organization. <c>url</c> is the board's careers page; <c>branding</c> is its
+/// branding, each part null for ScreenHire's.
 /// </summary>
 public sealed record PublicJobBoard(
-    string OrganizationName, string OrganizationSlug, IReadOnlyList<PublicJob> Jobs, string Url, PublicBranding? Branding = null);
+    string OrganizationName, string OrganizationSlug, IReadOnlyList<PublicJob> Jobs, string Url, PublicBranding Branding);
 
 /// <summary>A job as shown in the recruiter dashboard's list.</summary>
 /// <remarks><c>templateUpdateAvailable</c>: the job's source template has a newer published version than the job copied.</remarks>
@@ -95,7 +96,9 @@ public sealed record JobTemplateSource(
 /// <summary>
 /// A new job. With <c>templateVersionId</c> (a published version of an own or system template), the job copies that
 /// version's workflow, and every field left out here takes the template's posting default. Without a slug, one is made
-/// from the title.
+/// from the title. The description is rich text as HTML, kept to the dashboard editor's elements (p, br, strong, em, h2,
+/// h3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text
+/// works too: a blank line starts a paragraph and lines starting with "- " make a list.
 /// </summary>
 public sealed record CreateJobRequest(
     string Title,
@@ -110,7 +113,10 @@ public sealed record CreateJobRequest(
     SalaryRequest? Salary = null,
     DateTimeOffset? ValidThrough = null);
 
-/// <summary>Replaces a job's posting content. A published job keeps its slug; a closed job cannot change.</summary>
+/// <summary>
+/// Replaces a job's posting content. A published job keeps its slug; a closed job cannot change. The description is rich
+/// text, as on <see cref="CreateJobRequest"/>.
+/// </summary>
 public sealed record UpdateJobRequest(
     string Title,
     EmploymentType EmploymentType,
@@ -184,7 +190,7 @@ internal static class JobMappings
     public static JobSummary ToSummary(this Job job, ChangeStamp? lastChange, int? latestTemplateVersion = null) =>
         new(job.Id, job.Title, job.Slug, job.LocationLabel(), job.WorkplaceType, job.Status, job.CreatedAt, job.PublishedAt,
             job.EmploymentType, job.Department, latestTemplateVersion > job.SourceTemplateVersion,
-            LastUpdate.From(lastChange, job.UpdatedAt ?? job.CreatedAt));
+            LastUpdate.From(lastChange, job.CreatedAt, job.UpdatedAt));
 
     /// <param name="job">The job.</param>
     /// <param name="latestSnapshot">The newest <c>JobVersion</c>'s content, or null if it was never published.</param>
@@ -199,7 +205,7 @@ internal static class JobMappings
             job.Locations, job.ApplicantLocationRequirements, job.LocationLabel(), job.Salary, job.ValidThrough,
             job.Workflow, job.WorkflowVersion, job.ToTemplateSource(templateName, latestTemplateVersion), job.PublishedVersion,
             job.Status == JobStatus.Open && latestSnapshot != job.Snapshot(),
-            job.CreatedAt, job.UpdatedAt, job.PublishedAt, job.ClosedAt, postings, LastUpdate.From(lastChange, job.UpdatedAt ?? job.CreatedAt));
+            job.CreatedAt, job.UpdatedAt, job.PublishedAt, job.ClosedAt, postings, LastUpdate.From(lastChange, job.CreatedAt, job.UpdatedAt));
 
     private static JobTemplateSource? ToTemplateSource(this Job job, string? templateName, int? latestTemplateVersion) =>
         job is { SourceTemplateId: { } templateId, SourceTemplateVersionId: { } versionId, SourceTemplateVersion: { } version }
@@ -267,7 +273,7 @@ internal sealed class JobPublishValidator : AbstractValidator<JobSnapshot>
 {
     public JobPublishValidator()
     {
-        RuleFor(j => j.Description).NotEmpty().WithMessage("Add a description before publishing.");
+        RuleFor(j => j.Description).Must(description => !RichText.IsBlank(description)).WithMessage("Add a description before publishing.");
         RuleFor(j => j.Locations).NotEmpty().When(j => j.WorkplaceType != WorkplaceType.Remote)
             .WithMessage("An on-site or hybrid job needs a location before publishing.");
         RuleFor(j => j.ApplicantLocationRequirements).NotEmpty().When(j => j.WorkplaceType == WorkplaceType.Remote)

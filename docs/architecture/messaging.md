@@ -204,7 +204,10 @@ nothing.
 - **Recurring:** `opts.Schedules.ScheduleRecurring<T>("cron")` in `ScheduleRecurringMessages`, worker only. Times are
   UTC. The example is `ReportOpenJobs` every five minutes, which replaced the scaffold's heartbeat loop. The integrity
   engine's retention sweep, `PurgeExpiredIntegrityData`, runs daily and fans out one tenant message per organization;
-  `PurgeExpiredWebhookDeliveries` does the same for webhook delivery logs.
+  `PurgeExpiredWebhookDeliveries` does the same for webhook delivery logs, `PurgeExpiredApplicationDrafts` for answers
+  saved to finish later ([apply-flow.md](apply-flow.md) §7), `PurgeExpiredSlackMessages` for the records that Slack
+  messages went ([slack.md](slack.md)), and `ExpireTalentPool` for the people whose
+  permission for future roles ran out ([talent pool](talent-pool.md)).
   A schedule faster than every five seconds is refused.
 - **Job distribution** ([job-distribution.md](job-distribution.md) §5) uses both. A push board's answer schedules
   `ReconcileJobPosting` for the time the board gave, as a cascading message (`OutgoingMessages.Schedule`). Two

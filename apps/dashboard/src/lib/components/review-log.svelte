@@ -1,6 +1,8 @@
 <script lang="ts">
   import CircleSlashIcon from '@lucide/svelte/icons/circle-slash';
   import ClipboardPenIcon from '@lucide/svelte/icons/clipboard-pen';
+  import MessageSquareCheckIcon from '@lucide/svelte/icons/message-square-check';
+  import Undo2Icon from '@lucide/svelte/icons/undo-2';
   import type { IntegrityReviewEntry } from '@screenhire/api-client';
   import { createGetApplicationIntegrity } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
@@ -10,11 +12,12 @@
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
-  import { dismissReasonLabels, refetchAfterReview, reviewerName } from '#lib/integrity.js';
+  import { dismissReasonLabels, explainReasonLabels, refetchAfterReview, reviewerName } from '#lib/integrity.js';
+  import { can } from '#lib/permissions.js';
   import { describeError } from '#lib/query.js';
 
-  // The people's side of an application's integrity: every dismissal and note, newest first, with who and when. It
-  // reads the integrity panel's query, so the two share one request and update together.
+  // The people's side of an application's integrity: every dismissal, explained reason, undo and note, newest first,
+  // with who and when. It reads the integrity panel's query, so the two share one request and update together.
   let { applicationId }: { applicationId: string } = $props();
 
   const queryClient = useQueryClient();
@@ -31,14 +34,24 @@
 
   function describeEntry(entry: IntegrityReviewEntry): string {
     const about = entry.assessmentKind === 'Authenticity' ? 'authenticity' : entry.assessmentKind === 'AiAssistance' ? 'AI assistance' : null;
+    const reason = entry.signalTitle ?? 'a reason';
     if (entry.type === 'Dismissed') return `Dismissed ${about ?? 'an assessment'}: ${entry.dismissReason ? dismissReasonLabels[entry.dismissReason] : 'no reason'}`;
+    if (entry.type === 'ReasonExplained') return `Explained ${reason}: ${entry.explainReason ? explainReasonLabels[entry.explainReason] : 'no reason'}`;
+    if (entry.type === 'ExplanationUndone') return `Undid the explanation of ${reason}`;
     return about ? `Note on ${about}` : 'Note';
   }
+
+  const icons: Record<IntegrityReviewEntry['type'], typeof ClipboardPenIcon> = {
+    Dismissed: CircleSlashIcon,
+    NoteAdded: ClipboardPenIcon,
+    ReasonExplained: MessageSquareCheckIcon,
+    ExplanationUndone: Undo2Icon,
+  };
 
   const items = $derived<Activity[]>(
     (entries ?? []).toReversed().map((entry) => ({
       id: entry.id,
-      icon: entry.type === 'Dismissed' ? CircleSlashIcon : ClipboardPenIcon,
+      icon: icons[entry.type],
       event: describeEntry(entry),
       actor: `by ${reviewerName(entry.actorUserId, entry.actorName, page.data.user?.id)}`,
       note: entry.note ?? undefined,
@@ -49,7 +62,7 @@
 
 <Panel title="Review log" count={entries?.length}>
   {#snippet actions()}
-    {#if entries}<Button variant="outline" onclick={() => (noteOpen = true)}><ClipboardPenIcon aria-hidden="true" />Add review note</Button>{/if}
+    {#if entries && can(page.data.user, 'ReviewIntegrity')}<Button variant="outline" onclick={() => (noteOpen = true)}><ClipboardPenIcon aria-hidden="true" />Add review note</Button>{/if}
   {/snippet}
   <div class="flex flex-col gap-3">
     {#if integrity.isError && !entries}

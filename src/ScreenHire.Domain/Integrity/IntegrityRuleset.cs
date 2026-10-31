@@ -130,7 +130,7 @@ public static class IntegrityRuleset
             [.. Ordered(signals).Select(s => s.Id)],
             [.. counted.Select(s => s.Id)],
             rules,
-            Summaries.Summary(kind, step, signals, counted, aiContext),
+            Summaries.Summary(kind, step, signals, counted),
             Summaries.NextStep(kind, step, aiContext),
             aiContext,
             Fingerprint(kind, ofKind, inputs));
@@ -172,13 +172,12 @@ public static class IntegrityRuleset
     }
 
     // Plain-language text for each outcome. Candidate- and recruiter-facing voice: docs/design/design-system.md. The
-    // summary is one line with the count and the kinds of check; the reasons list below it names each one.
+    // summary is one line with the count and the kinds of check; the reasons list below it names each one. It leaves out
+    // the job's AI policy, which the panel shows as a pill beside the level (design system W7).
     private static class Summaries
     {
-        public static string Summary(
-            IntegrityAssessmentKind kind, int step, List<IntegritySignal> shown, List<IntegritySignal> counted, AiPolicyContext? context)
-        {
-            var text = step > 0
+        public static string Summary(IntegrityAssessmentKind kind, int step, List<IntegritySignal> shown, List<IntegritySignal> counted) =>
+            step > 0
                 ? $"{Observations(counted.Count)} from {Categories(counted)} checks back each other up."
                 : shown.Count == 0
                     ? kind == IntegrityAssessmentKind.Authenticity
@@ -187,8 +186,6 @@ public static class IntegrityRuleset
                     : shown.All(s => s.ContextOnly)
                             ? $"Shown for context only: {Observations(shown.Count).ToLowerInvariant()}, never a reason on {(shown.Count == 1 ? "its" : "their")} own."
                             : $"{Observations(shown.Count)} from {Categories(shown)} checks, with nothing from a second, independent kind of check to back {(shown.Count == 1 ? "it" : "them")} up. Shown for context only.";
-            return context is { } policy ? $"{text} {PolicySentence(policy)}" : text;
-        }
 
         public static string NextStep(IntegrityAssessmentKind kind, int step, AiPolicyContext? context)
         {
@@ -210,15 +207,6 @@ public static class IntegrityRuleset
                 _ => "Read the evidence before deciding whether it matters for this role. This job does not allow AI help, and indicators are not proof.",
             };
         }
-
-        // The job's policy only. The candidate's declaration is shown beside the panel, in the application's own
-        // Declarations (design system section 16), and is never set against the evidence.
-        private static string PolicySentence(AiPolicyContext context) => context switch
-        {
-            AiPolicyContext.AllowedByPolicy => "This job allows AI help.",
-            AiPolicyContext.Disclosed or AiPolicyContext.NotDisclosed => "This job allows AI help when disclosed.",
-            _ => "This job does not allow AI help.",
-        };
 
         private static string Observations(int count) =>
             count == 1 ? "One observation" : $"{count.ToString(CultureInfo.InvariantCulture)} observations";

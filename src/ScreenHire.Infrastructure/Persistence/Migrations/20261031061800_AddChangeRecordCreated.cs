@@ -5,25 +5,25 @@
 namespace ScreenHire.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class AddMemberNotificationSettings : Migration
+    public partial class AddChangeRecordCreated : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "notifications",
-                table: "organization_members",
-                type: "jsonb",
+            migrationBuilder.AddColumn<bool>(
+                name: "created",
+                table: "change_records",
+                type: "boolean",
                 nullable: false,
-                defaultValueSql: "'{\"toasts\":true,\"closeToasts\":true,\"off\":[]}'::jsonb");
+                defaultValue: false);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "notifications",
-                table: "organization_members");
+                name: "created",
+                table: "change_records");
         }
     }
 }

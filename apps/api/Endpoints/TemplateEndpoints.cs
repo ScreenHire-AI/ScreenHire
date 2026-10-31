@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Content;
+using ScreenHire.Infrastructure.Content;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Templates;

@@ -1,9 +1,10 @@
 ---
-// The apply flow (docs/architecture/apply-flow.md): details, questions, review. Every step is a native form posted to
-// the `apply` action, which re-renders this page with the next step, so the whole flow works with JavaScript off. The
-// only island is the file upload, which sends files straight to storage when JavaScript runs. Fields are the shared
-// question components (packages/ui), rendered here on the server only. The one other script is the telemetry module
-// (packages/telemetry), which the page starts only when the assistive-technology switch is off.
+// The apply flow (docs/architecture/apply-flow.md): details, a page per section of questions, review. Every step is a
+// native form posted to the `apply` action, which re-renders this page with the next step, so the whole flow works with
+// JavaScript off. The only island is the file upload, which sends files straight to storage when JavaScript runs. Fields
+// are the shared question components (packages/ui), rendered here on the server only. The one other script is the
+// telemetry module (packages/telemetry), which the page starts only when the assistive-technology switch is off. A
+// `?draft=` link fills the form from answers the candidate saved to finish later (§7).
 import { actions } from 'astro:actions';
 import ErrorSummary from '../../../../components/ErrorSummary.astro';
 import JobUnavailable from '../../../../components/JobUnavailable.astro';
@@ -11,7 +12,7 @@ import PrivacyNotice from '../../../../components/PrivacyNotice.astro';
 import QuestionField from '../../../../components/QuestionField.astro';
 import StepIndicator from '../../../../components/StepIndicator.astro';
 import CareersLayout from '../../../../layouts/CareersLayout.astro';
-import { formatSalary, getPublicApplicationForm, getPublicOrganization, label } from '../../../../lib/api';
+import { formatSalary, getPublicApplicationDraft, getPublicApplicationForm, getPublicOrganization, label } from '../../../../lib/api';
 import {
   emptyState,
   fieldId,
@@ -19,13 +20,15 @@ import {
   MAX_EMAIL,
   MAX_NAME,
   MAX_PHONE,
+  pagesFor,
   questionsOn,
-  screeningQuestions,
   stepsFor,
   type ApplyState,
 } from '../../../../lib/apply';
 import { HONEYPOT_FIELD } from '../../../../lib/apply-server';
-import { describeSize, TextField } from '@screenhire/ui/questions';
+import { fromDraft, longDate } from '../../../../lib/drafts';
+import { isToken } from '../../../../lib/questionnaire';
+import { answeredCount, describeSize, TextField } from '@screenhire/ui/questions';
 import { basePath } from '../../../../lib/host';
 
 const { organization, job: jobSlug } = Astro.params;
@@ -35,7 +38,7 @@ if (result?.data?.outcome === 'submitted') {
   return Astro.redirect(`${base}/jobs/${jobSlug}/applied`, 303);
 }
 
-// What the candidate types is theirs alone: never cached, never indexed.
+// What the candidate types is theirs alone: never cached, never indexed, and a draft link is never sent on as a referrer.
 Astro.response.headers.set('Cache-Control', 'no-store');
 
 const response = await getPublicApplicationForm(organization!, jobSlug!);
@@ -51,16 +54,29 @@ if (!form) {
 }
 
 const questions = form?.questions ?? [];
-const steps = stepsFor(questions);
+const shape = { questions, sections: form?.sections, questionsPerPage: form?.questionsPerPage };
+const steps = stepsFor(shape);
+const pages = pagesFor(shape);
 const data = result?.data;
 const step = data && steps.includes(data.step) ? data.step : 'details';
-// A first visit starts the clock the integrity engine's submit-velocity check reads (after the notice, which this page
-// shows), and keeps the telemetry session the API issued with this first form.
+// A first visit keeps the telemetry session the API issued with this first form. A draft link fills the form from what
+// the candidate saved, on the details step, so the notice shows again before anything is collected.
 const telemetrySession = form?.telemetry.sessionToken ?? '';
+const draftToken = !data && form ? Astro.url.searchParams.get('draft') : null;
+const draftResponse = draftToken && isToken(draftToken) ? await getPublicApplicationDraft(organization!, draftToken) : null;
+const draft = draftResponse?.status === 200 && draftResponse.data.jobSlug === jobSlug ? draftResponse.data : null;
+const draftProblem = draftToken && !draft ? (draftResponse?.status === 410 ? 'expired' : 'not-found') : null;
 const posted = data?.state;
-const state: ApplyState = posted
+const started: ApplyState = posted
   ? { ...posted, telemetrySession: posted.telemetrySession || telemetrySession }
-  : emptyState(new Date().toISOString(), telemetrySession);
+  : draft
+    ? fromDraft(draft, draftToken!, telemetrySession)
+    : emptyState(telemetrySession);
+// The time on this step starts now: its next post adds it up (submit velocity measures active time per page).
+const state: ApplyState = { ...started, pageShownAt: new Date().toISOString() };
+const page = pages.find((p) => p.step === step);
+const shownQuestions = questionsOn(step, shape);
+const answered = answeredCount(questions, state.answers, state.files);
 const errors = data?.errors ?? {};
 const formError =
   data?.formError ??
@@ -93,8 +109,18 @@ const aiIntro = {
 const telemetry = form && !state.accommodationRequested && state.telemetrySession ? form.telemetry : null;
 const deviceCheck = form?.telemetry.deviceCheck ?? 'Off';
 const deviceCheckAllowed = deviceCheck === 'Notice' || (deviceCheck === 'Consent' && state.deviceCheckConsent);
-const nextLabel = step === 'details' ? (steps.includes('questions') ? 'Continue to questions' : 'Continue to review') : 'Continue to review';
+const nextStep = steps[steps.indexOf(step) + 1];
+const nextLabel =
+  step === 'review'
+    ? 'Send application'
+    : state.returnTo === 'review'
+      ? 'Back to review'
+      : step === 'details'
+        ? nextStep === 'review' ? 'Continue to review' : 'Continue to questions'
+        : nextStep === 'review' ? 'Continue to review' : 'Continue';
 const previous = steps[steps.indexOf(step) - 1];
+const canSave = form?.saveDraftEnabled === true && step !== 'details';
+const saved = data?.saved;
 
 const optionLabel = (questionId: string, value: string) =>
   value === 'yes' || value === 'no'
@@ -134,8 +160,10 @@ const answerText = (questionId: string): string => {
           <span>{label(job.employmentType).toUpperCase()}</span>
           {salary && <span>{salary}</span>}
         </p>
-        <StepIndicator steps={steps} current={step} />
+        <StepIndicator step={steps.indexOf(step) + 1} steps={steps.length} answered={answered} total={questions.length} />
       </div>
+
+      <meta slot="head" name="referrer" content="no-referrer" />
 
       <form
         method="POST"
@@ -153,10 +181,40 @@ const answerText = (questionId: string): string => {
         <input type="hidden" name="job" value={job.slug} />
         <input type="hidden" name="step" value={step} />
         <input type="hidden" name="state" value={JSON.stringify(state)} />
+        <input type="hidden" name="pageQuestions" value={shownQuestions.map((q) => q.id).join(',')} />
 
-        <h2 id="step-heading" class="sr-only">
-          {step === 'details' ? 'Your details' : step === 'questions' ? 'Questions' : 'Review and send'}
-        </h2>
+        {page ? (
+          <h2 id="step-heading" class="font-display text-xl leading-tight font-bold">{page.name ?? 'Questions'}</h2>
+        ) : (
+          <h2 id="step-heading" class="sr-only">{step === 'details' ? 'Your details' : 'Review and send'}</h2>
+        )}
+
+        {saved && (
+          <div role="status" class="rounded-2xl border border-candidate-border bg-candidate-surface px-4 py-3.5 text-sm">
+            <p class="font-bold">
+              {saved.emailed
+                ? `Saved. We emailed a link to ${saved.email} to finish by ${longDate(saved.expiresAt)}.`
+                : `Saved. The link we emailed to ${saved.email} opens these answers until ${longDate(saved.expiresAt)}.`}
+            </p>
+            <p class="mt-1 text-candidate-muted-foreground">Files are not kept, so attach them again when you come back. You can also carry on now.</p>
+          </div>
+        )}
+        {draft && step === 'details' && (
+          <div role="status" class="rounded-2xl border border-candidate-border bg-candidate-surface px-4 py-3.5 text-sm">
+            <p class="font-bold">Welcome back. Your saved answers are filled in.</p>
+            <p class="mt-1 text-candidate-muted-foreground">Attach your files again. We keep your answers until {longDate(draft.expiresAt)}.</p>
+          </div>
+        )}
+        {draftProblem && (
+          <div role="status" class="rounded-2xl border border-candidate-border bg-candidate-surface px-4 py-3.5 text-sm">
+            <p class="font-bold">{draftProblem === 'expired' ? 'This link has expired' : 'We could not find your saved answers'}</p>
+            <p class="mt-1 text-candidate-muted-foreground">
+              {draftProblem === 'expired'
+                ? 'Saved answers are kept for 30 days. You can start a new application below.'
+                : 'The link may be incomplete, or the answers were sent or deleted. You can start a new application below.'}
+            </p>
+          </div>
+        )}
 
         <ErrorSummary errors={errors} formError={formError} />
 
@@ -179,14 +237,14 @@ const answerText = (questionId: string): string => {
             <TextField name="lastName" label="Last name" value={state.lastName} error={errors.lastName} autocomplete="family-name" maxlength={MAX_NAME} />
             <TextField name="email" label="Email" type="email" inputmode="email" value={state.email} error={errors.email} required autocomplete="email" maxlength={MAX_EMAIL} />
             <TextField name="phone" label="Phone" type="tel" inputmode="tel" value={state.phone} error={errors.phone} autocomplete="tel" maxlength={MAX_PHONE} />
-            {questionsOn('details', questions).map((question) => (
+            {shownQuestions.map((question) => (
               <QuestionField question={question} state={state} errors={errors} organization={employer.slug} jobId={job.id} maxBytes={form.uploads.maxBytes} />
             ))}
           </>
         )}
 
-        {step === 'questions' &&
-          screeningQuestions(questions).map((question) => (
+        {page &&
+          shownQuestions.map((question) => (
             <QuestionField question={question} state={state} errors={errors} organization={employer.slug} jobId={job.id} maxBytes={form.uploads.maxBytes} />
           ))}
 
@@ -195,7 +253,7 @@ const answerText = (questionId: string): string => {
             <section aria-labelledby="review-details" class="rounded-2xl border border-candidate-border bg-candidate-surface px-4 py-3.5">
               <div class="flex items-baseline justify-between gap-3">
                 <h3 id="review-details" class="text-base font-bold">Your details</h3>
-                <button type="submit" name="intent" value="go:details" class="button-secondary min-h-11 shrink-0 px-4 text-sm">
+                <button type="submit" name="intent" value="change:details" class="button-secondary min-h-11 shrink-0 px-4 text-sm">
                   Change<span class="sr-only"> your details</span>
                 </button>
               </div>
@@ -208,7 +266,7 @@ const answerText = (questionId: string): string => {
                 <dd>{state.phone || 'Not given'}</dd>
                 <dt class="text-candidate-muted-foreground">Assistive technology</dt>
                 <dd>{state.accommodationRequested ? 'Yes: typing and timing checks are off' : 'No'}</dd>
-                {questionsOn('details', questions).map((question) => (
+                {questionsOn('details', shape).map((question) => (
                   <>
                     <dt class="text-candidate-muted-foreground">{question.label}</dt>
                     <dd class="break-all">{answerText(question.id)}</dd>
@@ -217,16 +275,16 @@ const answerText = (questionId: string): string => {
               </dl>
             </section>
 
-            {steps.includes('questions') && (
-              <section aria-labelledby="review-answers" class="rounded-2xl border border-candidate-border bg-candidate-surface px-4 py-3.5">
+            {pages.map((each, i) => (
+              <section aria-labelledby={`review-${each.step}`} class="rounded-2xl border border-candidate-border bg-candidate-surface px-4 py-3.5">
                 <div class="flex items-baseline justify-between gap-3">
-                  <h3 id="review-answers" class="text-base font-bold">Your answers</h3>
-                  <button type="submit" name="intent" value="go:questions" class="button-secondary min-h-11 shrink-0 px-4 text-sm">
-                    Change<span class="sr-only"> your answers</span>
+                  <h3 id={`review-${each.step}`} class="text-base font-bold">{each.name ?? (pages.length > 1 ? `Questions, page ${i + 1}` : 'Your answers')}</h3>
+                  <button type="submit" name="intent" value={`change:${each.step}`} class="button-secondary min-h-11 shrink-0 px-4 text-sm">
+                    Change<span class="sr-only"> {each.name ?? (pages.length > 1 ? `questions, page ${i + 1}` : 'your answers')}</span>
                   </button>
                 </div>
                 <dl class="mt-1 flex flex-col gap-2 text-sm">
-                  {screeningQuestions(questions).map((question) => (
+                  {each.questions.map((question) => (
                     <div>
                       <dt class="text-candidate-muted-foreground">{question.label}</dt>
                       <dd class="break-words">{answerText(question.id)}</dd>
@@ -234,7 +292,7 @@ const answerText = (questionId: string): string => {
                   ))}
                 </dl>
               </section>
-            )}
+            ))}
 
             <fieldset id={fieldId('aiUseDeclaration')} tabindex="-1" aria-describedby="ai-hint" class="flex flex-col gap-2">
               <legend class="mb-1.5 text-sm font-bold">
@@ -268,6 +326,18 @@ const answerText = (questionId: string): string => {
               multiline
             />
 
+            {/* The candidate's own choice, unticked unless they tick it (docs/architecture/talent-pool.md). */}
+            <label class="choice">
+              <input type="checkbox" name="keepForFutureRoles" checked={state.keepForFutureRoles} aria-describedby="future-roles-hint" />
+              <span class="flex flex-col">
+                <span class="text-sm font-semibold">Keep my details for future roles (optional)</span>
+                <span id="future-roles-hint" class="text-candidate-hint text-candidate-muted-foreground">
+                  {employer.name} keeps this application for {form!.talentPoolMonths} months and may invite you to apply for other
+                  roles. Every invitation has a link to stop, and you can ask {employer.name} at any time.
+                </span>
+              </span>
+            </label>
+
             {/* Filled by the telemetry module on submit: its last snapshot, the device check and automation markers. */}
             {telemetry && (
               <>
@@ -299,11 +369,16 @@ const answerText = (questionId: string): string => {
         <div class="mt-2 flex flex-col gap-3 sm:flex-row-reverse sm:justify-end">
           {/* First in the document, so pressing Enter in a field moves forward rather than back. */}
           <button type="submit" name="intent" value="next" class="button-primary">
-            {step === 'review' ? 'Send application' : nextLabel}
+            {nextLabel}
           </button>
           {previous && (
             <button type="submit" name="intent" value={`go:${previous}`} class="button-secondary">
               Back
+            </button>
+          )}
+          {canSave && (
+            <button type="submit" name="intent" value="save" class="button-secondary sm:mr-auto">
+              Save and finish later
             </button>
           )}
         </div>

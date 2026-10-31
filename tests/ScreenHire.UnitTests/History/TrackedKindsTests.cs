@@ -5,6 +5,7 @@ using ScreenHire.Domain.History;
 using ScreenHire.Domain.Integrity;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.TalentPool;
 using ScreenHire.Domain.Webhooks;
 using ScreenHire.Infrastructure.Persistence.History;
 
@@ -13,26 +14,50 @@ namespace ScreenHire.UnitTests.History;
 public sealed partial class TrackedKindsTests
 {
     [Fact]
-    public void Templates_jobs_roles_and_settings_are_tracked_and_nothing_that_holds_a_secret_is()
+    public void Templates_jobs_roles_settings_the_team_and_api_keys_are_tracked_and_webhook_endpoints_are_not()
     {
         TrackedKinds.All.Select(k => k.EntityType).Should().BeEquivalentTo(
         [
             typeof(HiringTemplate), typeof(HiringTemplateVersion), typeof(EmailTemplate), typeof(Job), typeof(ScorecardTemplate), typeof(CustomRole),
-            typeof(Organization), typeof(Organization), typeof(IntegritySettings),
+            typeof(Organization), typeof(Organization), typeof(IntegritySettings), typeof(TalentPoolSettings),
+            typeof(OrganizationMember), typeof(OrganizationInvitation), typeof(ApiKey),
         ]);
-        TrackedKinds.All.Select(k => k.EntityType).Should().NotContain([typeof(ApiKey), typeof(WebhookEndpoint), typeof(OrganizationInvitation)]);
-        TrackedKinds.FindAll(typeof(ApiKey)).Should().BeEmpty();
+        TrackedKinds.FindAll(typeof(WebhookEndpoint)).Should().BeEmpty("its row holds the signing secret (ADR-0016)");
     }
 
     [Fact]
-    public void No_tracked_entity_has_a_secret_like_property()
+    public void No_describer_sees_a_secret_like_property()
     {
         var secretLike = TrackedKinds.All
-            .SelectMany(k => k.EntityType.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+            .SelectMany(k => k.ViewType.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
             .Where(p => SecretLike().IsMatch(p.Name))
             .Select(p => $"{p.DeclaringType!.Name}.{p.Name}");
 
-        secretLike.Should().BeEmpty("change history copies tracked values into its lines, and a secret must never be among them");
+        secretLike.Should().BeEmpty("change history copies what a describer sees into its lines, and a secret must never be among them");
+    }
+
+    [Fact]
+    public void A_row_that_holds_a_secret_is_seen_only_through_a_view_without_it()
+    {
+        TrackedKinds.FindAll(typeof(ApiKey)).Single().ViewType.Should().Be<ApiKeyFacts>();
+        TrackedKinds.FindAll(typeof(OrganizationInvitation)).Single().ViewType.Should().Be<InvitationFacts>();
+        typeof(ApiKeyFacts).GetProperties().Select(p => p.Name).Should().NotContain([nameof(ApiKey.SecretHash), nameof(ApiKey.Prefix)]);
+        typeof(InvitationFacts).GetProperties().Select(p => p.Name).Should().NotContain(nameof(OrganizationInvitation.TokenHash));
+    }
+
+    [Fact]
+    public void Adding_a_template_job_or_role_creates_it_and_a_built_in_emails_first_edit_does_not()
+    {
+        var context = new ChangeContext(null!, null!);
+        var custom = EmailTemplate.CreateCustom(Guid.CreateVersion7(), "Offer", "Subject", "Body", DateTimeOffset.UnixEpoch);
+        var reworded = EmailTemplate.Reword(Guid.CreateVersion7(), EmailTemplateIds.StageChange, "Subject", "Body", DateTimeOffset.UnixEpoch);
+        var email = TrackedKinds.FindAll(typeof(EmailTemplate)).Single();
+
+        email.Creates(custom, context).Should().BeTrue();
+        email.Creates(reworded, context).Should().BeFalse("it is an edit of ScreenHire's wording");
+        TrackedKinds.FindAll(typeof(HiringTemplateVersion)).Single()
+            .Creates(new HiringTemplateVersion { Definition = HiringTemplateDefinition.Default }, context).Should().BeFalse();
+        TrackedKinds.FindAll(typeof(Job)).Single().Creates(new Job { Title = "Data engineer", Slug = "data-engineer" }, context).Should().BeTrue();
     }
 
     [Fact]
@@ -53,8 +78,9 @@ public sealed partial class TrackedKindsTests
         TrackedKinds.FindAll(typeof(EmailTemplate)).Single().SubjectId(reworded).Should().Be(EmailTemplateIds.StageChange);
     }
 
-    // A token budget counts a model's tokens, not a credential, so it is the one "Token" the pattern lets through.
-    [GeneratedRegex("Secret|Hash|Token(?!Budget)|Password", RegexOptions.IgnoreCase)]
+    // A token budget counts a model's tokens, not a credential, so it is the one "Token" the pattern lets through. An API
+    // key's prefix is not secret, yet it is part of the key, so it never enters a change either.
+    [GeneratedRegex("Secret|Hash|Token(?!Budget)|Password|Prefix", RegexOptions.IgnoreCase)]
     private static partial Regex SecretLike();
 
     [Fact]
@@ -63,6 +89,5 @@ public sealed partial class TrackedKindsTests
         var kinds = TrackedKinds.FindAll(typeof(Organization));
 
         kinds.Select(k => k.Subject).Should().Equal(ChangeSubjectKind.Organization, ChangeSubjectKind.Branding);
-        TrackedKinds.FindAll(typeof(ApiKey)).Should().BeEmpty();
     }
 }

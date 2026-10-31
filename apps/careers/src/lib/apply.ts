@@ -1,21 +1,50 @@
 // The apply flow's state, steps and checks (docs/architecture/apply-flow.md). Pure functions over FormData and the API's
 // form definition, so they unit-test without a server. The API checks everything again on submission; these checks
 // give the candidate an answer at the step where they made the mistake.
-import type { AiUsePolicy, ApplicationAnswer, PublicApplicationRequest, PublicQuestion, TelemetrySnapshotInput } from '@screenhire/api-client';
+import type {
+  AiUsePolicy,
+  ApplicationAnswer,
+  PublicApplicationDraftRequest,
+  PublicApplicationRequest,
+  PublicQuestion,
+  QuestionSection,
+  TelemetrySnapshotInput,
+} from '@screenhire/api-client';
 import { parseUploadRef, type UploadRef } from '@screenhire/ui/questions/files';
-import { fieldId, fields, RESUME_QUESTION_ID } from '@screenhire/ui/questions/model';
+import { DEFAULT_QUESTIONS_PER_PAGE, fieldId, fields, questionPages, RESUME_QUESTION_ID } from '@screenhire/ui/questions/model';
 
 /**
  * The version of "What we collect and why" (pages/[organization]/privacy.astro). Every application records the version
  * its candidate was shown before anything was collected. Change it whenever that page's substance changes.
  */
-export const NOTICE_VERSION = '2026-10-23.1';
+export const NOTICE_VERSION = '2026-10-31.1';
 
 // Field names and ids come from the shared question components (packages/ui), which render the question fields; the
 // error summary's links depend on them matching. The form asks for the resume first, on the details step.
 export { fieldId, fields, RESUME_QUESTION_ID };
 
-export type Step = 'details' | 'questions' | 'review';
+/** `details`, then one `page-N` per page of questions (apply-flow.md §7), then `review`. */
+export type Step = 'details' | 'review' | `page-${number}`;
+
+/** One page of questions: its step, its heading (null for an automatic page) and its questions in order. */
+export interface FormPage {
+  step: Step;
+  name: string | null;
+  questions: PublicQuestion[];
+}
+
+/** What paging a form needs from the API's form definition. */
+export interface FormShape {
+  questions: readonly PublicQuestion[];
+  sections?: readonly QuestionSection[] | null;
+  questionsPerPage?: number;
+}
+
+/** A draft the candidate saved: the token in its link and the address it went to. */
+export interface DraftRef {
+  token: string;
+  email: string;
+}
 
 export type AiUseAnswer = 'NotProvided' | 'Used' | 'DidNotUse';
 
@@ -35,10 +64,17 @@ export interface ApplyState {
   aiUseDeclaration: AiUseAnswer;
   aiUseDetails: string;
   /**
-   * When this server first showed the form (ISO 8601), or empty. Set by the server, not the browser, but it round-trips
-   * through the hidden field like everything else, so the integrity engine treats it as a hint (submit velocity).
+   * When this server showed the current step (ISO 8601), or empty. On each post of the step its time goes into
+   * `pageSeconds`. Set by the server, not the browser, but it round-trips through the hidden field like everything else,
+   * so the integrity engine treats the times as a hint (submit velocity measures active time per page).
    */
-  startedAt: string;
+  pageShownAt: string;
+  /** The active seconds on each step so far in this sitting, at most `MAX_PAGE_SECONDS` each. */
+  pageSeconds: Record<string, number>;
+  /** `review` when the candidate opened this step from the review's Change: Continue goes back there. */
+  returnTo: '' | 'review';
+  /** The draft this form was saved as, or resumed from; saving again updates it while the email is the same. */
+  draft: DraftRef | null;
   /**
    * The telemetry session the API issued with the form the first time this server showed it, or empty. The telemetry
    * module sends its snapshots with it, and submission binds them to the application (integrity-engine.md §10.2).
@@ -46,6 +82,11 @@ export interface ApplyState {
   telemetrySession: string;
   /** The candidate ticked the device check, where the job's basis asks for consent. */
   deviceCheckConsent: boolean;
+  /**
+   * The candidate ticked "Keep my details for future roles": the employer may keep this application for the period the
+   * form shows and invite them to apply for other jobs (docs/architecture/talent-pool.md). Unticked unless they tick it.
+   */
+  keepForFutureRoles: boolean;
 }
 
 /** Problems to show, by form field name, worded for the candidate. */
@@ -59,8 +100,10 @@ export const MAX_AI_DETAILS = 2000;
 /** The longest answer and the most choices the API takes (ApplicationForm.LongTextMaxLength, the request validator). */
 export const MAX_ANSWER = 5000;
 export const MAX_CHOICES = 50;
+/** The most one page counts: a page left open longer is not more active (SubmissionObservation.MaxSecondsPerPage). */
+export const MAX_PAGE_SECONDS = 1800;
 
-export const emptyState = (startedAt = '', telemetrySession = ''): ApplyState => ({
+export const emptyState = (telemetrySession = ''): ApplyState => ({
   firstName: '',
   lastName: '',
   email: '',
@@ -70,32 +113,78 @@ export const emptyState = (startedAt = '', telemetrySession = ''): ApplyState =>
   files: {},
   aiUseDeclaration: 'NotProvided',
   aiUseDetails: '',
-  startedAt,
+  pageShownAt: '',
+  pageSeconds: {},
+  returnTo: '',
+  draft: null,
   telemetrySession,
   deviceCheckConsent: false,
+  keepForFutureRoles: false,
 });
 
-/** A start time as the API takes it: an ISO 8601 instant that parses, or empty. */
+/** A time stamp as this server writes it: an ISO 8601 instant that parses, or empty. */
 const parseInstant = (value: unknown): string =>
   typeof value === 'string' && value.length <= 40 && /^\d{4}-\d{2}-\d{2}T/.test(value) && !Number.isNaN(Date.parse(value)) ? value : '';
+
+/** Whether `value` names a step: `details`, `review` or `page-N`. */
+const isStep = (value: unknown): value is Step =>
+  typeof value === 'string' && (value === 'details' || value === 'review' || /^page-[1-9]\d?$/.test(value));
 
 /** The questions on the details step: the resume. */
 export const detailsQuestions = (questions: readonly PublicQuestion[]): PublicQuestion[] =>
   questions.filter((question) => question.id === RESUME_QUESTION_ID);
 
-/** The questions on the questions step: everything but the resume. */
+/** The questions after the details step: everything but the resume. */
 export const screeningQuestions = (questions: readonly PublicQuestion[]): PublicQuestion[] =>
   questions.filter((question) => question.id !== RESUME_QUESTION_ID);
 
-/** The steps for a job: no questions step when the job asks nothing beyond the resume. */
-export const stepsFor = (questions: readonly PublicQuestion[]): Step[] =>
-  screeningQuestions(questions).length > 0 ? ['details', 'questions', 'review'] : ['details', 'review'];
+/** The pages of questions after the details step: the named sections, or pages of the organization's size. */
+export function pagesFor(form: FormShape): FormPage[] {
+  const byId = new Map(form.questions.map((question) => [question.id, question]));
+  return questionPages(form.questions, form.sections, form.questionsPerPage ?? DEFAULT_QUESTIONS_PER_PAGE, [RESUME_QUESTION_ID]).map((page, i) => ({
+    step: `page-${i + 1}` as Step,
+    name: page.name,
+    questions: page.questionIds.map((id) => byId.get(id)!),
+  }));
+}
 
-export const stepLabels: Record<Step, string> = { details: 'Your details', questions: 'Questions', review: 'Review and send' };
+/** The steps for a job: its details, a step per page of questions (none when it asks only for the resume), its review. */
+export const stepsFor = (form: FormShape): Step[] => ['details', ...pagesFor(form).map((page) => page.step), 'review'];
 
 /** The questions shown on a step. */
-export const questionsOn = (step: Step, questions: readonly PublicQuestion[]): PublicQuestion[] =>
-  step === 'details' ? detailsQuestions(questions) : step === 'questions' ? screeningQuestions(questions) : [];
+export const questionsOn = (step: Step, form: FormShape): PublicQuestion[] =>
+  step === 'details'
+    ? detailsQuestions(form.questions)
+    : step === 'review'
+      ? []
+      : (pagesFor(form).find((page) => page.step === step)?.questions ?? []);
+
+/** The step that asks `questionId`. */
+export const stepOf = (questionId: string, form: FormShape): Step =>
+  questionId === RESUME_QUESTION_ID
+    ? 'details'
+    : (pagesFor(form).find((page) => page.questions.some((q) => q.id === questionId))?.step ?? 'review');
+
+/**
+ * The questions a posted step rendered, from its hidden `pageQuestions` field. Reading only these means an answer is
+ * never wiped if the pages changed between showing the step and posting it (a recruiter edited the sections).
+ */
+export function postedQuestions(form: FormData, questions: readonly PublicQuestion[]): PublicQuestion[] {
+  const ids = new Set(text(form, 'pageQuestions').split(',').filter(Boolean));
+  return questions.filter((question) => ids.has(question.id));
+}
+
+/**
+ * Adds the time since the step was shown to its total, at most `MAX_PAGE_SECONDS` a page. A missing stamp adds nothing.
+ * The break between saving a draft and coming back is never inside a step, so it is never counted.
+ */
+export function recordTime(state: ApplyState, step: Step, now: Date): ApplyState {
+  const shown = Date.parse(state.pageShownAt);
+  if (Number.isNaN(shown)) return state;
+  const seconds = Math.max(0, Math.min(MAX_PAGE_SECONDS, Math.round((now.getTime() - shown) / 1000)));
+  const total = Math.min(MAX_PAGE_SECONDS, (state.pageSeconds[step] ?? 0) + seconds);
+  return { ...state, pageSeconds: { ...state.pageSeconds, [step]: total } };
+}
 
 /** The state from the hidden field. Anything malformed falls back to empty: the candidate re-enters it, nothing breaks. */
 export function parseState(raw: FormDataEntryValue | null | undefined): ApplyState {
@@ -118,9 +207,24 @@ export function parseState(raw: FormDataEntryValue | null | undefined): ApplySta
   state.accommodationRequested = input.accommodationRequested === true;
   state.aiUseDeclaration = isAiUseAnswer(input.aiUseDeclaration) ? input.aiUseDeclaration : 'NotProvided';
   state.aiUseDetails = string('aiUseDetails', MAX_AI_DETAILS);
-  state.startedAt = parseInstant(input.startedAt);
+  state.pageShownAt = parseInstant(input.pageShownAt);
+  state.returnTo = input.returnTo === 'review' ? 'review' : '';
   state.telemetrySession = parseToken(input.telemetrySession);
+  if (typeof input.draft === 'object' && input.draft !== null) {
+    const draft = input.draft as Record<string, unknown>;
+    const token = parseToken(draft.token);
+    if (token && typeof draft.email === 'string') state.draft = { token, email: draft.email.slice(0, MAX_EMAIL) };
+  }
+
+  if (typeof input.pageSeconds === 'object' && input.pageSeconds !== null) {
+    for (const [step, seconds] of Object.entries(input.pageSeconds as Record<string, unknown>).slice(0, 60)) {
+      if (isStep(step) && typeof seconds === 'number' && Number.isInteger(seconds) && seconds >= 0 && seconds <= MAX_PAGE_SECONDS) {
+        state.pageSeconds[step] = seconds;
+      }
+    }
+  }
   state.deviceCheckConsent = input.deviceCheckConsent === true;
+  state.keepForFutureRoles = input.keepForFutureRoles === true;
 
   if (typeof input.answers === 'object' && input.answers !== null) {
     for (const [id, answer] of Object.entries(input.answers as Record<string, unknown>)) {
@@ -140,7 +244,7 @@ export function parseState(raw: FormDataEntryValue | null | undefined): ApplySta
 }
 
 /** A Data Protection token as the API issues it (base64url), or empty. */
-const parseToken = (value: unknown): string =>
+export const parseToken = (value: unknown): string =>
   typeof value === 'string' && value.length <= 1024 && /^[A-Za-z0-9_-]+$/.test(value) ? value : '';
 
 const isAiUseAnswer = (value: unknown): value is AiUseAnswer => value === 'NotProvided' || value === 'Used' || value === 'DidNotUse';
@@ -188,11 +292,12 @@ export function readAnswers(form: FormData, questions: readonly PublicQuestion[]
   return { ...state, answers, files };
 }
 
-/** The review step's AI-use answer over `state`. */
+/** The review step's AI-use answer and the "Keep my details for future roles" box over `state`. */
 export function readReview(form: FormData, state: ApplyState): ApplyState {
   const declaration = form.get('aiUseDeclaration');
   return {
     ...state,
+    keepForFutureRoles: form.get('keepForFutureRoles') === 'on',
     aiUseDeclaration: isAiUseAnswer(declaration) ? declaration : 'NotProvided',
     // Details only go with a "yes": a "no" with leftover text from an earlier choice would contradict itself.
     aiUseDetails: declaration === 'Used' ? text(form, 'aiUseDetails') : '',
@@ -300,7 +405,8 @@ export function toRequest(
     automationMarkers?: string[];
   },
 ): PublicApplicationRequest {
-  // The module never runs with the assistive-technology switch on; nothing it might have left is sent either.
+  // The module never runs with the assistive-technology switch on; nothing it might have left is sent either, and no
+  // time on the pages is sent with it on: timing is off with the switch (CLAUDE.md non-negotiable 4).
   const measured = !state.accommodationRequested;
   const answers: ApplicationAnswer[] = [];
   for (const question of questions) {
@@ -310,9 +416,8 @@ export function toRequest(
       continue;
     }
 
-    const answer = state.answers[question.id];
-    if (answer === undefined) continue;
-    answers.push(Array.isArray(answer) ? { questionId: question.id, values: answer } : { questionId: question.id, value: answer });
+    const answer = answerOf(state, question.id);
+    if (answer) answers.push(answer);
   }
 
   return {
@@ -324,15 +429,36 @@ export function toRequest(
     aiUseDetails: state.aiUseDetails || null,
     honeypotFilled: checks.honeypotFilled,
     botCheckToken: checks.botCheckToken,
-    // Session context for the integrity engine: the candidate's browser (the API only sees this server's) and when
-    // the form was first shown.
+    // Session context for the integrity engine: the candidate's browser (the API only sees this server's) and the
+    // active seconds on each page.
     userAgent: checks.userAgent ? checks.userAgent.slice(0, 1024) : null,
-    formStartedAt: state.startedAt || null,
+    pageTimes: measured ? Object.entries(state.pageSeconds).map(([page, seconds]) => ({ page, seconds })) : null,
     automationMarkers: measured ? (checks.automationMarkers ?? []) : [],
     deviceFingerprint: measured ? (checks.deviceFingerprint ?? null) : null,
     deviceCheckConsent: state.deviceCheckConsent,
+    keepForFutureRoles: state.keepForFutureRoles,
     telemetrySessionToken: state.telemetrySession || null,
     telemetry: measured ? (checks.telemetry ?? null) : null,
+  };
+}
+
+const answerOf = (state: ApplyState, questionId: string): ApplicationAnswer | null => {
+  const answer = state.answers[questionId];
+  if (answer === undefined) return null;
+  return Array.isArray(answer) ? { questionId, values: answer } : { questionId, value: answer };
+};
+
+/**
+ * What a draft keeps of the state (apply-flow.md §7): the details and the answers to the non-file questions, the switch
+ * and the AI-use answer. Never files, the telemetry session, the device check or the time on the pages.
+ */
+export function toDraftRequest(state: ApplyState, questions: readonly PublicQuestion[]): PublicApplicationDraftRequest {
+  return {
+    candidate: { firstName: state.firstName, lastName: state.lastName || null, email: state.email, phone: state.phone || null },
+    answers: questions.filter((question) => question.type !== 'File').flatMap((question) => answerOf(state, question.id) ?? []),
+    accommodationRequested: state.accommodationRequested,
+    aiUseDeclaration: state.aiUseDeclaration,
+    aiUseDetails: state.aiUseDetails || null,
   };
 }
 
@@ -345,11 +471,13 @@ const candidateFields: Record<string, string> = {
 
 /**
  * The API's validation problem as field errors, and the earliest step that has one, so the candidate lands where the
- * first problem is. Keys the form has no field for come back in `unplaced`.
+ * first problem is. Keys the form has no field for come back in `unplaced`. Without `form` every question but the
+ * resume counts as the first page's.
  */
 export function errorsFromProblem(
   problems: Record<string, string[]>,
   questions: readonly PublicQuestion[],
+  form: FormShape = { questions, questionsPerPage: Number.MAX_SAFE_INTEGER },
 ): { errors: FieldErrors; step: Step; unplaced: string[] } {
   const errors: FieldErrors = {};
   const unplaced: string[] = [];
@@ -363,7 +491,7 @@ export function errorsFromProblem(
       steps.add('details');
     } else if (question) {
       errors[question.type === 'File' ? fields.file(question.id) : fields.answer(question.id)] = message;
-      steps.add(question.id === RESUME_QUESTION_ID ? 'details' : 'questions');
+      steps.add(stepOf(question.id, form));
     } else if (key === 'aiUseDeclaration' || key === 'aiUseDetails') {
       errors[key] = message;
       steps.add('review');
@@ -372,6 +500,6 @@ export function errorsFromProblem(
     }
   }
 
-  const step = (['details', 'questions', 'review'] as const).find((s) => steps.has(s)) ?? 'review';
+  const step = stepsFor(form).find((s) => steps.has(s)) ?? 'review';
   return { errors, step, unplaced };
 }

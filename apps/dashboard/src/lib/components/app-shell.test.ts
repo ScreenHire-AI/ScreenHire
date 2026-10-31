@@ -36,8 +36,10 @@ describe('app shell', () => {
     expect(links.map((link) => link.textContent?.trim())).toEqual([
       'Jobs',
       'Candidates',
+      'Talent pool',
       'Templates',
       'My tasks',
+      'Reports',
       'To review 2',
       'To verify 1',
       'Overdue 5',
@@ -48,10 +50,10 @@ describe('app shell', () => {
     ]);
     // Navigation pairs an icon with its label (I1); status icons mark the integrity and Overdue views only (I2).
     const marks = links.map((link) => link.querySelector('[data-status-icon]')?.getAttribute('data-status-icon') ?? (link.querySelector('svg') ? 'icon' : null));
-    expect(marks).toEqual(['icon', 'icon', 'icon', 'icon', 'eye', 'id-card', 'clock-alert', 'icon', 'icon', 'icon', ...settings.map(() => 'icon')]);
+    expect(marks).toEqual(['icon', 'icon', 'icon', 'icon', 'icon', 'icon', 'eye', 'id-card', 'clock-alert', 'icon', 'icon', 'icon', ...settings.map(() => 'icon')]);
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings/organization');
     expect(within(main()).queryByRole('link', { name: 'Team' })).toBeNull();
-    expect(within(links[4]!).getByText('2')).toHaveAttribute('data-slot', 'badge');
+    expect(within(links[6]!).getByText('2')).toHaveAttribute('data-slot', 'badge');
     expect(screen.getByRole('link', { name: /^To review/ })).toHaveAttribute('aria-current', 'page');
     expect(screen.queryByRole('button', { name: 'Open navigation' })).toBeNull();
     await expectNoAxeViolations();
@@ -185,7 +187,7 @@ describe('app shell', () => {
     render(ShellHarness, { props: { user, viewCounts: {} } });
 
     const links = within(main()).getAllByRole('link');
-    expect(links.map((link) => link.textContent?.trim()).slice(4)).toEqual([
+    expect(links.map((link) => link.textContent?.trim()).slice(6)).toEqual([
       'To review',
       'To verify',
       'Overdue',
@@ -202,8 +204,8 @@ describe('app shell', () => {
     render(ShellHarness, { props: { user: userAs(role), viewCounts } });
 
     expect(within(main()).queryByRole('link', { name: 'Settings' })).toBeNull();
-    // The four sections (My tasks included) and the six saved views.
-    expect(within(main()).getAllByRole('link')).toHaveLength(10);
+    // The six sections (Talent pool, My tasks and Reports included) and the six saved views.
+    expect(within(main()).getAllByRole('link')).toHaveLength(12);
   });
 
   it('shows a label cut with an ellipsis in full in a tooltip in the full sidebar (F5)', async () => {

@@ -13,6 +13,10 @@ namespace ScreenHire.IntegrationTests;
 /// </summary>
 public sealed class McpServerTests(AppHostFixture fixture)
 {
+    // The worker assesses each new application on its own time, so its entry may or may not be on the timeline when a
+    // test reads it; what the key did or could not do is the rest.
+    private const string Assessed = "IntegrityAssessed";
+
     private static readonly string[] ReadTools = ["find_candidates", "find_jobs", "get_application"];
 
     private static readonly string[] WriteTools = ["add_note", "add_tag", "create_task", "move_to_stage", "remove_tag"];
@@ -74,8 +78,10 @@ public sealed class McpServerTests(AppHostFixture fixture)
 
         (await owner.GetAsync("/v1/tasks?scope=Team")).Body.EnumerateArray().Select(t => t.GetProperty("id").GetGuid()).Should().Contain(task.GetProperty("id").GetGuid());
         var keyId = key.Id("key.id");
+        // The owner's timeline also holds the worker's integrity assessment, which has no actor and lands whenever the
+        // worker gets to it; the key's own changes are the rest.
         var changes = (await owner.GetAsync($"/v1/applications/{application}/timeline")).Expect(HttpStatusCode.OK).Body.EnumerateArray()
-            .Where(e => e.GetProperty("type").GetString() != "Submitted")
+            .Where(e => e.GetProperty("type").GetString() is not ("Submitted" or Assessed))
             .Select(e => (e.GetProperty("type").GetString(), e.GetProperty("actorApiKeyId").GetGuid(), e.GetProperty("actorUserId").ValueKind))
             .ToList();
         changes.Should().Equal(
@@ -110,7 +116,7 @@ public sealed class McpServerTests(AppHostFixture fixture)
         }
 
         var timeline = (await owner.GetAsync($"/v1/applications/{application}/timeline")).Expect(HttpStatusCode.OK);
-        timeline.Body.EnumerateArray().Select(e => e.GetProperty("type").GetString()).Should().Equal("Submitted");
+        timeline.Body.EnumerateArray().Select(e => e.GetProperty("type").GetString()).Where(type => type != Assessed).Should().Equal("Submitted");
         (await owner.GetAsync($"/v1/applications/{application}")).Text("stage.id").Should().Be("applied");
     }
 
@@ -140,7 +146,7 @@ public sealed class McpServerTests(AppHostFixture fixture)
             .Should().Contain("No application");
 
         var timeline = (await theirs.GetAsync($"/v1/applications/{theirApplication}/timeline")).Expect(HttpStatusCode.OK);
-        timeline.Body.EnumerateArray().Select(e => e.GetProperty("type").GetString()).Should().Equal("Submitted");
+        timeline.Body.EnumerateArray().Select(e => e.GetProperty("type").GetString()).Where(type => type != Assessed).Should().Equal("Submitted");
     }
 
     [Fact]

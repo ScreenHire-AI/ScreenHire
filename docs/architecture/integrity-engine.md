@@ -234,14 +234,25 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   not count, each reason expanding to its evidence drawn by kind (§10.1) and counter-evidence; and last, the dismissal
   or Dismiss, with when it was assessed and the ruleset. Overview repeats the suggested next step while the level needs
   a look, with "Not a reason to reject on its own". The candidate's AI declaration is on the Application tab, not
-  repeated here. Its action is *Dismiss with a reason* (per assessment above the lowest level); the Review log panel
-  beside it lists every dismissal and note and holds *Add review note*. *Request verification* is hidden until phase 2
+  repeated here, and the summary leaves out the job's AI policy, which the pill shows. Each reason of an assessment
+  above the lowest level and not dismissed can be *Marked explained*, with a reason (Confirmed with the candidate,
+  Expected for this role, A known false positive, or Other with a note) and an optional note; it then shows closed, as
+  Explained, with who, when and why, and *Undo* for its author only. Explaining decides nothing: the level, the status
+  badge, the chips, the filters, "To review", the workflow engine's facts, webhooks and the MCP server never read it.
+  Once every reason that counts is explained, Dismiss reads *Dismiss all* and opens the same dismiss dialog with the
+  explained reasons and their notes listed; it is still one dismissal with its own reason. After a dismissal the
+  explanations are read only. Its action is *Dismiss with a reason* (per assessment above the lowest level); the Review
+  log panel beside it lists every dismissal, explanation, undo and note and holds *Add review note*. *Request verification* is hidden until phase 2
   builds it. The footer reads "No automated decision has been made. Every action is logged." `IntegrityAssessed`
   refetches the chips, overview and panel live. AI chips take the AI colour and the sparkles icon at every level, and
   stay quiet in lists, so they read as information. While an integrity filter is set, the job page's bulk move offers no
   Rejected or Withdrawn stage, and a new filter clears the selection (`bulkMoveStages` in `#lib/integrity.ts`): a
   filtered "select all" must not become rejection driven by integrity signals. Moving one candidate stays a person's
-  decision about that candidate.
+  decision about that candidate. A candidate a recruiter added by hand came through no careers form, so `network` and
+  `automation` had nothing to read and `behavioural` no telemetry: their authenticity panel says so in one quiet line,
+  and Network and Automation read "Not checked" instead of "Nothing found" (`uncheckedCategories` in
+  `#lib/integrity.ts`). It goes by the application's source alone, so a careers applicant who turned telemetry off with
+  the assistive-technology switch is never told apart; the ruleset is unchanged.
 - **Candidate**: notice before collection, accommodation toggle, AI-use declaration, a "why we asked you to verify"
   page, and an **appeal / human-review request** flow (UK Art. 22C, CCPA ADMT, Colorado notices).
 
@@ -326,13 +337,17 @@ separate message so the pipeline retries and fails apart from the workflow engin
    reassess as each stage lands, and an automation that assigns a reviewer must run once, not once per stage.
 
 A later analyzer (content forensics) registers as another `IIntegrityAnalyzer`, or publishes
-`AnalyzeApplicationIntegrity` again when its own asynchronous work lands. Bumping an analyzer's version re-runs it.
+`AnalyzeApplicationIntegrity` again when its own asynchronous work lands. Bumping an analyzer's version re-runs it, and
+the assessment then counts only the signals of each analyzer's latest version that has a run
+(`IntegrityPipeline.Current`): an application analyzed before and after a bump never counts one observation twice, and
+the superseded rows stay stored for the audit trail. The `automation` analyzer is at version 2, which measures active
+time per page instead of the time from first showing the form.
 
 | Analyzer | Signals | Reads | When it sees nothing |
 |---|---|---|---|
 | `network` | `NET_DATACENTER_IP`, `NET_ANON_PROXY` (context only), `NET_GEO_CLAIM_MISMATCH` | the submission's IP address; IP intelligence | no address (recruiter-added), no source configured, nothing known |
 | `identity` | `ID_EMAIL_DISPOSABLE`, `ID_EMAIL_NO_MX`, `ID_PHONE_INVALID`, `ID_PHONE_VOIP` | email and phone | MX not checked, number without a country code |
-| `automation` | `AUTO_HONEYPOT`, `AUTO_WEBDRIVER`, `AUTO_SUBMIT_VELOCITY`, `AUTO_TURNSTILE_FAIL` (context only) | honeypot, bot check, markers, form start time | |
+| `automation` | `AUTO_HONEYPOT`, `AUTO_WEBDRIVER`, `AUTO_SUBMIT_VELOCITY`, `AUTO_TURNSTILE_FAIL` (context only) | honeypot, bot check, markers, the active time on each page of the form | no page times: no velocity check |
 | `duplicates` | `ID_DUPLICATE_IN_ORG` | other candidates' email (plus tag ignored), phone, device hash, resume hash, same organization only | |
 | `behavioural` | `BEH_PASTE_DOMINANT`, `BEH_FOCUS_SWITCHING` | the form telemetry bound to the application (`DatabaseTelemetrySource`, rules in `TelemetryRules`) | no telemetry: JavaScript off, the assistive-technology switch on, or nothing measured |
 | `documents` | `CNT_RESUME_GENERATOR`, `CNT_PROMPT_INJECTION` | the extracted documents (§10.10) | no files; waits until every file is read |
@@ -399,14 +414,24 @@ Rules of thumb in the analyzers:
   is the only place a candidate says where they are. A VPN or proxy exit says where the service is, so no mismatch
   is reported for one, and a VPN on a hosting network is reported once, as the VPN. A VPN exit in the claimed country
   is counter-evidence.
-- **Submit velocity** compares the time from the careers server first showing the form to the submission with
-  15 seconds, plus 4 per answer, plus 1 per 50 characters of text. Not measured with an accommodation.
+- **Submit velocity** measures active time, not time on the clock (apply-flow.md §7): the seconds each page of the form
+  was open, from the careers server showing it to the candidate posting it, at most 30 minutes a visit, added up. A
+  break between saving a draft and coming back is never inside a page, so it never counts. It compares that with 15
+  seconds to read the form, plus 4 per answer, plus 1 per 50 characters of text. For an application resumed from a
+  draft (the API sees the draft it deletes at submission), answers carried over unchanged from the draft and the 15
+  seconds of reading were done in an earlier sitting, whose time a draft does not keep, so they are left out. No page
+  times (an observation from before version 2, or a caller that sent none) means no check, so re-running an older
+  application drops the velocity signal version 1 gave it and its automation level can fall. The page times pass
+  through the candidate's browser in the form's hidden state, so the check catches a careless script, not a determined
+  one; that is why it is `Medium` and why telemetry alone never raises a level. Not measured with an
+  accommodation. The threshold is the analyzer's and changed for the resumed case only, versioned by the analyzer, so
+  the ruleset version stays.
 - **Duplicates** count only other candidates. One person applying to two jobs is normal. A shared device or file is
   `High`; a shared email base or phone alone is `Medium`. Earlier applications are not revisited when a later one
   matches them, so the first member of a farm carries no duplicate signal of its own.
 - **Phone numbers** use libphonenumber. A number without a country code is checked only when the job is in exactly one
   country; otherwise it is not a signal.
-- **Accommodation** (the assistive-technology switch): the API stores no form start time, device hash, automation markers or telemetry, accessibility-sensitive
+- **Accommodation** (the assistive-technology switch): the API stores no page times, device hash, automation markers or telemetry, accessibility-sensitive
   signals (timing, telemetry, the honeypot) are never stored, the behavioural analyzer never asks for telemetry, and the
   run's note reads the same either way, so nothing records the switch.
 
@@ -432,9 +457,9 @@ Levels: Authenticity `NoConcerns`, `ReviewSuggested`, `VerificationRecommended`;
 categories, and only when the level is raised; other signals are still shown, as context.
 
 The AI-use declaration never raises a level or adds a reason. With the policy it sets `aiPolicyContext`
-(`AllowedByPolicy`, `Disclosed`, `NotDisclosed`, `DeclaredUseNotAllowed`, `NotAllowed`), which changes the summary
-and the next step only. The summary states the job's policy and not the declaration, which the application page shows
-in its own Declarations panel (design system section 16). The next step is the same whatever the candidate declared,
+(`AllowedByPolicy`, `Disclosed`, `NotDisclosed`, `DeclaredUseNotAllowed`, `NotAllowed`), which changes the next step
+only. The summary states neither: the panel shows the job's policy as a pill beside the level, and the application
+page shows the declaration in its own Declarations panel (design system section 16). The next step is the same whatever the candidate declared,
 so a declaration is never set against the evidence. Summaries and next steps are generated from the outcome in plain language; none contains a
 number that grades the candidate.
 
@@ -445,7 +470,7 @@ made with.
 
 | Table | Holds | Application role |
 |---|---|---|
-| `submission_observations` | raw network and session data of a careers submission: IP address, user agent, device hash, form start time, automation markers, `expires_at` | insert, read, delete (retention) |
+| `submission_observations` | raw network and session data of a careers submission: IP address, user agent, device hash, the active seconds on each page (and, in rows from before them, the form start time), automation markers, `expires_at` | insert, read, delete (retention) |
 | `telemetry_snapshots` | one page view's form telemetry (counts only), its session, the application once bound, `expires_at` | insert, read, update (upsert, binding), delete (retention, accommodation) |
 | `integrity_analyzer_runs` | one row per analyzer version per application | insert, read |
 | `integrity_signals` | signals with their evidence (JSONB) | insert, read |
@@ -501,6 +526,8 @@ Every route is tenant-scoped (another organization's application is 404). No res
 |---|---|
 | `GET /v1/applications/{id}/integrity` | `status` (`Pending` until assessed), both current assessments with level, reason codes, summary, next step, signals with evidence and counter-evidence, any dismissal, AI policy context, the review log, and whether verification can be requested (not until phase 2) |
 | `POST .../integrity/assessments/{assessmentId}/dismiss` | a reason (`VerifiedOutsideScreenHire`, `ExplainedByCandidate`, `FalsePositive`, or `Other` with a note); only the current assessment, above the lowest level, once |
+| `POST .../integrity/assessments/{assessmentId}/signals/{signalId}/explain` | marks one reason explained: a reason (`ConfirmedWithCandidate`, `ExpectedForRole`, `KnownFalsePositive`, or `Other` with a note) and an optional note; only the current assessment, above the lowest level and not dismissed, and once until undone. It changes nothing but the review log |
+| `POST .../integrity/assessments/{assessmentId}/signals/{signalId}/undo-explanation` | takes an explanation back; only its author (403 otherwise), and only while the assessment is not dismissed |
 | `POST .../integrity/notes` | a note on the application's integrity or one assessment |
 | `POST .../integrity/request-verification` | always 409 until phase 2 |
 | `GET /v1/organization/integrity-settings` | whether the consistency check is on, its monthly token budget, and the tokens used this month |
@@ -511,7 +538,11 @@ each signal's `informational` flag and, for `CNT_INCONSISTENCY`, its `llm` prove
 
 Writes need a hiring role and the antiforgery header. Dismissing records a decision and never changes the assessment.
 A unique index (`ix_integrity_review_actions_one_dismissal`) keeps one dismissal per assessment when two reviewers
-dismiss at once; the second gets the same 409 as a later attempt.
+dismiss at once; the second gets the same 409 as a later attempt. The review log is append-only, so an undo is a row of
+its own (`ExplanationUndone`) and the latest explain or undo row for a reason decides; each signal in the view carries
+`explained` (who, when, why) while one stands, and a reassessment starts with nothing explained. Two reviewers who
+explain one reason at the same moment both land in the log, and the later one shows. `ApplicationSummary.integrity` and
+`IntegrityAssessed` never carry explanations.
 `ApplicationSummary.integrity` carries the chips for lists: both levels, their reason codes and whether each was
 dismissed. The `IntegrityAssessed` tenant event carries ids, the two level names and the ruleset version, never
 evidence.

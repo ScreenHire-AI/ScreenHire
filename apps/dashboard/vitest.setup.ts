@@ -25,3 +25,14 @@ globalThis.matchMedia ??= (query: string) =>
     removeListener() {},
     dispatchEvent: () => false,
   }) as MediaQueryList;
+
+// jsdom does no layout, and ProseMirror (the rich text editor) measures where the caret is when it focuses or scrolls a
+// selection into view. Give ranges and the page empty boxes and no-op scrolling, so the editor runs as in a browser.
+const emptyRect = () => DOMRect.fromRect({ x: 0, y: 0, width: 0, height: 0 });
+const emptyRects = () => ({ length: 0, item: () => null, [Symbol.iterator]: [][Symbol.iterator] }) as unknown as DOMRectList;
+Range.prototype.getBoundingClientRect ??= emptyRect;
+Range.prototype.getClientRects ??= emptyRects;
+document.elementFromPoint ??= () => null;
+Element.prototype.scrollIntoView ??= () => {};
+window.scrollBy = () => {};
+window.scrollTo = () => {};
