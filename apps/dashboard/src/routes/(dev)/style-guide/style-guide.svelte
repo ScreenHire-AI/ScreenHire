@@ -105,6 +105,7 @@
   import type { StatusName } from '#lib/status.js';
   import EditPreviewDemo from './edit-preview-demo.svelte';
   import AddCandidateDemo from './add-candidate-demo.svelte';
+  import BrandingDemo from './branding-demo.svelte';
   import EmailComposerDemo, { demoEmail } from './email-composer-demo.svelte';
   import FormBuilderDemo from './form-builder-demo.svelte';
   import ReorderDemo from './reorder-demo.svelte';
@@ -691,6 +692,8 @@
       <Panel title="Email preview">
         <EmailPreview preview={demoEmail} />
       </Panel>
+
+      <BrandingDemo />
 
       <div class="flex flex-wrap items-start gap-5">
         <Panel title="Empty state" class="flex-[999_1_520px]">

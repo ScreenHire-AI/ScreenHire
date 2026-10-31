@@ -1,7 +1,7 @@
 ---
 import '../styles/global.css';
 import type { PublicBranding } from '@screenhire/api-client';
-import { brandStylesheet } from '../lib/brand';
+import { brandImagePath, brandStylesheet } from '../lib/brand';
 import { basePath } from '../lib/host';
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
   description: string;
   organizationName: string;
   organizationSlug: string;
-  /** The employer's palette; ScreenHire's default when null. */
+  /** The employer's branding (docs/architecture/branding.md); ScreenHire's look for every part that is null. */
   branding?: PublicBranding | null;
   /** Keeps search engines off pages that are one candidate's, such as a form step. */
   noindex?: boolean;
@@ -18,6 +18,11 @@ interface Props {
 const { title, description, organizationName, organizationSlug, branding, noindex = false } = Astro.props;
 const base = basePath(Astro.request, organizationSlug);
 const brand = branding ? brandStylesheet(branding) : null;
+// Same-origin paths under the base for what the page draws (img-src 'self'); the sharing image is the API's absolute
+// careers address, because a crawler reads og:image from another site.
+const logo = branding?.logo ? { ...branding.logo, src: brandImagePath(base, branding.logo) } : null;
+const favicon = branding?.favicon ? { ...branding.favicon, href: brandImagePath(base, branding.favicon) } : null;
+const sharing = branding?.sharingImage ?? null;
 ---
 
 <!doctype html>
@@ -29,21 +34,48 @@ const brand = branding ? brandStylesheet(branding) : null;
     <meta name="description" content={description} />
     {noindex && <meta name="robots" content="noindex" />}
     {brand && <link rel="stylesheet" href={`${base}/brand/${brand.hash}.css`} />}
+    {favicon && <link rel="icon" type={favicon.contentType} href={favicon.href} />}
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={organizationName} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    {
+      sharing && (
+        <>
+          <meta property="og:image" content={sharing.url} />
+          <meta property="og:image:type" content={sharing.contentType} />
+          <meta property="og:image:width" content={String(sharing.width)} />
+          <meta property="og:image:height" content={String(sharing.height)} />
+          <meta property="og:image:alt" content={`Careers at ${organizationName}`} />
+          <meta name="twitter:card" content="summary_large_image" />
+        </>
+      )
+    }
     <slot name="head" />
   </head>
   <body class="flex min-h-screen flex-col bg-candidate-background text-candidate-foreground">
-    <header class="border-b border-candidate-border">
-      <div class="mx-auto flex h-15 max-w-3xl items-center justify-between px-5">
-        <a href={base || '/'} class="flex items-center gap-2.5 font-bold text-candidate-foreground no-underline">
-          <span
-            aria-hidden="true"
-            class="grid size-8 place-items-center rounded-full bg-candidate-cta font-display font-extrabold text-candidate-cta-foreground"
-          >
-            {organizationName.charAt(0)}
-          </span>
-          {organizationName}
+    <!-- The header band takes the second colour; everything in it uses the header's own text colour, focus rings
+         included, which is white or ink at 4.5:1 on the band (ADR-0018). -->
+    <header class="candidate-header border-b border-candidate-border bg-candidate-header text-candidate-header-foreground">
+      <div class="mx-auto flex h-15 max-w-3xl items-center justify-between gap-4 px-5">
+        <a href={base || '/'} class="flex min-w-0 items-center gap-2.5 font-bold text-candidate-header-foreground no-underline">
+          {
+            logo ? (
+              <img src={logo.src} alt={organizationName} width={logo.width} height={logo.height} class="h-10 w-auto max-w-60 object-contain object-left" />
+            ) : (
+              <>
+                <span
+                  aria-hidden="true"
+                  class="grid size-8 shrink-0 place-items-center rounded-full bg-candidate-cta font-display font-extrabold text-candidate-cta-foreground"
+                >
+                  {organizationName.charAt(0)}
+                </span>
+                <span class="truncate">{organizationName}</span>
+              </>
+            )
+          }
         </a>
-        <a href={base || '/'} class="text-sm font-semibold text-candidate-foreground">All jobs</a>
+        <a href={base || '/'} class="shrink-0 text-sm font-semibold text-candidate-header-foreground">All jobs</a>
       </div>
     </header>
     <main class="mx-auto w-full max-w-3xl flex-1 px-5 py-8">

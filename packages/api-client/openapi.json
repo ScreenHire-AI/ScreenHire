@@ -694,6 +694,41 @@
         }
       }
     },
+    "/v1/public/organizations/{organizationSlug}/branding/images/{imageId}": {
+      "get": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "GetPublicBrandImage",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "imageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Not Found"
+          },
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/v1/public/organizations/{organizationSlug}/jobs/{jobId}/questions/{questionId}/uploads": {
       "post": {
         "tags": [
@@ -4634,6 +4669,222 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/branding/contrast": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "CheckBrandingContrast",
+        "parameters": [
+          {
+            "name": "brandColor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "secondColor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandingContrast"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/branding/images": {
+      "post": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "CreateBrandImageUpload",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrandImageUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadTicket"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/branding/images/{imageId}/verify": {
+      "post": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "VerifyBrandImageUpload",
+        "parameters": [
+          {
+            "name": "imageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandingImage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/branding/images/{imageId}": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "GetBrandImage",
+        "parameters": [
+          {
+            "name": "imageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandingImage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Unauthorized"
@@ -10258,6 +10509,112 @@
         },
         "description": "A board an organization may post to, and what it can promise (docs/architecture/job-distribution.md §1)."
       },
+      "BrandImageKind": {
+        "enum": [
+          "Logo",
+          "Favicon",
+          "SharingImage"
+        ],
+        "description": "What a brand image is for, which decides its limits (BrandImageRules)."
+      },
+      "BrandImageUploadRequest": {
+        "required": [
+          "kind",
+          "fileName",
+          "sizeBytes"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/BrandImageKind"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "Asks for a link to upload one brand image of `kind`: a PNG or JPEG of `sizeBytes`."
+      },
+      "BrandingContrast": {
+        "required": [
+          "brandColor",
+          "secondColor"
+        ],
+        "type": "object",
+        "properties": {
+          "brandColor": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ColorContrast"
+              }
+            ]
+          },
+          "secondColor": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ColorContrast"
+              }
+            ]
+          }
+        },
+        "description": "The contrast check of the colours asked about, each null when it was not asked: whether every pair the colour is\r\nused in reaches WCAG 2.2 AA, the text colour that goes on it, the pairs, and the nearest passing shade when it fails."
+      },
+      "BrandingImage": {
+        "required": [
+          "id",
+          "kind",
+          "scanStatus",
+          "contentType",
+          "width",
+          "height",
+          "sizeBytes",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/BrandImageKind"
+          },
+          "scanStatus": {
+            "$ref": "#/components/schemas/MalwareScanStatus"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "height": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "An uploaded brand image. `scanStatus` is the malware scan's: a Pending or Infected image cannot be saved or\r\nserved. `url` is its public address on the careers board, null until it may be served."
+      },
       "CandidateDetail": {
         "required": [
           "id",
@@ -10547,6 +10904,47 @@
         ],
         "description": "How the screen shows a detail's values."
       },
+      "ColorContrast": {
+        "required": [
+          "color",
+          "passes",
+          "textColor",
+          "pairs",
+          "suggestion",
+          "problems"
+        ],
+        "type": "object",
+        "properties": {
+          "color": {
+            "type": "string"
+          },
+          "passes": {
+            "type": "boolean"
+          },
+          "textColor": {
+            "type": "string"
+          },
+          "pairs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContrastPairCheck"
+            }
+          },
+          "suggestion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "One colour's check. `problems` says each failing pair in words, as a refused save does."
+      },
       "ComparedText": {
         "required": [
           "label",
@@ -10640,6 +11038,48 @@
           }
         },
         "description": "The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\r\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans."
+      },
+      "ContrastPairCheck": {
+        "required": [
+          "name",
+          "foreground",
+          "background",
+          "ratio",
+          "minimum",
+          "passes"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "$ref": "#/components/schemas/ContrastPairName"
+          },
+          "foreground": {
+            "type": "string"
+          },
+          "background": {
+            "type": "string"
+          },
+          "ratio": {
+            "type": "number",
+            "format": "double"
+          },
+          "minimum": {
+            "type": "number",
+            "format": "double"
+          },
+          "passes": {
+            "type": "boolean"
+          }
+        },
+        "description": "One pair: `ratio` is cut down to one decimal, so a failing pair never reads as its minimum."
+      },
+      "ContrastPairName": {
+        "enum": [
+          "ButtonText",
+          "Links",
+          "HeaderText"
+        ],
+        "description": "The pairs of colours the branding check measures (docs/design/design-system.md section 18)."
       },
       "CounterEvidence": {
         "required": [
@@ -11459,6 +11899,16 @@
           }
         },
         "description": "A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads."
+      },
+      "HeadingFont": {
+        "enum": [
+          "Inter",
+          "Montserrat",
+          "Nunito",
+          "Fraunces",
+          "PlayfairDisplay",
+          null
+        ]
       },
       "HiringTeamMember": {
         "required": [
@@ -13562,8 +14012,11 @@
       "OrganizationBranding": {
         "required": [
           "brandColor",
-          "palette",
-          "brandAdjusted",
+          "secondColor",
+          "headingFont",
+          "logo",
+          "favicon",
+          "sharingImage",
           "lastUpdated"
         ],
         "type": "object",
@@ -13574,24 +14027,57 @@
               "string"
             ]
           },
-          "palette": {
+          "secondColor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "headingFont": {
             "oneOf": [
               {
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/PublicBranding"
+                "$ref": "#/components/schemas/HeadingFont"
               }
             ]
           },
-          "brandAdjusted": {
-            "type": "boolean"
+          "logo": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BrandingImage"
+              }
+            ]
+          },
+          "favicon": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BrandingImage"
+              }
+            ]
+          },
+          "sharingImage": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BrandingImage"
+              }
+            ]
           },
           "lastUpdated": {
             "$ref": "#/components/schemas/LastUpdate"
           }
         },
-        "description": "The organization's careers-page branding. `palette` is what careers pages use, derived from\r\n`brandColor` and contrast-checked (docs/design/design-system.md §7); both are null without a brand colour.\r\n`brandAdjusted` means the colour was darkened so text on it stays readable. `lastUpdated` is the brand\r\ncolour's last change (\"by ScreenHire\" while it is ScreenHire's default); its history is `/branding/history`."
+        "description": "The organization's branding (docs/architecture/branding.md): the brand colour (buttons and links), the second colour\r\n(the header band of its careers pages and emails), the heading font and the images in use, each null for\r\nScreenHire's default. `lastUpdated` is the branding's last change (\"by ScreenHire\" while it is all the\r\ndefault); its history is `/branding/history`."
       },
       "OrganizationIntegritySettings": {
         "required": [
@@ -14068,29 +14554,110 @@
         },
         "description": "A candidate's application from the careers page. The candidate is matched by email within the organization and\r\ncreated if new; an existing candidate's details are never changed by a public submission."
       },
-      "PublicBranding": {
+      "PublicBrandImage": {
         "required": [
-          "brand",
-          "onBrand",
-          "brandText",
-          "brandUi"
+          "id",
+          "contentType",
+          "width",
+          "height",
+          "url"
         ],
         "type": "object",
         "properties": {
-          "brand": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "contentType": {
             "type": "string"
           },
-          "onBrand": {
-            "type": "string"
+          "width": {
+            "type": "integer",
+            "format": "int32"
           },
-          "brandText": {
-            "type": "string"
+          "height": {
+            "type": "integer",
+            "format": "int32"
           },
-          "brandUi": {
+          "url": {
             "type": "string"
           }
         },
-        "description": "The careers-page colours derived from the organization's brand colour, each contrast-checked on the server\r\n(docs/design/design-system.md §7): `brand` fills, `onBrand` is text on it (4.5:1), `brandText` is\r\nbrand-coloured text on the page (4.5:1) and `brandUi` is borders and focus rings (3:1). All `#rrggbb`."
+        "description": "A brand image as a public page links it: `url` is the same for every page, email and person."
+      },
+      "PublicBranding": {
+        "required": [
+          "colors",
+          "header",
+          "headingFont",
+          "logo",
+          "favicon",
+          "sharingImage"
+        ],
+        "type": "object",
+        "properties": {
+          "colors": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicPalette"
+              }
+            ]
+          },
+          "header": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicHeaderColors"
+              }
+            ]
+          },
+          "headingFont": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/HeadingFont"
+              }
+            ]
+          },
+          "logo": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicBrandImage"
+              }
+            ]
+          },
+          "favicon": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicBrandImage"
+              }
+            ]
+          },
+          "sharingImage": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicBrandImage"
+              }
+            ]
+          }
+        },
+        "description": "An organization's branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\r\nfor ScreenHire's default. `colors` come from the brand colour; `header` is the band in the second colour,\r\nwith white or ink text on it; image `url`s are absolute addresses on the careers board."
       },
       "PublicCandidateInput": {
         "required": [
@@ -14119,6 +14686,22 @@
           }
         },
         "description": "The candidate as the apply form asks: a first name, an optional last name, the email and an optional phone."
+      },
+      "PublicHeaderColors": {
+        "required": [
+          "background",
+          "foreground"
+        ],
+        "type": "object",
+        "properties": {
+          "background": {
+            "type": "string"
+          },
+          "foreground": {
+            "type": "string"
+          }
+        },
+        "description": "The header band: its fill, the second colour, and the white or ink text on it. Both `#rrggbb`."
       },
       "PublicJob": {
         "required": [
@@ -14245,7 +14828,8 @@
           "organizationName",
           "organizationSlug",
           "jobs",
-          "url"
+          "url",
+          "branding"
         ],
         "type": "object",
         "properties": {
@@ -14265,17 +14849,10 @@
             "type": "string"
           },
           "branding": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/PublicBranding"
-              }
-            ]
+            "$ref": "#/components/schemas/PublicBranding"
           }
         },
-        "description": "The public careers listing for one organization. `url` is the board's careers page; `branding` is null when it\r\nhas no brand colour."
+        "description": "The public careers listing for one organization. `url` is the board's careers page; `branding` is its\r\nbranding, each part null for ScreenHire's."
       },
       "PublicOrganization": {
         "required": [
@@ -14292,17 +14869,34 @@
             "type": "string"
           },
           "branding": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/PublicBranding"
-              }
-            ]
+            "$ref": "#/components/schemas/PublicBranding"
           }
         },
-        "description": "An organization as its careers pages show it."
+        "description": "An organization as its careers pages show it, with its branding (each part null for ScreenHire's)."
+      },
+      "PublicPalette": {
+        "required": [
+          "brand",
+          "onBrand",
+          "brandText",
+          "brandUi"
+        ],
+        "type": "object",
+        "properties": {
+          "brand": {
+            "type": "string"
+          },
+          "onBrand": {
+            "type": "string"
+          },
+          "brandText": {
+            "type": "string"
+          },
+          "brandUi": {
+            "type": "string"
+          }
+        },
+        "description": "The careers-page colours from the brand colour (docs/design/design-system.md section 18): `brand` fills,\r\n`onBrand` is text on it, `brandText` is links on the page and `brandUi` is borders and focus rings.\r\nA colour saved since the contrast check passes as it is, so all three are the colour itself; an older one is darkened\r\nuntil it passes. All `#rrggbb`."
       },
       "PublicQuestion": {
         "required": [
@@ -16072,9 +16666,46 @@
               "null",
               "string"
             ]
+          },
+          "secondColor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "headingFont": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/HeadingFont"
+              }
+            ]
+          },
+          "logoId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "faviconId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "sharingImageId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         },
-        "description": "Sets the brand colour (`#rrggbb`), or clears it with null to use ScreenHire's default."
+        "description": "Replaces the whole branding. Colours are `#rrggbb` and must pass the contrast check\r\n(`/branding/contrast`); each image id is one of the organization's uploads of that kind that passed its scan.\r\nNull is ScreenHire's default, or no image."
       },
       "UpdateEmailTemplateRequest": {
         "required": [

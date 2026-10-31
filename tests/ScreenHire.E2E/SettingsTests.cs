@@ -10,7 +10,8 @@ namespace ScreenHire.E2E;
 /// The Settings area in a real browser: the sidebar's one Settings item opens the Settings menu; an owner invites a
 /// colleague, starting from Viewer, who accepts through the Mailpit email, then changes their role and removes them;
 /// Compare roles opens the grid of what each role can do; an owner makes an Interviewer role and gives it to a member,
-/// who can then add a note but not move a candidate; a brand colour saved here reaches the careers page; an API key is
+/// who can then add a note but not move a candidate; branding saved here (both colours, a font and three images)
+/// reaches the careers pages on their own origin and host; an API key is
 /// shown once, works, and stops working when revoked. Each test signs in as a new owner of a new organization.
 /// </summary>
 public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
@@ -185,27 +186,69 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
     }
 
     [Fact]
-    public async Task A_brand_colour_saved_in_settings_reaches_the_careers_page()
+    public async Task Branding_saved_in_settings_reaches_the_careers_pages_on_their_own_origin()
     {
         var (owner, slug) = await OwnerAsync();
         await SignInAsync(owner);
         await GoToAsync("dashboard", "/settings/branding");
 
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Branding");
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "On your careers pages" })).ToContainTextAsync("ScreenHire's colours");
         await ExpectNoAccessibilityViolationsAsync();
 
-        // A deep violet, dark enough that the server keeps it as it is.
-        await Page.GetByLabel("Hex colour").FillAsync("5B21B6");
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Save colour" }).ClickAsync();
+        // A pale brand colour fails as links on the page; the field offers the nearest shade that passes.
+        await Page.GetByLabel("Brand colour", new() { Exact = true }).FillAsync("ffd400");
+        await Expect(Page.GetByText("Links in #ffd400 are hard to read on the page")).ToBeVisibleAsync();
+        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Use #[0-9a-f]{6}$") }).ClickAsync();
+        await Expect(Page.GetByText("Links in #ffd400 are hard to read on the page")).ToHaveCountAsync(0);
+        await Page.GetByLabel("Second colour", new() { Exact = true }).FillAsync("E9DCC4");
+        await Page.GetByRole(AriaRole.Radio, new() { Name = "Fraunces" }).CheckAsync();
+
+        // Each image goes straight to storage, is checked and scanned, and waits for Save.
+        await Page.GetByLabel("Logo", new() { Exact = true }).SetInputFilesAsync(new FilePayload { Name = "logo.png", MimeType = "image/png", Buffer = TestPng.Solid(400, 100) });
+        await Page.GetByLabel("Favicon", new() { Exact = true }).SetInputFilesAsync(new FilePayload { Name = "icon.png", MimeType = "image/png", Buffer = TestPng.Solid(64, 64) });
+        await Page.GetByLabel("Sharing image", new() { Exact = true })
+            .SetInputFilesAsync(new FilePayload { Name = "share.png", MimeType = "image/png", Buffer = TestPng.Solid(1200, 630) });
+        // Each shows its size once the worker has scanned it, a step the worker's queue answers.
+        var scanned = new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 };
+        await Expect(Page.GetByText("400 by 100 pixels")).ToBeVisibleAsync(scanned);
+        await Expect(Page.GetByText("1200 by 630 pixels")).ToBeVisibleAsync(scanned);
+        await Expect(Page.GetByText("64 by 64 pixels")).ToBeVisibleAsync(scanned);
+        var save = Page.GetByRole(AriaRole.Button, new() { Name = "Save branding" });
+        await Expect(save).ToBeEnabledAsync();
+        await save.ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Saved" })).ToHaveTextAsync("Saved.");
-        var colours = Page.GetByRole(AriaRole.Region, new() { Name = "On your careers pages" });
-        await Expect(colours.GetByRole(AriaRole.Definition).First).ToHaveTextAsync("#5b21b6");
         await ExpectNoAccessibilityViolationsAsync();
 
-        await GoToAsync("careers", $"/{slug}");
-        var mark = Page.GetByRole(AriaRole.Banner).Locator("span[aria-hidden='true']").First;
-        (await mark.EvaluateAsync<string>("e => getComputedStyle(e).backgroundColor")).Should().Be("rgb(91, 33, 182)");
+        var response = await OpenAsync("careers", $"/{slug}");
+        await ExpectCareersBrandingAsync(response, $"/{slug}");
+
+        // The organization's own host serves the same images, linked without the organization in the path.
+        var careers = Fixture.GetEndpoint("careers");
+        var tenantHost = await Page.GotoAsync($"{careers.Scheme}://{slug}.localhost:{careers.Port}/");
+        await ExpectCareersBrandingAsync(tenantHost!, "");
+    }
+
+    private async Task ExpectCareersBrandingAsync(IResponse response, string basePath)
+    {
+        var banner = Page.GetByRole(AriaRole.Banner);
+        var logo = banner.GetByRole(AriaRole.Img);
+        (await logo.GetAttributeAsync("src")).Should().MatchRegex($"^{Regex.Escape(basePath)}/brand/images/[0-9a-f-]{{36}}\\.png$");
+        await Expect(logo).ToHaveAttributeAsync("alt", new Regex(".+"));
+        (await logo.EvaluateAsync<int>("e => e.complete ? e.naturalWidth : 0")).Should().Be(400, "the logo loads from the careers origin");
+        (await banner.EvaluateAsync<string>("e => getComputedStyle(e).backgroundColor")).Should().Be("rgb(233, 220, 196)");
+        (await Page.GetByRole(AriaRole.Heading, new() { Level = 1 }).EvaluateAsync<string>("e => getComputedStyle(e).fontFamily"))
+            .Should().StartWith("\"Fraunces Variable\"");
+        (await Page.Locator("link[rel='icon']").GetAttributeAsync("href")).Should().MatchRegex($"^{Regex.Escape(basePath)}/brand/images/[0-9a-f-]{{36}}\\.png$");
+        (await Page.Locator("meta[property='og:image']").GetAttributeAsync("content")).Should().MatchRegex("^https?://.+/brand/images/[0-9a-f-]{36}\\.png$");
+
+        // Everything in the header band reads in its own text colour, the focus ring included.
+        var allJobs = banner.GetByRole(AriaRole.Link, new() { Name = "All jobs" });
+        await allJobs.FocusAsync();
+        (await allJobs.EvaluateAsync<string>("e => getComputedStyle(e).outlineColor")).Should().Be("rgb(35, 31, 26)");
+
+        var apply = (await response.AllHeadersAsync())["content-security-policy"];
+        apply.Should().Contain("default-src 'none'").And.NotContain("unsafe-inline");
+        (await Page.Locator("[style]").CountAsync()).Should().Be(0, "no inline styles");
     }
 
     [Fact]

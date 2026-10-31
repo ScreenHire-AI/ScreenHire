@@ -25,6 +25,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/email-composer-sheet.svelte
   - resource: apps/dashboard/src/lib/components/candidate/messages-tab.svelte
   - resource: src/ScreenHire.Application/Applications/ApplicationNotes.cs
+  - resource: src/ScreenHire.Infrastructure/Email/EmailHeader.cs
 ---
 # Email to candidates
 
@@ -55,7 +56,9 @@ There are two kinds, both listed by `GET /v1/email-templates` and edited on the 
 A template is a Liquid subject and a Liquid plain-text body (Fluid, ADR-0008). The body is text, not HTML: the email's
 HTML part is built from the rendered text (a paragraph per blank line, links that show their own address, everything
 else encoded), and the text part is the rendered text itself. So a template cannot carry a hidden link, a tracking
-image or a script, and a candidate's name cannot inject markup. The rendered subject is one line, cut at 1,000
+image or a script, and a candidate's name cannot inject markup. ScreenHire puts the organization's header first: its
+logo, a plain image at one address for every recipient, or its name, on its second colour (`EmailHeader`,
+[branding.md](branding.md) section 6). That logo is the only image an email carries. The rendered subject is one line, cut at 1,000
 characters (`ApplicationEmail.MaxSubjectLength`): variables can make it far longer than its 200-character wording.
 
 `EmailTemplates.Validate` checks wording on every save, preview and test send:
