@@ -13,7 +13,7 @@ sources:
   - resource: src/ScreenHire.Domain/Organizations/EmbedOrigins.cs
   - resource: apps/api/Configuration/CareersEmbeddingOptions.cs
   - resource: apps/api/Endpoints/OrganizationEndpoints.cs
-  - resource: apps/dashboard/src/routes/(app)/settings/organization/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/settings/careers-site/+page.svelte
   - resource: apps/dashboard/src/lib/components/code-block.svelte
   - resource: tests/ScreenHire.Testing/HostPage.cs
 ---
@@ -26,7 +26,7 @@ nor forge them (ADR-0003). Branding applies inside the frame because the pages a
 
 ## 1. The embed code
 
-Settings > Organization, Careers page panel: "Sites that can embed it", then, once a site is on the list, the embed
+Settings > Careers site, Embed on your website panel: "Sites that can embed it", then, once a site is on the list, the embed
 code with Copy:
 
 ```html

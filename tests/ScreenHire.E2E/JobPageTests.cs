@@ -9,7 +9,7 @@ namespace ScreenHire.E2E;
 /// <summary>
 /// The job page on design system v0.3 (docs/design/design-system.md section 21) in a real browser: the authenticity
 /// chips and the Stage filter, a sort that outlives a reload, a posting a board did not take as a notice with the
-/// Distribution tab's count, and a board that fits a wide window without moving the page. Each test signs in as a new
+/// Postings tab's count, and a board that fits a wide window without moving the page. Each test signs in as a new
 /// person with a new organization, and adds its job and applications through the API.
 /// </summary>
 public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
@@ -107,7 +107,7 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
     }
 
     [Fact]
-    public async Task A_posting_a_board_did_not_take_is_a_notice_and_the_Distribution_tab_counts_the_boards_the_job_is_on()
+    public async Task A_posting_a_board_did_not_take_is_a_notice_and_the_Postings_tab_counts_the_boards_the_job_is_on()
     {
         // Between 50 and 100 characters of text: enough for Talent.com, too short for Adzuna, whose checks keep the posting
         // back with an issue (docs/architecture/job-distribution.md, "What each state means").
@@ -127,23 +127,23 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(notice).ToContainTextAsync("Adzuna did not take this job. Adzuna needs a description of at least 100 characters.");
         var posted = (boards - 1).ToString(CultureInfo.InvariantCulture);
         var all = boards.ToString(CultureInfo.InvariantCulture);
-        var distribution = Page.GetByRole(AriaRole.Tab, new() { Name = $"Distribution posted on {posted} of {all} boards", Exact = true });
+        var distribution = Page.GetByRole(AriaRole.Tab, new() { Name = $"Postings posted on {posted} of {all} boards", Exact = true });
         await Expect(distribution).ToBeVisibleAsync();
         await Expect(distribution).ToContainTextAsync($"{posted}/{all}");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-job-refused-posting-light");
 
-        // The notice links to the fix: the Distribution tab, where the board's row says what is wrong.
-        await notice.GetByRole(AriaRole.Link, new() { Name = "Fix on Distribution" }).ClickAsync();
+        // The notice links to the fix: the Postings tab, where the board's row says what is wrong.
+        await notice.GetByRole(AriaRole.Link, new() { Name = "Fix on Postings" }).ClickAsync();
         await Expect(distribution).ToHaveAttributeAsync("aria-selected", "true");
-        var adzuna = Page.GetByRole(AriaRole.Region, new() { Name = "Distribution" }).Locator("[data-board='adzuna']");
+        var adzuna = Page.GetByRole(AriaRole.Region, new() { Name = "Postings" }).Locator("[data-board='adzuna']");
         await Expect(adzuna.Locator("[data-posting-problem]")).ToContainTextAsync("Adzuna needs a description of at least 100 characters.");
         await Expect(adzuna.GetByRole(AriaRole.Link, new() { Name = "Edit details" })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
 
         // The tab is in the address, so a reload keeps it.
         await Page.ReloadAsync();
-        await Expect(Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Distribution") })).ToHaveAttributeAsync("aria-selected", "true");
+        await Expect(Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Postings") })).ToHaveAttributeAsync("aria-selected", "true");
     }
 
     [Fact]

@@ -23,21 +23,15 @@ describe('settings menu', () => {
     state.user = userAs('Owner');
   });
 
-  it('lists every settings page in order, beside the page content, and marks the current one', async () => {
+  it('lists every settings page in order, in its named group, beside the page content, and marks the current one', async () => {
     render(SettingsMenu, { props: { children: content } });
     const menu = screen.getByRole('navigation', { name: 'Settings' });
 
-    expect(within(menu).getAllByRole('link').map((link) => link.textContent?.trim())).toEqual([
-      'Organization',
-      'Team',
-      'Roles',
-      'Branding',
-      'Verification',
-      'Talent pool',
-      'API keys',
-      'Webhooks',
-      'MCP server',
-      'Slack',
+    const groups = within(menu).getAllByRole('list');
+    expect(groups.map((group) => [group.getAttribute('aria-labelledby') && document.getElementById(group.getAttribute('aria-labelledby')!)?.textContent, within(group).getAllByRole('link').map((link) => link.textContent?.trim())])).toEqual([
+      ['Organization', ['General', 'Team', 'Roles']],
+      ['Hiring', ['Careers site', 'Branding', 'Verification']],
+      ['Integrations', ['Slack', 'MCP server', 'Webhooks', 'API keys']],
     ]);
     expect(within(menu).getByRole('link', { name: 'Team' })).toHaveAttribute('aria-current', 'page');
     expect(within(menu).getByRole('link', { name: 'Roles' })).toHaveAttribute('href', '/settings/roles');
@@ -65,7 +59,7 @@ describe('settings menu', () => {
     Object.defineProperty(HTMLElement.prototype, 'offsetLeft', {
       configurable: true,
       get(this: HTMLElement) {
-        return this.tagName === 'LI' ? [...this.parentElement!.children].indexOf(this) * 100 : 0;
+        return this.tagName === 'LI' ? [...this.closest('nav')!.querySelectorAll('li')].indexOf(this as HTMLLIElement) * 100 : 0;
       },
     });
     Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, get: () => 100 });
@@ -77,8 +71,8 @@ describe('settings menu', () => {
     try {
       render(SettingsMenu, { props: { children: content, current: '/settings/webhooks' } });
 
-      // Webhooks is the eighth entry, at 700px: the row scrolls to 650 so it sits in the middle.
-      expect(scrolledTo).toEqual([650]);
+      // Webhooks is the ninth entry, at 800px: the row scrolls to 750 so it sits in the middle.
+      expect(scrolledTo).toEqual([750]);
     } finally {
       Object.defineProperty(HTMLElement.prototype, 'offsetLeft', offsetLeft);
       Object.defineProperty(HTMLElement.prototype, 'offsetWidth', offsetWidth);

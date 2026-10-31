@@ -19,7 +19,6 @@ sources:
   - resource: apps/careers/src/pages/[organization]/talent-pool/[token].astro
   - resource: apps/careers/src/lib/talent-pool.ts
   - resource: apps/dashboard/src/routes/(app)/talent-pool/+page.svelte
-  - resource: apps/dashboard/src/routes/(app)/settings/talent-pool/+page.svelte
   - resource: apps/dashboard/src/lib/talent-pool.ts
   - resource: apps/dashboard/src/lib/components/keep-in-mind-sheet.svelte
   - resource: apps/dashboard/src/lib/components/close-job-dialog.svelte
@@ -56,9 +55,10 @@ application only. An unticked box on a later application withdraws nothing.
 and the organization's period now. Lengthening the setting never extends a permission already given; shortening it ends
 every permission sooner. Null without a permission, or once withdrawn.
 
-The period is `TalentPoolSettings.PermissionMonths`, 12 by default, 6 to 24, set on Settings, Talent pool by a role with
-Edit settings (`GET`/`PUT /v1/organization/talent-pool-settings`, with History, [change history](change-history.md)).
-The default and the range are a product choice awaiting a legal review ([status](../status.md#owner-actions)).
+The period is `TalentPoolSettings.PermissionMonths`, 12 by default. The dashboard has no page to change it: one period
+for everyone is simpler to explain to candidates, and the legal review sets it ([status](../status.md#owner-actions)).
+The API still takes 6 to 24 (`GET`/`PUT /v1/organization/talent-pool-settings`, with History,
+[change history](change-history.md)) for that review to use.
 
 ## Keeping in mind
 

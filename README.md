@@ -31,6 +31,10 @@ waits until the demo data is in and reports the URLs and logins; `/preview fresh
 | Dev SSO (local sign-in provider) | http://localhost:5090 |
 | Aspire dashboard | https://localhost:17113 (the console prints the link with its login token) |
 
+These are the main checkout's ports. In a Kangentic task worktree, `/preview` starts the stack with `--isolated`, so
+every port is a random free one and parallel tasks never collide; it prints the real URLs, and
+`dotnet aspire describe` lists them.
+
 Sign in to the dashboard with **Dev SSO**: "Avery Quinn" owns the seeded Brightwater Studio, with open jobs on their
 boards, a draft to publish, a closed job, candidates in every pipeline stage and synthetic applicants at every
 verification level. Any other email address starts a new account. Nothing needs a real account or key: email, sign-in

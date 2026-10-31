@@ -173,7 +173,7 @@
   ];
   const jobTabs: RecordTab[] = [
     { value: 'candidates', label: 'Candidates', count: 24 },
-    { value: 'distribution', label: 'Distribution', count: 7, of: 8, countLabel: 'posted on 7 of 8 boards' },
+    { value: 'postings', label: 'Postings', count: 7, of: 8, countLabel: 'posted on 7 of 8 boards' },
     { value: 'details', label: 'Details' },
   ];
   let candidateTab = $state('overview');

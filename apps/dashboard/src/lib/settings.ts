@@ -1,4 +1,4 @@
-import BookmarkIcon from '@lucide/svelte/icons/bookmark';
+import GlobeIcon from '@lucide/svelte/icons/globe';
 import Building2Icon from '@lucide/svelte/icons/building-2';
 import HashIcon from '@lucide/svelte/icons/hash';
 import KeyRoundIcon from '@lucide/svelte/icons/key-round';
@@ -16,25 +16,36 @@ import type { LucideIcon } from '#lib/shell.js';
 export const teamPath = '/v1/organization/team';
 
 /**
- * The Settings menu's pages (design system section 11), each with the permission its changes need: the sidebar's one
- * Settings item opens the first the person may use, and the command palette lists those. Kept apart from `sections`,
- * which every member sees and which the G chords read. Email templates live on the Templates page (section 21), and
- * their old addresses here redirect there.
+ * The Settings menu's pages (design system section 11), each with the permission its changes need, in three groups the
+ * menu heads with their names: the organization and its people, how hiring looks and works, and what connects to it.
+ * The sidebar's one Settings item opens the first page the person may use, and the command palette lists those. Kept
+ * apart from `sections`, which every member sees and which the G chords read. Email templates live on the Templates
+ * page (section 21), and their old addresses here redirect there.
  */
-export const settingsSections: readonly { label: string; href: string; icon: LucideIcon; permission: Permission; allJobs?: true }[] = [
-  { label: 'Organization', href: '/settings/organization', icon: Building2Icon, permission: 'EditSettings' },
-  { label: 'Team', href: '/settings/team', icon: UsersRoundIcon, permission: 'ManageTeam' },
-  { label: 'Roles', href: '/settings/roles', icon: ShieldUserIcon, permission: 'ManageTeam' },
-  { label: 'Branding', href: '/settings/branding', icon: PaletteIcon, permission: 'EditSettings' },
-  { label: 'Verification', href: '/settings/verification', icon: ShieldCheckIcon, permission: 'EditSettings' },
-  { label: 'Talent pool', href: '/settings/talent-pool', icon: BookmarkIcon, permission: 'EditSettings' },
-  { label: 'API keys', href: '/settings/api-keys', icon: KeyRoundIcon, permission: 'ManageApiKeys', allJobs: true },
-  { label: 'Webhooks', href: '/settings/webhooks', icon: WebhookIcon, permission: 'ManageWebhooks', allJobs: true },
-  // The MCP server signs in with an API key, so it needs what API keys need.
-  { label: 'MCP server', href: '/settings/mcp-server', icon: PlugIcon, permission: 'ManageApiKeys', allJobs: true },
+export type SettingsGroup = 'Organization' | 'Hiring' | 'Integrations';
+
+export const settingsSections: readonly {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+  permission: Permission;
+  group: SettingsGroup;
+  allJobs?: true;
+}[] = [
+  // The group is Organization, so its first page is General: the name, where the data lives and when it was created.
+  { label: 'General', href: '/settings/organization', icon: Building2Icon, permission: 'EditSettings', group: 'Organization' },
+  { label: 'Team', href: '/settings/team', icon: UsersRoundIcon, permission: 'ManageTeam', group: 'Organization' },
+  { label: 'Roles', href: '/settings/roles', icon: ShieldUserIcon, permission: 'ManageTeam', group: 'Organization' },
+  { label: 'Careers site', href: '/settings/careers-site', icon: GlobeIcon, permission: 'EditSettings', group: 'Hiring' },
+  { label: 'Branding', href: '/settings/branding', icon: PaletteIcon, permission: 'EditSettings', group: 'Hiring' },
+  { label: 'Verification', href: '/settings/verification', icon: ShieldCheckIcon, permission: 'EditSettings', group: 'Hiring' },
   // A channel post reaches everyone in the channel, whatever jobs they see, so Slack needs all jobs too. Each person links
   // their own account from their menu (SlackAccountSheet), not here.
-  { label: 'Slack', href: '/settings/slack', icon: HashIcon, permission: 'ManageIntegrations', allJobs: true },
+  { label: 'Slack', href: '/settings/slack', icon: HashIcon, permission: 'ManageIntegrations', group: 'Integrations', allJobs: true },
+  // The MCP server signs in with an API key, so it needs what API keys need.
+  { label: 'MCP server', href: '/settings/mcp-server', icon: PlugIcon, permission: 'ManageApiKeys', group: 'Integrations', allJobs: true },
+  { label: 'Webhooks', href: '/settings/webhooks', icon: WebhookIcon, permission: 'ManageWebhooks', group: 'Integrations', allJobs: true },
+  { label: 'API keys', href: '/settings/api-keys', icon: KeyRoundIcon, permission: 'ManageApiKeys', group: 'Integrations', allJobs: true },
 ];
 
 /**
