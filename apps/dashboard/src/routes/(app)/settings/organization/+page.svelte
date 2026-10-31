@@ -232,7 +232,7 @@
             <h3 class="font-semibold">Embed code</h3>
             <CodeBlock code={snippet(detail)} label="Embed code" />
             <p class="text-muted-foreground">
-              Paste it where the jobs should go. Candidates apply inside your site, with the same notice and Verification checks.
+              Paste it where the jobs should go, for the same notice and Verification checks inside your site.
             </p>
           </div>
         {/if}
