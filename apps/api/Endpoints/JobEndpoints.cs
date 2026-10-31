@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Content;
+using ScreenHire.Infrastructure.Content;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Api.Realtime;
@@ -245,10 +246,18 @@ internal static class JobEndpoints
             return tooLong;
         }
 
+        // A description that sanitizes to what is stored keeps the stored string: the editor's HTML, an API client's and an
+        // older row's differ from the canonical form in markup only, and a save that changes nothing records nothing.
+        var description = RichText.Sanitize(request.Description);
+        if (description == RichText.Sanitize(job.Description))
+        {
+            description = job.Description;
+        }
+
         var content = new JobSnapshot(
             request.Title?.Trim() ?? "",
             request.Slug?.Trim() ?? job.Slug,
-            RichText.Sanitize(request.Description),
+            description,
             Text.NullIfBlank(request.Department),
             request.EmploymentType,
             request.WorkplaceType,

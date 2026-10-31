@@ -5,11 +5,13 @@ using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Applications;
+using ScreenHire.Application.Branding;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.History;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Infrastructure.Content;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Persistence.History;
@@ -144,7 +146,8 @@ internal static class EmailEndpoints
             return TypedResults.ValidationProblem(problems);
         }
 
-        if (renderer.Validate(null, new(request.Subject, request.Body)).ToProblems() is { } wording)
+        var body = RichText.Sanitize(request.Body);
+        if (renderer.Validate(null, new(request.Subject, body)).ToProblems() is { } wording)
         {
             return TypedResults.ValidationProblem(wording);
         }
@@ -156,7 +159,7 @@ internal static class EmailEndpoints
                 statusCode: StatusCodes.Status409Conflict);
         }
 
-        var template = EmailTemplate.CreateCustom(tenant.OrganizationId!.Value, request.Name.Trim(), request.Subject, request.Body, time.GetUtcNow());
+        var template = EmailTemplate.CreateCustom(tenant.OrganizationId!.Value, request.Name.Trim(), request.Subject, body, time.GetUtcNow());
         db.EmailTemplates.Add(template);
         await db.SaveChangesAsync(cancellationToken);
         var created = await store.FindAsync(db, template.Key, cancellationToken);
@@ -201,7 +204,15 @@ internal static class EmailEndpoints
             return TypedResults.ValidationProblem(ValidationExtensions.Problem("name", "A built-in template keeps its name; leave it out."));
         }
 
-        if (renderer.Validate(templateId, new(request.Subject, request.Body)).ToProblems() is { } wording)
+        // A body that sanitizes to what is stored keeps the stored string, so a save that changes nothing records nothing.
+        var body = RichText.Sanitize(request.Body);
+        var stored = row?.Body ?? (builtIn ? renderer.Default(templateId).Body : null);
+        if (stored is not null && body == RichText.Sanitize(stored))
+        {
+            body = stored;
+        }
+
+        if (renderer.Validate(templateId, new(request.Subject, body)).ToProblems() is { } wording)
         {
             return TypedResults.ValidationProblem(wording);
         }
@@ -209,13 +220,13 @@ internal static class EmailEndpoints
         var now = time.GetUtcNow();
         if (row is null)
         {
-            db.EmailTemplates.Add(EmailTemplate.Reword(tenant.OrganizationId!.Value, templateId, request.Subject, request.Body, now));
+            db.EmailTemplates.Add(EmailTemplate.Reword(tenant.OrganizationId!.Value, templateId, request.Subject, body, now));
         }
         else
         {
             row.Name = builtIn ? null : request.Name?.Trim() ?? row.Name;
             row.Subject = request.Subject;
-            row.Body = request.Body;
+            row.Body = body;
             row.UpdatedAt = now;
         }
 
@@ -230,7 +241,7 @@ internal static class EmailEndpoints
             db.ChangeTracker.Clear();
             var added = await db.EmailTemplates.SingleAsync(t => t.BuiltInId == templateId, cancellationToken);
             added.Subject = request.Subject;
-            added.Body = request.Body;
+            added.Body = body;
             added.UpdatedAt = now;
             await db.SaveChangesAsync(cancellationToken);
         }
@@ -331,10 +342,11 @@ internal static class EmailEndpoints
         IValidator<EmailTemplateDraft> validator,
         ScreenHireDbContext db,
         EmailTemplates renderer,
+        EmailHeaders headers,
         ITenantContext tenant,
         CancellationToken cancellationToken)
     {
-        if (await RenderDraftAsync(request, validator, db, renderer, tenant, "preview@example.com", cancellationToken) is not { } message)
+        if (await RenderDraftAsync(request, validator, db, renderer, headers, tenant, "preview@example.com", cancellationToken) is not { } message)
         {
             return TypedResults.ValidationProblem(await DraftProblemsAsync(request, validator, renderer, cancellationToken));
         }
@@ -349,6 +361,7 @@ internal static class EmailEndpoints
         IValidator<EmailTemplateDraft> validator,
         ScreenHireDbContext db,
         EmailTemplates renderer,
+        EmailHeaders headers,
         ITenantContext tenant,
         IServiceProvider services,
         CancellationToken cancellationToken)
@@ -359,7 +372,7 @@ internal static class EmailEndpoints
         }
 
         var to = await db.Users.AsNoTracking().Where(u => u.Id == tenant.UserId).Select(u => u.Email).SingleAsync(cancellationToken);
-        if (to is null || await RenderDraftAsync(request, validator, db, renderer, tenant, to, cancellationToken) is not { } message)
+        if (to is null || await RenderDraftAsync(request, validator, db, renderer, headers, tenant, to, cancellationToken) is not { } message)
         {
             return TypedResults.ValidationProblem(await DraftProblemsAsync(request, validator, renderer, cancellationToken));
         }
@@ -375,6 +388,7 @@ internal static class EmailEndpoints
         IValidator<ApplicationEmailDraft> validator,
         ScreenHireDbContext db,
         EmailTemplates renderer,
+        EmailHeaders headers,
         CancellationToken cancellationToken)
     {
         if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
@@ -392,7 +406,7 @@ internal static class EmailEndpoints
             .Where(a => a.Id == request.ApplicationId)
             .Join(db.Jobs, a => a.JobId, j => j.Id, (a, j) => new { Application = a, Job = j })
             .Join(db.Candidates, x => x.Application.CandidateId, c => c.Id, (x, c) => new { x.Application, x.Job, Candidate = c })
-            .Join(db.Organizations, x => x.Application.OrganizationId, o => o.Id, (x, o) => new { x.Application, x.Job, x.Candidate, Organization = o.Name })
+            .Join(db.Organizations, x => x.Application.OrganizationId, o => o.Id, (x, o) => new { x.Application, x.Job, x.Candidate, Organization = o })
             .SingleOrDefaultAsync(cancellationToken);
         if (row is null)
         {
@@ -400,8 +414,9 @@ internal static class EmailEndpoints
         }
 
         var model = ApplicationEmails.ModelFor(
-            row.Candidate, row.Job.Title, row.Organization, row.Job.Workflow.FindStage(row.Application.CurrentStageId)?.Name);
-        return TypedResults.Ok(renderer.Render(content, row.Candidate.Email, model).ToPreview());
+            row.Candidate, row.Job.Title, row.Organization.Name, row.Job.Workflow.FindStage(row.Application.CurrentStageId)?.Name);
+        var header = await headers.ForAsync(db, row.Organization, cancellationToken);
+        return TypedResults.Ok(renderer.Render(content, row.Candidate.Email, model, header: header).ToPreview());
     }
 
     // One copy and one message per application, in one transaction with nothing else. Each copy is the email rendered
@@ -414,6 +429,7 @@ internal static class EmailEndpoints
         IDbContextOutbox<ScreenHireDbContext> outbox,
         EmailTemplateStore store,
         EmailTemplates renderer,
+        EmailHeaders headers,
         ITenantContext tenant,
         TimeProvider time,
         IServiceProvider services,
@@ -456,7 +472,8 @@ internal static class EmailEndpoints
                 "applicationIds", "One or more of these applications does not exist, or belongs to another organization."));
         }
 
-        var organization = await db.Organizations.AsNoTracking().Where(o => o.Id == tenant.OrganizationId).Select(o => o.Name).SingleAsync(cancellationToken);
+        var organization = await db.Organizations.AsNoTracking().SingleAsync(o => o.Id == tenant.OrganizationId, cancellationToken);
+        var header = await headers.ForAsync(db, organization, cancellationToken);
         var now = time.GetUtcNow();
         var skipped = 0;
         foreach (var row in rows)
@@ -469,8 +486,8 @@ internal static class EmailEndpoints
             }
 
             var copy = ApplicationEmails.Prepare(
-                renderer, row.Application, row.Candidate, row.Job.Title, organization, stage?.Name, request.TemplateId, content,
-                Guid.CreateVersion7(), now);
+                renderer, row.Application, row.Candidate, row.Job.Title, organization.Name, stage?.Name, request.TemplateId, content,
+                header, Guid.CreateVersion7(), now);
             db.ApplicationEmails.Add(copy);
             await outbox.PublishAsync(new SendApplicationEmail(row.Application.OrganizationId, row.Application.Id, copy.Id, tenant.UserId!.Value));
         }
@@ -534,6 +551,7 @@ internal static class EmailEndpoints
         IValidator<EmailTemplateDraft> validator,
         ScreenHireDbContext db,
         EmailTemplates renderer,
+        EmailHeaders headers,
         ITenantContext tenant,
         string to,
         CancellationToken cancellationToken)
@@ -544,8 +562,10 @@ internal static class EmailEndpoints
             return null;
         }
 
-        var organization = await db.Organizations.AsNoTracking().Where(o => o.Id == tenant.OrganizationId).Select(o => o.Name).SingleAsync(cancellationToken);
-        return renderer.Render(new EmailTemplateContent(request.Subject, request.Body), to, EmailTemplateModel.Sample(organization), request.TemplateId);
+        var organization = await db.Organizations.AsNoTracking().SingleAsync(o => o.Id == tenant.OrganizationId, cancellationToken);
+        return renderer.Render(
+            new EmailTemplateContent(request.Subject, request.Body), to, EmailTemplateModel.Sample(organization.Name), request.TemplateId,
+            await headers.ForAsync(db, organization, cancellationToken));
     }
 
     private static async Task<IDictionary<string, string[]>> DraftProblemsAsync(

@@ -5,6 +5,7 @@ import { pickCountry } from '../../test-support/countries.js';
 import { apiStub, jobId } from '../../test-support/fixtures.js';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
 import JobDetailsForm from './job-details-form.svelte';
+import { editRichText } from '../../test-support/rich-text.js';
 
 const description = '<p>Join our payments team.</p><ul><li>Ship features.</li></ul>';
 
@@ -82,14 +83,14 @@ describe('job details form', () => {
     expect(bodies[0]).toMatchObject({ workplaceType: 'Remote', applicantLocationRequirements: ['IE', 'FR'], locations: null });
   });
 
-  it('moves a job on site and rewrites its description from the text box', async () => {
+  it('moves a job on site and rewrites its description in the editor', async () => {
     const { bodies } = renderForm();
     const form = await screen.findByRole('form', { name: 'Edit job details' });
 
     await fireEvent.change(within(form).getByLabelText('Workplace'), { target: { value: 'Onsite' } });
     await fireEvent.input(await within(form).findByLabelText('City'), { target: { value: 'Leeds' } });
     await fireEvent.change(within(form).getByLabelText('Country'), { target: { value: 'GB' } });
-    await fireEvent.input(within(form).getByLabelText('Description'), { target: { value: 'Run payouts.\n\nOffice in Leeds.' } });
+    editRichText(within(form).getByRole('textbox', { name: 'Description' }), '<h2>Payouts</h2><p>Run <strong>payouts</strong>.</p><ul><li>Office in Leeds.</li></ul>');
     await fireEvent.click(within(form).getByRole('button', { name: 'Save details' }));
 
     await waitFor(() => expect(bodies).toHaveLength(1));
@@ -97,7 +98,7 @@ describe('job details form', () => {
       workplaceType: 'Onsite',
       applicantLocationRequirements: null,
       locations: [{ city: 'Leeds', region: null, country: 'GB' }],
-      description: '<p>Run payouts.</p><p>Office in Leeds.</p>',
+      description: '<h2>Payouts</h2><p>Run <strong>payouts</strong>.</p><ul><li><p>Office in Leeds.</p></li></ul>',
     });
   });
 

@@ -45,7 +45,11 @@ public static class EmailTemplateChanges
 
         if (body != after.Body)
         {
-            lines.Add(ChangeLine.Plain("changed the message", [new("Message", body, after.Body, ChangeValueKind.Paragraphs)]));
+            // The message is rich text: bold, a heading or a list changes the HTML but not the words.
+            var (was, now) = (RichTextToPlain.Convert(body), RichTextToPlain.Convert(after.Body));
+            lines.Add(was == now
+                ? ChangeLine.Plain("changed the formatting of the message")
+                : ChangeLine.Plain("changed the message", [new("Message", was, now, ChangeValueKind.Paragraphs)]));
         }
 
         if (Archive.Line(before?.ArchivedAt, after.ArchivedAt, "template") is { } archive)
@@ -61,7 +65,7 @@ public static class EmailTemplateChanges
         .. new[]
         {
             new ChangeDetail("Subject", subjectBefore, subjectAfter),
-            new ChangeDetail("Message", bodyBefore, bodyAfter, ChangeValueKind.Paragraphs),
+            new ChangeDetail("Message", RichTextToPlain.Convert(bodyBefore), RichTextToPlain.Convert(bodyAfter), ChangeValueKind.Paragraphs),
         }.Where(d => d.Before != d.After),
     ];
 }

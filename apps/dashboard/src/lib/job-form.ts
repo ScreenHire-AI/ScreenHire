@@ -1,5 +1,4 @@
 import type { JobLocation, SalaryPeriod, WorkplaceType } from '@screenhire/api-client';
-import { paragraphs } from './forms.js';
 
 // The posting fields the New job page and the Edit details form share, checked as JobPublishValidator and
 // JobContentValidator will check them, so a job made or edited in the dashboard can be published.
@@ -143,24 +142,3 @@ export function currencyOptions(locales: readonly string[], current: string): { 
     })
     .toSorted((a, b) => a.label.localeCompare(b.label, [...locales]));
 }
-
-/**
- * A job description's HTML as plain paragraphs for a text box: a block per paragraph, heading or list item (list items
- * start with "- "), separated by blank lines. {@link paragraphs} turns the text back into HTML: paragraphs and lists come
- * back as they were, headings as paragraphs.
- */
-export function descriptionText(html: string): string {
-  const document = new DOMParser().parseFromString(html, 'text/html');
-  const blocks: string[] = [];
-  for (const element of document.body.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li')) {
-    if (element.querySelector('p, li')) continue; // a wrapper; its children are blocks of their own
-    const line = (element.textContent ?? '').replace(/\s+/g, ' ').trim();
-    if (line) blocks.push(element.tagName === 'LI' ? `- ${line}` : line);
-  }
-
-  return blocks.length > 0 ? blocks.join('\n\n') : (document.body.textContent ?? '').trim();
-}
-
-/** The description to send: the job's own HTML when the text was not changed, so its formatting survives. */
-export const descriptionBody = (text: string, original: { html: string; text: string }): string | null =>
-  text === original.text ? original.html : text.trim() ? paragraphs(text) : null;

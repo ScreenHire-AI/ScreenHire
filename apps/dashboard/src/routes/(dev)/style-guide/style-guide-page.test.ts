@@ -74,6 +74,7 @@ const panels: Record<string, string[]> = {
   'Secret dialog': ['Secret dialog'],
   'Email preview': ['Email preview'],
   'Email composer': ['Email composer'],
+  'Add candidate sheet': ['Add candidate sheet'],
   'Live indicator': ['Live indicator'],
   'Integrity chip and panel': ['Integrity chip and evidence'],
   Tabs: ['Tabs'],
@@ -96,6 +97,10 @@ const panels: Record<string, string[]> = {
   'Filter menu': ['Filter menu'],
   Picker: ['Picker'],
   'Country picker': ['Country picker'],
+  'Rich text editor': ['Rich text editor'],
+  'Colour field': ['Colour field'],
+  'Image field': ['Image field'],
+  'Branding preview': ['Branding preview'],
 };
 
 // The page draws the whole catalogue, which grows with each component, and axe walks all of it: more than Vitest's 5

@@ -9,6 +9,7 @@ using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Endpoints;
 using ScreenHire.Application.Applications;
+using ScreenHire.Application.Branding;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Integrity;
 using ScreenHire.Application.Jobs;
@@ -17,6 +18,7 @@ using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Infrastructure.Content;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Integrity;
 using ScreenHire.Infrastructure.Persistence;
@@ -381,13 +383,14 @@ internal sealed partial class DevelopmentDemo(
             return;
         }
 
-        var organization = await db.Organizations.AsNoTracking().Where(o => o.Id == step.OrganizationId).Select(o => o.Name).SingleAsync(cancellationToken);
+        var organization = await db.Organizations.AsNoTracking().SingleAsync(o => o.Id == step.OrganizationId, cancellationToken);
+        var header = await step.Services.GetRequiredService<EmailHeaders>().ForAsync(db, organization, cancellationToken);
         var body = template.Body.Replace(
             "We would like to invite you to an interview.", $"{OneOffEmailSentence} We would like to invite you to an interview.", StringComparison.Ordinal);
         var copy = ApplicationEmails.Prepare(
-            step.Services.GetRequiredService<EmailTemplates>(), row.Application, row.Candidate, row.Job.Title, organization,
+            step.Services.GetRequiredService<EmailTemplates>(), row.Application, row.Candidate, row.Job.Title, organization.Name,
             row.Job.Workflow.FindStage(row.Application.CurrentStageId)?.Name, templateId, new EmailTemplateContent(template.Subject, body),
-            Guid.CreateVersion7(), step.Now);
+            header, Guid.CreateVersion7(), step.Now);
         db.ApplicationEmails.Add(copy);
         await step.Outbox.PublishAsync(new SendApplicationEmail(row.Application.OrganizationId, row.Application.Id, copy.Id, avery));
         await step.Outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
@@ -645,8 +648,9 @@ internal sealed partial class DevelopmentDemo(
                 {
                     var template = EmailTemplate.CreateCustom(
                         step.OrganizationId, InterviewEmailName, "Interview for {{ jobTitle }}",
-                        "Hi {{ firstName }},\n\nThank you for applying for {{ jobTitle }}. We would like to invite you to an interview. " +
-                        "Someone from our team will contact you within two working days to find a time that suits you.\n\n{{ organizationName }}",
+                        RichText.Sanitize(
+                            "Hi {{ firstName }},\n\nThank you for applying for {{ jobTitle }}. We would like to invite you to an interview. " +
+                            "Someone from our team will contact you within two working days to find a time that suits you.\n\n{{ organizationName }}"),
                         step.Now);
                     db.EmailTemplates.Add(template);
                     await db.SaveChangesAsync(cancellationToken);
@@ -662,9 +666,10 @@ internal sealed partial class DevelopmentDemo(
                 {
                     db.EmailTemplates.Add(EmailTemplate.Reword(
                         step.OrganizationId, EmailTemplateIds.ApplicationRejected, RejectionEmailSubject,
-                        "Hi {{ firstName }},\n\nThank you for your time applying for {{ jobTitle }} at {{ organizationName }}. We will not be " +
-                        "taking your application further this time.\n\nThe reason: {{ reason }}\n\nWe wish you the best with your search.\n\n" +
-                        "{{ organizationName }}",
+                        RichText.Sanitize(
+                            "Hi {{ firstName }},\n\nThank you for your time applying for {{ jobTitle }} at {{ organizationName }}. We will not be " +
+                            "taking your application further this time.\n\nThe reason: {{ reason }}\n\nWe wish you the best with your search.\n\n" +
+                            "{{ organizationName }}"),
                         step.Now));
                     await db.SaveChangesAsync(cancellationToken);
                 }

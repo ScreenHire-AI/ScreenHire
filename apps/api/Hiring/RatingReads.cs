@@ -27,11 +27,11 @@ internal static class RatingReads
 
         var scorecards = await db.ApplicationScorecards.AsNoTracking()
             .Where(s => applicationIds.Contains(s.ApplicationId))
-            .Select(s => new { s.ApplicationId, s.ReviewerUserId, s.StageId, s.SubmittedAt, s.Answers })
+            .Select(s => new { s.ApplicationId, s.ReviewerUserId, s.StageId, s.SubmittedAt, s.ScorecardTemplateId, s.Answers })
             .ToListAsync(cancellationToken);
         var given = scorecards
             .Where(s => s.ReviewerUserId == userId)
-            .Select(s => (s.ApplicationId, Scorecard: new GivenScorecard(s.StageId, s.SubmittedAt)));
+            .Select(s => (s.ApplicationId, Scorecard: new GivenScorecard(s.StageId, s.SubmittedAt, s.ScorecardTemplateId)));
         var withheld = await WithheldAsync(db, applicationIds, userId, given, cancellationToken);
         var byApplication = scorecards.ToLookup(s => s.ApplicationId, s => RatingRule.Of(s.Answers));
         return applicationIds.Distinct().ToDictionary(id => id, id => withheld.Contains(id)
@@ -53,15 +53,15 @@ internal static class RatingReads
 
         var given = await db.ApplicationScorecards.AsNoTracking()
             .Where(s => s.ApplicationId == applicationId && s.ReviewerUserId == id)
-            .Select(s => new { s.StageId, s.SubmittedAt })
+            .Select(s => new { s.StageId, s.SubmittedAt, s.ScorecardTemplateId })
             .ToListAsync(cancellationToken);
         return (await WithheldAsync(
-            db, [applicationId], userId, given.Select(s => (applicationId, new GivenScorecard(s.StageId, s.SubmittedAt))), cancellationToken))
+            db, [applicationId], userId, given.Select(s => (applicationId, new GivenScorecard(s.StageId, s.SubmittedAt, s.ScorecardTemplateId))), cancellationToken))
             .Contains(applicationId);
     }
 
-    // The applications among applicationIds where the person has an open Review task assigned to them that their
-    // scorecards have not answered.
+    // The applications among applicationIds where the person has an open Review task, or a scorecard asked of them, that
+    // their scorecards have not answered.
     private static async Task<HashSet<Guid>> WithheldAsync(
         ScreenHireDbContext db,
         IReadOnlyCollection<Guid> applicationIds,
@@ -75,9 +75,9 @@ internal static class RatingReads
         }
 
         var reviews = await db.ApplicationTasks.AsNoTracking()
-            .Where(t => applicationIds.Contains(t.ApplicationId) && t.Kind == ApplicationTaskKind.Review
+            .Where(t => applicationIds.Contains(t.ApplicationId) && (t.Kind == ApplicationTaskKind.Review || t.Kind == ApplicationTaskKind.Scorecard)
                 && t.AssigneeUserId == id && t.CompletedAt == null)
-            .Select(t => new { t.ApplicationId, t.StageId, t.CreatedAt })
+            .Select(t => new { t.ApplicationId, t.StageId, t.CreatedAt, t.ScorecardTemplateId })
             .ToListAsync(cancellationToken);
         if (reviews.Count == 0)
         {
@@ -96,7 +96,7 @@ internal static class RatingReads
             .. reviews.GroupBy(r => r.ApplicationId)
                 .Where(g => ReviewerGate.Withholds(
                     g.Select(r => new OpenReview(
-                        r.StageId, r.CreatedAt, r.StageId is { } stage && workflows[g.Key].FindStage(stage)?.Scorecard is not null)),
+                        r.StageId, r.CreatedAt, r.StageId is { } stage && workflows[g.Key].FindStage(stage)?.Scorecard is not null, r.ScorecardTemplateId)),
                     mine[g.Key]))
                 .Select(g => g.Key),
         ];

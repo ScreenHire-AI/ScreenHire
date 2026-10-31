@@ -14,6 +14,8 @@
     createListCandidateEmails,
     createListEmailTemplates,
     createGetJobHiringTeam,
+    createListRoles,
+    createListScorecardTemplates,
     createListTeamMembers,
   } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
@@ -22,6 +24,7 @@
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
   import ActivityPanel from '#lib/components/candidate/activity-panel.svelte';
+  import AskScorecardSheet from '#lib/components/ask-scorecard-sheet.svelte';
   import PhoneIcon from '@lucide/svelte/icons/phone';
   import ApplicationTab from '#lib/components/candidate/application-tab.svelte';
   import MessagesTab from '#lib/components/candidate/messages-tab.svelte';
@@ -60,6 +63,8 @@
   import { can } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { applicationsPath } from '#lib/realtime.js';
+  import { choiceFor, defaultChoice, scorecardChoices } from '#lib/scorecard-choices.js';
+  import { membersWith } from '#lib/team.js';
   import type { PageProps } from './$types';
 
   let { params }: PageProps = $props();
@@ -101,8 +106,11 @@
   const mayMove = $derived(can(page.data.user, 'MoveCandidates'));
   const mayNote = $derived(can(page.data.user, 'AddNotesAndTags'));
   const mayScore = $derived(can(page.data.user, 'FillInScorecards'));
+  const mayAsk = $derived(can(page.data.user, 'CreateTasks'));
   let moveNoteOpen = $state(false);
   let scorecardOpen = $state(false);
+  let scorecardInitial = $state<string | undefined>();
+  let askOpen = $state(false);
   let scorecardAnnouncement = $state('');
   // The job's workflow names the stages and labels the questions.
   const job = createGetJob(
@@ -142,20 +150,50 @@
   const names: ActivityNames = { stageName, followUpName };
   const entries = $derived(timeline.data?.data);
 
-  // A reviewer scores a stage that has a scorecard, that the application has reached, and that they have not scored yet;
-  // the current stage first.
+  // Fill in offers every scorecard the reader can still give: the stages the application reached that have one (the
+  // current stage first), then the library's, given at the current stage. A link names one (?scorecard=, My tasks' row
+  // for a requested scorecard), and the sheet opens on it.
+  const library = createListScorecardTemplates();
+  const linkedScorecard = $derived(page.url.searchParams.get('scorecard'));
   const reached = $derived(
     new Set([
       ...(detail ? [detail.stage.id] : []),
-      ...(entries ?? []).filter((entry) => entry.type === 'Submitted' || entry.type === 'StageChanged').map((entry) => entry.toStageId),
+      ...(entries ?? []).filter((entry) => entry.type === 'Submitted' || entry.type === 'StageChanged').flatMap((entry) => entry.toStageId ?? []),
     ]),
   );
-  const scoredByMe = $derived(new Set((scorecards.data?.data ?? []).filter((card) => card.reviewerUserId === currentUserId).map((card) => card.stageId)));
-  const scoreable = $derived(
-    stages
-      .filter((stage) => stage.scorecard && reached.has(stage.id) && !scoredByMe.has(stage.id))
-      .toSorted((a, b) => Number(b.id === detail?.stage.id) - Number(a.id === detail?.stage.id)),
+  const choices = $derived(
+    scorecardChoices({
+      stages,
+      reached,
+      currentStageId: detail?.stage.id,
+      library: library.data?.data ?? [],
+      mine: (scorecards.data?.data ?? []).filter((card) => card.reviewerUserId === currentUserId),
+      alsoOffer: linkedScorecard,
+    }),
   );
+  // Ask for one names the teammates who can see this job (ADR-0015) and whose role fills in scorecards, never yourself.
+  const roles = createListRoles(() => ({ query: { enabled: mayAsk } }));
+  const teammates = $derived(
+    mentionable && roles.data
+      ? membersWith(mentionable, roles.data.data.roles, 'FillInScorecards').filter((member) => member.userId !== currentUserId)
+      : undefined,
+  );
+
+  function fillIn(value?: string) {
+    scorecardInitial = value ?? defaultChoice(choices, detail?.stage.id)?.value;
+    scorecardOpen = true;
+  }
+
+  // A link to a scorecard opens the sheet on it once everything it needs has loaded, once per visit. A scorecard the
+  // reader gave already offers nothing, so the tab simply shows.
+  let openedFromLink = false;
+  $effect(() => {
+    const key = linkedScorecard;
+    if (!key || openedFromLink || !mayScore || !detail || !job.isSuccess || !scorecards.isSuccess || !timeline.isSuccess || !library.isSuccess) return;
+    openedFromLink = true;
+    const choice = choiceFor(choices, key);
+    if (choice) fillIn(choice.value);
+  });
 
   // A count on each tab where one fits (E2). When the authenticity level needs a look, Integrity's count is the signals
   // behind it, in the same grey as every tab, and the level is the candidate's status beside the name (W7).
@@ -355,13 +393,14 @@
                 {currentUserId}
                 announcement={scorecardAnnouncement}
                 withheld={detail.rating?.state === 'AfterYourScorecard'}
-                onfill={mayScore && scoreable.length > 0 ? () => (scorecardOpen = true) : undefined}
+                onfill={mayScore ? () => fillIn() : undefined}
+                onask={mayAsk ? () => (askOpen = true) : undefined}
               />
             {/if}
           </Tabs.Content>
           <Tabs.Content value="verification" class="flex min-w-0 flex-col gap-5">
             {#if tab === 'verification'}
-              <IntegrityPanel applicationId={detail.id} />
+              <IntegrityPanel applicationId={detail.id} source={detail.source} />
               <ReviewLog applicationId={detail.id} />
             {/if}
           </Tabs.Content>
@@ -397,7 +436,26 @@
     {/if}
 
     {#if mayScore}
-      <ScorecardSheet bind:open={scorecardOpen} applicationId={detail.id} stages={scoreable} ondone={scorecardSubmitted} />
+      <ScorecardSheet
+        bind:open={scorecardOpen}
+        applicationId={detail.id}
+        {choices}
+        initial={scorecardInitial}
+        loadingChoices={library.isPending || scorecards.isPending || !workflow}
+        libraryError={library.error ?? undefined}
+        onretrylibrary={() => library.refetch()}
+        ondone={scorecardSubmitted}
+      />
+    {/if}
+    {#if mayAsk}
+      <AskScorecardSheet
+        bind:open={askOpen}
+        applicationId={detail.id}
+        {teammates}
+        library={library.data?.data ?? []}
+        currentStage={stages.find((stage) => stage.id === detail?.stage.id)}
+        ondone={scorecardSubmitted}
+      />
     {/if}
     {#if mayMove}
       <MoveNoteSheet
