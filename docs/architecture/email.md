@@ -25,6 +25,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/email-composer-sheet.svelte
   - resource: apps/dashboard/src/lib/components/candidate/messages-tab.svelte
   - resource: src/ScreenHire.Application/Applications/ApplicationNotes.cs
+  - resource: src/ScreenHire.Infrastructure/Email/EmailHeader.cs
 ---
 # Email to candidates
 
@@ -59,7 +60,10 @@ render, the template's own addresses and the questionnaire link become links tha
 cannot carry a script, an image or a tracking pixel, and a candidate's name cannot inject markup. A link may have its
 own text ("Apply here"), and the text part then prints its address after it; a link's address may not hold a variable,
 so a candidate's details never go to another site in a URL. ScreenHire adds no click tracking. The text part is the
-HTML as plain text. In the dashboard, each variable in the message is a chip. The rendered subject is one line, cut at
+HTML as plain text. In the dashboard, each variable in the message is a chip. ScreenHire puts the organization's header
+first in the HTML part, after the body is sanitized: its logo, a plain image at one address for every recipient, or its
+name, on its second colour (`EmailHeader`, [branding.md](branding.md) section 6). That logo is the only image an email
+carries, and a template cannot add one. The rendered subject is one line, cut at
 1,000 characters (`ApplicationEmail.MaxSubjectLength`): variables can make it far longer than its 200-character wording.
 
 `EmailTemplates.Validate` checks wording on every save, preview and test send:

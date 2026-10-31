@@ -32,7 +32,7 @@ sources:
 Anything people edit says who updated it last and how long ago, and its History sheet lists every change in plain
 words (design system T6). This doc is how that is recorded and read. History covers configuration only: hiring
 templates, email templates, scorecard templates, jobs, custom roles and the organization's settings today: its name,
-its brand colour and its integrity settings, each with a history of its own (`/v1/organization/history`,
+its branding and its integrity settings, each with a history of its own (`/v1/organization/history`,
 `/branding/history`, `/integrity-settings/history`). Built-in roles never change, so they have no history. A webhook
 endpoint has none either: its row holds the signing secret, which the allow-list keeps out (Secrets, below), so its page
 shows when it was added and when its secret was last rotated instead. It never holds
@@ -153,7 +153,7 @@ of the dashboard names people (`personName`: "you", the current name, "a former 
 1. Add a `ChangeSubjectKind` value.
 2. Add one line to `TrackedKinds.All`: the entity, its subject id and its describer. A describer that needs only the
    entity before and after is a plain function; reuse `DefinitionChanges` for questions. One entity can feed two
-   histories (the organization row: its name and its brand colour), one line each, when each describer returns no
+   histories (the organization row: its name and its branding), one line each, when each describer returns no
    lines for the other's changes.
 3. Add a `GET .../{id}/history` route in the kind's area with `ChangeHistoryRoutes`, after the area's own visibility
    check.

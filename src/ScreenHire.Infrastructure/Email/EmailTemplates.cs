@@ -1,5 +1,7 @@
 using System.Collections.Frozen;
+using System.Globalization;
 using System.Net;
+using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.RegularExpressions;
 using System.Text.Unicode;
@@ -10,6 +12,7 @@ using Fluid.Ast;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Infrastructure.Content;
+using ScreenHire.Domain.Organizations;
 
 namespace ScreenHire.Infrastructure.Email;
 
@@ -174,14 +177,17 @@ public sealed partial class EmailTemplates
     }
 
     /// <summary>The built-in email <paramref name="builtInId"/> in ScreenHire's wording, for <paramref name="to"/>.</summary>
-    public EmailMessage Render(string builtInId, string to, EmailTemplateModel model) => Render(Default(builtInId), to, model, builtInId);
+    public EmailMessage Render(string builtInId, string to, EmailTemplateModel model, EmailHeader? header = null) =>
+        Render(Default(builtInId), to, model, builtInId, header);
 
     /// <summary>
     /// The email <paramref name="content"/> renders for <paramref name="to"/>, as template <paramref name="templateId"/>.
     /// The rejection email always ends with <see cref="AutomatedDecisionNotice"/>, whatever the organization's wording.
-    /// Validate content a person wrote first.
+    /// Validate content a person wrote first. The HTML part starts with <paramref name="header"/>, the organization's
+    /// logo or name; the text part never carries it.
     /// </summary>
-    public EmailMessage Render(EmailTemplateContent content, string to, EmailTemplateModel model, string? templateId = null)
+    public EmailMessage Render(
+        EmailTemplateContent content, string to, EmailTemplateModel model, string? templateId = null, EmailHeader? header = null)
     {
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(model);
@@ -222,7 +228,7 @@ public sealed partial class EmailTemplates
 
         var html = RichText.Sanitize(Finish(rendered, linkable));
         var text = RichText.ToPlainText(html);
-        return new EmailMessage(to, subject, text.ReplaceLineEndings() + Environment.NewLine, ToHtml(html));
+        return new EmailMessage(to, subject, text.ReplaceLineEndings() + Environment.NewLine, ToHtml(html, header));
     }
 
     /// <summary>
@@ -235,12 +241,21 @@ public sealed partial class EmailTemplates
         + $"contact the hiring team at {organizationName} and a person will review your application.";
 
     /// <summary>
-    /// The HTML part: the rendered body in a plain page. Email clients ignore stylesheets and CSS variables, so the few
-    /// styles are inline and literal: the Warm Grid --card and --foreground tokens (packages/ui/src/tokens.css), light.
+    /// The HTML part: the rendered body in a plain page, after <paramref name="header"/> when given: the only image an
+    /// email carries, written by ScreenHire and added after the body is sanitized, never by a template. Email clients
+    /// ignore stylesheets and CSS variables, so the few styles are inline and literal: the Warm Grid --card and
+    /// --foreground tokens (packages/ui/src/tokens.css), light.
     /// </summary>
-    internal static string ToHtml(string content) =>
-        "<!doctype html>\n<html lang=\"en\">\n<body style=\"margin: 16px; background: #ffffff; color: #1c1b19; font-family: sans-serif; line-height: 1.5;\">\n"
-        + content + "\n</body>\n</html>\n";
+    internal static string ToHtml(string content, EmailHeader? header = null)
+    {
+        var html = new StringBuilder("<!doctype html>\n<html lang=\"en\">\n<body style=\"margin: 16px; background: #ffffff; color: #1c1b19; font-family: sans-serif; line-height: 1.5;\">\n");
+        if (header is not null)
+        {
+            AppendHeader(html, header);
+        }
+
+        return html.Append(content).Append("\n</body>\n</html>\n").ToString();
+    }
 
     /// <summary>
     /// The body as Fluid reads it. The stored body is HTML, so inside <c>{{ ... }}</c> and <c>{% ... %}</c> a comparison
@@ -304,6 +319,30 @@ public sealed partial class EmailTemplates
         }
 
         return body.InnerHtml;
+    }
+
+    // A table, because some email clients ignore a div's background. The band is the second colour with white or ink
+    // text, whichever reads better (checked at 4.5:1 before it saved); with no second colour it is white over the Warm
+    // Grid --border token. Colours are written only as #rrggbb.
+    private static void AppendHeader(StringBuilder html, EmailHeader header)
+    {
+        var band = header.Background is { } color && BrandPalette.IsValid(color) ? BrandPalette.Normalize(color) : null;
+        var background = band ?? "#ffffff";
+        var foreground = band is null ? "#1c1b19" : BrandPalette.TextOn(band);
+        var edge = band is null ? " border-bottom: 1px solid #e6e1d8;" : "";
+        html.Append("<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse: collapse; margin: 0 0 24px; background: ")
+            .Append(background).Append(';').Append(edge).Append("\">\n<tr><td style=\"padding: 16px 20px;\">");
+        var name = WebUtility.HtmlEncode(header.OrganizationName);
+        if (header.Logo is { } logo)
+        {
+            html.Append(CultureInfo.InvariantCulture, $"<img src=\"{WebUtility.HtmlEncode(logo.Url)}\" alt=\"{name}\" width=\"{logo.Width}\" height=\"{logo.Height}\" style=\"display: block; border: 0; width: {logo.Width}px; height: {logo.Height}px;\">");
+        }
+        else
+        {
+            html.Append("<strong style=\"font-size: 18px; color: ").Append(foreground).Append(";\">").Append(name).Append("</strong>");
+        }
+
+        html.Append("</td></tr>\n</table>\n");
     }
 
     private IFluidTemplate Parse(string text) =>

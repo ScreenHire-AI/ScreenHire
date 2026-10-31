@@ -60,6 +60,8 @@ public sealed partial class RolePermissionsTests
         ["SendTestEmail"] = Permission.EditEmailTemplates,
         ["UpdateOrganization"] = Permission.EditSettings,
         ["UpdateOrganizationBranding"] = Permission.EditSettings,
+        ["CreateBrandImageUpload"] = Permission.EditSettings,
+        ["VerifyBrandImageUpload"] = Permission.EditSettings,
         ["UpdateOrganizationIntegritySettings"] = Permission.EditSettings,
         ["ListApiKeys"] = Permission.ManageApiKeys,
         ["CreateApiKey"] = Permission.ManageApiKeys,

@@ -37,12 +37,16 @@ import type {
   AutomationIssue,
   AutomationRunEntry,
   BoardSummary,
+  BrandImageUploadRequest,
+  BrandingContrast,
+  BrandingImage,
   CandidateDetail,
   CandidateEmailEntry,
   CandidateSummary,
   ChallengeProviderParams,
   ChangeMemberJobAccessRequest,
   ChangeMemberRoleRequest,
+  CheckBrandingContrastParams,
   CreateApiKeyRequest,
   CreateApplicationRequest,
   CreateApplicationTaskRequest,
@@ -1943,6 +1947,100 @@ export function createGetPublicApplicationForm<TData = Awaited<ReturnType<typeof
 
   const query = createQuery(() => getGetPublicApplicationFormQueryOptions(organizationSlug(),
     jobSlug(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type getPublicBrandImageResponse200 = {
+  data: void
+  status: 200
+}
+
+export type getPublicBrandImageResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicBrandImageResponseSuccess = (getPublicBrandImageResponse200) & {
+  headers: Headers;
+};
+export type getPublicBrandImageResponseError = (getPublicBrandImageResponse404) & {
+  headers: Headers;
+};
+
+export const getGetPublicBrandImageUrl = (organizationSlug: string,
+    imageId: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/branding/images/${imageId}`
+}
+
+export const getPublicBrandImage = async (organizationSlug: string,
+    imageId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getPublicBrandImageResponseSuccess> => {
+
+  return apiQueryFetch<getPublicBrandImageResponseSuccess>(getGetPublicBrandImageUrl(organizationSlug,imageId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicBrandImageQueryKey = (organizationSlug: string,
+    imageId: string,) => {
+    return [
+    'v1','public','organizations',organizationSlug,'branding','images',imageId
+    ] as const;
+    }
+
+
+export const getGetPublicBrandImageQueryOptions = <TData = Awaited<ReturnType<typeof getPublicBrandImage>>, TError = ErrorType<void>>(organizationSlug: string,
+    imageId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getPublicBrandImage>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicBrandImageQueryKey(organizationSlug,imageId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicBrandImage>>> = ({ signal }) => getPublicBrandImage(organizationSlug,imageId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: organizationSlug !== null && organizationSlug !== undefined && imageId !== null && imageId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getPublicBrandImage>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPublicBrandImageQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicBrandImage>>>
+export type GetPublicBrandImageQueryError = ErrorType<void>
+
+
+
+export function createGetPublicBrandImage<TData = Awaited<ReturnType<typeof getPublicBrandImage>>, TError = ErrorType<void>>(
+ organizationSlug: () =>  string,
+    imageId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getPublicBrandImage>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetPublicBrandImageQueryOptions(organizationSlug(),
+    imageId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return query
 }
@@ -8663,6 +8761,408 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return createMutation(() => ({ ...getUpdateOrganizationBrandingMutationOptions(options?.()) }), queryClient);
     }
+
+export type checkBrandingContrastResponse200 = {
+  data: BrandingContrast
+  status: 200
+}
+
+export type checkBrandingContrastResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type checkBrandingContrastResponse401 = {
+  data: void
+  status: 401
+}
+
+export type checkBrandingContrastResponseSuccess = (checkBrandingContrastResponse200) & {
+  headers: Headers;
+};
+export type checkBrandingContrastResponseError = (checkBrandingContrastResponse400 | checkBrandingContrastResponse401) & {
+  headers: Headers;
+};
+
+export const getCheckBrandingContrastUrl = (params?: CheckBrandingContrastParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/branding/contrast?${stringifiedParams}` : `/v1/organization/branding/contrast`
+}
+
+export const checkBrandingContrast = async (params?: CheckBrandingContrastParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<checkBrandingContrastResponseSuccess> => {
+
+  return apiQueryFetch<checkBrandingContrastResponseSuccess>(getCheckBrandingContrastUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getCheckBrandingContrastQueryKey = (params?: CheckBrandingContrastParams,) => {
+    return [
+    'v1','organization','branding','contrast', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getCheckBrandingContrastQueryOptions = <TData = Awaited<ReturnType<typeof checkBrandingContrast>>, TError = ErrorType<HttpValidationProblemDetails | void>>(params?: CheckBrandingContrastParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof checkBrandingContrast>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getCheckBrandingContrastQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof checkBrandingContrast>>> = ({ signal }) => checkBrandingContrast(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof checkBrandingContrast>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type CheckBrandingContrastQueryResult = NonNullable<Awaited<ReturnType<typeof checkBrandingContrast>>>
+export type CheckBrandingContrastQueryError = ErrorType<HttpValidationProblemDetails | void>
+
+
+
+export function createCheckBrandingContrast<TData = Awaited<ReturnType<typeof checkBrandingContrast>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
+ params?: () =>  CheckBrandingContrastParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof checkBrandingContrast>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getCheckBrandingContrastQueryOptions(params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type createBrandImageUploadResponse200 = {
+  data: UploadTicket
+  status: 200
+}
+
+export type createBrandImageUploadResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createBrandImageUploadResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createBrandImageUploadResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type createBrandImageUploadResponseSuccess = (createBrandImageUploadResponse200) & {
+  headers: Headers;
+};
+export type createBrandImageUploadResponseError = (createBrandImageUploadResponse400 | createBrandImageUploadResponse401 | createBrandImageUploadResponse403) & {
+  headers: Headers;
+};
+
+export const getCreateBrandImageUploadUrl = () => {
+
+
+
+
+  return `/v1/organization/branding/images`
+}
+
+export const createBrandImageUpload = async (brandImageUploadRequest: BrandImageUploadRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<createBrandImageUploadResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<createBrandImageUploadResponseSuccess>(getCreateBrandImageUploadUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(brandImageUploadRequest)
+  }
+);}
+
+
+
+
+
+export const getCreateBrandImageUploadMutationKey = () => ['createBrandImageUpload'] as const;
+
+export const getCreateBrandImageUploadMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createBrandImageUpload>>, TError,CreateBrandImageUploadMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof createBrandImageUpload>>, TError,CreateBrandImageUploadMutationVariables, TContext> => {
+
+const mutationKey = getCreateBrandImageUploadMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createBrandImageUpload>>, CreateBrandImageUploadMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createBrandImageUpload(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateBrandImageUploadMutationResult = NonNullable<Awaited<ReturnType<typeof createBrandImageUpload>>>
+    export type CreateBrandImageUploadMutationBody = BrandImageUploadRequest
+    export type CreateBrandImageUploadMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type CreateBrandImageUploadMutationVariables = {data: BrandImageUploadRequest}
+
+    export const createCreateBrandImageUpload = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createBrandImageUpload>>, TError,CreateBrandImageUploadMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof createBrandImageUpload>>,
+        TError,
+        CreateBrandImageUploadMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getCreateBrandImageUploadMutationOptions(options?.()) }), queryClient);
+    }
+
+export type verifyBrandImageUploadResponse200 = {
+  data: BrandingImage
+  status: 200
+}
+
+export type verifyBrandImageUploadResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type verifyBrandImageUploadResponse401 = {
+  data: void
+  status: 401
+}
+
+export type verifyBrandImageUploadResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type verifyBrandImageUploadResponse404 = {
+  data: void
+  status: 404
+}
+
+export type verifyBrandImageUploadResponseSuccess = (verifyBrandImageUploadResponse200) & {
+  headers: Headers;
+};
+export type verifyBrandImageUploadResponseError = (verifyBrandImageUploadResponse400 | verifyBrandImageUploadResponse401 | verifyBrandImageUploadResponse403 | verifyBrandImageUploadResponse404) & {
+  headers: Headers;
+};
+
+export const getVerifyBrandImageUploadUrl = (imageId: string,) => {
+
+
+
+
+  return `/v1/organization/branding/images/${imageId}/verify`
+}
+
+export const verifyBrandImageUpload = async (imageId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<verifyBrandImageUploadResponseSuccess> => {
+
+  return apiQueryFetch<verifyBrandImageUploadResponseSuccess>(getVerifyBrandImageUploadUrl(imageId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getVerifyBrandImageUploadMutationKey = () => ['verifyBrandImageUpload'] as const;
+
+export const getVerifyBrandImageUploadMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof verifyBrandImageUpload>>, TError,VerifyBrandImageUploadMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof verifyBrandImageUpload>>, TError,VerifyBrandImageUploadMutationVariables, TContext> => {
+
+const mutationKey = getVerifyBrandImageUploadMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyBrandImageUpload>>, VerifyBrandImageUploadMutationVariables> = (props) => {
+          const {imageId} = props ?? {};
+
+          return  verifyBrandImageUpload(imageId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type VerifyBrandImageUploadMutationResult = NonNullable<Awaited<ReturnType<typeof verifyBrandImageUpload>>>
+
+    export type VerifyBrandImageUploadMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type VerifyBrandImageUploadMutationVariables = {imageId: string}
+
+    export const createVerifyBrandImageUpload = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof verifyBrandImageUpload>>, TError,VerifyBrandImageUploadMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof verifyBrandImageUpload>>,
+        TError,
+        VerifyBrandImageUploadMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getVerifyBrandImageUploadMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getBrandImageResponse200 = {
+  data: BrandingImage
+  status: 200
+}
+
+export type getBrandImageResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getBrandImageResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getBrandImageResponseSuccess = (getBrandImageResponse200) & {
+  headers: Headers;
+};
+export type getBrandImageResponseError = (getBrandImageResponse401 | getBrandImageResponse404) & {
+  headers: Headers;
+};
+
+export const getGetBrandImageUrl = (imageId: string,) => {
+
+
+
+
+  return `/v1/organization/branding/images/${imageId}`
+}
+
+export const getBrandImage = async (imageId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getBrandImageResponseSuccess> => {
+
+  return apiQueryFetch<getBrandImageResponseSuccess>(getGetBrandImageUrl(imageId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBrandImageQueryKey = (imageId: string,) => {
+    return [
+    'v1','organization','branding','images',imageId
+    ] as const;
+    }
+
+
+export const getGetBrandImageQueryOptions = <TData = Awaited<ReturnType<typeof getBrandImage>>, TError = ErrorType<void>>(imageId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getBrandImage>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBrandImageQueryKey(imageId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBrandImage>>> = ({ signal }) => getBrandImage(imageId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: imageId !== null && imageId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getBrandImage>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetBrandImageQueryResult = NonNullable<Awaited<ReturnType<typeof getBrandImage>>>
+export type GetBrandImageQueryError = ErrorType<void>
+
+
+
+export function createGetBrandImage<TData = Awaited<ReturnType<typeof getBrandImage>>, TError = ErrorType<void>>(
+ imageId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getBrandImage>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetBrandImageQueryOptions(imageId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
 
 export type getOrganizationIntegritySettingsResponse200 = {
   data: OrganizationIntegritySettings

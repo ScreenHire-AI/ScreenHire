@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ScreenHire.Application.Integrity.Content;
 using ScreenHire.Application.Messaging;
@@ -14,19 +15,19 @@ namespace ScreenHire.Application.Applications;
 public sealed record ScanApplicationFile(Guid OrganizationId, Guid ApplicationId, Guid FileId) : ITenantMessage;
 
 /// <summary>
-/// Scans a file a candidate uploaded, given where it is in the applicant uploads container. The hook for a real
-/// scanner (Microsoft Defender for Storage reports through blob index tags; a ClamAV container reads the blob): until
-/// one is configured, <see cref="NoMalwareScanner"/> records that nothing scanned the file.
+/// Scans an uploaded file, given its container (the applicant uploads or the brand images) and where it is in it. The
+/// hook for a real scanner (Microsoft Defender for Storage reports through blob index tags; a ClamAV container reads the
+/// blob): until one is configured, <see cref="NoMalwareScanner"/> records that nothing scanned the file.
 /// </summary>
 public interface IMalwareScanner
 {
-    Task<MalwareScanStatus> ScanAsync(string blobName, CancellationToken cancellationToken);
+    Task<MalwareScanStatus> ScanAsync(string container, string blobName, CancellationToken cancellationToken);
 }
 
 /// <summary>The local adapter: no scanner is configured, so every file is <see cref="MalwareScanStatus.NotScanned"/>.</summary>
 public sealed class NoMalwareScanner : IMalwareScanner
 {
-    public Task<MalwareScanStatus> ScanAsync(string blobName, CancellationToken cancellationToken) =>
+    public Task<MalwareScanStatus> ScanAsync(string container, string blobName, CancellationToken cancellationToken) =>
         Task.FromResult(MalwareScanStatus.NotScanned);
 }
 
@@ -40,6 +41,7 @@ public static partial class ScanApplicationFileHandler
         ScanApplicationFile message,
         ScreenHireDbContext db,
         IMalwareScanner scanner,
+        IConfiguration configuration,
         TimeProvider time,
         ILogger<ScanApplicationFile> logger,
         CancellationToken cancellationToken)
@@ -51,7 +53,7 @@ public static partial class ScanApplicationFileHandler
             return []; // a redelivered message for a file already scanned, whose reading was sent with the scan
         }
 
-        var status = await scanner.ScanAsync(file.BlobName, cancellationToken);
+        var status = await scanner.ScanAsync(ApplicantUploadsContainer.From(configuration), file.BlobName, cancellationToken);
         file.RecordScan(status, time.GetUtcNow());
         LogScanned(logger, file.Id, message.ApplicationId, status);
         return [new ExtractApplicationDocument(message.OrganizationId, message.ApplicationId, file.Id)];

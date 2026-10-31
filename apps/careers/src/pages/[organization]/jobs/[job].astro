@@ -32,7 +32,12 @@ if (jobResponse.status !== 200) {
 // is its board's URL plus /jobs/{slug} (DomainOptions.CareersJobUrl).
 const posting = job
   ? jsonLdScript(
-      buildJobPosting(job, { organizationName: employer.name, boardUrl: job.url.slice(0, job.url.lastIndexOf('/jobs/')), url: job.url }),
+      buildJobPosting(job, {
+        organizationName: employer.name,
+        boardUrl: job.url.slice(0, job.url.lastIndexOf('/jobs/')),
+        url: job.url,
+        logoUrl: employer.branding.logo?.url,
+      }),
     )
   : '';
 const salary = job ? formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency) : null;

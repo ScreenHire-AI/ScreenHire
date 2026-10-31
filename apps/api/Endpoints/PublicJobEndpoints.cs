@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using ScreenHire.Api.Applications;
+using ScreenHire.Api.Branding;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Domain.Applications;
@@ -32,15 +33,19 @@ internal static class PublicJobEndpoints
         group.MapGet("/jobs/{jobSlug}", GetOpenJob).WithName("GetPublicJob").Produces<PublicJob>(StatusCodes.Status410Gone);
         group.MapGet("/jobs/{jobSlug}/application-form", GetApplicationForm).WithName("GetPublicApplicationForm")
             .ProducesProblem(StatusCodes.Status410Gone);
+        group.MapGet("/branding/images/{imageId:guid}", GetBrandImage).WithName("GetPublicBrandImage")
+            .Produces(StatusCodes.Status200OK, contentType: "image/png", additionalContentTypes: ["image/jpeg"]);
 
         return app;
     }
 
     private static async Task<Results<Ok<PublicOrganization>, NotFound>> GetOrganization(
-        string organizationSlug, ScreenHireDbContext db, TenantContext tenant, CancellationToken cancellationToken)
+        string organizationSlug, ScreenHireDbContext db, TenantContext tenant, IOptions<DomainOptions> domains, CancellationToken cancellationToken)
     {
         var organization = await PublicOrganizations.FindAsync(organizationSlug, db, tenant, cancellationToken);
-        return organization is null ? TypedResults.NotFound() : TypedResults.Ok(organization.ToPublic());
+        return organization is null
+            ? TypedResults.NotFound()
+            : TypedResults.Ok(await organization.ToPublicAsync(db, domains.Value, cancellationToken));
     }
 
     private static async Task<Results<Ok<PublicJobBoard>, NotFound>> ListOpenJobs(
@@ -59,7 +64,7 @@ internal static class PublicJobEndpoints
 
         return TypedResults.Ok(new PublicJobBoard(
             organization.Name, organization.Slug, [.. jobs.Select(j => j.ToPublicJob(domains.Value.CareersJobUrl(organization.Slug, j.Slug)))],
-            domains.Value.CareersBoardUrl(organization.Slug), organization.ToPublic().Branding));
+            domains.Value.CareersBoardUrl(organization.Slug), await PublicBrandings.LoadAsync(db, organization, domains.Value, cancellationToken)));
     }
 
     // An open job is 200. A closed job that was once published is 410 Gone with its last content and validThrough set to
@@ -84,6 +89,26 @@ internal static class PublicJobEndpoints
                 job.ToPublicJob(domains.Value.CareersJobUrl(organization.Slug, job.Slug)), statusCode: StatusCodes.Status410Gone),
             _ => TypedResults.Ok(job.ToPublicJob(domains.Value.CareersJobUrl(organization.Slug, job.Slug))),
         };
+    }
+
+    // A brand image's bytes, for the careers pages to serve on their own origin (docs/architecture/branding.md). Only an
+    // image that passed its scan (or that no scanner checked) is served. The bytes never change under an id, so the
+    // answer is cached for a year; it is the same for every caller and carries nothing about who asked.
+    private static async Task<Results<FileStreamHttpResult, NotFound>> GetBrandImage(
+        string organizationSlug, Guid imageId, HttpContext http, ScreenHireDbContext db, TenantContext tenant, BrandImageUploads storage,
+        CancellationToken cancellationToken)
+    {
+        if (await PublicOrganizations.FindAsync(organizationSlug, db, tenant, cancellationToken) is null
+            || await db.BrandImages.AsNoTracking().SingleOrDefaultAsync(i => i.Id == imageId, cancellationToken) is not { IsServable: true } image
+            || await storage.OpenReadAsync(image.BlobName, cancellationToken) is not { } bytes)
+        {
+            return TypedResults.NotFound();
+        }
+
+        http.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+        http.Response.Headers.XContentTypeOptions = "nosniff";
+        http.Response.Headers.ContentSecurityPolicy = "default-src 'none'";
+        return TypedResults.Stream(bytes, image.ContentType);
     }
 
     /// <summary>410 for a job that was published and has closed, where no job content is returned (the apply flow).</summary>
@@ -116,7 +141,7 @@ internal static class PublicJobEndpoints
         }
 
         return TypedResults.Ok(new PublicApplicationForm(
-            organization.ToPublic(),
+            await organization.ToPublicAsync(db, domains.Value, cancellationToken),
             job.ToPublicJob(domains.Value.CareersJobUrl(organization.Slug, job.Slug)),
             [.. ApplicationForm.QuestionsFor(job.Workflow).Select(q => q.ToPublic(FileTypes.AcceptedBy))],
             job.Workflow.IntegrityPolicy.AiUse,
