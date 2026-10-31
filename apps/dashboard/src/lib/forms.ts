@@ -40,31 +40,3 @@ export function countryCodes(text: string): string[] {
 
 /** Whether every code is an ISO 3166-1 alpha-2 code, as the API requires. */
 export const areCountryCodes = (codes: readonly string[]): boolean => codes.every((code) => /^[A-Z]{2}$/.test(code));
-
-/**
- * Plain text as the HTML a job description is: a paragraph per blank-line-separated block, line breaks kept, and every
- * character escaped. Lines that start with "- " are list items, and items in a row make one list, blank lines between
- * them or not. The API sanitizes the result again.
- */
-export function paragraphs(text: string): string {
-  const escape = (value: string) =>
-    value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  let html = '';
-  let items: string[] = [];
-  const endList = () => {
-    if (items.length > 0) html += `<ul>${items.map((item) => `<li>${item}</li>`).join('')}</ul>`;
-    items = [];
-  };
-  for (const block of text.split(/\n\s*\n/).map((part) => part.trim()).filter(Boolean)) {
-    const lines = block.split('\n').map((line) => line.trim());
-    if (lines.every((line) => line.startsWith('- '))) {
-      items.push(...lines.map((line) => escape(line.slice(2).trim())));
-    } else {
-      endList();
-      html += `<p>${lines.map(escape).join('<br>')}</p>`;
-    }
-  }
-
-  endList();
-  return html;
-}

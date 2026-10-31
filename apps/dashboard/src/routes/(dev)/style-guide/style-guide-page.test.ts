@@ -95,6 +95,7 @@ const panels: Record<string, string[]> = {
   'Choice card': ['Choice card'],
   'Filter menu': ['Filter menu'],
   Picker: ['Picker'],
+  'Rich text editor': ['Rich text editor'],
 };
 
 // The page draws the whole catalogue, which grows with each component, and axe walks all of it: more than Vitest's 5

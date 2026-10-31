@@ -5,6 +5,7 @@ import { apiStub } from '../../test-support/fixtures.js';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
 import EmailComposerSheet from './email-composer-sheet.svelte';
 import EmailComposer from './email-composer.svelte';
+import { editRichText } from '../../test-support/rich-text.js';
 
 const recipients = [
   { id: '0199f0c4-0000-7000-8000-00000000000a', candidateName: 'Casey Morgan' },
@@ -106,27 +107,32 @@ describe('email composer', () => {
     await fireEvent.change(start, { target: { value: 'application-received' } });
     const subject = within(sheet).getByLabelText('Subject');
     expect(subject).toHaveValue('Thanks for applying');
-    expect(within(sheet).getByLabelText('Message')).toHaveValue('Hi {{ firstName }},');
+    const message = within(sheet).getByRole('textbox', { name: 'Message' });
+    expect(message).toHaveTextContent('Hi variable First name,');
     expect(within(sheet).queryByText(/Changed for this email only/)).not.toBeInTheDocument();
 
     await fireEvent.input(subject, { target: { value: 'Thanks for applying, {{ firstName }}' } });
     expect(within(sheet).getByText('Changed for this email only. The Application received template stays as it is.')).toBeInTheDocument();
+    await fireEvent.input(subject, { target: { value: 'Thanks for applying' } });
+    expect(within(sheet).queryByText(/Changed for this email only/)).not.toBeInTheDocument();
+    editRichText(message, '<p>Hi {{ firstName }}, <em>welcome</em></p>');
+    expect(await within(sheet).findByText(/Changed for this email only/)).toBeInTheDocument();
   });
 
-  it('inserts a variable at the caret, offering none that only an action fills in', async () => {
+  it('inserts a variable as a chip in the message, offering none that only an action fills in', async () => {
     renderSheet();
     const { sheet } = await openSheet();
-    const body = within(sheet).getByLabelText('Message') as HTMLTextAreaElement;
-    await fireEvent.input(body, { target: { value: 'Hi ,' } });
+    const body = within(sheet).getByRole('textbox', { name: 'Message' });
+    editRichText(body, '<p>Hi ,</p>');
+    body.focus();
     await fireEvent.focus(body);
-    body.setSelectionRange(3, 3);
 
     await fireEvent.pointerDown(within(sheet).getByRole('button', { name: 'Insert variable' }), { button: 0, pointerType: 'mouse' });
     const menu = await screen.findByRole('menu');
     expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Full name', 'First name', 'Job title']);
     await fireEvent.click(within(menu).getByRole('menuitem', { name: 'First name' }));
 
-    await waitFor(() => expect(body).toHaveValue('Hi {{ firstName }},'));
+    await waitFor(() => expect(body.querySelector('[data-liquid]')).toHaveTextContent('First name'));
   });
 
   it('previews the email for the first candidate and keeps the wording to send', async () => {
@@ -139,13 +145,14 @@ describe('email composer', () => {
     expect(within(sheet).getByRole('heading', { name: 'Preview for Casey Morgan' })).toBeInTheDocument();
     await waitFor(() => expect(sheet.querySelector('[data-email-subject]')).toHaveTextContent('Thanks for applying'));
     expect(previews).toEqual([{ applicationId: recipients[0]!.id, subject: 'Thanks for applying', body: 'Hi {{ firstName }},' }]);
+    // The template's HTML goes as it was: only an edit makes the editor write it again.
   });
 
   it('sends a changed template with where it started, and a blank email with no template', async () => {
     const { sends, onsent } = renderSheet();
     const { sheet, start } = await openSheet();
     await fireEvent.change(start, { target: { value: 'application-received' } });
-    await fireEvent.input(within(sheet).getByLabelText('Message'), { target: { value: 'Hi {{ firstName }}, one more thing.' } });
+    editRichText(within(sheet).getByRole('textbox', { name: 'Message' }), '<p>Hi {{ firstName }}, one more thing.</p>');
 
     await fireEvent.click(within(sheet).getByRole('button', { name: 'Send 2 emails' }));
 
@@ -155,7 +162,7 @@ describe('email composer', () => {
         applicationIds: recipients.map((recipient) => recipient.id),
         templateId: 'application-received',
         subject: 'Thanks for applying',
-        body: 'Hi {{ firstName }}, one more thing.',
+        body: '<p>Hi {{ firstName }}, one more thing.</p>',
       },
     ]);
   });
@@ -168,21 +175,21 @@ describe('email composer', () => {
     });
     const box = await screen.findByRole('form', { name: 'Email Casey Morgan' });
     await fireEvent.input(within(box).getByLabelText('Subject'), { target: { value: 'A quick question' } });
-    await fireEvent.input(within(box).getByLabelText('Message'), { target: { value: 'Hi {{ firstName }},' } });
+    editRichText(within(box).getByRole('textbox', { name: 'Message' }), '<p>Hi {{ firstName }},</p>');
 
     await fireEvent.click(within(box).getByRole('button', { name: 'Send' }));
 
     await waitFor(() => expect(onsent).toHaveBeenCalled());
     await waitFor(() => expect(within(box).getByLabelText('Subject')).toHaveValue(''));
-    expect(within(box).getByLabelText('Message')).toHaveValue('');
-    expect(sends).toEqual([{ applicationIds: [recipients[0]!.id], templateId: null, subject: 'A quick question', body: 'Hi {{ firstName }},' }]);
+    await waitFor(() => expect(within(box).getByRole('textbox', { name: 'Message' })).toHaveTextContent(''));
+    expect(sends).toEqual([{ applicationIds: [recipients[0]!.id], templateId: null, subject: 'A quick question', body: '<p>Hi {{ firstName }},</p>' }]);
   });
 
   it('keeps the sheet open with the reason when the send fails', async () => {
     const { onsent } = renderSheet(500);
     const { sheet } = await openSheet();
     await fireEvent.input(within(sheet).getByLabelText('Subject'), { target: { value: 'A quick question' } });
-    await fireEvent.input(within(sheet).getByLabelText('Message'), { target: { value: 'Hi {{ firstName }},' } });
+    editRichText(within(sheet).getByRole('textbox', { name: 'Message' }), '<p>Hi {{ firstName }},</p>');
 
     await fireEvent.click(within(sheet).getByRole('button', { name: 'Send 2 emails' }));
 
