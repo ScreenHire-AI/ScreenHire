@@ -1,4 +1,4 @@
-import type { ApplicationIntegrity } from '@screenhire/api-client';
+import type { ApplicationIntegrity, ApplicationSource } from '@screenhire/api-client';
 import { QueryClient } from '@tanstack/svelte-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -37,8 +37,8 @@ function serve(initial: ApplicationIntegrity, posts: Record<string, (body: unkno
   return sent;
 }
 
-function renderPanel() {
-  return render(WithQueryClient, { props: { component: IntegrityHarness, props: { applicationId: integrityApplicationId } } });
+function renderPanel(source?: ApplicationSource) {
+  return render(WithQueryClient, { props: { component: IntegrityHarness, props: { applicationId: integrityApplicationId, source } } });
 }
 
 const section = (name: string) => screen.getByRole('region', { name });
@@ -95,6 +95,42 @@ describe('integrity panel', () => {
     expect(identity.querySelector('svg.lucide-triangle-alert')).not.toBeInTheDocument();
     // There is no second list of the same reasons.
     expect(authenticity.querySelectorAll('[data-signal="NET_DATACENTER_IP"]')).toHaveLength(1);
+  });
+
+  // A recruiter added them by hand: no careers form, so no network address, session or form telemetry (section 16).
+  it('says which checks had nothing to look at for a candidate added by hand, and marks them Not checked', async () => {
+    const bot = botIntegrity();
+    const duplicate = { ...bot.authenticity!.signals[0]!, id: 'signal-duplicate', code: 'ID_DUPLICATE_EMAIL', title: 'Email used on another application', category: 'Identity' as const };
+    serve({ ...bot, authenticity: { ...bot.authenticity!, level: 'ReviewSuggested', reasonCodes: [duplicate.code], signals: [duplicate] } });
+    renderPanel('Recruiter');
+
+    const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
+    expect(authenticity.querySelector('[data-not-checked]')).toHaveTextContent(
+      'Added by hand, so the network, automation and form activity checks had nothing to look at.',
+    );
+    const check = (name: string) => authenticity.querySelector<HTMLElement>(`[data-check="${name}"]`)!;
+    expect(check('Network')).toHaveTextContent('Not checked');
+    expect(check('Automation')).toHaveTextContent('Not checked');
+    expect(check('Content')).toHaveTextContent('Nothing found');
+    expect(screen.getByRole('region', { name: 'AI assistance' }).querySelector('[data-not-checked]')).toBeNull();
+  });
+
+  it('keeps a calm hand-added result to its summary and one quiet line', async () => {
+    serve(genuineIntegrity());
+    renderPanel('Recruiter');
+
+    const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
+    expect(authenticity.querySelector('[data-not-checked]')).toHaveTextContent(/^Added by hand/);
+    expect(authenticity.querySelector('[data-checks]')).toBeNull();
+  });
+
+  it('never says a careers applicant had checks that could not run', async () => {
+    serve(genuineIntegrity());
+    renderPanel('CareersSite');
+
+    const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
+    expect(authenticity.querySelector('[data-not-checked]')).toBeNull();
+    expect(authenticity).not.toHaveTextContent('Not checked');
   });
 
   it('expands every reason at once and closes them again', async () => {

@@ -104,6 +104,7 @@
   import { sections } from '#lib/shell.js';
   import type { StatusName } from '#lib/status.js';
   import EditPreviewDemo from './edit-preview-demo.svelte';
+  import AddCandidateDemo from './add-candidate-demo.svelte';
   import BrandingDemo from './branding-demo.svelte';
   import EmailComposerDemo, { demoEmail } from './email-composer-demo.svelte';
   import FormBuilderDemo from './form-builder-demo.svelte';
@@ -677,6 +678,9 @@
         </Panel>
         <Panel title="Email composer" class="flex-[1_1_320px]">
           <EmailComposerDemo />
+        </Panel>
+        <Panel title="Add candidate sheet" class="flex-[1_1_320px]">
+          <AddCandidateDemo />
         </Panel>
         <Panel title="Live indicator" class="flex-[1_1_320px]">
           <div class="flex flex-col gap-1">

@@ -19,6 +19,9 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
 
     private static readonly string[] UkAndIreland = ["GB", "IE"];
 
+    // The smallest content that passes the API's PDF signature check.
+    private static readonly byte[] Pdf = System.Text.Encoding.ASCII.GetBytes("%PDF-1.7\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n");
+
     // The flavor D recruiter mockup's frame, so the screenshots compare with it side by side.
     private const int DesignWidth = 1440;
     private const int DesignHeight = 1040;
@@ -165,6 +168,8 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.Keyboard.PressAsync("Control+k");
         var palette = Page.GetByRole(AriaRole.Dialog, new() { Name = "Command palette" });
         await palette.GetByPlaceholder("Search jobs, candidates and actions").FillAsync("Riley");
+        // The server's search answers once typing pauses; Enter opens the first option once it is there.
+        await Expect(palette.GetByRole(AriaRole.Option, new() { NameRegex = new("^Riley Chen") })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await Page.Keyboard.PressAsync("Enter");
 
@@ -289,6 +294,47 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
 
     private static Task<int> PageOverflowAsync(IPage page) =>
         page.EvaluateAsync<int>("() => document.documentElement.scrollWidth - document.documentElement.clientWidth");
+
+    [Fact]
+    public async Task A_recruiter_adds_a_candidate_by_hand_with_a_resume_and_finds_them_with_ctrl_k()
+    {
+        var scene = await SceneAsync(publish: true);
+        await Page.SetViewportSizeAsync(DesignWidth, DesignHeight);
+        await SignInAsync(Page, scene.Email);
+        await Page.GotoAsync(DashboardUrl("/candidates"));
+        var table = Page.GetByRole(AriaRole.Table, new() { Name = "Candidates" });
+        await Expect(table.GetByRole(AriaRole.Columnheader, new() { Name = "Last activity" })).ToBeVisibleAsync();
+
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Add candidate" }).ClickAsync();
+        var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Add candidate" });
+        await sheet.GetByLabel("Job").SelectOptionAsync(new SelectOptionValue { Label = scene.Title });
+        await sheet.GetByLabel("First name").FillAsync("Morgan");
+        await sheet.GetByLabel("Last name").FillAsync("Ashdown");
+        var email = $"morgan.ashdown.{Guid.NewGuid().ToString("N")[..6]}@example.com";
+        await sheet.GetByLabel("Email").FillAsync(email);
+        await sheet.GetByLabel("Resume").SetInputFilesAsync(new FilePayload { Name = "Morgan Ashdown CV.pdf", MimeType = "application/pdf", Buffer = Pdf });
+        await ExpectNoAccessibilityViolationsAsync();
+        await sheet.GetByRole(AriaRole.Button, new() { Name = "Add candidate" }).ClickAsync();
+        await Expect(sheet).ToBeHiddenAsync();
+
+        // The new row arrives live, with when anything last happened to it.
+        var row = table.GetByRole(AriaRole.Row).Filter(new() { Has = Page.GetByRole(AriaRole.Link, new() { Name = "Morgan Ashdown" }) });
+        await Expect(row).ToContainTextAsync("Recruiter");
+        await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Added Morgan Ashdown" })).ToBeVisibleAsync();
+
+        // Ctrl K finds them on the server by their email, which the table never shows.
+        await Page.Keyboard.PressAsync("Control+k");
+        var palette = Page.GetByRole(AriaRole.Dialog, new() { Name = "Command palette" });
+        await palette.GetByPlaceholder("Search jobs, candidates and actions").FillAsync(email);
+        await palette.GetByRole(AriaRole.Option, new() { NameRegex = new("^Morgan Ashdown") }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Morgan Ashdown");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Files", Exact = true })).ToContainTextAsync("Morgan Ashdown CV.pdf");
+
+        // Added by hand, so Verification says which checks had nothing to look at, once the checks have run.
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Verification") }).ClickAsync();
+        await Expect(Page.Locator("[data-not-checked]")).ToContainTextAsync("Added by hand", new() { Timeout = 30_000 });
+        await ExpectNoAccessibilityViolationsAsync();
+    }
 
     private sealed record Scene(string Email, string Slug, Guid JobId, string Title);
 

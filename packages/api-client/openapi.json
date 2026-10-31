@@ -2826,6 +2826,94 @@
         ]
       }
     },
+    "/v1/jobs/{jobId}/applications/resume-uploads": {
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "CreateResumeUpload",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadTicket"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
     "/v1/applications": {
       "get": {
         "tags": [
@@ -8344,6 +8432,53 @@
           }
         }
       }
+    },
+    "/v1/search": {
+      "get": {
+        "tags": [
+          "Search"
+        ],
+        "operationId": "Search",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResults"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -9081,6 +9216,7 @@
           "stage",
           "submittedAt",
           "stageEnteredAt",
+          "lastActivityAt",
           "jobTitle",
           "source",
           "tags"
@@ -9110,6 +9246,10 @@
             "format": "date-time"
           },
           "stageEnteredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastActivityAt": {
             "type": "string",
             "format": "date-time"
           },
@@ -10262,6 +10402,45 @@
         },
         "description": "The candidate of an application a person or an API key adds."
       },
+      "CandidateSearchHit": {
+        "required": [
+          "applicationId",
+          "candidateId",
+          "candidateName",
+          "email",
+          "jobId",
+          "jobTitle",
+          "stage"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "candidateName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/ApplicationStage"
+          }
+        },
+        "description": "A candidate whose name or email matched, on one of their applications: the record to open."
+      },
       "CandidateSummary": {
         "required": [
           "id",
@@ -10613,6 +10792,13 @@
               "null",
               "string"
             ]
+          },
+          "resumeUploadId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         },
         "description": "A recruiter adds an application by hand, for a candidate who applied another way. The candidate is matched by email\r\nwithin the organization and created if new. The public apply flow is the careers site's."
@@ -12772,6 +12958,27 @@
           }
         },
         "description": "A pay range. At least one of decimal? JobSalary.Min and decimal? JobSalary.Max is set; string JobSalary.Currency is ISO 4217."
+      },
+      "JobSearchHit": {
+        "required": [
+          "id",
+          "title",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          }
+        },
+        "description": "A job whose title matched."
       },
       "JobSnapshot": {
         "required": [
@@ -15157,6 +15364,28 @@
         },
         "description": "A scorecard in the organization's library: a built-in (`builtIn`, ScreenHire's and read only) or one of its own.\r\nA hiring template's stage names it by `id` (`scorecardTemplateId`); a job keeps its own copy."
       },
+      "SearchResults": {
+        "required": [
+          "candidates",
+          "jobs"
+        ],
+        "type": "object",
+        "properties": {
+          "candidates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CandidateSearchHit"
+            }
+          },
+          "jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobSearchHit"
+            }
+          }
+        },
+        "description": "What a search found among the candidates and jobs the reader sees: candidates by name or email, one hit per\r\napplication, and jobs by title. Each list is short and starts with names or titles that begin with the search."
+      },
       "SendEmailsRequest": {
         "required": [
           "applicationIds"
@@ -16622,6 +16851,9 @@
     },
     {
       "name": "Schemas"
+    },
+    {
+      "name": "Search"
     }
   ]
 }

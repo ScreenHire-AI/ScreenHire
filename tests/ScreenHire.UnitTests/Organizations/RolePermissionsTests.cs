@@ -24,6 +24,7 @@ public sealed partial class RolePermissionsTests
         ["CloseJobPosting"] = Permission.EditJobs,
         ["SetJobHiringTeam"] = Permission.EditJobs,
         ["CreateApplication"] = Permission.AddCandidates,
+        ["CreateResumeUpload"] = Permission.AddCandidates,
         ["MoveApplication"] = Permission.MoveCandidates,
         ["AddApplicationNote"] = Permission.AddNotesAndTags,
         ["EditApplicationNote"] = Permission.AddNotesAndTags,

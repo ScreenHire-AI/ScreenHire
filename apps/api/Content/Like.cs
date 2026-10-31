@@ -11,9 +11,14 @@ internal static class Like
 
     /// <summary>The pattern for values containing <paramref name="text"/>, or null when there is nothing to search for.</summary>
     public static string? Contains(string? text) =>
-        string.IsNullOrWhiteSpace(text)
-            ? null
-            : "%" + text.Trim().Replace(Escape, Escape + Escape, StringComparison.Ordinal)
-                .Replace("%", Escape + "%", StringComparison.Ordinal)
-                .Replace("_", Escape + "_", StringComparison.Ordinal) + "%";
+        string.IsNullOrWhiteSpace(text) ? null : "%" + Literal(text) + "%";
+
+    /// <summary>The pattern for values starting with <paramref name="text"/>, or null when there is nothing to search for.</summary>
+    public static string? StartsWith(string? text) =>
+        string.IsNullOrWhiteSpace(text) ? null : Literal(text) + "%";
+
+    private static string Literal(string text) =>
+        text.Trim().Replace(Escape, Escape + Escape, StringComparison.Ordinal)
+            .Replace("%", Escape + "%", StringComparison.Ordinal)
+            .Replace("_", Escape + "_", StringComparison.Ordinal);
 }
