@@ -11,7 +11,8 @@ namespace ScreenHire.Domain.Applications;
 /// person's scorecard for that stage, whenever they gave it, so a reminder after they scored the stage hides nothing and
 /// scoring another stage does not open the one they were asked to review. A review in a stage without a scorecard, or
 /// one made before tasks kept their stage, is answered by any scorecard of theirs submitted since it was assigned.
-/// Marking the task done answers it too.
+/// A requested scorecard (a Scorecard task) is a review too, answered only by their scorecard of that kind. A finished
+/// task answers it as well; submitting the scorecard finishes it.
 /// </remarks>
 public static class ReviewerGate
 {
@@ -21,17 +22,19 @@ public static class ReviewerGate
         ArgumentNullException.ThrowIfNull(reviews);
         ArgumentNullException.ThrowIfNull(theirs);
         var given = theirs.ToList();
-        return reviews.Any(review => !given.Exists(s =>
-            (review.StageId is not null && s.StageId == review.StageId)
-            || (!review.StageHasScorecard && s.SubmittedAt >= review.AssignedAt)));
+        return reviews.Any(review => !given.Exists(s => review.ScorecardTemplateId is { } wanted
+            ? s.ScorecardTemplateId == wanted
+            : (review.StageId is not null && s.StageId == review.StageId)
+                || (!review.StageHasScorecard && s.SubmittedAt >= review.AssignedAt)));
     }
 }
 
 /// <summary>
-/// An open Review task assigned to the person: the stage it was assigned in (null before tasks kept it), when, and
-/// whether the job's workflow has a scorecard for that stage.
+/// An open Review or Scorecard task assigned to the person: the stage it was assigned in (null before tasks kept it),
+/// when, whether the job's workflow has a scorecard for that stage, and, for a requested scorecard, the library
+/// scorecard it asks for.
 /// </summary>
-public sealed record OpenReview(string? StageId, DateTimeOffset AssignedAt, bool StageHasScorecard);
+public sealed record OpenReview(string? StageId, DateTimeOffset AssignedAt, bool StageHasScorecard, string? ScorecardTemplateId = null);
 
-/// <summary>A scorecard the person submitted on the application.</summary>
-public sealed record GivenScorecard(string StageId, DateTimeOffset SubmittedAt);
+/// <summary>A scorecard the person submitted on the application, and the library scorecard it came from when known.</summary>
+public sealed record GivenScorecard(string StageId, DateTimeOffset SubmittedAt, string? ScorecardTemplateId = null);

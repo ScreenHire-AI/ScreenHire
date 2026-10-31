@@ -8,6 +8,8 @@
     "./tokens.css": "./src/tokens.css",
     "./theme.css": "./src/theme.css",
     "./fonts.css": "./src/fonts.css",
+    "./heading-fonts.css": "./src/heading-fonts.css",
+    "./heading-fonts": "./src/heading-fonts.ts",
     "./questions.css": "./src/questions.css",
     "./questions": {
       "types": "./src/questions/index.ts",
@@ -24,8 +26,13 @@
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+    "@fontsource-variable/fraunces": "^5.3.0",
     "@fontsource-variable/hanken-grotesk": "^5.3.0",
-    "@fontsource-variable/jetbrains-mono": "^5.3.0"
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "@fontsource-variable/montserrat": "^5.3.0",
+    "@fontsource-variable/nunito": "^5.3.0",
+    "@fontsource-variable/playfair-display": "^5.3.0"
   },
   "peerDependencies": {
     "svelte": "^5.57.2"

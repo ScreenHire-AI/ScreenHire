@@ -4,11 +4,23 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { HeadingFont } from './headingFont.ts';
 
 /**
- * Sets the brand colour (`#rrggbb`), or clears it with null to use ScreenHire's default.
+ * Replaces the whole branding. Colours are `#rrggbb` and must pass the contrast check
+ * (`/branding/contrast`); each image id is one of the organization's uploads of that kind that passed its scan.
+ * Null is ScreenHire's default, or no image.
  */
 export interface UpdateBrandingRequest {
   /** @nullable */
   brandColor: string | null;
+  /** @nullable */
+  secondColor?: string | null;
+  headingFont?: null | HeadingFont;
+  /** @nullable */
+  logoId?: string | null;
+  /** @nullable */
+  faviconId?: string | null;
+  /** @nullable */
+  sharingImageId?: string | null;
 }

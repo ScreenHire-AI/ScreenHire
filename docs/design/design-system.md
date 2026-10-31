@@ -13,6 +13,9 @@ sources:
   - resource: apps/dashboard/src/lib/preview-window.svelte.ts
   - resource: apps/dashboard/src/lib/form-builder.ts
   - resource: apps/dashboard/src/lib/templates.ts
+  - resource: apps/dashboard/src/lib/components/color-field.svelte
+  - resource: apps/dashboard/src/lib/components/image-field.svelte
+  - resource: apps/dashboard/src/lib/components/branding-preview.svelte
 ---
 # ScreenHire design system
 
@@ -88,10 +91,11 @@ Authors check their screens against this list, and the `design-review` agent rep
   can enable (Save until the form is valid), with the reason beside it.
 - **A4** Icon-only buttons have an `aria-label` and a tooltip.
 - **A5** Links go somewhere: another page, tab or record, as underlined text; navigation and a table row's name
-  underline on hover. Buttons do something: act, or open a sheet, a menu or a dialog. A link never opens a sheet, and a
-  button never navigates, with one exception: a page's own action that opens another page to do it (New job, Edit,
+  underline on hover. Buttons do something: act, or open a sheet, a menu or a dialog. A link never opens a sheet on the
+  page it sits on, and a button never navigates, with one exception: a page's own action that opens another page to do it (New job, Edit,
   Cancel on a form, Back) is an outline or primary button that renders as a link (`<a>`), because it starts that
-  action. A menu item that opens a page is a link inside the menu. Badges, pills and counts are never clickable,
+  action. A link to a record may arrive with the sheet for its work open there, as a requested scorecard's does. A
+  menu item that opens a page is a link inside the menu. Badges, pills and counts are never clickable,
   except a count button in a header (T4).
 - **A6** A button with a text label has a border or a fill, never bare coloured text, and its label starts with a verb
   (Mark done, not Complete). An icon button (More, Close) may be bare, with its label in a tooltip (A4). A sortable
@@ -298,7 +302,9 @@ higher layers get lighter (section 6), and the surface shadow is darker so it st
 | `candidate-chip` | `#F3E7D6` (text `#5A4630`) | `#2E2A25` |
 | `candidate-cta` | `#C2462F` (white text, 4.98:1) | `#F08A6E` (text `#1A1310`) |
 
-On tenant careers pages, `candidate-cta` and the header mark take the employer brand tokens (section 18).
+On tenant careers pages, `candidate-cta` and the header mark take the employer brand tokens, and `candidate-header`
+and `candidate-header-foreground` (the header band, default the page background and ink) take the second colour
+(section 18).
 
 ## 4. Type
 
@@ -330,7 +336,7 @@ weight and tracking. The family is its own class: `font-display` for the two tit
 
 ### 4.3 Candidate and marketing pages
 
-Base 15px, display 30px, inputs 16px (no zoom on iOS), hints under a field 13px: `text-candidate-body`,
+Titles take the employer's heading font where one is set (section 18), otherwise Bricolage Grotesque. Base 15px, display 30px, inputs 16px (no zoom on iOS), hints under a field 13px: `text-candidate-body`,
 `text-candidate-input` and `text-candidate-hint` in `packages/ui`. Marketing display goes up to 64px. The dashboard's
 questionnaire preview shows the candidate base with `text-candidate-body`.
 
@@ -471,11 +477,11 @@ in a development build, shows every component in each state, and its test fails 
 | Activity | `ActivityList`; on a candidate `ActivityPanel` | Icon in a circle, event, who did it, time ago; a note left with it is quoted below. People and API keys show by name ("by Robin Ashby", "by you", "by ATS sync"). A candidate's Activity lists everything newest first, filtered by kind (All, Notes, Emails, Scorecards, Stage and tags) with a count on each, and opens with the note box; Overview shows the last five and links to the rest. A team note shows its latest text through `NoteText`, with "Edited" after it and when in a tooltip; its More menu holds Edit for the author and Delete for the author, an Owner or an Admin, confirmed in a dialog, and anyone else sees no menu. Editing turns the note into its own box in place. A deleted note leaves one line, "Deleted a note" and who, never its text |
 | Mention | `MentionField` on shadcn `Textarea`; `NoteForm` for the note box and editing in place; `NoteText` | @ opens the organization's members, without yourself, narrowing as you type: arrow keys move, Enter or Tab picks, Esc closes the list only. The list sits under the field, each member an avatar, name and role; the field points at it with `aria-controls` and `aria-activedescendant`, because a textarea cannot be a combobox. An @ button (Mention someone) starts one below `md`. Ctrl or Cmd Enter saves, hinted in the Save tooltip. A mention is stored as the member's user id and shows their current name ("@former teammate" once they leave). The person mentioned gets a notification card and an email that says who and where and never quotes the note; a mention an edit adds notifies only that person. Save is outline, because the page's primary is Move to stage (A1) |
 | Tag list | `TagList` | Each tag a fact pill with its own Remove icon button beside it, never inside it (A5), then a field and Add tag. Removing is not destructive: adding the tag again undoes it (section 10). Without a role that changes hiring data, the pills only |
-| Task list | `TaskList` | Icon in a circle, what to do, then its kind and who it is for as fact pills and time ago; a done task says when and by whom. A task is ticked off where its work is done: on the candidate's Next steps, for a role that changes hiring data, an open task has the task checkbox in its icon's place. On My tasks each whole row links to that work, with the candidate's name and the job as a pill, and has no checkbox |
+| Task list | `TaskList` | Icon in a circle, what to do, then its kind and who it is for as fact pills and time ago; a done task says when and by whom. A task is ticked off where its work is done: on the candidate's Next steps, for a role that changes hiring data, an open to-do or rejection review has the task checkbox in its icon's place. A review and a requested scorecard (kind Scorecard) have no checkbox: submitting the scorecard finishes them, and for the person they are for (anyone, for a review for the whole team) their row ends in a Fill in link to the Scorecards tab, a requested scorecard's with its sheet open. On My tasks each whole row links to that work, with the candidate's name and the job as a pill, and has no checkbox: a requested scorecard to the Scorecards tab with the sheet open on it, every other task to the candidate's Overview |
 | Task checkbox | shadcn `Checkbox` in `TaskList`; `createTaskCompletion` in `#lib/tasks.svelte.ts` | Ticking marks the task done on the server at once, so leaving the page keeps it done. The row stays where it is for 10 seconds, ticked and struck through, with an outline Undo; Undo, or unticking, opens the task again. Then a done task leaves an open list. Its label names the task. A tick that fails unticks and says why (`FailureText`). Its hit area is 44px on touch (F4) |
-| Scorecard | `ScorecardList`; `ScorecardSheet` to fill one; `ScorecardBuilder` for a library scorecard's questions; `ScorecardPicker` in the workflow builder | A submitted scorecard is an icon in a circle, the recommendation in words and who gave it, the stage as a fact pill and time ago, then each question and its answer as a summary list ("Not answered" when left out) and the note quoted. Every scorecard ends with an overall recommendation, in words, and a note. `ScorecardFields` draws what a reviewer fills in, for the sheet and for the library scorecard's Preview, which shows it at the sheet's width for a sample candidate; `ScorecardQuestionList` reads a scorecard's questions as content. Questions are built in the form builder with the answer menu, on a library scorecard (built-in or the team's own); a stage picks one, and a job keeps its own copy of the questions; rating questions answer on one row of joined buttons and make the candidate's rating, the one average anything takes of scorecards (Rating, below). The sheet never shows integrity output. Fill scorecard (outline) is in the panel header for a role that changes hiring data, while a reached stage with a scorecard is left to score. Questions ask about the work and the skills the job needs, never personality, emotion or honesty |
+| Scorecard | `ScorecardList`; `ScorecardSheet` to fill one; `AskScorecardSheet` to ask a teammate for one; `ScorecardBuilder` for a library scorecard's questions; `ScorecardPicker` in the workflow builder | A submitted scorecard is an icon in a circle, the recommendation in words and who gave it, the scorecard's name (when it is not the stage's) and the stage as fact pills and time ago, then each question and its answer as a summary list ("Not answered" when left out) and the note quoted. Every scorecard ends with an overall recommendation, in words, and a note. `ScorecardFields` draws what a reviewer fills in, for the sheet and for the library scorecard's Preview, which shows it at the sheet's width for a sample candidate; `ScorecardQuestionList` reads a scorecard's questions as content. Questions are built in the form builder with the answer menu, on a library scorecard (built-in or the team's own); a stage picks one, and a job keeps its own copy of the questions; rating questions answer on one row of joined buttons and make the candidate's rating, the one average anything takes of scorecards (Rating, below). The sheet never shows integrity output. The panel header has two outline buttons: Fill in, for a role that fills in scorecards, and Ask for one, for a role that creates tasks. Fill in opens the sheet with a Scorecard select first: the reached stages' own scorecards the reader has not given (the current stage first, which it starts on), then the built-ins and the team's own, which are given at the stage the candidate is in now; an archived one only when a link names it. Ask for one opens a sheet with Teammate (the people who see the job and whose role fills in scorecards, never yourself; with nobody, one line says why), Scorecard (the current stage's own first, then the library without archived ones), an optional Note and Ask; the teammate gets a Scorecard task, done when they submit it. Questions ask about the work and the skills the job needs, never personality, emotion or honesty |
 | Notification tray | `NotificationTray` | Overlay cards in the bottom corner (above the action bar on phones), newest first, at most three: an icon for what raised it (`bell` for the team, `at-sign` for a mention), the record as a link, one line and Dismiss. They never time out, because each holds a link (WCAG 2.2.1), and a polite live region announces them |
-| Sheet | shadcn `Sheet` (`MoveNoteSheet`, `ScorecardSheet`, the workflow builder's automations and scorecards) | Quick work in place (section 9): the title, one line of description, the form, then Cancel and the one primary action (A1). The record stays behind it. History (T6), the items behind a count (T4), Invite and the email composer are sheets too |
+| Sheet | shadcn `Sheet` (`MoveNoteSheet`, `ScorecardSheet`, `AskScorecardSheet`, the workflow builder's automations and scorecards) | Quick work in place (section 9): the title, one line of description, the form, then Cancel and the one primary action (A1). The record stays behind it. History (T6), the items behind a count (T4), Invite and the email composer are sheets too |
 | History sheet | `HistorySheet` on shadcn `Sheet`; `LastUpdated` for the fact; `HistoryFact` puts both in a header that shows nothing else of the history (the settings pages) | T6: Last updated is the last fact of the header, time ago and who ("2 hours ago by Avery Quinn", "By ScreenHire" for an untouched built-in), then an outline History button that opens the sheet. While nothing has changed the object since it was created, the fact's label is Created. On a settings page's title row, where no label shows, the fact starts with its verb ("Created 2 hours ago by Avery Quinn", "Updated yesterday by you"). The sheet's title is History and its one line the record's name; changes come newest first under a heading per day (Today, Yesterday, Oct 22). Each change is the person's avatar, their name starting the first line, one line per thing that changed ("changed **.NET and C#** from 1 to 5 to 1 to 10"), and time ago. Show the change is an outline button (A6) that reveals before, struck through, and after for each value, and "Unchanged" for the context. Show older changes loads the next page. A ScreenHire template has no History button, because nobody can change it |
 | Action bar | Our component (`ActionBar`) | A phone's primary action in a bar fixed to the bottom, over the safe area (section 8) |
 | Relative time, truncated text | Our components on `Hint` | Time ago, or text cut with an ellipsis (on one line, or on two as a workflow graph node's title); the exact time or full value in a tooltip that opens on hover, focus or tap (T5, F4, F5). A truncated link is one tab stop, with an optional icon before its text |
@@ -509,6 +515,9 @@ in a development build, shows every component in each state, and its test fails 
 | Choice card | `ChoiceCard`: a native radio in a labelled card | A choice of a few options in a `radiogroup` with its label: each a bordered card with its name and one muted line, and the whole card is the target. The chosen card takes the `primary` edge and `accent` fill. A member's jobs (All jobs or Only jobs they're on), the role in Invite, and the role to copy in New role |
 | Filter menu | `FilterMenu` (one choice), `MultiFilterMenu` (several) | An outline button that names the filter and its choice ("Stage: All", "Job: 2 chosen"), `primary` while set, opening each choice with its count. `MultiFilterMenu` shows a box on every choice, ticked or not, and with two or more chosen each one is a pill with its own remove button beside the button. Filters sit in one row under a list panel's header that scrolls rather than wraps (F5); the page applies them to the rows |
 | Picker | shadcn `Popover` and `Command` | An outline button with a verb ("Add a person", "Copy from another job") that opens a searchable list; typing filters by name, a pick closes it. The list keeps a 16px gutter from the window's edge. Nothing left to pick is said in the list, never by disabling the button (A3) |
+| Colour field | `ColorField` on shadcn `Field` and `Input` | A colour for Branding: the native colour picker beside a hex field (16px on touch, F4), empty for its default (its placeholder names it: "ScreenHire's" for the brand colour, "None" for the second colour), with one line saying where the colour goes. As someone types a whole colour, the API checks it (section 18); each pair it fails is a line under the field in words ("Links in #ffd400 are hard to read on the page: 1.4:1, and they need 4.5:1."), and the nearest passing shade is an outline button on that row (F6), "Use #8a6d00", which fills the field. A refused save's messages take the same place |
+| Image field | `ImageField` on shadcn `Field`; `BrandImageSlot` in `#lib/brand-images.svelte.ts` for the upload | A brand image: the image in use at 48px tall with its pixel size and file size, or "No logo"; Upload or Replace (outline, opening the file picker) and Remove, which changes nothing until Save. While the malware scan runs it shows the grey Scanning badge (T3) and the page's Save waits, saying why (A3); a file the scan blocked says so with `FailureText`. The upload goes straight to storage, as a candidate's does |
+| Branding preview | `BrandingPreview` in `PreviewFrame` | Branding's result beside its form (A8): the careers page (the tab with the favicon, the header band, a heading and a job in the heading font, a brand link and the Apply button), the shared link card with the sharing image, and the top of an email. It draws the form's values as typed, failing ones included, so the person sees the problem the check names |
 
 ## 12. Words
 
@@ -612,20 +621,34 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
 - axe runs in component tests and Playwright; manual NVDA and VoiceOver passes per release; an external audit before
   general availability.
 
-## 18. Employer branding (careers pages)
+## 18. Employer branding
 
-Tenants set a brand colour and logo. On save, the server derives and validates:
+Settings, Branding (ADR-0018, `docs/architecture/branding.md`) sets a brand colour, a second colour, a heading font,
+a logo, a favicon and a sharing image, each optional and shown next to ScreenHire's default (principle 10). They apply
+to the careers pages, the apply flow, the embeddable widget and the top of every email to a candidate.
 
-| Token | Purpose | Minimum |
+| Part | Where | Check before it saves |
 |---|---|---|
-| `brand` | Tenant colour | |
-| `on-brand` | Text on brand fills | 4.5:1 |
-| `brand-text` | Brand-coloured text on the page background | 4.5:1 |
-| `brand-ui` | Borders, focus rings | 3:1 |
+| Brand colour | The Apply button and every filled button, links, focus rings | White or ink on it at 4.5:1 ("Text on buttons"); it on the page background at 4.5:1 ("Links") |
+| Second colour | The careers header band, the email's top band | White or ink on it at 4.5:1 ("Text on a header") |
+| Heading font | Every careers title (`font-display`) | One of six self-hosted OFL fonts: Bricolage Grotesque (ScreenHire's), Inter, Montserrat, Nunito, Fraunces, Playfair Display |
+| Logo | The careers header in place of the letter mark and name; the email's top | PNG or JPEG, up to 1 MB, malware scan |
+| Favicon | The browser tab | Square PNG or JPEG, at least 32px, up to 256 KB, malware scan |
+| Sharing image | `og:image` when a link is shared | PNG or JPEG, at least 600 by 315px, up to 5 MB, malware scan |
 
-Failing colours are adjusted in tone (OKLCH lightness) or rejected with an explanation, and shipped as a hashed
-per-tenant stylesheet (strict CSP, no inline styles). Brand never overrides status colours, the privacy notice or the
-"Powered by ScreenHire" footer.
+- A colour is used as it is given. One that fails a pair is refused, never adjusted: the field says which pair fails
+  in words, with its ratio cut down so a failing one never reads as its minimum, and offers the nearest passing shade
+  as a button that fills the field (Colour field, section 11). The page checks as someone types; Save checks again.
+- Everything inside the careers header, its links and focus ring included, takes `candidate-header-foreground`, the
+  white or ink the check chose, so a dark brand focus ring never sits on a dark band.
+- The palette ships as the hashed per-tenant stylesheet (strict CSP, no inline styles), and images from the careers
+  origin, so `img-src 'self'` holds. Brand never overrides status colours, the privacy notice or the "Powered by
+  ScreenHire" footer.
+- The email's logo is a plain image at one address for every recipient, never a tracking pixel. Emails load no web
+  font.
+- The page is the form template with its preview beside it where both fit (A8): the careers page, the shared link and
+  the email's top (Branding preview, section 11). Nothing changes for candidates until Save, which waits for any image
+  still being scanned and says so.
 
 ## 19. Assets
 
@@ -671,7 +694,8 @@ per-tenant stylesheet (strict CSP, no inline styles). Brand never overrides stat
   authenticity level as a status badge beside the name when it needs a look, contact on the line under it, then a meta
   line: the stage as a muted pill, the job, "Applied 2 hours ago via the careers page" and the rating. Overview
   is a grid of panels: Next steps and Activity on the left, Files, Tags and Answers on the right. Next steps is one row
-  per step: a round to-do tick or the level's icon, the step, its facts, and its link on the right.
+  per step: a round to-do tick or the level's icon, the step, its facts, and its link on the right. A review or a
+  requested scorecard has no tick; its link is Fill in, to the Scorecards tab.
   Built: Messages lists every email to the candidate, about any of their applications, newest first, with the email
   composer on top for people who can send. Each row opens to the email as it went; one sent before ScreenHire kept a
   copy of each email says only its subject was kept. Replies wait for roadmap item 1, so the tab says nothing about
@@ -718,11 +742,13 @@ per-tenant stylesheet (strict CSP, no inline styles). Brand never overrides stat
   they're on, then the jobs whose hiring team they are on as links, read only, with one line saying each job's Hiring
   team changes them (W6). For an Owner or Admin the choice is a line saying they see all jobs. Invite asks the same,
   starting at All jobs. Someone who sees only their own jobs is offered only Only jobs they're on (A3).
-- **Tasks:** Mine, For the team and Everyone's, each completed with a checkbox.
+- **Tasks:** Mine, For the team and Everyone's, each row a link to where the task is done.
   Built: Mine is the tasks assigned to the person, For the team the tasks assigned to nobody in particular, and
   Everyone's every task the person can see, which job access limits (ADR-0015). Each is a toggle with its count, so the
-  header band shows none (W7); Open and Done are the other toggle group (section 7). The task checkbox (section 11)
-  completes a task on My tasks and on the candidate's Overview.
+  header band shows none (W7); Open and Done are the other toggle group (section 7). A row has no checkbox (ADR-0017
+  decision 11): a requested scorecard opens the candidate's Scorecards tab with the sheet open on it, and every other
+  task the candidate's Overview, where Next steps ticks a to-do or a rejection review. A review and a requested
+  scorecard are done when the scorecard is submitted.
 - **Saved views:** each shows its status icon and a short name (To verify), so nothing is cut off.
   Built: To review, To verify and Overdue show their status's icon; New today, Not screened and Interviewing an
   ordinary one. The short name is also the candidates page's title for the view.

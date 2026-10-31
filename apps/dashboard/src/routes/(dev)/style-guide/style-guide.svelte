@@ -105,6 +105,7 @@
   import type { StatusName } from '#lib/status.js';
   import EditPreviewDemo from './edit-preview-demo.svelte';
   import AddCandidateDemo from './add-candidate-demo.svelte';
+  import BrandingDemo from './branding-demo.svelte';
   import EmailComposerDemo, { demoEmail } from './email-composer-demo.svelte';
   import FormBuilderDemo from './form-builder-demo.svelte';
   import ReorderDemo from './reorder-demo.svelte';
@@ -262,6 +263,17 @@
     { id: 't1', applicationId: 'a1', kind: 'Review', note: 'Review this application.', assigneeUserId: 'u1', createdAt: ago(2 * hour), completedAt: null, completedByUserId: null },
     { id: 't2', applicationId: 'a1', kind: 'RejectionReview', note: 'Not authorised to work in the UK.', assigneeUserId: null, createdAt: ago(day), completedAt: null, completedByUserId: null },
     { id: 't3', applicationId: 'a1', kind: 'Task', note: 'Call the references.', assigneeUserId: null, createdAt: ago(3 * day), completedAt: ago(5 * hour), completedByUserId: 'u2' },
+    {
+      id: 't4',
+      applicationId: 'a1',
+      kind: 'Scorecard',
+      note: 'Fill in the Interview scorecard. Focus on the pairing exercise.',
+      assigneeUserId: 'u2',
+      scorecardTemplateId: 'interview',
+      createdAt: ago(4 * hour),
+      completedAt: null,
+      completedByUserId: null,
+    },
   ];
   const sampleScorecards: ScorecardEntry[] = [
     {
@@ -281,6 +293,8 @@
       workflowVersion: 1,
       timelineEventId: 'e1',
       submittedAt: ago(3 * hour),
+      scorecardTemplateId: 'interview',
+      scorecardName: 'Interview',
     },
   ];
   let notifications = $state([
@@ -691,6 +705,8 @@
       <Panel title="Email preview">
         <EmailPreview preview={demoEmail} />
       </Panel>
+
+      <BrandingDemo />
 
       <div class="flex flex-wrap items-start gap-5">
         <Panel title="Empty state" class="flex-[999_1_520px]">

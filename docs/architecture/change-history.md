@@ -34,7 +34,7 @@ sources:
 Anything people edit says who updated it last and how long ago, and its History sheet lists every change in plain
 words (design system T6). This doc is how that is recorded and read. History covers configuration only: hiring
 templates, email templates, scorecard templates, jobs, custom roles and the organization's settings today: its name,
-its brand colour and its integrity settings, each with a history of its own (`/v1/organization/history`,
+its branding and its integrity settings, each with a history of its own (`/v1/organization/history`,
 `/branding/history`, `/integrity-settings/history`). The Team page and the API keys page have one history each: the
 team's members, roles, job access and invitations, and every key created and revoked. Built-in roles never change, so
 they have no history. A webhook
@@ -66,7 +66,7 @@ written, since nobody has an account yet, and the invitation row keeps the same 
 Objects that existed before history was recorded start their history at their first edit; nothing is back-filled.
 Their Last updated falls back to the row's own times with nobody named: Created at `created_at` when `updated_at` is
 empty or the same, else Updated at `updated_at` (`LastUpdate.From`). A row people only ever change, never create (the
-verification settings, a brand colour, an edited built-in email template), falls back to Updated
+verification settings, the branding, an edited built-in email template), falls back to Updated
 (`LastUpdate.FromChange`). The Team and API keys pages fall back to Created when the organization was. Records written
 before the `created` column read as updates.
 
@@ -178,8 +178,8 @@ shows, `LastUpdated` with `lead` starts with its verb ("Created 2 hours ago by A
 1. Add a `ChangeSubjectKind` value.
 2. Add one line to `TrackedKinds.All`: the entity, its subject id and its describer, and `creates` when adding the
    entity creates the object. A describer that needs only the entity before and after is a plain function; reuse
-   `DefinitionChanges` for questions. One entity can feed two histories (the organization row: its name and its brand
-   colour), one line each, when each describer returns no lines for the other's changes. A row that holds a secret is
+   `DefinitionChanges` for questions. One entity can feed two histories (the organization row: its name and its
+   branding), one line each, when each describer returns no lines for the other's changes. A row that holds a secret is
    tracked through a view, a record of the values its lines need (`Track<T, TView>`), never the entity itself.
 3. Add a `GET .../{id}/history` route in the kind's area with `ChangeHistoryRoutes`, after the area's own visibility
    check. A kind whose subject is the organization itself (Team, API keys) has no id in its route: use

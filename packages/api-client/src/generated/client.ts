@@ -21,12 +21,16 @@ import type {
   AutomationIssue,
   AutomationRunEntry,
   BoardSummary,
+  BrandImageUploadRequest,
+  BrandingContrast,
+  BrandingImage,
   CandidateDetail,
   CandidateEmailEntry,
   CandidateSummary,
   ChallengeProviderParams,
   ChangeMemberJobAccessRequest,
   ChangeMemberRoleRequest,
+  CheckBrandingContrastParams,
   CreateApiKeyRequest,
   CreateApplicationRequest,
   CreateApplicationTaskRequest,
@@ -102,6 +106,7 @@ import type {
   PublicQuestionnaireAnswers,
   PublishJobRequest,
   RemoveApplicationTagParams,
+  RequestScorecardRequest,
   RoleCatalogue,
   SandboxBoardListing,
   ScorecardEntry,
@@ -1020,6 +1025,48 @@ export const getPublicApplicationForm = async (organizationSlug: string,
     jobSlug: string, options?: Parameters<typeof apiFetch>[1]): Promise<getPublicApplicationFormResponse> => {
 
   return apiFetch<getPublicApplicationFormResponse>(getGetPublicApplicationFormUrl(organizationSlug,jobSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getPublicBrandImageResponse200 = {
+  data: void
+  status: 200
+}
+
+export type getPublicBrandImageResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicBrandImageResponseSuccess = (getPublicBrandImageResponse200) & {
+  headers: Headers;
+};
+export type getPublicBrandImageResponseError = (getPublicBrandImageResponse404) & {
+  headers: Headers;
+};
+
+export type getPublicBrandImageResponse = (getPublicBrandImageResponseSuccess | getPublicBrandImageResponseError)
+
+export const getGetPublicBrandImageUrl = (organizationSlug: string,
+    imageId: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/branding/images/${imageId}`
+}
+
+export const getPublicBrandImage = async (organizationSlug: string,
+    imageId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getPublicBrandImageResponse> => {
+
+  return apiFetch<getPublicBrandImageResponse>(getGetPublicBrandImageUrl(organizationSlug,imageId),
   {
     ...options,
     method: 'GET'
@@ -4825,6 +4872,222 @@ return apiFetch<updateOrganizationBrandingResponse>(getUpdateOrganizationBrandin
 
 
 
+export type checkBrandingContrastResponse200 = {
+  data: BrandingContrast
+  status: 200
+}
+
+export type checkBrandingContrastResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type checkBrandingContrastResponse401 = {
+  data: void
+  status: 401
+}
+
+export type checkBrandingContrastResponseSuccess = (checkBrandingContrastResponse200) & {
+  headers: Headers;
+};
+export type checkBrandingContrastResponseError = (checkBrandingContrastResponse400 | checkBrandingContrastResponse401) & {
+  headers: Headers;
+};
+
+export type checkBrandingContrastResponse = (checkBrandingContrastResponseSuccess | checkBrandingContrastResponseError)
+
+export const getCheckBrandingContrastUrl = (params?: CheckBrandingContrastParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/branding/contrast?${stringifiedParams}` : `/v1/organization/branding/contrast`
+}
+
+export const checkBrandingContrast = async (params?: CheckBrandingContrastParams, options?: Parameters<typeof apiFetch>[1]): Promise<checkBrandingContrastResponse> => {
+
+  return apiFetch<checkBrandingContrastResponse>(getCheckBrandingContrastUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type createBrandImageUploadResponse200 = {
+  data: UploadTicket
+  status: 200
+}
+
+export type createBrandImageUploadResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createBrandImageUploadResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createBrandImageUploadResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type createBrandImageUploadResponseSuccess = (createBrandImageUploadResponse200) & {
+  headers: Headers;
+};
+export type createBrandImageUploadResponseError = (createBrandImageUploadResponse400 | createBrandImageUploadResponse401 | createBrandImageUploadResponse403) & {
+  headers: Headers;
+};
+
+export type createBrandImageUploadResponse = (createBrandImageUploadResponseSuccess | createBrandImageUploadResponseError)
+
+export const getCreateBrandImageUploadUrl = () => {
+
+
+
+
+  return `/v1/organization/branding/images`
+}
+
+export const createBrandImageUpload = async (brandImageUploadRequest: BrandImageUploadRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createBrandImageUploadResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createBrandImageUploadResponse>(getCreateBrandImageUploadUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(brandImageUploadRequest)
+  }
+);}
+
+
+
+export type verifyBrandImageUploadResponse200 = {
+  data: BrandingImage
+  status: 200
+}
+
+export type verifyBrandImageUploadResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type verifyBrandImageUploadResponse401 = {
+  data: void
+  status: 401
+}
+
+export type verifyBrandImageUploadResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type verifyBrandImageUploadResponse404 = {
+  data: void
+  status: 404
+}
+
+export type verifyBrandImageUploadResponseSuccess = (verifyBrandImageUploadResponse200) & {
+  headers: Headers;
+};
+export type verifyBrandImageUploadResponseError = (verifyBrandImageUploadResponse400 | verifyBrandImageUploadResponse401 | verifyBrandImageUploadResponse403 | verifyBrandImageUploadResponse404) & {
+  headers: Headers;
+};
+
+export type verifyBrandImageUploadResponse = (verifyBrandImageUploadResponseSuccess | verifyBrandImageUploadResponseError)
+
+export const getVerifyBrandImageUploadUrl = (imageId: string,) => {
+
+
+
+
+  return `/v1/organization/branding/images/${imageId}/verify`
+}
+
+export const verifyBrandImageUpload = async (imageId: string, options?: Parameters<typeof apiFetch>[1]): Promise<verifyBrandImageUploadResponse> => {
+
+  return apiFetch<verifyBrandImageUploadResponse>(getVerifyBrandImageUploadUrl(imageId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type getBrandImageResponse200 = {
+  data: BrandingImage
+  status: 200
+}
+
+export type getBrandImageResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getBrandImageResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getBrandImageResponseSuccess = (getBrandImageResponse200) & {
+  headers: Headers;
+};
+export type getBrandImageResponseError = (getBrandImageResponse401 | getBrandImageResponse404) & {
+  headers: Headers;
+};
+
+export type getBrandImageResponse = (getBrandImageResponseSuccess | getBrandImageResponseError)
+
+export const getGetBrandImageUrl = (imageId: string,) => {
+
+
+
+
+  return `/v1/organization/branding/images/${imageId}`
+}
+
+export const getBrandImage = async (imageId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getBrandImageResponse> => {
+
+  return apiFetch<getBrandImageResponse>(getGetBrandImageUrl(imageId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
 export type getOrganizationIntegritySettingsResponse200 = {
   data: OrganizationIntegritySettings
   status: 200
@@ -6706,10 +6969,15 @@ export type completeTaskResponse404 = {
   status: 404
 }
 
+export type completeTaskResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
 export type completeTaskResponseSuccess = (completeTaskResponse200) & {
   headers: Headers;
 };
-export type completeTaskResponseError = (completeTaskResponse401 | completeTaskResponse403 | completeTaskResponse404) & {
+export type completeTaskResponseError = (completeTaskResponse401 | completeTaskResponse403 | completeTaskResponse404 | completeTaskResponse409) & {
   headers: Headers;
 };
 
@@ -6756,10 +7024,15 @@ export type reopenTaskResponse404 = {
   status: 404
 }
 
+export type reopenTaskResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
 export type reopenTaskResponseSuccess = (reopenTaskResponse200) & {
   headers: Headers;
 };
-export type reopenTaskResponseError = (reopenTaskResponse401 | reopenTaskResponse403 | reopenTaskResponse404) & {
+export type reopenTaskResponseError = (reopenTaskResponse401 | reopenTaskResponse403 | reopenTaskResponse404 | reopenTaskResponse409) & {
   headers: Headers;
 };
 
@@ -6916,6 +7189,86 @@ return apiFetch<submitScorecardResponse>(getSubmitScorecardUrl(applicationId),
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(submitScorecardRequest)
+  }
+);}
+
+
+
+export type requestScorecardResponse201 = {
+  data: ApplicationTaskEntry
+  status: 201
+}
+
+export type requestScorecardResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type requestScorecardResponse401 = {
+  data: void
+  status: 401
+}
+
+export type requestScorecardResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type requestScorecardResponse404 = {
+  data: void
+  status: 404
+}
+
+export type requestScorecardResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type requestScorecardResponse429 = {
+  data: void
+  status: 429
+}
+
+export type requestScorecardResponseSuccess = (requestScorecardResponse201) & {
+  headers: Headers;
+};
+export type requestScorecardResponseError = (requestScorecardResponse400 | requestScorecardResponse401 | requestScorecardResponse403 | requestScorecardResponse404 | requestScorecardResponse409 | requestScorecardResponse429) & {
+  headers: Headers;
+};
+
+export type requestScorecardResponse = (requestScorecardResponseSuccess | requestScorecardResponseError)
+
+export const getRequestScorecardUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/scorecard-requests`
+}
+
+export const requestScorecard = async (applicationId: string,
+    requestScorecardRequest: RequestScorecardRequest, options?: Parameters<typeof apiFetch>[1]): Promise<requestScorecardResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<requestScorecardResponse>(getRequestScorecardUrl(applicationId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(requestScorecardRequest)
   }
 );}
 

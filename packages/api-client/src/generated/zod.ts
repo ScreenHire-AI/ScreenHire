@@ -245,13 +245,41 @@ export const GetPublicOrganizationParams = zod.object({
 export const GetPublicOrganizationResponse = zod.object({
   "name": zod.string(),
   "slug": zod.string(),
-  "branding": zod.union([zod.null(),zod.object({
+  "branding": zod.object({
+  "colors": zod.union([zod.null(),zod.object({
   "brand": zod.string(),
   "onBrand": zod.string(),
   "brandText": zod.string(),
   "brandUi": zod.string()
-}).describe('The careers-page colours derived from the organization\'s brand colour, each contrast-checked on the server\r\n(docs/design/design-system.md §7): `brand` fills, `onBrand` is text on it (4.5:1), `brandText` is\r\nbrand-coloured text on the page (4.5:1) and `brandUi` is borders and focus rings (3:1). All `#rrggbb`.')])
-}).describe('An organization as its careers pages show it.')
+}).describe('The careers-page colours from the brand colour (docs/design/design-system.md section 18): `brand` fills,\r\n`onBrand` is text on it, `brandText` is links on the page and `brandUi` is borders and focus rings.\r\nA colour saved since the contrast check passes as it is, so all three are the colour itself; an older one is darkened\r\nuntil it passes. All `#rrggbb`.')]),
+  "header": zod.union([zod.null(),zod.object({
+  "background": zod.string(),
+  "foreground": zod.string()
+}).describe('The header band: its fill, the second colour, and the white or ink text on it. Both `#rrggbb`.')]),
+  "headingFont": zod.union([zod.null(),zod.union([zod.literal('Inter'),zod.literal('Montserrat'),zod.literal('Nunito'),zod.literal('Fraunces'),zod.literal('PlayfairDisplay'),zod.literal(null)])]),
+  "logo": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "contentType": zod.string(),
+  "width": zod.int(),
+  "height": zod.int(),
+  "url": zod.string()
+}).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')]),
+  "favicon": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "contentType": zod.string(),
+  "width": zod.int(),
+  "height": zod.int(),
+  "url": zod.string()
+}).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')]),
+  "sharingImage": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "contentType": zod.string(),
+  "width": zod.int(),
+  "height": zod.int(),
+  "url": zod.string()
+}).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')])
+}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\r\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\r\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.')
+}).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s).')
 
 
 export const ListPublicJobsParams = zod.object({
@@ -286,13 +314,41 @@ export const ListPublicJobsResponse = zod.object({
   "url": zod.string()
 }).describe('A job as shown on a public careers page.')),
   "url": zod.string(),
-  "branding": zod.union([zod.null(),zod.object({
+  "branding": zod.object({
+  "colors": zod.union([zod.null(),zod.object({
   "brand": zod.string(),
   "onBrand": zod.string(),
   "brandText": zod.string(),
   "brandUi": zod.string()
-}).describe('The careers-page colours derived from the organization\'s brand colour, each contrast-checked on the server\r\n(docs/design/design-system.md §7): `brand` fills, `onBrand` is text on it (4.5:1), `brandText` is\r\nbrand-coloured text on the page (4.5:1) and `brandUi` is borders and focus rings (3:1). All `#rrggbb`.')]).optional()
-}).describe('The public careers listing for one organization. `url` is the board\'s careers page; `branding` is null when it\r\nhas no brand colour.')
+}).describe('The careers-page colours from the brand colour (docs/design/design-system.md section 18): `brand` fills,\r\n`onBrand` is text on it, `brandText` is links on the page and `brandUi` is borders and focus rings.\r\nA colour saved since the contrast check passes as it is, so all three are the colour itself; an older one is darkened\r\nuntil it passes. All `#rrggbb`.')]),
+  "header": zod.union([zod.null(),zod.object({
+  "background": zod.string(),
+  "foreground": zod.string()
+}).describe('The header band: its fill, the second colour, and the white or ink text on it. Both `#rrggbb`.')]),
+  "headingFont": zod.union([zod.null(),zod.union([zod.literal('Inter'),zod.literal('Montserrat'),zod.literal('Nunito'),zod.literal('Fraunces'),zod.literal('PlayfairDisplay'),zod.literal(null)])]),
+  "logo": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "contentType": zod.string(),
+  "width": zod.int(),
+  "height": zod.int(),
+  "url": zod.string()
+}).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')]),
+  "favicon": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "contentType": zod.string(),
+  "width": zod.int(),
+  "height": zod.int(),
+  "url": zod.string()
+}).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')]),
+  "sharingImage": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "contentType": zod.string(),
+  "width": zod.int(),
+  "height": zod.int(),
+  "url": zod.string()
+}).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')])
+}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\r\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\r\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.')
+}).describe('The public careers listing for one organization. `url` is the board\'s careers page; `branding` is its\r\nbranding, each part null for ScreenHire\'s.')
 
 
 export const GetPublicJobParams = zod.object({
@@ -335,13 +391,41 @@ export const GetPublicApplicationFormResponse = zod.object({
   "organization": zod.object({
   "name": zod.string(),
   "slug": zod.string(),
-  "branding": zod.union([zod.null(),zod.object({
+  "branding": zod.object({
+  "colors": zod.union([zod.null(),zod.object({
   "brand": zod.string(),
   "onBrand": zod.string(),
   "brandText": zod.string(),
   "brandUi": zod.string()
-}).describe('The careers-page colours derived from the organization\'s brand colour, each contrast-checked on the server\r\n(docs/design/design-system.md §7): `brand` fills, `onBrand` is text on it (4.5:1), `brandText` is\r\nbrand-coloured text on the page (4.5:1) and `brandUi` is borders and focus rings (3:1). All `#rrggbb`.')])
-}).describe('An organization as its careers pages show it.'),
+}).describe('The careers-page colours from the brand colour (docs/design/design-system.md section 18): `brand` fills,\r\n`onBrand` is text on it, `brandText` is links on the page and `brandUi` is borders and focus rings.\r\nA colour saved since the contrast check passes as it is, so all three are the colour itself; an older one is darkened\r\nuntil it passes. All `#rrggbb`.')]),
+  "header": zod.union([zod.null(),zod.object({
+  "background": zod.string(),
+  "foreground": zod.string()
+}).describe('The header band: its fill, the second colour, and the white or ink text on it. Both `#rrggbb`.')]),
+  "headingFont": zod.union([zod.null(),zod.union([zod.literal('Inter'),zod.literal('Montserrat'),zod.literal('Nunito'),zod.literal('Fraunces'),zod.literal('PlayfairDisplay'),zod.literal(null)])]),
+  "logo": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "contentType": zod.string(),
+  "width": zod.int(),
+  "height": zod.int(),
+  "url": zod.string()
+}).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')]),
+  "favicon": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "contentType": zod.string(),
+  "width": zod.int(),
+  "height": zod.int(),
+  "url": zod.string()
+}).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')]),
+  "sharingImage": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "contentType": zod.string(),
+  "width": zod.int(),
+  "height": zod.int(),
+  "url": zod.string()
+}).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')])
+}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\r\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\r\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.')
+}).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s).'),
   "job": zod.object({
   "id": zod.uuid(),
   "title": zod.string(),
@@ -392,6 +476,14 @@ export const GetPublicApplicationFormResponse = zod.object({
   "deviceCheck": zod.enum(['Off', 'Notice', 'Consent']).describe('On which footing the careers page may compute a device fingerprint (docs/research/legal.md, "Device / browser\r\nfingerprint"; integrity-engine.md §3). ePrivacy Art. 5(3) needs consent for fingerprinting unless it is strictly\r\nnecessary, and data protection authorities differ on whether fraud prevention is, so the basis is configuration per\r\ncountry rather than code.')
 }).describe('What the careers page\'s telemetry module may do on this form (integrity-engine.md §3): `sessionToken` binds its\r\nsnapshots to one way through the form, and `deviceCheck` is the footing for the device fingerprint where the job\r\nis (`Off`, `Notice`, or `Consent`, which needs the candidate\'s tick).')
 }).describe('Everything the careers apply page needs for one open job. The resume question comes first\r\n(ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured.\r\n`telemetry` is a new telemetry session for the form; the page keeps the first one it gets.')
+
+
+export const GetPublicBrandImageParams = zod.object({
+  "organizationSlug": zod.string(),
+  "imageId": zod.uuid()
+})
+
+export const GetPublicBrandImageResponse = zod.unknown()
 
 
 export const CreatePublicUploadParams = zod.object({
@@ -500,13 +592,41 @@ export const GetPublicQuestionnaireResponse = zod.object({
   "organization": zod.object({
   "name": zod.string(),
   "slug": zod.string(),
-  "branding": zod.union([zod.null(),zod.object({
+  "branding": zod.object({
+  "colors": zod.union([zod.null(),zod.object({
   "brand": zod.string(),
   "onBrand": zod.string(),
   "brandText": zod.string(),
   "brandUi": zod.string()
-}).describe('The careers-page colours derived from the organization\'s brand colour, each contrast-checked on the server\r\n(docs/design/design-system.md §7): `brand` fills, `onBrand` is text on it (4.5:1), `brandText` is\r\nbrand-coloured text on the page (4.5:1) and `brandUi` is borders and focus rings (3:1). All `#rrggbb`.')])
-}).describe('An organization as its careers pages show it.'),
+}).describe('The careers-page colours from the brand colour (docs/design/design-system.md section 18): `brand` fills,\r\n`onBrand` is text on it, `brandText` is links on the page and `brandUi` is borders and focus rings.\r\nA colour saved since the contrast check passes as it is, so all three are the colour itself; an older one is darkened\r\nuntil it passes. All `#rrggbb`.')]),
+  "header": zod.union([zod.null(),zod.object({
+  "background": zod.string(),
+  "foreground": zod.string()
+}).describe('The header band: its fill, the second colour, and the white or ink text on it. Both `#rrggbb`.')]),
+  "headingFont": zod.union([zod.null(),zod.union([zod.literal('Inter'),zod.literal('Montserrat'),zod.literal('Nunito'),zod.literal('Fraunces'),zod.literal('PlayfairDisplay'),zod.literal(null)])]),
+  "logo": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "contentType": zod.string(),
+  "width": zod.int(),
+  "height": zod.int(),
+  "url": zod.string()
+}).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')]),
+  "favicon": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "contentType": zod.string(),
+  "width": zod.int(),
+  "height": zod.int(),
+  "url": zod.string()
+}).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')]),
+  "sharingImage": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "contentType": zod.string(),
+  "width": zod.int(),
+  "height": zod.int(),
+  "url": zod.string()
+}).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')])
+}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\r\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\r\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.')
+}).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s).'),
   "jobTitle": zod.string(),
   "name": zod.string(),
   "status": zod.enum(['Open', 'Answered', 'Expired', 'Closed']).describe('Whether a follow-up questionnaire\'s link can still be answered: `Answered` once the candidate sent their answers,\r\n`Expired` after the link\'s time ran out, `Closed` when the questionnaire, the job or the application is no\r\nlonger open.'),
@@ -3953,14 +4073,15 @@ export const CreateApplicationTaskBody = zod.object({
 export const CreateApplicationTaskResponse = zod.object({
   "id": zod.uuid(),
   "applicationId": zod.uuid(),
-  "kind": zod.enum(['Review', 'Task', 'RejectionReview']),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard']),
   "note": zod.string(),
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "completedByUserId": zod.uuid().nullable()
-}).describe('Something a person should do about an application: a review, a to-do, or a rejection to decide on.')
+  "completedByUserId": zod.uuid().nullable(),
+  "scorecardTemplateId": zod.string().nullish()
+}).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\r\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\r\nticked off by hand.')
 
 
 export const ListApplicationTasksParams = zod.object({
@@ -3970,14 +4091,15 @@ export const ListApplicationTasksParams = zod.object({
 export const ListApplicationTasksResponseItem = zod.object({
   "id": zod.uuid(),
   "applicationId": zod.uuid(),
-  "kind": zod.enum(['Review', 'Task', 'RejectionReview']),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard']),
   "note": zod.string(),
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "completedByUserId": zod.uuid().nullable()
-}).describe('Something a person should do about an application: a review, a to-do, or a rejection to decide on.')
+  "completedByUserId": zod.uuid().nullable(),
+  "scorecardTemplateId": zod.string().nullish()
+}).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\r\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\r\nticked off by hand.')
 export const ListApplicationTasksResponse = zod.array(ListApplicationTasksResponseItem)
 
 
@@ -4964,13 +5086,38 @@ export const getOrganizationBrandingResponseLastUpdatedCreatedDefault = false;
 
 export const GetOrganizationBrandingResponse = zod.object({
   "brandColor": zod.string().nullable(),
-  "palette": zod.union([zod.null(),zod.object({
-  "brand": zod.string(),
-  "onBrand": zod.string(),
-  "brandText": zod.string(),
-  "brandUi": zod.string()
-}).describe('The careers-page colours derived from the organization\'s brand colour, each contrast-checked on the server\r\n(docs/design/design-system.md §7): `brand` fills, `onBrand` is text on it (4.5:1), `brandText` is\r\nbrand-coloured text on the page (4.5:1) and `brandUi` is borders and focus rings (3:1). All `#rrggbb`.')]),
-  "brandAdjusted": zod.boolean(),
+  "secondColor": zod.string().nullable(),
+  "headingFont": zod.union([zod.null(),zod.union([zod.literal('Inter'),zod.literal('Montserrat'),zod.literal('Nunito'),zod.literal('Fraunces'),zod.literal('PlayfairDisplay'),zod.literal(null)])]),
+  "logo": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "kind": zod.enum(['Logo', 'Favicon', 'SharingImage']).describe('What a brand image is for, which decides its limits (BrandImageRules).'),
+  "scanStatus": zod.enum(['Pending', 'Clean', 'Infected', 'NotScanned']),
+  "contentType": zod.string(),
+  "width": zod.int(),
+  "height": zod.int(),
+  "sizeBytes": zod.int(),
+  "url": zod.string().nullable()
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\r\nserved. `url` is its public address on the careers board, null until it may be served.')]),
+  "favicon": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "kind": zod.enum(['Logo', 'Favicon', 'SharingImage']).describe('What a brand image is for, which decides its limits (BrandImageRules).'),
+  "scanStatus": zod.enum(['Pending', 'Clean', 'Infected', 'NotScanned']),
+  "contentType": zod.string(),
+  "width": zod.int(),
+  "height": zod.int(),
+  "sizeBytes": zod.int(),
+  "url": zod.string().nullable()
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\r\nserved. `url` is its public address on the careers board, null until it may be served.')]),
+  "sharingImage": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "kind": zod.enum(['Logo', 'Favicon', 'SharingImage']).describe('What a brand image is for, which decides its limits (BrandImageRules).'),
+  "scanStatus": zod.enum(['Pending', 'Clean', 'Infected', 'NotScanned']),
+  "contentType": zod.string(),
+  "width": zod.int(),
+  "height": zod.int(),
+  "sizeBytes": zod.int(),
+  "url": zod.string().nullable()
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\r\nserved. `url` is its public address on the careers board, null until it may be served.')]),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
   "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
@@ -4978,24 +5125,54 @@ export const GetOrganizationBrandingResponse = zod.object({
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(getOrganizationBrandingResponseLastUpdatedCreatedDefault)
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.')
-}).describe('The organization\'s careers-page branding. `palette` is what careers pages use, derived from\r\n`brandColor` and contrast-checked (docs/design/design-system.md §7); both are null without a brand colour.\r\n`brandAdjusted` means the colour was darkened so text on it stays readable. `lastUpdated` is the brand\r\ncolour\'s last change ("by ScreenHire" while it is ScreenHire\'s default); its history is `/branding/history`.')
+}).describe('The organization\'s branding (docs/architecture/branding.md): the brand colour (buttons and links), the second colour\r\n(the header band of its careers pages and emails), the heading font and the images in use, each null for\r\nScreenHire\'s default. `lastUpdated` is the branding\'s last change ("by ScreenHire" while it is all the\r\ndefault); its history is `/branding/history`.')
 
 
 export const UpdateOrganizationBrandingBody = zod.object({
-  "brandColor": zod.string().nullable()
-}).describe('Sets the brand colour (`#rrggbb`), or clears it with null to use ScreenHire\'s default.')
+  "brandColor": zod.string().nullable(),
+  "secondColor": zod.string().nullish(),
+  "headingFont": zod.union([zod.null(),zod.union([zod.literal('Inter'),zod.literal('Montserrat'),zod.literal('Nunito'),zod.literal('Fraunces'),zod.literal('PlayfairDisplay'),zod.literal(null)])]).optional(),
+  "logoId": zod.uuid().nullish(),
+  "faviconId": zod.uuid().nullish(),
+  "sharingImageId": zod.uuid().nullish()
+}).describe('Replaces the whole branding. Colours are `#rrggbb` and must pass the contrast check\r\n(`/branding/contrast`); each image id is one of the organization\'s uploads of that kind that passed its scan.\r\nNull is ScreenHire\'s default, or no image.')
 
 export const updateOrganizationBrandingResponseLastUpdatedCreatedDefault = false;
 
 export const UpdateOrganizationBrandingResponse = zod.object({
   "brandColor": zod.string().nullable(),
-  "palette": zod.union([zod.null(),zod.object({
-  "brand": zod.string(),
-  "onBrand": zod.string(),
-  "brandText": zod.string(),
-  "brandUi": zod.string()
-}).describe('The careers-page colours derived from the organization\'s brand colour, each contrast-checked on the server\r\n(docs/design/design-system.md §7): `brand` fills, `onBrand` is text on it (4.5:1), `brandText` is\r\nbrand-coloured text on the page (4.5:1) and `brandUi` is borders and focus rings (3:1). All `#rrggbb`.')]),
-  "brandAdjusted": zod.boolean(),
+  "secondColor": zod.string().nullable(),
+  "headingFont": zod.union([zod.null(),zod.union([zod.literal('Inter'),zod.literal('Montserrat'),zod.literal('Nunito'),zod.literal('Fraunces'),zod.literal('PlayfairDisplay'),zod.literal(null)])]),
+  "logo": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "kind": zod.enum(['Logo', 'Favicon', 'SharingImage']).describe('What a brand image is for, which decides its limits (BrandImageRules).'),
+  "scanStatus": zod.enum(['Pending', 'Clean', 'Infected', 'NotScanned']),
+  "contentType": zod.string(),
+  "width": zod.int(),
+  "height": zod.int(),
+  "sizeBytes": zod.int(),
+  "url": zod.string().nullable()
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\r\nserved. `url` is its public address on the careers board, null until it may be served.')]),
+  "favicon": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "kind": zod.enum(['Logo', 'Favicon', 'SharingImage']).describe('What a brand image is for, which decides its limits (BrandImageRules).'),
+  "scanStatus": zod.enum(['Pending', 'Clean', 'Infected', 'NotScanned']),
+  "contentType": zod.string(),
+  "width": zod.int(),
+  "height": zod.int(),
+  "sizeBytes": zod.int(),
+  "url": zod.string().nullable()
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\r\nserved. `url` is its public address on the careers board, null until it may be served.')]),
+  "sharingImage": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "kind": zod.enum(['Logo', 'Favicon', 'SharingImage']).describe('What a brand image is for, which decides its limits (BrandImageRules).'),
+  "scanStatus": zod.enum(['Pending', 'Clean', 'Infected', 'NotScanned']),
+  "contentType": zod.string(),
+  "width": zod.int(),
+  "height": zod.int(),
+  "sizeBytes": zod.int(),
+  "url": zod.string().nullable()
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\r\nserved. `url` is its public address on the careers board, null until it may be served.')]),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
   "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
@@ -5003,7 +5180,94 @@ export const UpdateOrganizationBrandingResponse = zod.object({
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(updateOrganizationBrandingResponseLastUpdatedCreatedDefault)
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.')
-}).describe('The organization\'s careers-page branding. `palette` is what careers pages use, derived from\r\n`brandColor` and contrast-checked (docs/design/design-system.md §7); both are null without a brand colour.\r\n`brandAdjusted` means the colour was darkened so text on it stays readable. `lastUpdated` is the brand\r\ncolour\'s last change ("by ScreenHire" while it is ScreenHire\'s default); its history is `/branding/history`.')
+}).describe('The organization\'s branding (docs/architecture/branding.md): the brand colour (buttons and links), the second colour\r\n(the header band of its careers pages and emails), the heading font and the images in use, each null for\r\nScreenHire\'s default. `lastUpdated` is the branding\'s last change ("by ScreenHire" while it is all the\r\ndefault); its history is `/branding/history`.')
+
+
+export const CheckBrandingContrastQueryParams = zod.object({
+  "brandColor": zod.string().optional(),
+  "secondColor": zod.string().optional()
+})
+
+export const CheckBrandingContrastResponse = zod.object({
+  "brandColor": zod.union([zod.null(),zod.object({
+  "color": zod.string(),
+  "passes": zod.boolean(),
+  "textColor": zod.string(),
+  "pairs": zod.array(zod.object({
+  "name": zod.enum(['ButtonText', 'Links', 'HeaderText']).describe('The pairs of colours the branding check measures (docs/design/design-system.md section 18).'),
+  "foreground": zod.string(),
+  "background": zod.string(),
+  "ratio": zod.number(),
+  "minimum": zod.number(),
+  "passes": zod.boolean()
+}).describe('One pair: `ratio` is cut down to one decimal, so a failing pair never reads as its minimum.')),
+  "suggestion": zod.string().nullable(),
+  "problems": zod.array(zod.string())
+}).describe('One colour\'s check. `problems` says each failing pair in words, as a refused save does.')]),
+  "secondColor": zod.union([zod.null(),zod.object({
+  "color": zod.string(),
+  "passes": zod.boolean(),
+  "textColor": zod.string(),
+  "pairs": zod.array(zod.object({
+  "name": zod.enum(['ButtonText', 'Links', 'HeaderText']).describe('The pairs of colours the branding check measures (docs/design/design-system.md section 18).'),
+  "foreground": zod.string(),
+  "background": zod.string(),
+  "ratio": zod.number(),
+  "minimum": zod.number(),
+  "passes": zod.boolean()
+}).describe('One pair: `ratio` is cut down to one decimal, so a failing pair never reads as its minimum.')),
+  "suggestion": zod.string().nullable(),
+  "problems": zod.array(zod.string())
+}).describe('One colour\'s check. `problems` says each failing pair in words, as a refused save does.')])
+}).describe('The contrast check of the colours asked about, each null when it was not asked: whether every pair the colour is\r\nused in reaches WCAG 2.2 AA, the text colour that goes on it, the pairs, and the nearest passing shade when it fails.')
+
+
+export const CreateBrandImageUploadBody = zod.object({
+  "kind": zod.enum(['Logo', 'Favicon', 'SharingImage']).describe('What a brand image is for, which decides its limits (BrandImageRules).'),
+  "fileName": zod.string(),
+  "sizeBytes": zod.int()
+}).describe('Asks for a link to upload one brand image of `kind`: a PNG or JPEG of `sizeBytes`.')
+
+export const CreateBrandImageUploadResponse = zod.object({
+  "uploadId": zod.uuid(),
+  "uploadUrl": zod.url(),
+  "method": zod.string(),
+  "headers": zod.record(zod.string(), zod.string()),
+  "expiresAt": zod.iso.datetime({"offset":true}),
+  "maxBytes": zod.int()
+}).describe('Where and how to upload one file, and until when: send its bytes with `method` to `uploadUrl` with\r\n`headers`, then refer to it by `uploadId`.')
+
+
+export const VerifyBrandImageUploadParams = zod.object({
+  "imageId": zod.uuid()
+})
+
+export const VerifyBrandImageUploadResponse = zod.object({
+  "id": zod.uuid(),
+  "kind": zod.enum(['Logo', 'Favicon', 'SharingImage']).describe('What a brand image is for, which decides its limits (BrandImageRules).'),
+  "scanStatus": zod.enum(['Pending', 'Clean', 'Infected', 'NotScanned']),
+  "contentType": zod.string(),
+  "width": zod.int(),
+  "height": zod.int(),
+  "sizeBytes": zod.int(),
+  "url": zod.string().nullable()
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\r\nserved. `url` is its public address on the careers board, null until it may be served.')
+
+
+export const GetBrandImageParams = zod.object({
+  "imageId": zod.uuid()
+})
+
+export const GetBrandImageResponse = zod.object({
+  "id": zod.uuid(),
+  "kind": zod.enum(['Logo', 'Favicon', 'SharingImage']).describe('What a brand image is for, which decides its limits (BrandImageRules).'),
+  "scanStatus": zod.enum(['Pending', 'Clean', 'Infected', 'NotScanned']),
+  "contentType": zod.string(),
+  "width": zod.int(),
+  "height": zod.int(),
+  "sizeBytes": zod.int(),
+  "url": zod.string().nullable()
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\r\nserved. `url` is its public address on the careers board, null until it may be served.')
 
 
 export const getOrganizationIntegritySettingsResponseLastUpdatedCreatedDefault = false;
@@ -5934,13 +6198,14 @@ export const ListTasksResponseItem = zod.object({
   "jobId": zod.uuid(),
   "candidateName": zod.string(),
   "jobTitle": zod.string(),
-  "kind": zod.enum(['Review', 'Task', 'RejectionReview']),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard']),
   "note": zod.string(),
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "completedByUserId": zod.uuid().nullable()
+  "completedByUserId": zod.uuid().nullable(),
+  "scorecardTemplateId": zod.string().nullish()
 }).describe('A task in a list across applications (My tasks): the task, and the candidate and job it is about.')
 export const ListTasksResponse = zod.array(ListTasksResponseItem)
 
@@ -5952,14 +6217,15 @@ export const CompleteTaskParams = zod.object({
 export const CompleteTaskResponse = zod.object({
   "id": zod.uuid(),
   "applicationId": zod.uuid(),
-  "kind": zod.enum(['Review', 'Task', 'RejectionReview']),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard']),
   "note": zod.string(),
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "completedByUserId": zod.uuid().nullable()
-}).describe('Something a person should do about an application: a review, a to-do, or a rejection to decide on.')
+  "completedByUserId": zod.uuid().nullable(),
+  "scorecardTemplateId": zod.string().nullish()
+}).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\r\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\r\nticked off by hand.')
 
 
 export const ReopenTaskParams = zod.object({
@@ -5969,14 +6235,15 @@ export const ReopenTaskParams = zod.object({
 export const ReopenTaskResponse = zod.object({
   "id": zod.uuid(),
   "applicationId": zod.uuid(),
-  "kind": zod.enum(['Review', 'Task', 'RejectionReview']),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard']),
   "note": zod.string(),
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "completedByUserId": zod.uuid().nullable()
-}).describe('Something a person should do about an application: a review, a to-do, or a rejection to decide on.')
+  "completedByUserId": zod.uuid().nullable(),
+  "scorecardTemplateId": zod.string().nullish()
+}).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\r\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\r\nticked off by hand.')
 
 
 export const ListApplicationScorecardsParams = zod.object({
@@ -6009,8 +6276,10 @@ export const ListApplicationScorecardsResponseItem = zod.object({
   "note": zod.string().nullable(),
   "workflowVersion": zod.int(),
   "timelineEventId": zod.uuid(),
-  "submittedAt": zod.iso.datetime({"offset":true})
-}).describe('One reviewer\'s scorecard for one stage: an answer to each question as it was asked, and an overall recommendation.\r\nIts rating answers make the candidate\'s rating (`ApplicationRating`, ADR-0013); nothing else on it does.')
+  "submittedAt": zod.iso.datetime({"offset":true}),
+  "scorecardTemplateId": zod.string().nullable(),
+  "scorecardName": zod.string().nullable()
+}).describe('One reviewer\'s scorecard, given while the application was in a stage: an answer to each question as it was asked, and\r\nan overall recommendation.\r\nIts rating answers make the candidate\'s rating (`ApplicationRating`, ADR-0013); nothing else on it does.')
 export const ListApplicationScorecardsResponse = zod.array(ListApplicationScorecardsResponseItem)
 
 
@@ -6019,7 +6288,7 @@ export const SubmitScorecardParams = zod.object({
 })
 
 export const SubmitScorecardBody = zod.object({
-  "stageId": zod.string(),
+  "stageId": zod.string().nullable(),
   "answers": zod.array(zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
@@ -6027,8 +6296,9 @@ export const SubmitScorecardBody = zod.object({
   "rating": zod.int().nullish()
 }).describe('The answer to one question: `value` for the yes-or-no kinds ("yes" or "no"), a choice (an option id) and the\r\ntext kinds, `values` for a multi-choice (option ids) and `rating` for a number scale.')),
   "recommendation": zod.enum(['StrongNo', 'No', 'Yes', 'StrongYes']).describe('A reviewer\'s overall recommendation for the stage. Automations test it as `reviewer.recommendation`.'),
-  "note": zod.string().nullish()
-}).describe('A reviewer\'s scorecard for a stage the application has reached and whose workflow stage has a scorecard. Each\r\nreviewer gives one per stage: the same submission again returns the stored one, a different one is a 409.')
+  "note": zod.string().nullish(),
+  "scorecardTemplateId": zod.string().nullish()
+}).describe('A reviewer\'s scorecard. Name one of two: `stageId`, a stage the application has reached whose workflow stage\r\nhas a scorecard (the job\'s own copy), or `scorecardTemplateId`, a library scorecard given at the stage the\r\napplication is in now. Each reviewer gives one per stage and scorecard: the same submission again returns the stored\r\none, a different one is a 409.')
 
 export const SubmitScorecardResponse = zod.object({
   "id": zod.uuid(),
@@ -6056,8 +6326,34 @@ export const SubmitScorecardResponse = zod.object({
   "note": zod.string().nullable(),
   "workflowVersion": zod.int(),
   "timelineEventId": zod.uuid(),
-  "submittedAt": zod.iso.datetime({"offset":true})
-}).describe('One reviewer\'s scorecard for one stage: an answer to each question as it was asked, and an overall recommendation.\r\nIts rating answers make the candidate\'s rating (`ApplicationRating`, ADR-0013); nothing else on it does.')
+  "submittedAt": zod.iso.datetime({"offset":true}),
+  "scorecardTemplateId": zod.string().nullable(),
+  "scorecardName": zod.string().nullable()
+}).describe('One reviewer\'s scorecard, given while the application was in a stage: an answer to each question as it was asked, and\r\nan overall recommendation.\r\nIts rating answers make the candidate\'s rating (`ApplicationRating`, ADR-0013); nothing else on it does.')
+
+
+export const RequestScorecardParams = zod.object({
+  "applicationId": zod.uuid()
+})
+
+export const RequestScorecardBody = zod.object({
+  "assigneeUserId": zod.uuid(),
+  "scorecardTemplateId": zod.string(),
+  "note": zod.string().nullish()
+}).describe('Ask a teammate for a scorecard: a Scorecard task assigned to them, done when they submit that scorecard for the\r\napplication.')
+
+export const RequestScorecardResponse = zod.object({
+  "id": zod.uuid(),
+  "applicationId": zod.uuid(),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard']),
+  "note": zod.string(),
+  "assigneeUserId": zod.uuid().nullable(),
+  "automationRunId": zod.uuid().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "completedByUserId": zod.uuid().nullable(),
+  "scorecardTemplateId": zod.string().nullish()
+}).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\r\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\r\nticked off by hand.')
 
 
 export const listScorecardTemplatesResponseLastUpdatedCreatedDefault = false;
