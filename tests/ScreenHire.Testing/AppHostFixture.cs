@@ -7,6 +7,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using Xunit;
@@ -104,12 +105,17 @@ public class AppHostFixture : IAsyncLifetime
             ],
             startup.Token);
         Configure(builder);
+        var hasWorker = builder.Resources.Any(resource => resource.Name == "worker");
         app = await builder.BuildAsync(startup.Token);
         watcher = WatchResourcesAsync(app, watching.Token);
         try
         {
             await app.StartAsync(startup.Token);
             await Task.WhenAll(RequiredResources.Select(resource => WaitUntilHealthyAsync(app, resource, startup.Token)));
+            if (hasWorker)
+            {
+                await WaitUntilWorkerRunsAgentsAsync(startup.Token);
+            }
         }
         catch
         {
@@ -132,6 +138,34 @@ public class AppHostFixture : IAsyncLifetime
         {
             throw new TimeoutException(
                 $"The AppHost resource '{resource}' was not healthy within {StartupTimeout.TotalMinutes:0} minutes. " +
+                $"Check its log in {LogDirectory}.",
+                exception);
+        }
+    }
+
+    // The worker has no health endpoint: Aspire calls it running once its process starts, and Wolverine starts listening
+    // and takes leadership up to a minute later while another stack boots beside it. Until then nothing handles a
+    // message, so a test that waits 30 s for a worker's event spent its budget on startup. Wolverine records the agents
+    // its leader runs, and the durability agent (scheduled messages, outbox recovery) is assigned once the worker's
+    // node leads; every run starts on a fresh database, so the row is this worker's.
+    private async Task WaitUntilWorkerRunsAgentsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var connection = new NpgsqlConnection(await GetOwnerConnectionStringAsync(cancellationToken));
+            await connection.OpenAsync(cancellationToken);
+            await using var command = new NpgsqlCommand(
+                $"SELECT EXISTS (SELECT 1 FROM {DatabaseRegistration.MessagingSchema}.wolverine_node_assignments WHERE id LIKE 'wolverinedb://%')",
+                connection);
+            while (await command.ExecuteScalarAsync(cancellationToken) is not true)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
+            }
+        }
+        catch (OperationCanceledException exception) when (!TestContext.Current.CancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException(
+                $"The worker did not start its Wolverine agents within {StartupTimeout.TotalMinutes:0} minutes. " +
                 $"Check its log in {LogDirectory}.",
                 exception);
         }
