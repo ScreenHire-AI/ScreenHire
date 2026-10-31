@@ -155,8 +155,9 @@ public class AppHostFixture : IAsyncLifetime
     // Warning and above. `pnpm dev` keeps them, for the Aspire dashboard.
     // The API's request log goes the other way, on: one line per request with its path, status and time ("Request
     // finished ... in 31234 ms"), so a test that waits out a slow request names the request in api.log. The line holds
-    // the query string too, and CI uploads api.log as a public artifact on failure. That is fine only because test
-    // stacks hold fictional data; turn it off before any route carries a token or an email in its URL.
+    // the full URL, the candidate tokens in the public questionnaire, draft and talent-pool routes included, and CI
+    // uploads api.log as a public artifact on failure. That is fine because a test stack's data and tokens are throwaway
+    // values in a database that is gone when the run ends; never turn this on for a stack that holds real data.
     private static void WithTestLogLevels(IDistributedApplicationTestingBuilder builder)
     {
         foreach (var project in builder.Resources.OfType<ProjectResource>())
