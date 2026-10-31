@@ -118,27 +118,114 @@ public sealed class EmailTemplatesTests
         email.Subject.Should().NotContain("\n").And.NotContain("\r");
     }
 
-    // The body is plain text: markup its author types reads as text, so a template cannot carry a hidden link or an image.
+    // The body is rich text limited to the editor's elements: an image, a script or a relative link never reaches an email.
     [Fact]
-    public void Markup_in_a_template_is_text_in_the_html_part()
+    public void Markup_outside_the_editors_elements_never_reaches_the_html_part()
     {
-        var email = Templates.Render(new EmailTemplateContent("Hello", "<img src=\"https://tracker.example.com/p.gif\"><a href=\"x\">Click</a>"), "sam@example.com", Sam);
+        var email = Templates.Render(
+            new EmailTemplateContent("Hello", "<p><img src=\"https://tracker.example.com/p.gif\"><script>steal()</script><a href=\"x\">Click</a></p>"),
+            "sam@example.com", Sam);
 
-        email.HtmlBody.Should().NotContain("<img").And.NotContain("<a href=\"x\"").And.Contain("&lt;img");
+        email.HtmlBody.Should().NotContain("<img").And.NotContain("<script").And.NotContain("steal()").And.NotContain("href=\"x\"")
+            .And.Contain("<p>Click</p>");
     }
 
     [Fact]
-    public void Blank_lines_make_paragraphs_and_addresses_become_links_that_show_themselves()
+    public void The_editors_formatting_reaches_both_parts()
+    {
+        var email = Templates.Render(
+            new EmailTemplateContent("Next steps", "<h2>Next steps</h2><p>Hi <strong>{{ firstName }}</strong>,</p><ol><li>Book a time</li><li>Bring ID</li></ol>"
+                + "<p>Read <a href=\"https://example.com/faq\">our FAQ</a>.</p>"),
+            "sam@example.com", Sam);
+
+        email.HtmlBody.Should().Contain("<h2>Next steps</h2><p>Hi <strong>Sam Rivera</strong>,</p><ol><li>Book a time</li><li>Bring ID</li></ol>")
+            .And.Contain("<a href=\"https://example.com/faq\" rel=\"nofollow noopener noreferrer\">our FAQ</a>");
+        email.TextBody.ReplaceLineEndings("\n").Should().Be("Next steps\n\nHi Sam Rivera,\n\n1. Book a time\n2. Bring ID\n\nRead our FAQ (https://example.com/faq).\n");
+    }
+
+    [Fact]
+    public void Plain_text_paragraphs_still_read_and_addresses_become_links_that_show_themselves()
     {
         var email = Templates.Render(
             new EmailTemplateContent("Next steps", "Hi {{ candidateName }},\nwelcome.\n\nBook a time at https://cal.example.com/brightwater?ref=a&b=1.\n\nThanks"),
             "sam@example.com",
             Sam);
 
-        email.HtmlBody.Should().Contain("<p>Hi Sam Rivera,<br>\nwelcome.</p>")
-            .And.Contain("<a href=\"https://cal.example.com/brightwater?ref=a&amp;b=1\">https://cal.example.com/brightwater?ref=a&amp;b=1</a>.</p>")
+        email.HtmlBody.Should().Contain("<p>Hi Sam Rivera,<br>welcome.</p>")
+            .And.Contain("<a href=\"https://cal.example.com/brightwater?ref=a&amp;b=1\" rel=\"nofollow noopener noreferrer\">https://cal.example.com/brightwater?ref=a&amp;b=1</a>.</p>")
             .And.Contain("<p>Thanks</p>");
         email.TextBody.Should().Contain("Book a time at https://cal.example.com/brightwater?ref=a&b=1.");
+    }
+
+    [Fact]
+    public void The_questionnaire_link_is_a_link()
+    {
+        var email = Templates.Render(
+            EmailTemplateIds.QuestionnaireRequest, "sam@example.com", Sam with { QuestionnaireLink = "https://careers.example.com/q/abc?t=1&s=2" });
+
+        email.HtmlBody.Should().Contain("<a href=\"https://careers.example.com/q/abc?t=1&amp;s=2\"");
+        email.TextBody.Should().Contain("Answer them here: https://careers.example.com/q/abc?t=1&s=2");
+    }
+
+    [Fact]
+    public void A_value_with_several_lines_keeps_them()
+    {
+        var email = Templates.Render(EmailTemplateIds.ApplicationRejected, "sam@example.com", Sam with { Reason = "No right to work.\nNo licence." });
+
+        email.HtmlBody.Should().Contain("The reason: No right to work.<br>No licence.");
+        email.TextBody.ReplaceLineEndings("\n").Should().Contain("The reason: No right to work.\nNo licence.");
+    }
+
+    [Fact]
+    public void Liquid_in_the_html_reads_as_the_author_wrote_it()
+    {
+        // The editor stores a comparison entity-encoded, and bold can cover part of a tag.
+        var content = new EmailTemplateContent("Hi", "<p>{% if stageName &gt; \"A\" %}In <strong>{{ stageName</strong> }}{% endif %}</p><p>{% if reason == \"x\" %}Never{% endif %}</p>");
+
+        Templates.Validate(null, content with { Body = content.Body.Replace("reason", "lastName", StringComparison.Ordinal) }).Should().BeEmpty();
+        var email = Templates.Render(content, "sam@example.com", Sam);
+        email.HtmlBody.Should().Contain("<p>In <strong>Phone screen</strong></p>").And.NotContain("<p></p>").And.NotContain("Never");
+    }
+
+    [Fact]
+    public void A_link_address_cannot_hold_a_variable()
+    {
+        Templates.Validate(null, new("Hi", "<p><a href=\"https://example.com/?name={{ firstName }}\">Go</a></p>"))
+            .Should().ContainSingle().Which.Message.Should().Be("A link's address cannot hold a variable.");
+    }
+
+    // An address in the text becomes a link as it sends, so a variable inside one would carry the candidate's details off
+    // to another site just as an href would.
+    [Theory]
+    [InlineData("<p>See https://example.com/?name={{ firstName }}</p>")]
+    [InlineData("<p>See https://example.com/{{firstName}}/profile</p>")]
+    public void An_address_in_the_text_cannot_hold_a_variable_either(string body)
+    {
+        Templates.Validate(null, new("Hi", body))
+            .Should().ContainSingle().Which.Message.Should().Be("A link's address cannot hold a variable.");
+    }
+
+    [Fact]
+    public void An_address_a_candidate_typed_stays_text()
+    {
+        var email = Templates.Render(
+            new EmailTemplateContent("Hi", "<p>Hi {{ candidateName }}, read https://example.com/faq</p>"),
+            "sam@example.com",
+            Sam with { CandidateName = "https://phish.example.org/login" });
+
+        email.HtmlBody.Should().Contain("<p>Hi https://phish.example.org/login, read <a href=\"https://example.com/faq\"")
+            .And.NotContain("href=\"https://phish.example.org");
+    }
+
+    [Fact]
+    public void Every_built_in_template_is_already_sanitized()
+    {
+        foreach (var id in EmailTemplateIds.BuiltIn)
+        {
+            var body = Templates.Default(id).Body;
+            ScreenHire.Infrastructure.Content.RichText.Sanitize(body).Should().Be(body, id);
+            body.Should().StartWith("<p>", id);
+        }
     }
 
     [Fact]
@@ -157,6 +244,7 @@ public sealed class EmailTemplatesTests
     [InlineData("{% assign x = 1 %}", "The {% assign %} tag is not available")]
     [InlineData("{% for i in (1..100000) %}x{% endfor %}", "The {% for %} tag is not available")]
     [InlineData("{% include 'other' %}", "The {% include %} tag is not available")]
+    [InlineData("{% raw %}{{ jobTitle }}{% endraw %}", "The {% raw %} tag is not available")]
     [InlineData("{{ jobTitle | date: '%Y' }}", "The filter \"date\" is not available")]
     [InlineData("{{ jobTitle ", "does not parse")]
     public void A_template_uses_only_the_listed_variables_and_safe_tags(string body, string problem)

@@ -36,6 +36,8 @@
           <span class="text-muted-foreground">by {reviewer}</span>
         </p>
         <div class="flex flex-wrap items-center gap-2">
+          <!-- Which scorecard, when it is not simply the stage's own (a library scorecard given at the stage). -->
+          {#if scorecard.scorecardName && scorecard.scorecardName !== stageName(scorecard.stageId)}<Badge variant="muted">{scorecard.scorecardName}</Badge>{/if}
           <Badge variant="muted">{stageName(scorecard.stageId)}</Badge>
           <RelativeTime at={scorecard.submittedAt} class="text-caption text-muted-foreground" />
         </div>

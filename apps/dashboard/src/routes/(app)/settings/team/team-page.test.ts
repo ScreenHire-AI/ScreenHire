@@ -34,6 +34,9 @@ const invitations: PendingInvitation[] = [
   { id: 'i-2', email: 'robin@example.com', role: 'Owner', customRoleId: null, roleName: 'Owner', createdAt: '2026-10-18T09:00:00Z', expiresAt: '2026-10-25T09:00:00Z', jobAccess: 'All' as const },
 ];
 
+// Nothing has changed the team since Avery created it.
+const teamUpdated = { at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), by: 'Member', userId: user.id, apiKeyId: null, created: true };
+
 const as = (role: Exclude<OrganizationRole, 'Custom'>): { data: { user: CurrentUser } } => ({ data: { user: userAs(role) } });
 
 // The signed-in person is the owner by default; pass the team to put them elsewhere.
@@ -45,6 +48,7 @@ function renderPage(role: Exclude<OrganizationRole, 'Custom'>, routes: Parameter
       'GET /v1/organization/api-keys': () => Response.json([]),
       'GET /v1/organization/roles': () => Response.json(roleCatalogue),
       'GET /v1/organization/members/m-4/jobs': () => Response.json([{ id: 'j-1', title: 'Senior .NET Engineer', status: 'Open' }]),
+      'GET /v1/organization/team/last-update': () => Response.json(teamUpdated),
       ...routes,
     }),
   );
@@ -431,5 +435,45 @@ describe('team page', () => {
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Revoke invitation' }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/v1/organization/invitations/i-1', expect.objectContaining({ method: 'DELETE' })));
+  });
+
+  it('says on the title row that Avery created the team, and History lists its changes in words (T6, S8)', async () => {
+    const fetchMock = renderPage('Owner', {
+      'GET /v1/organization/team/history': () =>
+        Response.json({
+          entries: [
+            {
+              id: 'c-1', at: teamUpdated.at, by: 'Member', userId: user.id, apiKeyId: null,
+              lines: [{ text: 'created the team', parts: [{ text: 'created the team', strong: false }], details: [] }],
+            },
+          ],
+          nextBefore: null,
+        }),
+    });
+
+    const updated = await waitFor(() => {
+      const fact = document.querySelector('[data-last-updated]');
+      expect(fact).not.toBeNull();
+      return fact!;
+    });
+    expect(updated).toHaveTextContent(/^Created:\s*Created 2 hours ago by you/);
+    expect(updated.closest('[data-slot="header-band"]')?.querySelector('dl')).toBeNull();
+
+    await fireEvent.click(screen.getByRole('button', { name: /^History/ }));
+    const sheet = await screen.findByRole('dialog', { name: 'History' });
+    expect(await within(sheet).findByText('created the team')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith('/v1/organization/team/history', expect.anything());
+  });
+
+  it('reads Last updated again after a change to the team', async () => {
+    const fetchMock = renderPage('Owner', { 'DELETE /v1/organization/invitations/i-1': () => new Response(null, { status: 204 }) });
+    const reads = () => fetchMock.mock.calls.filter(([url, init]) => url === '/v1/organization/team/last-update' && (init?.method ?? 'GET') === 'GET').length;
+    await waitFor(() => expect(reads()).toBe(1));
+
+    await fireEvent.click(within(await openMenu('Actions for the invitation to sam@example.com')).getByRole('menuitem', { name: 'Revoke invitation' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Revoke the invitation to sam@example.com?' });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Revoke invitation' }));
+
+    await waitFor(() => expect(reads()).toBe(2));
   });
 });

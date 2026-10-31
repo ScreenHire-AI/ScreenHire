@@ -5,10 +5,13 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { Question } from './question.ts';
+import type { QuestionSection } from './questionSection.ts';
 
 /**
  * The screening questions a candidate answers when applying.
  */
 export interface Questionnaire {
   questions: Question[];
+  /** @nullable */
+  sections?: QuestionSection[] | null;
 }

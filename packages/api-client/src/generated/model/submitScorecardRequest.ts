@@ -8,13 +8,18 @@ import type { Recommendation } from './recommendation.ts';
 import type { ScorecardAnswerInput } from './scorecardAnswerInput.ts';
 
 /**
- * A reviewer's scorecard for a stage the application has reached and whose workflow stage has a scorecard. Each
- * reviewer gives one per stage: the same submission again returns the stored one, a different one is a 409.
+ * A reviewer's scorecard. Name one of two: `stageId`, a stage the application has reached whose workflow stage
+ * has a scorecard (the job's own copy), or `scorecardTemplateId`, a library scorecard given at the stage the
+ * application is in now. Each reviewer gives one per stage and scorecard: the same submission again returns the stored
+ * one, a different one is a 409.
  */
 export interface SubmitScorecardRequest {
-  stageId: string;
+  /** @nullable */
+  stageId: string | null;
   answers: ScorecardAnswerInput[];
   recommendation: Recommendation;
   /** @nullable */
   note?: string | null;
+  /** @nullable */
+  scorecardTemplateId?: string | null;
 }

@@ -4,11 +4,11 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.Automations;
-using ScreenHire.Application.Integrity;
+using ScreenHire.Application.Verification;
 using ScreenHire.Application.Jobs;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Domain.Automations;
-using ScreenHire.Domain.Integrity;
+using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Webhooks;
 
 namespace ScreenHire.Application.Webhooks;
@@ -32,7 +32,7 @@ public sealed record ApplicationSubmittedData(Guid ApplicationId, Guid JobId, st
 public sealed record ApplicationMovedData(Guid ApplicationId, Guid JobId, string FromStageId, string ToStageId);
 
 /// <summary>Categorical levels and the ruleset version only (ADR-0004): the evidence stays behind the API.</summary>
-public sealed record IntegrityAssessedData(
+public sealed record VerificationAssessedData(
     Guid ApplicationId, Guid JobId, AuthenticityLevel Authenticity, AiAssistanceLevel AiAssistance, string RulesetVersion);
 
 public sealed record AutomationFailedData(Guid ApplicationId, Guid JobId, string AutomationId, Guid RunId, AutomationRunStatus Status);
@@ -64,11 +64,11 @@ public static class WebhookEvents
             new ApplicationMovedData(e.ApplicationId, e.JobId, e.FromStageId, e.ToStageId));
     }
 
-    public static FanOutWebhook From(IntegrityAssessed e)
+    public static FanOutWebhook From(VerificationAssessed e)
     {
         ArgumentNullException.ThrowIfNull(e);
-        return Raise(e.OrganizationId, WebhookEventTypes.IntegrityAssessed, e.EventId.ToString(), e.AssessedAt,
-            new IntegrityAssessedData(e.ApplicationId, e.JobId, e.Authenticity, e.AiAssistance, e.RulesetVersion));
+        return Raise(e.OrganizationId, WebhookEventTypes.VerificationAssessed, e.EventId.ToString(), e.AssessedAt,
+            new VerificationAssessedData(e.ApplicationId, e.JobId, e.Authenticity, e.AiAssistance, e.RulesetVersion));
     }
 
     /// <summary>A failed or blocked run, the two outcomes the automation issues list shows; null for any other.</summary>

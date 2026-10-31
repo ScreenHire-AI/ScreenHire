@@ -29,7 +29,7 @@ const workflow: HiringWorkflow = {
       },
     ],
   },
-  integrityPolicy: { aiUse: 'AllowedWithDisclosure' },
+  verificationPolicy: { aiUse: 'AllowedWithDisclosure' },
   automations: [
     { id: 'tag-screen', name: 'Tag screened', trigger: { type: 'StageEntered', stageId: 'phone-screen' }, conditions: null, actions: [{ type: 'AddTag', tag: 'screened' }] },
     { id: 'notify', name: 'Tell the team', enabled: false, trigger: { type: 'ApplicationSubmitted' }, conditions: null, actions: [{ type: 'NotifyTeam', note: 'New' }] },

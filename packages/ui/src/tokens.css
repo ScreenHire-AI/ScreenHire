@@ -71,6 +71,11 @@
   --status-ai-soft: #ecebfa;
   --status-ai-mark: #2b2788;
 
+  /* Charts (section 3.5): one blue, away from every status hue. `chart-1` is the series or the part in focus, `chart-2`
+     the whole it is part of. Checked as a pair with the dataviz palette validator on the card in both themes. */
+  --chart-1: #1e5ba1;
+  --chart-2: #6aa7f4;
+
   /* Candidate & marketing — warm. Careers pages override the cta tokens with the employer brand. */
   --candidate-background: #fbf6ee;
   --candidate-surface: #ffffff;
@@ -85,6 +90,9 @@
   /* Brand-coloured text on the page (4.5:1) and brand borders and focus rings (3:1). */
   --candidate-brand-text: #c2462f;
   --candidate-brand-ui: #c2462f;
+  /* The careers header band. An employer's second colour replaces both, with white or ink text at 4.5:1 (ADR-0018). */
+  --candidate-header: #fbf6ee;
+  --candidate-header-foreground: #231f1a;
 }
 
 @media (width >= 48rem) {
@@ -141,6 +149,9 @@
   --status-ai-soft: #26264a;
   --status-ai-mark: #c7c8fa;
 
+  --chart-1: #5d94da;
+  --chart-2: #2e64a6;
+
   --candidate-background: #1a1714;
   --candidate-surface: #23201c;
   --candidate-border: #332e28;
@@ -153,4 +164,6 @@
   --candidate-cta-foreground: #1a1310;
   --candidate-brand-text: #f08a6e;
   --candidate-brand-ui: #f08a6e;
+  --candidate-header: #1a1714;
+  --candidate-header-foreground: #f2ede6;
 }

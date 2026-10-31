@@ -50,7 +50,7 @@ export function createMoves(options: { allowed?: () => boolean } = {}) {
       // A refetch already in flight (another dashboard's ApplicationMoved) would land after this and put the card back.
       await queryClient.cancelQueries({ queryKey });
       queryClient.setQueryData<JobApplications>(queryKey, (cached) =>
-        cached && { ...cached, data: cached.data.map((item) => (item.id === application.id ? { ...item, stage } : item)) },
+        cached && { ...cached, data: cached.data.map((item) => (item.id === application.id ? { ...item, stage, keptInMindAt: null } : item)) },
       );
       try {
         await mutation.mutateAsync({ applicationId: application.id, data: { toStageId: to.id, ...(note?.trim() ? { note: note.trim() } : {}) } });

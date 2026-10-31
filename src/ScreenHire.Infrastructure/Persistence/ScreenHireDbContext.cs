@@ -10,9 +10,11 @@ using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Distribution;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.History;
-using ScreenHire.Domain.Integrity;
+using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.Slack;
+using ScreenHire.Domain.TalentPool;
 using ScreenHire.Domain.Webhooks;
 using ScreenHire.Infrastructure.Identity;
 using ScreenHire.Infrastructure.Tenancy;
@@ -94,19 +96,21 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<ApplicationFile> ApplicationFiles => Set<ApplicationFile>();
 
+    public DbSet<BrandImage> BrandImages => Set<BrandImage>();
+
     public DbSet<AutomationRun> AutomationRuns => Set<AutomationRun>();
 
     public DbSet<AutomationActionRun> AutomationActionRuns => Set<AutomationActionRun>();
 
     public DbSet<ApplicationTask> ApplicationTasks => Set<ApplicationTask>();
 
-    public DbSet<IntegrityAnalyzerRun> IntegrityAnalyzerRuns => Set<IntegrityAnalyzerRun>();
+    public DbSet<VerificationAnalyzerRun> VerificationAnalyzerRuns => Set<VerificationAnalyzerRun>();
 
-    public DbSet<IntegritySignal> IntegritySignals => Set<IntegritySignal>();
+    public DbSet<VerificationSignal> VerificationSignals => Set<VerificationSignal>();
 
-    public DbSet<IntegrityAssessment> IntegrityAssessments => Set<IntegrityAssessment>();
+    public DbSet<VerificationAssessment> VerificationAssessments => Set<VerificationAssessment>();
 
-    public DbSet<IntegrityReviewAction> IntegrityReviewActions => Set<IntegrityReviewAction>();
+    public DbSet<VerificationReviewAction> VerificationReviewActions => Set<VerificationReviewAction>();
 
     public DbSet<SubmissionObservation> SubmissionObservations => Set<SubmissionObservation>();
 
@@ -118,7 +122,7 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<ConsistencyCheck> ConsistencyChecks => Set<ConsistencyCheck>();
 
-    public DbSet<IntegritySettings> IntegritySettings => Set<IntegritySettings>();
+    public DbSet<VerificationSettings> VerificationSettings => Set<VerificationSettings>();
 
     public DbSet<EmailTemplate> EmailTemplates => Set<EmailTemplate>();
 
@@ -131,6 +135,17 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
 
+    /// <summary>An organization's Slack workspace, one at most (docs/architecture/slack.md).</summary>
+    public DbSet<SlackInstallation> SlackInstallations => Set<SlackInstallation>();
+
+    public DbSet<SlackAccountLink> SlackAccountLinks => Set<SlackAccountLink>();
+
+    /// <summary>The Slack handlers' effect check: one row per message posted or refused, no text.</summary>
+    public DbSet<SlackMessageRecord> SlackMessages => Set<SlackMessageRecord>();
+
+    /// <summary>What the local sandbox workspace received (see <see cref="SlackSandboxMessage"/>).</summary>
+    public DbSet<SlackSandboxMessage> SlackSandboxMessages => Set<SlackSandboxMessage>();
+
     /// <summary>
     /// The cross-employer Signal Network (ADR-0005). Not tenant-owned; the application role has no access to the table,
     /// and nothing uses it while the network's feature flag is off.
@@ -140,6 +155,12 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     public DbSet<MagicLinkToken> MagicLinkTokens => Set<MagicLinkToken>();
 
     public DbSet<QuestionnaireRequest> QuestionnaireRequests => Set<QuestionnaireRequest>();
+
+    public DbSet<ApplicationDraft> ApplicationDrafts => Set<ApplicationDraft>();
+
+    public DbSet<TalentPoolEntry> TalentPoolEntries => Set<TalentPoolEntry>();
+
+    public DbSet<TalentPoolSettings> TalentPoolSettings => Set<TalentPoolSettings>();
 
     /// <summary>
     /// The ASP.NET Core Data Protection key ring the API and the worker share (<see cref="DataProtectionRegistration"/>).

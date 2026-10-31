@@ -7,7 +7,9 @@
 import type { ApplicationTaskKind } from './applicationTaskKind.ts';
 
 /**
- * Something a person should do about an application: a review, a to-do, or a rejection to decide on.
+ * Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a
+ * teammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are
+ * ticked off by hand.
  */
 export interface ApplicationTaskEntry {
   id: string;
@@ -23,4 +25,6 @@ export interface ApplicationTaskEntry {
   completedAt: string | null;
   /** @nullable */
   completedByUserId: string | null;
+  /** @nullable */
+  scorecardTemplateId?: string | null;
 }

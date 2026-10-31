@@ -4,7 +4,7 @@ namespace ScreenHire.Domain.Applications;
 
 /// <summary>
 /// The candidate's rating: one to five stars made from people's scorecards (ADR-0013 decision 13, workflow-engine.md
-/// section 8). It reads rating answers and nothing else: never integrity results, AI signals or the stage, which is a
+/// section 8). It reads rating answers and nothing else: never verification results, AI signals or the stage, which is a
 /// decision already made. It informs people, who decide; no automation reads it (<see cref="FactSchema.IsRating"/>), and
 /// the API leaves it out for a reviewer who still has their own scorecard to give (<see cref="ReviewerGate"/>).
 /// </summary>

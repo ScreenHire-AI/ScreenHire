@@ -4,7 +4,7 @@ using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
 using ScreenHire.Api.Demo;
-using ScreenHire.Application.Integrity;
+using ScreenHire.Application.Verification;
 
 namespace ScreenHire.IntegrationTests.Demo;
 
@@ -60,6 +60,20 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
             await AnswersUnmetAsync(owner),
         ];
         unmet.Should().AllSatisfy(problem => problem.Should().BeNull());
+    }
+
+    // `pnpm dev` with no Slack app configured (the fixture turns the sandbox off): the page says so, and starting a
+    // connection finds nothing there. Nothing is written, so the read-only Brightwater is safe.
+    [Fact]
+    public async Task Slack_is_hidden_when_no_slack_app_is_configured()
+    {
+        using var owner = await SignedInOwnerAsync();
+
+        (await GetAsync(owner, "/v1/slack")).GetProperty("available").GetBoolean().Should().BeFalse();
+        using var install = await owner.PostAsync("/v1/slack/install", new { }, Ct);
+        install.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        using var sandbox = await owner.Client.GetAsync("/v1/slack/sandbox/messages", Ct);
+        sandbox.StatusCode.Should().Be(HttpStatusCode.NotFound, "the sandbox's routes exist only when it is on");
     }
 
     [Fact]

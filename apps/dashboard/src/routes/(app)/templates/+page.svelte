@@ -246,7 +246,7 @@
   const scorecardOf = (row: TemplateRow) => scorecards.data?.data.find((scorecard) => scorecard.id === row.id);
   const emailOf = (row: TemplateRow) => emails.data?.data.templates.find((template) => template.id === row.id);
   // The rejection and follow-up questions emails use variables only their own actions fill, so a copy could never send.
-  const duplicable = (template: EmailTemplateEntry | undefined) => Boolean(template && !template.rejectOnly && !template.questionnaireOnly);
+  const duplicable = (template: EmailTemplateEntry | undefined) => Boolean(template && !template.rejectOnly && !template.questionnaireOnly && !template.invitationOnly);
 
   let creatingHiring = $state(false);
   let creatingScorecard = $state(false);

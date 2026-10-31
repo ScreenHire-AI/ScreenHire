@@ -9,7 +9,8 @@ import type { ScorecardAnswerEntry } from './scorecardAnswerEntry.ts';
 import type { ScorecardRating } from './scorecardRating.ts';
 
 /**
- * One reviewer's scorecard for one stage: an answer to each question as it was asked, and an overall recommendation.
+ * One reviewer's scorecard, given while the application was in a stage: an answer to each question as it was asked, and
+ * an overall recommendation.
  * Its rating answers make the candidate's rating (`ApplicationRating`, ADR-0013); nothing else on it does.
  */
 export interface ScorecardEntry {
@@ -26,4 +27,8 @@ export interface ScorecardEntry {
   workflowVersion: number;
   timelineEventId: string;
   submittedAt: string;
+  /** @nullable */
+  scorecardTemplateId: string | null;
+  /** @nullable */
+  scorecardName: string | null;
 }

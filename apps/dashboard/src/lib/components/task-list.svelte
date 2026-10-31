@@ -11,6 +11,8 @@
     createdAt: string;
     completedAt: string | null;
     completedByUserId: string | null;
+    /** The library scorecard a Scorecard task asks for. */
+    scorecardTemplateId?: string | null;
     candidateName?: string;
     jobTitle?: string;
   }
@@ -26,13 +28,16 @@
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Checkbox } from '#lib/components/ui/checkbox/index.js';
+  import { completesByHand } from '#lib/tasks.svelte.js';
   import { assigneeText, personName, taskKindLabels } from '#lib/team.js';
 
   // Tasks automations made (design system section 11): an icon in a circle, what to do, its kind and who it is for as
   // fact pills, and time ago; with `showCandidate`, the candidate's name links to the application. With `oncomplete`
   // (createTaskCompletion in #lib/tasks.svelte.ts), an open task has the task checkbox in the icon's place: ticking it
   // marks the task done and changes nothing else, and for 10 seconds (`undoable`) the row stays ticked with Undo, as
-  // does unticking it. Without it (a Viewer, A3) there is no checkbox.
+  // does unticking it. Without it (a Viewer, A3) there is no checkbox. Only a to-do and a rejection review are ticked: a
+  // review and a requested scorecard are done when the scorecard is submitted (ADR-0017 decision 11), so `work` links
+  // such a row to where that happens, on the right, as Next steps' other links sit.
   let {
     tasks,
     members,
@@ -42,6 +47,7 @@
     undoable = () => false,
     showCandidate = false,
     href,
+    work,
     label,
   }: {
     tasks: readonly TaskRow[];
@@ -57,6 +63,8 @@
      * (My tasks): a list of things to do takes you to each one.
      */
     href?: (task: TaskRow) => string;
+    /** A link to where an open task that is not ticked by hand gets done, when the reader can do it there. */
+    work?: (task: TaskRow) => { href: string; label: string } | undefined;
     label: string;
   } = $props();
 
@@ -68,11 +76,12 @@
   {#each tasks as task (task.id)}
     {@const done = Boolean(task.completedAt)}
     {@const undo = Boolean(onundo) && undoable(task.id)}
+    {@const link = !done && !href ? work?.(task) : undefined}
     <!-- In a narrow container (the 320px side column) Undo goes under the facts, so the text and pills keep the row's
          width (F2). -->
     <li class={['@container/task relative border-b border-border-subtle py-3 first:pt-0 last:border-b-0 last:pb-0', href && 'rounded-md hover:bg-secondary/60']}>
       <div class="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2 @md/task:grid-cols-[auto_minmax(0,1fr)_auto]">
-        {#if (!done && oncomplete) || undo}
+        {#if (!done && oncomplete && completesByHand(task.kind)) || undo}
           <!-- The task checkbox, centred in the icon's 28px place. Its hit area reaches 44px on touch (F4). -->
           <span class="grid size-7 shrink-0 place-items-center">
             <!-- A round to-do tick with a 2px edge, so it reads as something to tick before anyone presses it. -->
@@ -113,6 +122,14 @@
             {/if}
           </div>
         </div>
+        {#if link}
+          <a
+            href={link.href}
+            aria-label={`${link.label}: ${describe(task)}`}
+            class="col-start-2 inline-flex min-h-6 items-center justify-self-start pt-1 font-semibold text-primary underline underline-offset-2 pointer-coarse:min-h-11 @md/task:col-start-3 @md/task:row-start-1"
+            >{link.label}</a
+          >
+        {/if}
         {#if undo}
           <Button
             variant="outline"

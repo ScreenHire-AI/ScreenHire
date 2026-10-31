@@ -47,7 +47,7 @@ export const triggerLabels: Partial<Record<TriggerType, string>> = {
   StageExited: 'A candidate leaves a stage',
   TimeElapsed: 'Time passes in a stage',
   QuestionnaireCompleted: 'A follow-up questionnaire is answered',
-  IntegrityAssessed: 'The verification checks finish',
+  VerificationAssessed: 'The verification checks finish',
   ReviewerDecision: 'A reviewer records a decision',
   SlaBreached: "A stage's time limit passes",
   Manual: 'Someone runs it by hand',
@@ -245,7 +245,7 @@ export interface FactOption {
   fact: string;
   label: string;
   type: FactType;
-  /** An integrity or verification signal: it may only route, never reject (ADR-0004). */
+  /** A verification signal: it may only route, never reject (ADR-0004). */
   signal: boolean;
   values?: { value: string; label: string }[];
 }
@@ -264,7 +264,7 @@ const operatorsByType: Record<FactType, ConditionOperator[]> = {
 
 export const operatorsFor = (type: FactType): ConditionOperator[] => operatorsByType[type];
 
-/** The integrity engine's level names (integrity-engine.md); levels compare by equality only. */
+/** The verification engine's level names (verification-engine.md); levels compare by equality only. */
 export const authenticityLevels = [
   { value: 'NoConcerns', label: 'No concerns' },
   { value: 'ReviewSuggested', label: 'Review suggested' },
@@ -328,8 +328,8 @@ export function factsFor(workflow: HiringWorkflow, trigger?: TriggerType): FactO
     { fact: 'application.tags', label: 'Tags', type: 'TextList', signal: false },
     { fact: 'application.source', label: 'Source', type: 'Text', signal: false, values: sources },
     { fact: 'application.hoursInStage', label: 'Hours in stage', type: 'Number', signal: false },
-    { fact: 'integrity.authenticity', label: 'Verification: authenticity', type: 'Level', signal: true, values: authenticityLevels },
-    { fact: 'integrity.aiAssistance', label: 'Verification: AI assistance', type: 'Level', signal: true, values: aiAssistanceLevels },
+    { fact: 'verification.authenticity', label: 'Verification: authenticity', type: 'Level', signal: true, values: authenticityLevels },
+    { fact: 'verification.aiAssistance', label: 'Verification: AI assistance', type: 'Level', signal: true, values: aiAssistanceLevels },
     ...(trigger === 'ReviewerDecision'
       ? [
           {

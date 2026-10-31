@@ -2,7 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
+using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Domain.Organizations;
 
 namespace ScreenHire.Infrastructure.Persistence.Configurations;
 
@@ -14,6 +16,7 @@ internal sealed class JobApplicationConfiguration : IEntityTypeConfiguration<Job
         builder.Property(a => a.AiUseDeclaration).HasConversion<string>().HasMaxLength(20);
         builder.Property(a => a.AiUseDetails).HasMaxLength(2000);
         builder.Property(a => a.Source).HasConversion<string>().HasMaxLength(20);
+        builder.Property(a => a.SourceSite).HasMaxLength(EmbedOrigins.MaxLength);
         builder.Property(a => a.Answers).HasJsonColumn();
         builder.Property(a => a.PrivacyNoticeVersion).HasMaxLength(40);
         builder.Property(a => a.BotCheck).HasConversion<string>().HasMaxLength(20);
@@ -65,6 +68,7 @@ internal sealed class QuestionnaireRequestConfiguration : IEntityTypeConfigurati
         builder.Property(r => r.QuestionnaireName).HasMaxLength(80);
         builder.Property(r => r.Questions).HasJsonColumn();
         builder.Property(r => r.Answers).HasJsonColumn();
+        builder.Property(r => r.DraftAnswers).HasJsonColumn().HasDefaultValueSql("'[]'::jsonb");
         // Optimistic concurrency on xmin: two answers to one link racing each other give one success and one conflict.
         builder.Property<uint>("Version").IsRowVersion();
 
@@ -81,11 +85,37 @@ internal sealed class QuestionnaireRequestConfiguration : IEntityTypeConfigurati
     }
 }
 
+internal sealed class ApplicationDraftConfiguration : IEntityTypeConfiguration<ApplicationDraft>
+{
+    public void Configure(EntityTypeBuilder<ApplicationDraft> builder)
+    {
+        builder.Property(d => d.Email).HasMaxLength(320);
+        builder.Property(d => d.FirstName).HasMaxLength(Candidate.MaxNamePartLength);
+        builder.Property(d => d.LastName).HasMaxLength(Candidate.MaxNamePartLength);
+        builder.Property(d => d.Phone).HasMaxLength(50);
+        builder.Property(d => d.Answers).HasJsonColumn();
+        builder.Property(d => d.AiUseDeclaration).HasConversion<string>().HasMaxLength(20);
+        builder.Property(d => d.AiUseDetails).HasMaxLength(2000);
+
+        builder.HasOne<Job>().WithMany()
+            .HasForeignKey(d => new { d.OrganizationId, d.JobId })
+            .HasPrincipalKey(j => new { j.OrganizationId, j.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        // Submission finds the job's drafts for the email; the link cap counts an address's drafts of the last day; the
+        // daily sweep finds the expired ones.
+        builder.HasIndex(d => new { d.OrganizationId, d.JobId, d.Email });
+        builder.HasIndex(d => new { d.OrganizationId, d.Email, d.CreatedAt });
+        builder.HasIndex(d => new { d.OrganizationId, d.ExpiresAt });
+    }
+}
+
 internal sealed class ApplicationScorecardConfiguration : IEntityTypeConfiguration<ApplicationScorecard>
 {
     public void Configure(EntityTypeBuilder<ApplicationScorecard> builder)
     {
         builder.Property(s => s.StageId).HasMaxLength(40);
+        builder.Property(s => s.ScorecardTemplateId).HasMaxLength(40);
+        builder.Property(s => s.ScorecardName).HasMaxLength(ScorecardTemplate.MaxNameLength);
         builder.Property(s => s.Ratings).HasJsonColumn();
         builder.Property(s => s.Answers).HasJsonColumn().HasDefaultValueSql("'[]'::jsonb");
         builder.Property(s => s.Recommendation).HasConversion<string>().HasMaxLength(20);
@@ -100,9 +130,12 @@ internal sealed class ApplicationScorecardConfiguration : IEntityTypeConfigurati
             .HasForeignKey(s => new { s.OrganizationId, s.JobId })
             .HasPrincipalKey(j => new { j.OrganizationId, j.Id })
             .OnDelete(DeleteBehavior.Cascade);
-        // One judgement per reviewer per stage: a second submission is the same request again or a conflict, and two
-        // submissions racing each other hit this index.
-        builder.HasIndex(s => new { s.OrganizationId, s.ApplicationId, s.StageId, s.ReviewerUserId }).IsUnique();
+        // One judgement per reviewer, stage and scorecard: a second submission is the same request again or a conflict,
+        // and two submissions racing each other hit this index. Nulls are not distinct, so a stage copy that names no
+        // library scorecard (and every scorecard given before submissions kept one) is still one per reviewer and stage.
+        builder.HasIndex(s => new { s.OrganizationId, s.ApplicationId, s.StageId, s.ReviewerUserId, s.ScorecardTemplateId })
+            .IsUnique()
+            .AreNullsDistinct(false);
     }
 }
 
@@ -121,7 +154,7 @@ internal sealed class ApplicationFileConfiguration : IEntityTypeConfiguration<Ap
             .HasForeignKey(f => new { f.OrganizationId, f.ApplicationId })
             .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
             .OnDelete(DeleteBehavior.Cascade);
-        // Same-organization duplicate checks look files up by content (integrity-engine.md, ID_DUPLICATE_IN_ORG).
+        // Same-organization duplicate checks look files up by content (verification-engine.md, ID_DUPLICATE_IN_ORG).
         builder.HasIndex(f => new { f.OrganizationId, f.Sha256 });
         // One file answers one question of one application; also the index for an application's files.
         builder.HasIndex(f => new { f.OrganizationId, f.ApplicationId, f.QuestionId }).IsUnique();

@@ -9,7 +9,7 @@
   },
   "scripts": {
     "check": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run --fsModuleCachePath=node_modules/.vitest-cache"
   },
   "dependencies": {
     "@microsoft/signalr": "^10.0.11",

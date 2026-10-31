@@ -38,4 +38,13 @@ export interface ApplicationDetail {
   /** @nullable */
   slaDueAt?: string | null;
   rating?: null | ApplicationRating;
+  /** @nullable */
+  keptInMindAt?: string | null;
+  /** @nullable */
+  futureRolesUntil?: string | null;
+  /** @nullable */
+  futureRolesGivenAt?: string | null;
+  inTalentPool?: boolean;
+  /** @nullable */
+  sourceSite?: string | null;
 }

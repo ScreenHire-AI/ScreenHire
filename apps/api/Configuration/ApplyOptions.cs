@@ -45,7 +45,7 @@ public sealed class ApplyOptions
 
 /// <summary>
 /// Cloudflare Turnstile (<c>ScreenHire:Turnstile</c>), the careers form's optional bot challenge. Off unless both keys
-/// are set, which is never the case locally or in tests: its outcome is an integrity signal, never a gate.
+/// are set, which is never the case locally or in tests: its outcome is a verification signal, never a gate.
 /// </summary>
 public sealed class TurnstileOptions
 {

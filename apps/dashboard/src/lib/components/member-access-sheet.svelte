@@ -12,7 +12,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { selectClass } from '#lib/components/workflow/controls.js';
   import { describeError, invalidatePath } from '#lib/query.js';
-  import { mayGiveJobAccess, roleKey, seesAllJobsWith } from '#lib/settings.js';
+  import { mayGiveJobAccess, roleKey, seesAllJobsWith, teamPath } from '#lib/settings.js';
   import { cn } from '#lib/utils.js';
 
   // A member's access (design system section 21, ADR-0015): one role, for what they can do, and which jobs they see:
@@ -41,8 +41,10 @@
 
   const queryClient = useQueryClient();
   const membersPath = '/v1/organization/members';
-  const changeRole = createChangeMemberRole(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, membersPath) } }));
-  const changeAccess = createChangeMemberJobAccess(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, membersPath) } }));
+  // A change of role or job access is also a line in the team's history.
+  const changed = () => Promise.all([invalidatePath(queryClient, membersPath), invalidatePath(queryClient, teamPath)]);
+  const changeRole = createChangeMemberRole(() => ({ mutation: { onSettled: changed } }));
+  const changeAccess = createChangeMemberJobAccess(() => ({ mutation: { onSettled: changed } }));
   const jobs = createListMemberJobs(() => member?.id ?? '', () => ({ query: { enabled: open && member !== null } }));
 
   let roleChoice = $state('');

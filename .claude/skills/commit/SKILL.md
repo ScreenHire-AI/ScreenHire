@@ -28,7 +28,7 @@ Conventional commits: `type(scope): subject`, subject in the imperative, lower c
 
 - Types: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `chore`, `build`, `ci`, `style`. Add `!` after the
   type for a breaking change (a renamed route or `WithName`, a removed contract field).
-- Scope is the area: `api`, `dashboard`, `careers`, `marketing`, `worker`, `domain`, `db`, `auth`, `integrity`,
+- Scope is the area: `api`, `dashboard`, `careers`, `marketing`, `worker`, `domain`, `db`, `auth`, `verification`,
   `workflow`, `ui`, `api-client`, `tooling`, `process`.
 - Review fixes use the `(review)` scope suffix the Code Review column expects: `fix(review): ...`.
 - If `$ARGUMENTS` already has a conventional prefix, use it as is. If it has none, pick the type from the diff and

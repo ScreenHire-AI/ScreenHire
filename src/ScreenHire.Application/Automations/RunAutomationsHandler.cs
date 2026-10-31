@@ -21,6 +21,14 @@ public static partial class RunAutomationsHandler
 
         if (message.Trigger is TriggerType.TimeElapsed or TriggerType.SlaBreached)
         {
+            // Keeping a candidate in mind ends the application without a new stage entry, so its timers still name the
+            // current entry: they do nothing, as they would once it moved on.
+            if (application.KeptInMindAt is not null)
+            {
+                LogTimerCancelled(logger, message.ApplicationId, message.AutomationId);
+                return [];
+            }
+
             // A timer counts from one stage entry. If the application has left it since (moved on, or left and came back,
             // which is a new entry with its own timer), the timer is cancelled: it does nothing.
             var currentEntry = await db.ApplicationEvents.AsNoTracking()

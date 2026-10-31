@@ -44,6 +44,10 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(tags.GetByRole(AriaRole.List, new() { Name = "Tags" })).ToContainTextAsync("Referral");
         await Expect(tags.GetByRole(AriaRole.Button, new() { Name = "Remove tag Referral" })).ToBeVisibleAsync();
         await Expect(activity).ToContainTextAsync("Tagged \"Referral\" by you");
+        // The Activity line can arrive before the tag's request has settled. Both buttons are disabled until it has, and
+        // enabling one eases its colours back; axe measuring mid-ease reports a button at half contrast.
+        await Expect(tags.GetByRole(AriaRole.Button, new() { Name = "Add tag" })).ToBeEnabledAsync();
+        await Expect(activity.GetByRole(AriaRole.Button, new() { Name = "Save note", Exact = true })).ToBeEnabledAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-team-work-application");
 
@@ -53,7 +57,7 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(applications.GetByRole(AriaRole.Link, new() { Name = Untagged, Exact = true })).ToBeVisibleAsync();
         await applications.GetByRole(AriaRole.Button, new() { Name = "Tag: all" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitemradio, new() { Name = "Referral" }).ClickAsync();
-        // A filter menu stays open for another choice, as the integrity filter does.
+        // A filter menu stays open for another choice, as the verification filter does.
         await Page.Keyboard.PressAsync("Escape");
         await Expect(Page.GetByRole(AriaRole.Menu)).ToHaveCountAsync(0);
         await Expect(applications.GetByRole(AriaRole.Link, new() { Name = Untagged, Exact = true })).ToHaveCountAsync(0);

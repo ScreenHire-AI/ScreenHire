@@ -10,7 +10,7 @@
   // What a reviewer fills in for a scorecard (design system section 11, Scorecard and Rating answer): each question in
   // its own kind (ratings and yes-or-no on one row of joined buttons, choices as radios or checkboxes, text in a box),
   // then the overall recommendation and a note for the team. `ScorecardSheet` submits it; the scorecard editor's preview
-  // shows it as a reviewer sees it. Nothing here shows or takes integrity output (CLAUDE.md non-negotiable 2).
+  // shows it as a reviewer sees it. Nothing here shows or takes verification output (CLAUDE.md non-negotiable 2).
   let {
     questions,
     values = $bindable({}),

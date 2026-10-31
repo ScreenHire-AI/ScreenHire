@@ -21,7 +21,9 @@ rank fast pages, so both ship about zero kilobytes of JavaScript. The procedures
   `@screenhire/ui/questions`), and the page works without it. The other shared question components render on the
   server only, with no client directive. The apply page also runs the telemetry module (`packages/telemetry`,
   framework-free, under 5 KB) from a processed `<script>`; the server starts it only with the assistive-technology
-  switch off. Other than these, the only `<script>` on a page is JSON-LD (`type="application/ld+json"`).
+  switch off. Inside the embeddable widget (embed mode only, `docs/architecture/careers-widget.md`) a page also runs
+  `EmbedFrame.astro`'s processed `<script>`, a few hundred bytes that size the frame. Other than these, the only
+  `<script>` on a page is JSON-LD (`type="application/ld+json"`).
 - **Careers forms are native forms posted to an Astro Action** and must work with JavaScript off
   (`docs/architecture/apply-flow.md`). The apply page stays within about 22 KB of brotli JavaScript: about 20 KB for
   the island and Svelte, plus the telemetry module (an end-to-end test measures it). Islands call careers endpoints with
@@ -30,7 +32,9 @@ rank fast pages, so both ship about zero kilobytes of JavaScript. The procedures
   `src/middleware.ts`: no inline styles (`style=` attributes or `<style>`), no `unsafe-inline`, no third-party hosts
   except what a page adds with `Astro.csp` when configured (Turnstile). Employer colours come only from the hashed
   brand stylesheet.
-- **The embeddable apply widget is an iframe**, never Shadow DOM or a script that injects into the host page.
+- **The embeddable apply widget is an iframe**, never Shadow DOM or a script that injects into the host page. The
+  snippet's script (`src/embed/embed.js`) only adds the frame and sizes it from messages of the careers origin, and
+  `frame-ancestors` comes only from `src/middleware.ts`, built from what the page put in `Astro.locals`.
 - **SEO on every page.** Marketing pages take `title` and `description` from `src/lib/pages.ts` (or collection
   frontmatter) and pass them with `breadcrumbs` and `jsonLd` to `BaseLayout`, which renders `Seo.astro` (canonical
   URL, hreflang, Open Graph image, Twitter card, Organization and WebSite JSON-LD). Careers pages pass
@@ -65,7 +69,7 @@ rank fast pages, so both ship about zero kilobytes of JavaScript. The procedures
 
 - `pnpm --filter @screenhire/marketing check` and `pnpm --filter @screenhire/careers check` (astro check).
 - After a build, `find apps/marketing/dist -name '*.js'` prints nothing, and `apps/careers/dist/client` holds only the
-  apply page's island and telemetry chunks unless the PR adds an island on purpose.
+  apply page's island, telemetry and frame-sizing chunks unless the PR adds an island on purpose.
 - `pnpm --filter @screenhire/marketing build` fails on more than 15 KB of JS per page or a broken internal link, and
   `pnpm --filter @screenhire/marketing lighthouse` checks mobile LCP and CLS. The build runs in `pnpm verify`;
   Lighthouse runs once per marketing change in the Testing column (`/pull-request`).

@@ -1,6 +1,6 @@
 import type { HistoryEntry, TeamMember } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
-import { actorName, groupByDay, joinPages, sentenceStart } from './history.js';
+import { actorName, groupByDay, joinPages, lastUpdateWords, sentenceStart } from './history.js';
 
 const members: TeamMember[] = [
   { id: 'm1', userId: 'u1', email: 'avery@example.com', displayName: 'Avery Quinn', role: 'Owner', customRoleId: null, roleName: 'Owner', joinedAt: '2026-10-01T09:00:00Z', jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 },
@@ -33,6 +33,12 @@ describe('history', () => {
     const a = entry('a', '2026-10-25T12:00:00Z');
     const b = entry('b', '2026-10-25T11:00:00Z');
     expect(joinPages([{ entries: [a, b], nextBefore: 'b' }, { entries: [b], nextBefore: null }, undefined]).map((e) => e.id)).toEqual(['a', 'b']);
+  });
+
+  it('words Last updated as Created until something changes the object after its creation', () => {
+    expect(lastUpdateWords({ created: true })).toEqual({ label: 'Created', verb: 'Created' });
+    expect(lastUpdateWords({ created: false })).toEqual({ label: 'Last updated', verb: 'Updated' });
+    expect(lastUpdateWords({})).toEqual({ label: 'Last updated', verb: 'Updated' });
   });
 
   it('starts a sentence with a capital', () => {

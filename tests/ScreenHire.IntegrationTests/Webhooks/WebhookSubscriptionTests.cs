@@ -23,7 +23,7 @@ public sealed class WebhookSubscriptionTests(AppHostFixture fixture)
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
         await using var receiver = await WebhookReceiver.StartAsync(Ct);
-        var created = await CreateEndpointAsync(recruiter, receiver, "job.published", "application.submitted", "application.moved", "integrity.assessed");
+        var created = await CreateEndpointAsync(recruiter, receiver, "job.published", "application.submitted", "application.moved", "verification.assessed");
         var secret = created.Text("signingSecret");
         var endpointId = created.Id("endpoint.id");
         secret.Should().StartWith("whsec_");
@@ -53,7 +53,7 @@ public sealed class WebhookSubscriptionTests(AppHostFixture fixture)
             .Expect(HttpStatusCode.OK);
         var submitted = await receiver.WaitForEventAsync("application.submitted", application.Id(), Ct);
         var moved = await receiver.WaitForEventAsync("application.moved", application.Id(), Ct);
-        var assessed = await receiver.WaitForEventAsync("integrity.assessed", application.Id(), Ct);
+        var assessed = await receiver.WaitForEventAsync("verification.assessed", application.Id(), Ct);
         submitted.Json.GetProperty("data").GetProperty("stageId").GetString().Should().Be("applied");
         moved.Json.GetProperty("data").GetProperty("toStageId").GetString().Should().Be("screening");
         assessed.Json.GetProperty("data").GetProperty("authenticity").ValueKind.Should().Be(JsonValueKind.String, "a categorical level, never a score");

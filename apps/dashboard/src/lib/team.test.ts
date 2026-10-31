@@ -1,7 +1,7 @@
 import type { TeamMember } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import { interviewerRoleId, roleCatalogue } from '../test-support/fixtures.js';
-import { assignableMembers, assigneeText, personName } from './team.js';
+import { assigneeText, membersWith, personName } from './team.js';
 
 const member = (userId: string, displayName: string, role: TeamMember['role']): TeamMember => ({
   id: `m-${userId}`,
@@ -40,10 +40,10 @@ describe('team', () => {
     expect(assigneeText('u2', members, 'u1')).toBe('For Robin Ashby');
   });
 
-  it('offers only members whose role can complete a task, built-in or custom', () => {
-    expect(assignableMembers(members, roles).map((m) => m.userId)).toEqual(['u1', 'u2']);
+  it('offers only members whose role has the permission, built-in or custom', () => {
+    expect(membersWith(members, roles, 'CompleteTasks').map((m) => m.userId)).toEqual(['u1', 'u2']);
     const withInterviewers = roles.map((role) => (role.role === 'Custom' ? { ...role, permissions: [...role.permissions, 'CompleteTasks' as const] } : role));
-    expect(assignableMembers(members, withInterviewers).map((m) => m.userId)).toEqual(['u1', 'u2', 'u4']);
-    expect(assignableMembers(members, [])).toEqual([]);
+    expect(membersWith(members, withInterviewers, 'CompleteTasks').map((m) => m.userId)).toEqual(['u1', 'u2', 'u4']);
+    expect(membersWith(members, [], 'CompleteTasks')).toEqual([]);
   });
 });

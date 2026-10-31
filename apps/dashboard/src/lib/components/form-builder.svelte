@@ -12,6 +12,7 @@
   import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
   import CopyIcon from '@lucide/svelte/icons/copy';
   import PlusIcon from '@lucide/svelte/icons/plus';
+  import Rows3Icon from '@lucide/svelte/icons/rows-3';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
   import XIcon from '@lucide/svelte/icons/x';
   import { tick, type Snippet } from 'svelte';
@@ -27,6 +28,7 @@
   import { Textarea } from '#lib/components/ui/textarea/index.js';
   import FieldErrors from '#lib/components/workflow/field-errors.svelte';
   import { insertAt, kindIn, type AnswerKind, type AnswerKindGroup, type AnswerOption } from '#lib/form-builder.js';
+  import { addSection, fromRows, removeSection, rowsOf, syncSections, type BuilderRow, type SectionDraft } from '#lib/form-sections.js';
   import { idFrom } from '#lib/workflow.js';
 
   // The form builder (design system section 11), modelled on Google Forms: one panel of questions, each a row that reads
@@ -38,6 +40,10 @@
   // The builder knows nothing of what it edits: application questions, a follow-up questionnaire or a scorecard. The
   // editor that mounts it reads and writes each question through the callbacks below, offers its own answer menu
   // (`groups`), and adds the controls a kind needs through `settings`.
+  //
+  // A questionnaire may have named sections (`withSections`), each a page on the careers site: section rows in the same
+  // list, each starting its section, so dragging a question past one moves it into that section (#lib/form-sections.ts).
+  // A scorecard has none.
   let {
     items = $bindable(),
     groups,
@@ -59,6 +65,9 @@
     problems = [],
     settings,
     note,
+    withSections = false,
+    sections = $bindable(),
+    sectionErrors,
   }: {
     items: T[];
     groups: readonly AnswerKindGroup<K>[];
@@ -90,6 +99,12 @@
     settings?: Snippet<[item: T, index: number]>;
     /** A note under Add a question, such as what a scorecard may ask about. */
     note?: Snippet;
+    /** Offer named sections: Add a section, and a row per section in the list. */
+    withSections?: boolean;
+    /** The sections, or null for none (the questions then split into pages automatically). */
+    sections?: SectionDraft[] | null;
+    /** The problems with the section at `index`, shown under its row. */
+    sectionErrors?: (index: number) => readonly string[];
   } = $props();
 
   const uid = $props.id();
@@ -102,6 +117,50 @@
     return kindIn(groups, value) ?? { value, label: value };
   };
   const nameOf = (item: T) => labelOf(item).trim() || 'Untitled question';
+  const sectionName = (section: SectionDraft) => section.name.trim() || 'Untitled section';
+  const sectioned = $derived(withSections && (sections?.length ?? 0) > 0);
+  const rows = $derived<BuilderRow<T>[]>(withSections ? rowsOf(items, sections, key) : items.map((item) => ({ kind: 'question', item })));
+  const rowKey = (row: BuilderRow<T>) => (row.kind === 'section' ? `section:${row.section.id}` : key(row.item));
+
+  // Every change to the list goes through here, so the sections keep holding exactly the questions there are.
+  function setItems(next: T[]) {
+    if (sectioned && sections) {
+      const synced = syncSections(next, sections, key);
+      sections = synced.sections;
+      items = synced.items;
+    } else {
+      items = next;
+    }
+  }
+
+  function reorder(next: BuilderRow<T>[]) {
+    if (!withSections) {
+      items = next.flatMap((row) => (row.kind === 'question' ? [row.item] : []));
+      return;
+    }
+
+    const moved = fromRows(next, key);
+    sections = moved.sections;
+    items = moved.items;
+  }
+
+  async function newSection() {
+    sections = addSection(sections, items.map(key));
+    await tick();
+    const last = sections.at(-1);
+    if (last) find(`[data-section-name="${attr(last.id)}"]`)?.focus();
+  }
+
+  function deleteSection(index: number) {
+    if (!sections) return;
+    const next = removeSection(sections, index);
+    sections = next;
+    if (next) items = syncSections(items, next, key).items;
+  }
+
+  function renameSection(id: string, name: string) {
+    sections = (sections ?? []).map((section) => (section.id === id ? { ...section, name } : section));
+  }
   const find = (selector: string) => root?.querySelector<HTMLElement>(selector) ?? null;
   const attr = (id: string) => CSS.escape(id);
 
@@ -119,7 +178,7 @@
 
   function add(kind: K) {
     const item = newItem(kind);
-    items = [...items, item];
+    setItems([...items, item]);
     void open(key(item));
   }
 
@@ -127,13 +186,13 @@
     const original = items[index];
     if (original === undefined) return;
     const item = duplicate(original);
-    items = insertAt(items, index + 1, item);
+    setItems(insertAt(items, index + 1, item));
     void open(key(item));
   }
 
   async function remove(index: number) {
     const next = items[index + 1];
-    items = items.filter((_, i) => i !== index);
+    setItems(items.filter((_, i) => i !== index));
     openId = null;
     await tick();
     (next === undefined ? find('[data-question-add]') : find(`[data-question-edit="${attr(key(next))}"]`))?.focus();
@@ -176,14 +235,41 @@
       <p class="px-4.5 py-4 text-muted-foreground max-md:px-4">{empty}</p>
     {/if}
     <ReorderList
-      {items}
-      {key}
+      items={rows}
+      key={rowKey}
       label={title}
-      itemLabel={nameOf}
-      onreorder={(next) => (items = next)}
+      itemLabel={(row) => (row.kind === 'section' ? `section ${sectionName(row.section)}` : nameOf(row.item))}
+      onreorder={reorder}
       class="divide-y divide-border-subtle [&>li:last-child>div]:rounded-b-panel"
     >
-      {#snippet item(question, grip)}
+      {#snippet item(row, grip)}
+        {#if row.kind === 'section'}
+          {@const section = row.section}
+          {@const sectionIndex = (sections ?? []).findIndex((each) => each.id === section.id)}
+          {@const problems = sectionErrors?.(sectionIndex) ?? []}
+          {@const problemsId = `${uid}-section-errors-${sectionIndex}`}
+          <div data-section-row={section.id} class="flex min-w-0 flex-col gap-1 bg-muted py-2 pr-2 pl-2.5">
+            <div class="flex min-w-0 items-center gap-2">
+              {@render grip()}
+              <Input
+                data-section-name={section.id}
+                aria-label={`Section ${sectionIndex + 1} name`}
+                value={section.name}
+                oninput={(event) => renameSection(section.id, event.currentTarget.value)}
+                maxlength={80}
+                aria-invalid={problems.length > 0 || undefined}
+                aria-describedby={problems.length > 0 ? problemsId : undefined}
+                class="min-w-0 flex-1 bg-card font-semibold"
+              />
+              <span class="shrink-0 text-muted-foreground">
+                {section.questionIds.length === 1 ? '1 question' : `${section.questionIds.length} questions`}
+              </span>
+              <IconButton label={`Delete section ${sectionName(section)}`} onclick={() => deleteSection(sectionIndex)}><Trash2Icon /></IconButton>
+            </div>
+            {#if problems.length > 0}<div class="pl-10"><FieldErrors id={problemsId} messages={problems} /></div>{/if}
+          </div>
+        {:else}
+        {@const question = row.item}
         {@const index = items.indexOf(question)}
         {@const id = key(question)}
         {@const kind = kindOfItem(question)}
@@ -320,16 +406,20 @@
             </div>
           </div>
         {/if}
+        {/if}
       {/snippet}
     </ReorderList>
     {#snippet footer()}
       <div class="flex flex-col gap-3">
-        <div>
+        <div class="flex flex-wrap gap-2">
           <AnswerMenu {groups} onselect={add}>
             {#snippet trigger(props)}
               <Button {...props} data-question-add variant="outline"><PlusIcon aria-hidden="true" />Add a question<ChevronDownIcon aria-hidden="true" /></Button>
             {/snippet}
           </AnswerMenu>
+          {#if withSections}
+            <Button variant="outline" data-section-add onclick={newSection}><Rows3Icon aria-hidden="true" />Add a section</Button>
+          {/if}
         </div>
         {@render note?.()}
       </div>

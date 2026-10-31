@@ -1,4 +1,5 @@
 ---
+import { embedOf, withEmbed } from '../lib/embed';
 // "How we keep this fair": what ScreenHire checks and what it never does, shown above the form's first field, before the
 // telemetry module records anything (CLAUDE.md non-negotiable 4). It describes what this build collects; change it with NOTICE_VERSION and the privacy
 // page. Neutral tokens on purpose: employer branding never restyles the privacy notice (design-system §7).
@@ -10,6 +11,8 @@ interface Props {
 }
 
 const { base, withSwitch = false, switchChecked = false } = Astro.props;
+// Inside the widget the privacy page opens in the same frame (docs/architecture/careers-widget.md).
+const embed = embedOf(Astro.locals);
 ---
 
 <section aria-labelledby="fair-heading" class="overflow-hidden rounded-2xl border border-candidate-border bg-candidate-surface">
@@ -39,7 +42,7 @@ const { base, withSwitch = false, switchChecked = false } = Astro.props;
         </ul>
       </div>
     </div>
-    <a href={`${base}/privacy`} class="text-sm font-semibold text-candidate-foreground underline underline-offset-2">What we collect and why</a>
+    <a href={withEmbed(`${base}/privacy`, embed)} class="text-sm font-semibold text-candidate-foreground underline underline-offset-2">What we collect and why</a>
   </div>
   {
     withSwitch && (

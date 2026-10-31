@@ -11,16 +11,17 @@
   import EmailPreview from '#lib/components/email-preview.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import RichTextEditor from '#lib/components/rich-text-editor.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
-  import { Textarea } from '#lib/components/ui/textarea/index.js';
   import { selectClass } from '#lib/components/workflow/controls.js';
   import { cn } from '#lib/utils.js';
   import { describeQueued, emailCount, insertAt, sendableTemplates, sendableVariables, variableTag } from '#lib/email.js';
   import { applyValidationProblem } from '#lib/forms.js';
   import { describeError } from '#lib/query.js';
+  import { isBlank } from '#lib/rich-text.js';
 
   // The email composer (design system section 11): start from one of the organization's templates or a blank email,
   // change it for this email only, insert variables, look at it as the first candidate receives it, and send. Each
@@ -63,7 +64,8 @@
 
   const schema = z.object({
     subject: z.string().trim().min(1, 'Enter a subject.').max(200, 'Keep the subject to 200 characters or fewer.'),
-    body: z.string().trim().min(1, 'Enter the message.').max(10000, 'Keep the message to 10,000 characters or fewer.'),
+    // Rich text; the API checks the length of the sanitized HTML, which is what it sends.
+    body: z.string().refine((body) => !isBlank(body), 'Enter the message.'),
   });
 
   const send = createSendEmails();
@@ -110,27 +112,39 @@
 
   const changed = $derived(template !== undefined && ($form.subject !== template.subject || $form.body !== template.body));
 
-  // Insert a variable where the caret was in the subject or the message, whichever had focus last. The menu gives focus
-  // back to its button as it closes, so the field takes it after that.
+  // Insert a variable where the caret was in the subject or the message, whichever had focus last: `{{ name }}` text in
+  // the subject, a chip in the message. The menu gives focus back to its button as it closes, so the field takes it after
+  // that.
   let subjectInput = $state<HTMLInputElement | null>(null);
-  let bodyInput = $state<HTMLTextAreaElement | null>(null);
+  let bodyEditor = $state<ReturnType<typeof RichTextEditor> | null>(null);
   let lastField: 'subject' | 'body' = 'body';
   let caret: number | undefined;
+  let inserted = false;
   async function insert(name: string) {
-    const element = lastField === 'subject' ? subjectInput : bodyInput;
-    const current = $form[lastField];
-    const next = insertAt(current, element?.selectionStart ?? current.length, element?.selectionEnd ?? current.length, variableTag(name));
-    $form[lastField] = next.text;
+    inserted = true;
+    if (lastField === 'body') {
+      bodyEditor?.insertVariable(name);
+      return;
+    }
+
+    const current = $form.subject;
+    const next = insertAt(current, subjectInput?.selectionStart ?? current.length, subjectInput?.selectionEnd ?? current.length, variableTag(name));
+    $form.subject = next.text;
     caret = next.caret;
     await tick();
   }
 
   function focusAfterInsert(event: Event) {
-    if (caret === undefined) return;
+    if (!inserted) return;
     event.preventDefault();
-    const element = lastField === 'subject' ? subjectInput : bodyInput;
-    element?.focus();
-    element?.setSelectionRange(caret, caret);
+    inserted = false;
+    if (lastField === 'body') {
+      bodyEditor?.focus();
+    } else if (caret !== undefined) {
+      subjectInput?.focus();
+      subjectInput?.setSelectionRange(caret, caret);
+    }
+
     caret = undefined;
   }
 
@@ -147,7 +161,7 @@
     const ticket = ++sequence;
     preview = undefined;
     previewFailure = undefined;
-    if (!draft.subject.trim() || !draft.body.trim()) {
+    if (!draft.subject.trim() || isBlank(draft.body)) {
       previewFailure = 'Write the subject and the message to see the email.';
       return;
     }
@@ -225,19 +239,17 @@
     </Field.Field>
 
     <Field.Field data-invalid={$errors.body ? true : undefined}>
-      <Field.Label for={`${id}-body`}>Message</Field.Label>
-      <Textarea
-        id={`${id}-body`}
-        name="body"
-        rows={inline ? 6 : 12}
-        class="field-sizing-fixed resize-y"
-        maxlength={10000}
-        required
-        bind:ref={bodyInput}
+      <Field.Label id={`${id}-body-label`} for={`${id}-body`} onclick={() => bodyEditor?.focus()}>Message</Field.Label>
+      <RichTextEditor
+        bind:this={bodyEditor}
         bind:value={$form.body}
+        id={`${id}-body`}
+        labelledBy={`${id}-body-label`}
+        describedBy={describedBy('body', $errors.body)}
+        invalid={!!$errors.body}
+        {variables}
         onfocus={() => (lastField = 'body')}
-        aria-invalid={$errors.body ? 'true' : undefined}
-        aria-describedby={describedBy('body', $errors.body)}
+        class={inline ? undefined : '[&_.ProseMirror]:min-h-64'}
       />
       <Field.Error id={`${id}-body-error`} errors={$errors.body?.map((message) => ({ message }))} />
     </Field.Field>

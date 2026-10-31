@@ -7,26 +7,32 @@
 import type {
   AddApplicationNoteRequest,
   AddApplicationTagRequest,
-  AddIntegrityNoteRequest,
+  AddFromTalentPoolRequest,
+  AddVerificationNoteRequest,
+  AddedFromTalentPool,
   ApiKeySummary,
   ApiMeta,
   ApplicationDetail,
   ApplicationEmailDraft,
-  ApplicationIntegrity,
   ApplicationNoteDetail,
   ApplicationSummary,
   ApplicationTaskEntry,
   ApplicationTimelineEntry,
+  ApplicationVerification,
   ApplyTemplateUpdateRequest,
   AutomationIssue,
   AutomationRunEntry,
   BoardSummary,
+  BrandImageUploadRequest,
+  BrandingContrast,
+  BrandingImage,
   CandidateDetail,
   CandidateEmailEntry,
   CandidateSummary,
   ChallengeProviderParams,
   ChangeMemberJobAccessRequest,
   ChangeMemberRoleRequest,
+  CheckBrandingContrastParams,
   CreateApiKeyRequest,
   CreateApplicationRequest,
   CreateApplicationTaskRequest,
@@ -40,21 +46,27 @@ import type {
   CreatedApiKey,
   CurrentUser,
   CustomRoleDetail,
-  DismissIntegrityAssessmentRequest,
+  DismissVerificationAssessmentRequest,
   EditApplicationNoteRequest,
   EmailPreview,
   EmailTemplateDraft,
   EmailTemplateEntry,
   EmailTemplateList,
   EmailsQueued,
+  ExplainVerificationReasonRequest,
+  GetApiKeysHistoryParams,
   GetEmailTemplateHistoryParams,
+  GetHiringReportParams,
   GetHiringTemplateHistoryParams,
   GetJobHistoryParams,
   GetOrganizationBrandingHistoryParams,
   GetOrganizationHistoryParams,
-  GetOrganizationIntegritySettingsHistoryParams,
+  GetOrganizationTalentPoolSettingsHistoryParams,
+  GetOrganizationVerificationSettingsHistoryParams,
   GetRoleHistoryParams,
   GetScorecardTemplateHistoryParams,
+  GetTeamHistoryParams,
+  HiringReport,
   HiringTeamMember,
   HiringTeamRequest,
   HiringTemplateDetail,
@@ -63,7 +75,10 @@ import type {
   HistoryPage,
   HttpValidationProblemDetails,
   InvitationAcceptance,
+  InvitationPreviewRequest,
   InvitationRequest,
+  InvitationsQueued,
+  InviteToApplyRequest,
   JobBoardInfo,
   JobBoardJob,
   JobBoardJobList,
@@ -73,6 +88,9 @@ import type {
   JobTemplateDiff,
   JobVersionDetail,
   JobVersionSummary,
+  KeepInMindRequest,
+  KeptInMind,
+  LastUpdate,
   ListJobBoardJobsParams,
   ListTasksParams,
   ListWebhookDeliveriesParams,
@@ -80,15 +98,20 @@ import type {
   MagicLinkVerification,
   ManualAutomationQueued,
   MemberJob,
+  MemberNotificationSettings,
   MembershipLogEntry,
   MoveApplicationRequest,
   MyOrganization,
   OnboardingRequest,
   OrganizationBranding,
-  OrganizationIntegritySettings,
   OrganizationProfile,
+  OrganizationTalentPoolSettings,
+  OrganizationVerificationSettings,
   PendingInvitation,
   ProblemDetails,
+  PublicApplicationDraft,
+  PublicApplicationDraftReceipt,
+  PublicApplicationDraftRequest,
   PublicApplicationForm,
   PublicApplicationReceipt,
   PublicApplicationRequest,
@@ -97,34 +120,51 @@ import type {
   PublicOrganization,
   PublicQuestionnaire,
   PublicQuestionnaireAnswers,
+  PublicTalentPoolStatus,
   PublishJobRequest,
   RemoveApplicationTagParams,
+  RemoveFromTalentPoolRequest,
+  RequestScorecardRequest,
   RoleCatalogue,
   SandboxBoardListing,
   ScorecardEntry,
   ScorecardTemplateDetail,
   ScorecardTemplateSummary,
+  SearchParams,
+  SearchResults,
   SendEmailsRequest,
   SentEmail,
   SignInMethods,
   SimulateWorkflowRequest,
+  SlackAccount,
+  SlackAuthorization,
+  SlackChannelOption,
+  SlackStatus,
+  SlackTestResult,
+  StartSlackLinkRequest,
   SubmitScorecardRequest,
   SwitchOrganizationRequest,
+  TalentPoolList,
   TaskListItem,
   TeamMember,
   TelemetrySnapshotInput,
   TemplateUsageList,
   TestEmailSent,
   UpdateBrandingRequest,
+  UpdateCareersEmbeddingRequest,
   UpdateEmailTemplateRequest,
   UpdateHiringTemplateRequest,
   UpdateHiringTemplateVersionRequest,
-  UpdateIntegritySettingsRequest,
   UpdateJobRequest,
   UpdateJobWorkflowRequest,
+  UpdateNotificationSettingsRequest,
   UpdateOrganizationRequest,
   UpdateRoleRequest,
   UpdateScorecardTemplateRequest,
+  UpdateSlackAccountRequest,
+  UpdateSlackChannelRequest,
+  UpdateTalentPoolSettingsRequest,
+  UpdateVerificationSettingsRequest,
   UpdateWebhookEndpointRequest,
   UploadRequest,
   UploadTicket,
@@ -138,6 +178,78 @@ import type {
 } from './model';
 
 import { apiFetch } from '../http.ts';
+export type createPublicApplicationDraftResponse201 = {
+  data: PublicApplicationDraftReceipt
+  status: 201
+}
+
+export type createPublicApplicationDraftResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createPublicApplicationDraftResponse404 = {
+  data: void
+  status: 404
+}
+
+export type createPublicApplicationDraftResponse410 = {
+  data: ProblemDetails
+  status: 410
+}
+
+export type createPublicApplicationDraftResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type createPublicApplicationDraftResponseSuccess = (createPublicApplicationDraftResponse201) & {
+  headers: Headers;
+};
+export type createPublicApplicationDraftResponseError = (createPublicApplicationDraftResponse400 | createPublicApplicationDraftResponse404 | createPublicApplicationDraftResponse410 | createPublicApplicationDraftResponse429) & {
+  headers: Headers;
+};
+
+export type createPublicApplicationDraftResponse = (createPublicApplicationDraftResponseSuccess | createPublicApplicationDraftResponseError)
+
+export const getCreatePublicApplicationDraftUrl = (organizationSlug: string,
+    jobId: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/jobs/${jobId}/application-drafts`
+}
+
+export const createPublicApplicationDraft = async (organizationSlug: string,
+    jobId: string,
+    publicApplicationDraftRequest: PublicApplicationDraftRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createPublicApplicationDraftResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createPublicApplicationDraftResponse>(getCreatePublicApplicationDraftUrl(organizationSlug,jobId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicApplicationDraftRequest)
+  }
+);}
+
+
+
 export type sendPublicTelemetryResponse202 = {
   data: void
   status: 202
@@ -1025,6 +1137,48 @@ export const getPublicApplicationForm = async (organizationSlug: string,
 
 
 
+export type getPublicBrandImageResponse200 = {
+  data: void
+  status: 200
+}
+
+export type getPublicBrandImageResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicBrandImageResponseSuccess = (getPublicBrandImageResponse200) & {
+  headers: Headers;
+};
+export type getPublicBrandImageResponseError = (getPublicBrandImageResponse404) & {
+  headers: Headers;
+};
+
+export type getPublicBrandImageResponse = (getPublicBrandImageResponseSuccess | getPublicBrandImageResponseError)
+
+export const getGetPublicBrandImageUrl = (organizationSlug: string,
+    imageId: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/branding/images/${imageId}`
+}
+
+export const getPublicBrandImage = async (organizationSlug: string,
+    imageId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getPublicBrandImageResponse> => {
+
+  return apiFetch<getPublicBrandImageResponse>(getGetPublicBrandImageUrl(organizationSlug,imageId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
 export type createPublicUploadResponse200 = {
   data: UploadTicket
   status: 200
@@ -1237,6 +1391,130 @@ return apiFetch<submitPublicApplicationResponse>(getSubmitPublicApplicationUrl(o
 
 
 
+export type getPublicApplicationDraftResponse200 = {
+  data: PublicApplicationDraft
+  status: 200
+}
+
+export type getPublicApplicationDraftResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicApplicationDraftResponse410 = {
+  data: ProblemDetails
+  status: 410
+}
+
+export type getPublicApplicationDraftResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getPublicApplicationDraftResponseSuccess = (getPublicApplicationDraftResponse200) & {
+  headers: Headers;
+};
+export type getPublicApplicationDraftResponseError = (getPublicApplicationDraftResponse404 | getPublicApplicationDraftResponse410 | getPublicApplicationDraftResponse429) & {
+  headers: Headers;
+};
+
+export type getPublicApplicationDraftResponse = (getPublicApplicationDraftResponseSuccess | getPublicApplicationDraftResponseError)
+
+export const getGetPublicApplicationDraftUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/application-drafts/${token}`
+}
+
+export const getPublicApplicationDraft = async (organizationSlug: string,
+    token: string, options?: Parameters<typeof apiFetch>[1]): Promise<getPublicApplicationDraftResponse> => {
+
+  return apiFetch<getPublicApplicationDraftResponse>(getGetPublicApplicationDraftUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type savePublicApplicationDraftResponse200 = {
+  data: PublicApplicationDraftReceipt
+  status: 200
+}
+
+export type savePublicApplicationDraftResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type savePublicApplicationDraftResponse404 = {
+  data: void
+  status: 404
+}
+
+export type savePublicApplicationDraftResponse410 = {
+  data: ProblemDetails
+  status: 410
+}
+
+export type savePublicApplicationDraftResponse429 = {
+  data: void
+  status: 429
+}
+
+export type savePublicApplicationDraftResponseSuccess = (savePublicApplicationDraftResponse200) & {
+  headers: Headers;
+};
+export type savePublicApplicationDraftResponseError = (savePublicApplicationDraftResponse400 | savePublicApplicationDraftResponse404 | savePublicApplicationDraftResponse410 | savePublicApplicationDraftResponse429) & {
+  headers: Headers;
+};
+
+export type savePublicApplicationDraftResponse = (savePublicApplicationDraftResponseSuccess | savePublicApplicationDraftResponseError)
+
+export const getSavePublicApplicationDraftUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/application-drafts/${token}`
+}
+
+export const savePublicApplicationDraft = async (organizationSlug: string,
+    token: string,
+    publicApplicationDraftRequest: PublicApplicationDraftRequest, options?: Parameters<typeof apiFetch>[1]): Promise<savePublicApplicationDraftResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<savePublicApplicationDraftResponse>(getSavePublicApplicationDraftUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicApplicationDraftRequest)
+  }
+);}
+
+
+
 export type getPublicQuestionnaireResponse200 = {
   data: PublicQuestionnaire
   status: 200
@@ -1361,6 +1639,182 @@ return apiFetch<answerPublicQuestionnaireResponse>(getAnswerPublicQuestionnaireU
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(publicQuestionnaireAnswers)
+  }
+);}
+
+
+
+export type savePublicQuestionnaireDraftResponse204 = {
+  data: void
+  status: 204
+}
+
+export type savePublicQuestionnaireDraftResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type savePublicQuestionnaireDraftResponse404 = {
+  data: void
+  status: 404
+}
+
+export type savePublicQuestionnaireDraftResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type savePublicQuestionnaireDraftResponse410 = {
+  data: ProblemDetails
+  status: 410
+}
+
+export type savePublicQuestionnaireDraftResponse429 = {
+  data: void
+  status: 429
+}
+
+export type savePublicQuestionnaireDraftResponse503 = {
+  data: ProblemDetails
+  status: 503
+}
+
+export type savePublicQuestionnaireDraftResponseSuccess = (savePublicQuestionnaireDraftResponse204) & {
+  headers: Headers;
+};
+export type savePublicQuestionnaireDraftResponseError = (savePublicQuestionnaireDraftResponse400 | savePublicQuestionnaireDraftResponse404 | savePublicQuestionnaireDraftResponse409 | savePublicQuestionnaireDraftResponse410 | savePublicQuestionnaireDraftResponse429 | savePublicQuestionnaireDraftResponse503) & {
+  headers: Headers;
+};
+
+export type savePublicQuestionnaireDraftResponse = (savePublicQuestionnaireDraftResponseSuccess | savePublicQuestionnaireDraftResponseError)
+
+export const getSavePublicQuestionnaireDraftUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/questionnaires/${token}/draft`
+}
+
+export const savePublicQuestionnaireDraft = async (organizationSlug: string,
+    token: string,
+    publicQuestionnaireAnswers: PublicQuestionnaireAnswers, options?: Parameters<typeof apiFetch>[1]): Promise<savePublicQuestionnaireDraftResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<savePublicQuestionnaireDraftResponse>(getSavePublicQuestionnaireDraftUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicQuestionnaireAnswers)
+  }
+);}
+
+
+
+export type getPublicTalentPoolStatusResponse200 = {
+  data: PublicTalentPoolStatus
+  status: 200
+}
+
+export type getPublicTalentPoolStatusResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicTalentPoolStatusResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getPublicTalentPoolStatusResponseSuccess = (getPublicTalentPoolStatusResponse200) & {
+  headers: Headers;
+};
+export type getPublicTalentPoolStatusResponseError = (getPublicTalentPoolStatusResponse404 | getPublicTalentPoolStatusResponse429) & {
+  headers: Headers;
+};
+
+export type getPublicTalentPoolStatusResponse = (getPublicTalentPoolStatusResponseSuccess | getPublicTalentPoolStatusResponseError)
+
+export const getGetPublicTalentPoolStatusUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/talent-pool/${token}`
+}
+
+export const getPublicTalentPoolStatus = async (organizationSlug: string,
+    token: string, options?: Parameters<typeof apiFetch>[1]): Promise<getPublicTalentPoolStatusResponse> => {
+
+  return apiFetch<getPublicTalentPoolStatusResponse>(getGetPublicTalentPoolStatusUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type stopKeepingDetailsResponse204 = {
+  data: void
+  status: 204
+}
+
+export type stopKeepingDetailsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type stopKeepingDetailsResponse429 = {
+  data: void
+  status: 429
+}
+
+export type stopKeepingDetailsResponseSuccess = (stopKeepingDetailsResponse204) & {
+  headers: Headers;
+};
+export type stopKeepingDetailsResponseError = (stopKeepingDetailsResponse404 | stopKeepingDetailsResponse429) & {
+  headers: Headers;
+};
+
+export type stopKeepingDetailsResponse = (stopKeepingDetailsResponseSuccess | stopKeepingDetailsResponseError)
+
+export const getStopKeepingDetailsUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/talent-pool/${token}`
+}
+
+export const stopKeepingDetails = async (organizationSlug: string,
+    token: string, options?: Parameters<typeof apiFetch>[1]): Promise<stopKeepingDetailsResponse> => {
+
+  return apiFetch<stopKeepingDetailsResponse>(getStopKeepingDetailsUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'POST'
+
+
   }
 );}
 
@@ -2970,6 +3424,86 @@ return apiFetch<createApplicationResponse>(getCreateApplicationUrl(jobId),
 
 
 
+export type createResumeUploadResponse200 = {
+  data: UploadTicket
+  status: 200
+}
+
+export type createResumeUploadResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createResumeUploadResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createResumeUploadResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type createResumeUploadResponse404 = {
+  data: void
+  status: 404
+}
+
+export type createResumeUploadResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type createResumeUploadResponse429 = {
+  data: void
+  status: 429
+}
+
+export type createResumeUploadResponseSuccess = (createResumeUploadResponse200) & {
+  headers: Headers;
+};
+export type createResumeUploadResponseError = (createResumeUploadResponse400 | createResumeUploadResponse401 | createResumeUploadResponse403 | createResumeUploadResponse404 | createResumeUploadResponse409 | createResumeUploadResponse429) & {
+  headers: Headers;
+};
+
+export type createResumeUploadResponse = (createResumeUploadResponseSuccess | createResumeUploadResponseError)
+
+export const getCreateResumeUploadUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/applications/resume-uploads`
+}
+
+export const createResumeUpload = async (jobId: string,
+    uploadRequest: UploadRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createResumeUploadResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createResumeUploadResponse>(getCreateResumeUploadUrl(jobId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(uploadRequest)
+  }
+);}
+
+
+
 export type listApplicationsResponse200 = {
   data: ApplicationSummary[]
   status: 200
@@ -3833,41 +4367,41 @@ export const getCandidate = async (candidateId: string, options?: Parameters<typ
 
 
 
-export type getApplicationIntegrityResponse200 = {
-  data: ApplicationIntegrity
+export type getApplicationVerificationResponse200 = {
+  data: ApplicationVerification
   status: 200
 }
 
-export type getApplicationIntegrityResponse401 = {
+export type getApplicationVerificationResponse401 = {
   data: void
   status: 401
 }
 
-export type getApplicationIntegrityResponse404 = {
+export type getApplicationVerificationResponse404 = {
   data: void
   status: 404
 }
 
-export type getApplicationIntegrityResponseSuccess = (getApplicationIntegrityResponse200) & {
+export type getApplicationVerificationResponseSuccess = (getApplicationVerificationResponse200) & {
   headers: Headers;
 };
-export type getApplicationIntegrityResponseError = (getApplicationIntegrityResponse401 | getApplicationIntegrityResponse404) & {
+export type getApplicationVerificationResponseError = (getApplicationVerificationResponse401 | getApplicationVerificationResponse404) & {
   headers: Headers;
 };
 
-export type getApplicationIntegrityResponse = (getApplicationIntegrityResponseSuccess | getApplicationIntegrityResponseError)
+export type getApplicationVerificationResponse = (getApplicationVerificationResponseSuccess | getApplicationVerificationResponseError)
 
-export const getGetApplicationIntegrityUrl = (applicationId: string,) => {
-
-
+export const getGetApplicationVerificationUrl = (applicationId: string,) => {
 
 
-  return `/v1/applications/${applicationId}/integrity`
+
+
+  return `/v1/applications/${applicationId}/verification`
 }
 
-export const getApplicationIntegrity = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getApplicationIntegrityResponse> => {
+export const getApplicationVerification = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getApplicationVerificationResponse> => {
 
-  return apiFetch<getApplicationIntegrityResponse>(getGetApplicationIntegrityUrl(applicationId),
+  return apiFetch<getApplicationVerificationResponse>(getGetApplicationVerificationUrl(applicationId),
   {
     ...options,
     method: 'GET'
@@ -3878,57 +4412,57 @@ export const getApplicationIntegrity = async (applicationId: string, options?: P
 
 
 
-export type dismissIntegrityAssessmentResponse200 = {
-  data: ApplicationIntegrity
+export type dismissVerificationAssessmentResponse200 = {
+  data: ApplicationVerification
   status: 200
 }
 
-export type dismissIntegrityAssessmentResponse400 = {
+export type dismissVerificationAssessmentResponse400 = {
   data: HttpValidationProblemDetails
   status: 400
 }
 
-export type dismissIntegrityAssessmentResponse401 = {
+export type dismissVerificationAssessmentResponse401 = {
   data: void
   status: 401
 }
 
-export type dismissIntegrityAssessmentResponse403 = {
+export type dismissVerificationAssessmentResponse403 = {
   data: ProblemDetails
   status: 403
 }
 
-export type dismissIntegrityAssessmentResponse404 = {
+export type dismissVerificationAssessmentResponse404 = {
   data: void
   status: 404
 }
 
-export type dismissIntegrityAssessmentResponse409 = {
+export type dismissVerificationAssessmentResponse409 = {
   data: ProblemDetails
   status: 409
 }
 
-export type dismissIntegrityAssessmentResponseSuccess = (dismissIntegrityAssessmentResponse200) & {
+export type dismissVerificationAssessmentResponseSuccess = (dismissVerificationAssessmentResponse200) & {
   headers: Headers;
 };
-export type dismissIntegrityAssessmentResponseError = (dismissIntegrityAssessmentResponse400 | dismissIntegrityAssessmentResponse401 | dismissIntegrityAssessmentResponse403 | dismissIntegrityAssessmentResponse404 | dismissIntegrityAssessmentResponse409) & {
+export type dismissVerificationAssessmentResponseError = (dismissVerificationAssessmentResponse400 | dismissVerificationAssessmentResponse401 | dismissVerificationAssessmentResponse403 | dismissVerificationAssessmentResponse404 | dismissVerificationAssessmentResponse409) & {
   headers: Headers;
 };
 
-export type dismissIntegrityAssessmentResponse = (dismissIntegrityAssessmentResponseSuccess | dismissIntegrityAssessmentResponseError)
+export type dismissVerificationAssessmentResponse = (dismissVerificationAssessmentResponseSuccess | dismissVerificationAssessmentResponseError)
 
-export const getDismissIntegrityAssessmentUrl = (applicationId: string,
+export const getDismissVerificationAssessmentUrl = (applicationId: string,
     assessmentId: string,) => {
 
 
 
 
-  return `/v1/applications/${applicationId}/integrity/assessments/${assessmentId}/dismiss`
+  return `/v1/applications/${applicationId}/verification/assessments/${assessmentId}/dismiss`
 }
 
-export const dismissIntegrityAssessment = async (applicationId: string,
+export const dismissVerificationAssessment = async (applicationId: string,
     assessmentId: string,
-    dismissIntegrityAssessmentRequest: DismissIntegrityAssessmentRequest, options?: Parameters<typeof apiFetch>[1]): Promise<dismissIntegrityAssessmentResponse> => {
+    dismissVerificationAssessmentRequest: DismissVerificationAssessmentRequest, options?: Parameters<typeof apiFetch>[1]): Promise<dismissVerificationAssessmentResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -3944,61 +4478,70 @@ export const dismissIntegrityAssessment = async (applicationId: string,
     }
     return headers;
   };
-return apiFetch<dismissIntegrityAssessmentResponse>(getDismissIntegrityAssessmentUrl(applicationId,assessmentId),
+return apiFetch<dismissVerificationAssessmentResponse>(getDismissVerificationAssessmentUrl(applicationId,assessmentId),
   {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(dismissIntegrityAssessmentRequest)
+    body: JSON.stringify(dismissVerificationAssessmentRequest)
   }
 );}
 
 
 
-export type addIntegrityNoteResponse200 = {
-  data: ApplicationIntegrity
+export type explainVerificationReasonResponse200 = {
+  data: ApplicationVerification
   status: 200
 }
 
-export type addIntegrityNoteResponse400 = {
+export type explainVerificationReasonResponse400 = {
   data: HttpValidationProblemDetails
   status: 400
 }
 
-export type addIntegrityNoteResponse401 = {
+export type explainVerificationReasonResponse401 = {
   data: void
   status: 401
 }
 
-export type addIntegrityNoteResponse403 = {
+export type explainVerificationReasonResponse403 = {
   data: ProblemDetails
   status: 403
 }
 
-export type addIntegrityNoteResponse404 = {
+export type explainVerificationReasonResponse404 = {
   data: void
   status: 404
 }
 
-export type addIntegrityNoteResponseSuccess = (addIntegrityNoteResponse200) & {
-  headers: Headers;
-};
-export type addIntegrityNoteResponseError = (addIntegrityNoteResponse400 | addIntegrityNoteResponse401 | addIntegrityNoteResponse403 | addIntegrityNoteResponse404) & {
-  headers: Headers;
-};
-
-export type addIntegrityNoteResponse = (addIntegrityNoteResponseSuccess | addIntegrityNoteResponseError)
-
-export const getAddIntegrityNoteUrl = (applicationId: string,) => {
-
-
-
-
-  return `/v1/applications/${applicationId}/integrity/notes`
+export type explainVerificationReasonResponse409 = {
+  data: ProblemDetails
+  status: 409
 }
 
-export const addIntegrityNote = async (applicationId: string,
-    addIntegrityNoteRequest: AddIntegrityNoteRequest, options?: Parameters<typeof apiFetch>[1]): Promise<addIntegrityNoteResponse> => {
+export type explainVerificationReasonResponseSuccess = (explainVerificationReasonResponse200) & {
+  headers: Headers;
+};
+export type explainVerificationReasonResponseError = (explainVerificationReasonResponse400 | explainVerificationReasonResponse401 | explainVerificationReasonResponse403 | explainVerificationReasonResponse404 | explainVerificationReasonResponse409) & {
+  headers: Headers;
+};
+
+export type explainVerificationReasonResponse = (explainVerificationReasonResponseSuccess | explainVerificationReasonResponseError)
+
+export const getExplainVerificationReasonUrl = (applicationId: string,
+    assessmentId: string,
+    signalId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/verification/assessments/${assessmentId}/signals/${signalId}/explain`
+}
+
+export const explainVerificationReason = async (applicationId: string,
+    assessmentId: string,
+    signalId: string,
+    explainVerificationReasonRequest: ExplainVerificationReasonRequest, options?: Parameters<typeof apiFetch>[1]): Promise<explainVerificationReasonResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -4014,12 +4557,141 @@ export const addIntegrityNote = async (applicationId: string,
     }
     return headers;
   };
-return apiFetch<addIntegrityNoteResponse>(getAddIntegrityNoteUrl(applicationId),
+return apiFetch<explainVerificationReasonResponse>(getExplainVerificationReasonUrl(applicationId,assessmentId,signalId),
   {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(addIntegrityNoteRequest)
+    body: JSON.stringify(explainVerificationReasonRequest)
+  }
+);}
+
+
+
+export type undoVerificationReasonExplanationResponse200 = {
+  data: ApplicationVerification
+  status: 200
+}
+
+export type undoVerificationReasonExplanationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type undoVerificationReasonExplanationResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type undoVerificationReasonExplanationResponse404 = {
+  data: void
+  status: 404
+}
+
+export type undoVerificationReasonExplanationResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type undoVerificationReasonExplanationResponseSuccess = (undoVerificationReasonExplanationResponse200) & {
+  headers: Headers;
+};
+export type undoVerificationReasonExplanationResponseError = (undoVerificationReasonExplanationResponse401 | undoVerificationReasonExplanationResponse403 | undoVerificationReasonExplanationResponse404 | undoVerificationReasonExplanationResponse409) & {
+  headers: Headers;
+};
+
+export type undoVerificationReasonExplanationResponse = (undoVerificationReasonExplanationResponseSuccess | undoVerificationReasonExplanationResponseError)
+
+export const getUndoVerificationReasonExplanationUrl = (applicationId: string,
+    assessmentId: string,
+    signalId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/verification/assessments/${assessmentId}/signals/${signalId}/undo-explanation`
+}
+
+export const undoVerificationReasonExplanation = async (applicationId: string,
+    assessmentId: string,
+    signalId: string, options?: Parameters<typeof apiFetch>[1]): Promise<undoVerificationReasonExplanationResponse> => {
+
+  return apiFetch<undoVerificationReasonExplanationResponse>(getUndoVerificationReasonExplanationUrl(applicationId,assessmentId,signalId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type addVerificationNoteResponse200 = {
+  data: ApplicationVerification
+  status: 200
+}
+
+export type addVerificationNoteResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type addVerificationNoteResponse401 = {
+  data: void
+  status: 401
+}
+
+export type addVerificationNoteResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type addVerificationNoteResponse404 = {
+  data: void
+  status: 404
+}
+
+export type addVerificationNoteResponseSuccess = (addVerificationNoteResponse200) & {
+  headers: Headers;
+};
+export type addVerificationNoteResponseError = (addVerificationNoteResponse400 | addVerificationNoteResponse401 | addVerificationNoteResponse403 | addVerificationNoteResponse404) & {
+  headers: Headers;
+};
+
+export type addVerificationNoteResponse = (addVerificationNoteResponseSuccess | addVerificationNoteResponseError)
+
+export const getAddVerificationNoteUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/verification/notes`
+}
+
+export const addVerificationNote = async (applicationId: string,
+    addVerificationNoteRequest: AddVerificationNoteRequest, options?: Parameters<typeof apiFetch>[1]): Promise<addVerificationNoteResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<addVerificationNoteResponse>(getAddVerificationNoteUrl(applicationId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(addVerificationNoteRequest)
   }
 );}
 
@@ -4052,7 +4724,7 @@ export const getRequestIdentityVerificationUrl = (applicationId: string,) => {
 
 
 
-  return `/v1/applications/${applicationId}/integrity/request-verification`
+  return `/v1/applications/${applicationId}/verification/request-verification`
 }
 
 export const requestIdentityVerification = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<requestIdentityVerificationResponse> => {
@@ -4569,36 +5241,36 @@ export const getOrganizationBrandingHistory = async (params?: GetOrganizationBra
 
 
 
-export type getOrganizationIntegritySettingsHistoryResponse200 = {
+export type getOrganizationVerificationSettingsHistoryResponse200 = {
   data: HistoryPage
   status: 200
 }
 
-export type getOrganizationIntegritySettingsHistoryResponse400 = {
+export type getOrganizationVerificationSettingsHistoryResponse400 = {
   data: HttpValidationProblemDetails
   status: 400
 }
 
-export type getOrganizationIntegritySettingsHistoryResponse401 = {
+export type getOrganizationVerificationSettingsHistoryResponse401 = {
   data: void
   status: 401
 }
 
-export type getOrganizationIntegritySettingsHistoryResponse404 = {
+export type getOrganizationVerificationSettingsHistoryResponse404 = {
   data: void
   status: 404
 }
 
-export type getOrganizationIntegritySettingsHistoryResponseSuccess = (getOrganizationIntegritySettingsHistoryResponse200) & {
+export type getOrganizationVerificationSettingsHistoryResponseSuccess = (getOrganizationVerificationSettingsHistoryResponse200) & {
   headers: Headers;
 };
-export type getOrganizationIntegritySettingsHistoryResponseError = (getOrganizationIntegritySettingsHistoryResponse400 | getOrganizationIntegritySettingsHistoryResponse401 | getOrganizationIntegritySettingsHistoryResponse404) & {
+export type getOrganizationVerificationSettingsHistoryResponseError = (getOrganizationVerificationSettingsHistoryResponse400 | getOrganizationVerificationSettingsHistoryResponse401 | getOrganizationVerificationSettingsHistoryResponse404) & {
   headers: Headers;
 };
 
-export type getOrganizationIntegritySettingsHistoryResponse = (getOrganizationIntegritySettingsHistoryResponseSuccess | getOrganizationIntegritySettingsHistoryResponseError)
+export type getOrganizationVerificationSettingsHistoryResponse = (getOrganizationVerificationSettingsHistoryResponseSuccess | getOrganizationVerificationSettingsHistoryResponseError)
 
-export const getGetOrganizationIntegritySettingsHistoryUrl = (params?: GetOrganizationIntegritySettingsHistoryParams,) => {
+export const getGetOrganizationVerificationSettingsHistoryUrl = (params?: GetOrganizationVerificationSettingsHistoryParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -4610,17 +5282,86 @@ export const getGetOrganizationIntegritySettingsHistoryUrl = (params?: GetOrgani
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/v1/organization/integrity-settings/history?${stringifiedParams}` : `/v1/organization/integrity-settings/history`
+  return stringifiedParams.length > 0 ? `/v1/organization/verification-settings/history?${stringifiedParams}` : `/v1/organization/verification-settings/history`
 }
 
-export const getOrganizationIntegritySettingsHistory = async (params?: GetOrganizationIntegritySettingsHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationIntegritySettingsHistoryResponse> => {
+export const getOrganizationVerificationSettingsHistory = async (params?: GetOrganizationVerificationSettingsHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationVerificationSettingsHistoryResponse> => {
 
-  return apiFetch<getOrganizationIntegritySettingsHistoryResponse>(getGetOrganizationIntegritySettingsHistoryUrl(params),
+  return apiFetch<getOrganizationVerificationSettingsHistoryResponse>(getGetOrganizationVerificationSettingsHistoryUrl(params),
   {
     ...options,
     method: 'GET'
 
 
+  }
+);}
+
+
+
+export type updateCareersEmbeddingResponse200 = {
+  data: OrganizationProfile
+  status: 200
+}
+
+export type updateCareersEmbeddingResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateCareersEmbeddingResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateCareersEmbeddingResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateCareersEmbeddingResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateCareersEmbeddingResponseSuccess = (updateCareersEmbeddingResponse200) & {
+  headers: Headers;
+};
+export type updateCareersEmbeddingResponseError = (updateCareersEmbeddingResponse400 | updateCareersEmbeddingResponse401 | updateCareersEmbeddingResponse403 | updateCareersEmbeddingResponse404) & {
+  headers: Headers;
+};
+
+export type updateCareersEmbeddingResponse = (updateCareersEmbeddingResponseSuccess | updateCareersEmbeddingResponseError)
+
+export const getUpdateCareersEmbeddingUrl = () => {
+
+
+
+
+  return `/v1/organization/embedding`
+}
+
+export const updateCareersEmbedding = async (updateCareersEmbeddingRequest: UpdateCareersEmbeddingRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateCareersEmbeddingResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateCareersEmbeddingResponse>(getUpdateCareersEmbeddingUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateCareersEmbeddingRequest)
   }
 );}
 
@@ -4740,36 +5481,48 @@ return apiFetch<updateOrganizationBrandingResponse>(getUpdateOrganizationBrandin
 
 
 
-export type getOrganizationIntegritySettingsResponse200 = {
-  data: OrganizationIntegritySettings
+export type checkBrandingContrastResponse200 = {
+  data: BrandingContrast
   status: 200
 }
 
-export type getOrganizationIntegritySettingsResponse401 = {
+export type checkBrandingContrastResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type checkBrandingContrastResponse401 = {
   data: void
   status: 401
 }
 
-export type getOrganizationIntegritySettingsResponseSuccess = (getOrganizationIntegritySettingsResponse200) & {
+export type checkBrandingContrastResponseSuccess = (checkBrandingContrastResponse200) & {
   headers: Headers;
 };
-export type getOrganizationIntegritySettingsResponseError = (getOrganizationIntegritySettingsResponse401) & {
+export type checkBrandingContrastResponseError = (checkBrandingContrastResponse400 | checkBrandingContrastResponse401) & {
   headers: Headers;
 };
 
-export type getOrganizationIntegritySettingsResponse = (getOrganizationIntegritySettingsResponseSuccess | getOrganizationIntegritySettingsResponseError)
+export type checkBrandingContrastResponse = (checkBrandingContrastResponseSuccess | checkBrandingContrastResponseError)
 
-export const getGetOrganizationIntegritySettingsUrl = () => {
+export const getCheckBrandingContrastUrl = (params?: CheckBrandingContrastParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/v1/organization/integrity-settings`
+  return stringifiedParams.length > 0 ? `/v1/organization/branding/contrast?${stringifiedParams}` : `/v1/organization/branding/contrast`
 }
 
-export const getOrganizationIntegritySettings = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationIntegritySettingsResponse> => {
+export const checkBrandingContrast = async (params?: CheckBrandingContrastParams, options?: Parameters<typeof apiFetch>[1]): Promise<checkBrandingContrastResponse> => {
 
-  return apiFetch<getOrganizationIntegritySettingsResponse>(getGetOrganizationIntegritySettingsUrl(),
+  return apiFetch<checkBrandingContrastResponse>(getCheckBrandingContrastUrl(params),
   {
     ...options,
     method: 'GET'
@@ -4780,44 +5533,44 @@ export const getOrganizationIntegritySettings = async ( options?: Parameters<typ
 
 
 
-export type updateOrganizationIntegritySettingsResponse200 = {
-  data: OrganizationIntegritySettings
+export type createBrandImageUploadResponse200 = {
+  data: UploadTicket
   status: 200
 }
 
-export type updateOrganizationIntegritySettingsResponse400 = {
+export type createBrandImageUploadResponse400 = {
   data: HttpValidationProblemDetails
   status: 400
 }
 
-export type updateOrganizationIntegritySettingsResponse401 = {
+export type createBrandImageUploadResponse401 = {
   data: void
   status: 401
 }
 
-export type updateOrganizationIntegritySettingsResponse403 = {
+export type createBrandImageUploadResponse403 = {
   data: ProblemDetails
   status: 403
 }
 
-export type updateOrganizationIntegritySettingsResponseSuccess = (updateOrganizationIntegritySettingsResponse200) & {
+export type createBrandImageUploadResponseSuccess = (createBrandImageUploadResponse200) & {
   headers: Headers;
 };
-export type updateOrganizationIntegritySettingsResponseError = (updateOrganizationIntegritySettingsResponse400 | updateOrganizationIntegritySettingsResponse401 | updateOrganizationIntegritySettingsResponse403) & {
+export type createBrandImageUploadResponseError = (createBrandImageUploadResponse400 | createBrandImageUploadResponse401 | createBrandImageUploadResponse403) & {
   headers: Headers;
 };
 
-export type updateOrganizationIntegritySettingsResponse = (updateOrganizationIntegritySettingsResponseSuccess | updateOrganizationIntegritySettingsResponseError)
+export type createBrandImageUploadResponse = (createBrandImageUploadResponseSuccess | createBrandImageUploadResponseError)
 
-export const getUpdateOrganizationIntegritySettingsUrl = () => {
-
-
+export const getCreateBrandImageUploadUrl = () => {
 
 
-  return `/v1/organization/integrity-settings`
+
+
+  return `/v1/organization/branding/images`
 }
 
-export const updateOrganizationIntegritySettings = async (updateIntegritySettingsRequest: UpdateIntegritySettingsRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateOrganizationIntegritySettingsResponse> => {
+export const createBrandImageUpload = async (brandImageUploadRequest: BrandImageUploadRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createBrandImageUploadResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -4833,12 +5586,377 @@ export const updateOrganizationIntegritySettings = async (updateIntegritySetting
     }
     return headers;
   };
-return apiFetch<updateOrganizationIntegritySettingsResponse>(getUpdateOrganizationIntegritySettingsUrl(),
+return apiFetch<createBrandImageUploadResponse>(getCreateBrandImageUploadUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(brandImageUploadRequest)
+  }
+);}
+
+
+
+export type verifyBrandImageUploadResponse200 = {
+  data: BrandingImage
+  status: 200
+}
+
+export type verifyBrandImageUploadResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type verifyBrandImageUploadResponse401 = {
+  data: void
+  status: 401
+}
+
+export type verifyBrandImageUploadResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type verifyBrandImageUploadResponse404 = {
+  data: void
+  status: 404
+}
+
+export type verifyBrandImageUploadResponseSuccess = (verifyBrandImageUploadResponse200) & {
+  headers: Headers;
+};
+export type verifyBrandImageUploadResponseError = (verifyBrandImageUploadResponse400 | verifyBrandImageUploadResponse401 | verifyBrandImageUploadResponse403 | verifyBrandImageUploadResponse404) & {
+  headers: Headers;
+};
+
+export type verifyBrandImageUploadResponse = (verifyBrandImageUploadResponseSuccess | verifyBrandImageUploadResponseError)
+
+export const getVerifyBrandImageUploadUrl = (imageId: string,) => {
+
+
+
+
+  return `/v1/organization/branding/images/${imageId}/verify`
+}
+
+export const verifyBrandImageUpload = async (imageId: string, options?: Parameters<typeof apiFetch>[1]): Promise<verifyBrandImageUploadResponse> => {
+
+  return apiFetch<verifyBrandImageUploadResponse>(getVerifyBrandImageUploadUrl(imageId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type getBrandImageResponse200 = {
+  data: BrandingImage
+  status: 200
+}
+
+export type getBrandImageResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getBrandImageResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getBrandImageResponseSuccess = (getBrandImageResponse200) & {
+  headers: Headers;
+};
+export type getBrandImageResponseError = (getBrandImageResponse401 | getBrandImageResponse404) & {
+  headers: Headers;
+};
+
+export type getBrandImageResponse = (getBrandImageResponseSuccess | getBrandImageResponseError)
+
+export const getGetBrandImageUrl = (imageId: string,) => {
+
+
+
+
+  return `/v1/organization/branding/images/${imageId}`
+}
+
+export const getBrandImage = async (imageId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getBrandImageResponse> => {
+
+  return apiFetch<getBrandImageResponse>(getGetBrandImageUrl(imageId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getOrganizationVerificationSettingsResponse200 = {
+  data: OrganizationVerificationSettings
+  status: 200
+}
+
+export type getOrganizationVerificationSettingsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationVerificationSettingsResponseSuccess = (getOrganizationVerificationSettingsResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationVerificationSettingsResponseError = (getOrganizationVerificationSettingsResponse401) & {
+  headers: Headers;
+};
+
+export type getOrganizationVerificationSettingsResponse = (getOrganizationVerificationSettingsResponseSuccess | getOrganizationVerificationSettingsResponseError)
+
+export const getGetOrganizationVerificationSettingsUrl = () => {
+
+
+
+
+  return `/v1/organization/verification-settings`
+}
+
+export const getOrganizationVerificationSettings = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationVerificationSettingsResponse> => {
+
+  return apiFetch<getOrganizationVerificationSettingsResponse>(getGetOrganizationVerificationSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type updateOrganizationVerificationSettingsResponse200 = {
+  data: OrganizationVerificationSettings
+  status: 200
+}
+
+export type updateOrganizationVerificationSettingsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateOrganizationVerificationSettingsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateOrganizationVerificationSettingsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateOrganizationVerificationSettingsResponseSuccess = (updateOrganizationVerificationSettingsResponse200) & {
+  headers: Headers;
+};
+export type updateOrganizationVerificationSettingsResponseError = (updateOrganizationVerificationSettingsResponse400 | updateOrganizationVerificationSettingsResponse401 | updateOrganizationVerificationSettingsResponse403) & {
+  headers: Headers;
+};
+
+export type updateOrganizationVerificationSettingsResponse = (updateOrganizationVerificationSettingsResponseSuccess | updateOrganizationVerificationSettingsResponseError)
+
+export const getUpdateOrganizationVerificationSettingsUrl = () => {
+
+
+
+
+  return `/v1/organization/verification-settings`
+}
+
+export const updateOrganizationVerificationSettings = async (updateVerificationSettingsRequest: UpdateVerificationSettingsRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateOrganizationVerificationSettingsResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateOrganizationVerificationSettingsResponse>(getUpdateOrganizationVerificationSettingsUrl(),
   {
     ...options,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(updateIntegritySettingsRequest)
+    body: JSON.stringify(updateVerificationSettingsRequest)
+  }
+);}
+
+
+
+export type getOrganizationTalentPoolSettingsResponse200 = {
+  data: OrganizationTalentPoolSettings
+  status: 200
+}
+
+export type getOrganizationTalentPoolSettingsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationTalentPoolSettingsResponseSuccess = (getOrganizationTalentPoolSettingsResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationTalentPoolSettingsResponseError = (getOrganizationTalentPoolSettingsResponse401) & {
+  headers: Headers;
+};
+
+export type getOrganizationTalentPoolSettingsResponse = (getOrganizationTalentPoolSettingsResponseSuccess | getOrganizationTalentPoolSettingsResponseError)
+
+export const getGetOrganizationTalentPoolSettingsUrl = () => {
+
+
+
+
+  return `/v1/organization/talent-pool-settings`
+}
+
+export const getOrganizationTalentPoolSettings = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationTalentPoolSettingsResponse> => {
+
+  return apiFetch<getOrganizationTalentPoolSettingsResponse>(getGetOrganizationTalentPoolSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type updateOrganizationTalentPoolSettingsResponse200 = {
+  data: OrganizationTalentPoolSettings
+  status: 200
+}
+
+export type updateOrganizationTalentPoolSettingsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateOrganizationTalentPoolSettingsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateOrganizationTalentPoolSettingsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateOrganizationTalentPoolSettingsResponseSuccess = (updateOrganizationTalentPoolSettingsResponse200) & {
+  headers: Headers;
+};
+export type updateOrganizationTalentPoolSettingsResponseError = (updateOrganizationTalentPoolSettingsResponse400 | updateOrganizationTalentPoolSettingsResponse401 | updateOrganizationTalentPoolSettingsResponse403) & {
+  headers: Headers;
+};
+
+export type updateOrganizationTalentPoolSettingsResponse = (updateOrganizationTalentPoolSettingsResponseSuccess | updateOrganizationTalentPoolSettingsResponseError)
+
+export const getUpdateOrganizationTalentPoolSettingsUrl = () => {
+
+
+
+
+  return `/v1/organization/talent-pool-settings`
+}
+
+export const updateOrganizationTalentPoolSettings = async (updateTalentPoolSettingsRequest: UpdateTalentPoolSettingsRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateOrganizationTalentPoolSettingsResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateOrganizationTalentPoolSettingsResponse>(getUpdateOrganizationTalentPoolSettingsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateTalentPoolSettingsRequest)
+  }
+);}
+
+
+
+export type getOrganizationTalentPoolSettingsHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getOrganizationTalentPoolSettingsHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getOrganizationTalentPoolSettingsHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationTalentPoolSettingsHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getOrganizationTalentPoolSettingsHistoryResponseSuccess = (getOrganizationTalentPoolSettingsHistoryResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationTalentPoolSettingsHistoryResponseError = (getOrganizationTalentPoolSettingsHistoryResponse400 | getOrganizationTalentPoolSettingsHistoryResponse401 | getOrganizationTalentPoolSettingsHistoryResponse404) & {
+  headers: Headers;
+};
+
+export type getOrganizationTalentPoolSettingsHistoryResponse = (getOrganizationTalentPoolSettingsHistoryResponseSuccess | getOrganizationTalentPoolSettingsHistoryResponseError)
+
+export const getGetOrganizationTalentPoolSettingsHistoryUrl = (params?: GetOrganizationTalentPoolSettingsHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/talent-pool-settings/history?${stringifiedParams}` : `/v1/organization/talent-pool-settings/history`
+}
+
+export const getOrganizationTalentPoolSettingsHistory = async (params?: GetOrganizationTalentPoolSettingsHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationTalentPoolSettingsHistoryResponse> => {
+
+  return apiFetch<getOrganizationTalentPoolSettingsHistoryResponse>(getGetOrganizationTalentPoolSettingsHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
   }
 );}
 
@@ -5083,6 +6201,118 @@ export const getListMembershipLogUrl = () => {
 export const listMembershipLog = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listMembershipLogResponse> => {
 
   return apiFetch<listMembershipLogResponse>(getListMembershipLogUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getTeamHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getTeamHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getTeamHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getTeamHistoryResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getTeamHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getTeamHistoryResponseSuccess = (getTeamHistoryResponse200) & {
+  headers: Headers;
+};
+export type getTeamHistoryResponseError = (getTeamHistoryResponse400 | getTeamHistoryResponse401 | getTeamHistoryResponse403 | getTeamHistoryResponse404) & {
+  headers: Headers;
+};
+
+export type getTeamHistoryResponse = (getTeamHistoryResponseSuccess | getTeamHistoryResponseError)
+
+export const getGetTeamHistoryUrl = (params?: GetTeamHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/team/history?${stringifiedParams}` : `/v1/organization/team/history`
+}
+
+export const getTeamHistory = async (params?: GetTeamHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getTeamHistoryResponse> => {
+
+  return apiFetch<getTeamHistoryResponse>(getGetTeamHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getTeamLastUpdateResponse200 = {
+  data: LastUpdate
+  status: 200
+}
+
+export type getTeamLastUpdateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getTeamLastUpdateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getTeamLastUpdateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getTeamLastUpdateResponseSuccess = (getTeamLastUpdateResponse200) & {
+  headers: Headers;
+};
+export type getTeamLastUpdateResponseError = (getTeamLastUpdateResponse401 | getTeamLastUpdateResponse403 | getTeamLastUpdateResponse404) & {
+  headers: Headers;
+};
+
+export type getTeamLastUpdateResponse = (getTeamLastUpdateResponseSuccess | getTeamLastUpdateResponseError)
+
+export const getGetTeamLastUpdateUrl = () => {
+
+
+
+
+  return `/v1/organization/team/last-update`
+}
+
+export const getTeamLastUpdate = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getTeamLastUpdateResponse> => {
+
+  return apiFetch<getTeamLastUpdateResponse>(getGetTeamLastUpdateUrl(),
   {
     ...options,
     method: 'GET'
@@ -5338,6 +6568,115 @@ export const revokeInvitation = async (invitationId: string, options?: Parameter
     method: 'DELETE'
 
 
+  }
+);}
+
+
+
+export type getNotificationSettingsResponse200 = {
+  data: MemberNotificationSettings
+  status: 200
+}
+
+export type getNotificationSettingsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getNotificationSettingsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getNotificationSettingsResponseSuccess = (getNotificationSettingsResponse200) & {
+  headers: Headers;
+};
+export type getNotificationSettingsResponseError = (getNotificationSettingsResponse401 | getNotificationSettingsResponse404) & {
+  headers: Headers;
+};
+
+export type getNotificationSettingsResponse = (getNotificationSettingsResponseSuccess | getNotificationSettingsResponseError)
+
+export const getGetNotificationSettingsUrl = () => {
+
+
+
+
+  return `/v1/notification-settings`
+}
+
+export const getNotificationSettings = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getNotificationSettingsResponse> => {
+
+  return apiFetch<getNotificationSettingsResponse>(getGetNotificationSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type updateNotificationSettingsResponse200 = {
+  data: MemberNotificationSettings
+  status: 200
+}
+
+export type updateNotificationSettingsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateNotificationSettingsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateNotificationSettingsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateNotificationSettingsResponseSuccess = (updateNotificationSettingsResponse200) & {
+  headers: Headers;
+};
+export type updateNotificationSettingsResponseError = (updateNotificationSettingsResponse400 | updateNotificationSettingsResponse401 | updateNotificationSettingsResponse404) & {
+  headers: Headers;
+};
+
+export type updateNotificationSettingsResponse = (updateNotificationSettingsResponseSuccess | updateNotificationSettingsResponseError)
+
+export const getUpdateNotificationSettingsUrl = () => {
+
+
+
+
+  return `/v1/notification-settings`
+}
+
+export const updateNotificationSettings = async (updateNotificationSettingsRequest: UpdateNotificationSettingsRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateNotificationSettingsResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateNotificationSettingsResponse>(getUpdateNotificationSettingsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateNotificationSettingsRequest)
   }
 );}
 
@@ -6015,6 +7354,118 @@ return apiFetch<createApiKeyResponse>(getCreateApiKeyUrl(),
 
 
 
+export type getApiKeysHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getApiKeysHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getApiKeysHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getApiKeysHistoryResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getApiKeysHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getApiKeysHistoryResponseSuccess = (getApiKeysHistoryResponse200) & {
+  headers: Headers;
+};
+export type getApiKeysHistoryResponseError = (getApiKeysHistoryResponse400 | getApiKeysHistoryResponse401 | getApiKeysHistoryResponse403 | getApiKeysHistoryResponse404) & {
+  headers: Headers;
+};
+
+export type getApiKeysHistoryResponse = (getApiKeysHistoryResponseSuccess | getApiKeysHistoryResponseError)
+
+export const getGetApiKeysHistoryUrl = (params?: GetApiKeysHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/api-keys/history?${stringifiedParams}` : `/v1/organization/api-keys/history`
+}
+
+export const getApiKeysHistory = async (params?: GetApiKeysHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getApiKeysHistoryResponse> => {
+
+  return apiFetch<getApiKeysHistoryResponse>(getGetApiKeysHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getApiKeysLastUpdateResponse200 = {
+  data: LastUpdate
+  status: 200
+}
+
+export type getApiKeysLastUpdateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getApiKeysLastUpdateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getApiKeysLastUpdateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getApiKeysLastUpdateResponseSuccess = (getApiKeysLastUpdateResponse200) & {
+  headers: Headers;
+};
+export type getApiKeysLastUpdateResponseError = (getApiKeysLastUpdateResponse401 | getApiKeysLastUpdateResponse403 | getApiKeysLastUpdateResponse404) & {
+  headers: Headers;
+};
+
+export type getApiKeysLastUpdateResponse = (getApiKeysLastUpdateResponseSuccess | getApiKeysLastUpdateResponseError)
+
+export const getGetApiKeysLastUpdateUrl = () => {
+
+
+
+
+  return `/v1/organization/api-keys/last-update`
+}
+
+export const getApiKeysLastUpdate = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getApiKeysLastUpdateResponse> => {
+
+  return apiFetch<getApiKeysLastUpdateResponse>(getGetApiKeysLastUpdateUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
 export type getApiKeyResponse200 = {
   data: ApiKeySummary
   status: 200
@@ -6397,10 +7848,15 @@ export type completeTaskResponse404 = {
   status: 404
 }
 
+export type completeTaskResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
 export type completeTaskResponseSuccess = (completeTaskResponse200) & {
   headers: Headers;
 };
-export type completeTaskResponseError = (completeTaskResponse401 | completeTaskResponse403 | completeTaskResponse404) & {
+export type completeTaskResponseError = (completeTaskResponse401 | completeTaskResponse403 | completeTaskResponse404 | completeTaskResponse409) & {
   headers: Headers;
 };
 
@@ -6447,10 +7903,15 @@ export type reopenTaskResponse404 = {
   status: 404
 }
 
+export type reopenTaskResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
 export type reopenTaskResponseSuccess = (reopenTaskResponse200) & {
   headers: Headers;
 };
-export type reopenTaskResponseError = (reopenTaskResponse401 | reopenTaskResponse403 | reopenTaskResponse404) & {
+export type reopenTaskResponseError = (reopenTaskResponse401 | reopenTaskResponse403 | reopenTaskResponse404 | reopenTaskResponse409) & {
   headers: Headers;
 };
 
@@ -6470,6 +7931,66 @@ export const reopenTask = async (taskId: string, options?: Parameters<typeof api
   {
     ...options,
     method: 'POST'
+
+
+  }
+);}
+
+
+
+export type getHiringReportResponse200 = {
+  data: HiringReport
+  status: 200
+}
+
+export type getHiringReportResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getHiringReportResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getHiringReportResponseSuccess = (getHiringReportResponse200) & {
+  headers: Headers;
+};
+export type getHiringReportResponseError = (getHiringReportResponse400 | getHiringReportResponse401) & {
+  headers: Headers;
+};
+
+export type getHiringReportResponse = (getHiringReportResponseSuccess | getHiringReportResponseError)
+
+export const getGetHiringReportUrl = (params?: GetHiringReportParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["jobId"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/reports/hiring?${stringifiedParams}` : `/v1/reports/hiring`
+}
+
+export const getHiringReport = async (params?: GetHiringReportParams, options?: Parameters<typeof apiFetch>[1]): Promise<getHiringReportResponse> => {
+
+  return apiFetch<getHiringReportResponse>(getGetHiringReportUrl(params),
+  {
+    ...options,
+    method: 'GET'
 
 
   }
@@ -6607,6 +8128,86 @@ return apiFetch<submitScorecardResponse>(getSubmitScorecardUrl(applicationId),
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(submitScorecardRequest)
+  }
+);}
+
+
+
+export type requestScorecardResponse201 = {
+  data: ApplicationTaskEntry
+  status: 201
+}
+
+export type requestScorecardResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type requestScorecardResponse401 = {
+  data: void
+  status: 401
+}
+
+export type requestScorecardResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type requestScorecardResponse404 = {
+  data: void
+  status: 404
+}
+
+export type requestScorecardResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type requestScorecardResponse429 = {
+  data: void
+  status: 429
+}
+
+export type requestScorecardResponseSuccess = (requestScorecardResponse201) & {
+  headers: Headers;
+};
+export type requestScorecardResponseError = (requestScorecardResponse400 | requestScorecardResponse401 | requestScorecardResponse403 | requestScorecardResponse404 | requestScorecardResponse409 | requestScorecardResponse429) & {
+  headers: Headers;
+};
+
+export type requestScorecardResponse = (requestScorecardResponseSuccess | requestScorecardResponseError)
+
+export const getRequestScorecardUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/scorecard-requests`
+}
+
+export const requestScorecard = async (applicationId: string,
+    requestScorecardRequest: RequestScorecardRequest, options?: Parameters<typeof apiFetch>[1]): Promise<requestScorecardResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<requestScorecardResponse>(getRequestScorecardUrl(applicationId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(requestScorecardRequest)
   }
 );}
 
@@ -7530,6 +9131,478 @@ export const replayWebhookDelivery = async (endpointId: string,
 
 
 
+export type getSlackResponse200 = {
+  data: SlackStatus
+  status: 200
+}
+
+export type getSlackResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getSlackResponseSuccess = (getSlackResponse200) & {
+  headers: Headers;
+};
+export type getSlackResponseError = (getSlackResponse401) & {
+  headers: Headers;
+};
+
+export type getSlackResponse = (getSlackResponseSuccess | getSlackResponseError)
+
+export const getGetSlackUrl = () => {
+
+
+
+
+  return `/v1/slack`
+}
+
+export const getSlack = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getSlackResponse> => {
+
+  return apiFetch<getSlackResponse>(getGetSlackUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type disconnectSlackResponse204 = {
+  data: void
+  status: 204
+}
+
+export type disconnectSlackResponse401 = {
+  data: void
+  status: 401
+}
+
+export type disconnectSlackResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type disconnectSlackResponse404 = {
+  data: void
+  status: 404
+}
+
+export type disconnectSlackResponseSuccess = (disconnectSlackResponse204) & {
+  headers: Headers;
+};
+export type disconnectSlackResponseError = (disconnectSlackResponse401 | disconnectSlackResponse403 | disconnectSlackResponse404) & {
+  headers: Headers;
+};
+
+export type disconnectSlackResponse = (disconnectSlackResponseSuccess | disconnectSlackResponseError)
+
+export const getDisconnectSlackUrl = () => {
+
+
+
+
+  return `/v1/slack`
+}
+
+export const disconnectSlack = async ( options?: Parameters<typeof apiFetch>[1]): Promise<disconnectSlackResponse> => {
+
+  return apiFetch<disconnectSlackResponse>(getDisconnectSlackUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type startSlackInstallResponse200 = {
+  data: SlackAuthorization
+  status: 200
+}
+
+export type startSlackInstallResponse401 = {
+  data: void
+  status: 401
+}
+
+export type startSlackInstallResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type startSlackInstallResponse404 = {
+  data: void
+  status: 404
+}
+
+export type startSlackInstallResponseSuccess = (startSlackInstallResponse200) & {
+  headers: Headers;
+};
+export type startSlackInstallResponseError = (startSlackInstallResponse401 | startSlackInstallResponse403 | startSlackInstallResponse404) & {
+  headers: Headers;
+};
+
+export type startSlackInstallResponse = (startSlackInstallResponseSuccess | startSlackInstallResponseError)
+
+export const getStartSlackInstallUrl = () => {
+
+
+
+
+  return `/v1/slack/install`
+}
+
+export const startSlackInstall = async ( options?: Parameters<typeof apiFetch>[1]): Promise<startSlackInstallResponse> => {
+
+  return apiFetch<startSlackInstallResponse>(getStartSlackInstallUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type listSlackChannelsResponse200 = {
+  data: SlackChannelOption[]
+  status: 200
+}
+
+export type listSlackChannelsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listSlackChannelsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listSlackChannelsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listSlackChannelsResponseSuccess = (listSlackChannelsResponse200) & {
+  headers: Headers;
+};
+export type listSlackChannelsResponseError = (listSlackChannelsResponse401 | listSlackChannelsResponse403 | listSlackChannelsResponse404) & {
+  headers: Headers;
+};
+
+export type listSlackChannelsResponse = (listSlackChannelsResponseSuccess | listSlackChannelsResponseError)
+
+export const getListSlackChannelsUrl = () => {
+
+
+
+
+  return `/v1/slack/channels`
+}
+
+export const listSlackChannels = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listSlackChannelsResponse> => {
+
+  return apiFetch<listSlackChannelsResponse>(getListSlackChannelsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type updateSlackChannelResponse200 = {
+  data: SlackStatus
+  status: 200
+}
+
+export type updateSlackChannelResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateSlackChannelResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateSlackChannelResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateSlackChannelResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateSlackChannelResponseSuccess = (updateSlackChannelResponse200) & {
+  headers: Headers;
+};
+export type updateSlackChannelResponseError = (updateSlackChannelResponse400 | updateSlackChannelResponse401 | updateSlackChannelResponse403 | updateSlackChannelResponse404) & {
+  headers: Headers;
+};
+
+export type updateSlackChannelResponse = (updateSlackChannelResponseSuccess | updateSlackChannelResponseError)
+
+export const getUpdateSlackChannelUrl = () => {
+
+
+
+
+  return `/v1/slack/channel`
+}
+
+export const updateSlackChannel = async (updateSlackChannelRequest: UpdateSlackChannelRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateSlackChannelResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateSlackChannelResponse>(getUpdateSlackChannelUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateSlackChannelRequest)
+  }
+);}
+
+
+
+export type sendSlackTestMessageResponse200 = {
+  data: SlackTestResult
+  status: 200
+}
+
+export type sendSlackTestMessageResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type sendSlackTestMessageResponse401 = {
+  data: void
+  status: 401
+}
+
+export type sendSlackTestMessageResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type sendSlackTestMessageResponse404 = {
+  data: void
+  status: 404
+}
+
+export type sendSlackTestMessageResponseSuccess = (sendSlackTestMessageResponse200) & {
+  headers: Headers;
+};
+export type sendSlackTestMessageResponseError = (sendSlackTestMessageResponse400 | sendSlackTestMessageResponse401 | sendSlackTestMessageResponse403 | sendSlackTestMessageResponse404) & {
+  headers: Headers;
+};
+
+export type sendSlackTestMessageResponse = (sendSlackTestMessageResponseSuccess | sendSlackTestMessageResponseError)
+
+export const getSendSlackTestMessageUrl = () => {
+
+
+
+
+  return `/v1/slack/test`
+}
+
+export const sendSlackTestMessage = async ( options?: Parameters<typeof apiFetch>[1]): Promise<sendSlackTestMessageResponse> => {
+
+  return apiFetch<sendSlackTestMessageResponse>(getSendSlackTestMessageUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type startSlackLinkResponse200 = {
+  data: SlackAuthorization
+  status: 200
+}
+
+export type startSlackLinkResponse401 = {
+  data: void
+  status: 401
+}
+
+export type startSlackLinkResponse404 = {
+  data: void
+  status: 404
+}
+
+export type startSlackLinkResponseSuccess = (startSlackLinkResponse200) & {
+  headers: Headers;
+};
+export type startSlackLinkResponseError = (startSlackLinkResponse401 | startSlackLinkResponse404) & {
+  headers: Headers;
+};
+
+export type startSlackLinkResponse = (startSlackLinkResponseSuccess | startSlackLinkResponseError)
+
+export const getStartSlackLinkUrl = () => {
+
+
+
+
+  return `/v1/slack/account/link`
+}
+
+export const startSlackLink = async (startSlackLinkRequest: StartSlackLinkRequest, options?: Parameters<typeof apiFetch>[1]): Promise<startSlackLinkResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<startSlackLinkResponse>(getStartSlackLinkUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(startSlackLinkRequest)
+  }
+);}
+
+
+
+export type updateSlackAccountResponse200 = {
+  data: SlackAccount
+  status: 200
+}
+
+export type updateSlackAccountResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateSlackAccountResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateSlackAccountResponseSuccess = (updateSlackAccountResponse200) & {
+  headers: Headers;
+};
+export type updateSlackAccountResponseError = (updateSlackAccountResponse401 | updateSlackAccountResponse404) & {
+  headers: Headers;
+};
+
+export type updateSlackAccountResponse = (updateSlackAccountResponseSuccess | updateSlackAccountResponseError)
+
+export const getUpdateSlackAccountUrl = () => {
+
+
+
+
+  return `/v1/slack/account`
+}
+
+export const updateSlackAccount = async (updateSlackAccountRequest: UpdateSlackAccountRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateSlackAccountResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateSlackAccountResponse>(getUpdateSlackAccountUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateSlackAccountRequest)
+  }
+);}
+
+
+
+export type unlinkSlackAccountResponse204 = {
+  data: void
+  status: 204
+}
+
+export type unlinkSlackAccountResponse401 = {
+  data: void
+  status: 401
+}
+
+export type unlinkSlackAccountResponseSuccess = (unlinkSlackAccountResponse204) & {
+  headers: Headers;
+};
+export type unlinkSlackAccountResponseError = (unlinkSlackAccountResponse401) & {
+  headers: Headers;
+};
+
+export type unlinkSlackAccountResponse = (unlinkSlackAccountResponseSuccess | unlinkSlackAccountResponseError)
+
+export const getUnlinkSlackAccountUrl = () => {
+
+
+
+
+  return `/v1/slack/account`
+}
+
+export const unlinkSlackAccount = async ( options?: Parameters<typeof apiFetch>[1]): Promise<unlinkSlackAccountResponse> => {
+
+  return apiFetch<unlinkSlackAccountResponse>(getUnlinkSlackAccountUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
 export type listEmailTemplatesResponse200 = {
   data: EmailTemplateList
   status: 200
@@ -8324,6 +10397,382 @@ export const listCandidateEmails = async (candidateId: string, options?: Paramet
 
 
 
+export type listTalentPoolResponse200 = {
+  data: TalentPoolList
+  status: 200
+}
+
+export type listTalentPoolResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listTalentPoolResponseSuccess = (listTalentPoolResponse200) & {
+  headers: Headers;
+};
+export type listTalentPoolResponseError = (listTalentPoolResponse401) & {
+  headers: Headers;
+};
+
+export type listTalentPoolResponse = (listTalentPoolResponseSuccess | listTalentPoolResponseError)
+
+export const getListTalentPoolUrl = () => {
+
+
+
+
+  return `/v1/talent-pool`
+}
+
+export const listTalentPool = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listTalentPoolResponse> => {
+
+  return apiFetch<listTalentPoolResponse>(getListTalentPoolUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type keepInMindResponse200 = {
+  data: KeptInMind
+  status: 200
+}
+
+export type keepInMindResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type keepInMindResponse401 = {
+  data: void
+  status: 401
+}
+
+export type keepInMindResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type keepInMindResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type keepInMindResponseSuccess = (keepInMindResponse200) & {
+  headers: Headers;
+};
+export type keepInMindResponseError = (keepInMindResponse400 | keepInMindResponse401 | keepInMindResponse403 | keepInMindResponse409) & {
+  headers: Headers;
+};
+
+export type keepInMindResponse = (keepInMindResponseSuccess | keepInMindResponseError)
+
+export const getKeepInMindUrl = () => {
+
+
+
+
+  return `/v1/talent-pool`
+}
+
+export const keepInMind = async (keepInMindRequest: KeepInMindRequest, options?: Parameters<typeof apiFetch>[1]): Promise<keepInMindResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<keepInMindResponse>(getKeepInMindUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(keepInMindRequest)
+  }
+);}
+
+
+
+export type removeFromTalentPoolResponse204 = {
+  data: void
+  status: 204
+}
+
+export type removeFromTalentPoolResponse401 = {
+  data: void
+  status: 401
+}
+
+export type removeFromTalentPoolResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type removeFromTalentPoolResponse404 = {
+  data: void
+  status: 404
+}
+
+export type removeFromTalentPoolResponseSuccess = (removeFromTalentPoolResponse204) & {
+  headers: Headers;
+};
+export type removeFromTalentPoolResponseError = (removeFromTalentPoolResponse401 | removeFromTalentPoolResponse403 | removeFromTalentPoolResponse404) & {
+  headers: Headers;
+};
+
+export type removeFromTalentPoolResponse = (removeFromTalentPoolResponseSuccess | removeFromTalentPoolResponseError)
+
+export const getRemoveFromTalentPoolUrl = (candidateId: string,) => {
+
+
+
+
+  return `/v1/talent-pool/${candidateId}/remove`
+}
+
+export const removeFromTalentPool = async (candidateId: string,
+    removeFromTalentPoolRequest: RemoveFromTalentPoolRequest, options?: Parameters<typeof apiFetch>[1]): Promise<removeFromTalentPoolResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<removeFromTalentPoolResponse>(getRemoveFromTalentPoolUrl(candidateId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(removeFromTalentPoolRequest)
+  }
+);}
+
+
+
+export type previewTalentPoolInvitationResponse200 = {
+  data: EmailPreview
+  status: 200
+}
+
+export type previewTalentPoolInvitationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type previewTalentPoolInvitationResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type previewTalentPoolInvitationResponse404 = {
+  data: void
+  status: 404
+}
+
+export type previewTalentPoolInvitationResponseSuccess = (previewTalentPoolInvitationResponse200) & {
+  headers: Headers;
+};
+export type previewTalentPoolInvitationResponseError = (previewTalentPoolInvitationResponse401 | previewTalentPoolInvitationResponse403 | previewTalentPoolInvitationResponse404) & {
+  headers: Headers;
+};
+
+export type previewTalentPoolInvitationResponse = (previewTalentPoolInvitationResponseSuccess | previewTalentPoolInvitationResponseError)
+
+export const getPreviewTalentPoolInvitationUrl = () => {
+
+
+
+
+  return `/v1/talent-pool/invitations/preview`
+}
+
+export const previewTalentPoolInvitation = async (invitationPreviewRequest: InvitationPreviewRequest, options?: Parameters<typeof apiFetch>[1]): Promise<previewTalentPoolInvitationResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<previewTalentPoolInvitationResponse>(getPreviewTalentPoolInvitationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(invitationPreviewRequest)
+  }
+);}
+
+
+
+export type inviteToApplyResponse202 = {
+  data: InvitationsQueued
+  status: 202
+}
+
+export type inviteToApplyResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type inviteToApplyResponse401 = {
+  data: void
+  status: 401
+}
+
+export type inviteToApplyResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type inviteToApplyResponse404 = {
+  data: void
+  status: 404
+}
+
+export type inviteToApplyResponseSuccess = (inviteToApplyResponse202) & {
+  headers: Headers;
+};
+export type inviteToApplyResponseError = (inviteToApplyResponse400 | inviteToApplyResponse401 | inviteToApplyResponse403 | inviteToApplyResponse404) & {
+  headers: Headers;
+};
+
+export type inviteToApplyResponse = (inviteToApplyResponseSuccess | inviteToApplyResponseError)
+
+export const getInviteToApplyUrl = () => {
+
+
+
+
+  return `/v1/talent-pool/invitations`
+}
+
+export const inviteToApply = async (inviteToApplyRequest: InviteToApplyRequest, options?: Parameters<typeof apiFetch>[1]): Promise<inviteToApplyResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<inviteToApplyResponse>(getInviteToApplyUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(inviteToApplyRequest)
+  }
+);}
+
+
+
+export type addFromTalentPoolResponse200 = {
+  data: AddedFromTalentPool
+  status: 200
+}
+
+export type addFromTalentPoolResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type addFromTalentPoolResponse401 = {
+  data: void
+  status: 401
+}
+
+export type addFromTalentPoolResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type addFromTalentPoolResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type addFromTalentPoolResponseSuccess = (addFromTalentPoolResponse200) & {
+  headers: Headers;
+};
+export type addFromTalentPoolResponseError = (addFromTalentPoolResponse400 | addFromTalentPoolResponse401 | addFromTalentPoolResponse403 | addFromTalentPoolResponse409) & {
+  headers: Headers;
+};
+
+export type addFromTalentPoolResponse = (addFromTalentPoolResponseSuccess | addFromTalentPoolResponseError)
+
+export const getAddFromTalentPoolUrl = () => {
+
+
+
+
+  return `/v1/talent-pool/applications`
+}
+
+export const addFromTalentPool = async (addFromTalentPoolRequest: AddFromTalentPoolRequest, options?: Parameters<typeof apiFetch>[1]): Promise<addFromTalentPoolResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<addFromTalentPoolResponse>(getAddFromTalentPoolUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(addFromTalentPoolRequest)
+  }
+);}
+
+
+
 export type getHiringTemplateDefinitionSchemaResponse200 = {
   data: void
   status: 200
@@ -8413,6 +10862,58 @@ export const getGetQuestionnaireSchemaUrl = () => {
 export const getQuestionnaireSchema = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getQuestionnaireSchemaResponse> => {
 
   return apiFetch<getQuestionnaireSchemaResponse>(getGetQuestionnaireSchemaUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type searchResponse200 = {
+  data: SearchResults
+  status: 200
+}
+
+export type searchResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type searchResponse401 = {
+  data: void
+  status: 401
+}
+
+export type searchResponseSuccess = (searchResponse200) & {
+  headers: Headers;
+};
+export type searchResponseError = (searchResponse400 | searchResponse401) & {
+  headers: Headers;
+};
+
+export type searchResponse = (searchResponseSuccess | searchResponseError)
+
+export const getSearchUrl = (params?: SearchParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/search?${stringifiedParams}` : `/v1/search`
+}
+
+export const search = async (params?: SearchParams, options?: Parameters<typeof apiFetch>[1]): Promise<searchResponse> => {
+
+  return apiFetch<searchResponse>(getSearchUrl(params),
   {
     ...options,
     method: 'GET'

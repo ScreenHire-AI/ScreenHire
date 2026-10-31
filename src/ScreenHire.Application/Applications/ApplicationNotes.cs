@@ -130,12 +130,7 @@ public static partial class TeammateMentionedHandler
         // Narrowed to this organization: the members filter also shows a user's memberships elsewhere. The worker sees
         // every job, so whether the person still sees this one is checked here (ADR-0015): one taken off the job's
         // hiring team since the note gets no email about its candidate.
-        var member = await db.OrganizationMembers.AsNoTracking()
-            .Where(m => m.OrganizationId == message.OrganizationId && m.UserId == mention.UserId)
-            .Select(m => new { m.Id, m.Role, m.JobAccess })
-            .SingleOrDefaultAsync(cancellationToken);
-        var team = await db.Jobs.AsNoTracking().Where(j => j.Id == message.JobId).Select(j => j.HiringTeam).SingleOrDefaultAsync(cancellationToken);
-        var seesJob = member is not null && team is not null && (JobAccessRules.SeesAllJobs(member.Role, member.JobAccess) || team.Contains(member.Id));
+        var seesJob = await JobAccessQueries.SeesJobAsync(db, message.OrganizationId, mention.UserId, message.JobId, cancellationToken);
         var note = await db.ApplicationNotes.AsNoTracking().IgnoreAutoIncludes().SingleOrDefaultAsync(n => n.Id == mention.NoteId, cancellationToken);
         if (!seesJob || note is null || note.AuthorUserId == mention.UserId)
         {

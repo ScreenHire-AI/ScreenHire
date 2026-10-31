@@ -3,8 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ScreenHire.Application.Automations;
-using ScreenHire.Application.Integrity;
+using ScreenHire.Application.Verification;
 using ScreenHire.Application.Messaging;
+using ScreenHire.Application.Slack;
 using ScreenHire.Domain.Webhooks;
 using ScreenHire.Infrastructure.Persistence;
 using Wolverine;
@@ -190,22 +191,27 @@ public static partial class DeliverWebhookHandler
 
 /// <summary>
 /// The two webhook sources with no worker handler of their own: the API pushes them to dashboards, and the worker
-/// raises their webhook events here.
+/// raises their webhook events (and an automation issue's Slack post) here.
 /// </summary>
-public static class IntegrityAssessedHandler
+public static class VerificationAssessedHandler
 {
-    public static FanOutWebhook Handle(IntegrityAssessed message) => WebhookEvents.From(message);
+    public static FanOutWebhook Handle(VerificationAssessed message) => WebhookEvents.From(message);
 }
 
-/// <inheritdoc cref="IntegrityAssessedHandler"/>
+/// <inheritdoc cref="VerificationAssessedHandler"/>
 public static class AutomationRunFinishedHandler
 {
-    public static OutgoingMessages Handle(AutomationRunFinished message)
+    public static OutgoingMessages Handle(AutomationRunFinished message, SlackAccess slack)
     {
         var outgoing = new OutgoingMessages();
         if (WebhookEvents.From(message) is { } raised)
         {
             outgoing.Add(raised);
+        }
+
+        if (SlackEvents.From(message, slack) is { } post)
+        {
+            outgoing.Add(post);
         }
 
         return outgoing;

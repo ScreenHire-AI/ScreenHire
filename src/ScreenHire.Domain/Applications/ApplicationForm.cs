@@ -116,6 +116,17 @@ public static class ApplicationForm
         return errors;
     }
 
+    /// <summary>
+    /// Checks answers saved to finish later (<see cref="ApplicationDraft"/>): the shape of each answer, as
+    /// <see cref="Validate"/> checks it, but nothing is required yet, and file questions take no answer because a draft
+    /// keeps no files.
+    /// </summary>
+    public static IReadOnlyList<ApplicationFormError> ValidateDraft(IReadOnlyList<Question> questions, IReadOnlyList<ApplicationAnswer> answers)
+    {
+        ArgumentNullException.ThrowIfNull(questions);
+        return Validate([.. questions.Where(q => q.Type != QuestionType.File).Select(q => q with { Required = false })], answers);
+    }
+
     /// <summary>The answers with empty ones left out and text trimmed, as they are stored.</summary>
     public static IReadOnlyList<ApplicationAnswer> Normalize(IReadOnlyList<ApplicationAnswer> answers)
     {

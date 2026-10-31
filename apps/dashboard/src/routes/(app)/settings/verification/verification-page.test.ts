@@ -1,4 +1,4 @@
-import type { OrganizationIntegritySettings } from '@screenhire/api-client';
+import type { OrganizationVerificationSettings } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
@@ -9,19 +9,19 @@ import Page from './+page.svelte';
 // Nobody has changed the defaults yet (T6).
 const lastUpdated = { at: null, by: 'ScreenHire' as const };
 
-vi.mock('$app/state', () => ({ page: { data: { user }, url: new URL('http://dashboard.test/settings/integrity') }, navigating: { to: null } }));
+vi.mock('$app/state', () => ({ page: { data: { user }, url: new URL('http://dashboard.test/settings/verification') }, navigating: { to: null } }));
 // Superforms needs the rest of the module (beforeNavigate).
 vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await importOriginal()), goto: vi.fn(async () => {}) }));
 
-function renderPage(settings: OrganizationIntegritySettings, routes: Parameters<typeof apiStub>[0] = {}) {
+function renderPage(settings: OrganizationVerificationSettings, routes: Parameters<typeof apiStub>[0] = {}) {
   const bodies: unknown[] = [];
   vi.stubGlobal(
     'fetch',
     vi.fn(
       apiStub({
-        'GET /v1/organization/integrity-settings': () => Response.json(settings),
-        'PUT /v1/organization/integrity-settings': (init) => {
-          const body = JSON.parse(String(init?.body)) as Omit<OrganizationIntegritySettings, 'tokensUsedThisMonth'>;
+        'GET /v1/organization/verification-settings': () => Response.json(settings),
+        'PUT /v1/organization/verification-settings': (init) => {
+          const body = JSON.parse(String(init?.body)) as Omit<OrganizationVerificationSettings, 'tokensUsedThisMonth'>;
           bodies.push(body);
           return Response.json({ ...body, tokensUsedThisMonth: settings.tokensUsedThisMonth });
         },
@@ -106,7 +106,7 @@ describe('verification settings page', () => {
   it('says why when the API refuses the settings', async () => {
     renderPage(
       { llmConsistencyCheck: true, monthlyTokenBudget: null, tokensUsedThisMonth: 0, lastUpdated },
-      { 'PUT /v1/organization/integrity-settings': () => Response.json({ detail: 'Only owners and admins can change this.' }, { status: 403 }) },
+      { 'PUT /v1/organization/verification-settings': () => Response.json({ detail: 'Only owners and admins can change this.' }, { status: 403 }) },
     );
 
     await fireEvent.click(await save());

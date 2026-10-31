@@ -23,4 +23,5 @@ export interface EmailTemplateEntry {
   lastUpdated: LastUpdate;
   questionnaireOnly: boolean;
   archived: boolean;
+  invitationOnly?: boolean;
 }

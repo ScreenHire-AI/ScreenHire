@@ -20,9 +20,9 @@ export interface AutomationFacts {
   /** @nullable */
   hoursInStage?: number | null;
   /** @nullable */
-  integrityAuthenticity?: string | null;
+  verificationAuthenticity?: string | null;
   /** @nullable */
-  integrityAiAssistance?: string | null;
+  verificationAiAssistance?: string | null;
   /** @nullable */
   verificationResult?: string | null;
   /** @nullable */

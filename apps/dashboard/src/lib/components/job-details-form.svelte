@@ -8,13 +8,15 @@
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
+  import CountryPicker from '#lib/components/country-picker.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import Panel from '#lib/components/panel.svelte';
+  import RichTextEditor from '#lib/components/rich-text-editor.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
-  import { Textarea } from '#lib/components/ui/textarea/index.js';
   import { selectClass } from '#lib/components/workflow/controls.js';
+  import { countryOptions } from '#lib/countries.js';
   import { locales } from '#lib/dates.js';
   import { employmentLabel } from '#lib/format.js';
   import { applyValidationProblem } from '#lib/forms.js';
@@ -24,8 +26,6 @@
     closingDate,
     closingInstant,
     currencyOptions,
-    descriptionBody,
-    descriptionText,
     periodOptions,
     periodValues,
     salaryBody,
@@ -36,6 +36,7 @@
   } from '#lib/job-form.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
+  import { isBlank } from '#lib/rich-text.js';
 
   // "Edit details": the job's posting content after it was created (PUT /v1/jobs/{id}), on the form template. The
   // workflow has its own page. An open job's edit is live on the careers page at once; boards get it when the job is
@@ -48,6 +49,8 @@
   const employmentTypes = UpdateJobBody.shape.employmentType.options;
   // The job's own currency stays in the list even if this browser does not know it.
   const currencies = $derived(currencyOptions(locales, job.salary?.currency ?? 'GBP'));
+  // So does the country it is in.
+  const countries = $derived(countryOptions(locales, [job.locations[0]?.country ?? '']));
 
   const schema = UpdateJobBody.pick({ title: true })
     .extend({
@@ -55,7 +58,7 @@
       department: z.string().max(100, 'Keep the department to 100 characters or fewer.'),
       employmentType: z.enum(employmentTypes),
       workplaceType: z.enum(workplaceValues),
-      countries: z.string(),
+      countries: z.array(z.string()),
       city: z.string().max(100, 'Keep the city to 100 characters or fewer.'),
       country: z.string(),
       salaryMin: z.string(),
@@ -69,14 +72,13 @@
       const issue = (path: string, message: string) => context.addIssue({ code: 'custom', path: [path], message });
       checkWhere(value, issue);
       checkSalary(value, issue);
-      if (!value.description.trim()) issue('description', 'Add a description: candidates and boards need one.');
+      if (isBlank(value.description)) issue('description', 'Add a description: candidates and boards need one.');
     });
 
-  // What the form started from, so an untouched description keeps the job's own HTML.
-  let original = { html: '', text: '' };
+  // The editor writes the description only when the text changes, so an untouched one goes back as the job's own HTML.
+  let descriptionEditor = $state<ReturnType<typeof RichTextEditor> | null>(null);
 
   function fieldsOf(detail: JobDetail) {
-    original = { html: detail.description, text: descriptionText(detail.description) };
     return {
       title: detail.title,
       department: detail.department ?? '',
@@ -87,7 +89,7 @@
       currency: detail.salary?.currency ?? 'GBP',
       period: detail.salary?.period ?? 'Year',
       closingDate: closingDate(detail.validThrough),
-      description: original.text,
+      description: detail.description,
     };
   }
 
@@ -114,7 +116,7 @@
             workplaceType: value.workplaceType || job.workplaceType,
             salary: salaryBody(value),
             validThrough: closingInstant(value.closingDate, job.validThrough),
-            description: descriptionBody(value.description, original),
+            description: value.description,
           },
         });
         onsaved?.(job.status === 'Open' ? 'Saved. The careers page shows it now; publish again to update the boards.' : 'Saved.');
@@ -163,11 +165,10 @@
         <Field.Error id="job-workplace-error" errors={$errors.workplaceType?.map((message) => ({ message }))} />
       </Field.Field>
       {#if $form.workplaceType === 'Remote'}
-        <Field.Field data-invalid={$errors.countries ? true : undefined}>
+        <Field.Field data-invalid={$errors.countries?._errors ? true : undefined}>
           <Field.Label for="job-countries">Countries candidates can work from</Field.Label>
-          <Input id="job-countries" name="countries" required autocomplete="off" bind:value={$form.countries} aria-invalid={$errors.countries ? 'true' : undefined} aria-describedby={describedBy('job-countries-error', $errors.countries, 'job-countries-hint')} />
-          <Field.Description id="job-countries-hint">Two-letter codes, separated by commas, such as GB, IE.</Field.Description>
-          <Field.Error id="job-countries-error" errors={$errors.countries?.map((message) => ({ message }))} />
+          <CountryPicker id="job-countries" bind:value={$form.countries} invalid={!!$errors.countries?._errors} describedby={describedBy('job-countries-error', $errors.countries?._errors)} />
+          <Field.Error id="job-countries-error" errors={$errors.countries?._errors?.map((message) => ({ message }))} />
         </Field.Field>
       {:else}
         <div class="flex flex-col gap-4 @md:grid @md:grid-cols-[2fr_1fr] @md:gap-3">
@@ -177,8 +178,12 @@
             <Field.Error id="job-city-error" errors={$errors.city?.map((message) => ({ message }))} />
           </Field.Field>
           <Field.Field data-invalid={$errors.country ? true : undefined}>
-            <Field.Label for="job-country">Country code</Field.Label>
-            <Input id="job-country" name="country" required maxlength={2} autocomplete="off" bind:value={$form.country} aria-invalid={$errors.country ? 'true' : undefined} aria-describedby={describedBy('job-country-error', $errors.country)} />
+            <Field.Label for="job-country">Country</Field.Label>
+            <!-- Picked by name, never typed as a code (W8); the value is the ISO code the API takes. -->
+            <select id="job-country" name="country" class={selectClass} required bind:value={$form.country} aria-invalid={$errors.country ? 'true' : undefined} aria-describedby={describedBy('job-country-error', $errors.country)}>
+              <option value="">Select</option>
+              {#each countries as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
+            </select>
             <Field.Error id="job-country-error" errors={$errors.country?.map((message) => ({ message }))} />
           </Field.Field>
         </div>
@@ -221,9 +226,15 @@
       </Field.Field>
 
       <Field.Field data-invalid={$errors.description ? true : undefined}>
-        <Field.Label for="job-description">Description</Field.Label>
-        <Textarea id="job-description" name="description" rows={10} bind:value={$form.description} aria-invalid={$errors.description ? 'true' : undefined} aria-describedby={describedBy('job-description-error', $errors.description, 'job-description-hint')} />
-        <Field.Description id="job-description-hint">A blank line starts a paragraph. "- " starts a list item.</Field.Description>
+        <Field.Label id="job-description-label" for="job-description" onclick={() => descriptionEditor?.focus()}>Description</Field.Label>
+        <RichTextEditor
+          bind:this={descriptionEditor}
+          bind:value={$form.description}
+          id="job-description"
+          labelledBy="job-description-label"
+          describedBy={describedBy('job-description-error', $errors.description)}
+          invalid={!!$errors.description}
+        />
         <Field.Error id="job-description-error" errors={$errors.description?.map((message) => ({ message }))} />
       </Field.Field>
 

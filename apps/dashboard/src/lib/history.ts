@@ -1,4 +1,4 @@
-import type { ChangeActorKind, HistoryEntry, HistoryPage, TeamMember } from '@screenhire/api-client';
+import type { ChangeActorKind, HistoryEntry, HistoryPage, LastUpdate, TeamMember } from '@screenhire/api-client';
 import { dayKey, dayLabel } from '#lib/dates.js';
 import { personName } from '#lib/team.js';
 
@@ -21,6 +21,15 @@ export function actorName(actor: ChangeActor, members: readonly TeamMember[] | u
   if (actor.by === 'Member' && actor.userId) return personName(actor.userId, members, currentUserId);
   if (actor.by === 'ApiKey') return 'an API key';
   return undefined;
+}
+
+/**
+ * How a header words its Last updated fact: an object nothing has changed since it was created says Created ("Created
+ * 2 hours ago by Avery Quinn"), anything else Updated. `label` names the fact; `verb` starts its sentence where no label
+ * shows, on a settings page's title row.
+ */
+export function lastUpdateWords(value: Pick<LastUpdate, 'created'>): { label: 'Created' | 'Last updated'; verb: 'Created' | 'Updated' } {
+  return value.created ? { label: 'Created', verb: 'Created' } : { label: 'Last updated', verb: 'Updated' };
 }
 
 /** The first letter in capitals, for a name that starts a sentence ("You changed the subject"). */

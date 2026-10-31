@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using ScreenHire.Application.Integrity;
+using ScreenHire.Application.Verification;
 
 namespace ScreenHire.E2E;
 
@@ -31,7 +31,7 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
         var scene = await SceneAsync(FullDescription);
         var genuine = SyntheticApplicants.GenuineHuman;
         var bot = SyntheticApplicants.Bot;
-        // Applicants whose levels do not wait on the slower content checks (integrity-engine.md section 10.8).
+        // Applicants whose levels do not wait on the slower content checks (verification-engine.md section 10.8).
         var honest = SyntheticApplicants.HonestAiAssisted;
         var ids = new Dictionary<string, Guid>();
         foreach (var applicant in new[] { genuine, bot, honest })
@@ -264,7 +264,7 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
 
     private ILocator Chip(string candidate) =>
         Page.GetByRole(AriaRole.Row).Filter(new() { Has = Page.GetByRole(AriaRole.Link, new() { Name = candidate, Exact = true }) })
-            .Locator("[data-integrity-chip='authenticity']");
+            .Locator("[data-verification-chip='authenticity']");
 
     private string DashboardUrl(string pathAndQuery) => new Uri(Fixture.GetEndpoint("dashboard"), pathAndQuery).ToString();
 }

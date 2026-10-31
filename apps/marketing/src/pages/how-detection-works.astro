@@ -8,7 +8,7 @@ import { faqPage, type Faq } from '../lib/seo';
 
 const { title, description, path, label } = pages.detection;
 
-// Source of truth: ADR-0004 and docs/architecture/integrity-engine.md. v1 covers the application stage only; ID
+// Source of truth: ADR-0004 and docs/architecture/verification-engine.md. v1 covers the application stage only; ID
 // verification and interview checks are later phases, and the copy says so.
 const levels = [
   { name: 'No concerns', status: 'done', icon: 'text-status-clear-mark', chip: 'bg-status-clear-soft text-status-clear' },
@@ -51,7 +51,7 @@ const timeline = [
 ];
 
 const never = [
-  'Reject, or move anyone to a rejected stage, because of an integrity signal. Workflows that try are refused when you save them.',
+  'Reject, or move anyone to a rejected stage, because of a verification signal. Workflows that try are refused when you save them.',
   'Give a fraud score or a "% AI-written" number.',
   'Infer emotion, stress, honesty, intent or personality from text, typing, face or voice.',
   'Build biometric templates, or identify anyone from how they type.',
@@ -64,7 +64,7 @@ const faqs: Faq[] = [
   {
     question: 'Does ScreenHire reject applicants because of a fraud flag?',
     answer:
-      'Not because of integrity signals. Integrity levels can route an application, tag it, assign it or suggest verification, and ScreenHire refuses workflows that would reject on them. A person on your team makes the decision.',
+      'Not because of verification signals. Verification levels can route an application, tag it, assign it or suggest an identity check, and ScreenHire refuses workflows that would reject on them. A person on your team makes the decision.',
   },
   {
     question: 'Does ScreenHire detect AI-written applications?',

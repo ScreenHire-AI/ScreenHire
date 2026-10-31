@@ -6,6 +6,7 @@ import Harness from '../../test-support/email-template-form-harness.svelte';
 import { apiStub } from '../../test-support/fixtures.js';
 import { inHiddenPane } from '../../test-support/panes.js';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
+import { editRichText } from '../../test-support/rich-text.js';
 
 const variables: EmailTemplateVariableEntry[] = [
   { name: 'candidateName', label: 'Candidate name', rejectOnly: false },
@@ -112,6 +113,20 @@ describe('email template form', () => {
     expect(screen.queryByLabelText('Name')).not.toBeInTheDocument();
   });
 
+  it('shows each variable in the message as a chip, and puts a picked one there as a chip too', async () => {
+    renderForm();
+    const message = screen.getByRole('textbox', { name: 'Message' });
+    expect([...message.querySelectorAll('[data-liquid]')].map((chip) => chip.textContent)).toEqual(['variable Candidate name']);
+
+    message.focus();
+    await fireEvent.focus(message);
+    await fireEvent.pointerDown(screen.getByRole('button', { name: 'Insert variable' }), { button: 0, pointerType: 'mouse' });
+    await fireEvent.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Job title' }));
+
+    await waitFor(() => expect(message.querySelectorAll('[data-liquid]')).toHaveLength(2));
+    expect([...message.querySelectorAll('[data-liquid]')].map((chip) => chip.textContent)).toContain('variable Job title');
+  });
+
   it('sends a test of the unsaved wording to the signed-in person from Preview', async () => {
     const { tests } = renderForm();
     await showPreview();
@@ -141,7 +156,7 @@ describe('email template form', () => {
   it('saves from outside the form in either view, going back to Edit when a new template needs its name', async () => {
     const { onsave } = renderForm({ template: undefined, sendingEnabled: false });
     await fireEvent.input(screen.getByLabelText('Subject'), { target: { value: 'Hello' } });
-    await fireEvent.input(screen.getByLabelText('Message'), { target: { value: 'Hi there' } });
+    editRichText(screen.getByRole('textbox', { name: 'Message' }), '<p>Hi <strong>there</strong></p>');
     await showPreview();
     expect(screen.queryByRole('button', { name: 'Send me a test' })).not.toBeInTheDocument();
 
@@ -150,13 +165,15 @@ describe('email template form', () => {
     expect(await screen.findByText('Enter a name.')).toBeInTheDocument();
     await fireEvent.input(screen.getByLabelText('Name'), { target: { value: 'Interview invitation' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
-    await waitFor(() => expect(onsave).toHaveBeenCalledWith({ name: 'Interview invitation', subject: 'Hello', body: 'Hi there' }));
+    await waitFor(() => expect(onsave).toHaveBeenCalledWith({ name: 'Interview invitation', subject: 'Hello', body: '<p>Hi <strong>there</strong></p>' }));
   });
 
   it('reads as labels and values without the role to change it (E3)', async () => {
     renderForm({ editable: false });
 
-    expect(screen.queryByRole('textbox')).toBeNull();
+    expect(screen.getAllByRole('textbox')).toHaveLength(1);
+    expect(screen.getByRole('textbox', { name: 'Message' })).toHaveAttribute('aria-readonly', 'true');
+    expect(screen.queryByRole('toolbar')).toBeNull();
     expect(screen.getByText('An update on {{ jobTitle }}')).toBeInTheDocument();
     await showPreview();
     expect(screen.queryByRole('button', { name: 'Send me a test' })).toBeNull();

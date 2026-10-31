@@ -60,6 +60,7 @@
   import { copyName, maxNameLength, templatesHref, templateUsagePath, usageHref, usageLabel, usedByLabel, usedByNouns } from '#lib/templates.js';
   import { cn } from '#lib/utils.js';
   import { createWorkflowDraft } from '#lib/workflow-draft.svelte.js';
+  import { lastUpdateWords } from '#lib/history.js';
   import type { PageProps } from './$types';
 
   // One hiring template: its versions, and the chosen one. Your own draft opens in the builder, to edit, save and
@@ -369,7 +370,7 @@
               </Button>
             </Fact>
           {/if}
-          <Fact label="Last updated">
+          <Fact label={lastUpdateWords(detail.lastUpdated).label}>
             <LastUpdated value={detail.lastUpdated} {members} {currentUserId} onhistory={detail.isSystem ? undefined : () => (historyOpen = true)} />
           </Fact>
         {/snippet}

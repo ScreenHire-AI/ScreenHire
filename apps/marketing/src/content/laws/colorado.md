@@ -50,14 +50,14 @@ If a tool ranks, scores or recommends applicants and that output materially infl
 
 ## How ScreenHire is designed around it
 
-- Integrity levels never reject anyone, and each comes with evidence a reviewer can weigh, so human review is real rather than a formality.
+- Verification levels never reject anyone, and each comes with evidence a reviewer can weigh, so human review is real rather than a formality.
 - Every action on an application is logged, and every level records the version of the rules that produced it.
 - Candidate-facing notice comes before collection.
 
 ## Still unclear
 
 - What the Attorney General's rules will say, including what "commercially reasonable" means.
-- Whether an integrity flag "materially influences" a hiring decision. That depends on how an employer uses it.
+- Whether a verification flag "materially influences" a hiring decision. That depends on how an employer uses it.
 - The effect of the federal push to pre-empt state AI laws, including a December 2025 executive order, and of the litigation over the earlier law.
 
 This entry relies on the legislature's bill summary and a law firm's analysis rather than the full bill text. Read the session law before relying on it.

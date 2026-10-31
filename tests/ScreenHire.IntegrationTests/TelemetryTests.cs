@@ -4,9 +4,9 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using ScreenHire.Application.Integrity;
+using ScreenHire.Application.Verification;
 using ScreenHire.Domain.Hiring;
-using ScreenHire.Domain.Integrity;
+using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
@@ -17,7 +17,7 @@ using Wolverine;
 namespace ScreenHire.IntegrationTests;
 
 /// <summary>
-/// Form telemetry (integrity-engine.md §10.2): the application form issues a session, ingest stores strict snapshots
+/// Form telemetry (verification-engine.md §10.2): the application form issues a session, ingest stores strict snapshots
 /// of counts only, submission binds them before the pipeline runs, behavioural signals stay context on their own, the
 /// assistive-technology switch deletes them, the device check follows the job's basis, and retention purges them. Each
 /// test makes its own organization with a job copied from the "Software engineer" system template, whose
@@ -117,14 +117,14 @@ public sealed class TelemetryTests(AppHostFixture fixture)
         });
         snapshots.Single(s => s.PageViewId == detailsPage).Fields.Single().TypedCharacters.Should().Be(12);
 
-        var signals = await db.IntegritySignals.Where(s => s.ApplicationId == applicationId && s.Category == SignalCategory.Behavioural).ToListAsync(Ct);
+        var signals = await db.VerificationSignals.Where(s => s.ApplicationId == applicationId && s.Category == SignalCategory.Behavioural).ToListAsync(Ct);
         var paste = signals.Should().ContainSingle().Which;
         paste.Code.Should().Be(SignalCatalogue.PasteDominant);
         paste.AccessibilitySensitive.Should().BeTrue();
         paste.Explanation.Should().Contain("What is your notice period?");
-        var ai = assessments.Single(a => a.Kind == IntegrityAssessmentKind.AiAssistance);
+        var ai = assessments.Single(a => a.Kind == VerificationAssessmentKind.AiAssistance);
         ai.Level.Should().Be(nameof(AiAssistanceLevel.NotIndicated));
-        ai.AppliedRules.Should().Contain(IntegrityRuleset.TelemetryOnlyAlongsideAnotherCategory);
+        ai.AppliedRules.Should().Contain(VerificationRuleset.TelemetryOnlyAlongsideAnotherCategory);
         ai.ReasonCodes.Should().BeEmpty("telemetry alone is never a reason");
         ai.SignalIds.Should().NotContain(paste.Id, "telemetry alone is not shown on the assessment; the signal is kept for when another category joins it");
 
@@ -149,8 +149,8 @@ public sealed class TelemetryTests(AppHostFixture fixture)
 
         await using var db = await TenantDbAsync(organization.Id);
         (await db.TelemetrySnapshots.CountAsync(s => s.JobId == job.Id, Ct)).Should().Be(0);
-        (await db.IntegritySignals.CountAsync(s => s.ApplicationId == applicationId && s.Category == SignalCategory.Behavioural, Ct)).Should().Be(0);
-        var run = await db.IntegrityAnalyzerRuns.SingleAsync(r => r.ApplicationId == applicationId && r.Analyzer == "behavioural", Ct);
+        (await db.VerificationSignals.CountAsync(s => s.ApplicationId == applicationId && s.Category == SignalCategory.Behavioural, Ct)).Should().Be(0);
+        var run = await db.VerificationAnalyzerRuns.SingleAsync(r => r.ApplicationId == applicationId && r.Analyzer == "behavioural", Ct);
         run.Note.Should().Be(BehaviouralAnalyzer.NoTelemetryNote, "the run reads the same as one with no telemetry at all");
     }
 
@@ -202,7 +202,7 @@ public sealed class TelemetryTests(AppHostFixture fixture)
         await using var sender = await MessagingHost.StartPublisherToAppHostQueuesAsync(fixture, Ct);
         // What the daily sweep sends for this organization, two days on: the unsent form's snapshot has expired.
         await sender.Services.GetRequiredService<IMessageBus>()
-            .PublishAsync(new PurgeOrganizationIntegrityData(organization.Id, DateTimeOffset.UtcNow.AddDays(2)));
+            .PublishAsync(new PurgeOrganizationVerificationData(organization.Id, DateTimeOffset.UtcNow.AddDays(2)));
 
         await WolverineStore.WaitUntilAsync(
             async () =>
@@ -255,7 +255,7 @@ public sealed class TelemetryTests(AppHostFixture fixture)
 
         await using var sender = await MessagingHost.StartPublisherToAppHostQueuesAsync(fixture, Ct);
         await sender.Services.GetRequiredService<IMessageBus>()
-            .PublishAsync(new PurgeOrganizationIntegrityData(mine.Id, DateTimeOffset.UtcNow.AddDays(2)));
+            .PublishAsync(new PurgeOrganizationVerificationData(mine.Id, DateTimeOffset.UtcNow.AddDays(2)));
         await WolverineStore.WaitUntilAsync(
             async () =>
             {
@@ -364,14 +364,14 @@ public sealed class TelemetryTests(AppHostFixture fixture)
     }
 
     // Both current assessments, once the worker has made them.
-    private async Task<IReadOnlyList<IntegrityAssessment>> AssessedAsync(Guid organizationId, Guid applicationId)
+    private async Task<IReadOnlyList<VerificationAssessment>> AssessedAsync(Guid organizationId, Guid applicationId)
     {
-        List<IntegrityAssessment> assessments = [];
+        List<VerificationAssessment> assessments = [];
         await WolverineStore.WaitUntilAsync(
             async () =>
             {
                 await using var db = await TenantDbAsync(organizationId);
-                assessments = await db.IntegrityAssessments.AsNoTracking().Where(a => a.ApplicationId == applicationId).ToListAsync(Ct);
+                assessments = await db.VerificationAssessments.AsNoTracking().Where(a => a.ApplicationId == applicationId).ToListAsync(Ct);
                 return assessments.Count == 2;
             },
             "the worker to assess the application",

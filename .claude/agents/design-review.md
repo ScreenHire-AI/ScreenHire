@@ -51,7 +51,7 @@ Your prompt gives a diff range (for example `origin/main...HEAD`) or `all`, and 
    their titles (S3), actions, links and buttons (A1 to A8), status first and quiet calm states (T1 to T4), Last
    updated and History (T6), words and where each fact lives (W4, W6), tables and sorting (L1, L2), sizes and touch
    (F1 to F5), states and notices (E1 to E3), access (X1).
-4. Leave G1 (integrity) to the `integrity-guardrails` agent; report it only if you see it and it was not obviously
+4. Leave G1 (verification) to the `verification-guardrails` agent; report it only if you see it and it was not obviously
    covered.
 5. A component the catalogue (section 11) names but the code lacks (a tooltip, a key cap, the sidebar) is one finding
    against section 11, not one per screen that needs it.

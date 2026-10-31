@@ -7,7 +7,7 @@
 
 /**
  * On which footing the careers page may compute a device fingerprint (docs/research/legal.md, "Device / browser
- * fingerprint"; integrity-engine.md §3). ePrivacy Art. 5(3) needs consent for fingerprinting unless it is strictly
+ * fingerprint"; verification-engine.md §3). ePrivacy Art. 5(3) needs consent for fingerprinting unless it is strictly
  * necessary, and data protection authorities differ on whether fraud prevention is, so the basis is configuration per
  * country rather than code.
  */

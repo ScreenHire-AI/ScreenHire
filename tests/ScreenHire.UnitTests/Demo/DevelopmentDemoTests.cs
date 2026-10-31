@@ -1,8 +1,8 @@
 using ScreenHire.Api.Demo;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
-using ScreenHire.Domain.Integrity;
-using ScreenHire.UnitTests.Integrity;
+using ScreenHire.Domain.Verification;
+using ScreenHire.UnitTests.Verification;
 
 namespace ScreenHire.UnitTests.Demo;
 
@@ -30,8 +30,8 @@ public sealed class DevelopmentDemoTests
     {
         [DemoCandidates.ProductDesigner] = QuestionnaireOf(DemoCandidates.ProductDesigner),
         [DemoCandidates.FrontendEngineer] = QuestionnaireOf(DemoCandidates.FrontendEngineer),
-        [DemoCandidates.SeniorDotnetEngineer] = IntegrityHarness.SoftwareEngineerQuestions,
-        [DemoCandidates.SupportEngineer] = IntegrityHarness.SoftwareEngineerQuestions,
+        [DemoCandidates.SeniorDotnetEngineer] = VerificationHarness.SoftwareEngineerQuestions,
+        [DemoCandidates.SupportEngineer] = VerificationHarness.SoftwareEngineerQuestions,
     };
 
     [Fact]
@@ -61,6 +61,20 @@ public sealed class DevelopmentDemoTests
             var links = questions.Where(q => q.Type == QuestionType.Url).Select(q => answers.Single(a => a.QuestionId == q.Id).Value);
             links.Should().AllSatisfy(link => new Uri(link!).Host.Should().MatchRegex(@"(^|\.)example\.org$", candidate.Applicant.Key));
         });
+    }
+
+    [Fact]
+    public void Dated_history_runs_forward_and_gives_reports_hires_from_two_sources()
+    {
+        // A move happens after the application and after the move before it, so each days-ago count falls.
+        DemoCandidates.All.Where(c => c.AppliedDaysAgo > 0).Should().AllSatisfy(candidate =>
+            new[] { candidate.AppliedDaysAgo }.Concat(candidate.Moves.Select(m => m.DaysAgo))
+                .Should().BeInDescendingOrder().And.OnlyHaveUniqueItems(candidate.Applicant.Key));
+        DemoCandidates.All.Where(c => c.AppliedDaysAgo == 0).SelectMany(c => c.Moves).Should().OnlyContain(m => m.DaysAgo == 0);
+
+        var history = DemoCandidates.All.Where(c => c.AppliedDaysAgo > 0).ToList();
+        history.Count(c => c.StageId == "hired").Should().BeGreaterThanOrEqualTo(2, "time to hire needs hires to take a median of");
+        history.Select(c => c.Source).Distinct().Should().BeEquivalentTo([ApplicationSource.CareersSite, ApplicationSource.Recruiter]);
     }
 
     [Fact]
@@ -114,8 +128,8 @@ public sealed class DevelopmentDemoTests
         // One organization for all of them, in order, so a shared device, address, file or answer would show as a
         // duplicate. The harness has one job, so it asks every demo job's questions; a shared id (experience, notice
         // period) keeps the "Software engineer" wording, which comes first.
-        var harness = new IntegrityHarness(
-            [.. IntegrityHarness.SoftwareEngineerQuestions.Concat(QuestionsByJob.Values.SelectMany(q => q)).DistinctBy(q => q.Id)]);
+        var harness = new VerificationHarness(
+            [.. VerificationHarness.SoftwareEngineerQuestions.Concat(QuestionsByJob.Values.SelectMany(q => q)).DistinctBy(q => q.Id)]);
 
         foreach (var candidate in DemoCandidates.All)
         {

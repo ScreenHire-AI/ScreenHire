@@ -14,7 +14,7 @@ namespace ScreenHire.Domain.Hiring;
 //   `answers.work_authorization` refer to them.
 
 /// <summary>
-/// What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity
+/// What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification
 /// policy, the automations and the follow-up questionnaires a <see cref="ActionType.SendQuestionnaire"/> action sends.
 /// </summary>
 /// <remarks>
@@ -24,7 +24,7 @@ namespace ScreenHire.Domain.Hiring;
 public sealed record HiringWorkflow(
     IReadOnlyList<WorkflowStage> Stages,
     Questionnaire Questionnaire,
-    IntegrityPolicy IntegrityPolicy,
+    VerificationPolicy VerificationPolicy,
     IReadOnlyList<Automation> Automations,
     IReadOnlyList<FollowUpQuestionnaire>? FollowUpQuestionnaires = null)
 {
@@ -45,7 +45,7 @@ public sealed record HiringWorkflow(
             new("withdrawn", "Withdrawn", StageKind.Withdrawn),
         ],
         new Questionnaire([]),
-        new IntegrityPolicy(AiUsePolicy.AllowedWithDisclosure),
+        new VerificationPolicy(AiUsePolicy.AllowedWithDisclosure),
         []);
 
     /// <summary>The stage with <paramref name="stageId"/>, or null.</summary>
@@ -115,8 +115,10 @@ public sealed record HiringWorkflow(
 /// <remarks>
 /// <c>id</c>: Stable key, unique among the workflow's follow-up questionnaires; the trigger and the action name it.
 /// <c>name</c>: What the hiring team calls it, such as "Availability"; the candidate sees it as the page's heading.
+/// <c>sections</c>: Optional; named pages of its questions, as on <see cref="Questionnaire"/>.
 /// </remarks>
-public sealed record FollowUpQuestionnaire(string Id, string Name, IReadOnlyList<Question> Questions);
+public sealed record FollowUpQuestionnaire(
+    string Id, string Name, IReadOnlyList<Question> Questions, IReadOnlyList<QuestionSection>? Sections = null);
 
 /// <summary>A hiring template version's full definition: the workflow a job copies, plus defaults for the job's posting.</summary>
 public sealed record HiringTemplateDefinition(HiringWorkflow Workflow, PostingDefaults PostingDefaults)
@@ -249,7 +251,18 @@ public enum StageKind
 }
 
 /// <summary>The screening questions a candidate answers when applying.</summary>
-public sealed record Questionnaire(IReadOnlyList<Question> Questions);
+/// <remarks>
+/// <c>sections</c>: Optional; the questions grouped into named pages, one page each on the careers site. Every question
+/// is in exactly one section, and the sections list them in the order of <c>questions</c>. Without sections the careers
+/// site splits the questions into pages of the organization's page size (<c>questionsPerPage</c>).
+/// </remarks>
+public sealed record Questionnaire(IReadOnlyList<Question> Questions, IReadOnlyList<QuestionSection>? Sections = null);
+
+/// <summary>One named page of a questionnaire: its name, the page's heading, and the ids of its questions in order.</summary>
+/// <remarks>
+/// <c>id</c>: Stable key, unique within the questionnaire.
+/// </remarks>
+public sealed record QuestionSection(string Id, string Name, IReadOnlyList<string> QuestionIds);
 
 /// <summary>
 /// One screening question. Which optional members apply depends on <see cref="Type"/>: <see cref="Options"/> for the
@@ -300,8 +313,8 @@ public sealed record QuestionOption(string Id, string Label);
 /// </remarks>
 public sealed record Knockout(bool DisqualifyingAnswer, string? Reason = null);
 
-/// <summary>The template's integrity settings (ADR-0004). Only the AI-use policy exists so far.</summary>
-public sealed record IntegrityPolicy(AiUsePolicy AiUse);
+/// <summary>The template's verification settings (ADR-0004). Only the AI-use policy exists so far.</summary>
+public sealed record VerificationPolicy(AiUsePolicy AiUse);
 
 /// <summary>What the employer allows candidates to do with AI tools while applying.</summary>
 public enum AiUsePolicy
@@ -330,7 +343,7 @@ public sealed record PostingDefaults(
 
 /// <summary>
 /// Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine
-/// runs them. <see cref="DefinitionValidator"/> refuses an automation that would reject anyone because of an integrity
+/// runs them. <see cref="DefinitionValidator"/> refuses an automation that would reject anyone because of a verification
 /// signal (ADR-0004).
 /// </summary>
 /// <remarks>
@@ -363,7 +376,7 @@ public enum TriggerType
     StageEntered,
     StageExited,
     QuestionnaireCompleted,
-    IntegrityAssessed,
+    VerificationAssessed,
     VerificationCompleted,
     ReviewerDecision,
     TimeElapsed,
@@ -394,7 +407,7 @@ public enum ConditionMatch
 /// <summary>
 /// One test of an application fact, such as <c>answers.work_authorization EqualTo no</c> (yes/no answers are
 /// <c>yes</c> and <c>no</c>, choice answers are option ids). Facts are
-/// <c>answers.{questionId}</c>, <c>integrity.authenticity</c>, <c>integrity.aiAssistance</c>,
+/// <c>answers.{questionId}</c>, <c>verification.authenticity</c>, <c>verification.aiAssistance</c>,
 /// <c>verification.result</c>, <c>application.tags</c>, <c>application.source</c>,
 /// <c>application.hoursInStage</c> and, for a <see cref="TriggerType.ReviewerDecision"/> automation only,
 /// <c>reviewer.recommendation</c>.

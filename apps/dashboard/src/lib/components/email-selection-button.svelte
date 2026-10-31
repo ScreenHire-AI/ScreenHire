@@ -6,7 +6,7 @@
   import { cn } from '#lib/utils.js';
 
   // Opens the email composer for the ticked rows of a list panel. The header's pill or Move button already says how many
-  // are ticked, so the label is just "Email" (W4). In a narrow panel header it is an icon, as the integrity filter is,
+  // are ticked, so the label is just "Email" (W4). In a narrow panel header it is an icon, as the verification filter is,
   // so the search keeps its room; the accessible name says it, and the tooltip too while the label is hidden (A4).
   // lg in a panel body row, beside the other 36px controls (design system section 5); the default fits a panel header.
   let { count, onclick, size = 'default' }: { count: number; onclick: () => void; size?: 'default' | 'lg' } = $props();

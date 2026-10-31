@@ -234,7 +234,7 @@ schema is derived from its description or sample, which the file says. Boards' o
 `GET /v1/public/boards/{slug}`, `/jobs` (with `?content=true` for descriptions) and `/jobs/{jobId}` mirror
 Greenhouse's job-board API: snake_case fields such as `absolute_url`, `updated_at`, `first_published`, `location.name`,
 `departments`, `offices` and `pay_input_ranges` (in minor units), plus `meta.total`. Tools built for Greenhouse boards
-read it. Ids are our UUIDs, and `content` is sanitized HTML, which Greenhouse escapes. It lists postings on the
+read it. Ids are our UUIDs, and `content` is sanitized HTML ([rich text](rich-text.md)), which Greenhouse escapes. It lists postings on the
 `job-board-api` board, with the feeds' five-minute cache.
 
 ### Careers page and Google for Jobs

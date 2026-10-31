@@ -27,8 +27,8 @@ public sealed class JobAccessTests
     }
 
     [Fact]
-    public void Api_keys_and_webhooks_need_all_jobs() =>
-        RolePermissions.NeedsAllJobs.Should().BeEquivalentTo([Permission.ManageApiKeys, Permission.ManageWebhooks]);
+    public void Api_keys_webhooks_and_integrations_need_all_jobs() =>
+        RolePermissions.NeedsAllJobs.Should().BeEquivalentTo([Permission.ManageApiKeys, Permission.ManageWebhooks, Permission.ManageIntegrations]);
 
     [Fact]
     public void A_hiring_team_says_who_joined_and_who_left_and_keeps_each_person_once()

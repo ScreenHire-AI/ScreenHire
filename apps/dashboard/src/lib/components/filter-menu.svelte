@@ -16,7 +16,7 @@
 
   // A filter with many choices (a job's stages), or a few on a phone where chips do not fit: an outline button that names
   // the filter and its choice ("Stage: All"), opening every choice with its count in the count badge (T4). Like the
-  // integrity and tag filters, it takes `primary` while a choice is set, and the page applies it to the rows.
+  // verification and tag filters, it takes `primary` while a choice is set, and the page applies it to the rows.
   let {
     label,
     options,

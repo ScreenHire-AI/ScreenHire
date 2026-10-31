@@ -9,7 +9,7 @@ const workflow: HiringWorkflow = {
     { id: 'interview', name: 'Interview', kind: 'Interview' },
   ],
   questionnaire: { questions: [] },
-  integrityPolicy: { aiUse: 'Allowed' },
+  verificationPolicy: { aiUse: 'Allowed' },
   automations: [
     {
       id: 'advance',

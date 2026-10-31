@@ -3,15 +3,15 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Contracts;
-using ScreenHire.Domain.Integrity;
+using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Jobs;
-using ScreenHire.Infrastructure.Integrity;
+using ScreenHire.Infrastructure.Verification;
 using ScreenHire.Infrastructure.Persistence;
 
 namespace ScreenHire.Api.Applications;
 
 /// <summary>
-/// Telemetry sessions for the careers apply form (integrity-engine.md §10.2). The application form carries a session
+/// Telemetry sessions for the careers apply form (verification-engine.md §10.2). The application form carries a session
 /// token, protected with ASP.NET Core Data Protection and valid for <see cref="Lifetime"/>, that names the organization,
 /// the job and a new session id. The page sends its snapshots with it, and the submission names it, which binds the
 /// session's snapshots to the application.
@@ -75,7 +75,7 @@ internal sealed class TelemetrySessions(IDataProtectionProvider dataProtection)
     private static readonly string[] FixedFields = ["firstName", "lastName", "email", "phone", "aiUseDetails"];
 
     /// <summary>The device-check basis where <paramref name="job"/> is: its locations and the countries it hires from.</summary>
-    public static DeviceCheckBasis DeviceCheckFor(Job job, IntegrityOptions options) =>
+    public static DeviceCheckBasis DeviceCheckFor(Job job, VerificationOptions options) =>
         options.DeviceCheck.BasisFor(job.Locations.Select(l => l.Country).Concat(job.ApplicantLocationRequirements));
 
     /// <summary>
@@ -121,7 +121,7 @@ internal sealed class TelemetrySessions(IDataProtectionProvider dataProtection)
         TelemetryBinding binding,
         bool accommodationRequested,
         DateTimeOffset now,
-        IntegrityOptions options,
+        VerificationOptions options,
         CancellationToken cancellationToken)
     {
         if (await db.TelemetrySnapshots.AnyAsync(s => s.SessionId == binding.SessionId && s.ApplicationId != null, cancellationToken))

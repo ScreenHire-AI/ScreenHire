@@ -13,7 +13,7 @@
     "preview": "vite preview",
     "prepare": "svelte-kit sync",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
-    "test": "vitest run"
+    "test": "vitest run --fsModuleCachePath=node_modules/.vitest-cache"
   },
   "dependencies": {
     "@screenhire/api-client": "workspace:*",
@@ -32,6 +32,10 @@
     "@tanstack/svelte-virtual": "^3.13.47",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/svelte": "^5.4.2",
+    "@tiptap/core": "3.32.0",
+    "@tiptap/extension-list": "3.32.0",
+    "@tiptap/pm": "3.32.0",
+    "@tiptap/starter-kit": "3.32.0",
     "@xyflow/svelte": "^1.7.0",
     "axe-core": "^4.14.0",
     "bits-ui": "^2.19.5",

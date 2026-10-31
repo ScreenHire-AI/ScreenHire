@@ -23,7 +23,12 @@
   {/if}
   {#if sink.value}
     <div class="mx-auto max-w-form">
-      <QuestionnairePreview questions={sink.value.questions} followUp={sink.value.form === 'follow-up'} />
+      <QuestionnairePreview
+        questions={sink.value.questions}
+        sections={sink.value.sections}
+        questionsPerPage={sink.value.questionsPerPage}
+        followUp={sink.value.form === 'follow-up'}
+      />
     </div>
   {:else}
     <!-- Until the editor's first message: the form's shape (E1). -->

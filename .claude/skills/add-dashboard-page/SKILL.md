@@ -85,7 +85,7 @@ Every page handles all four:
 - Status cells use `StatusBadge`: its icon, colour and text label (`clear`, `review`, `verify`, `ai`), with
   `quiet` for calm states in a table. Never colour alone.
 - Tokens only (`bg-card`, `text-muted-foreground`). No hex, no palette colours, no pixel font sizes.
-- Integrity data shows levels, reason codes and evidence; never a score, and no reject control.
+- Verification data shows levels, reason codes and evidence; never a score, and no reject control.
 
 ## 6. Tests
 

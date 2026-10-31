@@ -277,7 +277,7 @@ public sealed class PublicApplicationTests(AppHostFixture fixture)
         var application = await db.Applications.SingleAsync(Ct);
         application.HoneypotFilled.Should().BeTrue();
         application.BotCheck.Should().Be(BotCheckResult.NotChecked);
-        application.CurrentStageId.Should().Be("applied", "integrity signals never move or reject an application");
+        application.CurrentStageId.Should().Be("applied", "verification signals never move or reject an application");
     }
 
     [Fact]
@@ -307,9 +307,9 @@ public sealed class PublicApplicationTests(AppHostFixture fixture)
         var organization = await client.GetFromJsonAsync<JsonElement>("/v1/public/organizations/brightwater", Ct);
         var board = await client.GetFromJsonAsync<JsonElement>("/v1/public/organizations/brightwater/jobs", Ct);
 
-        var branding = organization.GetProperty("branding");
+        board.GetProperty("branding").GetRawText().Should().Be(organization.GetProperty("branding").GetRawText());
+        var branding = organization.GetProperty("branding").GetProperty("colors");
         branding.GetProperty("brand").GetString().Should().Be("#1f4e5a");
-        board.GetProperty("branding").GetRawText().Should().Be(branding.GetRawText());
         BrandPalette.ContrastRatio(branding.GetProperty("brand").GetString()!, branding.GetProperty("onBrand").GetString()!)
             .Should().BeGreaterThanOrEqualTo(4.5);
         BrandPalette.ContrastRatio(branding.GetProperty("brandText").GetString()!, "#fbf6ee").Should().BeGreaterThanOrEqualTo(4.5);

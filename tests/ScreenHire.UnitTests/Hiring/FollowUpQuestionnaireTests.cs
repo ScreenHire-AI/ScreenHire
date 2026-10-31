@@ -115,6 +115,18 @@ public sealed class FollowUpQuestionnaireTests
             .Which.Path.Should().Be("automations[0].actions[0].emailTemplate");
     }
 
+    // Only a person's Invite to apply sends the talent pool invitation (docs/architecture/talent-pool.md, guardrail 5):
+    // no automation names it, so nothing automatic invites anyone or acts on the pool.
+    [Fact]
+    public void Send_email_cannot_send_the_talent_pool_invitation()
+    {
+        var automation = Automation("a", new AutomationTrigger(TriggerType.ApplicationSubmitted),
+            [new AutomationAction(ActionType.SendEmail, EmailTemplate: EmailTemplateIds.TalentPoolInvitation)]);
+
+        DefinitionValidator.Validate(Workflow(automations: [automation])).Should().ContainSingle()
+            .Which.Path.Should().Be("automations[0].actions[0].emailTemplate");
+    }
+
     // The knockout rules hold for follow-up questions as for apply questions (guardrail 2): queue by default, reject only
     // with the opt-in, and never on a question that is not a knockout.
     [Fact]
@@ -138,9 +150,9 @@ public sealed class FollowUpQuestionnaireTests
     [Fact]
     public void A_signal_driven_automation_may_not_send_a_questionnaire()
     {
-        var direct = Automation("direct", new AutomationTrigger(TriggerType.IntegrityAssessed),
+        var direct = Automation("direct", new AutomationTrigger(TriggerType.VerificationAssessed),
             [new AutomationAction(ActionType.SendQuestionnaire, QuestionnaireId: "availability")]);
-        var tagger = Automation("tagger", new AutomationTrigger(TriggerType.IntegrityAssessed), [new AutomationAction(ActionType.AddTag, Tag: "flagged")]);
+        var tagger = Automation("tagger", new AutomationTrigger(TriggerType.VerificationAssessed), [new AutomationAction(ActionType.AddTag, Tag: "flagged")]);
         var laundered = Automation("laundered", new AutomationTrigger(TriggerType.Manual), [new AutomationAction(ActionType.SendQuestionnaire, QuestionnaireId: "availability")]) with
         {
             Conditions = new AutomationConditions(ConditionMatch.All, [new AutomationCondition(FactSchema.Tags, ConditionOperator.Contains, "flagged")]),
@@ -243,7 +255,7 @@ public sealed class FollowUpQuestionnaireTests
 
         email.Subject.Should().Be("A few more questions about your application for Warehouse lead");
         email.TextBody.Should().Contain(link);
-        email.HtmlBody.Should().Contain($"<a href=\"{link}\">{link}</a>");
+        email.HtmlBody.Should().Contain($"<a href=\"{link}\" rel=\"nofollow noopener noreferrer\">{link}</a>");
     }
 
     [Fact]

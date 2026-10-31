@@ -18,4 +18,14 @@ public sealed class LikeTests
     [InlineData("")]
     [InlineData("   ")]
     public void Nothing_to_search_for_is_no_pattern(string? text) => Like.Contains(text).Should().BeNull();
+
+    [Theory]
+    [InlineData("  Casey ", "Casey%")]
+    [InlineData("50%", @"50\%%")]
+    [InlineData("a_b", @"a\_b%")]
+    public void A_prefix_search_matches_values_starting_with_its_text(string text, string pattern) =>
+        Like.StartsWith(text).Should().Be(pattern);
+
+    [Fact]
+    public void Nothing_to_search_for_is_no_prefix_pattern() => Like.StartsWith(" ").Should().BeNull();
 }

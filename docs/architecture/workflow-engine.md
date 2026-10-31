@@ -1,13 +1,14 @@
 ---
 type: Design
 title: "Workflow Engine: Per-Job Hiring Workflows from User-Defined Templates"
-description: "Hiring templates and per-job workflow definitions: stages, scorecards, follow-up questionnaires, automations with triggers, conditions and actions, the guardrail that integrity never rejects, the execution model, the builder, webhook subscriptions with signed deliveries, and what the v1 engine runs."
+description: "Hiring templates and per-job workflow definitions: stages, scorecards, follow-up questionnaires, automations with triggers, conditions and actions, the guardrail that verification never rejects, the execution model, the builder, webhook subscriptions with signed deliveries, and what the v1 engine runs."
 tags: [workflow, automations, webhooks, scorecards, questionnaires]
 sources:
   - resource: src/ScreenHire.Domain/Hiring/HiringWorkflow.cs
   - resource: src/ScreenHire.Domain/Applications/ApplicationNote.cs
   - resource: src/ScreenHire.Domain/Hiring/HiringTemplate.cs
   - resource: src/ScreenHire.Domain/Hiring/DefinitionValidator.cs
+  - resource: apps/dashboard/src/lib/form-sections.ts
   - resource: src/ScreenHire.Domain/Hiring/FactSchema.cs
   - resource: src/ScreenHire.Domain/Hiring/SystemTemplates.cs
   - resource: src/ScreenHire.Domain/Automations/ApplicationTask.cs
@@ -48,6 +49,7 @@ sources:
   - resource: apps/api/Endpoints/WorkflowEndpoints.cs
   - resource: apps/api/Endpoints/AutomationEndpoints.cs
   - resource: apps/api/Endpoints/ScorecardEndpoints.cs
+  - resource: apps/api/Endpoints/TaskEndpoints.cs
   - resource: apps/api/Endpoints/ScorecardTemplateEndpoints.cs
   - resource: apps/api/Hiring/RatingReads.cs
   - resource: apps/api/Hiring/ScorecardReferences.cs
@@ -70,6 +72,10 @@ sources:
   - resource: apps/dashboard/src/lib/components/answer-menu.svelte
   - resource: apps/dashboard/src/lib/components/scorecard-builder.svelte
   - resource: apps/dashboard/src/lib/components/scorecard-sheet.svelte
+  - resource: apps/dashboard/src/lib/components/ask-scorecard-sheet.svelte
+  - resource: apps/dashboard/src/lib/scorecard-choices.ts
+  - resource: apps/dashboard/src/lib/components/task-list.svelte
+  - resource: apps/dashboard/src/lib/tasks.svelte.ts
   - resource: apps/dashboard/src/lib/components/rating.svelte
   - resource: apps/dashboard/src/lib/components/rating-answer.svelte
   - resource: apps/dashboard/src/lib/components/workflow/scorecard-picker.svelte
@@ -92,7 +98,7 @@ Organization
  ├─ HiringTemplate (versioned)          ← user-defined, reusable
  │    ├─ WorkflowDefinition             stages + automations
  │    ├─ Questionnaire                  screening questions (+ knockouts, honeypots)
- │    ├─ IntegrityPolicy                AI-use policy, step-up rules, telemetry jurisdiction defaults
+ │    ├─ VerificationPolicy                AI-use policy, step-up rules, telemetry jurisdiction defaults
  │    ├─ PostingDefaults                target boards, duration, sponsorship defaults
  │    └─ JobContentDefaults             description blocks, benefits, EEO/legal boilerplate
  └─ Job
@@ -130,12 +136,12 @@ builder's "time limit") measures the hiring team's delay, never the candidate: s
 
 | Part | Examples |
 |---|---|
-| **Triggers** | `ApplicationSubmitted`, `StageEntered(stage)`, `StageExited(stage)`, `QuestionnaireCompleted(questionnaire)`, `IntegrityAssessed`, `VerificationCompleted`, `ReviewerDecision`, `TimeElapsed(since: stageEntered, duration)`, `SlaBreached(stage?)`, `CandidateReplied`, `InterviewScheduled`, `Manual` |
-| **Conditions** | Expression over application facts: answers (`answers.work_authorization == "yes"`), tags, source board, location, integrity levels (`integrity.authenticity >= ReviewSuggested`), a reviewer's recommendation, time in stage. Combinators `all/any/not`. |
+| **Triggers** | `ApplicationSubmitted`, `StageEntered(stage)`, `StageExited(stage)`, `QuestionnaireCompleted(questionnaire)`, `VerificationAssessed`, `VerificationCompleted`, `ReviewerDecision`, `TimeElapsed(since: stageEntered, duration)`, `SlaBreached(stage?)`, `CandidateReplied`, `InterviewScheduled`, `Manual` |
+| **Conditions** | Expression over application facts: answers (`answers.work_authorization == "yes"`), tags, source board, location, verification levels (`verification.authenticity >= ReviewSuggested`), a reviewer's recommendation, time in stage. Combinators `all/any/not`. |
 | **Actions** | `SendEmail(template)`, `SendQuestionnaire(questionnaire)`, `RequestVerification(provider)`, `MoveToStage(stage)`, `AddTag`, `AssignReviewer`, `NotifyTeam`, `ScheduleInterview(link)`, `CreateTask`, `CallWebhook(url)`, `QueueForRejectionReview(reason)`, `Reject(reason, emailTemplate)` |
 
 ### Guardrails enforced by the engine (product-legal policy, see ADR-0004)
-1. **Integrity-derived conditions can never drive `Reject`.** Any automation whose condition references `integrity.*`
+1. **Verification-derived conditions can never drive `Reject`.** Any automation whose condition references `verification.*`
    (or any signal) may only use routing/step-up actions (`RequestVerification`, `AssignReviewer`, `AddTag`,
    `MoveToStage` into a non-terminal review stage). The validator rejects such definitions at save time.
 2. **Knockouts** (objective, candidate-declared eligibility like work authorisation, required licence) may use `Reject`,
@@ -144,6 +150,9 @@ builder's "time limit") measures the hiring team's delay, never the candidate: s
 3. **Every automated action is audit-logged** with the definition version, trigger event, evaluated facts and result.
 4. Accommodation: if the candidate requested accommodation, automations referencing timing/telemetry facts are skipped.
    `SlaBreached` is the exception, and the reason is section 8.
+5. **Keep in mind is a person's action only** ([talent pool](talent-pool.md)): no automation action keeps a candidate in
+   mind, so no condition, verification or otherwise, can take someone out of a job that way. An application kept in mind
+   has ended like one in a Hired, Rejected or Withdrawn stage: actions skip it and its stage's timers do nothing.
 
 ## 3. Execution model
 
@@ -191,7 +200,7 @@ form controls. The validation result is a status badge beside the page title.
   (`scorecard-builder.svelte`), or through `/v1/scorecard-templates`. An archived scorecard leaves the picker unless the
   stage already names it. A stage that ends the application offers no
   scorecard. Automations whose trigger
-  has no stage (an arriving application, the integrity checks, a manual run, any stage's time limit) sit in a "Whole
+  has no stage (an arriving application, the verification checks, a manual run, any stage's time limit) sit in a "Whole
   workflow" panel under the stages. "A stage's time limit passes" offers the stages that have one, and only the four reminder actions. The drawer's forms offer only the triggers and actions v1 runs, and the facts
   and operators `FactSchema` allows.
 - **Graph:** @xyflow/svelte, rebuilt from the workflow on every change by `toGraph` (`#lib/workflow-graph.ts`): a
@@ -222,19 +231,28 @@ form controls. The validation result is a status badge beside the page title.
   (`applyFormKinds`, `followUpKinds` in `#lib/form-builder.ts`) are every `QuestionType`; a follow-up offers all but
   File, because its page takes no uploads. What a kind needs beyond its text and options (a knockout, a number's range,
   the longest answer, a file's types) is `question-settings.svelte`. A duplicate takes an id unique across the workflow,
-  so `answers.{id}` still names one question. The preview beside the builder, or behind the Edit / Preview switch where
+  so `answers.{id}` still names one question. Add a section (an outline button beside Add a question) gives the
+  questionnaire named sections, each a page for the candidate (apply-flow.md §7): the first press makes "Section 1"
+  with every question and an empty "Section 2", whose name takes the focus. A section is a row in the same list, with
+  its grip, its name field, its question count and Delete section, so dragging a question past it, or the grip's Move up
+  and Move down, moves the question into that section, and the list stays one panel with one open question. Deleting a
+  section gives its questions to the one before (the first's to the one after), and deleting the last goes back to
+  automatic pages; nothing changes until Save. `#lib/form-sections.ts` keeps the flat question list rebuilt from the
+  sections, in order. A scorecard has no sections. The preview beside the builder, or behind the Edit / Preview switch where
   both do not fit, shows the candidate's form at phone, tablet or desktop width, rendered by the shared components in
   `packages/ui/src/questions` that the careers pages render, and its window icon opens it at `/preview/form`, a window
   that follows each edit. The apply form's preview starts with the candidate's details and the resume; a follow-up's is
-  its questions alone, as its page shows them. Marking a yes/no question as a knockout shows what a knockout may be (an
+  its questions alone, as its page shows them. The preview stacks the pages the candidate meets (each named section, or
+  pages of the organization's questions per page), each opening with the step line the candidate sees ("Step 2 of 4",
+  "9 of 24 answered"), so every section shows while editing. Marking a yes/no question as a knockout shows what a knockout may be (an
   objective eligibility check, never AI use or an accommodation). The automation form offers "Send a questionnaire" and
   the "questionnaire answered" trigger's picker only when the workflow has a follow-up to name. A version that cannot be
   edited reads its questions as content, with the same switch.
-- **Simulate:** a sample application's answers, tags, source, hours in stage and integrity levels through
+- **Simulate:** a sample application's answers, tags, source, hours in stage and verification levels through
   `POST /v1/workflows/simulate`, unsaved changes included.
 
 Every change is checked with `POST /v1/workflows/validate` after a short pause, and each message shows on the control
-its path names, so the guardrail refusal of an integrity-driven rejection appears on that action. A draft that does
+its path names, so the guardrail refusal of a verification-driven rejection appears on that action. A draft that does
 not validate cannot be saved, so the editor holds unsaved work in the page and asks before leaving it. The editor lists
 the open problems in a "Problems to fix" panel above every tab; a read-only view lists a stored version's in a
 "Problems" panel. Saving with no changes sends nothing, because each save of a job's workflow is a new version.
@@ -244,10 +262,14 @@ the open problems in a "Problems to fix" panel above every tab; a read-only view
 - `GET/POST /v1/templates`, `POST /v1/templates/{id}/versions`, `POST /v1/templates/{id}/versions/{v}/publish`
 - `POST /v1/jobs` (from template version), `PUT /v1/jobs/{id}/workflow`, `POST /v1/jobs/{id}/workflow/apply-template-update`
 - `POST /v1/workflows/validate`, `POST /v1/workflows/simulate`
+- `POST /v1/jobs/{id}/applications` (add a candidate by hand) and `POST /v1/jobs/{id}/applications/resume-uploads`
+  (its resume's upload link), both Add candidates
 - `POST /v1/applications/{id}/move`, `GET /v1/applications/{id}/timeline`, `POST /v1/applications/{id}/notes`,
   `POST` and `DELETE /v1/applications/{id}/tags`, `POST /v1/applications/{id}/tasks` (Create tasks; a Write key too)
-- `GET /v1/tasks`, `POST /v1/tasks/{id}/complete` (signed-in people only: "mine" needs a person)
+- `GET /v1/tasks`, `POST /v1/tasks/{id}/complete` and `/reopen` (signed-in people only: "mine" needs a person; a
+  review or a requested scorecard is refused, 409)
 - `GET` and `POST /v1/applications/{id}/scorecards` (an API key reads them; only a signed-in person submits one)
+- `POST /v1/applications/{id}/scorecard-requests`: ask a teammate for a scorecard (Create tasks; a Write key too)
 - `GET` and `POST /v1/scorecard-templates`, `GET` and `PUT /v1/scorecard-templates/{id}`,
   `GET /v1/scorecard-templates/{id}/history`, `POST /v1/scorecard-templates/{id}/archive` and `/unarchive`: the
   scorecard library (section 8)
@@ -285,15 +307,15 @@ its first attempt.
 |---|---|---|
 | `application.submitted` | `ApplicationSubmitted` | `applicationId`, `jobId`, `stageId` |
 | `application.moved` | `ApplicationMoved` | `applicationId`, `jobId`, `fromStageId`, `toStageId` |
-| `integrity.assessed` | `IntegrityAssessed` | `applicationId`, `jobId`, `authenticity`, `aiAssistance` (levels), `rulesetVersion` |
+| `verification.assessed` | `VerificationAssessed` | `applicationId`, `jobId`, `authenticity`, `aiAssistance` (levels), `rulesetVersion` |
 | `automation.failed` | `AutomationRunFinished` with status `Failed` or `Blocked` | `applicationId`, `jobId`, `automationId`, `runId`, `status` |
 | `job.published` | `JobPublished` | `jobId`, `version`, `jobVersionId` |
 | `job.closed` | `JobClosed` | `jobId` |
 
 The body is `{"id", "type", "occurredAt", "organizationId", "data"}`: ids and facts, never names, emails, resume text,
-answers or integrity evidence. An integrator reads anything else through the API with its own credentials.
-`integrity.assessed` carries the categorical levels only (ADR-0004), the same output the dashboard shows. It is a
-notification for routing a review. ScreenHire never acts on it, and the rule that integrity signals never drive
+answers or verification evidence. An integrator reads anything else through the API with its own credentials.
+`verification.assessed` carries the categorical levels only (ADR-0004), the same output the dashboard shows. It is a
+notification for routing a review. ScreenHire never acts on it, and the rule that verification signals never drive
 rejection binds ScreenHire's own code. An integrator that rejects automatically on this event goes against the
 product's guidance, and that decision is the customer's responsibility under GDPR Art. 22, NYC LL144 and the other
 rules in docs/research/legal.md. The integrator docs and terms must say so.
@@ -355,6 +377,13 @@ The data model and API from the jobs and templates task, and the engine that run
   (`match: All | Any`, rules with `negate`) rather than a tree. The API serves their JSON Schemas, generated by .NET's
   `JsonSchemaExporter`, at `/v1/schemas/hiring-template-definition.json`, `/v1/schemas/hiring-workflow.json` and
   `/v1/schemas/questionnaire.json`, and the OpenAPI components link to them with `externalDocs`.
+- **Sections** (`sections` on the questionnaire and on each follow-up, optional, so stored definitions still read): the
+  questions grouped into named pages, as ids beside the flat `questions` list, which every reader of `answers.{id}`
+  keeps using. The validator wants 1 to 20 sections when there are any, ids unique within the questionnaire, a name of
+  at most 80 characters, every question in exactly one section, no empty section, and the sections listing the
+  questions in the order of `questions`. Without sections the careers pages split the questions into pages of the
+  organization's questions per page. The template diff and change history describe added, removed, renamed and
+  regrouped sections.
 - **Follow-up questionnaires** (`followUpQuestionnaires`, optional, so stored definitions still read): up to 10 named
   questionnaires beside the apply questionnaire, each with at least one question. A question id is unique across the
   apply questionnaire and every follow-up, and a follow-up cannot use the apply form's own ids (`resume`,
@@ -365,8 +394,8 @@ The data model and API from the jobs and templates task, and the engine that run
   or withdrawn stage: a hiring template's stage names a library scorecard (`scorecardTemplateId`, a built-in's id or a
   uuid) and holds no copy, and a job's stage holds its copy, 1 to 20 questions with unique ids. A condition on the
   candidate's rating (`application.rating`, `rating`, `scorecard.*` and the like) is refused outright, whatever the
-  trigger or action: no automation acts on the rating (ADR-0013). An automation that uses an `integrity.*` or `verification.*` fact, or an
-  `IntegrityAssessed` or `VerificationCompleted` trigger, may only request verification, assign a reviewer, add a tag
+  trigger or action: no automation acts on the rating (ADR-0013). An automation that uses a `verification.*` fact, or a
+  `VerificationAssessed` or `VerificationCompleted` trigger, may only request verification, assign a reviewer, add a tag
   or move to a screening, assessment, verification or interview stage. The same holds at one remove, across the whole
   workflow: an automation that reads a tag such an automation adds, or fires on a stage it moves applications into,
   counts as signal-driven too, so a signal cannot be laundered through a tag or a stage. Once any signal-driven
@@ -377,7 +406,7 @@ The data model and API from the jobs and templates task, and the engine that run
   template version validates it again, so a draft saved under older rules cannot go live.
 - **What the validator cannot check:** a question's meaning, a scorecard question's included. It refuses scorecard
   questions, guidance and options that name personality, emotion, honesty and the like (whole words, so "data
-  integrity" passes), but that is a backstop: a scorecard asks about the job, and the builder's note and review of
+  verification" passes), but that is a backstop: a scorecard asks about the job, and the builder's note and review of
   the built-ins hold that line.
   A knockout question must be an objective eligibility check (right
   to work, a required licence). A knockout on AI use or on needing an accommodation would reject candidates for
@@ -408,7 +437,12 @@ The data model and API from the jobs and templates task, and the engine that run
   or moves to that stage in between is not caught.
 - **Applications** start in the first stage. `POST /v1/applications/{id}/move` is the only way they move, always by a
   person, and every change appends to `application_events`. Recruiters add applications by hand with
-  `POST /v1/jobs/{jobId}/applications`; the careers apply flow is its own task.
+  `POST /v1/jobs/{jobId}/applications`, optionally with `resumeUploadId` from
+  `POST /v1/jobs/{jobId}/applications/resume-uploads` (Add candidates), which issues a create-only upload link for the
+  job's resume question as the careers form's uploads get ([apply flow](apply-flow.md) §3); the careers apply flow is
+  its own task. A hand-added application stores no notice, network or session data or telemetry. Every list's
+  `lastActivityAt` is the latest of its submission, its timeline entries except `VerificationAssessed`, and its finished
+  tasks (`ApplicationActivity`), read in the list's own query.
 - **Events** through the outbox: `JobPublished` (with the job version), `JobClosed`, `ApplicationSubmitted`,
   `ApplicationMoved` (both carrying the timeline event id, the engine's idempotency key) and
   `HiringTemplateVersionPublished`.
@@ -423,8 +457,8 @@ Code: `src/ScreenHire.Domain/Automations` (facts, evaluator, run records) and `s
 worker handlers, which write and send nothing when the job has no matching automation. `TimeElapsed` is a scheduled
 `RunAutomations` message, due `afterHours` after the stage entry it counts from; when it fires it does nothing if the
 application has left that stage entry, which is how leaving the stage cancels it. `Manual` is
-`POST /v1/applications/{id}/automations/{automationId}/run`; an optional `Idempotency-Key` header makes a retried request reuse its run. The integrity
-engine publishes `RunAutomations(IntegrityAssessed)` whenever an assessment changes, keyed on the `IntegrityAssessed`
+`POST /v1/applications/{id}/automations/{automationId}/run`; an optional `Idempotency-Key` header makes a retried request reuse its run. The verification
+engine publishes `RunAutomations(VerificationAssessed)` whenever an assessment changes, keyed on the `VerificationAssessed`
 timeline entry it appends. Submitting a scorecard publishes `RunAutomations(ReviewerDecision)` keyed on its
 `ScorecardSubmitted` timeline entry (below). `SlaBreached` is a scheduled `RunAutomations` message like `TimeElapsed`
 (below). Answering a follow-up questionnaire publishes
@@ -459,17 +493,17 @@ none.
 
 **Facts snapshot.** `AutomationFacts.FromTimeline` rebuilds the facts from the append-only timeline as it stood at the
 trigger event (tags from `TagAdded` entries, hours in stage from the last stage entry), so a late or replayed evaluation
-sees what the first one saw. The snapshot and every rule's result are stored on the run. Integrity levels come from
-the latest `IntegrityAssessed` entry at or before the trigger. `reviewer.recommendation` is the recommendation of the
+sees what the first one saw. The snapshot and every rule's result are stored on the run. Verification levels come from
+the latest `VerificationAssessed` entry at or before the trigger. `reviewer.recommendation` is the recommendation of the
 scorecard whose entry fired a ReviewerDecision trigger, and absent on every other trigger. `answers.{id}` holds the
 apply form's answers on every trigger, and a follow-up questionnaire's once its `QuestionnaireCompleted` entry is among
 the entries the snapshot reads, so follow-up answers count only for triggers after they arrive. `application.source` is
 `CareersSite` or `Recruiter`. The facts schema
-(`FactSchema`) gives every fact a type and the operators that type allows; integrity levels take equality only. The integrity engine's level names are `NoConcerns`, `ReviewSuggested` and
-`VerificationRecommended` for `integrity.authenticity`, and `NotIndicated`, `SomeIndicators` and `StrongIndicators` for
-`integrity.aiAssistance`. The validator does not check them yet: version 1 of the "Software engineer" system template
-compares `integrity.aiAssistance` with `ReviewSuggested`, and validating names would block jobs copied from it.
-Version 2 corrects the condition (integrity-engine.md §10.9).
+(`FactSchema`) gives every fact a type and the operators that type allows; verification levels take equality only. The verification engine's level names are `NoConcerns`, `ReviewSuggested` and
+`VerificationRecommended` for `verification.authenticity`, and `NotIndicated`, `SomeIndicators` and `StrongIndicators` for
+`verification.aiAssistance`. The validator does not check them yet: version 1 of the "Software engineer" system template
+compares `verification.aiAssistance` with `ReviewSuggested`, and validating names would block jobs copied from it.
+Version 2 corrects the condition (verification-engine.md §10.9).
 
 **Runs and actions.** Every triggered automation gets an `automation_runs` row, unique on
 `(application, automation, event)`, whether it matched or not: that row is the audit record (guardrail 3) and the
@@ -485,7 +519,7 @@ one email. A webhook happens before the commit; a crash in between can repeat on
 | `SendEmail` | Renders one of the organization's email templates to the candidate, in its current wording: a built-in (`application-received`, `stage-change`) or one of its own, named by id ([email.md](email.md)). Queues the email with the action's commit; the worker sends it and adds an `EmailSent` timeline entry linked to the run. Skipped when email is not configured; fails when the template was deleted. The rejection email is not available here: it says a candidate is out, so only `Reject` sends it. `stage-change` says "moved to the next step", so it is refused at save on entering a rejected or withdrawn stage and skipped when the application is in one by the time it sends. |
 | `MoveToStage` | Moves the application and links the timeline entry to the run, which fires the next stage's triggers. Never moves an application out of a terminal stage. |
 | `AddTag` | Adds a tag (a `TagAdded` timeline entry). Conditions read tags as `application.tags`. |
-| `AssignReviewer` | Creates a `Review` task, for the named member or the whole team. The builder offers the team's Owners, Admins and Recruiters (a Viewer could not complete the task) or "Anyone on the team". Saving a workflow checks only that a member is named; the run checks they still belong to the organization, and fails the action if not. |
+| `AssignReviewer` | Creates a `Review` task, for the named member or the whole team. It is done when its member submits any scorecard for the application (anyone, for the whole team), never by ticking it. The builder offers the members whose role fills in scorecards (a Viewer could not do the review) or "Anyone on the team". Saving a workflow checks only that a member is named; the run checks they still belong to the organization, and fails the action if not. A member who already gave a scorecard at the stage the candidate is in has done the review, so the run skips the action rather than leave a task nobody can finish. |
 | `NotifyTeam` | Raises `TeamNotified` to the organization's dashboards, which show the action's note in the shell's notification tray. |
 | `CreateTask` | Creates a `Task` with the note. |
 | `QueueForRejectionReview` | Creates a `RejectionReview` task. It never moves the application. |
@@ -517,11 +551,21 @@ tasks assigned to the signed-in person, oldest first; `scope=Team` lists the one
 /v1/tasks/{id}/complete` records who finished it and when, once, and raises `ApplicationTaskCompleted`; `POST
 /v1/tasks/{id}/reopen`, the dashboard's Undo, opens a done task again and raises `ApplicationTaskReopened`. Neither
 changes the application, so a rejection review is still decided by a person moving the candidate. Anyone whose role
-changes hiring data may complete or reopen any of the organization's tasks; the team shares the work. A person with Create tasks, or an API key with the Write scope, gives the team a task by hand
+changes hiring data may complete or reopen any of the organization's to-dos and rejection reviews; the team shares the
+work. A task is ticked off where its work is done (ADR-0017 decision 11), so these two routes refuse a review and a
+requested scorecard with a 409: those are done when the scorecard is submitted (below), and a submitted scorecard is
+final, so they never reopen. The `AddScorecardRequests` migration finished the open reviews a scorecard had already
+answered, so none was left with no way to finish. A person with Create tasks, or an API key with the Write scope, gives the team a task by hand
 (`POST /v1/applications/{id}/tasks`, `ApplicationChanges.CreateTaskAsync`): a `Task` with a note of up to 1,000
 characters, for one member who can see the candidate (as a mention must) or the whole team, in the application's
 current stage. It records a `TaskCreated` timeline entry with the task's note and whoever created it, a person or the key,
-and raises `ApplicationTaskCreated`; like every task, it never changes the application. People add notes (`POST /v1/applications/{id}/notes`, a `NoteAdded` timeline entry no
+and raises `ApplicationTaskCreated`; like every task, it never changes the application. A person with Create tasks, or a Write key, asks a teammate for a scorecard (`POST
+/v1/applications/{id}/scorecard-requests`, `ApplicationChanges.RequestScorecardAsync`): a `Scorecard` task for one
+member who can see the job (ADR-0015) and whose role fills in scorecards, naming a library scorecard by its key
+(`scorecardTemplateId`, a built-in id or the team's template id, not archived; the current stage's own by default in
+the dashboard). Its text is "Fill in the Interview scorecard." and the asker's note of up to 500 characters, it
+records a `TaskCreated` entry and raises `ApplicationTaskCreated`. Asking again while the same request is open, or for a
+scorecard that person already gave on the application, is a 409. People add notes (`POST /v1/applications/{id}/notes`, a `NoteAdded` timeline entry no
 automation reads), and edit and delete them (`PUT` and `DELETE /v1/applications/{id}/notes/{noteId}`; only the author
 edits, and the author or a role with Delete anyone's notes deletes, which the API checks against the role in this organization). A
 note's text lives in `application_notes`, never in the append-only timeline: its `NoteAdded`, `NoteEdited` and
@@ -546,23 +590,33 @@ A question (`ScorecardQuestion`) has an answer kind: Yes or no, Choice, Multi-ch
 the Rating kinds, 1 to 5 (`Rating5`), 1 to 10 (`Rating10`) and Yes or no (`RatingYesNo`). It may be required. Every
 scorecard then asks for a required overall `Recommendation` (strong no, no, yes, strong yes) and a note.
 
-- `POST /v1/applications/{id}/scorecards` stores one reviewer's scorecard for a stage that has one and that the
-  application has been in. Each answer takes its kind's shape: "yes" or "no", an option id, option ids, text (500 or
+- `POST /v1/applications/{id}/scorecards` stores one reviewer's scorecard. It names one of two: `stageId`, a stage
+  that has a scorecard and that the application has been in (the job's copy), or `scorecardTemplateId`, any library
+  scorecard, given at the stage the application is in now. When the current stage's scorecard came from that key, the
+  job's copy is asked, so every candidate for one job answers the same questions; an archived scorecard may still be
+  given, so a request made before it was archived never gets stuck. The row keeps the stage, the scorecard's key
+  (`scorecard_template_id`, null on a stage copy that names none and on scorecards given before this) and its name. Each answer takes its kind's shape: "yes" or "no", an option id, option ids, text (500 or
   10,000 characters), or a number on the scale; a required question must be answered. It keeps each question as asked
   (label, kind, options), so a later workflow change cannot rewrite it. In one transaction with the
   `application_scorecards` row it appends a `ScorecardSubmitted` timeline entry (the stage and the recommendation),
   publishes `RunAutomations(ReviewerDecision, stage, entry)` and raises the `ScorecardSubmitted` realtime event (ids
   only).
-- One scorecard per reviewer and stage, on a unique index. The same submission again, a retried or doubled request,
+- One scorecard per reviewer, stage and scorecard, on a unique index whose nulls are not distinct, so a scorecard with
+  no key is still one per reviewer and stage, and one given before scorecards kept their key counts as the stage's own. The same submission again, a retried or doubled request,
   returns the stored one with 200 and raises nothing. A different one is 409: a scorecard is final, and the role may
   not update or delete the rows. Deleting the application is the only way one goes, by cascade.
 - The trigger fires once per scorecard: the run is keyed on the timeline entry, and `RunAutomations` is
   `[Deduplicated]`.
+- In the same transaction, submitting finishes the reviewer's tasks it is the work of (`ApplicationTask.CompletesWith`):
+  their open review, an open review for the whole team, and their open request for that scorecard. Each records the
+  reviewer and the time and raises `ApplicationTaskCompleted`. Another member's task is never finished by someone
+  else's scorecard. Two people finishing one team review at the same moment: the second save conflicts and is a 409,
+  which the dashboard shows so they submit again.
 - A ReviewerDecision automation with a stage fires on that stage's scorecards; without one it fires on any stage's.
   Only its conditions may test `reviewer.recommendation` (EqualTo, In or Exists, on the recommendation names).
 - Only a person submits a scorecard. An API key gets 403, and a Viewer gets 403 as on every write. Both may read
   scorecards.
-- Integrity output never feeds a scorecard. The sheet shows only the questions, and no automation action writes one. A
+- Verification output never feeds a scorecard. The sheet shows only the questions, and no automation action writes one. A
   reviewer's "strong no" can queue a rejection review but never reject: only an opted-in knockout rejects.
 
 **The candidate's rating** (ADR-0013 decision 13, `RatingRule`) is one to five stars from people's scorecards:
@@ -577,16 +631,18 @@ scorecard then asks for a required overall `Recommendation` (strong no, no, yes,
 - A scorecard with no answered rating question counts for nothing, and so does a v0.2 scorecard: its labels (Not
   demonstrated to Strongly demonstrated) were never numbers. Until one counts, the candidate is "Not rated yet". v0.2
   scorecards still read as they were given.
-- It averages people's judgements about the work only: never integrity results, AI signals or the stage, which is a
+- It averages people's judgements about the work only: never verification results, AI signals or the stage, which is a
   decision already made. It is worked out on every read (`RatingReads`) and never stored.
 - No automation reads it: `DefinitionValidator` refuses a condition on it with the reason.
 - A reviewer sees it only after giving their own (`ReviewerGate`). A reviewer is a member with an open Review task
-  (`ApplicationTaskKind.Review`, made by AssignReviewer) assigned to them on the application that their scorecards have
-  not answered. A review in a stage with a scorecard is answered only by their scorecard for that stage (the task's
+  (`ApplicationTaskKind.Review`, made by AssignReviewer) or an open requested scorecard (`Scorecard`) assigned to them on
+  the application that their scorecards have not answered. A requested scorecard is answered only by their scorecard of
+  that key. A review in a stage with a scorecard is answered only by their scorecard for that stage (the task's
   `stageId`), so scoring another stage does not show it. A review in a stage without a scorecard, or one made before
   tasks kept their stage, is answered by any scorecard of theirs submitted since it was assigned. Until then the API leaves the rating (`AfterYourScorecard`, no number),
   the other scorecards, the others' recommendations in the timeline and automation runs out of what they read. A
-  Review task for the whole team holds nothing back, and neither does an API key. Ticking the task done also shows it.
+  Review task for the whole team holds nothing back, and neither does an API key. Since a review is finished by any
+  scorecard its reviewer gives, giving one shows them the rating.
 - The rating is on `ApplicationSummary` and `ApplicationDetail`, so the job's table, the candidates list and the
   candidate page show it, as the reader may see it. Each `ScorecardEntry` has its own `rating`.
 
@@ -611,6 +667,10 @@ name; the worker builds the careers URL from the same `ScreenHire:Domains` setti
   careers page keeps the answers and the candidate sends again. Both routes are anonymous and rate limited with the `apply` policy.
 - The careers page collects the answers and nothing else: no device check, no form telemetry, no file (CLAUDE.md
   non-negotiable 4). [apply-flow.md](apply-flow.md) §8 has the page.
+- `PUT` to `/draft` under the same path keeps answers to finish later on the request (`DraftAnswers`, checked for
+  shape only), and the `GET` returns them while the link is open; answering, or the daily sweep 30 days after the first
+  save, deletes them. A saved draft raises no event and fires no trigger, so a knockout answer in it decides nothing
+  until the candidate sends the answers. It is 409 once answered and 410 once expired or closed.
 - The candidate page lists each follow-up in its own panel, with the answers once given, read against the copied
   questions; Activity shows each send and the completion.
 
@@ -667,7 +727,7 @@ evaluator for one trigger and lists each triggered automation's outcome, rule re
   guardrail it shadows in step. Only the breach itself is promised to run for a candidate with an accommodation: a
   chained automation with a timing condition or a `TimeElapsed` trigger is skipped as guardrail 4 says, which drops a
   reminder and never harms anyone.
-- The candidates page offers no bulk email on the Overdue view, as on an integrity view: a "not moving forward"
+- The candidates page offers no bulk email on the Overdue view, as on a verification view: a "not moving forward"
   email to every overdue candidate would count the team's delay against them. One candidate at a time is still a
   person's decision.
 - The validator checks only that an `emailTemplate` is a built-in id or a Guid, because it also runs in the worker,
@@ -676,7 +736,7 @@ evaluator for one trigger and lists each triggered automation's outcome, rule re
 - A `QuestionnaireCompleted` trigger's questionnaire is optional, not required as a stage trigger's stage is: the
   system templates' versions before `AddFollowUpQuestionnaires` carry a bare one, and a required id would make the
   engine block every automation of each job copied from them.
-- Follow-up answers are not integrity-analysed: the integrity engine reads the apply form only. A follow-up asks what
+- Follow-up answers are not verification-analysed: the verification engine reads the apply form only. A follow-up asks what
   the hiring team needs after a person or an automation chose to ask, and nothing in it is a signal.
 - Follow-up questionnaires take no file questions, so their page needs no upload island and works without JavaScript.
 - `SendQuestionnaire` stays off the list of actions a signal-driven automation may use: asking a candidate for more

@@ -9,6 +9,7 @@
   import EmailComposerSheet from '#lib/components/email-composer-sheet.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import FilterMenu from '#lib/components/filter-menu.svelte';
+  import KeepInMindSheet from '#lib/components/keep-in-mind-sheet.svelte';
   import Panel from '#lib/components/panel.svelte';
   import PipelineBoard from '#lib/components/pipeline-board.svelte';
   import QueryError from '#lib/components/query-error.svelte';
@@ -21,15 +22,15 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
-  import { integrityColumns } from '#lib/integrity-columns.js';
+  import { verificationColumns } from '#lib/verification-columns.js';
   import { ratingColumn } from '#lib/rating-column.js';
   import {
     bulkMoveStages,
-    isIntegrityFiltered,
-    matchesIntegrityFilter,
-    noIntegrityFilter,
-    type IntegrityFilter,
-  } from '#lib/integrity.js';
+    isVerificationFiltered,
+    matchesVerificationFilter,
+    noVerificationFilter,
+    type VerificationFilter,
+  } from '#lib/verification.js';
   import type { Moves } from '#lib/moves.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { describeError } from '#lib/query.js';
@@ -47,7 +48,7 @@
     error,
     onretry,
     moves,
-    integrityFilter = $bindable({ ...noIntegrityFilter }),
+    verificationFilter = $bindable({ ...noVerificationFilter }),
     view = $bindable('table'),
   }: {
     jobTitle: string;
@@ -58,7 +59,7 @@
     error: unknown;
     onretry: () => unknown;
     moves: Moves;
-    integrityFilter?: IntegrityFilter;
+    verificationFilter?: VerificationFilter;
     view?: 'table' | 'board';
   } = $props();
 
@@ -70,21 +71,27 @@
   let selectedIds = $state<string[]>([]);
 
   const searched = $derived(applications.filter((application) => matchesSearch(application, search)));
-  const onBoard = $derived(searched.filter((application) => matchesIntegrityFilter(application, integrityFilter)));
+  const onBoard = $derived(searched.filter((application) => matchesVerificationFilter(application, verificationFilter)));
   // A stage taken out of the workflow on its own page filters nothing, and the menu reads All again.
   const chosenStage = $derived(stages.some((stage) => stage.id === stageFilter) ? stageFilter : null);
-  const shown = $derived(onBoard.filter((application) => !chosenStage || application.stage.id === chosenStage));
-  const filtering = $derived(Boolean(chosenStage) || Boolean(search.trim()) || isIntegrityFiltered(integrityFilter));
-  const moveTargets = $derived(bulkMoveStages(stages, integrityFilter));
+  const shown = $derived(onBoard.filter((application) => !chosenStage || (application.stage.id === chosenStage && !application.keptInMindAt)));
+  const filtering = $derived(Boolean(chosenStage) || Boolean(search.trim()) || isVerificationFiltered(verificationFilter));
+  const moveTargets = $derived(bulkMoveStages(stages, verificationFilter));
   // Only the rows on screen: a ticked row that a search or filter hides is never moved with the rest.
   const selected = $derived(shown.filter((application) => selectedIds.includes(application.id)));
-  // Email to the selection, hidden under an integrity filter for the reason bulkMoveStages gives (ADR-0004).
+  // Email to the selection, hidden under a verification filter for the reason bulkMoveStages gives (ADR-0004).
   const emailTemplates = createListEmailTemplates();
   const canEmail = $derived(Boolean(emailTemplates.data?.data.sendingEnabled) && can(page.data.user, 'EmailCandidates'));
   let emailOpen = $state(false);
   let emailed = $state('');
+  // Keep in mind for the selection, with the same guard as Email: never on rows a Verification filter picked (ADR-0004).
+  let keepOpen = $state(false);
   const stageOptions = $derived(
-    stages.map((stage) => ({ value: stage.id, label: stage.name, count: applications.filter((application) => application.stage.id === stage.id).length })),
+    stages.map((stage) => ({
+      value: stage.id,
+      label: stage.name,
+      count: applications.filter((application) => application.stage.id === stage.id && !application.keptInMindAt).length,
+    })),
   );
   const views = [
     { id: 'table', label: 'Table' },
@@ -92,11 +99,11 @@
   ] as const;
 
   /**
-   * A new integrity filter starts a new selection, so rows picked under one filter are never moved under another
+   * A new verification filter starts a new selection, so rows picked under one filter are never moved under another
    * filter's menu (bulkMoveStages, ADR-0004).
    */
-  function setIntegrityFilter(next: IntegrityFilter) {
-    integrityFilter = next;
+  function setVerificationFilter(next: VerificationFilter) {
+    verificationFilter = next;
     selectedIds = [];
   }
 
@@ -104,7 +111,7 @@
   function clearFilters() {
     stageFilter = null;
     search = '';
-    integrityFilter = { ...noIntegrityFilter };
+    verificationFilter = { ...noVerificationFilter };
     selectedIds = [];
   }
 
@@ -162,11 +169,11 @@
            stages, so only the table has the Stage filter. -->
       <div data-filters class="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2">
         {#if view === 'table'}{@render stageMenu()}{/if}
-        <AuthenticityFilter {applications} filter={integrityFilter} onchange={setIntegrityFilter} />
+        <AuthenticityFilter {applications} filter={verificationFilter} onchange={setVerificationFilter} />
       </div>
     {:else if view === 'board'}
       <div data-filters class="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border-subtle px-4 py-2">
-        <AuthenticityFilter {applications} filter={integrityFilter} onchange={setIntegrityFilter} menu />
+        <AuthenticityFilter {applications} filter={verificationFilter} onchange={setVerificationFilter} menu />
       </div>
     {/if}
     {#if view === 'table' && selected.length > 0}
@@ -175,7 +182,8 @@
         stages={moveTargets}
         onmove={moves.allowed ? moveSelected : undefined}
         disabled={moves.pending}
-        onemail={canEmail && !isIntegrityFiltered(integrityFilter) ? () => (emailOpen = true) : undefined}
+        onemail={canEmail && !isVerificationFiltered(verificationFilter) ? () => (emailOpen = true) : undefined}
+        onkeep={moves.allowed && !isVerificationFiltered(verificationFilter) ? () => (keepOpen = true) : undefined}
         onclear={() => (selectedIds = [])}
       />
     {/if}
@@ -197,14 +205,14 @@
       sortId="job-candidates"
       {stages}
       {moves}
-      extraColumns={[...integrityColumns, ratingColumn]}
+      extraColumns={[...verificationColumns, ratingColumn]}
       bind:selectedIds
       emptyText={filtering ? 'No candidates match these filters.' : 'No candidates yet. Applications appear here as they arrive.'}
       onclearfilters={filtering ? clearFilters : undefined}
     >
       {#snippet filters()}
         {@render stageMenu()}
-        <AuthenticityFilter {applications} filter={integrityFilter} onchange={setIntegrityFilter} menu />
+        <AuthenticityFilter {applications} filter={verificationFilter} onchange={setVerificationFilter} menu />
       {/snippet}
     </ApplicationTable>
   {:else if onBoard.length === 0}
@@ -223,6 +231,9 @@
 
 {#if canEmail}
   <EmailComposerSheet bind:open={emailOpen} recipients={selected} onsent={(message) => ((emailed = message), (selectedIds = []))} />
+{/if}
+{#if moves.allowed}
+  <KeepInMindSheet bind:open={keepOpen} applicationIds={selected.map((application) => application.id)} ondone={(message) => ((emailed = message), (selectedIds = []))} />
 {/if}
 
 {#snippet searchField(className: string)}

@@ -13,7 +13,7 @@ namespace ScreenHire.Domain.Organizations;
 /// A colour that fails is adjusted in OKLCH lightness, keeping its hue and chroma, until it passes. Darkening always
 /// reaches a passing colour, so every well-formed colour has a palette and only malformed input is refused.
 /// </summary>
-public sealed record BrandPalette(string Brand, string OnBrand, string BrandText, string BrandUi, bool BrandAdjusted)
+public sealed partial record BrandPalette(string Brand, string OnBrand, string BrandText, string BrandUi, bool BrandAdjusted)
 {
     public const double TextContrast = 4.5;
 

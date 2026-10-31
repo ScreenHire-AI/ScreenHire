@@ -59,4 +59,15 @@ describe('isTypingTarget', () => {
     expect(isTypingTarget(document.createElement('a'))).toBe(false);
     expect(isTypingTarget(checkbox)).toBe(false);
   });
+
+  // The rich text editor is a contenteditable; a list item or bold text inside it is where the key press starts.
+  it('is true anywhere inside the rich text editor', () => {
+    const editor = document.createElement('div');
+    editor.setAttribute('contenteditable', 'true');
+    const bold = document.createElement('strong');
+    editor.append(bold);
+
+    expect(isTypingTarget(editor)).toBe(true);
+    expect(isTypingTarget(bold)).toBe(true);
+  });
 });

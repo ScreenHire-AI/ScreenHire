@@ -46,6 +46,38 @@ public sealed class ApplicationsApiTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task Last_activity_starts_at_the_submission_and_moves_with_a_note_and_a_finished_task_on_every_list()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var job = await recruiter.CreateJobAsync(Samples.RemoteJob("Platform Engineer"));
+        var created = await recruiter.CreateApplicationAsync(job.Id(), CandidateEmail);
+        var application = created.Id();
+        var candidate = created.Text("candidate.id");
+
+        var listed = (await recruiter.GetAsync($"/v1/jobs/{job.Id()}/applications")).Expect(HttpStatusCode.OK);
+        At(listed, "0.lastActivityAt").Should().Be(At(listed, "0.submittedAt"), "nothing has happened since it was added");
+
+        var note = (await recruiter.PostAsync($"/v1/applications/{application}/notes", new JsonObject { ["note"] = "Strong portfolio." }))
+            .Expect(HttpStatusCode.Created);
+        var noted = At(note, "occurredAt");
+        foreach (var path in new[] { $"/v1/jobs/{job.Id()}/applications", "/v1/applications" })
+        {
+            At((await recruiter.GetAsync(path)).Expect(HttpStatusCode.OK), "0.lastActivityAt").Should().Be(noted, "on {0}", path);
+        }
+
+        At((await recruiter.GetAsync($"/v1/candidates/{candidate}")).Expect(HttpStatusCode.OK), "applications.0.lastActivityAt")
+            .Should().Be(noted);
+
+        var task = (await recruiter.PostAsync($"/v1/applications/{application}/tasks", new JsonObject { ["note"] = "Check references." }))
+            .Expect(HttpStatusCode.Created);
+        var completed = (await recruiter.PostAsync($"/v1/tasks/{task.Id()}/complete")).Expect(HttpStatusCode.OK);
+        At((await recruiter.GetAsync("/v1/applications")).Expect(HttpStatusCode.OK), "0.lastActivityAt")
+            .Should().Be(At(completed, "completedAt"), "finishing a task is activity, though it writes no timeline entry");
+    }
+
+    private static DateTimeOffset At(ApiResult result, string path) => result.At(path).GetDateTimeOffset();
+
+    [Fact]
     public async Task Every_application_in_the_organization_is_listed_newest_first_with_its_job()
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();

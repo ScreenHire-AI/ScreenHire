@@ -1,5 +1,6 @@
 using FluentValidation;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Infrastructure.Content;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence.History;
 
@@ -21,16 +22,19 @@ public sealed record EmailTemplateList(bool SendingEnabled, IReadOnlyList<EmailT
 /// belongs to one request), with the same limits. <c>updatedAt</c> is null for a built-in in ScreenHire's wording, and
 /// <c>lastUpdated</c> says who changed it last, or ScreenHire for a built-in nobody has. <c>archived</c>: the
 /// organization took its own template out of the pickers; automations that name it keep sending it.
+/// <c>invitationOnly</c>: only a person's Invite to apply from the talent pool sends it, with the job's link and the
+/// candidate's own link to stop being kept; it is never sent as an ordinary email, and no automation names it.
 /// </remarks>
 public sealed record EmailTemplateEntry(
     string Id, string Name, bool BuiltIn, bool Edited, bool RejectOnly, string Subject, string Body, DateTimeOffset? UpdatedAt,
-    LastUpdate LastUpdated, bool QuestionnaireOnly, bool Archived);
+    LastUpdate LastUpdated, bool QuestionnaireOnly, bool Archived, bool InvitationOnly = false);
 
 /// <summary>
 /// A variable a template may use as <c>{{ name }}</c>. <c>rejectOnly</c>: only the rejection email has it.
-/// <c>questionnaireOnly</c>: only the follow-up questions email has it.
+/// <c>questionnaireOnly</c>: only the follow-up questions email has it. <c>invitationOnly</c>: only the talent pool
+/// invitation has it.
 /// </summary>
-public sealed record EmailTemplateVariableEntry(string Name, string Label, bool RejectOnly, bool QuestionnaireOnly = false);
+public sealed record EmailTemplateVariableEntry(string Name, string Label, bool RejectOnly, bool QuestionnaireOnly = false, bool InvitationOnly = false);
 
 /// <summary>A new template of the organization's own: its name, a Liquid subject and a Liquid plain-text body.</summary>
 public sealed record CreateEmailTemplateRequest(string Name, string Subject, string Body);
@@ -99,8 +103,8 @@ internal static class EmailMappings
     public static EmailTemplateEntry ToEntry(this OrganizationEmailTemplate template, ChangeStamp? lastChange) =>
         new(template.Id, template.Name, template.BuiltIn, template.Edited, template.Id == EmailTemplateIds.ApplicationRejected,
             template.Content.Subject, template.Content.Body, template.UpdatedAt,
-            lastChange is null && template.BuiltIn && !template.Edited ? LastUpdate.ByScreenHire(null) : LastUpdate.From(lastChange, template.UpdatedAt),
-            template.Id == EmailTemplateIds.QuestionnaireRequest, template.Archived);
+            lastChange is null && template.BuiltIn && !template.Edited ? LastUpdate.ByScreenHire(null) : LastUpdate.FromChange(lastChange, template.UpdatedAt),
+            template.Id == EmailTemplateIds.QuestionnaireRequest, template.Archived, template.Id == EmailTemplateIds.TalentPoolInvitation);
 
     public static EmailPreview ToPreview(this EmailMessage message) => new(message.Subject, message.HtmlBody ?? "", message.TextBody);
 
@@ -109,13 +113,31 @@ internal static class EmailMappings
         problems.Count == 0 ? null : problems.GroupBy(p => p.Field).ToDictionary(g => g.Key, g => g.Select(p => p.Message).ToArray());
 }
 
+/// <summary>
+/// A message's rules. It is rich text (<see cref="RichText"/>): input far over the limit is refused before it is parsed,
+/// and the limit itself applies to the sanitized HTML, which is what is stored.
+/// </summary>
+internal static class EmailBodies
+{
+    public const int MaxInputLength = EmailTemplate.MaxBodyLength * 2;
+
+    public const string Empty = "Enter the message.";
+
+    public static readonly string TooLong = $"The message is too long: at most {EmailTemplate.MaxBodyLength:N0} characters with its formatting.";
+
+    public static bool HasText(string? body) => !RichText.IsBlank(body);
+
+    public static bool Fits(string? body) => RichText.Sanitize(body).Length <= EmailTemplate.MaxBodyLength;
+}
+
 internal sealed class CreateEmailTemplateRequestValidator : AbstractValidator<CreateEmailTemplateRequest>
 {
     public CreateEmailTemplateRequestValidator()
     {
         RuleFor(r => r.Name).Must(name => !string.IsNullOrWhiteSpace(name)).WithMessage("Enter a name.").MaximumLength(EmailTemplate.MaxNameLength);
         RuleFor(r => r.Subject).Must(subject => !string.IsNullOrWhiteSpace(subject)).WithMessage("Enter a subject.").MaximumLength(EmailTemplate.MaxSubjectLength);
-        RuleFor(r => r.Body).Must(body => !string.IsNullOrWhiteSpace(body)).WithMessage("Enter the message.").MaximumLength(EmailTemplate.MaxBodyLength);
+        RuleFor(r => r.Body).Cascade(CascadeMode.Stop).MaximumLength(EmailBodies.MaxInputLength)
+            .Must(EmailBodies.HasText).WithMessage(EmailBodies.Empty).Must(EmailBodies.Fits).WithMessage(EmailBodies.TooLong);
     }
 }
 
@@ -126,7 +148,8 @@ internal sealed class UpdateEmailTemplateRequestValidator : AbstractValidator<Up
         RuleFor(r => r.Name).Must(name => !string.IsNullOrWhiteSpace(name)).WithMessage("Enter a name.").MaximumLength(EmailTemplate.MaxNameLength)
             .When(r => r.Name is not null);
         RuleFor(r => r.Subject).Must(subject => !string.IsNullOrWhiteSpace(subject)).WithMessage("Enter a subject.").MaximumLength(EmailTemplate.MaxSubjectLength);
-        RuleFor(r => r.Body).Must(body => !string.IsNullOrWhiteSpace(body)).WithMessage("Enter the message.").MaximumLength(EmailTemplate.MaxBodyLength);
+        RuleFor(r => r.Body).Cascade(CascadeMode.Stop).MaximumLength(EmailBodies.MaxInputLength)
+            .Must(EmailBodies.HasText).WithMessage(EmailBodies.Empty).Must(EmailBodies.Fits).WithMessage(EmailBodies.TooLong);
     }
 }
 
@@ -135,7 +158,7 @@ internal sealed class EmailTemplateDraftValidator : AbstractValidator<EmailTempl
     public EmailTemplateDraftValidator()
     {
         RuleFor(r => r.Subject).NotNull().MaximumLength(EmailTemplate.MaxSubjectLength);
-        RuleFor(r => r.Body).NotNull().MaximumLength(EmailTemplate.MaxBodyLength);
+        RuleFor(r => r.Body).NotNull().MaximumLength(EmailBodies.MaxInputLength);
         RuleFor(r => r.TemplateId).MaximumLength(40);
     }
 }
@@ -155,14 +178,16 @@ internal sealed class SendEmailsRequestValidator : AbstractValidator<SendEmailsR
         RuleFor(r => r.Subject).Must(subject => !string.IsNullOrWhiteSpace(subject)).WithMessage("Enter a subject.")
             .MaximumLength(EmailTemplate.MaxSubjectLength)
             .When(r => r.Subject is not null || r.Body is not null);
-        RuleFor(r => r.Body).Must(body => !string.IsNullOrWhiteSpace(body)).WithMessage("Enter the message.")
-            .MaximumLength(EmailTemplate.MaxBodyLength)
+        RuleFor(r => r.Body).Cascade(CascadeMode.Stop).MaximumLength(EmailBodies.MaxInputLength)
+            .Must(EmailBodies.HasText).WithMessage(EmailBodies.Empty).Must(EmailBodies.Fits).WithMessage(EmailBodies.TooLong)
             .When(r => r.Subject is not null || r.Body is not null);
         RuleFor(r => r.TemplateId).NotEmpty().MaximumLength(40)
             .Must(id => id != EmailTemplateIds.ApplicationRejected)
             .WithMessage("The rejection email goes only with a Reject action, which tells the candidate why.")
             .Must(id => id != EmailTemplateIds.QuestionnaireRequest)
             .WithMessage("The follow-up questions email goes only with a SendQuestionnaire action, which makes its link.")
+            .Must(id => id != EmailTemplateIds.TalentPoolInvitation)
+            .WithMessage("The invitation to apply goes only with Invite to apply, from the talent pool.")
             .When(r => r.TemplateId is not null);
     }
 }
@@ -172,6 +197,6 @@ internal sealed class ApplicationEmailDraftValidator : AbstractValidator<Applica
     public ApplicationEmailDraftValidator()
     {
         RuleFor(r => r.Subject).NotNull().MaximumLength(EmailTemplate.MaxSubjectLength);
-        RuleFor(r => r.Body).NotNull().MaximumLength(EmailTemplate.MaxBodyLength);
+        RuleFor(r => r.Body).NotNull().MaximumLength(EmailBodies.MaxInputLength);
     }
 }

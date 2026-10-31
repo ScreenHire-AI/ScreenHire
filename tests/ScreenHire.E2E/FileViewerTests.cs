@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using ScreenHire.Application.Integrity;
+using ScreenHire.Application.Verification;
 
 namespace ScreenHire.E2E;
 

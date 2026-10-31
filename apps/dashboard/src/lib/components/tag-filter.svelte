@@ -6,7 +6,7 @@
   import { watchTruncation } from '#lib/truncation.js';
   import { cn } from '#lib/utils.js';
 
-  // Filters the candidate table by one tag, from the tags the listed applications carry. Like the integrity filter, the
+  // Filters the candidate table by one tag, from the tags the listed applications carry. Like the verification filter, the
   // page applies it to the rows before the table sees them, and in a narrow panel header the trigger is its icon with
   // the tooltip saying what it filters (F5, A4). Without any tags there is nothing to filter by, so it is not shown (A3).
   let { tag = $bindable(), tags }: { tag: string | null; tags: readonly string[] } = $props();

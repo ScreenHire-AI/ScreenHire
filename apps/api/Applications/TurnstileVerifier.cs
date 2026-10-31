@@ -8,7 +8,7 @@ namespace ScreenHire.Api.Applications;
 /// <summary>
 /// Checks a Cloudflare Turnstile token from the careers form. The result is recorded on the application as a signal
 /// (<c>AUTO_TURNSTILE_FAIL</c>) and never refuses a submission: a candidate with JavaScript off, or behind a strict
-/// privacy tool, cannot pass a challenge, and integrity signals never drive rejection (CLAUDE.md non-negotiable 2).
+/// privacy tool, cannot pass a challenge, and verification signals never drive rejection (CLAUDE.md non-negotiable 2).
 /// </summary>
 internal sealed partial class TurnstileVerifier(HttpClient http, IOptions<TurnstileOptions> options, ILogger<TurnstileVerifier> logger)
 {

@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "@screenhire/ui/fonts.css";
+@import "@screenhire/ui/heading-fonts.css";
 @import "@screenhire/ui/tokens.css";
 @import "@screenhire/ui/theme.css";
 @import "@screenhire/ui/questions.css";

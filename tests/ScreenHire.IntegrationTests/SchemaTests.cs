@@ -24,11 +24,11 @@ public sealed class SchemaTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task The_hiring_workflow_schema_describes_stages_questionnaire_integrity_policy_and_automations()
+    public async Task The_hiring_workflow_schema_describes_stages_questionnaire_verification_policy_and_automations()
     {
         var schema = await GetSchemaAsync(WorkflowPath);
 
-        Properties(schema).Should().Contain(["stages", "questionnaire", "integrityPolicy", "automations"]);
+        Properties(schema).Should().Contain(["stages", "questionnaire", "verificationPolicy", "automations"]);
         EnumValues(schema).Should().Contain(values => values.Contains("Applied") && values.Contains("Custom"));
         EnumValues(schema).Should().Contain(values => values.Contains("Reject") && values.Contains("QueueForRejectionReview"));
     }

@@ -91,7 +91,7 @@ public static class WebhookEventTypes
 
     public const string ApplicationMoved = "application.moved";
 
-    public const string IntegrityAssessed = "integrity.assessed";
+    public const string VerificationAssessed = "verification.assessed";
 
     public const string AutomationFailed = "automation.failed";
 
@@ -100,7 +100,7 @@ public static class WebhookEventTypes
     public const string JobClosed = "job.closed";
 
     public static IReadOnlyList<string> All { get; } =
-        [ApplicationSubmitted, ApplicationMoved, IntegrityAssessed, AutomationFailed, JobPublished, JobClosed];
+        [ApplicationSubmitted, ApplicationMoved, VerificationAssessed, AutomationFailed, JobPublished, JobClosed];
 
     public static bool IsKnown(string type) => All.Contains(type, StringComparer.Ordinal);
 }

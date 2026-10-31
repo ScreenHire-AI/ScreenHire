@@ -50,10 +50,10 @@ Separately, SB 690 (signed 30 September 2026) removed private pen-register claim
 
 ## How ScreenHire is designed around it
 
-- A person reviews the evidence behind every integrity level, and integrity signals never reject anyone.
+- A person reviews the evidence behind every verification level, and verification signals never reject anyone.
 - Typing signals are session totals counted in the applicant's browser. We never record keystrokes or replay sessions.
 - Applicants who use assistive technology can switch typing signals off, with no negative inference.
-- Integrity flags, evidence and reviewer actions stay in the employer's account for the record periods the law requires.
+- Verification flags, evidence and reviewer actions stay in the employer's account for the record periods the law requires.
 
 ## Still unclear
 

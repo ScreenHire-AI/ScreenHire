@@ -8,7 +8,7 @@ namespace ScreenHire.Domain.Hiring;
 public sealed record DefinitionError(string Path, string Message);
 
 /// <summary>
-/// Structural validation of hiring template definitions and job workflows, plus the integrity guardrails that no saved
+/// Structural validation of hiring template definitions and job workflows, plus the verification guardrails that no saved
 /// definition may break (ADR-0004, workflow-engine.md §2). The API runs it before saving; the workflow engine can run
 /// it again before executing. Request bodies arrive through a serializer that does not enforce nullability, so every
 /// member is checked for null here.
@@ -39,7 +39,7 @@ public static partial class DefinitionValidator
         [TriggerType.InterviewScheduled] = "Interview scheduling is not available yet; this trigger cannot be used yet.",
     };
 
-    // What an automation that uses an integrity or verification signal may do: route and step up, never reject
+    // What an automation that uses a verification signal may do: route and step up, never reject
     // (workflow-engine.md §2, guardrail 1). MoveToStage is further limited to SignalSafeStages. SendQuestionnaire is
     // not here: asking a candidate for more because a signal fired would act on the signal as a finding about them.
     private static readonly HashSet<ActionType> SignalSafeActions =
@@ -63,6 +63,7 @@ public static partial class DefinitionValidator
     public const int MaxActions = 10;
     public const int MaxScorecardQuestions = 20;
     public const int MaxFollowUpQuestionnaires = 10;
+    public const int MaxSections = 20;
 
     // Question ids the apply form gives meaning to (ApplicationForm): its resume question is there even when the apply
     // questionnaire has none, so a follow-up question with one of these ids would make answers.{id} name two questions.
@@ -103,13 +104,13 @@ public static partial class DefinitionValidator
         var questions = ValidateQuestionnaire(workflow.Questionnaire, Join(path, "questionnaire"), errors);
         var followUps = ValidateFollowUps(workflow.FollowUpQuestionnaires, Join(path, "followUpQuestionnaires"), questions, errors);
 
-        if (workflow.IntegrityPolicy is null)
+        if (workflow.VerificationPolicy is null)
         {
-            errors.Add(new(Join(path, "integrityPolicy"), "An integrity policy is required."));
+            errors.Add(new(Join(path, "verificationPolicy"), "A verification policy is required."));
         }
-        else if (!Enum.IsDefined(workflow.IntegrityPolicy.AiUse))
+        else if (!Enum.IsDefined(workflow.VerificationPolicy.AiUse))
         {
-            errors.Add(new(Join(path, "integrityPolicy.aiUse"), "Unknown AI-use policy."));
+            errors.Add(new(Join(path, "verificationPolicy.aiUse"), "Unknown AI-use policy."));
         }
 
         ValidateAutomations(workflow.Automations, Join(path, "automations"), new(stages, questions, followUps), errors);
@@ -284,6 +285,7 @@ public static partial class DefinitionValidator
         }
 
         ValidateQuestions(questions, path, followUp: false, byId, errors);
+        ValidateSections(questionnaire.Sections, questions, path, errors);
         return byId;
     }
 
@@ -325,6 +327,7 @@ public static partial class DefinitionValidator
             }
 
             ValidateQuestions(followUpQuestions, followUpPath, followUp: true, questions, errors);
+            ValidateSections(followUp.Sections, followUpQuestions, followUpPath, errors);
         }
 
         return byId;
@@ -368,6 +371,74 @@ public static partial class DefinitionValidator
                 // The follow-up page works without JavaScript and takes no uploads (workflow-engine.md §8).
                 errors.Add(new(Join(questionPath, "type"), "A follow-up questionnaire cannot ask for a file. Ask for files on the apply form."));
             }
+        }
+    }
+
+    // Named pages of a questionnaire (careers apply-flow.md §7). The questions stay one flat list, which every reader of
+    // answers.{id} uses; the sections only group it, so they must cover it exactly, once each and in its order.
+    private static void ValidateSections(
+        IReadOnlyList<QuestionSection>? sections, IReadOnlyList<Question> questions, string path, List<DefinitionError> errors)
+    {
+        if (sections is not { Count: > 0 })
+        {
+            return;
+        }
+
+        var sectionsPath = Join(path, "sections");
+        if (sections.Count > MaxSections)
+        {
+            errors.Add(new(sectionsPath, $"A questionnaire has at most {MaxSections} sections."));
+        }
+
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        var placed = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var known = questions.Where(q => q is not null).Select(q => q.Id).ToHashSet(StringComparer.Ordinal);
+        for (var i = 0; i < sections.Count; i++)
+        {
+            var sectionPath = $"{sectionsPath}[{i}]";
+            if (sections[i] is not { } section)
+            {
+                errors.Add(new(sectionPath, "A section is required."));
+                continue;
+            }
+
+            if (ValidateId(section.Id, Join(sectionPath, "id"), errors) && !ids.Add(section.Id))
+            {
+                errors.Add(new(Join(sectionPath, "id"), $"Section id '{section.Id}' is used twice."));
+            }
+
+            ValidateText(section.Name, Join(sectionPath, "name"), 80, required: true, errors);
+            if (section.QuestionIds is not { Count: > 0 } questionIds)
+            {
+                errors.Add(new(sectionPath, "Add a question to this section or delete it."));
+                continue;
+            }
+
+            foreach (var questionId in questionIds)
+            {
+                if (questionId is null || !known.Contains(questionId))
+                {
+                    errors.Add(new(Join(sectionPath, "questionIds"), $"This questionnaire has no question '{questionId}'."));
+                }
+                else if (!seen.Add(questionId))
+                {
+                    errors.Add(new(Join(sectionPath, "questionIds"), $"Question '{questionId}' is in two sections."));
+                }
+                else
+                {
+                    placed.Add(questionId);
+                }
+            }
+        }
+
+        if (known.Except(seen, StringComparer.Ordinal).Any())
+        {
+            errors.Add(new(sectionsPath, "Every question belongs to a section. Put each question in one."));
+        }
+        else if (!placed.SequenceEqual(questions.Where(q => q is not null).Select(q => q.Id), StringComparer.Ordinal))
+        {
+            errors.Add(new(sectionsPath, "The sections list the questions in a different order from the questionnaire."));
         }
     }
 
@@ -514,13 +585,13 @@ public static partial class DefinitionValidator
         }
     }
 
-    // An integrity or verification signal drives the automation directly: its trigger or a fact it reads.
+    // A verification signal drives the automation directly: its trigger or a fact it reads.
     private static bool DrivenBySignal(Automation automation) =>
-        automation.Trigger?.Type is TriggerType.IntegrityAssessed or TriggerType.VerificationCompleted
+        automation.Trigger?.Type is TriggerType.VerificationAssessed or TriggerType.VerificationCompleted
         || automation.Conditions?.Rules?.Any(rule => rule is not null && FactSchema.IsSignal(rule.Fact)) == true;
 
     /// <summary>
-    /// The automations something can drive, directly or at one remove. For integrity and verification signals, directly
+    /// The automations something can drive, directly or at one remove. For verification signals, directly
     /// means a signal trigger or a signal fact; for an SLA breach, the SlaBreached trigger. At one remove: a condition on a tag that a signal-driven automation adds, or a stage
     /// trigger on a stage one moves applications into, or any StageExited trigger once one moves applications at all
     /// (the stage a move leaves is wherever the application is when the action runs, which no definition can know).
@@ -875,6 +946,11 @@ public static partial class DefinitionValidator
             // Its link is made for one questionnaire request, which only a SendQuestionnaire action creates.
             errors.Add(new(Join(path, "emailTemplate"), "The follow-up questions email is sent only by a SendQuestionnaire action, with its link."));
         }
+        else if (action.EmailTemplate == EmailTemplateIds.TalentPoolInvitation)
+        {
+            // Its links are for one candidate and one job, which only a person's Invite to apply chooses.
+            errors.Add(new(Join(path, "emailTemplate"), "The invitation to apply is sent only from the talent pool, by a person."));
+        }
         else if (action.Type == ActionType.Reject && action.EmailTemplate is not null && action.EmailTemplate != EmailTemplateIds.ApplicationRejected)
         {
             errors.Add(new(Join(path, "emailTemplate"), $"A Reject action sends {EmailTemplateIds.ApplicationRejected}, with its reason; leave emailTemplate out."));
@@ -891,7 +967,7 @@ public static partial class DefinitionValidator
     }
 
     /// <summary>
-    /// The non-negotiables (ADR-0004, workflow-engine.md §2): an automation driven by an integrity or verification signal
+    /// The non-negotiables (ADR-0004, workflow-engine.md §2): an automation driven by a verification signal
     /// may only route or step up, and only an opted-in knockout automation may reject without a person.
     /// </summary>
     private static void ValidateGuardrails(

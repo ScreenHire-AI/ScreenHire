@@ -2,11 +2,11 @@
   import type { ApplicationSummary } from '@screenhire/api-client';
   import AuthenticityFilter from '#lib/components/authenticity-filter.svelte';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
-  import { noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
+  import { noVerificationFilter, type VerificationFilter } from '#lib/verification.js';
 
   // The chips bound to a filter, as the job's pipeline holds it, for component tests; the filter shows in an output.
   let { applications, menu = false }: { applications: readonly ApplicationSummary[]; menu?: boolean } = $props();
-  let filter = $state<IntegrityFilter>({ ...noIntegrityFilter });
+  let filter = $state<VerificationFilter>({ ...noVerificationFilter });
 </script>
 
 <Tooltip.Provider>

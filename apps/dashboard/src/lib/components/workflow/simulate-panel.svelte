@@ -86,8 +86,8 @@
       tags: list(tags),
       source: source || null,
       hoursInStage: hoursInStage.trim() ? Number(hoursInStage) : null,
-      integrityAuthenticity: authenticity || null,
-      integrityAiAssistance: aiAssistance || null,
+      verificationAuthenticity: authenticity || null,
+      verificationAiAssistance: aiAssistance || null,
       reviewerRecommendation: (reviewed && recommendation) || null,
     };
     try {

@@ -1,14 +1,17 @@
 <script lang="ts">
+  import UserPlusIcon from '@lucide/svelte/icons/user-plus';
   import { createListApplications, createListEmailTemplates } from '@screenhire/api-client/svelte-query';
   import { page } from '$app/state';
   import { can } from '#lib/permissions.js';
   import { matchesSearch } from '#lib/candidate-table.js';
   import { clock } from '#lib/clock.svelte.js';
+  import ActionBar from '#lib/components/action-bar.svelte';
+  import AddCandidateSheet, { type AddedCandidate } from '#lib/components/add-candidate-sheet.svelte';
   import ApplicationTable from '#lib/components/application-table.svelte';
   import EmailSelectionButton from '#lib/components/email-selection-button.svelte';
   import EmailComposerSheet from '#lib/components/email-composer-sheet.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
-  import IntegrityFilterMenu from '#lib/components/integrity-filter.svelte';
+  import VerificationFilterMenu from '#lib/components/verification-filter.svelte';
   import MultiFilterMenu from '#lib/components/multi-filter-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
@@ -16,22 +19,24 @@
   import TagFilterMenu from '#lib/components/tag-filter.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
+  import { Button } from '#lib/components/ui/button/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { integrityColumns } from '#lib/integrity-columns.js';
-  import { isIntegrityFiltered, matchesIntegrityFilter, noIntegrityFilter, type IntegrityFilter } from '#lib/integrity.js';
+  import { verificationColumns } from '#lib/verification-columns.js';
+  import { isVerificationFiltered, matchesVerificationFilter, noVerificationFilter, type VerificationFilter } from '#lib/verification.js';
   import { IsMobile } from '#lib/hooks/is-mobile.svelte.js';
   import { describeError } from '#lib/query.js';
   import { findSavedView } from '#lib/saved-views.js';
   import { matchesTag, tagsOf } from '#lib/tags.js';
   import { jobOptions, stageOptions } from '#lib/candidate-filters.js';
+  import { stageLabel } from '#lib/talent-pool.js';
 
-  // Every application in the organization, newest first; new ones, stage moves and integrity levels arrive live
+  // Every application in the organization, newest first; new ones, stage moves and verification levels arrive live
   // (#lib/realtime.ts).
   const applications = createListApplications();
   const view = $derived(findSavedView(page.url.searchParams.get('view')));
   const all = $derived(applications.data?.data ?? []);
   // The sidebar counts use the same clock, so a view and its count agree.
-  let integrityFilter = $state<IntegrityFilter>({ ...noIntegrityFilter });
+  let verificationFilter = $state<VerificationFilter>({ ...noVerificationFilter });
   let tagFilter = $state<string | null>(null);
   // Several jobs and several stages at once, such as Support Engineer and Senior .NET Engineer in Screening or Interview.
   // Stages are matched by name across jobs, and the Stage menu lists the stages of the jobs picked.
@@ -48,16 +53,16 @@
     all.filter(
       (application) =>
         (!view || view.matches(application, clock.now)) &&
-        matchesIntegrityFilter(application, integrityFilter) &&
+        matchesVerificationFilter(application, verificationFilter) &&
         matchesTag(application, tagFilter) &&
         (jobFilter.length === 0 || jobFilter.includes(application.jobId)) &&
-        (stagesPicked.length === 0 || stagesPicked.includes(application.stage.name)) &&
+        (stagesPicked.length === 0 || stagesPicked.includes(stageLabel(application))) &&
         matchesSearch(application, search, true),
     ),
   );
   // The saved view is the page's address; the empty state's Clear filters resets only what this page set.
   const narrowed = $derived(
-    isIntegrityFiltered(integrityFilter) || tagFilter !== null || jobFilter.length > 0 || stagesPicked.length > 0 || Boolean(search.trim()),
+    isVerificationFiltered(verificationFilter) || tagFilter !== null || jobFilter.length > 0 || stagesPicked.length > 0 || Boolean(search.trim()),
   );
   const filtering = $derived(Boolean(view) || narrowed);
   let activeId = $state<string | null>(null);
@@ -66,13 +71,13 @@
   const selected = $derived(shown.filter((application) => selectedIds.includes(application.id)));
   const selectedCount = $derived(selected.length);
 
-  // Email to a selection, where this deployment can send it and the person may (A3). Not while integrity picked the rows
-  // (an integrity filter or view): a "not moving forward" email to a filtered "select all" would be a rejection driven
-  // by integrity signals, as a bulk move to Rejected would (ADR-0004, bulkMoveStages). Not on the Overdue view either:
+  // Email to a selection, where this deployment can send it and the person may (A3). Not while verification picked the rows
+  // (a verification filter or view): a "not moving forward" email to a filtered "select all" would be a rejection driven
+  // by verification signals, as a bulk move to Rejected would (ADR-0004, bulkMoveStages). Not on the Overdue view either:
   // the team's delay never counts against a candidate (workflow-engine.md section 8). Every status view has a mark. One
   // candidate at a time, from their page, is still a person's decision.
   const emailTemplates = createListEmailTemplates();
-  const statusPicked = $derived(isIntegrityFiltered(integrityFilter) || Boolean(view?.status));
+  const statusPicked = $derived(isVerificationFiltered(verificationFilter) || Boolean(view?.status));
   const canEmail = $derived(
     Boolean(emailTemplates.data?.data.sendingEnabled) && can(page.data.user, 'EmailCandidates') && !statusPicked,
   );
@@ -81,6 +86,12 @@
   // Phones list the rows without checkboxes, so a selection only gets there from a wider window, and the header has no
   // room for the button beside the search and the pill.
   const phone = new IsMobile();
+
+  // Add candidate (design system section 11): the page's one primary action, for a role that adds candidates (A3). The new
+  // row arrives live (ApplicationSubmitted); the status line names them, with a link to their page.
+  const canAdd = $derived(can(page.data.user, 'AddCandidates'));
+  let adding = $state(false);
+  let added = $state<AddedCandidate | null>(null);
 </script>
 
 <svelte:head>
@@ -90,11 +101,12 @@
 <TopBar crumbs={view ? [{ label: 'Candidates', href: '/candidates' }, { label: view.label }] : [{ label: 'Candidates' }]} />
 
 <!-- From a tablet up the table fills the window below the header and scrolls inside itself (S6). -->
-<main class={['flex min-w-0 flex-col', !phone.current && 'h-[calc(100svh-3.5rem)] min-h-160']}>
+<main class={['flex min-w-0 flex-col', !phone.current && 'h-[calc(100svh-3.5rem)] min-h-160', phone.current && canAdd && 'pb-28']}>
   <HeaderBand
     title={view?.label ?? 'Candidates'}
     count={applications.isSuccess ? shown.length : undefined}
     countLabel={shown.length === 1 ? 'application' : 'applications'}
+    actions={canAdd && !phone.current ? addButton : undefined}
   />
 
   <div class={['@container', !phone.current && 'flex min-h-0 flex-1 flex-col']}>
@@ -112,7 +124,7 @@
         <div data-filters class="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">
           <MultiFilterMenu label="Job" options={jobs} bind:values={jobFilter} />
           <MultiFilterMenu label="Stage" options={stages} bind:values={stageFilter} />
-          <IntegrityFilterMenu bind:filter={integrityFilter} />
+          <VerificationFilterMenu bind:filter={verificationFilter} />
           <TagFilterMenu bind:tag={tagFilter} {tags} />
         </div>
         {#if applications.isError}
@@ -129,20 +141,35 @@
             fill={!phone.current}
             showJob
             sortId="candidates"
-            extraColumns={integrityColumns}
+            extraColumns={verificationColumns}
             bind:activeId
             bind:selectedIds
             emptyText={filtering ? 'No candidates match this view.' : 'No candidates yet. Applications appear here as they arrive.'}
             onclearfilters={narrowed
-              ? () => ((search = ''), (integrityFilter = { ...noIntegrityFilter }), (tagFilter = null), (jobFilter = []), (stageFilter = []))
+              ? () => ((search = ''), (verificationFilter = { ...noVerificationFilter }), (tagFilter = null), (jobFilter = []), (stageFilter = []))
               : undefined}
           />
         {/if}
         <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4">{emailed}</p>
+        <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4" data-added>
+          {#if added}Added <a href={`/applications/${added.applicationId}`} class="text-foreground underline underline-offset-2">{added.name}</a> to {added.jobTitle}.{/if}
+        </p>
       </Panel>
     </div>
   </div>
+
+  {#if canAdd && phone.current}
+    <ActionBar>{@render addButton()}</ActionBar>
+  {/if}
 </main>
+
+{#snippet addButton()}
+  <Button size="lg" aria-haspopup="dialog" onclick={() => (adding = true)}><UserPlusIcon aria-hidden="true" />Add candidate</Button>
+{/snippet}
+
+{#if canAdd}
+  <AddCandidateSheet bind:open={adding} onadded={(candidate) => (added = candidate)} />
+{/if}
 
 {#if canEmail}
   <EmailComposerSheet bind:open={emailOpen} recipients={selected} onsent={(message) => ((emailed = message), (selectedIds = []))} />

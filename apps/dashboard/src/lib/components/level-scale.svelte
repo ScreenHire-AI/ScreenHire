@@ -1,6 +1,6 @@
 <script lang="ts">
   import StatusBadge from '#lib/components/status-badge.svelte';
-  import type { LevelView } from '#lib/integrity.js';
+  import type { LevelView } from '#lib/verification.js';
   import { statuses, type StatusTone } from '#lib/status.js';
   import { cn } from '#lib/utils.js';
 

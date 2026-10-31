@@ -12,7 +12,7 @@ export const ApplicationEventType = {
   Submitted: 'Submitted',
   StageChanged: 'StageChanged',
   TagAdded: 'TagAdded',
-  IntegrityAssessed: 'IntegrityAssessed',
+  VerificationAssessed: 'VerificationAssessed',
   TagRemoved: 'TagRemoved',
   NoteAdded: 'NoteAdded',
   ScorecardSubmitted: 'ScorecardSubmitted',
@@ -22,4 +22,7 @@ export const ApplicationEventType = {
   NoteEdited: 'NoteEdited',
   NoteDeleted: 'NoteDeleted',
   TaskCreated: 'TaskCreated',
+  KeptInMind: 'KeptInMind',
+  LeftTalentPool: 'LeftTalentPool',
+  InvitedToApply: 'InvitedToApply',
 } as const;

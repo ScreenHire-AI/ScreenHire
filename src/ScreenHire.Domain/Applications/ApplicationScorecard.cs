@@ -7,7 +7,7 @@ namespace ScreenHire.Domain.Applications;
 /// One reviewer's scorecard for one stage of one application: an answer to each question of the job's copy of the
 /// stage's <see cref="Scorecard"/> and an overall recommendation (workflow-engine.md §8). Final once submitted: a reviewer
 /// gives one judgement per stage, and the <c>ScorecardSubmitted</c> timeline entry it comes with is what raises the
-/// ReviewerDecision trigger, once. Nothing here reads integrity output. Its rating answers make the candidate's rating
+/// ReviewerDecision trigger, once. Nothing here reads verification output. Its rating answers make the candidate's rating
 /// (<see cref="RatingRule"/>, ADR-0013), worked out when it is read and never stored.
 /// </summary>
 public sealed class ApplicationScorecard : IJobScoped
@@ -22,8 +22,17 @@ public sealed class ApplicationScorecard : IJobScoped
 
     public Guid JobId { get; init; }
 
-    /// <summary>The stage whose scorecard this is.</summary>
+    /// <summary>The stage the application was in: the stage whose scorecard this is, or where a library scorecard was given.</summary>
     public required string StageId { get; init; }
+
+    /// <summary>
+    /// The library scorecard it came from (a built-in id or a team's template id), which a requested scorecard's task
+    /// matches. Null on a stage copy that names none and on scorecards given before submissions kept it.
+    /// </summary>
+    public string? ScorecardTemplateId { get; init; }
+
+    /// <summary>The scorecard's name as it was given; null on scorecards given before submissions kept it.</summary>
+    public string? ScorecardName { get; init; }
 
     /// <summary>The person who gave the answers. Always a person: an API key has no judgement to record.</summary>
     public Guid ReviewerUserId { get; init; }

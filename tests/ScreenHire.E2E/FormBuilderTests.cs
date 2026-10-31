@@ -106,7 +106,7 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GetByLabel("Email").FillAsync("casey.morgan@example.com");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" }).ClickAsync();
 
-        await Expect(Page.Locator("[aria-current='step']")).ToContainTextAsync("QUESTIONS");
+        await Expect(Page.Locator("#step-heading")).ToHaveTextAsync("Questions");
         await Page.GetByLabel("A work sample").SetInputFilesAsync(new FilePayload { Name = "Work sample.pdf", MimeType = "application/pdf", Buffer = Pdf });
         await Expect(Page.GetByText("Uploaded: Work sample.pdf")).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
@@ -124,6 +124,55 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
         var file = await db.ApplicationFiles.SingleAsync(f => f.ApplicationId == application.Id, Ct);
         file.QuestionId.Should().Be(FirstQuestionId);
         file.FileName.Should().Be("Work sample.pdf");
+    }
+
+    [Fact]
+    public async Task A_recruiter_puts_questions_in_sections_and_the_preview_and_the_careers_page_show_one_a_page()
+    {
+        var job = await ArrangeAsync();
+        await Page.SetViewportSizeAsync(1440, 1000);
+        await SignInAsync(job.Email);
+        await OpenQuestionnaireAsync(job.JobId);
+        var questions = Region("Screening questions");
+
+        await AddQuestionAsync("Short text");
+        await OpenText(1).FillAsync(Notice);
+        await AddQuestionAsync("Yes or no");
+        await OpenText(2).FillAsync(RightToWork);
+
+        // The first section holds every question; the second opens at its name.
+        await questions.GetByRole(AriaRole.Button, new() { Name = "Add a section" }).ClickAsync();
+        await Expect(questions.GetByRole(AriaRole.Textbox, new() { Name = "Section 2 name" })).ToBeFocusedAsync();
+        await questions.GetByRole(AriaRole.Textbox, new() { Name = "Section 2 name" }).FillAsync("Eligibility");
+        await questions.GetByRole(AriaRole.Textbox, new() { Name = "Section 1 name" }).FillAsync("About you");
+        await Expect(questions.GetByText("Add a question to this section or delete it.")).ToBeVisibleAsync();
+
+        // Move down past the section row puts the question in that section (A7, no drag needed).
+        await questions.GetByRole(AriaRole.Button, new() { Name = $"Reorder {RightToWork}" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Move down" }).ClickAsync();
+        await Expect(questions.GetByText("Add a question to this section or delete it.")).ToHaveCountAsync(0);
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-form-builder-sections");
+
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Preview", Exact = true }).ClickAsync();
+        var pages = Page.Locator("[data-preview-page]");
+        await Expect(pages).ToHaveCountAsync(2);
+        await Expect(pages.Nth(0).GetByRole(AriaRole.Heading)).ToHaveTextAsync("About you");
+        await Expect(pages.Nth(1).GetByRole(AriaRole.Heading)).ToHaveTextAsync("Eligibility");
+        await Expect(pages.Nth(1)).ToContainTextAsync("Step 3 of 4");
+        await ExpectNoAccessibilityViolationsAsync();
+
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Edit", Exact = true }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Save workflow" }).ClickAsync();
+        await Expect(Page.GetByText("Saved. The job's workflow is now version 2.")).ToBeVisibleAsync();
+
+        await GoToAsync("careers", $"/{job.OrganizationSlug}/jobs/{job.JobSlug}/apply");
+        await Page.GetByLabel("First name").FillAsync("Casey");
+        await Page.GetByLabel("Email").FillAsync("casey.morgan@example.com");
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" }).ClickAsync();
+        await Expect(Page.Locator("#step-heading")).ToHaveTextAsync("About you");
+        await Expect(Page.Locator("[data-page-progress]")).ToContainTextAsync("Step 2 of 4");
+        await Expect(Page.GetByRole(AriaRole.Group, new() { Name = RightToWork })).ToHaveCountAsync(0);
     }
 
     private sealed record ArrangedJob(string Email, Guid OrganizationId, string OrganizationSlug, Guid JobId, string JobSlug);

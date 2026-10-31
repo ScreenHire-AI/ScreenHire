@@ -23,7 +23,13 @@
   } = $props();
 
   let shortcutsOpen = $state(false);
-  setShell({ openPalette: () => {}, openShortcuts: () => (shortcutsOpen = true), live: () => 'connected' });
+  let notificationsOpen = $state(false);
+  setShell({
+    openPalette: () => {},
+    openShortcuts: () => (shortcutsOpen = true),
+    openNotifications: () => (notificationsOpen = true),
+    live: () => 'connected',
+  });
   const laptop = new MediaQuery('min-width: 1024px');
 </script>
 
@@ -37,4 +43,6 @@
     </Sidebar.Inset>
   </Sidebar.Provider>
   <ShortcutsDialog bind:open={shortcutsOpen} />
+  <!-- The sheet itself needs the query cache; the harness shows only that the menu opens it. -->
+  {#if notificationsOpen}<p>Notifications sheet open</p>{/if}
 </Tooltip.Provider>

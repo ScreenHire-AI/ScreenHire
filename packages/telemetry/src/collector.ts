@@ -1,4 +1,4 @@
-// Per-field session aggregates (integrity-engine.md §10.2). What it may know about a field is its name, how long its
+// Per-field session aggregates (verification-engine.md §10.2). What it may know about a field is its name, how long its
 // value is, and the kind of edit the browser reports (`inputType`). It never sees key values, the clipboard, the text or
 // the time between keys: there is no keyboard listener in this package at all, so none of that can leak by mistake.
 

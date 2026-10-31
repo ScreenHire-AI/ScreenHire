@@ -1,12 +1,12 @@
 using System.Text.Json.Serialization;
 using FluentValidation;
-using ScreenHire.Domain.Integrity;
-using ScreenHire.Infrastructure.Integrity;
+using ScreenHire.Domain.Verification;
+using ScreenHire.Infrastructure.Verification;
 
 namespace ScreenHire.Api.Contracts;
 
 /// <summary>
-/// What the careers page's telemetry module may do on this form (integrity-engine.md §3): <c>sessionToken</c> binds its
+/// What the careers page's telemetry module may do on this form (verification-engine.md §3): <c>sessionToken</c> binds its
 /// snapshots to one way through the form, and <c>deviceCheck</c> is the footing for the device fingerprint where the job
 /// is (<c>Off</c>, <c>Notice</c>, or <c>Consent</c>, which needs the candidate's tick).
 /// </summary>

@@ -2,7 +2,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using ScreenHire.Application.Integrity;
+using ScreenHire.Application.Verification;
 
 namespace ScreenHire.IntegrationTests;
 
@@ -82,12 +82,12 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task A_key_never_receives_integrity_levels_which_stay_with_the_person_reviewing()
+    public async Task A_key_never_receives_verification_levels_which_stay_with_the_person_reviewing()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
-        var (slug, jobId) = await IntegritySupport.OpenJobAsync(fixture, owner);
-        var applicationId = await IntegritySupport.ApplyAsync(fixture, slug, jobId, SyntheticApplicants.Bot);
-        await IntegritySupport.AssessedAsync(owner, applicationId);
+        var (slug, jobId) = await VerificationSupport.OpenJobAsync(fixture, owner);
+        var applicationId = await VerificationSupport.ApplyAsync(fixture, slug, jobId, SyntheticApplicants.Bot);
+        await VerificationSupport.AssessedAsync(owner, applicationId);
         using var key = new KeyClient(fixture, (await owner.CreateKeyAsync("Export", ["Read"])).Text("token"));
 
         var session = (await owner.GetAsync($"/v1/jobs/{jobId}/applications")).Expect(HttpStatusCode.OK);
@@ -100,12 +100,12 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
         var sessionTimeline = (await owner.GetAsync($"/v1/applications/{applicationId}/timeline")).Expect(HttpStatusCode.OK);
         var keyTimeline = (await key.GetAsync($"/v1/applications/{applicationId}/timeline")).Expect(HttpStatusCode.OK);
 
-        session.At("0.integrity").ValueKind.Should().Be(JsonValueKind.Object, "the reviewer sees the assessment");
-        Types(sessionTimeline).Should().Contain("IntegrityAssessed");
-        Types(keyTimeline).Should().NotContain("IntegrityAssessed", "a key does not learn that an assessment ran").And.Contain("Submitted");
-        lists["job applications"].Expect(HttpStatusCode.OK).At("0.integrity").ValueKind.Should().Be(JsonValueKind.Null);
-        lists["applications"].Expect(HttpStatusCode.OK).At("0.integrity").ValueKind.Should().Be(JsonValueKind.Null);
-        lists["candidate"].Expect(HttpStatusCode.OK).At("applications.0.integrity").ValueKind.Should().Be(JsonValueKind.Null);
+        session.At("0.verification").ValueKind.Should().Be(JsonValueKind.Object, "the reviewer sees the assessment");
+        Types(sessionTimeline).Should().Contain("VerificationAssessed");
+        Types(keyTimeline).Should().NotContain("VerificationAssessed", "a key does not learn that an assessment ran").And.Contain("Submitted");
+        lists["job applications"].Expect(HttpStatusCode.OK).At("0.verification").ValueKind.Should().Be(JsonValueKind.Null);
+        lists["applications"].Expect(HttpStatusCode.OK).At("0.verification").ValueKind.Should().Be(JsonValueKind.Null);
+        lists["candidate"].Expect(HttpStatusCode.OK).At("applications.0.verification").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
     [Fact]
@@ -250,7 +250,7 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
             ["create key"] = await key.PostAsync("/v1/organization/api-keys", new JsonObject { ["name"] = "Child", ["scopes"] = new JsonArray("Read", "Write") }),
             ["revoke key"] = await key.PostAsync($"/v1/organization/api-keys/{created.Id("key.id")}/revoke"),
             ["branding"] = await key.PutAsync("/v1/organization/branding", new JsonObject { ["brandColor"] = "#000000" }),
-            ["integrity"] = await key.GetAsync($"/v1/applications/{application.Id()}/integrity"),
+            ["verification"] = await key.GetAsync($"/v1/applications/{application.Id()}/verification"),
             ["boards"] = await key.GetAsync("/v1/boards"),
         };
 

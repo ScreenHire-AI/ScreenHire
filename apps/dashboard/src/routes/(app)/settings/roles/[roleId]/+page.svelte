@@ -44,6 +44,7 @@
   import { createHistoryPages } from '#lib/history-pages.svelte.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { mayAssign, roleKey } from '#lib/settings.js';
+  import { lastUpdateWords } from '#lib/history.js';
   import type { PageProps } from './$types';
 
   // One role's page (design system section 21, ADR-0014). A custom role is edited here on the form template: its name,
@@ -224,7 +225,7 @@
       {/snippet}
       {#snippet facts()}
         {#if detail}<Fact label="Copied from">{detail.copiedFrom}</Fact>{/if}
-        <Fact label="Last updated">
+        <Fact label={lastUpdateWords(detail?.lastUpdated ?? summary!.lastUpdated).label}>
           <LastUpdated
             value={detail?.lastUpdated ?? summary!.lastUpdated}
             {members}

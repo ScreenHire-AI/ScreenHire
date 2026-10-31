@@ -47,7 +47,7 @@ In July 2026 the EU adopted amendments, known as the Digital Omnibus, that moved
 ## How ScreenHire is designed around it
 
 - No emotion, stress, honesty, intent or personality inference from text, typing, face or voice, anywhere in the product.
-- Integrity output is a level with reason codes, evidence and counter-evidence. There is no opaque score, and integrity signals never reject anyone.
+- Verification output is a level with reason codes, evidence and counter-evidence. There is no opaque score, and verification signals never reject anyone.
 - Levels come from versioned, documented rules, and every assessment records which ruleset produced it, so it can be explained and audited.
 - We are building to the provider standard for high-risk systems now, ahead of the 2027 date.
 

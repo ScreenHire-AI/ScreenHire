@@ -3,10 +3,10 @@
   import type { HttpValidationProblemDetails } from '@screenhire/api-client';
   import {
     ApiError,
-    createGetOrganizationIntegritySettings,
-    getGetOrganizationIntegritySettingsHistoryQueryOptions,
-    createUpdateOrganizationIntegritySettings,
-    getGetOrganizationIntegritySettingsQueryKey,
+    createGetOrganizationVerificationSettings,
+    getGetOrganizationVerificationSettingsHistoryQueryOptions,
+    createUpdateOrganizationVerificationSettings,
+    getGetOrganizationVerificationSettingsQueryKey,
   } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { defaults, superForm } from 'sveltekit-superforms';
@@ -30,13 +30,13 @@
   import { applyValidationProblem } from '#lib/forms.js';
   import { describeError } from '#lib/query.js';
 
-  // The organization's integrity settings (integrity-engine.md section 10): the LLM consistency check, off until an owner
+  // The organization's verification settings (verification-engine.md section 10): the LLM consistency check, off until an owner
   // or admin turns it on here, and its monthly token budget. The other checks need no switch.
   const queryClient = useQueryClient();
-  const settings = createGetOrganizationIntegritySettings();
+  const settings = createGetOrganizationVerificationSettings();
   const detail = $derived(settings.data?.data);
-  const update = createUpdateOrganizationIntegritySettings(() => ({
-    mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetOrganizationIntegritySettingsQueryKey(), exact: true }) },
+  const update = createUpdateOrganizationVerificationSettings(() => ({
+    mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetOrganizationVerificationSettingsQueryKey(), exact: true }) },
   }));
 
   const schema = z.object({
@@ -96,7 +96,7 @@
   <HeaderBand title="Verification">
     {#snippet actions()}
       {#if detail}
-        <HistoryFact value={detail.lastUpdated} name="Verification settings" page={(before) => getGetOrganizationIntegritySettingsHistoryQueryOptions({ before })} />
+        <HistoryFact value={detail.lastUpdated} name="Verification settings" page={(before) => getGetOrganizationVerificationSettingsHistoryQueryOptions({ before })} />
       {/if}
     {/snippet}
   </HeaderBand>

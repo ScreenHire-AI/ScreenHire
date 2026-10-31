@@ -19,6 +19,8 @@ export interface JobPostingContext {
   boardUrl: string;
   /** This job's page. */
   url: string;
+  /** The organization's logo, an absolute address on its careers board, when it has one. */
+  logoUrl?: string | null;
 }
 
 /**
@@ -46,7 +48,12 @@ export function buildJobPosting(job: PublicJob, context: JobPostingContext): Rec
     datePosted: job.publishedAt,
     ...(job.validThrough && { validThrough: job.validThrough }),
     employmentType: employmentTypes[job.employmentType] ?? 'OTHER',
-    hiringOrganization: { '@type': 'Organization', name: context.organizationName, sameAs: context.boardUrl },
+    hiringOrganization: {
+      '@type': 'Organization',
+      name: context.organizationName,
+      sameAs: context.boardUrl,
+      ...(context.logoUrl && { logo: context.logoUrl }),
+    },
     ...(job.department && { occupationalCategory: job.department }),
     // A hybrid job is still based somewhere, so only a remote one is TELECOMMUTE.
     ...(remote

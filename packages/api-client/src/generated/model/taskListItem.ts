@@ -26,4 +26,6 @@ export interface TaskListItem {
   completedAt: string | null;
   /** @nullable */
   completedByUserId: string | null;
+  /** @nullable */
+  scorecardTemplateId?: string | null;
 }

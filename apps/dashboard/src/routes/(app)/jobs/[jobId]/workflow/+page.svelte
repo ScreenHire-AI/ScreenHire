@@ -44,6 +44,7 @@
   import { jobsPath } from '#lib/realtime.js';
   import { cn } from '#lib/utils.js';
   import { createWorkflowDraft } from '#lib/workflow-draft.svelte.js';
+  import { lastUpdateWords } from '#lib/history.js';
   import type { PageProps } from './$types';
 
   // A job's own copy of its hiring workflow (workflow-engine.md §1), tailored for this job. A newer published version of
@@ -205,7 +206,7 @@
           <!-- Facts in the facts row, never pills (section 11); a job with no template shows no Template fact (W6). -->
           <Fact label="Version"><span class="tabular-nums">{detail.workflowVersion}</span></Fact>
           {#if detail.template}<Fact label="Template">{detail.template.templateName} v{detail.template.version}</Fact>{/if}
-          <Fact label="Last updated">
+          <Fact label={lastUpdateWords(detail.lastUpdated).label}>
             <LastUpdated value={detail.lastUpdated} members={team.data?.data} currentUserId={page.data.user?.id} onhistory={() => (historyOpen = true)} />
           </Fact>
         {/snippet}

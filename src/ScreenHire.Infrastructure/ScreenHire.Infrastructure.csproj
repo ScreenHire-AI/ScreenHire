@@ -9,6 +9,7 @@
     <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="MailKit" />
     <PackageReference Include="Fluid.Core" />
+    <PackageReference Include="HtmlSanitizer" />
     <PackageReference Include="libphonenumber-csharp" />
     <PackageReference Include="DnsClient" />
     <PackageReference Include="PdfPig" />
@@ -23,7 +24,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Email\Templates\*.liquid" LogicalName="ScreenHire.Email.%(Filename)%(Extension)" />
-    <EmbeddedResource Include="Integrity\Data\disposable-email-domains.txt" LogicalName="ScreenHire.Integrity.disposable-email-domains.txt" />
+    <EmbeddedResource Include="Verification\Data\disposable-email-domains.txt" LogicalName="ScreenHire.Verification.disposable-email-domains.txt" />
   </ItemGroup>
 
   <ItemGroup>

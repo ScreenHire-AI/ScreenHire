@@ -64,9 +64,9 @@ new route is the `/add-dashboard-page` skill.
   fails WCAG 1.4.1. Every status is a name in `statuses` (`#lib/status.ts`), which holds its icon and colour;
   `StatusBadge` takes the name and a label. A new status takes the row whose meaning it shares and joins the table in
   section 3.2.
-- Integrity UI shows levels, reasons and evidence. It never shows a numeric score or a percentage, and it has no
-  reject control (ADR-0004). No bulk action pairs an integrity filter with a stage that ends a candidacy: bulk moves
-  take their stages from `bulkMoveStages` (`#lib/integrity.ts`).
+- Verification UI shows levels, reasons and evidence. It never shows a numeric score or a percentage, and it has no
+  reject control (ADR-0004). No bulk action pairs a verification filter with a stage that ends a candidacy: bulk moves
+  take their stages from `bulkMoveStages` (`#lib/verification.ts`).
 - Accessibility is WCAG 2.2 AA: a visible focus ring on every interactive element, labels on every input, landmark
   and heading structure, and a non-drag alternative for every drag-and-drop interaction (a menu or buttons that move
   the item).
@@ -78,9 +78,9 @@ new route is the `/add-dashboard-page` skill.
   dialog lists.
 - The candidate table (`#lib/components/application-table.svelte`) takes extra TanStack columns through
   `extraColumns`, right after Candidate (status first, T2); build them with `candidateColumns` from `#lib/candidate-table.ts`. The
-  integrity chips are `integrityColumns` (`#lib/integrity-columns.ts`). The table sorts (a column with an accessor gets
+  verification chips are `verificationColumns` (`#lib/verification-columns.ts`). The table sorts (a column with an accessor gets
   a header button and `aria-sort`, through `SortHeader`) but never filters: pages filter the rows they pass in (stage, saved view,
-  `IntegrityFilter`, search with `matchesSearch`), so the count and "select all" match what is shown. Saved views are
+  `VerificationFilter`, search with `matchesSearch`), so the count and "select all" match what is shown. Saved views are
   the list in `#lib/saved-views.ts`.
 - Every TanStack table sorts the same way (design system L2): `SortHeader` draws each header, and `createTableSort`
   with `tableSortOptions` (`#lib/table-sort.svelte.ts`) gives it one sorted column, the table's default, two states
@@ -88,7 +88,7 @@ new route is the `/add-dashboard-page` skill.
   phone's Sort chip on the same table.
 - Reorderable lists are `ReorderList` with its `ReorderGrip`s (design system A7), never up and down buttons. Each list
   is its own svelte-dnd-action zone with its own type; the library's settings live once in `#lib/dnd.ts`.
-- Integrity levels are drawn from `#lib/integrity.ts` (label, short label, status) through `IntegrityChip`;
+- Verification levels are drawn from `#lib/verification.ts` (label, short label, status) through `VerificationChip`;
   evidence is drawn by its kind through `SignalEvidence`, never per signal code.
 
 ## Checks

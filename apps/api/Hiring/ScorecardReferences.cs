@@ -33,6 +33,41 @@ internal static class ScorecardReferences
         return rows.ToDictionary(t => t.Key, t => t.ToScorecard(), StringComparer.Ordinal);
     }
 
+    /// <summary>
+    /// The library scorecard <paramref name="key"/> names: a built-in, or one of the organization's own (read through
+    /// the tenant filter, archived ones included, which the caller decides about). Null when the library has none.
+    /// </summary>
+    public static async Task<LibraryScorecard?> FindAsync(ScreenHireDbContext db, string key, CancellationToken cancellationToken)
+    {
+        if (BuiltInScorecards.Find(key) is { } builtIn)
+        {
+            return new(key, builtIn.ToScorecard(), Archived: false);
+        }
+
+        if (!Guid.TryParseExact(key, "D", out var id) || id == Guid.Empty)
+        {
+            return null;
+        }
+
+        var own = await db.ScorecardTemplates.AsNoTracking().SingleOrDefaultAsync(t => t.Id == id, cancellationToken);
+        return own is null ? null : new(own.Key, own.ToScorecard(), own.ArchivedAt is not null);
+    }
+
+    /// <summary>
+    /// The questions to ask for <paramref name="key"/> at the stage the application is in: the job's own copy when that
+    /// stage's scorecard came from this key, so every candidate in the stage answers the same questions; otherwise the
+    /// library's, which is what the dashboard shows for a library scorecard (workflow-engine.md section 8). Null when
+    /// neither has it.
+    /// </summary>
+    public static async Task<LibraryScorecard?> ForJobAsync(
+        ScreenHireDbContext db, HiringWorkflow workflow, string currentStageId, string key, CancellationToken cancellationToken)
+    {
+        var stage = workflow.FindStage(currentStageId);
+        return stage is { Scorecard: { } copy } && stage.ScorecardTemplateId == key
+            ? new(key, copy, Archived: false)
+            : await FindAsync(db, key, cancellationToken);
+    }
+
     /// <summary>Errors for each stage of <paramref name="workflow"/> that names a scorecard the library does not have.</summary>
     public static async Task<IReadOnlyList<DefinitionError>> MissingAsync(
         ScreenHireDbContext db, HiringWorkflow? workflow, string prefix, CancellationToken cancellationToken)
@@ -71,3 +106,6 @@ internal static class ScorecardReferences
 
     private static string Path(string prefix) => prefix.Length == 0 ? "" : $"{prefix}.";
 }
+
+/// <summary>A scorecard found by its library key, and whether the team archived it (pickers leave those out).</summary>
+internal sealed record LibraryScorecard(string Key, Scorecard Card, bool Archived);

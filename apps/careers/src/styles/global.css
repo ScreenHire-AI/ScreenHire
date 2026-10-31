@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@screenhire/ui/fonts.css";
+@import "@screenhire/ui/heading-fonts.css";
 @import "@screenhire/ui/tokens.css";
 @import "@screenhire/ui/theme.css";
 @import "@screenhire/ui/questions.css";
@@ -17,6 +18,11 @@
   :focus-visible {
     outline: 2px solid var(--candidate-brand-ui);
     outline-offset: 2px;
+  }
+
+  /* In the header band the focus ring is the header's text colour, which reads at 4.5:1 on the band (ADR-0018). */
+  .candidate-header :focus-visible {
+    outline-color: var(--candidate-header-foreground);
   }
 }
 

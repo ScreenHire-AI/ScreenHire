@@ -21,7 +21,7 @@ export const Permission = {
   CompleteTasks: 'CompleteTasks',
   EmailCandidates: 'EmailCandidates',
   FillInScorecards: 'FillInScorecards',
-  ReviewIntegrity: 'ReviewIntegrity',
+  ReviewVerification: 'ReviewVerification',
   RunAutomations: 'RunAutomations',
   EditHiringTemplates: 'EditHiringTemplates',
   EditEmailTemplates: 'EditEmailTemplates',
@@ -32,4 +32,5 @@ export const Permission = {
   ManageOwners: 'ManageOwners',
   DeleteAnyNote: 'DeleteAnyNote',
   CreateTasks: 'CreateTasks',
+  ManageIntegrations: 'ManageIntegrations',
 } as const;

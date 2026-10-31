@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-using ScreenHire.Application.Integrity;
+using ScreenHire.Application.Verification;
 using ScreenHire.Domain.Hiring;
 
 namespace ScreenHire.E2E;
@@ -12,7 +12,7 @@ namespace ScreenHire.E2E;
 /// The MVP acceptance journey: the whole product on one machine, in the order a small hiring team meets it. A recruiter
 /// signs in with Dev SSO, sets up an organization, creates a job from a template and publishes it to the careers page and
 /// the sandbox board. A genuine candidate and a bot apply on the careers site while the recruiter watches the job: both
-/// arrive live with their integrity levels and evidence. The recruiter moves the genuine candidate on, the stage-change
+/// arrive live with their verification levels and evidence. The recruiter moves the genuine candidate on, the stage-change
 /// email lands in Mailpit, and closing the job takes it down everywhere. The other end-to-end classes go deep on each
 /// step; this one proves the steps connect.
 /// </summary>
@@ -61,7 +61,16 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         await newJob.GetByLabel("Title").FillAsync(JobTitle);
         await newJob.GetByLabel("Hiring template").SelectOptionAsync(new SelectOptionValue { Label = $"{templateName} (v1)" });
         await newJob.GetByLabel("Workplace").SelectOptionAsync(new SelectOptionValue { Label = "Remote" });
-        await newJob.GetByLabel("Countries candidates can work from").FillAsync("GB, IE");
+        // Countries are picked by name (W8): typing finds one, a click adds it, and the list stays open for the next.
+        var countries = newJob.GetByRole(AriaRole.Combobox, new() { Name = "Countries candidates can work from" });
+        foreach (var country in new[] { "United Kingdom", "Ireland" })
+        {
+            await countries.PressSequentiallyAsync(country);
+            await Page.GetByRole(AriaRole.Option, new() { Name = country, Exact = true }).ClickAsync();
+        }
+        await Expect(newJob.GetByRole(AriaRole.List, new() { Name = "Chosen countries" }).GetByRole(AriaRole.Listitem)).ToHaveTextAsync(["United Kingdom", "Ireland"]);
+        await ExpectNoAccessibilityViolationsAsync();
+        await countries.PressAsync("Escape");
         await ExpectNoAccessibilityViolationsAsync();
         await newJob.GetByRole(AriaRole.Button, new() { Name = "Create job" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(JobTitle);
@@ -123,7 +132,7 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
 
         await Expect(authenticity.Locator("[data-next-step]")).ToContainTextAsync("Confirm the candidate is who they say they are");
         await Expect(panel.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("reject", RegexOptions.IgnoreCase) })).ToHaveCountAsync(0);
-        (await panel.TextContentAsync()).Should().NotContain("%", "integrity output has no percentage (ADR-0004)");
+        (await panel.TextContentAsync()).Should().NotContain("%", "verification output has no percentage (ADR-0004)");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "acceptance-bot-evidence-light");
 
@@ -144,7 +153,7 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         sent.Should().ContainSingle();
         sent[0].Subject.Should().Be($"An update on your application for {JobTitle}");
         sent[0].Text.Should().Contain($"Hi {genuine.FirstName},").And.Contain("has moved to the next step: Screening");
-        (await Fixture.Mailpit.MessagesAsync(botEmail, Ct)).Should().BeEmpty("nobody moved the bot, and no integrity result sends anything");
+        (await Fixture.Mailpit.MessagesAsync(botEmail, Ct)).Should().BeEmpty("nobody moved the bot, and no verification result sends anything");
 
         // 5. Close the job: it comes down from every board, and the careers page answers 410 Gone.
         await Page.GotoAsync(DashboardUrl($"/jobs/{jobId}"));
@@ -242,14 +251,14 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
     // The "Software engineer" questionnaire, which the job copied from the template.
     private static async Task AnswerQuestionsAsync(IPage page, string notice)
     {
-        await Expect(page.Locator("[aria-current='step']")).ToContainTextAsync("QUESTIONS");
+        await Expect(page.Locator("#step-heading")).ToHaveTextAsync("Questions");
         await page.GetByRole(AriaRole.Group, new() { Name = "Do you have the right to work in the country this job is in?" })
             .GetByLabel("Yes").CheckAsync();
         await page.GetByRole(AriaRole.Group, new() { Name = "How many years have you worked as a software engineer?" })
             .GetByLabel("6 to 9").CheckAsync();
         await page.GetByLabel("What is your notice period?").FillAsync(notice);
         await page.GetByRole(AriaRole.Button, new() { Name = "Continue to review" }).ClickAsync();
-        await Expect(page.Locator("[aria-current='step']")).ToContainTextAsync("REVIEW");
+        await Expect(page.Locator("#step-heading")).ToHaveTextAsync("Review and send");
     }
 
     // A person's click on the name, the first one on the page included: the side panel keeps its place, so the row
@@ -262,7 +271,7 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
 
     private ILocator Chip(string candidate, string kind) =>
         Page.GetByRole(AriaRole.Row).Filter(new() { Has = Page.GetByRole(AriaRole.Link, new() { Name = candidate, Exact = true }) })
-            .Locator($"[data-integrity-chip='{kind}']");
+            .Locator($"[data-verification-chip='{kind}']");
 
     // The job page's header band: its title, status badge, actions and facts.
     private ILocator HeaderBand => Page.Locator("[data-slot='header-band']");

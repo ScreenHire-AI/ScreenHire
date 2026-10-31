@@ -23,7 +23,7 @@
     title: string;
     /** What the card counts, in words ("2 signals"), in the count badge. */
     count?: string;
-    /** In place of `count`: a badge of its own, such as the Integrity tab's solid one for a card that fed the level. */
+    /** In place of `count`: a badge of its own, such as the Verification tab's solid one for a card that fed the level. */
     badge?: Snippet;
     description: string;
     href?: string;

@@ -10,7 +10,8 @@ import type { SalaryRequest } from './salaryRequest.ts';
 import type { WorkplaceType } from './workplaceType.ts';
 
 /**
- * Replaces a job's posting content. A published job keeps its slug; a closed job cannot change.
+ * Replaces a job's posting content. A published job keeps its slug; a closed job cannot change. The description is rich
+ * text, as on CreateJobRequest.
  */
 export interface UpdateJobRequest {
   title: string;

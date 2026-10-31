@@ -11,8 +11,10 @@ using ScreenHire.Application.Applications;
 using ScreenHire.Application.Automations;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Distribution.GoogleIndexing;
-using ScreenHire.Application.Integrity;
+using ScreenHire.Application.Verification;
 using ScreenHire.Application.Jobs;
+using ScreenHire.Application.Slack;
+using ScreenHire.Application.TalentPool;
 using ScreenHire.Application.Webhooks;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -191,7 +193,7 @@ public static class ScreenHireMessaging
 
         // Integrations the handlers use, each with a local adapter until a real one is registered first (CLAUDE.md).
         opts.Services.TryAddSingleton<IMalwareScanner, NoMalwareScanner>();
-        opts.Services.AddScreenHireIntegrity();
+        opts.Services.AddScreenHireVerification();
 
         UsePostgres(opts, connectionString, settings);
         // Polled, like the real-time queue: a chain of events (an automation moving an application, which raises the next
@@ -255,10 +257,16 @@ public static class ScreenHireMessaging
     {
         ArgumentNullException.ThrowIfNull(opts);
         opts.Schedules.ScheduleRecurring<ReportOpenJobs>("*/5 * * * *");
-        // Raw network and telemetry data past its retention, daily (docs/architecture/integrity-engine.md, "Retention").
-        opts.Schedules.ScheduleRecurring<PurgeExpiredIntegrityData>("17 3 * * *");
+        // Raw network and telemetry data past its retention, daily (docs/architecture/verification-engine.md, "Retention").
+        opts.Schedules.ScheduleRecurring<PurgeExpiredVerificationData>("17 3 * * *");
         // Finished webhook deliveries past their retention, daily (docs/architecture/workflow-engine.md section 5).
         opts.Schedules.ScheduleRecurring<PurgeExpiredWebhookDeliveries>("37 3 * * *");
+        // Answers saved to finish later, 30 days after their first save (docs/architecture/apply-flow.md section 7).
+        opts.Schedules.ScheduleRecurring<PurgeExpiredApplicationDrafts>("7 4 * * *");
+        // Records that Slack messages went, and the sandbox's messages, past their retention, daily (docs/architecture/slack.md).
+        opts.Schedules.ScheduleRecurring<PurgeExpiredSlackMessages>("57 3 * * *");
+        // People whose permission for future roles ran out leave the talent pool, daily (docs/architecture/talent-pool.md).
+        opts.Schedules.ScheduleRecurring<ExpireTalentPool>("47 3 * * *");
         // Job distribution (docs/architecture/job-distribution.md): the reconciliation sweep, and the Indexing API queue.
         opts.Schedules.ScheduleRecurring<ReconcileJobPostings>("*/5 * * * *");
         opts.Schedules.ScheduleRecurring<DispatchIndexingNotifications>("* * * * *");

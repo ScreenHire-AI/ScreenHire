@@ -8,8 +8,8 @@ import type { AiAssistanceLevel } from './aiAssistanceLevel.ts';
 import type { AiPolicyContext } from './aiPolicyContext.ts';
 import type { AiUseDeclaration } from './aiUseDeclaration.ts';
 import type { AiUsePolicy } from './aiUsePolicy.ts';
-import type { IntegrityDismissal } from './integrityDismissal.ts';
-import type { IntegritySignalView } from './integritySignalView.ts';
+import type { VerificationDismissal } from './verificationDismissal.ts';
+import type { VerificationSignalView } from './verificationSignalView.ts';
 
 /**
  * How much of the content appears generated or templated? Informational, and relative to the job's AI policy.
@@ -20,10 +20,10 @@ export interface AiAssistanceAssessmentView {
   reasonCodes: string[];
   summary: string;
   nextStep: string;
-  signals: IntegritySignalView[];
+  signals: VerificationSignalView[];
   rulesetVersion: string;
   assessedAt: string;
-  dismissal: null | IntegrityDismissal;
+  dismissal: null | VerificationDismissal;
   policy: AiUsePolicy;
   declaration: AiUseDeclaration;
   policyContext: AiPolicyContext;

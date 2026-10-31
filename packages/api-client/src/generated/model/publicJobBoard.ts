@@ -8,13 +8,14 @@ import type { PublicBranding } from './publicBranding.ts';
 import type { PublicJob } from './publicJob.ts';
 
 /**
- * The public careers listing for one organization. `url` is the board's careers page; `branding` is null when it
- * has no brand colour.
+ * The public careers listing for one organization. `url` is the board's careers page; `branding` is its
+ * branding, each part null for ScreenHire's; `embedOrigins` are the sites allowed to show it in a frame.
  */
 export interface PublicJobBoard {
   organizationName: string;
   organizationSlug: string;
   jobs: PublicJob[];
   url: string;
-  branding?: null | PublicBranding;
+  branding: PublicBranding;
+  embedOrigins: string[];
 }

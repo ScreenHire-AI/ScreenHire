@@ -1,5 +1,13 @@
-import { describe, expect, it } from 'vitest';
-import { maxNotifications, mentionNotification, mentionNotificationId, Notifications, teamNotification } from './notifications.svelte.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  maxNotifications,
+  mentionNotification,
+  mentionNotificationId,
+  Notifications,
+  teamNotification,
+  toastLifetime,
+} from './notifications.svelte.js';
+import type { Toast } from './teammate-changes.js';
 
 const application = { id: 'app-1', candidate: { fullName: 'Casey Morgan' }, jobTitle: 'Senior .NET Engineer' };
 
@@ -42,5 +50,71 @@ describe('notifications', () => {
     tray.dismiss(mentionNotificationId('note-1'));
 
     expect(tray.items.map((item) => item.id)).toEqual(['run-1']);
+  });
+});
+
+describe('toasts in the tray', () => {
+  const toast = (id: string): Toast => ({ id, kind: 'Moves', sentence: ['Jordan Ellis moved ', 'Taylor Brook', ' to Interview'], href: '/applications/a', context: '' });
+  const card = (id: string) => ({ id, title: '', detail: '', href: '' });
+  const ids = (tray: Notifications) => tray.items.map((item) => item.id);
+
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('closes a toast after its lifetime, and never a card', () => {
+    const tray = new Notifications({ covered: () => false });
+    tray.add(card('card'));
+    tray.toast(toast('toast'));
+
+    vi.advanceTimersByTime(toastLifetime - 500);
+    expect(ids(tray)).toEqual(['toast', 'card']);
+    vi.advanceTimersByTime(500);
+    expect(ids(tray)).toEqual(['card']);
+    tray.dispose();
+  });
+
+  it('shares the limit of three with the cards: a new one pushes out the oldest toast before any card', () => {
+    const tray = new Notifications({ covered: () => false });
+    tray.add(card('card-1'));
+    tray.toast(toast('toast-1'));
+    tray.add(card('card-2'));
+    tray.toast(toast('toast-2'));
+
+    expect(ids(tray)).toEqual(['toast-2', 'card-2', 'card-1']);
+    tray.add(card('card-3'));
+    expect(ids(tray)).toEqual(['card-3', 'card-2', 'card-1']);
+    tray.toast(toast('toast-3'));
+    expect(ids(tray)).toEqual(['card-3', 'card-2', 'card-1']);
+    expect(maxNotifications).toBe(3);
+    tray.dispose();
+  });
+
+  it('holds the countdown while the pointer or the focus is in the tray, or something covers it', () => {
+    let covered = false;
+    const tray = new Notifications({ covered: () => covered });
+    tray.toast(toast('toast'));
+
+    tray.hold('pointer', true);
+    vi.advanceTimersByTime(toastLifetime * 2);
+    tray.hold('pointer', false);
+    tray.hold('focus', true);
+    vi.advanceTimersByTime(toastLifetime * 2);
+    tray.hold('focus', false);
+    covered = true;
+    vi.advanceTimersByTime(toastLifetime * 2);
+    expect(ids(tray)).toEqual(['toast']);
+
+    covered = false;
+    vi.advanceTimersByTime(toastLifetime);
+    expect(ids(tray)).toEqual([]);
+  });
+
+  it('keeps toasts until dismissed when the person turned Close automatically off', () => {
+    const tray = new Notifications({ covered: () => false, closeToasts: () => false });
+    tray.toast(toast('toast'));
+    vi.advanceTimersByTime(toastLifetime * 3);
+    expect(ids(tray)).toEqual(['toast']);
+    tray.dismiss('toast');
+    expect(ids(tray)).toEqual([]);
   });
 });

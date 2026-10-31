@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using ScreenHire.Application.Integrity;
+using ScreenHire.Application.Verification;
 using ScreenHire.Domain.Applications;
 
 namespace ScreenHire.Testing;
@@ -10,18 +10,20 @@ namespace ScreenHire.Testing;
 /// <summary>
 /// Submits an applicant (<see cref="SyntheticApplicants"/> or one a test builds) the way the careers server does: the
 /// resume upload, then the submission with the session context and the candidate's address in <c>X-Forwarded-For</c>,
-/// which the API trusts from loopback. The integrity engine then assesses it like any careers application. The one
+/// which the API trusts from loopback. The verification engine then assesses it like any careers application. The one
 /// implementation, used by the integration and the end-to-end tests.
 /// </summary>
 public static class SyntheticApplications
 {
     /// <summary>The careers notice version the submissions say the applicant saw (NOTICE_VERSION in apps/careers/src/lib/apply.ts).</summary>
-    public const string PrivacyNoticeVersion = "2026-10-23.1";
+    public const string PrivacyNoticeVersion = "2026-10-31.2";
 
     /// <summary>
     /// Applies to a published job of the organization with this slug and returns the application's id: the applicant's
     /// resume, then any <paramref name="files"/> for other file questions, then the submission with
-    /// <paramref name="answers"/> (none by default: the default workflow asks nothing else).
+    /// <paramref name="answers"/> (none by default: the default workflow asks nothing else). <paramref name="keepForFutureRoles"/>
+    /// is the "Keep my details for future roles" tick, and <paramref name="embedOrigin"/> the organization's own site the
+    /// careers page was embedded in, as the careers server sends it from the widget.
     /// </summary>
     public static async Task<Guid> ApplyAsync(
         this AppHostFixture fixture,
@@ -31,7 +33,9 @@ public static class SyntheticApplications
         CancellationToken cancellationToken,
         bool accommodation = false,
         IReadOnlyList<ApplicationAnswer>? answers = null,
-        IReadOnlyList<(string QuestionId, string FileName, byte[] Content)>? files = null)
+        IReadOnlyList<(string QuestionId, string FileName, byte[] Content)>? files = null,
+        bool keepForFutureRoles = false,
+        string? embedOrigin = null)
     {
         using var client = fixture.CreateHttpClient("api");
         var prefix = $"/v1/public/organizations/{slug}/jobs/{jobId}";
@@ -61,9 +65,11 @@ public static class SyntheticApplications
             ["honeypotFilled"] = applicant.HoneypotFilled,
             ["accommodationRequested"] = accommodation,
             ["userAgent"] = applicant.UserAgent,
-            ["formStartedAt"] = DateTimeOffset.UtcNow - applicant.TimeToComplete,
+            ["pageTimes"] = new JsonArray([.. applicant.PageTimes().Select(p => (JsonNode)new JsonObject { ["page"] = p.Page, ["seconds"] = p.Seconds })]),
             ["automationMarkers"] = new JsonArray([.. applicant.AutomationMarkers.Select(m => JsonValue.Create(m))]),
             ["deviceFingerprint"] = applicant.DeviceFingerprint,
+            ["keepForFutureRoles"] = keepForFutureRoles,
+            ["embedOrigin"] = embedOrigin,
         };
         using var request = new HttpRequestMessage(HttpMethod.Post, $"{prefix}/applications") { Content = JsonContent.Create(body) };
         request.Headers.Add("X-Forwarded-For", applicant.IpAddress);

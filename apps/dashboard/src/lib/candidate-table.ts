@@ -12,7 +12,7 @@ import {
 /**
  * The candidate table's TanStack Table setup, shared with code that adds columns. It sorts (a column with an accessor
  * and sorting left on gets a sort button in its header) but does not filter: pages filter the rows before the table
- * sees them, by stage, saved view or integrity level, so counts and "select all" match what is shown. Without a sort,
+ * sees them, by stage, saved view or verification level, so counts and "select all" match what is shown. Without a sort,
  * rows keep the API's order, newest first.
  */
 export const candidateTableFeatures = tableFeatures({
@@ -28,7 +28,7 @@ export type CandidateColumn = ColumnDef<CandidateTableFeatures, ApplicationSumma
 
 /**
  * Builds extra columns for the table's `extraColumns` slot, which sits right after Candidate (status first, T2). The
- * integrity columns go there; `integrityColumns` in #lib/integrity-columns.ts is the worked example of a sortable accessor column. A
+ * verification columns go there; `verificationColumns` in #lib/verification-columns.ts is the worked example of a sortable accessor column. A
  * column that only draws something is a display column:
  *
  * ```ts

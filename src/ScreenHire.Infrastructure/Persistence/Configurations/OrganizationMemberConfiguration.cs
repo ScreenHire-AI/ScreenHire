@@ -12,6 +12,9 @@ internal sealed class OrganizationMemberConfiguration : IEntityTypeConfiguration
         builder.Property(m => m.Role).HasConversion<string>().HasMaxLength(20);
         builder.Property(m => m.JobAccess).HasConversion<string>().HasMaxLength(20).HasDefaultValue(JobAccess.All).HasSentinel((JobAccess)(-1));
         builder.Ignore(m => m.SeesAllJobs);
+        // The default fills existing rows with everything on; a new member's row is written with its value.
+        builder.Property(m => m.Notifications).HasJsonColumn()
+            .HasDefaultValueSql("'{\"toasts\":true,\"closeToasts\":true,\"off\":[]}'::jsonb");
         builder.ToTable(t => t.HasCheckConstraint("ck_organization_members_job_access", "job_access IN ('All', 'HiringTeamOnly')"));
         builder.ToTable(t => t.HasCheckConstraint(
             "ck_organization_members_custom_role", "(role = 'Custom') = (custom_role_id IS NOT NULL)"));

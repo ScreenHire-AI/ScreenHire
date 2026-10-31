@@ -33,9 +33,11 @@ describe('settings menu', () => {
       'Roles',
       'Branding',
       'Verification',
+      'Talent pool',
       'API keys',
       'Webhooks',
       'MCP server',
+      'Slack',
     ]);
     expect(within(menu).getByRole('link', { name: 'Team' })).toHaveAttribute('aria-current', 'page');
     expect(within(menu).getByRole('link', { name: 'Roles' })).toHaveAttribute('href', '/settings/roles');
@@ -75,8 +77,8 @@ describe('settings menu', () => {
     try {
       render(SettingsMenu, { props: { children: content, current: '/settings/webhooks' } });
 
-      // Webhooks is the seventh entry, at 600px: the row scrolls to 550 so it sits in the middle.
-      expect(scrolledTo).toEqual([550]);
+      // Webhooks is the eighth entry, at 700px: the row scrolls to 650 so it sits in the middle.
+      expect(scrolledTo).toEqual([650]);
     } finally {
       Object.defineProperty(HTMLElement.prototype, 'offsetLeft', offsetLeft);
       Object.defineProperty(HTMLElement.prototype, 'offsetWidth', offsetWidth);

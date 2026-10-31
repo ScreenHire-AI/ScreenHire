@@ -2,10 +2,12 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using ScreenHire.Application.Automations;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Infrastructure.Tenancy;
 using ScreenHire.IntegrationTests.Messaging;
 using ScreenHire.IntegrationTests.Realtime;
 using Wolverine;
@@ -246,6 +248,49 @@ public sealed partial class FollowUpQuestionnaireTests(AppHostFixture fixture)
 
         result.Body.GetProperty("automations").EnumerateArray().Select(a => a.GetProperty("automationId").GetString()).Should().Equal("tag-on-answers");
         result.Text("automations.0.outcome").Should().Be("Matched");
+    }
+
+    [Fact]
+    public async Task Answers_saved_to_finish_later_come_back_through_the_link_and_a_knockout_in_them_fires_nothing_until_sent()
+    {
+        var licence = TagWithoutLicence("tag-no-licence", new JsonObject { ["type"] = "QuestionnaireCompleted", ["questionnaireId"] = "availability" }, "no-licence");
+        var definition = FollowUpDefinition();
+        definition["workflow"]!["automations"]!.AsArray().Add(licence);
+        definition["workflow"]!["followUpQuestionnaires"]![0]!["sections"] = new JsonArray(
+            new JsonObject { ["id"] = "when", ["name"] = "When you can start", ["questionIds"] = new JsonArray("start_date") },
+            new JsonObject { ["id"] = "licence", ["name"] = "Your licence", ["questionIds"] = new JsonArray("forklift_licence") });
+        var (recruiter, slug, job) = await JobWithFollowUpAsync("Follow-up draft", definition);
+        using var _ = recruiter;
+        using var careers = fixture.CreateHttpClient("api");
+        var email = ApiSession.NewEmail("followup");
+        var applicationId = await ApplyAsync(careers, slug, job, email);
+        await MoveAsync(recruiter, applicationId, "screening");
+        var token = TokenIn((await fixture.Mailpit.WaitForMessagesAsync(email, 1, Ct))[0].Text, slug);
+
+        var open = await careers.GetFromJsonAsync<JsonElement>(QuestionnairePath(slug, token), Ct);
+        open.GetProperty("sections").EnumerateArray().Select(s => s.GetProperty("name").GetString()).Should().Equal("When you can start", "Your licence");
+        open.GetProperty("draft").GetArrayLength().Should().Be(0);
+
+        // Saved with the disqualifying answer and a required question left empty: kept, checked for shape only.
+        var saved = await careers.PutAsJsonAsync($"{QuestionnairePath(slug, token)}/draft", Answers(("forklift_licence", "no")), Ct);
+        saved.StatusCode.Should().Be(HttpStatusCode.NoContent, await saved.Content.ReadAsStringAsync(Ct));
+        var resumed = await careers.GetFromJsonAsync<JsonElement>(QuestionnairePath(slug, token), Ct);
+        resumed.GetProperty("draft").EnumerateArray().Select(a => a.GetProperty("value").GetString()).Should().Equal("no");
+        (await recruiter.GetAsync($"/v1/applications/{applicationId}")).Expect(HttpStatusCode.OK)
+            .At("tags").EnumerateArray().Should().BeEmpty("a saved draft is not an answer: no automation reads it");
+
+        (await careers.PostAsJsonAsync(QuestionnairePath(slug, token), Answers(("start_date", "Next month"), ("forklift_licence", "no")), Ct))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        await WaitForAsync(recruiter, applicationId, d => d.At("tags").EnumerateArray().Any(t => t.GetString() == "no-licence"), "the knockout's tag once sent");
+        var tenant = new TenantContext();
+        tenant.SetOrganization(recruiter.OrganizationId);
+        await using var db = await fixture.CreateDbContextAsync(tenant, Ct);
+        var request = await db.QuestionnaireRequests.SingleAsync(r => r.ApplicationId == applicationId, Ct);
+        request.DraftAnswers.Should().BeEmpty("answering deletes the saved answers");
+        request.DraftExpiresAt.Should().BeNull();
+        (await careers.PutAsJsonAsync($"{QuestionnairePath(slug, token)}/draft", Answers(("start_date", "Later")), Ct))
+            .StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 
     // The tenant's follow-up: a job whose workflow sends "Availability" on entering Screening and tags the application

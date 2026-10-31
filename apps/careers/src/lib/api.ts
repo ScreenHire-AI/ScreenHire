@@ -1,7 +1,8 @@
 import { configureApiClient } from '@screenhire/api-client';
 
-// Server-side only: Aspire injects API_URL in development; production sets it to the internal API address.
-configureApiClient({ baseUrl: process.env.API_URL ?? 'http://localhost:5080' });
+/** The API's address, server-side only. Aspire injects API_URL in development; production sets the internal address. */
+export const apiBaseUrl = process.env.API_URL ?? 'http://localhost:5080';
+configureApiClient({ baseUrl: apiBaseUrl });
 
 export * from '@screenhire/api-client';
 export { escapeHtml, formatSalary, jsonLdScript, label } from './format';

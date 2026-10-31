@@ -3,6 +3,7 @@
 // nothing about the candidate, and reads the same whether this was a new application or one already on file.
 import CareersLayout from '../../../../layouts/CareersLayout.astro';
 import { getPublicJob, getPublicOrganization } from '../../../../lib/api';
+import { useEmbedding, withEmbed } from '../../../../lib/embed';
 import { basePath } from '../../../../lib/host';
 
 const { organization, job: jobSlug } = Astro.params;
@@ -13,6 +14,7 @@ if (organizationResponse.status !== 200) {
 
 const employer = organizationResponse.data;
 const base = basePath(Astro.request, employer.slug);
+const embed = useEmbedding(Astro.locals, Astro.url, employer.embedOrigins);
 // The job may have closed since; the confirmation stands either way.
 const jobTitle = jobResponse.status === 200 ? jobResponse.data.title : null;
 ---
@@ -40,7 +42,7 @@ const jobTitle = jobResponse.status === 200 ? jobResponse.data.title : null;
   </section>
 
   <p class="mt-6 text-sm">
-    <a href={`${base}/privacy`} class="text-link">What we collect and why</a>
+    <a href={withEmbed(`${base}/privacy`, embed)} class="text-link">What we collect and why</a>
   </p>
-  <a href={base || '/'} class="button-secondary mt-4">See other open roles</a>
+  <a href={withEmbed(base || '/', embed)} class="button-secondary mt-4">See other open roles</a>
 </CareersLayout>

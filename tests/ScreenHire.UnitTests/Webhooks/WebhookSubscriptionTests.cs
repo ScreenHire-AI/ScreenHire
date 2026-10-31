@@ -3,10 +3,10 @@ using System.Text.Json;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.Automations;
-using ScreenHire.Application.Integrity;
+using ScreenHire.Application.Verification;
 using ScreenHire.Application.Webhooks;
 using ScreenHire.Domain.Automations;
-using ScreenHire.Domain.Integrity;
+using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Webhooks;
 
 namespace ScreenHire.UnitTests.Webhooks;
@@ -70,9 +70,9 @@ public sealed class WebhookSubscriptionTests
 
     // Evidence, not verdicts (ADR-0004): two categorical levels and the ruleset, never a score or the evidence itself.
     [Fact]
-    public void Integrity_assessed_carries_the_levels_and_the_ruleset_and_nothing_else()
+    public void Verification_assessed_carries_the_levels_and_the_ruleset_and_nothing_else()
     {
-        var raised = WebhookEvents.From(new IntegrityAssessed(
+        var raised = WebhookEvents.From(new VerificationAssessed(
             Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), AuthenticityLevel.ReviewSuggested, AiAssistanceLevel.SomeIndicators, "2026.10.1",
             Guid.CreateVersion7(), Now));
 

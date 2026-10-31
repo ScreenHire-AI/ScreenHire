@@ -7,11 +7,12 @@ namespace ScreenHire.IntegrationTests.Demo;
 /// </summary>
 public sealed class DevelopmentDemoFixture : AppHostFixture
 {
-    protected override IReadOnlyList<string> ExtraArguments => ["--ScreenHire:Demo=true"];
+    // Slack off, as `pnpm dev` leaves it with no Slack app configured: this stack also shows the page's "not set up" state.
+    protected override IReadOnlyList<string> ExtraArguments => ["--ScreenHire:Demo=true", "--ScreenHire:Slack:Sandbox:Enabled=false"];
 }
 
 /// <summary>
-/// The demo's tests, run on their own after the parallel ones: the demo's startup burst (every applicant's integrity
+/// The demo's tests, run on their own after the parallel ones: the demo's startup burst (every applicant's verification
 /// analysis, the boards' syncs) is heavy enough to hold up the shared stack's worker past other tests' deadlines when the
 /// two stacks share the machine.
 /// </summary>

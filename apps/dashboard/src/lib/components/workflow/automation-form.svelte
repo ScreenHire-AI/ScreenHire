@@ -31,7 +31,7 @@
     triggerTypes,
   } from '#lib/workflow.js';
   import { sendableTemplates } from '#lib/email.js';
-  import { assignableMembers } from '#lib/team.js';
+  import { membersWith } from '#lib/team.js';
   import { checkboxClass, insetClass, kickerClass, labelClass, selectClass } from './controls.js';
   import FieldErrors from './field-errors.svelte';
 
@@ -58,7 +58,7 @@
   // shows what is saved.
   const team = createListTeamMembers();
   const roles = createListRoles();
-  const reviewers = $derived(assignableMembers(team.data?.data ?? [], roles.data?.data.roles ?? []));
+  const reviewers = $derived(membersWith(team.data?.data ?? [], roles.data?.data.roles ?? [], 'FillInScorecards'));
   const path = $derived(`automations[${index}]`);
   const facts = $derived(factsFor(workflow, automation.trigger.type));
   // A reviewer decision fires on the scorecards of one stage, or of any stage when it names none; a passed time limit,
@@ -263,7 +263,7 @@
             </div>
             {#if fact?.signal}
               <p class="text-caption text-muted-foreground">
-                An integrity signal can route a candidate for review, never reject them.
+                A verification signal can route a candidate for review, never reject them.
               </p>
             {/if}
             <FieldErrors id={`${uid}-rule-${ruleIndex}-errors`} messages={ruleErrors} />

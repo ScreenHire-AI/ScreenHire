@@ -3,6 +3,7 @@
 // what the candidate reads. A closed job's page passes its expired JSON-LD through the head slot.
 import type { PublicOrganization } from '@screenhire/api-client';
 import CareersLayout from '../layouts/CareersLayout.astro';
+import { embedOf, withEmbed } from '../lib/embed';
 import { basePath } from '../lib/host';
 
 interface Props {
@@ -33,5 +34,5 @@ const base = basePath(Astro.request, organization.slug);
         : 'The link may be mistyped, or the job may never have been published.'
     }
   </p>
-  <a href={base || '/'} class="button-primary mt-6">See open roles at {organization.name}</a>
+  <a href={withEmbed(base || '/', embedOf(Astro.locals))} class="button-primary mt-6">See open roles at {organization.name}</a>
 </CareersLayout>

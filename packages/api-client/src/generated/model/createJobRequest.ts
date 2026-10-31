@@ -12,7 +12,9 @@ import type { WorkplaceType } from './workplaceType.ts';
 /**
  * A new job. With `templateVersionId` (a published version of an own or system template), the job copies that
  * version's workflow, and every field left out here takes the template's posting default. Without a slug, one is made
- * from the title.
+ * from the title. The description is rich text as HTML, kept to the dashboard editor's elements (p, br, strong, em, h2,
+ * h3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text
+ * works too: a blank line starts a paragraph and lines starting with "- " make a list.
  */
 export interface CreateJobRequest {
   title: string;

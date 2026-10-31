@@ -56,6 +56,9 @@ islands, Vite DX and image tooling. Angular SSR cannot reach zero JS (64–85 KB
 - Apply form works as **plain HTML forms** (Astro Actions) with the framework-free `packages/telemetry` module; islands
   only where the questionnaire needs rich interaction.
 - Embeddable widget = **iframe** served from our origin (host pages must not be able to forge telemetry or read PII).
+  *Amended 2026-10-31:* built as the careers pages themselves in a frame, from a one-line script; each organization
+  lists the https sites allowed to frame them, which sets `frame-ancestors`, and the frame sizes itself over
+  postMessage from the careers origin only (`docs/architecture/careers-widget.md`).
 
 ### Domains — configurable, never hard-coded
 Status (2026-10-18): **`screenhire.com` and `screenhire.co` are taken.** **`screenhire.io` is the planned primary**

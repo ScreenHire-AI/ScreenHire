@@ -3,15 +3,15 @@ import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
 import { applications } from '../../test-support/fixtures.js';
-import { summary } from '../../test-support/integrity-fixtures.js';
+import { summary } from '../../test-support/verification-fixtures.js';
 import Harness from '../../test-support/authenticity-filter-harness.svelte';
 
 const rows: ApplicationSummary[] = [
-  { ...applications[0]!, integrity: summary() },
-  { ...applications[0]!, id: 'b', integrity: summary() },
-  { ...applications[1]!, integrity: summary({ authenticity: 'ReviewSuggested', authenticityReasons: ['A', 'B'] }) },
-  { ...applications[2]!, integrity: summary({ authenticity: 'VerificationRecommended', authenticityReasons: ['A'], authenticityDismissed: true }) },
-  { ...applications[2]!, id: 'p', integrity: null },
+  { ...applications[0]!, verification: summary() },
+  { ...applications[0]!, id: 'b', verification: summary() },
+  { ...applications[1]!, verification: summary({ authenticity: 'ReviewSuggested', authenticityReasons: ['A', 'B'] }) },
+  { ...applications[2]!, verification: summary({ authenticity: 'VerificationRecommended', authenticityReasons: ['A'], authenticityDismissed: true }) },
+  { ...applications[2]!, id: 'p', verification: null },
 ];
 
 function chips() {

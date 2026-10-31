@@ -54,6 +54,18 @@ describe('buildJobPosting', () => {
     });
   });
 
+  it("names the employer's logo when it has one, and nothing otherwise", () => {
+    const logoUrl = 'https://careers.example.com/harbour/brand/images/0f8b3a52-6a4e-4a9b-9c1e-2d7f3e4b5a6c.png';
+
+    expect(buildJobPosting(job(), { ...context, logoUrl }).hiringOrganization).toEqual({
+      '@type': 'Organization',
+      name: 'Harbour & Co',
+      sameAs: context.boardUrl,
+      logo: logoUrl,
+    });
+    expect(buildJobPosting(job(), context).hiringOrganization).not.toHaveProperty('logo');
+  });
+
   it.each([
     ['FullTime', 'FULL_TIME'],
     ['PartTime', 'PART_TIME'],
@@ -87,6 +99,13 @@ describe('buildJobPosting', () => {
 
   it("carries a closed job's past validThrough as the API sends it", () => {
     expect(buildJobPosting(job({ validThrough: '2026-10-15T12:00:00+00:00' }), context).validThrough).toBe('2026-10-15T12:00:00+00:00');
+  });
+
+  // The description is the API's sanitized rich text, which Google for Jobs reads as HTML.
+  it("carries the description's headings, lists and emphasis as they are", () => {
+    const description = '<h2>About the role</h2><p>We <strong>build</strong> tools.</p><ol><li>Apply</li><li>Interview</li></ol>';
+
+    expect(buildJobPosting(job({ description }), context).description).toBe(description);
   });
 
   it('falls back to an escaped one-line description', () => {

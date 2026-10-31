@@ -23,7 +23,7 @@ public sealed class DefinitionValidatorTests
         DefinitionValidator.Validate(new HiringTemplateDefinition(null!, null!)).Select(e => e.Path)
             .Should().BeEquivalentTo("workflow", "postingDefaults");
         DefinitionValidator.Validate(new HiringWorkflow(null!, null!, null!, null!)).Select(e => e.Path)
-            .Should().BeEquivalentTo("stages", "questionnaire", "integrityPolicy", "automations");
+            .Should().BeEquivalentTo("stages", "questionnaire", "verificationPolicy", "automations");
     }
 
     [Fact]
@@ -207,19 +207,35 @@ public sealed class DefinitionValidatorTests
         }
     }
 
-    // Guardrail 1 (ADR-0004, workflow-engine.md §2): integrity and verification signals may only route and step up.
+    // Guardrail 1 (ADR-0004, workflow-engine.md §2): verification signals may only route and step up.
     [Theory]
     [InlineData(ActionType.Reject)]
     [InlineData(ActionType.QueueForRejectionReview)]
     [InlineData(ActionType.SendEmail)]
     [InlineData(ActionType.NotifyTeam)]
     [InlineData(ActionType.CallWebhook)]
-    public void An_integrity_condition_cannot_drive_anything_but_routing(ActionType action)
+    public void A_verification_condition_cannot_drive_anything_but_routing(ActionType action)
     {
         var workflow = Workflow(automations:
         [
-            Automation(Conditions(new AutomationCondition("integrity.authenticity", ConditionOperator.EqualTo, "ReviewSuggested")),
+            Automation(Conditions(new AutomationCondition("verification.authenticity", ConditionOperator.EqualTo, "ReviewSuggested")),
                 Action(action), allowAutoReject: true),
+        ]);
+
+        DefinitionValidator.Validate(workflow).Should().ContainSingle(e => e.Path == "automations[0].actions[0]")
+            .Which.Message.Should().Contain("ADR-0004");
+    }
+
+    // ADR-0019 decision 5: a definition that still says integrity.* after the rename is held to the same guardrail.
+    [Theory]
+    [InlineData("integrity.authenticity")]
+    [InlineData("integrity.aiAssistance")]
+    public void A_leftover_integrity_condition_still_cannot_reject(string fact)
+    {
+        var workflow = Workflow(automations:
+        [
+            Automation(Conditions(new AutomationCondition(fact, ConditionOperator.EqualTo, "ReviewSuggested")),
+                Action(ActionType.Reject), allowAutoReject: true),
         ]);
 
         DefinitionValidator.Validate(workflow).Should().ContainSingle(e => e.Path == "automations[0].actions[0]")
@@ -230,11 +246,11 @@ public sealed class DefinitionValidatorTests
     [InlineData("rejected")]
     [InlineData("withdrawn")]
     [InlineData("hired")]
-    public void An_integrity_condition_cannot_move_an_application_to_a_terminal_stage(string stage)
+    public void A_verification_condition_cannot_move_an_application_to_a_terminal_stage(string stage)
     {
         var workflow = Workflow(automations:
         [
-            Automation(Conditions(new AutomationCondition("integrity.aiAssistance", ConditionOperator.EqualTo, "ReviewSuggested")),
+            Automation(Conditions(new AutomationCondition("verification.aiAssistance", ConditionOperator.EqualTo, "ReviewSuggested")),
                 new AutomationAction(ActionType.MoveToStage, StageId: stage)),
         ]);
 
@@ -242,12 +258,12 @@ public sealed class DefinitionValidatorTests
     }
 
     [Fact]
-    public void An_integrity_trigger_counts_as_a_signal_even_without_conditions()
+    public void A_verification_trigger_counts_as_a_signal_even_without_conditions()
     {
         var workflow = Workflow(automations:
         [
             Automation(null, new AutomationAction(ActionType.QueueForRejectionReview, Reason: "Looks automated"), "a",
-                new AutomationTrigger(TriggerType.IntegrityAssessed)),
+                new AutomationTrigger(TriggerType.VerificationAssessed)),
             Automation(null, new AutomationAction(ActionType.SendEmail, EmailTemplate: "stage-change"), "b",
                 new AutomationTrigger(TriggerType.VerificationCompleted)),
         ]);
@@ -269,29 +285,29 @@ public sealed class DefinitionValidatorTests
     }
 
     [Fact]
-    public void Integrity_signals_may_tag_assign_or_move_to_a_review_stage()
+    public void Verification_signals_may_tag_assign_or_move_to_a_review_stage()
     {
         var workflow = Workflow(automations:
         [
-            Automation(Conditions(new AutomationCondition("integrity.authenticity", ConditionOperator.EqualTo, "ReviewSuggested")),
+            Automation(Conditions(new AutomationCondition("verification.authenticity", ConditionOperator.EqualTo, "ReviewSuggested")),
             [
-                new AutomationAction(ActionType.AddTag, Tag: "integrity-review"),
+                new AutomationAction(ActionType.AddTag, Tag: "verification-review"),
                 new AutomationAction(ActionType.AssignReviewer),
                 new AutomationAction(ActionType.MoveToStage, StageId: "screening"),
-            ], trigger: new AutomationTrigger(TriggerType.IntegrityAssessed)),
+            ], trigger: new AutomationTrigger(TriggerType.VerificationAssessed)),
         ]);
 
         DefinitionValidator.Validate(workflow).Should().BeEmpty();
     }
 
     [Fact]
-    public void An_integrity_condition_mixed_with_a_knockout_still_cannot_reject()
+    public void A_verification_condition_mixed_with_a_knockout_still_cannot_reject()
     {
         var workflow = Workflow(questions: [WorkAuthorization], automations:
         [
             Automation(Conditions(
                 new AutomationCondition("answers.work_authorization", ConditionOperator.EqualTo, "no"),
-                new AutomationCondition("integrity.authenticity", ConditionOperator.EqualTo, "ReviewSuggested")),
+                new AutomationCondition("verification.authenticity", ConditionOperator.EqualTo, "ReviewSuggested")),
                 new AutomationAction(ActionType.Reject, Reason: "Not eligible"), allowAutoReject: true),
         ]);
 
@@ -303,9 +319,9 @@ public sealed class DefinitionValidatorTests
     {
         var workflow = Workflow(automations:
         [
-            Automation(Conditions(new AutomationCondition("integrity.authenticity", ConditionOperator.EqualTo, "ReviewSuggested")),
-                new AutomationAction(ActionType.AddTag, Tag: "Integrity-Review"), "tagger", new AutomationTrigger(TriggerType.IntegrityAssessed)),
-            Automation(Conditions(new AutomationCondition("application.tags", ConditionOperator.Contains, "integrity-review")),
+            Automation(Conditions(new AutomationCondition("verification.authenticity", ConditionOperator.EqualTo, "ReviewSuggested")),
+                new AutomationAction(ActionType.AddTag, Tag: "Verification-Review"), "tagger", new AutomationTrigger(TriggerType.VerificationAssessed)),
+            Automation(Conditions(new AutomationCondition("application.tags", ConditionOperator.Contains, "verification-review")),
                 new AutomationAction(ActionType.SendEmail, EmailTemplate: "stage-change"), "mailer"),
             Automation(Conditions(new AutomationCondition("application.tags", ConditionOperator.Contains, "referral")),
                 new AutomationAction(ActionType.SendEmail, EmailTemplate: "stage-change"), "unrelated"),
@@ -320,7 +336,7 @@ public sealed class DefinitionValidatorTests
         var workflow = Workflow(automations:
         [
             Automation(null, new AutomationAction(ActionType.MoveToStage, StageId: "screening"), "route",
-                new AutomationTrigger(TriggerType.IntegrityAssessed)),
+                new AutomationTrigger(TriggerType.VerificationAssessed)),
             Automation(null, new AutomationAction(ActionType.MoveToStage, StageId: "interview"), "hop",
                 new AutomationTrigger(TriggerType.StageEntered, "screening")),
             Automation(null, new AutomationAction(ActionType.QueueForRejectionReview, Reason: "Stalled"), "queue",
@@ -341,7 +357,7 @@ public sealed class DefinitionValidatorTests
             automations:
             [
                 Automation(null, new AutomationAction(ActionType.MoveToStage, StageId: "verify"), "route",
-                    new AutomationTrigger(TriggerType.IntegrityAssessed)),
+                    new AutomationTrigger(TriggerType.VerificationAssessed)),
                 Automation(null, new AutomationAction(ActionType.MoveToStage, StageId: "parked"), "park",
                     new AutomationTrigger(TriggerType.StageExited, "screening")),
             ]);
@@ -356,8 +372,8 @@ public sealed class DefinitionValidatorTests
             stages: [.. HiringWorkflow.Default.Stages, new WorkflowStage("parked", "Not progressing", StageKind.Custom)],
             automations:
             [
-                Automation(null, new AutomationAction(ActionType.AddTag, Tag: "integrity-review"), "tag",
-                    new AutomationTrigger(TriggerType.IntegrityAssessed)),
+                Automation(null, new AutomationAction(ActionType.AddTag, Tag: "verification-review"), "tag",
+                    new AutomationTrigger(TriggerType.VerificationAssessed)),
                 Automation(null, new AutomationAction(ActionType.MoveToStage, StageId: "parked"), "park",
                     new AutomationTrigger(TriggerType.StageExited, "screening")),
             ]);
@@ -375,15 +391,15 @@ public sealed class DefinitionValidatorTests
     public void A_signal_tag_read_by_contains_or_in_cannot_drive_a_rejection(ConditionOperator op, ActionType action)
     {
         var readsTag = op == ConditionOperator.Contains
-            ? new AutomationCondition("application.tags", op, "integrity")
-            : new AutomationCondition("application.tags", op, Values: ["referral", "integrity-review"]);
+            ? new AutomationCondition("application.tags", op, "verification")
+            : new AutomationCondition("application.tags", op, Values: ["referral", "verification-review"]);
         var reject = action == ActionType.Reject
             ? new AutomationAction(ActionType.Reject, Reason: "Not a fit")
             : new AutomationAction(ActionType.MoveToStage, StageId: "rejected");
         var workflow = Workflow(automations:
         [
-            Automation(Conditions(new AutomationCondition("integrity.authenticity", ConditionOperator.EqualTo, "ReviewSuggested")),
-                new AutomationAction(ActionType.AddTag, Tag: "Integrity-Review"), "tagger", new AutomationTrigger(TriggerType.IntegrityAssessed)),
+            Automation(Conditions(new AutomationCondition("verification.authenticity", ConditionOperator.EqualTo, "ReviewSuggested")),
+                new AutomationAction(ActionType.AddTag, Tag: "Verification-Review"), "tagger", new AutomationTrigger(TriggerType.VerificationAssessed)),
             Automation(Conditions(readsTag), reject, "decliner", allowAutoReject: true),
         ]);
 
@@ -401,7 +417,7 @@ public sealed class DefinitionValidatorTests
             automations:
             [
                 Automation(Conditions(new AutomationCondition("verification.result", ConditionOperator.EqualTo, "failed")),
-                    new AutomationAction(ActionType.MoveToStage, StageId: "verify"), "route", new AutomationTrigger(TriggerType.IntegrityAssessed)),
+                    new AutomationAction(ActionType.MoveToStage, StageId: "verify"), "route", new AutomationTrigger(TriggerType.VerificationAssessed)),
                 Automation(null, new AutomationAction(ActionType.Reject, Reason: "Stalled in verification"), "decliner",
                     new AutomationTrigger(trigger, "verify", afterHours), allowAutoReject: true),
             ]);
@@ -414,8 +430,8 @@ public sealed class DefinitionValidatorTests
     {
         var workflow = Workflow(automations:
         [
-            Automation(Conditions(new AutomationCondition("integrity.authenticity", ConditionOperator.EqualTo, "ReviewSuggested")),
-                new AutomationAction(ActionType.MoveToStage, StageId: "withdrawn"), "a", new AutomationTrigger(TriggerType.IntegrityAssessed),
+            Automation(Conditions(new AutomationCondition("verification.authenticity", ConditionOperator.EqualTo, "ReviewSuggested")),
+                new AutomationAction(ActionType.MoveToStage, StageId: "withdrawn"), "a", new AutomationTrigger(TriggerType.VerificationAssessed),
                 allowAutoReject: true),
         ]);
 
@@ -432,7 +448,7 @@ public sealed class DefinitionValidatorTests
             automations:
             [
                 Automation(null, new AutomationAction(ActionType.MoveToStage, StageId: "parked"), "a",
-                    new AutomationTrigger(TriggerType.IntegrityAssessed)),
+                    new AutomationTrigger(TriggerType.VerificationAssessed)),
             ]);
 
         Paths(workflow).Should().Equal("automations[0].actions[0]");
@@ -643,10 +659,10 @@ public sealed class DefinitionValidatorTests
 
     // On a stage a signal routes into, the breach is signal-driven too: it may assign or tag, as any such automation.
     [Fact]
-    public void A_time_limit_breach_on_a_stage_a_signal_routes_into_follows_the_integrity_guardrail()
+    public void A_time_limit_breach_on_a_stage_a_signal_routes_into_follows_the_verification_guardrail()
     {
         var stages = HiringWorkflow.Default.Stages.Append(new WorkflowStage("verify", "Verification", StageKind.Verification, SlaDays: 2)).ToList();
-        var route = Automation(null, new AutomationAction(ActionType.MoveToStage, StageId: "verify"), "route", new AutomationTrigger(TriggerType.IntegrityAssessed));
+        var route = Automation(null, new AutomationAction(ActionType.MoveToStage, StageId: "verify"), "route", new AutomationTrigger(TriggerType.VerificationAssessed));
 
         AssertRefusedAsSignalDriven(
             Workflow(stages: stages, automations: [route, Automation(null, ReminderAction(ActionType.NotifyTeam), "remind", new AutomationTrigger(TriggerType.SlaBreached, "verify"))]),
@@ -674,7 +690,7 @@ public sealed class DefinitionValidatorTests
                 new AutomationAction(ActionType.Reject, Reason: "This role needs the right to work here."), allowAutoReject: allowAutoReject),
         ]);
 
-    // Exactly one error, at the action, and it is the integrity guardrail (ADR-0004), not the knockout-only rejection rule.
+    // Exactly one error, at the action, and it is the verification guardrail (ADR-0004), not the knockout-only rejection rule.
     private static void AssertRefusedAsSignalDriven(HiringWorkflow workflow, string actionPath)
     {
         var errors = DefinitionValidator.Validate(workflow);

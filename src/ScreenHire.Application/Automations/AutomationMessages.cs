@@ -8,7 +8,7 @@ namespace ScreenHire.Application.Automations;
 /// Evaluate the automations one trigger fires for one application. Submissions and moves evaluate inline in their own
 /// handlers; this command carries the triggers that come from elsewhere: a TimeElapsed timer (scheduled when the
 /// application entered the stage), a manual run from the dashboard, and the events later features raise
-/// (QuestionnaireCompleted, IntegrityAssessed, ReviewerDecision). Ids only.
+/// (QuestionnaireCompleted, VerificationAssessed, ReviewerDecision). Ids only.
 /// </summary>
 /// <remarks>
 /// <c>eventId</c>: The event the runs are keyed on: for a timer, the timeline entry of the stage entry it counts from;

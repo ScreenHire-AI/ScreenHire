@@ -5,6 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { ApplicationEventType } from './applicationEventType.ts';
+import type { TalentPoolExit } from './talentPoolExit.ts';
 
 /**
  * One entry of an application's timeline, oldest first. Members that do not apply to the type are null.
@@ -51,4 +52,9 @@ export interface ApplicationTimelineEntry {
   emailId?: string | null;
   /** @nullable */
   taskId?: string | null;
+  poolExit?: null | TalentPoolExit;
+  /** @nullable */
+  otherJobId?: string | null;
+  /** @nullable */
+  otherApplicationId?: string | null;
 }

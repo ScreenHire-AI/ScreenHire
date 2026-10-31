@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScreenHire.Application.Applications;
+using ScreenHire.Application.Slack;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Hiring;
@@ -34,6 +35,7 @@ public static partial class ExecuteAutomationActionHandler
         EmailTemplateStore templates,
         IWebhookSender webhooks,
         QuestionnaireLinks links,
+        SlackAccess slack,
         TimeProvider time,
         ILogger<ExecuteAutomationAction> logger,
         CancellationToken cancellationToken)
@@ -49,7 +51,7 @@ public static partial class ExecuteAutomationActionHandler
 
         var application = await db.Applications.SingleAsync(a => a.Id == run.ApplicationId, cancellationToken);
         var job = await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == run.JobId, cancellationToken);
-        var context = new ActionContext(db, email, templates, webhooks, links, run, action, application, job, time.GetUtcNow(), outgoing);
+        var context = new ActionContext(db, email, templates, webhooks, links, slack, run, action, application, job, time.GetUtcNow(), outgoing);
 
         var (status, detail) = await ExecuteAsync(context, cancellationToken);
         var now = context.Now;
@@ -134,7 +136,7 @@ public static partial class ExecuteAutomationActionHandler
             return (null, Skipped("Email is not set up, so nothing was sent."));
         }
 
-        if (ApplicationEmails.Skips(templateId, CurrentStage(context)))
+        if (ApplicationEmails.Skips(templateId, context.Application, CurrentStage(context)))
         {
             return (null, Skipped("The application has ended, so the stage-change email was not sent."));
         }
@@ -170,7 +172,7 @@ public static partial class ExecuteAutomationActionHandler
             return Failed("The careers site address is not set up, so no link could be sent.");
         }
 
-        if (CurrentStage(context)?.Kind.IsTerminal() == true)
+        if (context.Application.HasEnded(CurrentStage(context)))
         {
             return Skipped("The application has ended, so no questionnaire was sent.");
         }
@@ -209,7 +211,7 @@ public static partial class ExecuteAutomationActionHandler
 
     private static (AutomationActionStatus, string) MoveToStage(ActionContext context, string stageId)
     {
-        if (CurrentStage(context)?.Kind.IsTerminal() == true)
+        if (context.Application.HasEnded(CurrentStage(context)))
         {
             return Skipped("The application has already ended, so automations no longer move it.");
         }
@@ -260,6 +262,16 @@ public static partial class ExecuteAutomationActionHandler
             return Failed("The reviewer is not a member of the organization any more.");
         }
 
+        // A review is done when its reviewer gives a scorecard, and nobody ticks one by hand (ADR-0017 decision 11). A
+        // reviewer who already gave one at this stage has done it (ReviewerGate), so a new task would stay open for good.
+        var stageId = context.Application.CurrentStageId;
+        if (assigneeUserId is { } reviewer
+            && await context.Db.ApplicationScorecards.AnyAsync(
+                s => s.ApplicationId == context.Application.Id && s.StageId == stageId && s.ReviewerUserId == reviewer, cancellationToken))
+        {
+            return Skipped("The reviewer already gave a scorecard at this stage.");
+        }
+
         return AddTask(context, ApplicationTaskKind.Review, "Review this application.", assigneeUserId,
             assigneeUserId is null ? "Asked the hiring team for a review." : "Assigned a reviewer.");
     }
@@ -274,7 +286,7 @@ public static partial class ExecuteAutomationActionHandler
     private static (AutomationActionStatus, string) AddTask(
         ActionContext context, ApplicationTaskKind kind, string note, Guid? assigneeUserId, string detail)
     {
-        context.Db.ApplicationTasks.Add(new ApplicationTask
+        var task = new ApplicationTask
         {
             OrganizationId = context.Run.OrganizationId,
             ApplicationId = context.Application.Id,
@@ -284,7 +296,15 @@ public static partial class ExecuteAutomationActionHandler
             StageId = context.Application.CurrentStageId,
             AutomationRunId = context.Run.Id,
             CreatedAt = context.Now,
-        });
+        };
+        context.Db.ApplicationTasks.Add(task);
+        // A task given to one person reaches them in Slack too, when they linked it (docs/architecture/slack.md).
+        if (assigneeUserId is { } assignee && context.Slack.IsConfigured)
+        {
+            context.Outgoing.Add(new SendSlackDirectMessage(
+                task.OrganizationId, SlackDirectMessageKind.Task, task.Id, assignee, task.ApplicationId, context.Application.JobId, ActorUserId: null));
+        }
+
         return Completed(detail);
     }
 
@@ -311,7 +331,7 @@ public static partial class ExecuteAutomationActionHandler
                 : "Queued for a person to decide: email is not set up, so the candidate could not be told why.");
         }
 
-        if (CurrentStage(context)?.Kind.IsTerminal() == true)
+        if (context.Application.HasEnded(CurrentStage(context)))
         {
             return Skipped("The application has already ended.");
         }
@@ -359,6 +379,7 @@ public static partial class ExecuteAutomationActionHandler
         EmailTemplateStore Templates,
         IWebhookSender Webhooks,
         QuestionnaireLinks Links,
+        SlackAccess Slack,
         AutomationRun Run,
         AutomationActionRun Action,
         JobApplication Application,

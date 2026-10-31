@@ -7,7 +7,7 @@
 import type { DeviceCheckBasis } from './deviceCheckBasis.ts';
 
 /**
- * What the careers page's telemetry module may do on this form (integrity-engine.md §3): `sessionToken` binds its
+ * What the careers page's telemetry module may do on this form (verification-engine.md §3): `sessionToken` binds its
  * snapshots to one way through the form, and `deviceCheck` is the footing for the device fingerprint where the job
  * is (`Off`, `Notice`, or `Consent`, which needs the candidate's tick).
  */

@@ -84,7 +84,7 @@ internal static class TemplateMappings
     private static LastUpdate Updated(this HiringTemplate template, ChangeStamp? lastChange) =>
         template.IsSystem
             ? LastUpdate.ByScreenHire(template.UpdatedAt ?? template.CreatedAt)
-            : LastUpdate.From(lastChange, template.UpdatedAt ?? template.CreatedAt);
+            : LastUpdate.From(lastChange, template.CreatedAt, template.UpdatedAt);
 
     public static HiringTemplateVersionDetail ToDetail(this HiringTemplateVersion version) =>
         new(version.Id, version.TemplateId, version.Version, version.Status, version.Definition, version.CreatedAt,

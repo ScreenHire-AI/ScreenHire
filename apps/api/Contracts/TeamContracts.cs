@@ -120,11 +120,11 @@ internal static class TeamMappings
 
     public static RoleSummary ToSummary(this CustomRole role, int people, ChangeStamp? lastChange) =>
         new(OrganizationRole.Custom, role.Id, role.Name, RolePermissions.Summarize(role.Permissions), InOrder(RolePermissions.ForCustom(role.Permissions)),
-            people, LastUpdate.From(lastChange, role.UpdatedAt));
+            people, LastUpdate.From(lastChange, role.CreatedAt, role.UpdatedAt));
 
     public static CustomRoleDetail ToDetail(this CustomRole role, int people, ChangeStamp? lastChange) =>
         new(role.Id, role.Name, RolePermissions.Summarize(role.Permissions), InOrder(RolePermissions.ForCustom(role.Permissions)), people,
-            role.CopiedFrom, role.CreatedAt, LastUpdate.From(lastChange, role.UpdatedAt));
+            role.CopiedFrom, role.CreatedAt, LastUpdate.From(lastChange, role.CreatedAt, role.UpdatedAt));
 
     public static IReadOnlyList<PermissionSummary> PermissionSummaries() =>
         [.. RolePermissions.Permissions.Select(p => new PermissionSummary(p.Permission, p.Group, p.Name, p.Description, p.OwnerOnly, p.EveryRole))];

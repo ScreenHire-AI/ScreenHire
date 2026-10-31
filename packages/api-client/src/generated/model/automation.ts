@@ -10,7 +10,7 @@ import type { AutomationTrigger } from './automationTrigger.ts';
 
 /**
  * Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine
- * runs them. DefinitionValidator refuses an automation that would reject anyone because of an integrity
+ * runs them. DefinitionValidator refuses an automation that would reject anyone because of a verification
  * signal (ADR-0004).
  */
 export interface Automation {

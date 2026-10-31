@@ -9,6 +9,7 @@
     status,
     facts,
     meta,
+    actions,
   }: {
     href: string;
     title: string;
@@ -18,6 +19,11 @@
     facts?: Snippet;
     /** One short value on the right, such as a date. It stays clickable above the row's link. */
     meta?: Snippet;
+    /**
+     * The row's More menu, last on the first line, for a list whose actions live only on its rows (the talent pool). It
+     * stays clickable above the row's link.
+     */
+    actions?: Snippet;
   } = $props();
 </script>
 
@@ -31,6 +37,9 @@
     </div>
     {#if meta}
       <span class="relative mt-0.5 shrink-0 text-caption text-muted-foreground">{@render meta()}</span>
+    {/if}
+    {#if actions}
+      <span class="relative -my-1 shrink-0">{@render actions()}</span>
     {/if}
   </div>
   {#if facts}

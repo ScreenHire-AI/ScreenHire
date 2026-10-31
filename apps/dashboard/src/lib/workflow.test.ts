@@ -41,7 +41,7 @@ const workflow: HiringWorkflow = {
       },
     ],
   },
-  integrityPolicy: { aiUse: 'AllowedWithDisclosure' },
+  verificationPolicy: { aiUse: 'AllowedWithDisclosure' },
   automations: [
     {
       id: 'tag_on_entry',
@@ -55,7 +55,7 @@ const workflow: HiringWorkflow = {
 };
 
 describe('facts', () => {
-  it('offers one fact per question with its values, then the application facts and the integrity levels', () => {
+  it('offers one fact per question with its values, then the application facts and the verification levels', () => {
     const facts = factsFor(workflow);
 
     expect(facts.map((fact) => fact.fact)).toEqual([
@@ -64,28 +64,28 @@ describe('facts', () => {
       'application.tags',
       'application.source',
       'application.hoursInStage',
-      'integrity.authenticity',
-      'integrity.aiAssistance',
+      'verification.authenticity',
+      'verification.aiAssistance',
     ]);
     expect(facts[0]!.values?.map((value) => value.value)).toEqual(['yes', 'no']);
     expect(facts[1]!.values?.map((value) => value.value)).toEqual(['days', 'nights']);
-    expect(facts.filter((fact) => fact.signal).map((fact) => fact.fact)).toEqual(['integrity.authenticity', 'integrity.aiAssistance']);
-    expect(facts.find((fact) => fact.fact === 'integrity.authenticity')!.values?.map((value) => value.value)).toEqual([
+    expect(facts.filter((fact) => fact.signal).map((fact) => fact.fact)).toEqual(['verification.authenticity', 'verification.aiAssistance']);
+    expect(facts.find((fact) => fact.fact === 'verification.authenticity')!.values?.map((value) => value.value)).toEqual([
       'NoConcerns',
       'ReviewSuggested',
       'VerificationRecommended',
     ]);
   });
 
-  it('allows integrity levels equality only, never a comparison (ADR-0004)', () => {
+  it('allows verification levels equality only, never a comparison (ADR-0004)', () => {
     expect(operatorsFor('Level')).toEqual(['EqualTo', 'In', 'Exists']);
     expect(operatorsFor('YesNo')).toEqual(['EqualTo', 'Exists']);
   });
 
   it('gives a new rule the operand its operator takes', () => {
-    const level = factsFor(workflow).find((fact) => fact.fact === 'integrity.authenticity')!;
+    const level = factsFor(workflow).find((fact) => fact.fact === 'verification.authenticity')!;
 
-    expect(newRule(level)).toEqual({ fact: 'integrity.authenticity', operator: 'EqualTo', value: 'NoConcerns' });
+    expect(newRule(level)).toEqual({ fact: 'verification.authenticity', operator: 'EqualTo', value: 'NoConcerns' });
     expect(ruleOperand('In', level)).toEqual({ values: ['NoConcerns'] });
     expect(ruleOperand('Exists', level)).toEqual({});
   });

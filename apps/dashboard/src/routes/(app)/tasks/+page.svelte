@@ -14,6 +14,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import { describeError } from '#lib/query.js';
+  import { taskHref } from '#lib/tasks.svelte.js';
 
   // The tasks automations make (AssignReviewer, CreateTask, QueueForRejectionReview), on the list template. Mine is the
   // tasks assigned to the person, For the team the tasks assigned to nobody in particular, and Everyone's every task the
@@ -121,7 +122,7 @@
               tasks={shown}
               members={team.data?.data}
               {currentUserId}
-              href={(task) => `/applications/${task.applicationId}`}
+              href={taskHref}
               showCandidate
             />
           </div>

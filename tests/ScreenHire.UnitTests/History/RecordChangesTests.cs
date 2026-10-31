@@ -106,6 +106,36 @@ public sealed class RecordChangesTests
     }
 
     [Fact]
+    public void A_formatting_only_edit_says_so_without_a_before_and_after_that_read_the_same()
+    {
+        var job = NewJob();
+        var bolded = NewJob();
+        bolded.Revise(bolded.Snapshot() with { Description = "<p>Old <strong>text</strong></p>" }, Monday);
+
+        var lines = JobChanges.Describe(job, bolded);
+        Sentences(lines).Should().Equal("changed the formatting of the description");
+        lines[0].Details.Should().BeNullOrEmpty();
+
+        var template = EmailTemplate.CreateCustom(Organization, "Interview", "Interview", "<p>Hi {{ firstName }}</p><p>See you soon</p>", Monday);
+        var listed = new EmailTemplate
+        {
+            Id = template.Id, OrganizationId = Organization, Name = template.Name, Subject = template.Subject, CreatedAt = Monday,
+            Body = "<h2>Hi {{ firstName }}</h2><p>See you <em>soon</em></p>",
+        };
+        Sentences(EmailTemplateChanges.Describe(template, listed)).Should().Equal("changed the formatting of the message");
+
+        var reworded = new EmailTemplate
+        {
+            Id = template.Id, OrganizationId = Organization, Name = template.Name, Subject = template.Subject, CreatedAt = Monday,
+            Body = "<p>Hi {{ firstName }}</p><p>See you on Monday</p>",
+        };
+        var changed = EmailTemplateChanges.Describe(template, reworded);
+        Sentences(changed).Should().Equal("changed the message");
+        changed[0].Details.Should().Equal(
+            new ChangeDetail("Message", "Hi {{ firstName }}\n\nSee you soon", "Hi {{ firstName }}\n\nSee you on Monday", ChangeValueKind.Paragraphs));
+    }
+
+    [Fact]
     public void A_job_workflow_edit_uses_the_definition_lines()
     {
         var job = NewJob();
@@ -116,8 +146,10 @@ public sealed class RecordChangesTests
     }
 
     [Theory]
-    [InlineData("<p>One</p><p>Two &amp; three</p>", "One\nTwo & three")]
+    [InlineData("<p>One</p><p>Two &amp; three</p>", "One\n\nTwo & three")]
     [InlineData("<h2>Role</h2><ul><li>C#</li><li>SQL</li></ul>", "Role\n\n- C#\n- SQL")]
+    [InlineData("<ol><li>Apply</li><li>Interview</li></ol><p>Done</p>", "1. Apply\n2. Interview\n\nDone")]
+    [InlineData("<p>See <a href=\"https://example.com/faq\" rel=\"nofollow\">our FAQ</a> or <a href=\"https://example.com\">https://example.com</a></p>", "See our FAQ (https://example.com/faq) or https://example.com")]
     [InlineData("Line<br>break", "Line\nbreak")]
     [InlineData("   ", null)]
     public void Rich_text_reads_as_text(string html, string? text)

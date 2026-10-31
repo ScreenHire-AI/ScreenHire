@@ -7,11 +7,13 @@
 
 /**
  * A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.
- * `questionnaireOnly`: only the follow-up questions email has it.
+ * `questionnaireOnly`: only the follow-up questions email has it. `invitationOnly`: only the talent pool
+ * invitation has it.
  */
 export interface EmailTemplateVariableEntry {
   name: string;
   label: string;
   rejectOnly: boolean;
   questionnaireOnly?: boolean;
+  invitationOnly?: boolean;
 }

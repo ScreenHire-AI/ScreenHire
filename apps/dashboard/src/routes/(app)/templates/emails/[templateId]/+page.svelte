@@ -50,6 +50,7 @@
   import { createPreviewSource } from '#lib/preview-window.svelte.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { copyName, maxNameLength, templateHref, templatesHref, templateUsagePath, usageHref, usageLabel, usedByLabel, usedByNouns } from '#lib/templates.js';
+  import { lastUpdateWords } from '#lib/history.js';
   import type { PageProps } from './$types';
 
   // One email template in its editor (design system sections 7 and 21, builder): the header band with Built in for
@@ -77,7 +78,7 @@
   const listHref = templatesHref('emails');
   const mayEdit = $derived(can(page.data.user, 'EditEmailTemplates'));
   const editable = $derived(mayEdit && !detail?.archived);
-  const duplicable = $derived(Boolean(detail && !detail.rejectOnly && !detail.questionnaireOnly));
+  const duplicable = $derived(Boolean(detail && !detail.rejectOnly && !detail.questionnaireOnly && !detail.invitationOnly));
   const formId = 'email-template-form';
 
   // Last updated and History (T6): who changed the wording, named as the team list names them.
@@ -236,7 +237,7 @@
         <Fact label="Last sent">
           {#if use?.lastUsedAt}<RelativeTime at={use.lastUsedAt} />{:else if use}Never{:else}<Skeleton class="h-5 w-20" />{/if}
         </Fact>
-        <Fact label="Last updated">
+        <Fact label={lastUpdateWords(detail.lastUpdated).label}>
           <LastUpdated value={detail.lastUpdated} {members} {currentUserId} onhistory={() => (historyOpen = true)} />
         </Fact>
       {/snippet}

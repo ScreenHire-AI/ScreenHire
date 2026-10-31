@@ -1,30 +1,19 @@
 ---
-import { stepLabels, type Step } from '../lib/apply';
+// Where the candidate is in the apply form (apply-flow.md §7): the shared progress line, "Step 2 of 4" and "9 of 24
+// answered", rendered on the server with no JavaScript, the same component the dashboard's preview shows.
+import { PageProgress } from '@screenhire/ui/questions';
 
 interface Props {
-  steps: Step[];
-  current: Step;
+  /** The current step, from 1. */
+  step: number;
+  steps: number;
+  answered: number;
+  total: number;
 }
 
-const { steps, current } = Astro.props;
-const index = steps.indexOf(current);
+const { step, steps, answered, total } = Astro.props;
 ---
 
-<nav aria-label="Application steps" class="flex flex-col gap-1.5">
-  <div aria-hidden="true" class="flex gap-1">
-    {steps.map((_, i) => <span class:list={['h-1.5 flex-1 rounded-full', i <= index ? 'bg-candidate-cta' : 'bg-candidate-chip']} />)}
-  </div>
-  <ol class="flex justify-between gap-2 font-mono text-[11px] text-candidate-muted-foreground">
-    {
-      steps.map((step, i) => (
-        <li aria-current={step === current ? 'step' : undefined} class:list={[step === current && 'font-semibold text-candidate-foreground']}>
-          <span class="sr-only">
-            Step {i + 1} of {steps.length}:
-          </span>
-          <span aria-hidden="true">{String(i + 1).padStart(2, '0')} </span>
-          {stepLabels[step].toUpperCase()}
-        </li>
-      ))
-    }
-  </ol>
+<nav aria-label="Application steps">
+  <PageProgress step={step} steps={steps} answered={answered} total={total} />
 </nav>

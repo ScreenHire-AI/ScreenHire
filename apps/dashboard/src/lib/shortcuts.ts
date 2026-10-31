@@ -120,5 +120,18 @@ export function shortcutGroups(
         { label: 'Save the note', keys: apple ? ['⌘', 'Enter'] : ['Ctrl', 'Enter'], singleKey: false },
       ],
     },
+    {
+      // The rich text editor's toolbar (job descriptions, email messages). Each has a modifier; links have none, because
+      // Ctrl K is the command palette.
+      label: 'Text editor',
+      shortcuts: [
+        { label: 'Bold', keys: [apple ? '⌘' : 'Ctrl', 'B'], singleKey: false },
+        { label: 'Italic', keys: [apple ? '⌘' : 'Ctrl', 'I'], singleKey: false },
+        { label: 'Heading', keys: apple ? ['⌘', '⌥', '2'] : ['Ctrl', 'Alt', '2'], singleKey: false },
+        { label: 'Subheading', keys: apple ? ['⌘', '⌥', '3'] : ['Ctrl', 'Alt', '3'], singleKey: false },
+        { label: 'Bulleted list', keys: [apple ? '⌘' : 'Ctrl', 'Shift', '8'], singleKey: false },
+        { label: 'Numbered list', keys: [apple ? '⌘' : 'Ctrl', 'Shift', '7'], singleKey: false },
+      ],
+    },
   ];
 }

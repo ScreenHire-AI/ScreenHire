@@ -5,8 +5,8 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { AuthenticityLevel } from './authenticityLevel.ts';
-import type { IntegrityDismissal } from './integrityDismissal.ts';
-import type { IntegritySignalView } from './integritySignalView.ts';
+import type { VerificationDismissal } from './verificationDismissal.ts';
+import type { VerificationSignalView } from './verificationSignalView.ts';
 
 /**
  * Is this a real, unique, present person who is who they say they are?
@@ -17,8 +17,8 @@ export interface AuthenticityAssessmentView {
   reasonCodes: string[];
   summary: string;
   nextStep: string;
-  signals: IntegritySignalView[];
+  signals: VerificationSignalView[];
   rulesetVersion: string;
   assessedAt: string;
-  dismissal: null | IntegrityDismissal;
+  dismissal: null | VerificationDismissal;
 }

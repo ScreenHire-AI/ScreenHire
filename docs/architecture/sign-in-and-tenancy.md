@@ -147,6 +147,7 @@ API keys (Owners and Admins) manages keys in a session, on the dashboard's Setti
 | `POST /v1/organization/api-keys` | Creates a key and returns it once, with `Cache-Control: no-store`. |
 | `GET /v1/organization/api-keys/{id}` | One key, without the key itself. |
 | `POST /v1/organization/api-keys/{id}/revoke` | Revokes it. The next request with it gets 401. |
+| `GET /v1/organization/api-keys/history`, `GET /v1/organization/api-keys/last-update` | The page's change history: each key created and revoked, with its name, access and who, never its hash or prefix (`docs/architecture/change-history.md`). |
 
 - **The key** is `shk_{prefix}_{organization}_{secret}`, lower-case hex: 8 digits of prefix that the list shows, the
   organization's id and a 256-bit secret (`apps/api/Auth/ApiKeyTokens.cs`). `api_keys` stores the SHA-256 hash of the
@@ -160,9 +161,9 @@ API keys (Owners and Admins) manages keys in a session, on the dashboard's Setti
   authorization policy, whose scheme `SessionOrApiKey` forwards to the key handler when the request has an
   `Authorization` header and to the cookie otherwise. A request is judged by one credential: a bad key with a good
   cookie is 401. Every other route keeps the cookie-only default and fallback policies, so a key gets 401 on sign-in,
-  onboarding, key management, organization settings, integrity review, automations, distribution and the hub.
-- **No integrity output.** Application and candidate reads send a key `integrity: null`, and the application
-  timeline leaves out `IntegrityAssessed` entries (ADR-0011): levels and reason codes are for the person reviewing
+  onboarding, key management, organization settings, verification review, automations, distribution and the hub.
+- **No verification output.** Application and candidate reads send a key `verification: null`, and the application
+  timeline leaves out `VerificationAssessed` entries (ADR-0011): levels and reason codes are for the person reviewing
   (ADR-0004), not for another system to reject on. The MCP server returns none either.
 - **The MCP server** at `/v1/mcp` lets a team's AI assistant use the hiring API with a key, and only a key: its own
   `mcp` policy authenticates the `ApiKey` scheme alone, so a session cookie gets 401 there
@@ -207,7 +208,9 @@ CORS origin. Leave `CookieDomain` empty: a parent-domain cookie would also reach
 belong to several organizations and works in one at a time: the one in `users.active_organization_id` while they are
 still a member of it, otherwise the first one they joined. Joining by invitation and `POST /v1/auth/switch-organization`
 set it. It is per user, not per session, so it follows them to every device, and switching closes their live-update
-connections into the organization they left (`docs/architecture/realtime.md`). Onboarding creates the organization and the
+connections into the organization they left (`docs/architecture/realtime.md`). A membership also holds the member's own notification
+settings (`organization_members.notifications`), so each organization keeps its own (realtime.md, "Teammates' changes
+as toasts"). Onboarding creates the organization and the
 Owner membership in one transaction, under a per-user advisory lock, so a double submit makes one organization, not
 two. A slug is a DNS label (3 to 63 lower-case letters, digits and hyphens) that is not reserved, because it becomes
 a careers subdomain. The slug never changes after onboarding: `PUT /v1/organization` (Edit settings) renames the
@@ -248,7 +251,7 @@ permissions (`RolePermissions.Summarize`), so it always says what the role allow
 
 The dashboard follows the same permissions (`apps/dashboard/src/lib/permissions.ts`). **Settings** is one sidebar item
 for anyone whose role has a settings permission; it opens the Settings menu (Organization, Team, Roles, Branding,
-Integrity, API keys and Webhooks, under `/settings/*`; email templates are on the Templates page, and their old
+Verification, API keys and Webhooks, under `/settings/*`; email templates are on the Templates page, and their old
 `/settings/email-templates` addresses redirect there), each page
 behind its permission (`settingsSections` in `apps/dashboard/src/lib/settings.ts`), and the command palette lists the
 same pages. The settings layout tells anyone who opens another page by its address that their role cannot change it.
@@ -285,6 +288,7 @@ created as well, for a role that manages keys (ADR-0011). The API stays the judg
 | `POST /invitations` | Manage the team | Invites an address with a role, built-in or custom, and a job access (`All` unless it says `HiringTeamOnly`), and emails the link. 404 when no email sender is configured. |
 | `DELETE /invitations/{invitationId}` | Manage the team | Revokes an open invitation. |
 | `GET /membership-log` | Manage the team | The latest 200 entries of the membership log. |
+| `GET /team/history`, `GET /team/last-update` | Manage the team | The Team page's change history and its Last updated, in words (`docs/architecture/change-history.md`). |
 
 `TeamPolicy` (`src/ScreenHire.Domain/Organizations`) says who may give which role, by permissions: an actor with
 Manage the team may give, take away, make, change or delete a role only when it holds nothing their own role does not.
@@ -320,7 +324,8 @@ log shows job titles and template names as they are now, and leaves out entries 
 founding Owner, whose membership onboarding creates with the organization, and an invitation accepted by someone who is
 already a member, which only uses up the invitation (its row keeps `accepted_at` and `accepted_by_user_id`). It is append-only for audit: `screenhire_app` has no
 `UPDATE` or `DELETE` on it. It holds user ids and no foreign key to `organization_members`, so a removal keeps its own
-record.
+record. The Team page's History sheet reads the change history instead, which says the same team changes in words and
+also records the founding Owner, as "created the team". Hiring teams stay in the membership log only.
 
 ### Job access
 
@@ -328,7 +333,8 @@ ADR-0015. Each job has a hiring team, `jobs.hiring_team`, the membership ids of 
 job access is `All` or `HiringTeamOnly` (`organization_members.job_access`); Owners and Admins see all jobs whatever it
 says (`JobAccessRules.SeesAllJobs`). A member on Only jobs they're on sees a job, its applications and everything under
 them, only while they are on its team; another job is a 404 like another organization's, and lists, Tasks, saved views,
-search and live updates leave it out. Existing members and new invitations start at All jobs.
+search (`GET /v1/search`, the dashboard's Ctrl K, signed-in people only, which starts from applications so a candidate
+shows only through a job the reader sees), reports (`reports.md`) and live updates leave it out. Existing members and new invitations start at All jobs.
 
 `apps/api/Endpoints/HiringTeamEndpoints.cs`, session only (a team decides who sees a job's candidates, which API keys do
 not change):
@@ -344,8 +350,8 @@ not change):
 the same insert. Every person added or removed is a membership log entry, written under the member lock.
 
 The subset rule covers job access (`TeamPolicy.MayGiveJobAccess`): a member on Only jobs they're on cannot give All jobs,
-invite with it, or give the Owner or Admin role (403 "Needs all jobs"). Manage API keys and Manage webhooks need all
-jobs (`RolePermissions.NeedsAllJobs`). A mention names only someone who can see the candidate (400 otherwise), and the
+invite with it, or give the Owner or Admin role (403 "Needs all jobs"). Manage API keys, Manage webhooks and Manage
+integrations need all jobs (`RolePermissions.NeedsAllJobs`). A mention names only someone who can see the candidate (400 otherwise), and the
 mention email is skipped for someone taken off the job since. Adding a candidate by hand to a job is 409 for a member on Only jobs they're on
 when that email is already a candidate only on jobs they cannot see.
 
@@ -377,8 +383,8 @@ Two layers, so one mistake is not a breach.
    request carries. `job_versions` and `application_events` are append-only: `screenhire_app` has no `UPDATE` or
    `DELETE` on them. `application_scorecards` (migration `AddScorecards`) is the same: a submitted scorecard is final.
 
-   The integrity tables (migration `AddIntegrityEngine`) follow the same pattern. `integrity_analyzer_runs`,
-   `integrity_signals`, `integrity_assessments` and `integrity_review_actions` are append-only for audit;
+   The verification tables (migration `AddVerificationEngine`) follow the same pattern. `verification_analyzer_runs`,
+   `verification_signals`, `verification_assessments` and `verification_review_actions` are append-only for audit;
    `submission_observations` refuses `UPDATE` but allows `DELETE`, which the retention sweep needs. The sweep walks every
    organization in turn, like `ReportOpenJobs`. `signal_network_entries` is the one cross-tenant table: row-level
    security with no policy and no grant to `screenhire_app`, so the application role cannot touch it while the Signal
@@ -405,7 +411,8 @@ Two layers, so one mistake is not a breach.
    is append-only: `screenhire_app` has no `UPDATE` or `DELETE` on it ([change-history.md](change-history.md)).
 
    Job access (migration `AddJobAccess`, ADR-0015) adds a `job_scope` policy, `AS RESTRICTIVE` and `TO screenhire_app`,
-   to `jobs` and every table under a job or an application. Restrictive policies are ANDed with `tenant_isolation`, so
+   to `jobs` and every table under a job or an application (since then, `talent_pool_entries` too, in `AddTalentPool`:
+   a member on Only jobs they're on sees the people kept in mind from their own jobs). Restrictive policies are ANDed with `tenant_isolation`, so
    they only narrow it. `jobs` shows a row when `app.job_scope` is `all` or `app.member_id` is in `hiring_team`; the
    others ask `app_sees_job` or `app_sees_application`, or their parent row. `candidates` and `change_records` keep
    tenant-only policies: a candidate is one row across jobs and is found by email when they apply again, so the API
