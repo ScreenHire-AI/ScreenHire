@@ -17,7 +17,6 @@
     <PackageReference Include="Aspire.Azure.Storage.Blobs" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
     <PackageReference Include="FluentValidation" />
-    <PackageReference Include="HtmlSanitizer" />
     <PackageReference Include="ModelContextProtocol.AspNetCore" />
   </ItemGroup>
 

@@ -2,11 +2,16 @@ using System.Collections.Frozen;
 using System.Globalization;
 using System.Net;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.RegularExpressions;
+using System.Text.Unicode;
+using AngleSharp.Dom;
+using AngleSharp.Html.Parser;
 using Fluid;
 using Fluid.Ast;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Infrastructure.Content;
 using ScreenHire.Domain.Organizations;
 
 namespace ScreenHire.Infrastructure.Email;
@@ -34,7 +39,9 @@ public sealed record EmailTemplateModel(
             "https://careers.example.com/questionnaires/sample", "Jordan", "Lee");
 }
 
-/// <summary>A template's wording: a Liquid subject and a Liquid plain-text body.</summary>
+/// <summary>
+/// A template's wording: a Liquid plain-text subject and a Liquid rich-text body (sanitized HTML, <see cref="RichText"/>).
+/// </summary>
 public sealed record EmailTemplateContent(string Subject, string Body);
 
 /// <summary>One variable a template may use, and what it holds.</summary>
@@ -44,9 +51,11 @@ public sealed record EmailTemplateVariable(string Name, string Label);
 public sealed record EmailTemplateProblem(string Field, string Message);
 
 /// <summary>
-/// Renders email templates with Fluid (Liquid, MIT). A template is a subject and a plain-text body over the variables in
-/// <see cref="Variables"/>; the email's HTML part is built from the rendered text, every character encoded, so neither
-/// a value nor the template's author can put markup in an email. ScreenHire's wording of the built-in templates is two
+/// Renders email templates with Fluid (Liquid, MIT). A template is a plain-text subject and a rich-text body over the
+/// variables in <see cref="Variables"/>. The body is sanitized HTML limited to the editor's elements, every value is
+/// HTML-encoded as it renders, and the result is sanitized again, so neither a value nor the template's author can put a
+/// script, an image or a style in an email (docs/architecture/rich-text.md). The text part is the HTML as plain text.
+/// ScreenHire's wording of the built-in templates is two
 /// embedded files each under <c>Email/Templates</c>, <c>{id}.subject.liquid</c> and <c>{id}.body.liquid</c>; an
 /// organization's wording comes from its <see cref="EmailTemplate"/> rows. Thread-safe.
 /// </summary>
@@ -84,13 +93,18 @@ public sealed partial class EmailTemplates
     private static readonly FrozenSet<string> AllowedFilters =
         FrozenSet.Create(StringComparer.Ordinal, "capitalize", "default", "downcase", "strip", "truncate", "upcase");
 
+    // Values are HTML-encoded in the body. Every Unicode range is let through, so names read as they are written.
+    private static readonly HtmlEncoder BodyEncoder = HtmlEncoder.Create(UnicodeRanges.All);
+
+    private static readonly HtmlParser HtmlParser = new();
+
     private readonly FluidParser parser = new();
     private readonly TemplateOptions options = new() { MaxSteps = MaxSteps, StrictFilters = true };
     private readonly FrozenDictionary<string, EmailTemplateContent> defaults;
 
     public EmailTemplates() =>
         defaults = EmailTemplateIds.BuiltIn.ToFrozenDictionary(
-            id => id, id => new EmailTemplateContent(Read($"{id}.subject"), Read($"{id}.body")), StringComparer.Ordinal);
+            id => id, id => new EmailTemplateContent(Read($"{id}.subject").Trim(), RichText.Sanitize(Read($"{id}.body"))), StringComparer.Ordinal);
 
     /// <summary>ScreenHire's wording of the built-in template <paramref name="builtInId"/>.</summary>
     public EmailTemplateContent Default(string builtInId) =>
@@ -110,7 +124,16 @@ public sealed partial class EmailTemplates
         var allowed = VariablesFor(templateId).Select(v => v.Name).ToHashSet(StringComparer.Ordinal);
         var problems = new List<EmailTemplateProblem>();
         var used = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var (field, text) in new[] { ("subject", content.Subject), ("body", content.Body) })
+        var body = RichText.Sanitize(content.Body);
+        if (LinkAddresses().Matches(body).Any(link => HoldsLiquid(WebUtility.HtmlDecode(link.Groups[1].Value)))
+            || TextAddresses(body).Any(HoldsLiquid))
+        {
+            // A candidate's details never go to another site inside a link's address, written as a link or as an address
+            // in the text that Finish would turn into one.
+            problems.Add(new("body", "A link's address cannot hold a variable."));
+        }
+
+        foreach (var (field, text) in new[] { ("subject", content.Subject), ("body", Prepare(body)) })
         {
             if (!parser.TryParse(text, out var template, out var error))
             {
@@ -188,13 +211,24 @@ public sealed partial class EmailTemplates
                 : ApplicationEmail.MaxSubjectLength;
             subject = subject[..end].TrimEnd();
         }
-        var text = Parse(content.Body).Render(context, NullEncoder.Default).Trim().ReplaceLineEndings("\n");
+        var body = RichText.Sanitize(content.Body);
+        var rendered = Parse(Prepare(body)).Render(context, BodyEncoder);
         if (templateId == EmailTemplateIds.ApplicationRejected)
         {
-            text += "\n\n" + AutomatedDecisionNotice(model.OrganizationName);
+            rendered += $"<p>{WebUtility.HtmlEncode(AutomatedDecisionNotice(model.OrganizationName))}</p>";
         }
 
-        return new EmailMessage(to, subject, text.ReplaceLineEndings() + Environment.NewLine, ToHtml(text, header));
+        // Only the addresses the template's author wrote, and the questionnaire link, become links: a value a candidate
+        // typed (a name that is a web address) stays text.
+        var linkable = TextAddresses(body).Where(address => !HoldsLiquid(address)).ToHashSet(StringComparer.Ordinal);
+        if (!string.IsNullOrEmpty(model.QuestionnaireLink))
+        {
+            linkable.Add(model.QuestionnaireLink);
+        }
+
+        var html = RichText.Sanitize(Finish(rendered, linkable));
+        var text = RichText.ToPlainText(html);
+        return new EmailMessage(to, subject, text.ReplaceLineEndings() + Environment.NewLine, ToHtml(html, header));
     }
 
     /// <summary>
@@ -207,38 +241,84 @@ public sealed partial class EmailTemplates
         + $"contact the hiring team at {organizationName} and a person will review your application.";
 
     /// <summary>
-    /// The HTML part: a paragraph for each block of text between blank lines, a line break for each single newline, and
-    /// web addresses as links that show their own address. Everything else is encoded text. <paramref name="header"/>,
-    /// when given, comes first: the only image an email carries, written by ScreenHire, never by a template.
+    /// The HTML part: the rendered body in a plain page, after <paramref name="header"/> when given: the only image an
+    /// email carries, written by ScreenHire and added after the body is sanitized, never by a template. Email clients
+    /// ignore stylesheets and CSS variables, so the few styles are inline and literal: the Warm Grid --card and
+    /// --foreground tokens (packages/ui/src/tokens.css), light.
     /// </summary>
-    internal static string ToHtml(string text, EmailHeader? header = null)
+    internal static string ToHtml(string content, EmailHeader? header = null)
     {
-        // Email clients ignore CSS variables, so the colours are literal: the Warm Grid --card and --foreground tokens
-        // (packages/ui/src/tokens.css), light theme.
         var html = new StringBuilder("<!doctype html>\n<html lang=\"en\">\n<body style=\"margin: 16px; background: #ffffff; color: #1c1b19; font-family: sans-serif; line-height: 1.5;\">\n");
         if (header is not null)
         {
             AppendHeader(html, header);
         }
 
-        foreach (var paragraph in BlankLines().Split(text).Where(p => p.Trim().Length > 0))
+        return html.Append(content).Append("\n</body>\n</html>\n").ToString();
+    }
+
+    /// <summary>
+    /// The body as Fluid reads it. The stored body is HTML, so inside <c>{{ ... }}</c> and <c>{% ... %}</c> a comparison
+    /// is entity-encoded (<c>&amp;gt;</c>) and formatting can cover part of a tag; Liquid sees the plain characters.
+    /// </summary>
+    private static string Prepare(string html) =>
+        LiquidSpans().Replace(html, span => WebUtility.HtmlDecode(Markup().Replace(span.Value, "")).Replace('\u00a0', ' '));
+
+    private static bool HoldsLiquid(string address) =>
+        address.Contains("{{", StringComparison.Ordinal) || address.Contains("{%", StringComparison.Ordinal)
+        || address.Contains("%7B%7B", StringComparison.OrdinalIgnoreCase) || address.Contains("%7B%25", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>The web addresses in the text of <paramref name="html"/>, outside its links' attributes.</summary>
+    private static List<string> TextAddresses(string html)
+    {
+        var body = HtmlParser.ParseDocument("").Body!;
+        body.InnerHtml = html;
+        return body.Descendants<IText>().SelectMany(text => WebAddress().Matches(text.Data)).Select(match => match.Value).ToList();
+    }
+
+    /// <summary>
+    /// The rendered body finished for sending: a line break for each newline a value brought (the stored body has none
+    /// inside its blocks), and the web addresses in <paramref name="linkable"/> as links that show their own address, such
+    /// as <c>{{ questionnaireLink }}</c>.
+    /// </summary>
+    private static string Finish(string rendered, HashSet<string> linkable)
+    {
+        var body = HtmlParser.ParseDocument("").Body!;
+        body.InnerHtml = rendered;
+        var document = body.Owner!;
+        foreach (var text in body.Descendants<IText>().ToList())
         {
-            html.Append("<p>");
-            var lines = paragraph.Trim('\n').Split('\n');
+            var inLink = text.Ancestors<IElement>().Any(element => element.LocalName == "a");
+            var parts = new List<INode>();
+            var lines = text.Data.ReplaceLineEndings("\n").Split('\n');
             for (var i = 0; i < lines.Length; i++)
             {
                 if (i > 0)
                 {
-                    html.Append("<br>\n");
+                    parts.Add(document.CreateElement("br"));
                 }
 
-                AppendWithLinks(html, lines[i]);
+                var start = 0;
+                foreach (var address in inLink ? [] : WebAddress().Matches(lines[i]).Where(match => linkable.Contains(match.Value)).ToList())
+                {
+                    parts.Add(document.CreateTextNode(lines[i][start..address.Index]));
+                    var link = document.CreateElement("a");
+                    link.SetAttribute("href", address.Value);
+                    link.TextContent = address.Value;
+                    parts.Add(link);
+                    start = address.Index + address.Length;
+                }
+
+                parts.Add(document.CreateTextNode(lines[i][start..]));
             }
 
-            html.Append("</p>\n");
+            if (parts.Count > 1)
+            {
+                text.Replace([.. parts]);
+            }
         }
 
-        return html.Append("</body>\n</html>\n").ToString();
+        return body.InnerHtml;
     }
 
     // A table, because some email clients ignore a div's background. The band is the second colour with white or ink
@@ -265,20 +345,6 @@ public sealed partial class EmailTemplates
         html.Append("</td></tr>\n</table>\n");
     }
 
-    private static void AppendWithLinks(StringBuilder html, string line)
-    {
-        var start = 0;
-        foreach (Match link in WebAddress().Matches(line))
-        {
-            html.Append(WebUtility.HtmlEncode(line[start..link.Index]));
-            var address = WebUtility.HtmlEncode(link.Value);
-            html.Append("<a href=\"").Append(address).Append("\">").Append(address).Append("</a>");
-            start = link.Index + link.Length;
-        }
-
-        html.Append(WebUtility.HtmlEncode(line[start..]));
-    }
-
     private IFluidTemplate Parse(string text) =>
         parser.TryParse(text, out var template, out var error)
             ? template
@@ -292,8 +358,14 @@ public sealed partial class EmailTemplates
         return reader.ReadToEnd();
     }
 
-    [GeneratedRegex(@"\n[ \t]*\n")]
-    private static partial Regex BlankLines();
+    [GeneratedRegex(@"\{\{.*?\}\}|\{%.*?%\}", RegexOptions.Singleline)]
+    private static partial Regex LiquidSpans();
+
+    [GeneratedRegex(@"<[^>]*>")]
+    private static partial Regex Markup();
+
+    [GeneratedRegex(@"href=""([^""]*)""")]
+    private static partial Regex LinkAddresses();
 
     // An https or http address up to the next space, leaving off punctuation that usually ends the sentence around it.
     [GeneratedRegex(@"https?://[^\s<>""]+[^\s<>"".,;:!?)\]']")]
@@ -363,6 +435,10 @@ public sealed partial class EmailTemplates
         protected override Statement VisitFromStatement(FromStatement fromStatement) => Refuse(fromStatement, "from");
 
         protected override Statement VisitLiquidStatement(LiquidStatement liquidStatement) => Refuse(liquidStatement, "liquid");
+
+        // Raw output is the template's own text, unencoded: in an HTML body it could carry markup for the sanitizer to
+        // catch, and an email never needs it.
+        protected override Statement VisitRawStatement(RawStatement rawStatement) => Refuse(rawStatement, "raw");
 
         public override Statement VisitOtherStatement(Statement statement) => Refuse(statement, statement.GetType().Name);
 

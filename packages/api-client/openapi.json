@@ -11114,7 +11114,7 @@
             "format": "date-time"
           }
         },
-        "description": "A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\r\nversion's workflow, and every field left out here takes the template's posting default. Without a slug, one is made\r\nfrom the title."
+        "description": "A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\r\nversion's workflow, and every field left out here takes the template's posting default. Without a slug, one is made\r\nfrom the title. The description is rich text as HTML, kept to the dashboard editor's elements (p, br, strong, em, h2,\r\nh3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text\r\nworks too: a blank line starts a paragraph and lines starting with \"- \" make a list."
       },
       "CreateRoleRequest": {
         "required": [
@@ -16393,7 +16393,7 @@
             "format": "date-time"
           }
         },
-        "description": "Replaces a job's posting content. A published job keeps its slug; a closed job cannot change."
+        "description": "Replaces a job's posting content. A published job keeps its slug; a closed job cannot change. The description is rich\r\ntext, as on CreateJobRequest."
       },
       "UpdateJobWorkflowRequest": {
         "required": [

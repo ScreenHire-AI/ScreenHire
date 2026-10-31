@@ -18,6 +18,7 @@ using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Infrastructure.Content;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Integrity;
 using ScreenHire.Infrastructure.Persistence;
@@ -647,8 +648,9 @@ internal sealed partial class DevelopmentDemo(
                 {
                     var template = EmailTemplate.CreateCustom(
                         step.OrganizationId, InterviewEmailName, "Interview for {{ jobTitle }}",
-                        "Hi {{ firstName }},\n\nThank you for applying for {{ jobTitle }}. We would like to invite you to an interview. " +
-                        "Someone from our team will contact you within two working days to find a time that suits you.\n\n{{ organizationName }}",
+                        RichText.Sanitize(
+                            "Hi {{ firstName }},\n\nThank you for applying for {{ jobTitle }}. We would like to invite you to an interview. " +
+                            "Someone from our team will contact you within two working days to find a time that suits you.\n\n{{ organizationName }}"),
                         step.Now);
                     db.EmailTemplates.Add(template);
                     await db.SaveChangesAsync(cancellationToken);
@@ -664,9 +666,10 @@ internal sealed partial class DevelopmentDemo(
                 {
                     db.EmailTemplates.Add(EmailTemplate.Reword(
                         step.OrganizationId, EmailTemplateIds.ApplicationRejected, RejectionEmailSubject,
-                        "Hi {{ firstName }},\n\nThank you for your time applying for {{ jobTitle }} at {{ organizationName }}. We will not be " +
-                        "taking your application further this time.\n\nThe reason: {{ reason }}\n\nWe wish you the best with your search.\n\n" +
-                        "{{ organizationName }}",
+                        RichText.Sanitize(
+                            "Hi {{ firstName }},\n\nThank you for your time applying for {{ jobTitle }} at {{ organizationName }}. We will not be " +
+                            "taking your application further this time.\n\nThe reason: {{ reason }}\n\nWe wish you the best with your search.\n\n" +
+                            "{{ organizationName }}"),
                         step.Now));
                     await db.SaveChangesAsync(cancellationToken);
                 }
