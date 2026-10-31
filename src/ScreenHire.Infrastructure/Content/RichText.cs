@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using AngleSharp.Dom;
@@ -29,6 +30,9 @@ public static partial class RichText
         ["b"] = "strong", ["i"] = "em", ["h1"] = "h2", ["h4"] = "h3", ["h5"] = "h3", ["h6"] = "h3",
     };
 
+    /// <summary>Deeper than anything the editor or a pasted document makes, far short of what overflows the stack.</summary>
+    private const int MaxDepth = 100;
+
     private static readonly HashSet<string> AllowedSchemes = new(StringComparer.OrdinalIgnoreCase) { "http", "https", "mailto" };
 
     private static readonly HtmlSanitizer Sanitizer = Create();
@@ -49,7 +53,16 @@ public static partial class RichText
             return "";
         }
 
-        var body = Fragment(Sanitizer.Sanitize(input.ReplaceLineEndings("\n")));
+        var text = input.ReplaceLineEndings("\n");
+        if (Deepest(Fragment(text)) > MaxDepth)
+        {
+            // HtmlSanitizer and AngleSharp walk the tree recursively, and markup nested thousands deep (a request may
+            // carry 50,000 characters) overflows the stack, which no catch can stop. Nothing the editor or a pasted
+            // document makes comes close, so such input keeps its words and loses its markup.
+            text = WebUtility.HtmlEncode(string.Join(' ', Texts(Fragment(text))));
+        }
+
+        var body = Fragment(Sanitizer.Sanitize(text));
         Rename(body);
         body = Fragment(Structure(body));
         Clean(body);
@@ -58,7 +71,7 @@ public static partial class RichText
 
     /// <summary>Whether <paramref name="html"/> has no text at all, only markup and whitespace.</summary>
     public static bool IsBlank(string? html) =>
-        string.IsNullOrWhiteSpace(html) || string.IsNullOrWhiteSpace(Fragment(html).TextContent.Replace('\u00a0', ' '));
+        string.IsNullOrWhiteSpace(html) || Texts(Fragment(html)).Count == 0;
 
     /// <summary>
     /// Sanitized HTML as plain text, for an email's text part: a blank line between blocks, a line break for each
@@ -146,6 +159,49 @@ public static partial class RichText
         var body = document.Body!;
         body.InnerHtml = html;
         return body;
+    }
+
+    /// <summary>
+    /// How deep <paramref name="root"/>'s elements nest, counted without recursion. The canonical form is at most six
+    /// deep (a link in italic in bold in a paragraph in a list item in a list).
+    /// </summary>
+    private static int Deepest(INode root)
+    {
+        var deepest = 0;
+        var pending = new Stack<(INode Node, int Depth)>();
+        pending.Push((root, 0));
+        while (pending.TryPop(out var item))
+        {
+            deepest = Math.Max(deepest, item.Depth);
+            foreach (var child in item.Node.ChildNodes)
+            {
+                pending.Push((child, item.Depth + 1));
+            }
+        }
+
+        return deepest;
+    }
+
+    /// <summary>The text of <paramref name="root"/> in document order, without recursion.</summary>
+    private static List<string> Texts(INode root)
+    {
+        var texts = new List<string>();
+        var pending = new Stack<INode>();
+        pending.Push(root);
+        while (pending.TryPop(out var node))
+        {
+            if (node is IText text && !string.IsNullOrWhiteSpace(text.Data))
+            {
+                texts.Add(text.Data.Trim());
+            }
+
+            for (var i = node.ChildNodes.Length - 1; i >= 0; i--)
+            {
+                pending.Push(node.ChildNodes[i]);
+            }
+        }
+
+        return texts;
     }
 
     private static void Rename(IElement root)

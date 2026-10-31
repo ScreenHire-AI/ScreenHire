@@ -153,6 +153,7 @@
             data-toolbar-item
             tabindex={current === index ? 0 : -1}
             aria-label={item.label}
+            class="pointer-coarse:min-w-11"
             pressed={active[item.format]}
             onPressedChange={() => item.run()}
           >
@@ -178,6 +179,7 @@
                 data-toolbar-item
                 tabindex={current === formats.length ? 0 : -1}
                 aria-label="Link"
+                class="pointer-coarse:min-w-11"
                 pressed={active.link}
               >
                 <LinkIcon aria-hidden="true" />

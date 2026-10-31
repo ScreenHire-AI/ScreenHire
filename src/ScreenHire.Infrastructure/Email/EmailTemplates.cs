@@ -122,9 +122,11 @@ public sealed partial class EmailTemplates
         var problems = new List<EmailTemplateProblem>();
         var used = new HashSet<string>(StringComparer.Ordinal);
         var body = RichText.Sanitize(content.Body);
-        if (LinkAddresses().Matches(body).Any(link => HoldsLiquid(WebUtility.HtmlDecode(link.Groups[1].Value))))
+        if (LinkAddresses().Matches(body).Any(link => HoldsLiquid(WebUtility.HtmlDecode(link.Groups[1].Value)))
+            || TextAddresses(body).Any(HoldsLiquid))
         {
-            // A candidate's details never go to another site inside a link's address.
+            // A candidate's details never go to another site inside a link's address, written as a link or as an address
+            // in the text that Finish would turn into one.
             problems.Add(new("body", "A link's address cannot hold a variable."));
         }
 
@@ -203,13 +205,22 @@ public sealed partial class EmailTemplates
                 : ApplicationEmail.MaxSubjectLength;
             subject = subject[..end].TrimEnd();
         }
-        var rendered = Parse(Prepare(RichText.Sanitize(content.Body))).Render(context, BodyEncoder);
+        var body = RichText.Sanitize(content.Body);
+        var rendered = Parse(Prepare(body)).Render(context, BodyEncoder);
         if (templateId == EmailTemplateIds.ApplicationRejected)
         {
             rendered += $"<p>{WebUtility.HtmlEncode(AutomatedDecisionNotice(model.OrganizationName))}</p>";
         }
 
-        var html = RichText.Sanitize(Finish(rendered));
+        // Only the addresses the template's author wrote, and the questionnaire link, become links: a value a candidate
+        // typed (a name that is a web address) stays text.
+        var linkable = TextAddresses(body).Where(address => !HoldsLiquid(address)).ToHashSet(StringComparer.Ordinal);
+        if (!string.IsNullOrEmpty(model.QuestionnaireLink))
+        {
+            linkable.Add(model.QuestionnaireLink);
+        }
+
+        var html = RichText.Sanitize(Finish(rendered, linkable));
         var text = RichText.ToPlainText(html);
         return new EmailMessage(to, subject, text.ReplaceLineEndings() + Environment.NewLine, ToHtml(html));
     }
@@ -242,12 +253,20 @@ public sealed partial class EmailTemplates
         address.Contains("{{", StringComparison.Ordinal) || address.Contains("{%", StringComparison.Ordinal)
         || address.Contains("%7B%7B", StringComparison.OrdinalIgnoreCase) || address.Contains("%7B%25", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>The web addresses in the text of <paramref name="html"/>, outside its links' attributes.</summary>
+    private static List<string> TextAddresses(string html)
+    {
+        var body = HtmlParser.ParseDocument("").Body!;
+        body.InnerHtml = html;
+        return body.Descendants<IText>().SelectMany(text => WebAddress().Matches(text.Data)).Select(match => match.Value).ToList();
+    }
+
     /// <summary>
     /// The rendered body finished for sending: a line break for each newline a value brought (the stored body has none
-    /// inside its blocks), and web addresses in the text as links that show their own address, such as
-    /// <c>{{ questionnaireLink }}</c>.
+    /// inside its blocks), and the web addresses in <paramref name="linkable"/> as links that show their own address, such
+    /// as <c>{{ questionnaireLink }}</c>.
     /// </summary>
-    private static string Finish(string rendered)
+    private static string Finish(string rendered, HashSet<string> linkable)
     {
         var body = HtmlParser.ParseDocument("").Body!;
         body.InnerHtml = rendered;
@@ -265,7 +284,7 @@ public sealed partial class EmailTemplates
                 }
 
                 var start = 0;
-                foreach (var address in inLink ? [] : WebAddress().Matches(lines[i]).ToList())
+                foreach (var address in inLink ? [] : WebAddress().Matches(lines[i]).Where(match => linkable.Contains(match.Value)).ToList())
                 {
                     parts.Add(document.CreateTextNode(lines[i][start..address.Index]));
                     var link = document.CreateElement("a");
