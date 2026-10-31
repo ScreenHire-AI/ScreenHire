@@ -167,6 +167,46 @@ public sealed class ScorecardRequestTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_library_scorecard_another_stage_holds_asks_the_library_s_questions_as_the_sheet_shows_them()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var culture = await CreateScorecardAsync(owner, "Culture add", Rating5("values"));
+        var job = await JobNamingAsync(owner, "Platform Engineer", "screening", culture);
+        var application = await MoveToInterviewAsync(owner, job);
+        (await owner.PutAsync($"/v1/scorecard-templates/{culture}", new JsonObject { ["name"] = "Culture add", ["questions"] = Questions(Rating5("teamwork")) }))
+            .Expect(HttpStatusCode.OK);
+
+        // Only the current stage's own copy stands in for the library: Screening's copy is not where the candidate is.
+        (await owner.PostAsync(Scorecards(application), Library(culture, "Yes", Answer("values", rating: 4)))).Expect(HttpStatusCode.BadRequest);
+        var given = (await owner.PostAsync(Scorecards(application), Library(culture, "Yes", Answer("teamwork", rating: 4)))).Expect(HttpStatusCode.Created);
+
+        given.Text("stageId").Should().Be("interview");
+        given.Text("answers.0.questionId").Should().Be("teamwork");
+    }
+
+    [Fact]
+    public async Task A_reviewer_who_already_gave_the_stage_s_scorecard_is_not_assigned_a_review_nobody_could_finish()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var teammate = await fixture.InviteAndJoinAsync(owner, "Recruiter");
+        var job = await JobNamingAsync(owner, "Platform Engineer", "interview", "interview", new JsonObject
+        {
+            ["id"] = "review",
+            ["name"] = "Ask for a review",
+            ["trigger"] = new JsonObject { ["type"] = "Manual" },
+            ["actions"] = new JsonArray(new JsonObject { ["type"] = "AssignReviewer", ["assigneeUserId"] = teammate.UserId }),
+        });
+        var application = await MoveToInterviewAsync(owner, job);
+        (await teammate.PostAsync(Scorecards(application), Submission("interview", "Yes", InterviewRatings(4, 4, 4)))).Expect(HttpStatusCode.Created);
+
+        (await owner.PostAsync($"/v1/applications/{application}/automations/review/run")).Expect(HttpStatusCode.Accepted);
+
+        var run = await AutomationSamples.WaitForRunAsync(owner, application, "review", "Completed");
+        run.GetProperty("actions")[0].GetProperty("status").GetString().Should().Be("Skipped");
+        (await OpenTasksAsync(owner, application)).Should().BeEmpty("a review is done with a scorecard, and theirs for this stage is in");
+    }
+
+    [Fact]
     public async Task Only_a_teammate_who_sees_the_job_and_fills_in_scorecards_is_asked_once_for_a_scorecard_in_the_library()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
