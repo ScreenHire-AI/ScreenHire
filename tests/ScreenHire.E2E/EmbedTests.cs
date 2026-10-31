@@ -32,7 +32,7 @@ public sealed class EmbedTests(E2EFixture fixture) : BrowserTest(fixture)
         await SignInAsync(scene.Email);
 
         // The owner lets the company's site embed the careers page, and takes the embed code from the page.
-        await GoToAsync("dashboard", "/settings/organization");
+        await GoToAsync("dashboard", "/settings/careers-site");
         await Page.GetByLabel("New site").FillAsync(partner);
         await Page.GetByRole(AriaRole.Button, new() { Name = "Add site" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Sites that can embed the careers page" })).ToContainTextAsync(partner);

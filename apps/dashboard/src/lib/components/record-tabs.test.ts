@@ -11,7 +11,7 @@ describe('record tabs', () => {
     expect(screen.getByRole('tab', { name: 'Candidates 24' })).toHaveAttribute('aria-selected', 'true');
     // The count reads 7/8 on screen and in words for screen readers. A browser puts a space before the badge, which jsdom
     // does not; the end-to-end tests pin the browser's name.
-    const distribution = screen.getByRole('tab', { name: /^Distribution ?posted on 7 of 8 boards$/ });
+    const distribution = screen.getByRole('tab', { name: /^Postings ?posted on 7 of 8 boards$/ });
     expect(distribution).toHaveTextContent('7/8');
     // Every count is the same grey: a state that needs a look is the record's status, not a coloured tab (E2, W7).
     expect(screen.getByRole('tab', { name: 'Verification 5' }).querySelector('[data-slot="badge"]')).toHaveClass('bg-secondary');

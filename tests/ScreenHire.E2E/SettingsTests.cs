@@ -33,7 +33,7 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(main.GetByRole(AriaRole.Link, new() { Name = "Settings" })).ToHaveCountAsync(1);
         await Expect(main.GetByRole(AriaRole.Link, new() { Name = "Team" })).ToHaveCountAsync(0);
         await main.GetByRole(AriaRole.Link, new() { Name = "Settings" }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Organization");
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("General");
         var menu = Page.GetByRole(AriaRole.Navigation, new() { Name = "Settings" });
         await menu.GetByRole(AriaRole.Link, new() { Name = "Team" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/team"));
@@ -357,7 +357,8 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
 
         (string Path, string Title)[] pages =
         [
-            ("/settings/organization", "Organization"),
+            ("/settings/organization", "General"),
+            ("/settings/careers-site", "Careers site"),
             ("/settings/team", "Team"),
             ("/settings/roles", "Roles"),
             ("/settings/roles/compare", "Compare roles"),

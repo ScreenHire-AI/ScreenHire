@@ -102,11 +102,12 @@
           {#if href}
             <!-- The row is the link to the work (the whole row is its target), so the candidate's name is plain text. -->
             <a href={href(task)} class="min-w-0 max-w-measure font-semibold break-words text-foreground no-underline after:absolute after:inset-0 hover:underline">{task.note}</a>
-            {#if showCandidate && task.candidateName}<span class="min-w-0 truncate font-semibold">{task.candidateName}</span>{/if}
+            <!-- What to do is the row's one semibold line; whose task it is reads as body text after it (L1). -->
+            {#if showCandidate && task.candidateName}<span class="min-w-0 truncate">{task.candidateName}</span>{/if}
           {:else}
             <p class={['min-w-0 max-w-measure font-semibold break-words', undo && 'text-muted-foreground line-through']}>{task.note}</p>
             {#if showCandidate && task.candidateName}
-              <p class="flex min-w-0"><TruncatedText text={task.candidateName} href={`/applications/${task.applicationId}`} class="font-semibold" /></p>
+              <p class="flex min-w-0"><TruncatedText text={task.candidateName} href={`/applications/${task.applicationId}`} /></p>
             {/if}
           {/if}
           <div class="flex flex-wrap items-center gap-2">

@@ -21,7 +21,8 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
-  import Fact from '#lib/components/fact.svelte';
+  import SummaryItem from '#lib/components/summary-item.svelte';
+  import SummaryList from '#lib/components/summary-list.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
@@ -188,13 +189,6 @@
         </MoreMenu>
       {/if}
     {/snippet}
-    {#snippet facts()}
-      {#if connected && settings && current?.workspace}
-        <!-- The row holds the bot token, so it has no History (T6, ADR-0016). -->
-        <Fact label="Workspace"><TruncatedText text={current.workspace.teamName} /></Fact>
-        <Fact label="Added"><RelativeTime at={settings.connectedAt} />{settings.connectedBy ? ` by ${settings.connectedBy}` : ''}</Fact>
-      {/if}
-    {/snippet}
   </HeaderBand>
 
   <SettingsMenu>
@@ -239,6 +233,17 @@
             {slackProblems[settings.problem]}
             {#if settings.problemAt}Since <RelativeTime at={settings.problemAt} />.{/if}
           </Notice>
+        {/if}
+
+        <!-- Which workspace and who added it, in the work area: a settings page's header stays one row, so moving between
+             settings pages never shifts the menu (S8). The row holds the bot token, so it has no History (T6, ADR-0016). -->
+        {#if current.workspace}
+          <Panel title="Workspace">
+            <SummaryList>
+              <SummaryItem label="Workspace"><TruncatedText text={current.workspace.teamName} /></SummaryItem>
+              <SummaryItem label="Added"><RelativeTime at={settings.connectedAt} />{settings.connectedBy ? ` by ${settings.connectedBy}` : ''}</SummaryItem>
+            </SummaryList>
+          </Panel>
         {/if}
 
         <form method="POST" use:enhance novalidate aria-label="Channel">

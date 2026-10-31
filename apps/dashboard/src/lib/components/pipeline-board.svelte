@@ -212,6 +212,13 @@
               </ul>
             </div>
           {/each}
+          <!-- Kept in mind is a way out of the job too (talent-pool.md), so Closed's rows add up to its count. It takes no
+               drop: keeping someone in mind needs their permission and a note, which the candidate's menu asks for. -->
+          {#if applications.length > stillIn.length}
+            <span data-kept-in-mind class="flex min-w-0 items-center justify-between gap-2 px-2 py-1.5 text-body text-muted-foreground">
+              Kept in mind<span class="tabular-nums">{applications.length - stillIn.length}</span>
+            </span>
+          {/if}
         </div>
       </section>
     {/if}

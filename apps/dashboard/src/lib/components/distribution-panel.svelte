@@ -76,7 +76,7 @@
 </script>
 
 <!-- The tab's count says how many boards the job is on, so the panel's title has none (W4). -->
-<Panel title="Distribution" flush footer={failure ? messages : undefined}>
+<Panel title="Postings" flush footer={failure ? messages : undefined}>
   {#if rows.length === 0}
     <p class="px-4.5 py-4 text-muted-foreground max-md:px-4">No job boards are set up.</p>
   {:else}

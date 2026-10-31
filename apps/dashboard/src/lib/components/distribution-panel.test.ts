@@ -49,7 +49,7 @@ describe('distribution panel', () => {
     // Waiting on the board is grey: nobody needs to act (T3).
     expect(item('sandbox').querySelector('[data-status-icon]')).toHaveAttribute('data-status-icon', 'clock-4');
     expect(item('sandbox').querySelector('[data-status]')).toHaveAttribute('data-status', 'neutral');
-    expect(screen.getByRole('region', { name: 'Distribution' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Postings' })).toBeInTheDocument();
     expect(item('adzuna')).toHaveTextContent('this board never confirms when a job shows');
   });
 

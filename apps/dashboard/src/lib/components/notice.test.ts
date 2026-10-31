@@ -8,13 +8,13 @@ const words = (text: string) => createRawSnippet(() => ({ render: () => `<span>$
 
 describe('notice', () => {
   it('says what is wrong in words, in the soft verify colour, with the problem icon and a link to the fix', async () => {
-    render(Notice, { props: { href: '#distribution', link: 'Fix on Distribution', children: words('Adzuna refused this job&#39;s posting.') } });
+    render(Notice, { props: { href: '#postings', link: 'Fix on Postings', children: words('Adzuna refused this job&#39;s posting.') } });
 
     const notice = screen.getByRole('status');
     expect(notice).toHaveTextContent("Adzuna refused this job's posting.");
     expect(notice).toHaveClass('bg-status-verify-soft', 'text-status-verify', 'w-full');
     expect(notice.querySelector('[data-problem-icon]')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Fix on Distribution' })).toHaveAttribute('href', '#distribution');
+    expect(screen.getByRole('link', { name: 'Fix on Postings' })).toHaveAttribute('href', '#postings');
     await expectNoAxeViolations(document.body);
   });
 

@@ -204,7 +204,7 @@ tenant host, a path that already starts with `/{tenant}` (a path-style link) get
 
 **Pages.** A questionnaire's named sections (`sections` on the hiring definition's questionnaire, workflow-engine.md §7)
 are its pages, one each, in order. Without sections the questions split into pages of the organization's questions per
-page (Settings > Organization, 1 to 50, default 8; `questionsPerPage` on the public form). One function,
+page (Settings > Careers site, 1 to 50, default 8; `questionsPerPage` on the public form). One function,
 `questionPages` in `packages/ui/src/questions/model.ts`, pages the apply form, the follow-up page and the dashboard's
 preview, so the preview is the form. The resume stays on the details step, and a section left empty by that is
 dropped. Steps are `details`, `page-1` to `page-N` and `review`; each page's heading is its section's name

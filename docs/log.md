@@ -2,6 +2,18 @@
 
 ## 2026-10-31
 
+**Owner review of the second workflow's build.** Settings has three named groups (Organization, Hiring, Integrations);
+Organization's page is General, and a new Careers site page holds the careers address, the apply form's questions per
+page and the sites that may embed it. The Talent pool settings page is gone: everyone keeps 12 months until the owner's
+retention decision lands. Every settings header is one row, so moving between them never shifts the menu (S8); Slack's
+workspace facts moved into a panel. A job's Distribution tab is Postings, and its old address still opens it. The
+board's Closed column counts a candidate kept in mind in a row of its own. On My tasks the candidate's name is body
+weight. The owner's other decisions (saved candidates, one candidate across jobs, saved views, the candidate header,
+reports, SendGrid through the Azure Marketplace, calendar scheduling on Google and Microsoft APIs, the MCP server seeing
+verification results) go to the next workflow.
+
+## 2026-10-31
+
 **Integrity is called Verification everywhere** ([ADR-0019](adr/0019-rename-integrity-to-verification.md)). The
 integrity engine's doc is now [verification engine](architecture/verification-engine.md), and the
 `integrity-guardrails` agent is `verification-guardrails`. Code, API routes, the `verification.assessed` webhook event,
