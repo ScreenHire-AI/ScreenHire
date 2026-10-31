@@ -127,7 +127,9 @@ There is no reset between tests and no Respawn. Instead:
 
 - **Tests that write data create their own organization** with `fixture.CreateOrganizationAsync(...)`
   ([`TestData`](../../tests/ScreenHire.Testing/TestData.cs)), which gives it a unique slug, and touch only that
-  organization's rows. `TestData.NewJob(organization, slug)` builds a draft job with defaults. Tests sharing one
+  organization's rows. `TestData.NewJob(organization, slug)` builds a draft job with defaults, and
+  `fixture.AddApplicationHistoryAsync(...)` adds an application with a past submission and dated moves (timeline
+  entries cannot change once written, so history is written already dated; `ReportsTests` uses it). Tests sharing one
   AppHost therefore never see each other's data, in any order or in parallel.
 - **The seeded demo organization (`brightwater`) is read-only.** Assert on it (the end-to-end journeys do), never
   change it: other tests count its jobs.

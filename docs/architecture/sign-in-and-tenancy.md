@@ -328,7 +328,7 @@ ADR-0015. Each job has a hiring team, `jobs.hiring_team`, the membership ids of 
 job access is `All` or `HiringTeamOnly` (`organization_members.job_access`); Owners and Admins see all jobs whatever it
 says (`JobAccessRules.SeesAllJobs`). A member on Only jobs they're on sees a job, its applications and everything under
 them, only while they are on its team; another job is a 404 like another organization's, and lists, Tasks, saved views,
-search and live updates leave it out. Existing members and new invitations start at All jobs.
+search, reports (`reports.md`) and live updates leave it out. Existing members and new invitations start at All jobs.
 
 `apps/api/Endpoints/HiringTeamEndpoints.cs`, session only (a team decides who sees a job's candidates, which API keys do
 not change):

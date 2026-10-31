@@ -31,6 +31,7 @@ What comes next, in order, is the [roadmap](roadmap.md).
 | API access | Organization API keys on the hiring API (jobs, applications, candidates, templates): read or read and write, shown once, a per-key rate limit, revocable ([ADR-0011](adr/0011-api-keys-for-integrators.md)) | #37 |
 | MCP server | A team's AI assistant at `/v1/mcp`, signed in with an API key: find jobs and candidates, read an application with the candidate's words marked, add notes, tags and tasks, move a candidate to a stage; Read keys see only the reads; no integrity output ([MCP server](architecture/mcp-server.md)) | the MCP server task |
 | Hiring | Jobs with versions, hiring templates (system and your own), candidates, applications, the pipeline | #9 |
+| Reports | A Reports page for every member, over a date range and chosen jobs: the hiring funnel by stage kind with the share that moved on, median time to hire per job and overall, applications and hires by source; each chart has a table view; job access narrows the numbers; no verification data ([Reports](architecture/reports.md)) | the reports task |
 | Workflows | Automations with guardrails (no integrity-driven rejection), simulate and validate, transactional email, signed webhooks | #10 |
 | Webhook subscriptions | Organization endpoints for six events, a secret per endpoint (shown once, rotatable), signed deliveries with retries and backoff, a delivery log, replay, automatic disabling | #36 |
 | Collaboration | Notes on an application and on a stage move, tags with a tag filter, My tasks for the tasks automations make (Mine, For the team and Everyone's, each ticked done with Undo for 10 seconds), a real reviewer in AssignReviewer, a Run button for manual automations, a notification tray | #40, the remaining screens |
@@ -111,6 +112,9 @@ brackets.
 
 ## Known gaps
 
+- Reports know two sources, the careers page and a recruiter, because nothing records which job board sent a careers
+  applicant; the MCP server and API keys have no report yet; and stage kinds come from each job's current workflow, so a
+  removed stage's history drops out of the funnel (`architecture/reports.md` section 6).
 - The MCP server gives an assistant no integrity output, as ADR-0011 refuses it to every API key, although roadmap item 6
   asked for levels, reasons and evidence. Opening it to `/v1/mcp` is an owner decision: an amendment to ADR-0011, then
   one `IntegrityReads.LoadAsync` call in `get_application` and a view that marks quoted evidence as candidate-written.
