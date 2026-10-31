@@ -25,8 +25,8 @@
     applicationId: string;
     /** The reason being explained: its assessment, its signal and its title. */
     reason: { assessmentId: string; signalId: string; title: string } | null;
-    /** After the API answered: a sentence for the panel's status line. */
-    ondone: (message: string) => void;
+    /** After the API answered: a sentence for the panel's status line, and whether the explanation was recorded. */
+    ondone: (message: string, recorded: boolean) => void;
   } = $props();
 
   // The API also refuses `Other` without a note; checking here puts the message on the field before the round trip.
@@ -50,12 +50,12 @@
       const response = await explainIntegrityReason(applicationId, reason.assessmentId, reason.signalId, { reason: form.data.reason, note });
       if (response.status === 200) {
         open = false;
-        ondone(`Marked explained: ${reason.title}. It is in the review log.`);
+        ondone(`Marked explained: ${reason.title}. It is in the review log.`, true);
       } else if (response.status === 400) {
         applyValidationProblem(form, response.data);
       } else if (response.status === 409) {
         open = false;
-        ondone('Someone already explained this reason, or the assessment changed. The panel now shows the latest.');
+        ondone('Someone already explained this reason, or the assessment changed. The panel now shows the latest.', false);
       } else {
         form.valid = false;
         form.errors._errors = ["We couldn't record the explanation just now. Try again in a minute."];

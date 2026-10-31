@@ -200,10 +200,17 @@ describe('integrity panel', () => {
 
     const ai = await screen.findByRole('region', { name: 'AI assistance' });
     expect(within(ai).getByRole('heading', { level: 2 })).toHaveTextContent('AI assistance');
-    expect(within(ai).getByRole('img', { name: 'AI assistance: Some signs of AI help, the middle of 3' })).toBeInTheDocument();
-    expect(ai).toHaveTextContent('Informational');
-    // The job's policy is a pill in the header, beside the level.
-    expect(within(ai).getByText(/AI allowed with disclosure/)).toHaveTextContent('Job policy: AI allowed with disclosure');
+    // The level, the job's policy and Informational are pills in the header on a wide panel and the body's first line on
+    // a narrow one (a container query jsdom does not apply, so both copies are here).
+    const [header, body] = [...ai.querySelectorAll<HTMLElement>('[data-level-pills]')];
+    expect(header!.closest('header')).not.toBeNull();
+    expect(body!.closest('header')).toBeNull();
+    for (const pills of [header!, body!]) {
+      expect(within(pills).getByRole('img', { name: 'AI assistance: Some signs of AI help, the middle of 3' })).toBeInTheDocument();
+      expect(within(pills).getByText(/AI allowed with disclosure/)).toHaveTextContent('Job policy: AI allowed with disclosure');
+    }
+    expect(body).toHaveTextContent('Informational');
+    expect(within(ai.querySelector('header')!).getByText('Informational')).toBeInTheDocument();
     expect(ai.querySelector('[data-audit]')).toHaveTextContent(/^Assessed .+Ruleset \S+$/);
     // The declaration has its own place on the page, in Declarations (section 16).
     expect(ai).not.toHaveTextContent(/Declared AI use/);
@@ -328,6 +335,25 @@ describe('integrity panel', () => {
     expect(within(authenticity).queryByRole('button', { name: 'Dismiss all' })).not.toBeInTheDocument();
   });
 
+  it('leaves a reason open when the API refuses its explanation', async () => {
+    const sent = serve(botIntegrity(), {
+      [`POST ${base}/assessments/${authenticityAssessmentId}/signals/signal-NET_DATACENTER_IP/explain`]: () => ({ status: 409, body: { title: 'Already explained', status: 409 } }),
+    });
+    renderPanel();
+
+    await screen.findByRole('region', { name: 'Authenticity' });
+    const row = reasonRow('NET_DATACENTER_IP');
+    await fireEvent.click(row.querySelector('summary')!);
+    await waitFor(() => expect(row.querySelector('details')!.open).toBe(true));
+    await fireEvent.click(within(row).getByRole('button', { name: 'Mark explained' }));
+    const dialog = await screen.findByRole('dialog', { name: `Mark "Sent from a hosting provider's network" explained?` });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Mark explained' }));
+
+    await waitFor(() => expect(sent).toHaveLength(1));
+    await screen.findByText('Someone already explained this reason, or the assessment changed. The panel now shows the latest.');
+    expect(reasonRow('NET_DATACENTER_IP').querySelector('details')!.open).toBe(true);
+  });
+
   it('offers Undo to the author of an explanation only, and undoes it', async () => {
     const before = botExplained({ NET_DATACENTER_IP: explanation(user.id), AUTO_WEBDRIVER: explanation(teammate) });
     const after = botExplained(
@@ -367,7 +393,12 @@ describe('integrity panel', () => {
     await fireEvent.click(within(authenticity).getByRole('button', { name: 'Dismiss all' }));
     const dialog = await screen.findByRole('dialog', { name: 'Dismiss this authenticity assessment?' });
     const listed = within(dialog).getByRole('list', { name: 'Explained reasons' });
-    expect(within(listed).getAllByRole('listitem')).toHaveLength(3);
+    // In the panel's order (Network before Automation), not the order the API listed the signals in.
+    expect(within(listed).getAllByRole('listitem').map((item) => item.querySelector('span')!.textContent)).toEqual([
+      "Sent from a hosting provider's network",
+      'Completed faster than a person could',
+      'Browser automation detected',
+    ]);
     expect(listed).toHaveTextContent('Confirmed with the candidate, by you. "Uses a password manager to fill forms."');
     expect(listed).toHaveTextContent('A known false positive, by Jordan Park');
     expect(listed).toHaveTextContent('Expected for this role, by you. "Remote role."');
@@ -405,7 +436,7 @@ describe('integrity panel', () => {
 
     expect(screen.queryByRole('button', { name: /Mark explained|Undo|Dismiss|Add review note/ })).not.toBeInTheDocument();
     // Read-only says why (E3).
-    expect(section('Authenticity')).toHaveTextContent('Your role can read these checks. A reviewer explains reasons and dismisses.');
+    expect(section('Authenticity')).toHaveTextContent('Your role can read these checks; ask a reviewer to explain or dismiss them.');
     expect(reasonRow('NET_DATACENTER_IP').querySelector('[data-explanation]')).toHaveTextContent(/^You /);
   });
 

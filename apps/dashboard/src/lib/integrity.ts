@@ -211,6 +211,16 @@ export const explainReasonLabels: Record<ExplainReason, string> = {
   Other: 'Other',
 };
 
+/** A reason someone marked explained, as the dismiss dialog lists it before a Dismiss all. */
+export interface ExplainedReasonItem {
+  id: string;
+  title: string;
+  reason: ExplainReason;
+  note: string | null;
+  /** Who explained it, as `reviewerName` words them ("you", or a name). */
+  actor: string;
+}
+
 /**
  * Whether a person has marked every reason that counts toward the level explained, so the panel offers Dismiss all.
  * It decides nothing: the level stays as assessed until someone dismisses it (ADR-0004).

@@ -130,6 +130,9 @@ internal static class IntegrityEndpoints
             return target.Refusal is { } refusal ? refusal : TypedResults.NotFound();
         }
 
+        // A check, not a unique index: an undo is its own row, so a reason can be explained again. Two explanations that
+        // pass it at the same moment both go in the log and the later one stands (CurrentExplanations), which is harmless
+        // because an explanation decides nothing.
         if (await CurrentExplanationAsync(db, assessment.Id, signalId, cancellationToken) is not null)
         {
             return Conflict("Already explained", "Someone already marked this reason explained.");

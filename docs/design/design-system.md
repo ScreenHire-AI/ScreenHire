@@ -602,7 +602,9 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
   the grey every tab's count has (E2), and the level is the candidate's status badge beside their name (T2). Each
   assessment is one panel with one skeleton and no labels over sentences (W9): its name, level badge (unless the page
   header already shows it, W7), a small meter of the three steps and, for AI assistance, the job's policy as a pill ("AI
-  allowed with disclosure") in the header, with Expand all on the right. When the level needs a look the next step
+  allowed with disclosure") in the header, with Expand all on the right. AI assistance's pills (level, meter, policy and
+  Informational) do not fit a fixed-height header on a narrow panel, so below a 48rem container they move to the body's
+  first line and the header keeps the name and Expand all (F1, F5). When the level needs a look the next step
   leads, semibold, in a callout edged in the level's colour with an arrow, the summary a muted line under it; a calm or
   dismissed result is one muted line, the summary then its next step (W10). Then the reasons, grouped by the kind of
   check that found them (Network, Identity, Automation, Content) and a last Context group for what does not count, each
@@ -622,7 +624,9 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
   "To review", filters, automations and webhooks never read it. Once every reason that counts is explained, Dismiss
   reads Dismiss all; it is the same button, never a second one (W7), and it opens the dismiss dialog with the explained
   reasons and their notes listed above the dismissal's own reason. A dismissed assessment keeps its explanations, read
-  only. The review controls show only to a role that reviews Verification.
+  only. The review controls show only to a role that reviews Verification; any other role reads one line saying it can
+  read the checks and should ask a reviewer to explain or dismiss them (E3). The dismiss dialog scrolls when the list
+  is taller than the window, so its button stays reachable.
 - Labels keep their full names: Verification suggested, mirroring Review suggested. AI assistance reads No signs,
   Some signs or Strong signs of AI help.
 

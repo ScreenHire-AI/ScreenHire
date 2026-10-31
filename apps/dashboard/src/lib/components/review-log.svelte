@@ -17,8 +17,7 @@
   import { describeError } from '#lib/query.js';
 
   // The people's side of an application's integrity: every dismissal, explained reason, undo and note, newest first,
-  // with who and when. It
-  // reads the integrity panel's query, so the two share one request and update together.
+  // with who and when. It reads the integrity panel's query, so the two share one request and update together.
   let { applicationId }: { applicationId: string } = $props();
 
   const queryClient = useQueryClient();

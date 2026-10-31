@@ -14,7 +14,6 @@
     type AiAssistanceAssessmentView,
     type ApplicationSource,
     type AuthenticityAssessmentView,
-    type ExplainReason,
     type IntegritySignalView,
     type SignalCategory,
   } from '@screenhire/api-client';
@@ -32,6 +31,7 @@
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
+  import { sentenceStart } from '#lib/history.js';
   import {
     addedByHandNote,
     aiAssistanceLevels,
@@ -49,9 +49,9 @@
     reviewerName,
     uncheckedCategories,
     type AssessmentKind,
+    type ExplainedReasonItem,
     type LevelView,
   } from '#lib/integrity.js';
-  import { sentenceStart } from '#lib/history.js';
   import { can } from '#lib/permissions.js';
   import { describeError } from '#lib/query.js';
   import { statuses, type StatusTone } from '#lib/status.js';
@@ -73,7 +73,7 @@
 
   let dismissOpen = $state(false);
   let dismissing = $state<{ id: string; kind: AssessmentKind } | null>(null);
-  let dismissExplained = $state<{ id: string; title: string; reason: ExplainReason; note: string | null; actor: string }[]>([]);
+  let dismissExplained = $state<ExplainedReasonItem[]>([]);
   let explainOpen = $state(false);
   let explaining = $state<{ assessmentId: string; signalId: string; title: string } | null>(null);
   let undoing = $state<string | null>(null);
@@ -136,8 +136,8 @@
 
   function startDismiss(kind: AssessmentKind, view: AuthenticityAssessmentView | AiAssistanceAssessmentView) {
     dismissing = { id: view.id, kind };
-    // The reasons people explained, so the dialog lists their notes; they preselect nothing.
-    dismissExplained = view.signals.flatMap((signal) =>
+    // The reasons people explained, in the panel's order, so the dialog lists their notes; they preselect nothing.
+    dismissExplained = reasonGroups(kind, view.signals, false).flatMap((group) => group.signals).flatMap((signal) =>
       signal.explained
         ? [{ id: signal.id, title: signal.title, reason: signal.explained.reason, note: signal.explained.note, actor: reviewerName(signal.explained.actorUserId, signal.explained.actorName, page.data.user?.id) }]
         : [],
@@ -150,9 +150,9 @@
     explainOpen = true;
   }
 
-  async function explained(message: string) {
-    // An explained reason closes, so the ones still to read stand out.
-    if (explaining) expanded = { ...expanded, [explaining.signalId]: false };
+  async function explained(message: string, recorded: boolean) {
+    // An explained reason closes, so the ones still to read stand out. A refused one stays as the reader left it.
+    if (recorded && explaining) expanded = { ...expanded, [explaining.signalId]: false };
     await done(message);
   }
 
@@ -299,25 +299,41 @@
   <!-- A calm authenticity result has no list of empty checks: its summary already says nothing was found (W7). -->
   {@const groups = kind === 'authenticity' && reasons.length === 0 ? reasonGroups(kind, [], false).filter((group) => group.key === 'context' || group.signals.length > 0) : reasonGroups(kind, view.signals, fed)}
   {@const all = groups.flatMap((group) => group.signals)}
+  <!-- AI assistance carries four pills, more than a fixed-height header holds on a narrow panel (F1, F5). There they
+       move to the body's first line, so the policy, which the summary no longer repeats, never leaves the screen. -->
+  {@const pillsInBody = kind === 'aiAssistance'}
   <!-- One skeleton for every assessment (section 16): its name, level and, for AI assistance, the job's policy as pills
        in the header; what to do and why; its reasons; then Dismiss and the audit details. The next step leads, as a
        callout in the level's colour, when the level needs a look; a calm result is one quiet line. No labels: each part
        says what it is. -->
+  {#snippet levelPills()}
+    <!-- An authenticity level that needs a look is already the candidate's status in the page header, so here it is
+         only its place on the three-step scale (W7). A calm or dismissed one, and AI assistance, show nowhere else. -->
+    {#if kind !== 'authenticity' || level.rank === 0 || view.dismissal}<StatusBadge status={level.status} label={level.label} />{/if}
+    <LevelScale {levels} current={level} name={assessmentNames[kind]} compact />
+    <!-- The job's policy, so a reader sees why AI help is or is not a concern. The candidate's own declaration is on
+         the Application tab (W7). -->
+    {#if 'policy' in view}<Badge variant="muted"><span class="sr-only">Job policy:</span> AI {aiPolicyLabels[view.policy].toLocaleLowerCase()}</Badge>{/if}
+  {/snippet}
   <Panel title={assessmentNames[kind]} data-assessment={kind} footer={last ? decisions : undefined}>
     {#snippet tools()}
-      <!-- An authenticity level that needs a look is already the candidate's status in the page header, so here it is
-           only its place on the three-step scale (W7). A calm or dismissed one, and AI assistance, show nowhere else. -->
-      {#if kind !== 'authenticity' || level.rank === 0 || view.dismissal}<StatusBadge status={level.status} label={level.label} />{/if}
-      <LevelScale {levels} current={level} name={assessmentNames[kind]} compact />
-      <!-- The job's policy, so a reader sees why AI help is or is not a concern. The candidate's own declaration is on
-           the Application tab (W7). -->
-      {#if 'policy' in view}<Badge variant="muted"><span class="sr-only">Job policy:</span> AI {aiPolicyLabels[view.policy].toLocaleLowerCase()}</Badge>{/if}
+      {#if pillsInBody}
+        <span class="hidden min-w-0 items-center gap-2 @3xl:flex" data-level-pills>{@render levelPills()}</span>
+      {:else}
+        {@render levelPills()}
+      {/if}
     {/snippet}
     {#snippet actions()}
-      {#if kind === 'aiAssistance'}<Badge variant="muted">Informational</Badge>{/if}
+      {#if pillsInBody}<Badge variant="muted" class="hidden @3xl:inline-flex">Informational</Badge>{/if}
       {#if all.length > 0}{@render expandAll(all)}{/if}
     {/snippet}
     <div class="flex flex-col gap-5">
+      {#if pillsInBody}
+        <div class="flex flex-wrap items-center gap-2 @3xl:hidden" data-level-pills>
+          {@render levelPills()}
+          <Badge variant="muted">Informational</Badge>
+        </div>
+      {/if}
       <!-- The plain-language summary and suggested next step every result carries (CLAUDE.md non-negotiable 1). -->
       {#if concern}
         <div data-summary class={['flex gap-3 rounded-md border-l-4 bg-secondary/60 px-4 py-3', edges[statuses[level.status].tone]]}>
@@ -348,7 +364,7 @@
           <Button variant="outline" size="lg" onclick={() => startDismiss(kind, view)}>{everyReasonExplained(view.signals) ? 'Dismiss all' : 'Dismiss'}</Button>
         {:else if level.rank > 0}
           <!-- Read-only says why (E3). -->
-          <p class="max-w-measure text-muted-foreground">Your role can read these checks. A reviewer explains reasons and dismisses.</p>
+          <p class="max-w-measure text-muted-foreground">Your role can read these checks; ask a reviewer to explain or dismiss them.</p>
         {:else}
           <span></span>
         {/if}

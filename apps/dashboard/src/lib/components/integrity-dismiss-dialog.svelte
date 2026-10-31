@@ -1,6 +1,6 @@
 <script lang="ts">
   import CircleSlashIcon from '@lucide/svelte/icons/circle-slash';
-  import { dismissIntegrityAssessment, DismissReason, type ExplainReason } from '@screenhire/api-client';
+  import { dismissIntegrityAssessment, DismissReason } from '@screenhire/api-client';
   import { DismissIntegrityAssessmentBody } from '@screenhire/api-client/zod';
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
@@ -11,7 +11,7 @@
   import * as Field from '#lib/components/ui/field/index.js';
   import { Textarea } from '#lib/components/ui/textarea/index.js';
   import { applyValidationProblem } from '#lib/forms.js';
-  import { assessmentNames, dismissReasonLabels, explainReasonLabels, type AssessmentKind } from '#lib/integrity.js';
+  import { assessmentNames, dismissReasonLabels, explainReasonLabels, type AssessmentKind, type ExplainedReasonItem } from '#lib/integrity.js';
   import { cn } from '#lib/utils.js';
 
   // Dismissing records a reviewer's decision in the audit log. It never changes the assessment or its evidence, and
@@ -30,7 +30,7 @@
      * With Dismiss all: each reason people marked explained, listed so the dismisser reads them first. They inform the
      * decision and preselect nothing; the dismissal keeps its own reason and note.
      */
-    explained?: readonly { id: string; title: string; reason: ExplainReason; note: string | null; actor: string }[];
+    explained?: readonly ExplainedReasonItem[];
     /** After the API answered: a sentence for the panel's status line. */
     ondone: (message: string) => void;
   } = $props();
@@ -79,7 +79,9 @@
 </script>
 
 <Dialog.Root bind:open>
-  <Dialog.Content class="sm:max-w-md">
+  <!-- Dismiss all lists every explained reason, so the dialog can outgrow a phone: it scrolls, as the shortcuts dialog
+       does, and the dismiss button stays reachable. -->
+  <Dialog.Content class="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-md">
     <Dialog.Header>
       <Dialog.Title>Dismiss this {name} assessment?</Dialog.Title>
       <Dialog.Description>
