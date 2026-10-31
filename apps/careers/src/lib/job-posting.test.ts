@@ -89,6 +89,13 @@ describe('buildJobPosting', () => {
     expect(buildJobPosting(job({ validThrough: '2026-10-15T12:00:00+00:00' }), context).validThrough).toBe('2026-10-15T12:00:00+00:00');
   });
 
+  // The description is the API's sanitized rich text, which Google for Jobs reads as HTML.
+  it("carries the description's headings, lists and emphasis as they are", () => {
+    const description = '<h2>About the role</h2><p>We <strong>build</strong> tools.</p><ol><li>Apply</li><li>Interview</li></ol>';
+
+    expect(buildJobPosting(job({ description }), context).description).toBe(description);
+  });
+
   it('falls back to an escaped one-line description', () => {
     expect(buildJobPosting(job({ description: '', title: 'A <b> role' }), context).description).toBe(
       '<p>A &lt;b&gt; role at Harbour &amp; Co.</p>',

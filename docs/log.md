@@ -1,5 +1,16 @@
 # Log
 
+## 2026-10-31
+
+**Rich text for job descriptions and email templates** ([rich text](architecture/rich-text.md)). New job, Edit
+details, the email template editor and the composer have a small editor with a toolbar (bold, italic, a heading and a
+subheading, bulleted and numbered lists, links) in place of the plain-text hints. Both are stored as sanitized HTML
+limited to those elements, which the server writes in one canonical form, so a save that changes nothing records
+nothing. Email bodies became HTML with Liquid in their text: values are encoded, the result is sanitized again, and the
+plain-text part prints lists and link addresses. In an email, each variable is a chip. A migration converted every
+plain-text body. The design system gains a Rich text editor row, and its shortcuts join the `?` dialog; typed
+formatting stops while single-key shortcuts are off.
+
 ## 2026-10-30
 
 **The owner reviewed the v0.3 build** ([ADR-0017](adr/0017-design-system-v0-3-owner-review.md)) and the dashboard
