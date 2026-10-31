@@ -3,14 +3,16 @@ import { setError, type SuperValidated } from 'sveltekit-superforms';
 
 /**
  * Puts an API validation problem's errors on the matching form fields. The API names fields in camelCase, the same
- * names as the request body, so they line up with the form's keys. Errors for fields the form does not have become
- * form-level errors.
+ * names as the request body, so they line up with the form's keys. `field` maps a name that differs, such as a nested
+ * `candidate.email` for a flat form's `email`. Errors for fields the form does not have become form-level errors.
  */
 export function applyValidationProblem<T extends Record<string, unknown>>(
   form: SuperValidated<T>,
   problem: HttpValidationProblemDetails | undefined,
+  rename: (field: string) => string = (field) => field,
 ): void {
-  for (const [field, messages] of Object.entries(problem?.errors ?? {})) {
+  for (const [name, messages] of Object.entries(problem?.errors ?? {})) {
+    const field = rename(name);
     for (const message of messages) {
       if (field in form.data) {
         setError(form, field as never, message);

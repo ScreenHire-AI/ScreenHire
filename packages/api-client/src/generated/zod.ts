@@ -3246,6 +3246,7 @@ export const ListJobApplicationsResponseItem = zod.object({
 }).describe('A stage of the job\'s workflow, as an application sees it.'),
   "submittedAt": zod.iso.datetime({"offset":true}),
   "stageEnteredAt": zod.iso.datetime({"offset":true}),
+  "lastActivityAt": zod.iso.datetime({"offset":true}),
   "jobTitle": zod.string(),
   "source": zod.enum(['Recruiter', 'CareersSite']).describe('Where an application came from. Automation conditions read it as `application.source`.'),
   "tags": zod.array(zod.string()),
@@ -3284,7 +3285,8 @@ export const CreateApplicationBody = zod.object({
 }).describe('The candidate of an application a person or an API key adds.'),
   "accommodationRequested": zod.boolean().default(createApplicationBodyAccommodationRequestedDefault),
   "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(createApplicationBodyAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
-  "aiUseDetails": zod.string().nullish()
+  "aiUseDetails": zod.string().nullish(),
+  "resumeUploadId": zod.uuid().nullish()
 }).describe('A recruiter adds an application by hand, for a candidate who applied another way. The candidate is matched by email\r\nwithin the organization and created if new. The public apply flow is the careers site\'s.')
 
 export const createApplicationResponseAiUseDeclarationDefault = `NotProvided`;
@@ -3375,6 +3377,25 @@ export const CreateApplicationResponse = zod.object({
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
 
 
+export const CreateResumeUploadParams = zod.object({
+  "jobId": zod.uuid()
+})
+
+export const CreateResumeUploadBody = zod.object({
+  "fileName": zod.string(),
+  "sizeBytes": zod.int()
+}).describe('Asks for a link to upload one file for a file question. `sizeBytes` is the size the candidate\'s device reports.')
+
+export const CreateResumeUploadResponse = zod.object({
+  "uploadId": zod.uuid(),
+  "uploadUrl": zod.url(),
+  "method": zod.string(),
+  "headers": zod.record(zod.string(), zod.string()),
+  "expiresAt": zod.iso.datetime({"offset":true}),
+  "maxBytes": zod.int()
+}).describe('Where and how to upload one file, and until when: send its bytes with `method` to `uploadUrl` with\r\n`headers`, then refer to it by `uploadId`.')
+
+
 export const listApplicationsResponseRatingTwoScorecardsDefault = 0;
 
 export const ListApplicationsResponseItem = zod.object({
@@ -3389,6 +3410,7 @@ export const ListApplicationsResponseItem = zod.object({
 }).describe('A stage of the job\'s workflow, as an application sees it.'),
   "submittedAt": zod.iso.datetime({"offset":true}),
   "stageEnteredAt": zod.iso.datetime({"offset":true}),
+  "lastActivityAt": zod.iso.datetime({"offset":true}),
   "jobTitle": zod.string(),
   "source": zod.enum(['Recruiter', 'CareersSite']).describe('Where an application came from. Automation conditions read it as `application.source`.'),
   "tags": zod.array(zod.string()),
@@ -3968,6 +3990,7 @@ export const GetCandidateResponse = zod.object({
 }).describe('A stage of the job\'s workflow, as an application sees it.'),
   "submittedAt": zod.iso.datetime({"offset":true}),
   "stageEnteredAt": zod.iso.datetime({"offset":true}),
+  "lastActivityAt": zod.iso.datetime({"offset":true}),
   "jobTitle": zod.string(),
   "source": zod.enum(['Recruiter', 'CareersSite']).describe('Where an application came from. Automation conditions read it as `application.source`.'),
   "tags": zod.array(zod.string()),
@@ -6698,3 +6721,29 @@ export const GetHiringWorkflowSchemaResponse = zod.unknown()
 
 
 export const GetQuestionnaireSchemaResponse = zod.unknown()
+
+
+export const SearchQueryParams = zod.object({
+  "q": zod.string().optional()
+})
+
+export const SearchResponse = zod.object({
+  "candidates": zod.array(zod.object({
+  "applicationId": zod.uuid(),
+  "candidateId": zod.uuid(),
+  "candidateName": zod.string(),
+  "email": zod.string(),
+  "jobId": zod.uuid(),
+  "jobTitle": zod.string(),
+  "stage": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
+}).describe('A stage of the job\'s workflow, as an application sees it.')
+}).describe('A candidate whose name or email matched, on one of their applications: the record to open.')),
+  "jobs": zod.array(zod.object({
+  "id": zod.uuid(),
+  "title": zod.string(),
+  "status": zod.enum(['Draft', 'Open', 'Closed'])
+}).describe('A job whose title matched.'))
+}).describe('What a search found among the candidates and jobs the reader sees: candidates by name or email, one hit per\r\napplication, and jobs by title. Each list is short and starts with names or titles that begin with the search.')

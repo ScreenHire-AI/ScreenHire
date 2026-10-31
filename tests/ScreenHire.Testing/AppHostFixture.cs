@@ -44,6 +44,13 @@ public class AppHostFixture : IAsyncLifetime
     private readonly ConcurrentDictionary<string, string> stopped = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, OwnProcess> processes = new(StringComparer.Ordinal);
     private Task? watcher;
+
+    // The worker's own word that it takes messages. Aspire counts a project with no health check as up once its process
+    // starts, and the worker (a generic host, no HTTP endpoint) is that, so on a loaded machine a test could publish and
+    // wait out its deadline while the worker was still building and starting (docs/process/testing.md, flake history,
+    // 2026-10-31). Wolverine logs this line when it listens on the worker's queue (MessagingSettings.WorkerQueue).
+    private const string WorkerListening = "Started message listening at postgresql://worker/";
+    private readonly TaskCompletionSource workerListening = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private DistributedApplication? app;
 
     /// <summary>
@@ -112,6 +119,7 @@ public class AppHostFixture : IAsyncLifetime
         {
             await app.StartAsync(startup.Token);
             await Task.WhenAll(RequiredResources.Select(resource => WaitUntilHealthyAsync(app, resource, startup.Token)));
+            await WaitUntilWorkerListensAsync(app, startup.Token);
         }
         catch
         {
@@ -134,6 +142,27 @@ public class AppHostFixture : IAsyncLifetime
         {
             throw new TimeoutException(
                 $"The AppHost resource '{resource}' was not healthy within {StartupTimeout.TotalMinutes:0} minutes. " +
+                $"Check its log in {LogDirectory}.",
+                exception);
+        }
+    }
+
+    // Only an AppHost that has the worker waits for it (the production fixture removes it).
+    private async Task WaitUntilWorkerListensAsync(DistributedApplication started, CancellationToken cancellationToken)
+    {
+        if (!started.Services.GetRequiredService<DistributedApplicationModel>().Resources.Any(resource => resource.Name == "worker"))
+        {
+            return;
+        }
+
+        try
+        {
+            await workerListening.Task.WaitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException exception) when (!TestContext.Current.CancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException(
+                $"The AppHost resource 'worker' did not start listening for messages within {StartupTimeout.TotalMinutes:0} minutes. " +
                 $"Check its log in {LogDirectory}.",
                 exception);
         }
@@ -165,7 +194,10 @@ public class AppHostFixture : IAsyncLifetime
             {
                 var path = Path.Combine(directory, $"{update.Resource.Name}.log");
                 // By instance id, not by name: the log stream of a running project carries a suffix after its name.
-                _ = logging.GetOrAdd(update.ResourceId, id => Task.Run(() => CopyLogAsync(logs, id, path, cancellationToken), cancellationToken));
+                Action<string>? onLine = update.Resource.Name == "worker"
+                    ? line => { if (line.Contains(WorkerListening, StringComparison.Ordinal)) workerListening.TrySetResult(); }
+                    : null;
+                _ = logging.GetOrAdd(update.ResourceId, id => Task.Run(() => CopyLogAsync(logs, id, path, onLine, cancellationToken), cancellationToken));
 
                 var snapshot = update.Snapshot;
                 RecordProcess(update.ResourceId, snapshot);
@@ -247,7 +279,8 @@ public class AppHostFixture : IAsyncLifetime
     }
 
     // A file that cannot be written loses its log, not the run. The watcher's task is awaited when the stack is disposed.
-    private static async Task CopyLogAsync(ResourceLoggerService logs, string resourceId, string path, CancellationToken cancellationToken)
+    private static async Task CopyLogAsync(
+        ResourceLoggerService logs, string resourceId, string path, Action<string>? onLine, CancellationToken cancellationToken)
     {
         try
         {
@@ -257,6 +290,7 @@ public class AppHostFixture : IAsyncLifetime
                 foreach (var line in batch)
                 {
                     await file.WriteLineAsync($"{(line.IsErrorMessage ? "ERR " : "")}{line.Content}");
+                    onLine?.Invoke(line.Content);
                 }
             }
         }

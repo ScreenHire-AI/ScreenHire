@@ -361,7 +361,7 @@
           </Tabs.Content>
           <Tabs.Content value="verification" class="flex min-w-0 flex-col gap-5">
             {#if tab === 'verification'}
-              <IntegrityPanel applicationId={detail.id} />
+              <IntegrityPanel applicationId={detail.id} source={detail.source} />
               <ReviewLog applicationId={detail.id} />
             {/if}
           </Tabs.Content>

@@ -117,6 +117,7 @@ app.MapWebhookEndpoints();
 app.MapSlackEndpoints();
 app.MapEmailEndpoints();
 app.MapSchemaEndpoints();
+app.MapSearchEndpoints();
 app.MapRealtimeEndpoints();
 app.MapScreenHireMcp();
 
