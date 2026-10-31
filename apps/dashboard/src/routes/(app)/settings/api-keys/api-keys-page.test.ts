@@ -29,8 +29,17 @@ const oldKey = key('k2', 'Old reporting job', { revokedAt: '2026-10-10T09:00:00Z
 // A made-up token, long enough to look like one.
 const token = 'shk_live_0123456789abcdef0123456789abcdef';
 
+// Avery revoked a key yesterday; the history says which.
+const keysUpdated = { at: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(), by: 'Member', userId: user.id, apiKeyId: null };
+
 function renderPage(keys: ApiKeySummary[], routes: Parameters<typeof apiStub>[0] = {}) {
-  const fetchMock = vi.fn(apiStub({ 'GET /v1/organization/api-keys': () => Response.json(keys), ...routes }));
+  const fetchMock = vi.fn(
+    apiStub({
+      'GET /v1/organization/api-keys': () => Response.json(keys),
+      'GET /v1/organization/api-keys/last-update': () => Response.json(keysUpdated),
+      ...routes,
+    }),
+  );
   vi.stubGlobal('fetch', fetchMock);
   render(WithQueryClient, { props: { component: Page, props: {} } });
   return fetchMock;
@@ -204,5 +213,33 @@ describe('API keys page', () => {
 
     await waitFor(() => expect(within(dialog).getByRole('alert')).toHaveTextContent('The key was already revoked.'));
     expect(dialog).toBeInTheDocument();
+  });
+
+  it('says on the title row who last changed the keys, and History lists each key created and revoked (T6, S8)', async () => {
+    const fetchMock = renderPage([syncKey, oldKey], {
+      'GET /v1/organization/api-keys/history': () =>
+        Response.json({
+          entries: [
+            {
+              id: 'c-1', at: keysUpdated.at, by: 'Member', userId: user.id, apiKeyId: null,
+              lines: [{ text: 'revoked the key Old reporting job', parts: [{ text: 'revoked the key ', strong: false }, { text: 'Old reporting job', strong: true }], details: [] }],
+            },
+          ],
+          nextBefore: null,
+        }),
+    });
+
+    const updated = await waitFor(() => {
+      const fact = document.querySelector('[data-last-updated]');
+      expect(fact).not.toBeNull();
+      return fact!;
+    });
+    expect(updated).toHaveTextContent(/^Last updated:\s*Updated yesterday by you/);
+    expect(updated.closest('[data-slot="header-band"]')?.querySelector('dl')).toBeNull();
+
+    await fireEvent.click(screen.getByRole('button', { name: /^History/ }));
+    const sheet = await screen.findByRole('dialog', { name: 'History' });
+    expect(await within(sheet).findByText('Old reporting job')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith('/v1/organization/api-keys/history', expect.anything());
   });
 });

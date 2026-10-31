@@ -69,6 +69,7 @@ import type {
   EmailTemplateEntry,
   EmailTemplateList,
   EmailsQueued,
+  GetApiKeysHistoryParams,
   GetEmailTemplateHistoryParams,
   GetHiringTemplateHistoryParams,
   GetJobHistoryParams,
@@ -78,6 +79,7 @@ import type {
   GetOrganizationTalentPoolSettingsHistoryParams,
   GetRoleHistoryParams,
   GetScorecardTemplateHistoryParams,
+  GetTeamHistoryParams,
   HiringTeamMember,
   HiringTeamRequest,
   HiringTemplateDetail,
@@ -101,6 +103,7 @@ import type {
   JobVersionSummary,
   KeepInMindRequest,
   KeptInMind,
+  LastUpdate,
   ListJobBoardJobsParams,
   ListTasksParams,
   ListWebhookDeliveriesParams,
@@ -10354,6 +10357,214 @@ export function createListMembershipLog<TData = Awaited<ReturnType<typeof listMe
 
 
 
+export type getTeamHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getTeamHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getTeamHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getTeamHistoryResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getTeamHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getTeamHistoryResponseSuccess = (getTeamHistoryResponse200) & {
+  headers: Headers;
+};
+export type getTeamHistoryResponseError = (getTeamHistoryResponse400 | getTeamHistoryResponse401 | getTeamHistoryResponse403 | getTeamHistoryResponse404) & {
+  headers: Headers;
+};
+
+export const getGetTeamHistoryUrl = (params?: GetTeamHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/team/history?${stringifiedParams}` : `/v1/organization/team/history`
+}
+
+export const getTeamHistory = async (params?: GetTeamHistoryParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getTeamHistoryResponseSuccess> => {
+
+  return apiQueryFetch<getTeamHistoryResponseSuccess>(getGetTeamHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTeamHistoryQueryKey = (params?: GetTeamHistoryParams,) => {
+    return [
+    'v1','organization','team','history', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetTeamHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getTeamHistory>>, TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>>(params?: GetTeamHistoryParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getTeamHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTeamHistoryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTeamHistory>>> = ({ signal }) => getTeamHistory(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getTeamHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetTeamHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getTeamHistory>>>
+export type GetTeamHistoryQueryError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+
+
+
+export function createGetTeamHistory<TData = Awaited<ReturnType<typeof getTeamHistory>>, TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>>(
+ params?: () =>  GetTeamHistoryParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getTeamHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetTeamHistoryQueryOptions(params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type getTeamLastUpdateResponse200 = {
+  data: LastUpdate
+  status: 200
+}
+
+export type getTeamLastUpdateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getTeamLastUpdateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getTeamLastUpdateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getTeamLastUpdateResponseSuccess = (getTeamLastUpdateResponse200) & {
+  headers: Headers;
+};
+export type getTeamLastUpdateResponseError = (getTeamLastUpdateResponse401 | getTeamLastUpdateResponse403 | getTeamLastUpdateResponse404) & {
+  headers: Headers;
+};
+
+export const getGetTeamLastUpdateUrl = () => {
+
+
+
+
+  return `/v1/organization/team/last-update`
+}
+
+export const getTeamLastUpdate = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<getTeamLastUpdateResponseSuccess> => {
+
+  return apiQueryFetch<getTeamLastUpdateResponseSuccess>(getGetTeamLastUpdateUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTeamLastUpdateQueryKey = () => {
+    return [
+    'v1','organization','team','last-update'
+    ] as const;
+    }
+
+
+export const getGetTeamLastUpdateQueryOptions = <TData = Awaited<ReturnType<typeof getTeamLastUpdate>>, TError = ErrorType<void | ProblemDetails>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getTeamLastUpdate>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTeamLastUpdateQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTeamLastUpdate>>> = ({ signal }) => getTeamLastUpdate({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getTeamLastUpdate>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetTeamLastUpdateQueryResult = NonNullable<Awaited<ReturnType<typeof getTeamLastUpdate>>>
+export type GetTeamLastUpdateQueryError = ErrorType<void | ProblemDetails>
+
+
+
+export function createGetTeamLastUpdate<TData = Awaited<ReturnType<typeof getTeamLastUpdate>>, TError = ErrorType<void | ProblemDetails>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getTeamLastUpdate>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetTeamLastUpdateQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
 export type changeMemberRoleResponse200 = {
   data: TeamMember
   status: 200
@@ -12017,6 +12228,214 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return createMutation(() => ({ ...getCreateApiKeyMutationOptions(options?.()) }), queryClient);
     }
+
+export type getApiKeysHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getApiKeysHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getApiKeysHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getApiKeysHistoryResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getApiKeysHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getApiKeysHistoryResponseSuccess = (getApiKeysHistoryResponse200) & {
+  headers: Headers;
+};
+export type getApiKeysHistoryResponseError = (getApiKeysHistoryResponse400 | getApiKeysHistoryResponse401 | getApiKeysHistoryResponse403 | getApiKeysHistoryResponse404) & {
+  headers: Headers;
+};
+
+export const getGetApiKeysHistoryUrl = (params?: GetApiKeysHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/api-keys/history?${stringifiedParams}` : `/v1/organization/api-keys/history`
+}
+
+export const getApiKeysHistory = async (params?: GetApiKeysHistoryParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getApiKeysHistoryResponseSuccess> => {
+
+  return apiQueryFetch<getApiKeysHistoryResponseSuccess>(getGetApiKeysHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApiKeysHistoryQueryKey = (params?: GetApiKeysHistoryParams,) => {
+    return [
+    'v1','organization','api-keys','history', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetApiKeysHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getApiKeysHistory>>, TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>>(params?: GetApiKeysHistoryParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getApiKeysHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiKeysHistoryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiKeysHistory>>> = ({ signal }) => getApiKeysHistory(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getApiKeysHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiKeysHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiKeysHistory>>>
+export type GetApiKeysHistoryQueryError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+
+
+
+export function createGetApiKeysHistory<TData = Awaited<ReturnType<typeof getApiKeysHistory>>, TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>>(
+ params?: () =>  GetApiKeysHistoryParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getApiKeysHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetApiKeysHistoryQueryOptions(params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type getApiKeysLastUpdateResponse200 = {
+  data: LastUpdate
+  status: 200
+}
+
+export type getApiKeysLastUpdateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getApiKeysLastUpdateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getApiKeysLastUpdateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getApiKeysLastUpdateResponseSuccess = (getApiKeysLastUpdateResponse200) & {
+  headers: Headers;
+};
+export type getApiKeysLastUpdateResponseError = (getApiKeysLastUpdateResponse401 | getApiKeysLastUpdateResponse403 | getApiKeysLastUpdateResponse404) & {
+  headers: Headers;
+};
+
+export const getGetApiKeysLastUpdateUrl = () => {
+
+
+
+
+  return `/v1/organization/api-keys/last-update`
+}
+
+export const getApiKeysLastUpdate = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<getApiKeysLastUpdateResponseSuccess> => {
+
+  return apiQueryFetch<getApiKeysLastUpdateResponseSuccess>(getGetApiKeysLastUpdateUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApiKeysLastUpdateQueryKey = () => {
+    return [
+    'v1','organization','api-keys','last-update'
+    ] as const;
+    }
+
+
+export const getGetApiKeysLastUpdateQueryOptions = <TData = Awaited<ReturnType<typeof getApiKeysLastUpdate>>, TError = ErrorType<void | ProblemDetails>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getApiKeysLastUpdate>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiKeysLastUpdateQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiKeysLastUpdate>>> = ({ signal }) => getApiKeysLastUpdate({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getApiKeysLastUpdate>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiKeysLastUpdateQueryResult = NonNullable<Awaited<ReturnType<typeof getApiKeysLastUpdate>>>
+export type GetApiKeysLastUpdateQueryError = ErrorType<void | ProblemDetails>
+
+
+
+export function createGetApiKeysLastUpdate<TData = Awaited<ReturnType<typeof getApiKeysLastUpdate>>, TError = ErrorType<void | ProblemDetails>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getApiKeysLastUpdate>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetApiKeysLastUpdateQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
 
 export type getApiKeyResponse200 = {
   data: ApiKeySummary

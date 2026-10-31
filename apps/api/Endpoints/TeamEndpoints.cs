@@ -7,6 +7,7 @@ using ScreenHire.Api.Auth;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Realtime;
+using ScreenHire.Domain.History;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
@@ -21,6 +22,8 @@ namespace ScreenHire.Api.Endpoints;
 /// writes a <see cref="MembershipEvent"/>. The roles themselves are <see cref="RoleEndpoints"/>. Accepting an invitation
 /// is a sign-in, so it lives in <see cref="AuthEndpoints"/>. Each member also has a job access, All jobs or Only jobs
 /// they're on (ADR-0015); the jobs they are on change through each job's hiring team (<see cref="HiringTeamEndpoints"/>).
+/// The Team page's change history (docs/architecture/change-history.md) says the same changes in words, for its History
+/// sheet and its Last updated; it needs Manage the team, because it names invited addresses.
 /// </summary>
 internal static class TeamEndpoints
 {
@@ -36,6 +39,12 @@ internal static class TeamEndpoints
             .RequirePermission(Permission.ManageTeam)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/membership-log", ListMembershipLog).WithName("ListMembershipLog")
+            .RequirePermission(Permission.ManageTeam)
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/team/history", GetTeamHistory).WithName("GetTeamHistory")
+            .RequirePermission(Permission.ManageTeam)
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/team/last-update", GetTeamLastUpdate).WithName("GetTeamLastUpdate")
             .RequirePermission(Permission.ManageTeam)
             .Produces(StatusCodes.Status401Unauthorized);
 
@@ -147,6 +156,14 @@ internal static class TeamEndpoints
                 e.HiringTemplateId is { } template ? templates.GetValueOrDefault(template) : null))
             .ToList());
     }
+
+    private static Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> GetTeamHistory(
+        Guid? before, int? limit, ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
+        ChangeHistoryRoutes.OrganizationPageAsync(ChangeSubjectKind.Team, before, limit, db, tenant, cancellationToken);
+
+    private static Task<Results<Ok<LastUpdate>, NotFound>> GetTeamLastUpdate(
+        ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
+        ChangeHistoryRoutes.OrganizationLastUpdateAsync(ChangeSubjectKind.Team, db, tenant, cancellationToken);
 
     private static async Task<Results<Ok<TeamMember>, NotFound, ValidationProblem, Conflict<ProblemDetails>, ProblemHttpResult>> ChangeMemberRole(
         Guid memberId, ChangeMemberRoleRequest request, IValidator<ChangeMemberRoleRequest> validator, ScreenHireDbContext db,

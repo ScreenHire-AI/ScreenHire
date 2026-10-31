@@ -84,6 +84,7 @@ public sealed class ChangeHistoryInterceptor(TimeProvider time, EmailTemplates e
         {
             var context = new ChangeContext(db, emailTemplates);
             var subjects = new Dictionary<(ChangeSubjectKind Kind, string Id), List<ChangeLine>>();
+            var created = new HashSet<(ChangeSubjectKind Kind, string Id)>();
             foreach (var entry in entries)
             {
                 foreach (var kind in TrackedKinds.FindAll(entry.Metadata.ClrType))
@@ -101,6 +102,10 @@ public sealed class ChangeHistoryInterceptor(TimeProvider time, EmailTemplates e
                     }
 
                     subjectLines.AddRange(lines);
+                    if (entry.State == EntityState.Added && kind.Creates(entry.Entity, context))
+                    {
+                        created.Add(key);
+                    }
                 }
             }
 
@@ -115,6 +120,7 @@ public sealed class ChangeHistoryInterceptor(TimeProvider time, EmailTemplates e
                     ActorUserId = db.Tenant.UserId,
                     ActorApiKeyId = db.Tenant.UserId is null ? db.Tenant.ApiKeyId : null,
                     OccurredAt = now,
+                    Created = created.Contains((kind, id)),
                     Lines = lines,
                 });
             }
