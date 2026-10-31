@@ -8,6 +8,7 @@ sources:
   - resource: src/ScreenHire.Domain/Applications/ApplicationNote.cs
   - resource: src/ScreenHire.Domain/Hiring/HiringTemplate.cs
   - resource: src/ScreenHire.Domain/Hiring/DefinitionValidator.cs
+  - resource: apps/dashboard/src/lib/form-sections.ts
   - resource: src/ScreenHire.Domain/Hiring/FactSchema.cs
   - resource: src/ScreenHire.Domain/Hiring/SystemTemplates.cs
   - resource: src/ScreenHire.Domain/Automations/ApplicationTask.cs

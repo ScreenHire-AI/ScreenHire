@@ -409,7 +409,10 @@ Rules of thumb in the analyzers:
   seconds to read the form, plus 4 per answer, plus 1 per 50 characters of text. For an application resumed from a
   draft (the API sees the draft it deletes at submission), answers carried over unchanged from the draft and the 15
   seconds of reading were done in an earlier sitting, whose time a draft does not keep, so they are left out. No page
-  times (an observation from before version 2, or a caller that sent none) means no check. Not measured with an
+  times (an observation from before version 2, or a caller that sent none) means no check, so re-running an older
+  application drops the velocity signal version 1 gave it and its automation level can fall. The page times pass
+  through the candidate's browser in the form's hidden state, so the check catches a careless script, not a determined
+  one; that is why it is `Medium` and why telemetry alone never raises a level. Not measured with an
   accommodation. The threshold is the analyzer's and changed for the resumed case only, versioned by the analyzer, so
   the ruleset version stays.
 - **Duplicates** count only other candidates. One person applying to two jobs is normal. A shared device or file is

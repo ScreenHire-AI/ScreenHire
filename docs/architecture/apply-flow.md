@@ -22,6 +22,7 @@ sources:
   - resource: apps/careers/src/lib/drafts.ts
   - resource: apps/careers/src/components/StepIndicator.astro
   - resource: packages/ui/src/questions/PageProgress.svelte
+  - resource: packages/ui/src/questions/model.ts
   - resource: apps/api/Applications/ApplicationDrafts.cs
   - resource: apps/api/Endpoints/PublicApplicationDraftEndpoints.cs
   - resource: src/ScreenHire.Domain/Applications/ApplicationDraft.cs
@@ -210,14 +211,21 @@ own measure.
 **Save and finish later.** On the pages and the review, when the form says `saveDraftEnabled` (an `IEmailSender` is
 registered and a careers host pattern is configured; otherwise the button is hidden), "Save and finish later" posts
 the draft and keeps the candidate on the step with a notice: "Saved. We emailed a link to {email} to finish by
-{date}.", and that files are attached again. The API (`PublicApplicationDraftEndpoints`, `ApplicationDrafts`):
+{date}.", and that files are attached again. Saving again says the emailed link opens these answers, since no new
+email goes. Only a 404 or 410 on saving again makes a new draft; any other failure keeps the old one and says so, so a
+busy moment never mails a second link. The API (`PublicApplicationDraftEndpoints`, `ApplicationDrafts`):
 
 - `POST .../jobs/{jobId}/application-drafts` checks the answers' shape only (`ApplicationForm.ValidateDraft`: nothing
   required yet, no file answers), creates an `ApplicationDraft` and sends the link inside the request, as sign-in links
   are, because the token lets whoever holds it read the draft and so never sits in the outbox. The email is
   ScreenHire's own wording, not an organization template. An address gets at most 5 draft links a day in one
   organization (a per-address advisory lock, as for sign-in links); the sixth save is a 429. The answer is the same
-  whether or not the address applied before.
+  whether or not the address applied before. If the email cannot be sent, the draft is deleted and the request fails,
+  so a draft never sits without its link or counts against the cap.
+- Accepted limits. Saving a draft takes no bot check, so anyone can make the API email a link to an address they
+  type: the per-address cap and the per-network rate limit bound it, and the email says to ignore it if you did not
+  start the application. The sixth save's 429 tells the caller that address has saved several drafts in that
+  organization today, which says nothing about whether it applied.
 - The token is Data Protection under its own purpose (`ScreenHire.ApplicationDraft.Link.v1`), naming the organization
   and the draft, like follow-up links. A draft is found by its token, never by its email, so nobody who knows an
   address can replace the answers saved under it. The careers page keeps the token in its state, so saving again
@@ -236,7 +244,10 @@ unknown one "We could not find your saved answers", and both offer a fresh form.
 **Deletion.** Sending the application deletes the job's drafts for that email in the same save, and the one saved last
 tells the observation that the application was resumed and which answers it carried over (integrity-engine.md §10.2).
 `PurgeExpiredApplicationDrafts` runs daily at 03:47 UTC and deletes drafts 30 days after their first save; later saves
-never move that date.
+never move that date. A link stays readable for 30 days past its draft's expiry, but once the sweep has run the draft
+is gone, so the page says "We could not find your saved answers" (whose text covers answers sent or deleted) rather
+than "expired". Two sends of one resumed form at the same moment can fail the second on the draft delete; sending
+again succeeds or reports the application as already sent.
 
 **Knockouts.** A draft is never an application: saving one raises no event and runs no automation or integrity check,
 and the careers server never learns knockout settings. A knockout answer on an early page therefore ends nothing

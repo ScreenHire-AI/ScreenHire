@@ -12,6 +12,7 @@ sources:
   - resource: apps/dashboard/src/lib/table-sort.svelte.ts
   - resource: apps/dashboard/src/lib/preview-window.svelte.ts
   - resource: apps/dashboard/src/lib/form-builder.ts
+  - resource: apps/dashboard/src/lib/form-sections.ts
   - resource: apps/dashboard/src/lib/templates.ts
 ---
 # ScreenHire design system
