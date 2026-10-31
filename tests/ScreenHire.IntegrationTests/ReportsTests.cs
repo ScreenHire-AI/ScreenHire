@@ -97,6 +97,7 @@ public sealed class ReportsTests(AppHostFixture fixture)
         var hidden = (await viewer.GetAsync($"/v1/reports/hiring?{Range}&jobId={data}")).Expect(HttpStatusCode.OK);
         hidden.Count("funnel").Should().Be(0, "filtering by a job they cannot see shows nothing and says nothing about it");
         hidden.At("timeToHire.hires").GetInt32().Should().Be(0);
+        hidden.Count("sources").Should().Be(0);
     }
 
     [Fact]
@@ -106,11 +107,22 @@ public sealed class ReportsTests(AppHostFixture fixture)
         using var other = await fixture.SignedInWithOrganizationAsync();
         await SeedAsync(other.OrganizationId);
 
+        var empty = (await owner.GetAsync($"/v1/reports/hiring?{Range}")).Expect(HttpStatusCode.OK);
+
+        empty.Count("funnel").Should().Be(0);
+        empty.At("timeToHire.hires").GetInt32().Should().Be(0);
+        empty.Count("sources").Should().Be(0);
+
+        // With a history of its own, the organization's numbers are exactly its own: the other's equal history adds
+        // nothing to any panel.
+        var (platform, data) = await SeedAsync(owner.OrganizationId);
         var report = (await owner.GetAsync($"/v1/reports/hiring?{Range}")).Expect(HttpStatusCode.OK);
 
-        report.Count("funnel").Should().Be(0);
-        report.At("timeToHire.hires").GetInt32().Should().Be(0);
-        report.Count("sources").Should().Be(0);
+        Funnel(report).Should().Equal(
+            ("Applied", 7, 6), ("Screening", 6, 6), ("Assessment", 6, 5), ("Interview", 5, 4), ("Offer", 4, 3), ("Hired", 3, null));
+        report.At("timeToHire.hires").GetInt32().Should().Be(5);
+        Jobs(report).Should().BeEquivalentTo([(platform, 3, 30.0), (data, 2, 9.5)]);
+        Sources(report).Should().Equal(("CareersSite", 5, 2), ("Recruiter", 2, 1));
     }
 
     [Fact]
