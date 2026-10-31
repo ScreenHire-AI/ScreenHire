@@ -34,11 +34,3 @@ export function slugify(name: string): string {
     .slice(0, 63)
     .replace(/-+$/g, '');
 }
-
-/** Country codes from what a person typed ("gb, ie" or "GB IE"): upper-cased, in order, each once. */
-export function countryCodes(text: string): string[] {
-  return [...new Set(text.split(/[\s,;]+/).filter(Boolean).map((code) => code.toUpperCase()))];
-}
-
-/** Whether every code is an ISO 3166-1 alpha-2 code, as the API requires. */
-export const areCountryCodes = (codes: readonly string[]): boolean => codes.every((code) => /^[A-Z]{2}$/.test(code));

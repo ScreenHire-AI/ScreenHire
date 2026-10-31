@@ -34,6 +34,7 @@
   import ChoiceCard from '#lib/components/choice-card.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import CountButton, { type CountItem } from '#lib/components/count-button.svelte';
+  import CountryPicker from '#lib/components/country-picker.svelte';
   import Picker from '#lib/components/picker.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import EmailPreview from '#lib/components/email-preview.svelte';
@@ -248,6 +249,7 @@
   // Tags change in place here; nothing is saved.
   let sampleTags = $state(['Referral', 'Relocating to Leeds']);
   let jobsChoice = $state<'All' | 'HiringTeamOnly'>('All');
+  let countriesChoice = $state(['GB', 'IE']);
   const sampleTeam = [
     { id: 'm1', userId: 'u1', email: 'avery@example.com', displayName: 'Avery Quinn', role: 'Owner' as const, customRoleId: null, roleName: 'Owner', joinedAt: ago(30 * day), jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 },
     { id: 'm2', userId: 'u2', email: 'robin@example.com', displayName: 'Robin Ashby', role: 'Recruiter' as const, customRoleId: null, roleName: 'Recruiter', joinedAt: ago(20 * day), jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 },
@@ -611,6 +613,12 @@
             empty="Nobody else to add."
             onpick={() => {}}
           />
+        </Panel>
+        <Panel title="Country picker" class="flex-[1_1_320px]">
+          <div class="flex flex-col gap-2">
+            <label for="style-guide-countries" class="text-body font-medium">Countries candidates can work from</label>
+            <CountryPicker id="style-guide-countries" bind:value={countriesChoice} />
+          </div>
         </Panel>
         <Panel title="Choice card" class="flex-[1_1_320px]">
           <div role="radiogroup" aria-label="Jobs" class="flex flex-col gap-2">

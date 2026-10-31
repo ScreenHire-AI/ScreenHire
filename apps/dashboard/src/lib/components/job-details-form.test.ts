@@ -1,6 +1,7 @@
 import type { JobDetail } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { pickCountry } from '../../test-support/countries.js';
 import { apiStub, jobId } from '../../test-support/fixtures.js';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
 import JobDetailsForm from './job-details-form.svelte';
@@ -46,7 +47,9 @@ describe('job details form', () => {
   it("starts from the job and saves the whole posting, keeping an untouched description's HTML", async () => {
     const { bodies, onsaved } = renderForm();
     const form = await screen.findByRole('form', { name: 'Edit job details' });
-    expect(within(form).getByLabelText('Countries candidates can work from')).toHaveValue('GB, IE');
+    // The job's countries are pills by name; the codes go back to the API as they were.
+    const chosen = within(form).getByRole('list', { name: 'Chosen countries' });
+    expect(within(chosen).getAllByRole('listitem').map((item) => item.textContent?.trim())).toEqual(['United Kingdom', 'Ireland']);
     expect(within(form).getByLabelText('From')).toHaveValue('70000');
 
     await fireEvent.input(within(form).getByLabelText('To'), { target: { value: '95000' } });
@@ -68,13 +71,25 @@ describe('job details form', () => {
     await waitFor(() => expect(onsaved).toHaveBeenCalledWith('Saved. The careers page shows it now; publish again to update the boards.'));
   });
 
+  it('changes the countries candidates can work from by name', async () => {
+    const { bodies } = renderForm();
+    const form = await screen.findByRole('form', { name: 'Edit job details' });
+
+    await fireEvent.click(within(form).getByRole('button', { name: 'Remove United Kingdom' }));
+    await pickCountry(within(form).getByLabelText('Countries candidates can work from'), 'France');
+    await fireEvent.click(within(form).getByRole('button', { name: 'Save details' }));
+
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    expect(bodies[0]).toMatchObject({ workplaceType: 'Remote', applicantLocationRequirements: ['IE', 'FR'], locations: null });
+  });
+
   it('moves a job on site and rewrites its description in the editor', async () => {
     const { bodies } = renderForm();
     const form = await screen.findByRole('form', { name: 'Edit job details' });
 
     await fireEvent.change(within(form).getByLabelText('Workplace'), { target: { value: 'Onsite' } });
     await fireEvent.input(await within(form).findByLabelText('City'), { target: { value: 'Leeds' } });
-    await fireEvent.input(within(form).getByLabelText('Country code'), { target: { value: 'gb' } });
+    await fireEvent.change(within(form).getByLabelText('Country'), { target: { value: 'GB' } });
     editRichText(within(form).getByRole('textbox', { name: 'Description' }), '<h2>Payouts</h2><p>Run <strong>payouts</strong>.</p><ul><li>Office in Leeds.</li></ul>');
     await fireEvent.click(within(form).getByRole('button', { name: 'Save details' }));
 
@@ -131,12 +146,13 @@ describe('job details form', () => {
     const form = await screen.findByRole('form', { name: 'Edit job details' });
 
     await fireEvent.input(within(form).getByLabelText('Title'), { target: { value: ' ' } });
-    await fireEvent.input(within(form).getByLabelText('Countries candidates can work from'), { target: { value: '' } });
+    await fireEvent.click(within(form).getByRole('button', { name: 'Remove United Kingdom' }));
+    await fireEvent.click(within(form).getByRole('button', { name: 'Remove Ireland' }));
     await fireEvent.input(within(form).getByLabelText('From'), { target: { value: '99000' } });
     await fireEvent.click(within(form).getByRole('button', { name: 'Save details' }));
 
     expect(await within(form).findByText('Give the job a title.')).toBeInTheDocument();
-    expect(within(form).getByText('List the countries candidates can work from, such as GB, IE.')).toBeInTheDocument();
+    expect(within(form).getByText('Choose at least one country candidates can work from.')).toBeInTheDocument();
     expect(within(form).getByText('The top of the range is below the bottom.')).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });

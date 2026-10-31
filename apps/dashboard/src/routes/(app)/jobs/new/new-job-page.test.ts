@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { pickCountry } from '../../../../test-support/countries.js';
 import { apiStub, jobs } from '../../../../test-support/fixtures.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
@@ -42,7 +43,9 @@ describe('new job page', () => {
 
     await fireEvent.input(within(form).getByLabelText('Title'), { target: { value: 'Platform Engineer' } });
     await fireEvent.change(within(form).getByLabelText('Workplace'), { target: { value: 'Remote' } });
-    await fireEvent.input(await within(form).findByLabelText('Countries candidates can work from'), { target: { value: 'gb, ie' } });
+    const countries = await within(form).findByLabelText('Countries candidates can work from');
+    await pickCountry(countries, 'United Kingdom');
+    await pickCountry(countries, 'Ireland');
     editRichText(within(form).getByRole('textbox', { name: 'Description' }), '<p>Run the platform.</p><p>Remote in the UK &amp; Ireland.</p>');
     await fireEvent.click(within(form).getByRole('button', { name: 'Create job' }));
 
@@ -66,7 +69,7 @@ describe('new job page', () => {
     await fireEvent.input(within(form).getByLabelText('Title'), { target: { value: 'Warehouse lead' } });
     await fireEvent.change(within(form).getByLabelText('Workplace'), { target: { value: 'Onsite' } });
     await fireEvent.input(await within(form).findByLabelText('City'), { target: { value: 'Leeds' } });
-    await fireEvent.input(within(form).getByLabelText('Country code'), { target: { value: 'gb' } });
+    await fireEvent.change(within(form).getByLabelText('Country'), { target: { value: 'GB' } });
     editRichText(within(form).getByRole('textbox', { name: 'Description' }), '<p>Lead the night shift.</p>');
     await fireEvent.click(within(form).getByRole('button', { name: 'Create job' }));
 
@@ -87,7 +90,7 @@ describe('new job page', () => {
       target: { value: versionId },
     });
     await fireEvent.change(within(form).getByLabelText('Workplace'), { target: { value: 'Remote' } });
-    await fireEvent.input(await within(form).findByLabelText('Countries candidates can work from'), { target: { value: 'GB' } });
+    await pickCountry(await within(form).findByLabelText('Countries candidates can work from'), 'United Kingdom');
     await fireEvent.click(within(form).getByRole('button', { name: 'Create job' }));
 
     await waitFor(() => expect(bodies).toHaveLength(1));
@@ -105,10 +108,14 @@ describe('new job page', () => {
     expect(within(form).getByText('Describe the job, or choose a template that has a description.')).toBeInTheDocument();
 
     await fireEvent.change(within(form).getByLabelText('Workplace'), { target: { value: 'Remote' } });
-    await fireEvent.input(await within(form).findByLabelText('Countries candidates can work from'), { target: { value: 'United Kingdom' } });
     await fireEvent.click(within(form).getByRole('button', { name: 'Create job' }));
 
-    expect(await within(form).findByText('Use two-letter country codes, such as GB.')).toBeInTheDocument();
+    expect(await within(form).findByText('Choose at least one country candidates can work from.')).toBeInTheDocument();
+
+    await fireEvent.change(within(form).getByLabelText('Workplace'), { target: { value: 'Hybrid' } });
+    await fireEvent.click(within(form).getByRole('button', { name: 'Create job' }));
+
+    expect(await within(form).findByText('Choose the country the job is in.')).toBeInTheDocument();
     expect(fetchMock.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(0);
   });
 });

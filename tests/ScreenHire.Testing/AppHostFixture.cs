@@ -7,6 +7,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using Xunit;
@@ -158,6 +159,9 @@ public class AppHostFixture : IAsyncLifetime
         try
         {
             await workerListening.Task.WaitAsync(cancellationToken);
+            // Listening is not yet leading: the durability agent (scheduled messages, outbox recovery) starts once the
+            // worker's node takes leadership, about 13 s later on a busy machine.
+            await WaitUntilWorkerRunsAgentsAsync(DateTimeOffset.MinValue, cancellationToken);
         }
         catch (OperationCanceledException exception) when (!TestContext.Current.CancellationToken.IsCancellationRequested)
         {
@@ -166,6 +170,39 @@ public class AppHostFixture : IAsyncLifetime
                 $"Check its log in {LogDirectory}.",
                 exception);
         }
+    }
+
+    /// <summary>
+    /// Waits until a worker's Wolverine node that took its agents after <paramref name="since"/> (the database's clock,
+    /// from <see cref="GetDatabaseTimeAsync"/>) runs the durability agent, which Wolverine assigns once the node leads:
+    /// the worker then handles messages, scheduled ones included. At startup every run has a fresh database, so any
+    /// such row is this worker's; a test that restarts the worker passes the time from before the restart, because
+    /// Aspire calls the new process running up to a minute before it listens.
+    /// </summary>
+    public async Task WaitUntilWorkerRunsAgentsAsync(DateTimeOffset since, CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(await GetOwnerConnectionStringAsync(cancellationToken));
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(
+            $"SELECT EXISTS (SELECT 1 FROM {DatabaseRegistration.MessagingSchema}.wolverine_node_assignments " +
+            "WHERE id LIKE 'wolverinedb://%' AND started > @since)",
+            connection);
+        command.Parameters.AddWithValue("since", since);
+        while (await command.ExecuteScalarAsync(cancellationToken) is not true)
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
+        }
+    }
+
+    /// <summary>The database's clock, for <see cref="WaitUntilWorkerRunsAgentsAsync"/>.</summary>
+    public async Task<DateTimeOffset> GetDatabaseTimeAsync(CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(await GetOwnerConnectionStringAsync(cancellationToken));
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand("SELECT now()", connection);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        await reader.ReadAsync(cancellationToken);
+        return await reader.GetFieldValueAsync<DateTimeOffset>(0, cancellationToken);
     }
 
     // Writes each resource instance's console log to its file as it arrives, and keeps every resource that stops with an

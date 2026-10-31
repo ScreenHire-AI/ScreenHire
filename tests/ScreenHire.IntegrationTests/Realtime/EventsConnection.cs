@@ -12,7 +12,9 @@ namespace ScreenHire.IntegrationTests.Realtime;
 internal sealed class EventsConnection : IAsyncDisposable
 {
     private const string HubPath = "/v1/hubs/events";
-    private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(30);
+    // The same budget as every other wait on the worker (WolverineStore, Mailpit, ScheduledMessages): an event the worker
+    // raises queues behind the whole suite's start-up burst in the one worker queue, then takes the real-time hop.
+    private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(60);
 
     private readonly ConcurrentQueue<ReceivedEvent> received = new();
     private readonly TaskCompletionSource<Exception?> closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
