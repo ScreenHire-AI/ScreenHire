@@ -127,6 +127,12 @@ describe('reports page', () => {
     ]);
     expect(within(funnel).getByRole('button', { name: 'Table' })).toHaveAttribute('aria-pressed', 'true');
     await expectNoAxeViolations();
+
+    // Stage sorts by the pipeline's order, not the alphabet: the second click puts Hired first.
+    await fireEvent.click(within(table).getByRole('button', { name: 'Stage' }));
+    await fireEvent.click(within(table).getByRole('button', { name: 'Stage' }));
+    const stages = within(table).getAllByRole('row').slice(1).map((row) => within(row).getAllByRole('cell')[0]!.textContent?.trim());
+    expect(stages).toEqual(['Hired', 'Interview', 'Screening', 'Applied']);
   });
 
   it('says why a panel is empty when the others have numbers, offering a longer range once', async () => {

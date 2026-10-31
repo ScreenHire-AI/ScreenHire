@@ -19,8 +19,10 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { sourceName } from '#lib/format.js';
   import { describeError } from '#lib/query.js';
-  import { rangeInstants, readRange, writeRange, type ReportRange } from '#lib/report-range.js';
-  import { counted, countText, daysText, shareText, stageKindLabel } from '#lib/reports.js';
+  import { clock } from '#lib/clock.svelte.js';
+  import { dayText, parseDay, rangeInstants, readRange, writeRange, type ReportRange } from '#lib/report-range.js';
+  import { counted, countText, daysText, shareText } from '#lib/reports.js';
+  import { stageKindLabels, stageKinds } from '#lib/workflow.js';
 
   // Reports (design system section 7, Report; docs/architecture/reports.md): the funnel, time to hire and sources for the
   // jobs the person can see, over a date range and an optional set of jobs. The filters live in the address, so a link
@@ -30,7 +32,9 @@
 
   const range = $derived(readRange(page.url.searchParams));
   const jobIds = $derived(page.url.searchParams.getAll('job'));
-  const instants = $derived(rangeInstants(range, new Date()));
+  // Today, from the dashboard's minute clock, so a page left open past midnight moves its window on with the day.
+  const today = $derived(dayText(new Date(clock.now)));
+  const instants = $derived(rangeInstants(range, parseDay(today) ?? new Date()));
 
   const report = createGetHiringReport(
     () => ({ ...instants, jobId: jobIds.length > 0 ? jobIds : undefined }),
@@ -66,16 +70,16 @@
       const applications = counted(stage.applications, 'application', 'applications');
       return {
         key: stage.kind,
-        label: stageKindLabel(stage.kind),
+        label: stageKindLabels[stage.kind],
         values: [stage.applications],
         texts: [countText(stage.applications)],
         note: share === null ? null : `${share} moved on`,
-        summary: `${stageKindLabel(stage.kind)}: ${applications}${share === null ? '' : `, ${share} moved on`}`,
+        summary: `${stageKindLabels[stage.kind]}: ${applications}${share === null ? '' : `, ${share} moved on`}`,
       };
     }),
   );
   const funnelColumns: ChartColumn<FunnelStage>[] = [
-    { id: 'stage', header: 'Stage', text: (stage) => stageKindLabel(stage.kind), sortBy: (stage) => stageKindLabel(stage.kind) },
+    { id: 'stage', header: 'Stage', text: (stage) => stageKindLabels[stage.kind], sortBy: (stage) => stageKinds.indexOf(stage.kind) },
     { id: 'applications', header: 'Applications', text: (stage) => countText(stage.applications), sortBy: (stage) => stage.applications },
     {
       id: 'movedOn',
@@ -198,7 +202,7 @@
 
           <ChartPanel
             title="Sources"
-            basis="Applications that arrived in these dates, and the hires among them, by where they came from."
+            basis="Applications that arrived in these dates and the hires among them, by source."
             tableId="reports-sources"
             columns={sourceColumns}
             rows={data.sources}

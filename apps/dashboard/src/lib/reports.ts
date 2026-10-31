@@ -1,23 +1,7 @@
-import type { StageKind } from '@screenhire/api-client';
 import { locales } from '#lib/dates.js';
 
 // Words and numbers for the Reports page (docs/architecture/reports.md). Counts and shares use the browser's locale.
-
-const kindLabels: Record<StageKind, string> = {
-  Applied: 'Applied',
-  Screening: 'Screening',
-  Assessment: 'Assessment',
-  Verification: 'Verification',
-  Interview: 'Interview',
-  Offer: 'Offer',
-  Hired: 'Hired',
-  Rejected: 'Rejected',
-  Withdrawn: 'Withdrawn',
-  Custom: 'Custom',
-};
-
-/** A funnel row's name: the stage kind, which every job's own stage names map to. */
-export const stageKindLabel = (kind: StageKind) => kindLabels[kind];
+// A funnel row is named by its stage kind, as `stageKindLabels` in #lib/workflow.ts writes it.
 
 const counts = new Intl.NumberFormat(locales);
 const percent = new Intl.NumberFormat(locales, { style: 'percent', maximumFractionDigits: 0 });

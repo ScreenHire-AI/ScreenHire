@@ -89,7 +89,7 @@
         </button>
       {/each}
     </div>
-    <Separator class="my-1" />
+    <Separator class="my-1 h-px" />
     <form class="flex flex-col gap-3 p-2" onsubmit={apply} aria-labelledby="{id}-custom" novalidate>
       <p id="{id}-custom" class="flex items-center gap-2 text-body font-semibold">
         <span class="flex size-4 shrink-0 items-center justify-center">{#if value.kind === 'custom'}<CheckIcon aria-hidden="true" class="stroke-[2.5]" />{/if}</span>

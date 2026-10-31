@@ -16,8 +16,11 @@ const defaultDays: Preset = 30;
 
 export const defaultRange: ReportRange = { kind: 'preset', days: defaultDays };
 
-/** The longest custom range, the API's limit: 5 years of days. */
-export const maxDays = 1827;
+/**
+ * The longest custom range: 5 years of days. One day under the API's limit of 1827 days of elapsed time, because a
+ * clock change inside the range can add an hour to the local days it covers.
+ */
+export const maxDays = 1826;
 
 const dateText = /^(\d{4})-(\d{2})-(\d{2})$/;
 

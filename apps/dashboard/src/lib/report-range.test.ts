@@ -44,6 +44,9 @@ describe('report ranges', () => {
     expect(customRangeProblem('', '2026-01-01')).toBe('Pick both dates.');
     expect(customRangeProblem('2026-02-01', '2026-01-01')).toBe('The range has to end on or after its first day.');
     expect(customRangeProblem('2020-01-01', '2026-01-01')).toBe('A report covers 5 years at most.');
+    // 1826 days, both ends included: under the API's 1827 days even with a clock change inside the range.
+    expect(customRangeProblem('2021-06-01', '2026-05-31')).toBeNull();
+    expect(customRangeProblem('2021-06-01', '2026-06-01')).toBe('A report covers 5 years at most.');
   });
 
   it('reads and writes days as date fields hold them', () => {
