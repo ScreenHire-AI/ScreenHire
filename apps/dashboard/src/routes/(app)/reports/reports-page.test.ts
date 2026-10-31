@@ -109,6 +109,24 @@ describe('reports page', () => {
     await expectNoAxeViolations();
   });
 
+  it('moves the window on when the day changes under an open page', async () => {
+    // Only the clock is fake: testing-library's waits run on real timeouts.
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'], now: new Date(2026, 9, 30, 23, 59, 30) });
+    try {
+      const asked = renderPage();
+      await waitFor(() => expect(asked).toHaveLength(1));
+      expect(asked[0]!.searchParams.get('to')).toBe(new Date(2026, 9, 31).toISOString());
+
+      vi.advanceTimersByTime(60_000);
+
+      await waitFor(() => expect(asked.at(-1)!.searchParams.get('to')).toBe(new Date(2026, 10, 1).toISOString()));
+      // Today is now 31 October, so the last 30 days start on 2 October.
+      expect(asked.at(-1)!.searchParams.get('from')).toBe(new Date(2026, 9, 2).toISOString());
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('shows each chart as a table on request', async () => {
     renderPage();
     const funnel = await screen.findByRole('region', { name: 'Hiring funnel' });
