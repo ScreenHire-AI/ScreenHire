@@ -81,7 +81,8 @@ not nest and Tab always leaves the editor.
   description and a template's default still applies. A value set from outside (Start from, Reset to original) loads
   without counting as an edit.
 - **Chips:** with `variables`, each `{{ ... }}` is one inline atom shown as a muted word with the variable's label
-  (First name), and the raw expression when it is more than a name. It is stored as the Liquid text itself.
+  (First name), and the raw expression when it is more than a name. It is stored as the Liquid text itself. A browser's
+  own End stops before a chip that ends a line, so End and Ctrl or Cmd End go past it.
 - **Toolbar:** design system section 11, Rich text editor.
 
 ### Shortcuts

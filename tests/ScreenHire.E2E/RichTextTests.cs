@@ -69,10 +69,9 @@ public sealed class RichTextTests(E2EFixture fixture) : BrowserTest(fixture)
         // The page is settled once the preview shows the sample candidate.
         await Expect(preview.Locator("body")).ToContainTextAsync("Hi Jordan");
         await Expect(message.Locator("[data-liquid]").First).ToContainTextAsync("First name");
-        // The caret at the end of the message. The wording ends on a chip, past which a browser's own End key does not go,
-        // so Tiptap's focus command puts it there, as a click after the last word would.
+        // The wording ends on a chip; Ctrl or Cmd End still reaches the end of the message.
         await message.ClickAsync();
-        await Page.EvaluateAsync("() => document.getElementById('email-template-body').editor.commands.focus('end')");
+        await Page.Keyboard.PressAsync("ControlOrMeta+End");
         await Page.Keyboard.PressAsync("Enter");
         await Page.GetByRole(AriaRole.Toolbar, new() { Name = "Formatting" }).GetByRole(AriaRole.Button, new() { Name = "Subheading" }).ClickAsync();
         await Page.Keyboard.TypeAsync("Next steps for ");

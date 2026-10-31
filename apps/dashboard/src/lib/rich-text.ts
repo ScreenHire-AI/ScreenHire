@@ -1,5 +1,6 @@
 import { InputRule, Node, type Extensions } from '@tiptap/core';
 import { ListItem } from '@tiptap/extension-list';
+import type { EditorState } from '@tiptap/pm/state';
 import StarterKit from '@tiptap/starter-kit';
 
 /**
@@ -143,6 +144,23 @@ export const Variable = Node.create<VariableOptions>({
       hidden.textContent = 'variable ';
       dom.append(hidden, chipLabel(node.attrs['expression'], this.options.variables()));
       return { dom };
+    };
+  },
+
+  // A browser's own End stops before a chip that ends a line (it is not editable text), so a keyboard could never reach
+  // the end of "Thanks, {{ organizationName }}". End and Ctrl or Cmd End go past it.
+  addKeyboardShortcuts() {
+    const pastChip = (to: (state: EditorState) => number) =>
+      () => {
+        const { state } = this.editor;
+        const target = to(state);
+        const before = state.doc.resolve(target).nodeBefore;
+        if (before?.type !== this.type || state.selection.head === target) return false;
+        return this.editor.commands.setTextSelection(target);
+      };
+    return {
+      End: pastChip((state) => state.selection.$head.end()),
+      'Mod-End': pastChip((state) => state.doc.content.size - 1),
     };
   },
 

@@ -130,6 +130,18 @@ describe('rich text editor', () => {
     expect(textbox()).toHaveTextContent('Hi variable First name');
   });
 
+  it('moves past a chip that ends the line with End and Ctrl or Cmd End', async () => {
+    render(Harness, { props: { value: '<p>Thanks, {{ organizationName }}</p><p>Hi {{ firstName }}</p>', variables } });
+    const editor = (textbox() as HTMLElement & { editor: Editor }).editor;
+    editor.commands.setTextSelection(1);
+
+    await fireEvent.keyDown(textbox(), { key: 'End' });
+    expect(editor.state.selection.head).toBe(editor.state.doc.firstChild!.nodeSize - 1);
+
+    await fireEvent.keyDown(textbox(), { key: 'End', ctrlKey: true });
+    expect(editor.state.selection.head).toBe(editor.state.doc.content.size - 1);
+  });
+
   // Making the editor again would put the caret back at the start while someone types, as a refetched list did.
   it('keeps the same editor when its variables arrive again unchanged', async () => {
     render(Harness, { props: { value: '<p>Hi {{ firstName }}</p>', variables } });
