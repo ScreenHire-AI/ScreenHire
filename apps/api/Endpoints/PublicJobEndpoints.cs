@@ -65,7 +65,8 @@ internal static class PublicJobEndpoints
 
         return TypedResults.Ok(new PublicJobBoard(
             organization.Name, organization.Slug, [.. jobs.Select(j => j.ToPublicJob(domains.Value.CareersJobUrl(organization.Slug, j.Slug)))],
-            domains.Value.CareersBoardUrl(organization.Slug), await PublicBrandings.LoadAsync(db, organization, domains.Value, cancellationToken)));
+            domains.Value.CareersBoardUrl(organization.Slug), await PublicBrandings.LoadAsync(db, organization, domains.Value, cancellationToken),
+            organization.EmbedOrigins));
     }
 
     // An open job is 200. A closed job that was once published is 410 Gone with its last content and validThrough set to

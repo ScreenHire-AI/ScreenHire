@@ -137,6 +137,21 @@ internal static class PublicApplicationEndpoints
         };
     }
 
+    // The site the careers page was embedded in, when it is one of the organization's own (careers-widget.md): anything
+    // else is dropped, never a reason to refuse an application.
+    private static async Task<string?> SourceSiteAsync(
+        string? embedOrigin, Guid organizationId, ScreenHireDbContext db, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(embedOrigin))
+        {
+            return null;
+        }
+
+        var origins = await db.Organizations.AsNoTracking().Where(o => o.Id == organizationId).Select(o => o.EmbedOrigins)
+            .SingleAsync(cancellationToken);
+        return origins.Contains(embedOrigin, StringComparer.Ordinal) ? embedOrigin : null;
+    }
+
     private static async Task<Results<Created<PublicApplicationReceipt>, NotFound, ValidationProblem, ProblemHttpResult>> SubmitApplication(
         string organizationSlug,
         Guid jobId,
@@ -227,7 +242,8 @@ internal static class PublicApplicationEndpoints
             request.PrivacyNoticeVersion.Trim(),
             request.HoneypotFilled,
             await turnstile.VerifyAsync(request.BotCheckToken, remoteAddress, cancellationToken),
-            futureRoles);
+            futureRoles,
+            await SourceSiteAsync(request.EmbedOrigin, job.OrganizationId, outbox.DbContext, cancellationToken));
 
         var submitted = await ApplicationSubmission.SubmitAsync(
             outbox, job, ApplicationSubmission.CandidateDetails.From(request.Candidate),

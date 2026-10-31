@@ -36,10 +36,11 @@ public sealed record PublicJob(
 
 /// <summary>
 /// The public careers listing for one organization. <c>url</c> is the board's careers page; <c>branding</c> is its
-/// branding, each part null for ScreenHire's.
+/// branding, each part null for ScreenHire's; <c>embedOrigins</c> are the sites allowed to show it in a frame.
 /// </summary>
 public sealed record PublicJobBoard(
-    string OrganizationName, string OrganizationSlug, IReadOnlyList<PublicJob> Jobs, string Url, PublicBranding Branding);
+    string OrganizationName, string OrganizationSlug, IReadOnlyList<PublicJob> Jobs, string Url, PublicBranding Branding,
+    IReadOnlyList<string> EmbedOrigins);
 
 /// <summary>A job as shown in the recruiter dashboard's list.</summary>
 /// <remarks><c>templateUpdateAvailable</c>: the job's source template has a newer published version than the job copied.</remarks>

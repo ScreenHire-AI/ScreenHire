@@ -166,6 +166,7 @@ import type {
   TemplateUsageList,
   TestEmailSent,
   UpdateBrandingRequest,
+  UpdateCareersEmbeddingRequest,
   UpdateEmailTemplateRequest,
   UpdateHiringTemplateRequest,
   UpdateHiringTemplateVersionRequest,
@@ -9469,6 +9470,120 @@ export function createGetOrganizationIntegritySettingsHistory<TData = Awaited<Re
 
 
 
+
+export type updateCareersEmbeddingResponse200 = {
+  data: OrganizationProfile
+  status: 200
+}
+
+export type updateCareersEmbeddingResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateCareersEmbeddingResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateCareersEmbeddingResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateCareersEmbeddingResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateCareersEmbeddingResponseSuccess = (updateCareersEmbeddingResponse200) & {
+  headers: Headers;
+};
+export type updateCareersEmbeddingResponseError = (updateCareersEmbeddingResponse400 | updateCareersEmbeddingResponse401 | updateCareersEmbeddingResponse403 | updateCareersEmbeddingResponse404) & {
+  headers: Headers;
+};
+
+export const getUpdateCareersEmbeddingUrl = () => {
+
+
+
+
+  return `/v1/organization/embedding`
+}
+
+export const updateCareersEmbedding = async (updateCareersEmbeddingRequest: UpdateCareersEmbeddingRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<updateCareersEmbeddingResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<updateCareersEmbeddingResponseSuccess>(getUpdateCareersEmbeddingUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateCareersEmbeddingRequest)
+  }
+);}
+
+
+
+
+
+export const getUpdateCareersEmbeddingMutationKey = () => ['updateCareersEmbedding'] as const;
+
+export const getUpdateCareersEmbeddingMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateCareersEmbedding>>, TError,UpdateCareersEmbeddingMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof updateCareersEmbedding>>, TError,UpdateCareersEmbeddingMutationVariables, TContext> => {
+
+const mutationKey = getUpdateCareersEmbeddingMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCareersEmbedding>>, UpdateCareersEmbeddingMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateCareersEmbedding(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateCareersEmbeddingMutationResult = NonNullable<Awaited<ReturnType<typeof updateCareersEmbedding>>>
+    export type UpdateCareersEmbeddingMutationBody = UpdateCareersEmbeddingRequest
+    export type UpdateCareersEmbeddingMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type UpdateCareersEmbeddingMutationVariables = {data: UpdateCareersEmbeddingRequest}
+
+    export const createUpdateCareersEmbedding = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateCareersEmbedding>>, TError,UpdateCareersEmbeddingMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof updateCareersEmbedding>>,
+        TError,
+        UpdateCareersEmbeddingMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getUpdateCareersEmbeddingMutationOptions(options?.()) }), queryClient);
+    }
 
 export type getOrganizationBrandingResponse200 = {
   data: OrganizationBranding

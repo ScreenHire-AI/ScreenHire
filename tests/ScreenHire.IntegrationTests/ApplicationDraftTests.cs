@@ -245,7 +245,7 @@ public sealed partial class ApplicationDraftTests(AppHostFixture fixture)
         var response = await client.PostAsJsonAsync($"/v1/public/organizations/{organization.Slug}/jobs/{job.Id}/applications", new JsonObject
         {
             ["candidate"] = new JsonObject { ["firstName"] = "Casey", ["lastName"] = "Morgan", ["email"] = email },
-            ["privacyNoticeVersion"] = "2026-10-31.1",
+            ["privacyNoticeVersion"] = "2026-10-31.2",
             ["answers"] = new JsonArray(
                 new JsonObject { ["questionId"] = "resume", ["value"] = uploadId.ToString() },
                 new JsonObject { ["questionId"] = "work_authorization", ["value"] = workAuthorization },

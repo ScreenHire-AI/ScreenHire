@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fileSize, formatSalary, initials } from './format.js';
+import { fileSize, formatSalary, initials, sourceLabel } from './format.js';
 
 describe('formatSalary', () => {
   // The compact suffix's case comes from the runtime's locale data: "K" in Chromium, "k" in some Node builds.
@@ -25,5 +25,14 @@ describe('fileSize', () => {
     [2_430_000, '2.4 MB'],
   ])('%i bytes is %s', (bytes, expected) => {
     expect(fileSize(bytes)).toBe(expected);
+  });
+});
+
+describe('sourceLabel', () => {
+  it('names the organization site the careers page was embedded in, or where else it came from', () => {
+    expect(sourceLabel('CareersSite', 'https://www.example.com')).toBe('www.example.com');
+    expect(sourceLabel('CareersSite', 'http://partner.localhost:8080')).toBe('partner.localhost:8080');
+    expect(sourceLabel('CareersSite', null)).toBe('Careers page');
+    expect(sourceLabel('Recruiter')).toBe('Recruiter');
   });
 });

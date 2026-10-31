@@ -72,6 +72,7 @@ const panels: Record<string, string[]> = {
   'Move to stage': ['Move to stage'],
   'Confirm dialog': ['Confirm dialog'],
   'Secret dialog': ['Secret dialog'],
+  'Code block': ['Code block'],
   'Email preview': ['Email preview'],
   'Email composer': ['Email composer'],
   'Add candidate sheet': ['Add candidate sheet'],

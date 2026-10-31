@@ -67,6 +67,7 @@ public sealed partial class RolePermissionsTests
         ["UnarchiveEmailTemplate"] = Permission.EditEmailTemplates,
         ["SendTestEmail"] = Permission.EditEmailTemplates,
         ["UpdateOrganization"] = Permission.EditSettings,
+        ["UpdateCareersEmbedding"] = Permission.EditSettings,
         ["UpdateOrganizationBranding"] = Permission.EditSettings,
         ["CreateBrandImageUpload"] = Permission.EditSettings,
         ["VerifyBrandImageUpload"] = Permission.EditSettings,

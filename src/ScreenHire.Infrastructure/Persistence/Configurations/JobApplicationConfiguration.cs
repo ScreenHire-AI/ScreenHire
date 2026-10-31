@@ -4,6 +4,7 @@ using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Domain.Organizations;
 
 namespace ScreenHire.Infrastructure.Persistence.Configurations;
 
@@ -15,6 +16,7 @@ internal sealed class JobApplicationConfiguration : IEntityTypeConfiguration<Job
         builder.Property(a => a.AiUseDeclaration).HasConversion<string>().HasMaxLength(20);
         builder.Property(a => a.AiUseDetails).HasMaxLength(2000);
         builder.Property(a => a.Source).HasConversion<string>().HasMaxLength(20);
+        builder.Property(a => a.SourceSite).HasMaxLength(EmbedOrigins.MaxLength);
         builder.Property(a => a.Answers).HasJsonColumn();
         builder.Property(a => a.PrivacyNoticeVersion).HasMaxLength(40);
         builder.Property(a => a.BotCheck).HasConversion<string>().HasMaxLength(20);

@@ -1,7 +1,9 @@
 ---
 import '../styles/global.css';
 import type { PublicBranding } from '@screenhire/api-client';
+import EmbedFrame from '../components/EmbedFrame.astro';
 import { brandImagePath, brandStylesheet } from '../lib/brand';
+import { embedOf, withEmbed } from '../lib/embed';
 import { basePath } from '../lib/host';
 
 interface Props {
@@ -23,10 +25,13 @@ const brand = branding ? brandStylesheet(branding) : null;
 const logo = branding?.logo ? { ...branding.logo, src: brandImagePath(base, branding.logo) } : null;
 const favicon = branding?.favicon ? { ...branding.favicon, href: brandImagePath(base, branding.favicon) } : null;
 const sharing = branding?.sharingImage ?? null;
+// In the widget (docs/architecture/careers-widget.md) the page's own links keep it there, and the page sizes its frame.
+const embed = embedOf(Astro.locals);
+const home = withEmbed(base || '/', embed);
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-embed-origin={embed ?? undefined}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -53,12 +58,13 @@ const sharing = branding?.sharingImage ?? null;
     }
     <slot name="head" />
   </head>
-  <body class="flex min-h-screen flex-col bg-candidate-background text-candidate-foreground">
+  <!-- In a frame the viewport is the frame, so a page at least the screen's height could never shrink it. -->
+  <body class:list={['flex flex-col bg-candidate-background text-candidate-foreground', !embed && 'min-h-screen']}>
     <!-- The header band takes the second colour; everything in it uses the header's own text colour, focus rings
          included, which is white or ink at 4.5:1 on the band (ADR-0018). -->
     <header class="candidate-header border-b border-candidate-border bg-candidate-header text-candidate-header-foreground">
       <div class="mx-auto flex h-15 max-w-3xl items-center justify-between gap-4 px-5">
-        <a href={base || '/'} class="flex min-w-0 items-center gap-2.5 font-bold text-candidate-header-foreground no-underline">
+        <a href={home} class="flex min-w-0 items-center gap-2.5 font-bold text-candidate-header-foreground no-underline">
           {
             logo ? (
               <img src={logo.src} alt={organizationName} width={logo.width} height={logo.height} class="h-10 w-auto max-w-60 object-contain object-left" />
@@ -75,7 +81,7 @@ const sharing = branding?.sharingImage ?? null;
             )
           }
         </a>
-        <a href={base || '/'} class="shrink-0 text-sm font-semibold text-candidate-header-foreground">All jobs</a>
+        <a href={home} class="shrink-0 text-sm font-semibold text-candidate-header-foreground">All jobs</a>
       </div>
     </header>
     <main class="mx-auto w-full max-w-3xl flex-1 px-5 py-8">
@@ -84,8 +90,9 @@ const sharing = branding?.sharingImage ?? null;
     <footer class="flex flex-col items-center gap-1 py-6 text-center text-[13px] text-candidate-muted-foreground">
       <p>A person at {organizationName} reviews every application.</p>
       <p class="font-mono text-[11px]">
-        POWERED BY SCREENHIRE · <a href={`${base}/privacy`} class="text-candidate-muted-foreground underline">WHAT WE COLLECT AND WHY</a>
+        POWERED BY SCREENHIRE · <a href={withEmbed(`${base}/privacy`, embed)} class="text-candidate-muted-foreground underline">WHAT WE COLLECT AND WHY</a>
       </p>
     </footer>
+    {embed && <EmbedFrame />}
   </body>
 </html>

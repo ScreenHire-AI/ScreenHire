@@ -84,6 +84,7 @@
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
   import TagList from '#lib/components/tag-list.svelte';
+  import CodeBlock from '#lib/components/code-block.svelte';
   import type { TaskRow } from '#lib/components/task-list.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
@@ -883,6 +884,9 @@
             onadd={async (tag) => ((sampleTags = [...sampleTags, tag]), true)}
             onremove={(tag) => (sampleTags = sampleTags.filter((other) => other !== tag))}
           />
+        </Panel>
+        <Panel title="Code block" class="flex-[1_1_320px]">
+          <CodeBlock code={'<script src="https://brightwater.careers.example/embed.js" async></' + 'script>'} label="Embed code" />
         </Panel>
         <Panel title="Task list" class="flex-[1_1_320px]">
           <TaskCheckboxDemo tasks={sampleTasks} members={sampleTeam} />

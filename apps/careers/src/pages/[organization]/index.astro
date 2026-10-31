@@ -1,6 +1,7 @@
 ---
 import CareersLayout from '../../layouts/CareersLayout.astro';
 import { formatSalary, label, listPublicJobs } from '../../lib/api';
+import { useEmbedding, withEmbed } from '../../lib/embed';
 import { basePath } from '../../lib/host';
 
 // On a tenant host the middleware rewrites `/` here; otherwise the organization is in the path (lib/tenancy.ts).
@@ -13,6 +14,7 @@ if (response.status !== 200) {
 
 const board = response.data;
 const base = basePath(Astro.request, board.organizationSlug);
+const embed = useEmbedding(Astro.locals, Astro.url, board.embedOrigins);
 ---
 
 <CareersLayout
@@ -31,7 +33,7 @@ const base = basePath(Astro.request, board.organizationSlug);
         {board.jobs.map((job) => (
           <li>
             <a
-              href={`${base}/jobs/${job.slug}`}
+              href={withEmbed(`${base}/jobs/${job.slug}`, embed)}
               class="flex flex-col gap-2 rounded-2xl border border-candidate-border bg-candidate-surface p-5 text-candidate-foreground no-underline hover:border-candidate-input-border"
             >
               <span class="font-display text-xl font-bold">{job.title}</span>

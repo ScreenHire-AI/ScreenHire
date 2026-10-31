@@ -122,3 +122,34 @@ describe('time on each page', () => {
     expect(result.state.pageSeconds).toEqual({});
   });
 });
+
+describe('the site the careers page is embedded in', () => {
+  const embedded = { ...applicationForm, organization: { embedOrigins: ['https://www.example.com'] } } as unknown as PublicApplicationForm;
+  const send = () =>
+    form({
+      organization: 'acme',
+      job: 'barista',
+      step: 'review',
+      state: JSON.stringify({ firstName: 'Sam', email: 'sam@example.com' }),
+    });
+  const sent = (fetch: ReturnType<typeof vi.fn>) => JSON.parse((fetch.mock.calls[1]![1] as RequestInit).body as string);
+
+  it('goes with the application while it is on the organization list', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(json(200, embedded)).mockResolvedValueOnce(json(201, { applicationId: 'x' }));
+    vi.stubGlobal('fetch', fetch);
+
+    const result = await applyStep(send(), undefined, null, new Date(), 'https://www.example.com');
+
+    expect(result.outcome).toBe('submitted');
+    expect(sent(fetch).embedOrigin).toBe('https://www.example.com');
+  });
+
+  it('is dropped once the organization no longer lists it', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(json(200, embedded)).mockResolvedValueOnce(json(201, { applicationId: 'x' }));
+    vi.stubGlobal('fetch', fetch);
+
+    await applyStep(send(), undefined, null, new Date(), 'https://removed.example.org');
+
+    expect(sent(fetch).embedOrigin).toBeNull();
+  });
+});

@@ -105,7 +105,7 @@
       sortDescFirst: false,
       cell: ({ row }) => renderSnippet(stageCell, row.original),
     },
-    { id: 'source', header: 'Source', accessorFn: (application) => sourceLabel(application.source), sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(sourceCell, row.original) },
+    { id: 'source', header: 'Source', accessorFn: (application) => sourceLabel(application.source, application.sourceSite), sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(sourceCell, row.original) },
     // Applied sorts, newest first: the order every candidate table opens on (L2).
     { id: 'applied', header: 'Applied', accessorFn: (application) => application.submittedAt, sortFn: 'basic', sortDescFirst: true, cell: ({ row }) => renderSnippet(appliedCell, row.original) },
     // When anything last happened to the application, from the candidate or the team (the API's lastActivityAt), newest
@@ -282,7 +282,7 @@
 {/snippet}
 
 {#snippet sourceCell(application: ApplicationSummary)}
-  <span class="text-muted-foreground">{sourceLabel(application.source)}</span>
+  <span class="text-muted-foreground">{sourceLabel(application.source, application.sourceSite)}</span>
 {/snippet}
 
 {#snippet appliedCell(application: ApplicationSummary)}

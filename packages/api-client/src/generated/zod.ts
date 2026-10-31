@@ -309,8 +309,9 @@ export const GetPublicOrganizationResponse = zod.object({
   "height": zod.int(),
   "url": zod.string()
 }).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')])
-}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\r\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\r\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.')
-}).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s).')
+}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\r\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\r\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.'),
+  "embedOrigins": zod.array(zod.string())
+}).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s) and\r\n`embedOrigins`, the sites allowed to show the careers pages in a frame, which the pages send in their\r\n`frame-ancestors` header (empty: none but the careers pages themselves).')
 
 
 export const ListPublicJobsParams = zod.object({
@@ -378,8 +379,9 @@ export const ListPublicJobsResponse = zod.object({
   "height": zod.int(),
   "url": zod.string()
 }).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')])
-}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\r\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\r\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.')
-}).describe('The public careers listing for one organization. `url` is the board\'s careers page; `branding` is its\r\nbranding, each part null for ScreenHire\'s.')
+}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\r\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\r\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.'),
+  "embedOrigins": zod.array(zod.string())
+}).describe('The public careers listing for one organization. `url` is the board\'s careers page; `branding` is its\r\nbranding, each part null for ScreenHire\'s; `embedOrigins` are the sites allowed to show it in a frame.')
 
 
 export const GetPublicJobParams = zod.object({
@@ -455,8 +457,9 @@ export const GetPublicApplicationFormResponse = zod.object({
   "height": zod.int(),
   "url": zod.string()
 }).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')])
-}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\r\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\r\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.')
-}).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s).'),
+}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\r\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\r\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.'),
+  "embedOrigins": zod.array(zod.string())
+}).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s) and\r\n`embedOrigins`, the sites allowed to show the careers pages in a frame, which the pages send in their\r\n`frame-ancestors` header (empty: none but the careers pages themselves).'),
   "job": zod.object({
   "id": zod.uuid(),
   "title": zod.string(),
@@ -618,7 +621,8 @@ export const SubmitPublicApplicationBody = zod.object({
   "automationMarkers": zod.array(zod.string())
 }).describe('Page-level counts: times the page was hidden, and automation markers from a fixed list (`webdriver`,\r\n`headless`, ...).')
 }).describe('One cumulative snapshot of one page view\'s form telemetry: session aggregates only (CLAUDE.md non-negotiable 4), never\r\nkeystrokes, key values, timings per key or field content. Unknown members are refused, so nothing else can travel in\r\nit.')]).optional(),
-  "keepForFutureRoles": zod.boolean().default(submitPublicApplicationBodyKeepForFutureRolesDefault)
+  "keepForFutureRoles": zod.boolean().default(submitPublicApplicationBodyKeepForFutureRolesDefault),
+  "embedOrigin": zod.string().nullish()
 }).describe('A candidate\'s application from the careers page. The candidate is matched by email within the organization and\r\ncreated if new; an existing candidate\'s details are never changed by a public submission.')
 
 export const SubmitPublicApplicationResponse = zod.object({
@@ -725,8 +729,9 @@ export const GetPublicQuestionnaireResponse = zod.object({
   "height": zod.int(),
   "url": zod.string()
 }).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')])
-}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\r\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\r\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.')
-}).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s).'),
+}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\r\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\r\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.'),
+  "embedOrigins": zod.array(zod.string())
+}).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s) and\r\n`embedOrigins`, the sites allowed to show the careers pages in a frame, which the pages send in their\r\n`frame-ancestors` header (empty: none but the careers pages themselves).'),
   "jobTitle": zod.string(),
   "name": zod.string(),
   "status": zod.enum(['Open', 'Answered', 'Expired', 'Closed']).describe('Whether a follow-up questionnaire\'s link can still be answered: `Answered` once the candidate sent their answers,\r\n`Expired` after the link\'s time ran out, `Closed` when the questionnaire, the job or the application is no\r\nlonger open.'),
@@ -833,8 +838,9 @@ export const GetPublicTalentPoolStatusResponse = zod.object({
   "height": zod.int(),
   "url": zod.string()
 }).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')])
-}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\r\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\r\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.')
-}).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s).'),
+}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\r\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\r\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.'),
+  "embedOrigins": zod.array(zod.string())
+}).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s) and\r\n`embedOrigins`, the sites allowed to show the careers pages in a frame, which the pages send in their\r\n`frame-ancestors` header (empty: none but the careers pages themselves).'),
   "kept": zod.boolean()
 }).describe('The page a candidate opens from the link in an invitation to stop being kept. `kept`: the organization still\r\nkeeps their details for future roles; false once they stopped it, or it ran out.')
 
@@ -3753,7 +3759,8 @@ export const ListJobApplicationsResponseItem = zod.object({
   "scorecards": zod.int().default(listJobApplicationsResponseRatingTwoScorecardsDefault)
 }).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\r\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\r\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\r\ndecimal. It is people\'s judgement of the work only: never integrity results, AI signals or the stage. No automation\r\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\r\nthey give it, so it cannot anchor them.')]).optional(),
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
-  "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish()
+  "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
+  "sourceSite": zod.string().nullish()
 }).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself.')
 export const ListJobApplicationsResponse = zod.array(ListJobApplicationsResponseItem)
 
@@ -3868,7 +3875,8 @@ export const CreateApplicationResponse = zod.object({
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
   "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
   "futureRolesGivenAt": zod.iso.datetime({"offset":true}).nullish(),
-  "inTalentPool": zod.boolean().default(createApplicationResponseInTalentPoolDefault)
+  "inTalentPool": zod.boolean().default(createApplicationResponseInTalentPoolDefault),
+  "sourceSite": zod.string().nullish()
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
 
 
@@ -3924,7 +3932,8 @@ export const ListApplicationsResponseItem = zod.object({
   "scorecards": zod.int().default(listApplicationsResponseRatingTwoScorecardsDefault)
 }).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\r\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\r\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\r\ndecimal. It is people\'s judgement of the work only: never integrity results, AI signals or the stage. No automation\r\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\r\nthey give it, so it cannot anchor them.')]).optional(),
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
-  "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish()
+  "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
+  "sourceSite": zod.string().nullish()
 }).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself.')
 export const ListApplicationsResponse = zod.array(ListApplicationsResponseItem)
 
@@ -4022,7 +4031,8 @@ export const GetApplicationResponse = zod.object({
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
   "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
   "futureRolesGivenAt": zod.iso.datetime({"offset":true}).nullish(),
-  "inTalentPool": zod.boolean().default(getApplicationResponseInTalentPoolDefault)
+  "inTalentPool": zod.boolean().default(getApplicationResponseInTalentPoolDefault),
+  "sourceSite": zod.string().nullish()
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
 
 
@@ -4124,7 +4134,8 @@ export const MoveApplicationResponse = zod.object({
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
   "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
   "futureRolesGivenAt": zod.iso.datetime({"offset":true}).nullish(),
-  "inTalentPool": zod.boolean().default(moveApplicationResponseInTalentPoolDefault)
+  "inTalentPool": zod.boolean().default(moveApplicationResponseInTalentPoolDefault),
+  "sourceSite": zod.string().nullish()
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
 
 
@@ -4324,7 +4335,8 @@ export const AddApplicationTagResponse = zod.object({
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
   "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
   "futureRolesGivenAt": zod.iso.datetime({"offset":true}).nullish(),
-  "inTalentPool": zod.boolean().default(addApplicationTagResponseInTalentPoolDefault)
+  "inTalentPool": zod.boolean().default(addApplicationTagResponseInTalentPoolDefault),
+  "sourceSite": zod.string().nullish()
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
 
 
@@ -4425,7 +4437,8 @@ export const RemoveApplicationTagResponse = zod.object({
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
   "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
   "futureRolesGivenAt": zod.iso.datetime({"offset":true}).nullish(),
-  "inTalentPool": zod.boolean().default(removeApplicationTagResponseInTalentPoolDefault)
+  "inTalentPool": zod.boolean().default(removeApplicationTagResponseInTalentPoolDefault),
+  "sourceSite": zod.string().nullish()
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\r\ndeclarations, answers and files.')
 
 
@@ -4534,7 +4547,8 @@ export const GetCandidateResponse = zod.object({
   "scorecards": zod.int().default(getCandidateResponseApplicationsItemRatingTwoScorecardsDefault)
 }).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\r\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\r\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\r\ndecimal. It is people\'s judgement of the work only: never integrity results, AI signals or the stage. No automation\r\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\r\nthey give it, so it cannot anchor them.')]).optional(),
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
-  "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish()
+  "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
+  "sourceSite": zod.string().nullish()
 }).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself.')),
   "firstName": zod.string(),
   "lastName": zod.string().nullable()
@@ -5842,8 +5856,9 @@ export const GetOrganizationResponse = zod.object({
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(getOrganizationResponseLastUpdatedCreatedDefault)
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
-  "questionsPerPage": zod.int()
-}).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain. `questionsPerPage` is how\r\nmany questions candidates see on each page of a questionnaire that has no sections. `lastUpdated` is the last\r\nchange to the name or the questions per page, or when the organization was made; its history is\r\n`/v1/organization/history`.')
+  "questionsPerPage": zod.int(),
+  "embedOrigins": zod.array(zod.string())
+}).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain, where `{careersUrl}/embed.js`\r\nis the embeddable widget\'s script. `questionsPerPage` is how many questions candidates see on each page of a\r\nquestionnaire that has no sections. `embedOrigins` are the sites allowed to show the careers pages in a frame\r\n(origins such as `https://www.example.com`, in the order they were added). `lastUpdated` is the last change\r\nto the name, the questions per page or the sites, or when the organization was made; its history is\r\n`/v1/organization/history`.')
 
 
 export const UpdateOrganizationBody = zod.object({
@@ -5867,8 +5882,9 @@ export const UpdateOrganizationResponse = zod.object({
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(updateOrganizationResponseLastUpdatedCreatedDefault)
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
-  "questionsPerPage": zod.int()
-}).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain. `questionsPerPage` is how\r\nmany questions candidates see on each page of a questionnaire that has no sections. `lastUpdated` is the last\r\nchange to the name or the questions per page, or when the organization was made; its history is\r\n`/v1/organization/history`.')
+  "questionsPerPage": zod.int(),
+  "embedOrigins": zod.array(zod.string())
+}).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain, where `{careersUrl}/embed.js`\r\nis the embeddable widget\'s script. `questionsPerPage` is how many questions candidates see on each page of a\r\nquestionnaire that has no sections. `embedOrigins` are the sites allowed to show the careers pages in a frame\r\n(origins such as `https://www.example.com`, in the order they were added). `lastUpdated` is the last change\r\nto the name, the questions per page or the sites, or when the organization was made; its history is\r\n`/v1/organization/history`.')
 
 
 export const GetOrganizationHistoryQueryParams = zod.object({
@@ -5959,6 +5975,31 @@ export const GetOrganizationIntegritySettingsHistoryResponse = zod.object({
 }).describe('Everything one save changed in the object: who, when, and a line per change.')),
   "nextBefore": zod.uuid().nullable()
 }).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\r\n`before` for the next page, or null after the last.')
+
+
+export const UpdateCareersEmbeddingBody = zod.object({
+  "origins": zod.array(zod.string())
+}).describe('Replaces the sites allowed to embed the careers pages, at most 20. Each is an https site\'s address; a bare name gets\r\nhttps and a page\'s address keeps only its site, so `www.example.com/careers` saves as\r\n`https://www.example.com`. Duplicates are dropped and the order is kept. An empty list lets no other site frame\r\nthe careers pages.')
+
+export const updateCareersEmbeddingResponseLastUpdatedCreatedDefault = false;
+
+export const UpdateCareersEmbeddingResponse = zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "homeRegion": zod.string(),
+  "careersUrl": zod.string(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(updateCareersEmbeddingResponseLastUpdatedCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "questionsPerPage": zod.int(),
+  "embedOrigins": zod.array(zod.string())
+}).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain, where `{careersUrl}/embed.js`\r\nis the embeddable widget\'s script. `questionsPerPage` is how many questions candidates see on each page of a\r\nquestionnaire that has no sections. `embedOrigins` are the sites allowed to show the careers pages in a frame\r\n(origins such as `https://www.example.com`, in the order they were added). `lastUpdated` is the last change\r\nto the name, the questions per page or the sites, or when the organization was made; its history is\r\n`/v1/organization/history`.')
 
 
 export const getOrganizationBrandingResponseLastUpdatedCreatedDefault = false;

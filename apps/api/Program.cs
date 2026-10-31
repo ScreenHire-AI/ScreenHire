@@ -4,6 +4,7 @@ using Scalar.AspNetCore;
 using ScreenHire.Api.Applications;
 using ScreenHire.Api.Branding;
 using ScreenHire.Api.Auth;
+using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Demo;
 using ScreenHire.Api.Endpoints;
@@ -68,6 +69,8 @@ builder.AddJobDistribution();
 // Webhook subscriptions: the API shows each endpoint's secret once and checks URLs against the same address rule the
 // worker applies (docs/architecture/workflow-engine.md section 5).
 builder.Services.AddOptions<WebhookOptions>().BindConfiguration(WebhookOptions.Section);
+// The sites an organization lets embed its careers pages (docs/architecture/careers-widget.md).
+builder.Services.AddOptions<CareersEmbeddingOptions>().BindConfiguration(CareersEmbeddingOptions.Section);
 // Slack (docs/architecture/slack.md): connecting a workspace and linking accounts happen here; the worker posts.
 builder.Services.AddScreenHireSlack();
 builder.Services.ConfigureHttpJsonOptions(options =>

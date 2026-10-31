@@ -39,4 +39,6 @@ export interface PublicApplicationRequest {
   telemetrySessionToken?: string | null;
   telemetry?: null | TelemetrySnapshotInput;
   keepForFutureRoles?: boolean;
+  /** @nullable */
+  embedOrigin?: string | null;
 }

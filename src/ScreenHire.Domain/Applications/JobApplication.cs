@@ -50,6 +50,14 @@ public sealed class JobApplication : IJobScoped
     /// <summary>Where the application came from.</summary>
     public ApplicationSource Source { get; init; }
 
+    /// <summary>
+    /// The organization's own site the careers page was embedded in when the candidate applied (an origin such as
+    /// <c>https://www.example.com</c>, one of <see cref="Organizations.Organization.EmbedOrigins"/> at that moment), or
+    /// null for an application on the careers site itself or added by hand. <see cref="Source"/> stays
+    /// <see cref="ApplicationSource.CareersSite"/>: the frame shows the same pages, notice and checks.
+    /// </summary>
+    public string? SourceSite { get; init; }
+
     /// <summary>The candidate's answers to the job's questions (<see cref="ApplicationForm"/>), empty ones left out.</summary>
     public IReadOnlyList<ApplicationAnswer> Answers { get; init; } = [];
 
@@ -126,6 +134,7 @@ public sealed class JobApplication : IJobScoped
             SubmittedAt = now,
             StageEnteredAt = now,
             Source = intake.Source,
+            SourceSite = intake.SourceSite,
             Answers = ApplicationForm.Normalize(intake.Answers),
             PrivacyNoticeVersion = intake.PrivacyNoticeVersion,
             HoneypotFilled = intake.HoneypotFilled,
@@ -566,14 +575,18 @@ public enum TalentPoolExit
 }
 
 /// <summary>How an application arrived: its source, answers and the careers form's checks.</summary>
-/// <remarks><c>FutureRoles</c>: the candidate's permission to keep their details for future roles, if they gave it.</remarks>
+/// <remarks>
+/// <c>FutureRoles</c>: the candidate's permission to keep their details for future roles, if they gave it.
+/// <c>SourceSite</c>: the organization's own site the careers page was embedded in, if it was (<see cref="JobApplication.SourceSite"/>).
+/// </remarks>
 public sealed record ApplicationIntake(
     ApplicationSource Source,
     IReadOnlyList<ApplicationAnswer> Answers,
     string? PrivacyNoticeVersion = null,
     bool HoneypotFilled = false,
     BotCheckResult BotCheck = BotCheckResult.NotChecked,
-    FutureRolesConsent? FutureRoles = null)
+    FutureRolesConsent? FutureRoles = null,
+    string? SourceSite = null)
 {
     /// <summary>A recruiter added the application by hand: no answers and no careers-form checks.</summary>
     public static ApplicationIntake Recruiter { get; } = new(ApplicationSource.Recruiter, []);

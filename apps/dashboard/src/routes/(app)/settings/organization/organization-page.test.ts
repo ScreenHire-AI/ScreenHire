@@ -20,6 +20,7 @@ const organization: OrganizationProfile = {
   careersUrl: 'https://jobs.brightwater.example.com',
   createdAt: '2026-09-01T09:00:00Z',
   questionsPerPage: 8,
+  embedOrigins: [],
 };
 
 function renderPage(routes: Parameters<typeof apiStub>[0] = {}) {
@@ -138,6 +139,63 @@ describe('organization settings page', () => {
 
     expect(await screen.findByText('Only owners and admins can rename.')).toBeInTheDocument();
     expect(navigation.invalidateAll).not.toHaveBeenCalled();
+  });
+
+  it('adds a site that may embed the careers page and then shows the embed code', async () => {
+    const sent: unknown[] = [];
+    renderPage({
+      'PUT /v1/organization/embedding': (init) => {
+        const body = JSON.parse(String(init?.body)) as { origins: string[] };
+        sent.push(body);
+        return Response.json({ ...organization, embedOrigins: ['https://www.brightwater.example.com'] });
+      },
+    });
+    expect(await screen.findByText('No sites yet.')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Embed code' })).toBeNull();
+
+    await fireEvent.input(screen.getByLabelText('New site'), { target: { value: 'www.brightwater.example.com' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Add site' }));
+
+    await waitFor(() => expect(sent).toEqual([{ origins: ['www.brightwater.example.com'] }]));
+  });
+
+  it('shows the embed code for the careers address, with Copy, once a site is on the list', async () => {
+    renderPage({ 'GET /v1/organization': () => Response.json({ ...organization, embedOrigins: ['https://www.brightwater.example.com'] }) });
+
+    expect(await screen.findByRole('list', { name: 'Sites that can embed the careers page' })).toHaveTextContent('https://www.brightwater.example.com');
+    expect(screen.getByLabelText('Embed code')).toHaveTextContent(
+      '<script src="https://jobs.brightwater.example.com/embed.js" async></script>',
+    );
+    expect(screen.getByRole('button', { name: 'Copy' })).toBeInTheDocument();
+    expect(screen.getByText(/same notice and Verification checks/)).toBeInTheDocument();
+    await expectNoAxeViolations();
+  });
+
+  it('removes a site by saving the list without it', async () => {
+    const sent: unknown[] = [];
+    renderPage({
+      'GET /v1/organization': () => Response.json({ ...organization, embedOrigins: ['https://a.example.com', 'https://b.example.com'] }),
+      'PUT /v1/organization/embedding': (init) => {
+        sent.push(JSON.parse(String(init?.body)));
+        return Response.json({ ...organization, embedOrigins: ['https://b.example.com'] });
+      },
+    });
+
+    await fireEvent.click(await screen.findByRole('button', { name: 'Remove site https://a.example.com' }));
+
+    await waitFor(() => expect(sent).toEqual([{ origins: ['https://b.example.com'] }]));
+  });
+
+  it("says why the API refused a site", async () => {
+    renderPage({
+      'PUT /v1/organization/embedding': () =>
+        Response.json({ errors: { 'origins[0]': ['A site that embeds the careers page uses https.'] } }, { status: 400 }),
+    });
+
+    await fireEvent.input(await screen.findByLabelText('New site'), { target: { value: 'http://www.example.com' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Add site' }));
+
+    expect(await screen.findByText('A site that embeds the careers page uses https.')).toBeInTheDocument();
   });
 
   it('says why the organization could not load, with a retry', async () => {

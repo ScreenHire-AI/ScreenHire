@@ -295,6 +295,8 @@ describe('toRequest', () => {
       keepForFutureRoles: false,
       telemetrySessionToken: null,
       telemetry: null,
+      // Applied on the careers site itself, not inside another site.
+      embedOrigin: null,
     });
   });
 

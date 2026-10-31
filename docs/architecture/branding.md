@@ -27,8 +27,8 @@ sources:
 
 Settings, Branding holds an organization's look: a brand colour, a second colour, a heading font, a logo, a favicon
 and a social sharing image. Every part is optional and falls back to ScreenHire's. They apply to the careers pages
-and the apply flow (`CareersLayout`), the embeddable widget when it lands (task 73 reuses the stylesheet and image
-routes below), and the top of every email to a candidate. The decisions are ADR-0018; how the screens look is the
+and the apply flow (`CareersLayout`), the embeddable widget (the same pages in a frame, so the same stylesheet and image
+routes below; [careers widget](careers-widget.md)), and the top of every email to a candidate. The decisions are ADR-0018; how the screens look is the
 design system, section 18.
 
 ## 1. Data

@@ -5,6 +5,7 @@
   import {
     ApiError,
     createGetOrganization,
+    createUpdateCareersEmbedding,
     createUpdateOrganization,
     getGetOrganizationHistoryQueryOptions,
     getGetOrganizationQueryKey,
@@ -16,6 +17,7 @@
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
   import { invalidateAll } from '$app/navigation';
+  import CodeBlock from '#lib/components/code-block.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import HistoryFact from '#lib/components/history-fact.svelte';
@@ -25,8 +27,10 @@
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
+  import TagList from '#lib/components/tag-list.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
+  import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
@@ -91,6 +95,33 @@
   });
 
   const region = (profile: OrganizationProfile) => profile.homeRegion.toUpperCase();
+
+  // The sites that may show the careers page in a frame (docs/architecture/careers-widget.md). Each add and remove
+  // saves the whole list at once, as tags do; removing is undone by adding the site again (section 10).
+  const embedding = createUpdateCareersEmbedding(() => ({
+    mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetOrganizationQueryKey(), exact: true }) },
+  }));
+  let embeddingFailure = $state('');
+
+  async function saveSites(origins: string[]): Promise<boolean> {
+    embeddingFailure = '';
+    try {
+      await embedding.mutateAsync({ data: { origins } });
+      return true;
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 400) {
+        const problems = (error.body as HttpValidationProblemDetails | undefined)?.errors ?? {};
+        embeddingFailure = Object.values(problems).flat()[0] ?? 'Could not save the sites';
+      } else {
+        embeddingFailure = describeError(error, 'Could not save the sites');
+      }
+      return false;
+    }
+  }
+
+  // The widget's script lives on the careers board, so the snippet is the board's address and the script's name. The
+  // closing tag is escaped, or it would end this component's own script.
+  const snippet = (profile: OrganizationProfile) => `<script src="${profile.careersUrl.replace(/\/$/, '')}/embed.js" async><\/script>`;
 </script>
 
 <svelte:head>
@@ -177,6 +208,34 @@
           <!-- Until someone renames the organization, the header says when it was created (W7). -->
           {#if !detail.lastUpdated.created}<SummaryItem label="Created"><RelativeTime at={detail.createdAt} /></SummaryItem>{/if}
         </SummaryList>
+        <section aria-labelledby="embed-sites-heading" class="mt-5 flex flex-col gap-3 border-t border-border-subtle pt-5">
+          <h3 id="embed-sites-heading" class="flex items-center gap-2 font-semibold">
+            Sites that can embed it <Badge variant="count">{detail.embedOrigins.length}</Badge>
+          </h3>
+          <TagList
+            tags={detail.embedOrigins}
+            noun="site"
+            label="Sites that can embed the careers page"
+            placeholder="https://www.example.com"
+            maxlength={200}
+            inputmode="url"
+            missing="Enter the site's address first."
+            empty="No sites yet."
+            busy={embedding.isPending}
+            failure={embeddingFailure}
+            onadd={(site) => saveSites([...detail.embedOrigins, site])}
+            onremove={(site) => saveSites(detail.embedOrigins.filter((origin) => origin !== site))}
+          />
+        </section>
+        {#if detail.embedOrigins.length > 0}
+          <div class="mt-5 flex flex-col gap-2 border-t border-border-subtle pt-5">
+            <h3 class="font-semibold">Embed code</h3>
+            <CodeBlock code={snippet(detail)} label="Embed code" />
+            <p class="text-muted-foreground">
+              Paste it where the jobs should go. Candidates apply inside your site, with the same notice and Verification checks.
+            </p>
+          </div>
+        {/if}
       </Panel>
     {/if}
   </div>

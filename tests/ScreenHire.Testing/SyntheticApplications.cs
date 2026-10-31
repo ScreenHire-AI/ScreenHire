@@ -16,13 +16,14 @@ namespace ScreenHire.Testing;
 public static class SyntheticApplications
 {
     /// <summary>The careers notice version the submissions say the applicant saw (NOTICE_VERSION in apps/careers/src/lib/apply.ts).</summary>
-    public const string PrivacyNoticeVersion = "2026-10-31.1";
+    public const string PrivacyNoticeVersion = "2026-10-31.2";
 
     /// <summary>
     /// Applies to a published job of the organization with this slug and returns the application's id: the applicant's
     /// resume, then any <paramref name="files"/> for other file questions, then the submission with
     /// <paramref name="answers"/> (none by default: the default workflow asks nothing else). <paramref name="keepForFutureRoles"/>
-    /// is the "Keep my details for future roles" tick.
+    /// is the "Keep my details for future roles" tick, and <paramref name="embedOrigin"/> the organization's own site the
+    /// careers page was embedded in, as the careers server sends it from the widget.
     /// </summary>
     public static async Task<Guid> ApplyAsync(
         this AppHostFixture fixture,
@@ -33,7 +34,8 @@ public static class SyntheticApplications
         bool accommodation = false,
         IReadOnlyList<ApplicationAnswer>? answers = null,
         IReadOnlyList<(string QuestionId, string FileName, byte[] Content)>? files = null,
-        bool keepForFutureRoles = false)
+        bool keepForFutureRoles = false,
+        string? embedOrigin = null)
     {
         using var client = fixture.CreateHttpClient("api");
         var prefix = $"/v1/public/organizations/{slug}/jobs/{jobId}";
@@ -67,6 +69,7 @@ public static class SyntheticApplications
             ["automationMarkers"] = new JsonArray([.. applicant.AutomationMarkers.Select(m => JsonValue.Create(m))]),
             ["deviceFingerprint"] = applicant.DeviceFingerprint,
             ["keepForFutureRoles"] = keepForFutureRoles,
+            ["embedOrigin"] = embedOrigin,
         };
         using var request = new HttpRequestMessage(HttpMethod.Post, $"{prefix}/applications") { Content = JsonContent.Create(body) };
         request.Headers.Add("X-Forwarded-For", applicant.IpAddress);

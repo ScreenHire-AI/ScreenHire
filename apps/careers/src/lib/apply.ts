@@ -17,7 +17,7 @@ import { DEFAULT_QUESTIONS_PER_PAGE, fieldId, fields, questionPages, RESUME_QUES
  * The version of "What we collect and why" (pages/[organization]/privacy.astro). Every application records the version
  * its candidate was shown before anything was collected. Change it whenever that page's substance changes.
  */
-export const NOTICE_VERSION = '2026-10-31.1';
+export const NOTICE_VERSION = '2026-10-31.2';
 
 // Field names and ids come from the shared question components (packages/ui), which render the question fields; the
 // error summary's links depend on them matching. The form asks for the resume first, on the details step.
@@ -403,6 +403,8 @@ export function toRequest(
     telemetry?: TelemetrySnapshotInput | null;
     deviceFingerprint?: string | null;
     automationMarkers?: string[];
+    /** The organization's own site the careers page was embedded in, already checked against its list. */
+    embedOrigin?: string | null;
   },
 ): PublicApplicationRequest {
   // The module never runs with the assistive-technology switch on; nothing it might have left is sent either, and no
@@ -439,6 +441,7 @@ export function toRequest(
     keepForFutureRoles: state.keepForFutureRoles,
     telemetrySessionToken: state.telemetrySession || null,
     telemetry: measured ? (checks.telemetry ?? null) : null,
+    embedOrigin: checks.embedOrigin ?? null,
   };
 }
 

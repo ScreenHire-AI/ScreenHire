@@ -46,7 +46,8 @@ public sealed record ApplicationStage(string Id, string Name, StageKind Kind);
 /// <c>keptInMindAt</c>: when the team kept the candidate in mind, which ended the application without a rejection; the
 /// stage is where they were. <c>futureRolesUntil</c>: when the candidate's permission to keep their details for future
 /// roles, given on this application's form, runs out; null without one, or once withdrawn. Only an application with one
-/// can be kept in mind (docs/architecture/talent-pool.md).
+/// can be kept in mind (docs/architecture/talent-pool.md). <c>sourceSite</c>: the organization's own site the careers
+/// page was embedded in when the candidate applied (an origin such as <c>https://www.example.com</c>), or null.
 /// </remarks>
 public sealed record ApplicationSummary(
     Guid Id,
@@ -64,7 +65,8 @@ public sealed record ApplicationSummary(
     DateTimeOffset? SlaDueAt = null,
     ApplicationRating? Rating = null,
     DateTimeOffset? KeptInMindAt = null,
-    DateTimeOffset? FutureRolesUntil = null);
+    DateTimeOffset? FutureRolesUntil = null,
+    string? SourceSite = null);
 
 /// <summary>
 /// The candidate's rating (ADR-0013 decision 13): one to five stars averaged from people's scorecards. Each rating answer
@@ -104,7 +106,8 @@ public enum RatingState
 /// declarations, answers and files.
 /// </summary>
 /// <remarks>
-/// <c>source</c> says whether the candidate applied on the careers page or a recruiter added them. <c>answers</c> are
+/// <c>source</c> says whether the candidate applied on the careers page or a recruiter added them, and
+/// <c>sourceSite</c> which of the organization's own sites the careers page was embedded in, if any. <c>answers</c> are
 /// keyed by question id as automation conditions read them (<c>answers.{questionId}</c>); a file answer's value is the
 /// upload id of one of <c>files</c>. <c>followUps</c> are the follow-up questionnaires automations sent, oldest first,
 /// with their answers once the candidate gave them. <c>slaDueAt</c> is when the application passes its stage's time
@@ -135,7 +138,8 @@ public sealed record ApplicationDetail(
     DateTimeOffset? KeptInMindAt = null,
     DateTimeOffset? FutureRolesUntil = null,
     DateTimeOffset? FutureRolesGivenAt = null,
-    bool InTalentPool = false);
+    bool InTalentPool = false,
+    string? SourceSite = null);
 
 /// <summary>
 /// A follow-up questionnaire sent to the candidate. Until it is answered, <c>questions</c> and <c>answers</c> are empty;
@@ -288,7 +292,7 @@ internal static class ApplicationMappings
         new(application.Id, application.JobId, application.CandidateId, candidate.FullName, application.StageIn(job),
             application.SubmittedAt, application.StageEnteredAt, lastActivityAt, job.Title, application.Source, application.Tags, integrity,
             application.SlaDueAt(job), rating ?? ApplicationRating.NotRated, application.KeptInMindAt,
-            application.FutureRolesUntil(poolMonths));
+            application.FutureRolesUntil(poolMonths), application.SourceSite);
 
     /// <summary>
     /// The application on its own; <paramref name="poolMonths"/> is the organization's talent pool permission period, and
@@ -303,7 +307,7 @@ internal static class ApplicationMappings
             application.Source,
             application.Answers, [.. files.Select(f => f.ToSummary())], [.. followUps.Select(f => f.ToFollowUp())], application.SlaDueAt(job),
             rating ?? ApplicationRating.NotRated, application.KeptInMindAt, application.FutureRolesUntil(poolMonths),
-            application.FutureRolesConsentGivenAt, inTalentPool);
+            application.FutureRolesConsentGivenAt, inTalentPool, application.SourceSite);
 
     public static ApplicationFollowUp ToFollowUp(this QuestionnaireRequest request) =>
         new(request.Id, request.QuestionnaireId, request.QuestionnaireName, request.FirstSentAt, request.LastSentAt, request.ExpiresAt,

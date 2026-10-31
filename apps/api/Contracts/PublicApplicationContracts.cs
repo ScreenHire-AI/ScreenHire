@@ -6,8 +6,12 @@ using ScreenHire.Domain.Organizations;
 
 namespace ScreenHire.Api.Contracts;
 
-/// <summary>An organization as its careers pages show it, with its branding (each part null for ScreenHire's).</summary>
-public sealed record PublicOrganization(string Name, string Slug, PublicBranding Branding);
+/// <summary>
+/// An organization as its careers pages show it, with its branding (each part null for ScreenHire's) and
+/// <c>embedOrigins</c>, the sites allowed to show the careers pages in a frame, which the pages send in their
+/// <c>frame-ancestors</c> header (empty: none but the careers pages themselves).
+/// </summary>
+public sealed record PublicOrganization(string Name, string Slug, PublicBranding Branding, IReadOnlyList<string> EmbedOrigins);
 
 /// <summary>
 /// One question of a job's application form, as a candidate sees it. Knockout settings stay on the server: the form
@@ -88,7 +92,9 @@ public sealed record UploadedFile(Guid UploadId, string FileName, string Content
 /// organization may keep this application for the period the form showed and invite them to apply for other jobs.
 /// <c>telemetrySessionToken</c> binds the form's telemetry to the application, and <c>telemetry</c> is the last
 /// page's snapshot, which travels with the form post rather than a beacon so it is stored before analysis starts; an
-/// invalid one is dropped, never a reason to refuse.
+/// invalid one is dropped, never a reason to refuse. <c>embedOrigin</c> is the organization's own site the careers page
+/// was embedded in (docs/architecture/careers-widget.md); it is kept as the application's <c>sourceSite</c> only when it
+/// is one of the organization's <c>embedOrigins</c>, and dropped otherwise, never a reason to refuse.
 /// </remarks>
 public sealed record PublicApplicationRequest(
     PublicCandidateInput Candidate,
@@ -106,7 +112,8 @@ public sealed record PublicApplicationRequest(
     bool DeviceCheckConsent = false,
     string? TelemetrySessionToken = null,
     TelemetrySnapshotInput? Telemetry = null,
-    bool KeepForFutureRoles = false);
+    bool KeepForFutureRoles = false,
+    string? EmbedOrigin = null);
 
 /// <summary>The active seconds on one page of the apply form (<c>details</c>, <c>page-2</c>, <c>review</c>).</summary>
 public sealed record PageTimeInput(string Page, int Seconds);
@@ -193,6 +200,7 @@ internal sealed class PublicApplicationRequestValidator : AbstractValidator<Publ
         RuleForEach(r => r.AutomationMarkers).NotEmpty().MaximumLength(40);
         RuleFor(r => r.DeviceFingerprint).MaximumLength(256);
         RuleFor(r => r.TelemetrySessionToken).MaximumLength(1024);
+        RuleFor(r => r.EmbedOrigin).MaximumLength(1024);
     }
 }
 

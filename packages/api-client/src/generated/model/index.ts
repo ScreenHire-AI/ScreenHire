@@ -298,6 +298,7 @@ export * from './testEmailSent.ts';
 export * from './timeToHire.ts';
 export * from './triggerType.ts';
 export * from './updateBrandingRequest.ts';
+export * from './updateCareersEmbeddingRequest.ts';
 export * from './updateEmailTemplateRequest.ts';
 export * from './updateHiringTemplateRequest.ts';
 export * from './updateHiringTemplateVersionRequest.ts';

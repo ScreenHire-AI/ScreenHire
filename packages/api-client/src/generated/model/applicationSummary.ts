@@ -33,4 +33,6 @@ export interface ApplicationSummary {
   keptInMindAt?: string | null;
   /** @nullable */
   futureRolesUntil?: string | null;
+  /** @nullable */
+  sourceSite?: string | null;
 }

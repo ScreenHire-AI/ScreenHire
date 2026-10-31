@@ -9,7 +9,7 @@ import type { PublicJob } from './publicJob.ts';
 
 /**
  * The public careers listing for one organization. `url` is the board's careers page; `branding` is its
- * branding, each part null for ScreenHire's.
+ * branding, each part null for ScreenHire's; `embedOrigins` are the sites allowed to show it in a frame.
  */
 export interface PublicJobBoard {
   organizationName: string;
@@ -17,4 +17,5 @@ export interface PublicJobBoard {
   jobs: PublicJob[];
   url: string;
   branding: PublicBranding;
+  embedOrigins: string[];
 }
