@@ -80,6 +80,7 @@ internal static class ApplicationSubmission
             candidate = Candidate.Create(job.OrganizationId, input.FirstName, input.LastName, input.Email, input.Phone, now);
             db.Candidates.Add(candidate);
         }
+
         // Drafts saved to finish this application go with it (apply-flow.md §7), in the same save. The one saved last tells
         // the integrity engine which answers came from an earlier sitting.
         var drafts = await db.ApplicationDrafts.Where(d => d.JobId == job.Id && d.Email == email).ToListAsync(cancellationToken);

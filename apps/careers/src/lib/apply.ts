@@ -11,7 +11,7 @@ import type {
   TelemetrySnapshotInput,
 } from '@screenhire/api-client';
 import { parseUploadRef, type UploadRef } from '@screenhire/ui/questions/files';
-import { fieldId, fields, questionPages, RESUME_QUESTION_ID } from '@screenhire/ui/questions/model';
+import { DEFAULT_QUESTIONS_PER_PAGE, fieldId, fields, questionPages, RESUME_QUESTION_ID } from '@screenhire/ui/questions/model';
 
 /**
  * The version of "What we collect and why" (pages/[organization]/privacy.astro). Every application records the version
@@ -135,7 +135,7 @@ export const screeningQuestions = (questions: readonly PublicQuestion[]): Public
 /** The pages of questions after the details step: the named sections, or pages of the organization's size. */
 export function pagesFor(form: FormShape): FormPage[] {
   const byId = new Map(form.questions.map((question) => [question.id, question]));
-  return questionPages(form.questions, form.sections, form.questionsPerPage ?? 8, [RESUME_QUESTION_ID]).map((page, i) => ({
+  return questionPages(form.questions, form.sections, form.questionsPerPage ?? DEFAULT_QUESTIONS_PER_PAGE, [RESUME_QUESTION_ID]).map((page, i) => ({
     step: `page-${i + 1}` as Step,
     name: page.name,
     questions: page.questionIds.map((id) => byId.get(id)!),

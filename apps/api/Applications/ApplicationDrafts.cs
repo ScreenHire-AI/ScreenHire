@@ -118,7 +118,19 @@ internal sealed class ApplicationDrafts(
 
         var token = Issue(draft);
         var message = Compose(email.Trim(), organization.Name, job.Title, Url(organization.Slug, job.Slug, token), draft.ExpiresAt);
-        await (sender ?? throw new InvalidOperationException("No email sender is configured.")).SendAsync(message, cancellationToken);
+        try
+        {
+            await (sender ?? throw new InvalidOperationException("No email sender is configured.")).SendAsync(message, cancellationToken);
+        }
+        catch
+        {
+            // A draft whose link never went out reaches nobody and would count against the address's cap: remove it,
+            // then fail the request as before.
+            db.ApplicationDrafts.Remove(draft);
+            await db.SaveChangesAsync(CancellationToken.None);
+            throw;
+        }
+
         return (draft, token);
     }
 

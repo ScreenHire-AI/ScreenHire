@@ -13,6 +13,7 @@
 <script lang="ts">
   import type { DefinitionError, HiringWorkflow, QuestionType } from '@screenhire/api-client';
   import { createGetOrganization } from '@screenhire/api-client/svelte-query';
+  import { DEFAULT_QUESTIONS_PER_PAGE } from '@screenhire/ui/questions/model';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import EditPreviewLayout from '#lib/components/edit-preview-layout.svelte';
   import FormBuilder from '#lib/components/form-builder.svelte';
@@ -51,7 +52,7 @@
   const sections = $derived((current ? current.sections : workflow.questionnaire.sections) ?? null);
   const groups: readonly AnswerKindGroup<QuestionType>[] = $derived(current ? followUpKinds : applyFormKinds);
   const organization = createGetOrganization();
-  const questionsPerPage = $derived(organization.data?.data.questionsPerPage ?? 8);
+  const questionsPerPage = $derived(organization.data?.data.questionsPerPage ?? DEFAULT_QUESTIONS_PER_PAGE);
 
   const source = createPreviewSource<FormPreview>(() => ({ form: current ? 'follow-up' : 'apply', questions, sections, questionsPerPage }));
 

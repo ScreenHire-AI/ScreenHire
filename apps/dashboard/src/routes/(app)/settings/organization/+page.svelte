@@ -10,6 +10,7 @@
     getGetOrganizationQueryKey,
   } from '@screenhire/api-client/svelte-query';
   import { UpdateOrganizationBody } from '@screenhire/api-client/zod';
+  import { DEFAULT_QUESTIONS_PER_PAGE, MAX_QUESTIONS_PER_PAGE, MIN_QUESTIONS_PER_PAGE } from '@screenhire/ui/questions/model';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
@@ -43,17 +44,19 @@
     mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetOrganizationQueryKey(), exact: true }) },
   }));
 
+  const questionsPerPageRange = `Choose from ${MIN_QUESTIONS_PER_PAGE} to ${MAX_QUESTIONS_PER_PAGE} questions a page.`;
   const schema = UpdateOrganizationBody.extend({
     name: z.string().trim().min(1, "Enter your organization's name.").max(200, 'Keep the name to 200 characters or fewer.'),
     questionsPerPage: z
       .number({ error: 'Enter a number of questions.' })
       .int('Enter a whole number.')
-      .min(1, 'Choose from 1 to 50 questions a page.')
-      .max(50, 'Choose from 1 to 50 questions a page.'),
+      .min(MIN_QUESTIONS_PER_PAGE, questionsPerPageRange)
+      .max(MAX_QUESTIONS_PER_PAGE, questionsPerPageRange),
   });
 
   let saved = $state('');
-  const { form, errors, enhance, submitting, reset } = superForm(defaults({ name: '', questionsPerPage: 8 }, zod4(schema)), {
+  const initial = { name: '', questionsPerPage: DEFAULT_QUESTIONS_PER_PAGE };
+  const { form, errors, enhance, submitting, reset } = superForm(defaults(initial, zod4(schema)), {
     SPA: true,
     validators: zod4(schema),
     resetForm: false,
@@ -143,8 +146,8 @@
               name="questionsPerPage"
               type="number"
               inputmode="numeric"
-              min={1}
-              max={50}
+              min={MIN_QUESTIONS_PER_PAGE}
+              max={MAX_QUESTIONS_PER_PAGE}
               step={1}
               required
               bind:value={$form.questionsPerPage}

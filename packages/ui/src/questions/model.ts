@@ -96,6 +96,14 @@ export interface SectionSpec {
   questionIds: readonly string[];
 }
 
+/**
+ * Questions a page when a questionnaire has no sections, and the range an organization may set, as the API holds them
+ * (`Organization.DefaultQuestionsPerPage`, `MinQuestionsPerPage`, `MaxQuestionsPerPage`).
+ */
+export const DEFAULT_QUESTIONS_PER_PAGE = 8;
+export const MIN_QUESTIONS_PER_PAGE = 1;
+export const MAX_QUESTIONS_PER_PAGE = 50;
+
 /** One page of a form: its heading (null for an automatic page) and the ids of its questions, in order. */
 export interface QuestionPage {
   name: string | null;

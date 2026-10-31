@@ -2,6 +2,7 @@
   import { createGetOrganization, createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
   import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
+  import { DEFAULT_QUESTIONS_PER_PAGE } from '@screenhire/ui/questions/model';
   import EditPreviewSwitch from '#lib/components/edit-preview-switch.svelte';
   import Panel from '#lib/components/panel.svelte';
   import PreviewFrame from '#lib/components/preview-frame.svelte';
@@ -35,7 +36,7 @@
   const questions = $derived(workflow.questionnaire.questions);
   // The preview pages the questions as the candidate meets them: the sections, or the organization's page size.
   const organization = createGetOrganization();
-  const questionsPerPage = $derived(organization.data?.data.questionsPerPage ?? 8);
+  const questionsPerPage = $derived(organization.data?.data.questionsPerPage ?? DEFAULT_QUESTIONS_PER_PAGE);
   const followUps = $derived(followUpsOf(workflow));
   const scored = $derived(workflow.stages.filter((stage) => stage.scorecard || stage.scorecardTemplateId));
   const days = (count: number) => `${count}-day limit`;

@@ -51,8 +51,8 @@ export interface ApplyResult {
   /** A problem that belongs to no field, shown at the top of the step. */
   formError?: string;
   outcome?: 'submitted' | 'closed' | 'not-found';
-  /** The draft was saved: where its link went and when it is deleted. */
-  saved?: { email: string; expiresAt: string };
+  /** The draft was saved: where its link went, whether this save emailed it, and when the draft is deleted. */
+  saved?: { email: string; expiresAt: string; emailed: boolean };
 }
 
 const SERVER_PROBLEM = 'Something went wrong on our side. Your answers are still here, so try again in a moment.';
@@ -90,9 +90,11 @@ export async function applyStep(
   const posted = text(form, 'step') as Step;
   const step: Step = steps.includes(posted) ? posted : 'details';
 
-  // The time on this step goes in before anything else: Back, Save and a step with a problem all count.
-  let state = recordTime(parseState(form.get('state')), step, now);
+  let state = parseState(form.get('state'));
   if (step === 'details') state = readDetails(form, state);
+  // The time on this step goes in before the step is handled: Back, Save and a step with a problem all count. With the
+  // assistive-technology switch on, no time is kept at all (CLAUDE.md non-negotiable 4).
+  state = state.accommodationRequested ? { ...state, pageSeconds: {} } : recordTime(state, step, now);
   const shown = postedQuestions(form, questions);
   state = step === 'review' ? readReview(form, state) : readAnswers(form, shown, state);
 
@@ -180,10 +182,19 @@ async function saveDraft(
   const sameEmail = state.draft && state.draft.email.trim().toLowerCase() === state.email.trim().toLowerCase();
   if (state.draft && sameEmail) {
     const updated = await savePublicApplicationDraft(organization, state.draft.token, body, forwarded);
-    if (updated.status === 200) {
-      return { step, state, errors: {}, saved: { email: state.draft.email, expiresAt: updated.data.expiresAt } };
+    switch (updated.status) {
+      case 200:
+        return { step, state, errors: {}, saved: { email: state.draft.email, expiresAt: updated.data.expiresAt, emailed: false } };
+      // A draft the sweep deleted, or one that expired: make a new one below, as on a first save.
+      case 404:
+      case 410:
+        break;
+      // Anything else is not a missing draft: a new one would send the candidate a second link for nothing.
+      case 429:
+        return { step, state, errors: {}, formError: 'Too many attempts from your network. Wait a minute, then save again.' };
+      default:
+        return { step, state, errors: {}, formError: 'We could not save your answers. Try again in a moment, or send your application now.' };
     }
-    // A draft the sweep deleted, or one that expired: make a new one below, as on a first save.
   }
 
   const created = await createPublicApplicationDraft(organization, jobId, body, forwarded);
@@ -193,7 +204,7 @@ async function saveDraft(
         step,
         state: { ...state, draft: { token: created.data.token, email: state.email } },
         errors: {},
-        saved: { email: state.email, expiresAt: created.data.expiresAt },
+        saved: { email: state.email, expiresAt: created.data.expiresAt, emailed: true },
       };
     case 410:
       return { step, state, errors: {}, outcome: 'closed' };

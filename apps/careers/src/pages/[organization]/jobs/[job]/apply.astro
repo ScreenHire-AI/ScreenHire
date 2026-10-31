@@ -191,7 +191,11 @@ const answerText = (questionId: string): string => {
 
         {saved && (
           <div role="status" class="rounded-2xl border border-candidate-border bg-candidate-surface px-4 py-3.5 text-sm">
-            <p class="font-bold">Saved. We emailed a link to {saved.email} to finish by {longDate(saved.expiresAt)}.</p>
+            <p class="font-bold">
+              {saved.emailed
+                ? `Saved. We emailed a link to ${saved.email} to finish by ${longDate(saved.expiresAt)}.`
+                : `Saved. The link we emailed to ${saved.email} opens these answers until ${longDate(saved.expiresAt)}.`}
+            </p>
             <p class="mt-1 text-candidate-muted-foreground">Files are not kept, so attach them again when you come back. You can also carry on now.</p>
           </div>
         )}

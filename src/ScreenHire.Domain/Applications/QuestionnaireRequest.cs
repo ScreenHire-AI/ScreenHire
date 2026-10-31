@@ -19,8 +19,8 @@ public sealed class QuestionnaireRequest : IJobScoped
     /// <summary>How long an emailed link stays open. Sending again issues a fresh one.</summary>
     public static readonly TimeSpan LinkLifetime = TimeSpan.FromDays(14);
 
-    /// <summary>How long answers saved to finish later are kept, from the first save.</summary>
-    public static readonly TimeSpan DraftLifetime = TimeSpan.FromDays(30);
+    /// <summary>How long answers saved to finish later are kept, from the first save: the apply form's draft lifetime.</summary>
+    public static readonly TimeSpan DraftLifetime = ApplicationDraft.Lifetime;
 
     public Guid Id { get; init; } = Guid.CreateVersion7();
 

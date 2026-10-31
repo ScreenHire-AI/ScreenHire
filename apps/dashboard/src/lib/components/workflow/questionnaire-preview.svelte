@@ -2,6 +2,7 @@
   import type { Question, QuestionSection } from '@screenhire/api-client';
   import {
     answeredCount,
+    DEFAULT_QUESTIONS_PER_PAGE,
     formQuestions,
     PageProgress,
     QuestionField,
@@ -20,7 +21,7 @@
   let {
     questions,
     sections = null,
-    questionsPerPage = 8,
+    questionsPerPage = DEFAULT_QUESTIONS_PER_PAGE,
     followUp = false,
   }: { questions: readonly Question[]; sections?: readonly QuestionSection[] | null; questionsPerPage?: number; followUp?: boolean } = $props();
 
