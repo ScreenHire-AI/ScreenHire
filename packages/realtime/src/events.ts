@@ -108,7 +108,7 @@ export const realtimeEventSchemas = {
     version: z.number().int(),
     publishedAt: instant,
     actorUserId: actor,
-    // The member other than the publisher who changed the template last, whose dashboard can say so.
+    // The member who changed the template last, when not the publisher, whose dashboard can say so.
     previousEditorUserId: id.nullish(),
   }),
   // Levels only, never evidence: the dashboard reads the assessment itself through the API. Enums are the C#

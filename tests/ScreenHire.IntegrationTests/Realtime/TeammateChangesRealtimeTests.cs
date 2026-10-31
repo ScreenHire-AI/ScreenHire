@@ -6,7 +6,8 @@ namespace ScreenHire.IntegrationTests.Realtime;
 /// <summary>
 /// Who made a change, on the wire: the events behind "teammates' changes as toasts" carry <c>actorUserId</c> (the member
 /// who did it, null for an API key, an automation or a candidate), task events add <c>assigneeUserId</c>, and a published
-/// hiring template version adds <c>previousEditorUserId</c>, the newest other member to have changed the template.
+/// hiring template version adds <c>previousEditorUserId</c>, the member who changed the template last when that is not the
+/// publisher.
 /// The dashboard filters on these ids; they reach only their own organization's dashboards.
 /// </summary>
 public sealed class TeammateChangesRealtimeTests(AppHostFixture fixture)
@@ -111,7 +112,7 @@ public sealed class TeammateChangesRealtimeTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task A_published_template_version_names_the_publisher_and_the_other_member_who_edited_it_last()
+    public async Task A_published_template_version_names_the_publisher_and_the_member_who_changed_it_last()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         using var recruiter = await fixture.InviteAndJoinAsync(owner, "Recruiter");
@@ -131,6 +132,20 @@ public sealed class TeammateChangesRealtimeTests(AppHostFixture fixture)
         var bySoleEditor = await ownerClient.WaitForAsync("HiringTemplateVersionPublished", "versionId", aloneVersion, Ct);
         ActorOf(bySoleEditor).Should().Be(owner.UserId);
         bySoleEditor.Has("previousEditorUserId").Should().BeFalse("no other member edited it");
+
+        // The owner drafts it, the recruiter changes the draft and publishes it: the recruiter changed it last, so the
+        // owner is not the one to tell.
+        var reworked = (await owner.CreateTemplateAsync("Data roles")).Id();
+        var definition = await Samples.DefinitionOfAsync(recruiter, reworked, 1);
+        var stage = definition["workflow"]!["stages"]!.AsArray()[1]!;
+        (await recruiter.PutAsync($"/v1/templates/{reworked}/versions/1", new JsonObject
+        {
+            ["definition"] = Samples.DefinitionWithRenamedStage(definition, stage["id"]!.GetValue<string>(), "Phone screen"),
+        })).Expect(HttpStatusCode.OK);
+        var reworkedVersion = (await recruiter.PostAsync($"/v1/templates/{reworked}/versions/1/publish")).Expect(HttpStatusCode.OK).Id();
+        var byLastEditor = await ownerClient.WaitForAsync("HiringTemplateVersionPublished", "versionId", reworkedVersion, Ct);
+        ActorOf(byLastEditor).Should().Be(recruiter.UserId);
+        byLastEditor.Has("previousEditorUserId").Should().BeFalse("the publisher changed it after the owner did");
 
         theirClient.ReceivedAnythingAbout(published).Should().BeFalse("another organization's template events never reach us");
         theirClient.ReceivedAnythingAbout(aloneVersion).Should().BeFalse();

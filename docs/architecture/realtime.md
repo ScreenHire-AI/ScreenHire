@@ -170,8 +170,8 @@ key, an automation, the candidate, the demo's setup). `ApplicationMoved`, `Appli
 hand), `ApplicationNoteAdded`, `ApplicationTagsChanged`, `ScorecardSubmitted`, `ApplicationEmailed`, the three task
 events and `HiringTemplateVersionPublished` have it, and `TeammateMentioned` has its `AuthorUserId`. The task events
 also carry `AssigneeUserId` (null for anyone on the hiring team), and `HiringTemplateVersionPublished` carries
-`PreviousEditorUserId`: the member other than the publisher who changed the template last, read from its change
-history before the publish (`ChangeHistoryQueries.LastEditorOtherThanAsync`). They are ids, like everything else in an
+`PreviousEditorUserId`: the member who changed the template last, read from its change history before the publish
+(`ChangeHistoryQueries.LastAsync`), and null when that was the publisher, an API key or ScreenHire. They are ids, like everything else in an
 event. Each was added last with a null default, so an envelope queued before it still deserializes, and the Zod side
 reads a missing one as no member.
 
@@ -190,8 +190,8 @@ feeds every event to `TeammateToasts` (`apps/dashboard/src/lib/teammate-toasts.t
 
 Every toast needs an `ActorUserId` that is not the person's own. A change by an API key, an automation or the candidate
 never toasts: it is not a teammate's, and a key may be the person's own AI assistant. Any event the table does not name
-never toasts, so a verification result (`IntegrityAssessed`) cannot. Email and scorecard template edits raise no event,
-so they do not toast yet.
+never toasts, so a verification result (`IntegrityAssessed`) cannot. Edits to a hiring template's draft raise no event,
+so only a publish toasts. Email and scorecard template edits raise no event, so they do not toast yet.
 
 Each change waits one second under its kind, its actor and its job before anything is read: one becomes a toast about
 the candidate, read with `GET /v1/applications/{id}`; several become one toast about the job, so a bulk move or a bulk
