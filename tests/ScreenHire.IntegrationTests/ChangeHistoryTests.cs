@@ -181,6 +181,22 @@ public sealed class ChangeHistoryTests(AppHostFixture fixture)
         {
             ["subject"] = "We have your application", ["body"] = "Thanks.",
         })).Expect(HttpStatusCode.OK);
+        (await theirs.PostAsync("/v1/organization/api-keys", new JsonObject
+        {
+            ["name"] = "Their key", ["scopes"] = new JsonArray("Read"),
+        })).Expect(HttpStatusCode.Created);
+        (await theirs.PostAsync("/v1/organization/invitations", new JsonObject
+        {
+            ["email"] = ApiSession.NewEmail("their-invitee"), ["role"] = "Viewer",
+        })).Expect(HttpStatusCode.Created);
+
+        (await ours.GetAsync("/v1/organization/api-keys/history")).Expect(HttpStatusCode.OK).Count("entries").Should().Be(0);
+        var ourKeys = (await ours.GetAsync("/v1/organization/api-keys/last-update")).Expect(HttpStatusCode.OK);
+        ourKeys.At("created").GetBoolean().Should().BeTrue("their key is not a change to ours");
+        ourKeys.At("by").ValueKind.Should().Be(JsonValueKind.Null);
+        var ourTeam = (await ours.GetAsync("/v1/organization/team/history")).Expect(HttpStatusCode.OK);
+        ourTeam.Count("entries").Should().Be(1, "only our own creation, not their invitation");
+        ourTeam.Id("entries.0.userId").Should().Be(ours.UserId);
 
         (await ours.GetAsync($"/v1/jobs/{job}/history")).Expect(HttpStatusCode.NotFound);
         (await ours.GetAsync($"/v1/templates/{template}/history")).Expect(HttpStatusCode.NotFound);
