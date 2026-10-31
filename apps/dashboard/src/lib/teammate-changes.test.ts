@@ -98,8 +98,8 @@ describe('toast words', () => {
       jobTitle: 'Platform Engineer',
       taskNote: 'Call references',
     });
-    expect(given.sentence.join('')).toBe('Jordan Ellis gave you a task: Call references');
-    expect(given.context).toBe('Taylor Brook, Platform Engineer');
+    expect(given.sentence).toEqual(['Jordan Ellis gave you a task on ', 'Taylor Brook', ': Call references']);
+    expect(given.context).toBe('Platform Engineer');
 
     const template = toastFor('t-3', changeFor(published(me), context)!, { actorName: 'Jordan Ellis', templateName: 'Software engineer' });
     expect(template.sentence.join('')).toBe('Jordan Ellis published version 3 of Software engineer');

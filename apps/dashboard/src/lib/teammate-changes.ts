@@ -111,9 +111,9 @@ export interface ChangeFacts {
 }
 
 const taskWords: Record<TaskAction, string> = {
-  created: 'gave you a task: ',
-  completed: 'completed your task ',
-  reopened: 'reopened your task ',
+  created: 'gave you a task on ',
+  completed: 'completed your task on ',
+  reopened: 'reopened your task on ',
 };
 
 /** The words and link for one change. */
@@ -126,9 +126,9 @@ export function toastFor(id: string, change: TeammateChange, facts: ChangeFacts)
       return {
         id,
         kind: change.kind,
-        sentence: [`${actor} ${taskWords[change.action]}`, facts.taskNote ?? 'a task', ''],
+        sentence: [`${actor} ${taskWords[change.action]}`, candidate, facts.taskNote ? `: ${facts.taskNote}` : ''],
         href: `/applications/${change.applicationId}`,
-        context: job ? `${candidate}, ${job}` : candidate,
+        context: job,
       };
     case 'Templates':
       return {
@@ -136,7 +136,7 @@ export function toastFor(id: string, change: TeammateChange, facts: ChangeFacts)
         kind: change.kind,
         sentence: [`${actor} published version ${change.version} of `, facts.templateName ?? 'a hiring template', ''],
         href: `/templates/${change.templateId}`,
-        context: 'Hiring template',
+        context: '',
       };
     default: {
       const href = `/applications/${change.applicationId}`;

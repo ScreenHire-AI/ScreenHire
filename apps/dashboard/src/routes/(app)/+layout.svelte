@@ -119,7 +119,11 @@
   setShell({
     openPalette: () => (paletteOpen = true),
     openShortcuts: () => (shortcutsOpen = true),
-    openNotifications: () => (notificationsOpen = true),
+    openNotifications: () => {
+      // Cleared first, so the same sentence after a second save is a change a screen reader announces.
+      announcement = '';
+      notificationsOpen = true;
+    },
     live: () => live.connection.status,
   });
 
