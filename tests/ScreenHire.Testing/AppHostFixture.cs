@@ -145,22 +145,14 @@ public class AppHostFixture : IAsyncLifetime
 
     // The worker has no health endpoint: Aspire calls it running once its process starts, and Wolverine starts listening
     // and takes leadership up to a minute later while another stack boots beside it. Until then nothing handles a
-    // message, so a test that waits 30 s for a worker's event spent its budget on startup. Wolverine records the agents
-    // its leader runs, and the durability agent (scheduled messages, outbox recovery) is assigned once the worker's
-    // node leads; every run starts on a fresh database, so the row is this worker's.
+    // message, so a test that waits on a worker's event spent its budget on startup. Wolverine records the agents its
+    // leader runs, and the durability agent (scheduled messages, outbox recovery) is assigned once the worker's node
+    // leads. At startup every run has a fresh database, so any such row is this worker's.
     private async Task WaitUntilWorkerRunsAgentsAsync(CancellationToken cancellationToken)
     {
         try
         {
-            await using var connection = new NpgsqlConnection(await GetOwnerConnectionStringAsync(cancellationToken));
-            await connection.OpenAsync(cancellationToken);
-            await using var command = new NpgsqlCommand(
-                $"SELECT EXISTS (SELECT 1 FROM {DatabaseRegistration.MessagingSchema}.wolverine_node_assignments WHERE id LIKE 'wolverinedb://%')",
-                connection);
-            while (await command.ExecuteScalarAsync(cancellationToken) is not true)
-            {
-                await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
-            }
+            await WaitUntilWorkerRunsAgentsAsync(DateTimeOffset.MinValue, cancellationToken);
         }
         catch (OperationCanceledException exception) when (!TestContext.Current.CancellationToken.IsCancellationRequested)
         {
@@ -169,6 +161,37 @@ public class AppHostFixture : IAsyncLifetime
                 $"Check its log in {LogDirectory}.",
                 exception);
         }
+    }
+
+    /// <summary>
+    /// Waits until a worker's Wolverine node that took its agents after <paramref name="since"/> (the database's clock,
+    /// from <see cref="GetDatabaseTimeAsync"/>) runs the durability agent: the worker then handles messages, scheduled
+    /// ones included. For a test that restarts the worker, which Aspire calls running long before that.
+    /// </summary>
+    public async Task WaitUntilWorkerRunsAgentsAsync(DateTimeOffset since, CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(await GetOwnerConnectionStringAsync(cancellationToken));
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(
+            $"SELECT EXISTS (SELECT 1 FROM {DatabaseRegistration.MessagingSchema}.wolverine_node_assignments " +
+            "WHERE id LIKE 'wolverinedb://%' AND started > @since)",
+            connection);
+        command.Parameters.AddWithValue("since", since);
+        while (await command.ExecuteScalarAsync(cancellationToken) is not true)
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
+        }
+    }
+
+    /// <summary>The database's clock, for <see cref="WaitUntilWorkerRunsAgentsAsync(DateTimeOffset, CancellationToken)"/>.</summary>
+    public async Task<DateTimeOffset> GetDatabaseTimeAsync(CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(await GetOwnerConnectionStringAsync(cancellationToken));
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand("SELECT now()", connection);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        await reader.ReadAsync(cancellationToken);
+        return await reader.GetFieldValueAsync<DateTimeOffset>(0, cancellationToken);
     }
 
     // Writes each resource instance's console log to its file as it arrives, and keeps every resource that stops with an
