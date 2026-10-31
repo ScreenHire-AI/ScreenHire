@@ -130,6 +130,16 @@ describe('rich text editor', () => {
     expect(textbox()).toHaveTextContent('Hi variable First name');
   });
 
+  // Making the editor again would put the caret back at the start while someone types, as a refetched list did.
+  it('keeps the same editor when its variables arrive again unchanged', async () => {
+    render(Harness, { props: { value: '<p>Hi {{ firstName }}</p>', variables } });
+    const before = (textbox() as HTMLElement & { editor: Editor }).editor;
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Refetch the variables' }));
+
+    expect((textbox() as HTMLElement & { editor: Editor }).editor).toBe(before);
+  });
+
   it('loads a value set from outside without counting it as an edit', async () => {
     const onvalue = vi.fn();
     render(Harness, { props: { value: '<p>Blank</p>', onvalue } });

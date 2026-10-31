@@ -75,6 +75,10 @@
     },
   ];
 
+  // A pressed toggle keeps the focus and the selection in the text, so typing goes on where it was. Keyboard users still
+  // reach the toolbar with Tab.
+  const keepEditorFocus = (event: MouseEvent) => event.preventDefault();
+
   // Roving focus: the toolbar is one tab stop, the last toggle used.
   let current = $state(0);
   let toolbar = $state<HTMLElement | null>(null);
@@ -145,7 +149,7 @@
       <Tooltip.Trigger>
         {#snippet child({ props })}
           <Toggle
-            {...mergeProps(props, { onfocus: () => (current = index) })}
+            {...mergeProps(props, { onfocus: () => (current = index), onmousedown: keepEditorFocus })}
             data-toolbar-item
             tabindex={current === index ? 0 : -1}
             aria-label={item.label}

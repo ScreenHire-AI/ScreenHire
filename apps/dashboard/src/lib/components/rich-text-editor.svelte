@@ -48,9 +48,10 @@
 
   // What the editor last wrote to `value` or loaded from it; anything else in `value` came from outside.
   let emitted = untrack(() => value);
-  // Derived, so a refetched list of variables with the same meaning does not make the editor again.
-  const chips = $derived(variables !== undefined);
-  const content = (html: string) => (chips ? withVariableChips(html) : html);
+  // The variables by what they say, so a refetched list with the same names and labels does not make the editor again;
+  // a changed one does, and its chips show the new labels.
+  const variableKey = $derived(variables === undefined ? undefined : JSON.stringify(variables.map(({ name, label }) => [name, label])));
+  const content = (html: string, chips: boolean) => (chips ? withVariableChips(html) : html);
 
   function refresh(instance: Editor) {
     active = {
@@ -66,21 +67,26 @@
 
   // Typed formatting ("- " starts a list, "## " a heading) acts like a single-key shortcut for speech input, so it is
   // off while single-key shortcuts are (WCAG 2.1.4). Tiptap builds those rules once, so the attachment reads the
-  // preference and a change makes the editor again with the text it holds.
+  // preference and a change makes the editor again with the text it holds. It reads nothing else: building the editor
+  // runs the chips' node views, and a value they read would make the editor again on every change, losing the caret.
   function mount(element: HTMLElement) {
     const typedFormatting = preferences.shortcutsEnabled;
     const readOnly = !editable;
-    const withChips = chips;
+    const withChips = variableKey !== undefined;
+    return untrack(() => create(element, typedFormatting, readOnly, withChips));
+  }
+
+  function create(element: HTMLElement, typedFormatting: boolean, readOnly: boolean, withChips: boolean) {
     const instance = new Editor({
       element,
       extensions: richTextExtensions(withChips ? () => variables ?? [] : undefined),
-      content: content(untrack(() => value)),
+      content: content(value, withChips),
       editable: !readOnly,
       enableInputRules: typedFormatting,
       enablePasteRules: typedFormatting,
       editorProps: {
         attributes: {
-          id: untrack(() => id),
+          id,
           role: 'textbox',
           'aria-multiline': 'true',
           ...(readOnly ? { 'aria-readonly': 'true' } : {}),
@@ -126,7 +132,7 @@
     const next = value;
     if (editor && next !== emitted) {
       emitted = next;
-      editor.commands.setContent(content(next), { emitUpdate: false });
+      editor.commands.setContent(content(next, variables !== undefined), { emitUpdate: false });
     }
   });
 

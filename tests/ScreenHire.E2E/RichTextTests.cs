@@ -66,7 +66,8 @@ public sealed class RichTextTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GotoAsync(DashboardUrl("/templates/emails/stage-change"));
         var message = Page.GetByRole(AriaRole.Textbox, new() { Name = "Message" });
         await Expect(message.Locator("[data-liquid]").First).ToContainTextAsync("First name");
-        await message.Locator("p").Last.ClickAsync();
+        // The built-in wording's paragraph with no variable in it, so End lands after its last word.
+        await message.GetByText("The hiring team will be in touch").ClickAsync();
         await Page.Keyboard.PressAsync("End");
         await Page.Keyboard.PressAsync("Enter");
         await Page.GetByRole(AriaRole.Toolbar, new() { Name = "Formatting" }).GetByRole(AriaRole.Button, new() { Name = "Subheading" }).ClickAsync();
