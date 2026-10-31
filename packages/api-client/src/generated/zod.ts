@@ -6,6 +6,37 @@
  */
 import * as zod from 'zod';
 
+export const CreatePublicApplicationDraftParams = zod.object({
+  "organizationSlug": zod.string(),
+  "jobId": zod.uuid()
+})
+
+export const createPublicApplicationDraftBodyAccommodationRequestedDefault = false;
+export const createPublicApplicationDraftBodyAiUseDeclarationDefault = `NotProvided`;
+
+export const CreatePublicApplicationDraftBody = zod.object({
+  "candidate": zod.object({
+  "firstName": zod.string(),
+  "email": zod.string(),
+  "lastName": zod.string().nullish(),
+  "phone": zod.string().nullish()
+}).describe('The candidate as the apply form asks: a first name, an optional last name, the email and an optional phone.'),
+  "answers": zod.array(zod.object({
+  "questionId": zod.string(),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish()
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')).nullish(),
+  "accommodationRequested": zod.boolean().default(createPublicApplicationDraftBodyAccommodationRequestedDefault),
+  "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(createPublicApplicationDraftBodyAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
+  "aiUseDetails": zod.string().nullish()
+}).describe('What a candidate saves of the apply form to finish later (ApplicationDraft): their details, their\r\nanswers to the non-file questions, the assistive-technology switch and the AI-use answer. Nothing is required yet\r\nbeyond the first name and the email the link goes to.')
+
+export const CreatePublicApplicationDraftResponse = zod.object({
+  "token": zod.string(),
+  "expiresAt": zod.iso.datetime({"offset":true})
+}).describe('A saved draft: the token in its link, which the careers page keeps to save it again, and when it is deleted.')
+
+
 export const SendPublicTelemetryParams = zod.object({
   "organizationSlug": zod.string(),
   "jobId": zod.uuid()
@@ -475,8 +506,15 @@ export const GetPublicApplicationFormResponse = zod.object({
   "sessionToken": zod.string(),
   "deviceCheck": zod.enum(['Off', 'Notice', 'Consent']).describe('On which footing the careers page may compute a device fingerprint (docs/research/legal.md, "Device / browser\r\nfingerprint"; integrity-engine.md §3). ePrivacy Art. 5(3) needs consent for fingerprinting unless it is strictly\r\nnecessary, and data protection authorities differ on whether fraud prevention is, so the basis is configuration per\r\ncountry rather than code.')
 }).describe('What the careers page\'s telemetry module may do on this form (integrity-engine.md §3): `sessionToken` binds its\r\nsnapshots to one way through the form, and `deviceCheck` is the footing for the device fingerprint where the job\r\nis (`Off`, `Notice`, or `Consent`, which needs the candidate\'s tick).'),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullable(),
+  "questionsPerPage": zod.int(),
+  "saveDraftEnabled": zod.boolean(),
   "talentPoolMonths": zod.int()
-}).describe('Everything the careers apply page needs for one open job. The resume question comes first\r\n(ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured.\r\n`telemetry` is a new telemetry session for the form; the page keeps the first one it gets.\r\n`talentPoolMonths` is how long the organization keeps a candidate\'s details for future roles if they say so,\r\nwhich the form\'s "Keep my details for future roles" box tells them.')
+}).describe('Everything the careers apply page needs for one open job. The resume question comes first\r\n(ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured.\r\n`telemetry` is a new telemetry session for the form; the page keeps the first one it gets.\r\n`sections` are the questionnaire\'s named pages, or null to split it into pages of `questionsPerPage`\r\n(apply-flow.md §7). `saveDraftEnabled` says whether the candidate can save the form to finish later: false when\r\nthis deployment sends no email or has no careers host to link to.\r\n`talentPoolMonths` is how long the organization keeps a candidate\'s details for future roles if they say so,\r\nwhich the form\'s "Keep my details for future roles" box tells them.')
 
 
 export const GetPublicBrandImageParams = zod.object({
@@ -553,7 +591,10 @@ export const SubmitPublicApplicationBody = zod.object({
   "honeypotFilled": zod.boolean().default(submitPublicApplicationBodyHoneypotFilledDefault),
   "botCheckToken": zod.string().nullish(),
   "userAgent": zod.string().nullish(),
-  "formStartedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "pageTimes": zod.array(zod.object({
+  "page": zod.string(),
+  "seconds": zod.int()
+}).describe('The active seconds on one page of the apply form (`details`, `page-2`, `review`).')).nullish(),
   "automationMarkers": zod.array(zod.string()).nullish(),
   "deviceFingerprint": zod.string().nullish(),
   "deviceCheckConsent": zod.boolean().default(submitPublicApplicationBodyDeviceCheckConsentDefault),
@@ -584,6 +625,62 @@ export const SubmitPublicApplicationResponse = zod.object({
   "applicationId": zod.uuid(),
   "submittedAt": zod.iso.datetime({"offset":true})
 }).describe('Confirms that an application arrived.')
+
+
+export const GetPublicApplicationDraftParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string()
+})
+
+export const getPublicApplicationDraftResponseAiUseDeclarationDefault = `NotProvided`;
+
+export const GetPublicApplicationDraftResponse = zod.object({
+  "jobSlug": zod.string(),
+  "firstName": zod.string(),
+  "lastName": zod.string().nullable(),
+  "email": zod.string(),
+  "phone": zod.string().nullable(),
+  "answers": zod.array(zod.object({
+  "questionId": zod.string(),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish()
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
+  "accommodationRequested": zod.boolean(),
+  "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(getPublicApplicationDraftResponseAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
+  "aiUseDetails": zod.string().nullable(),
+  "expiresAt": zod.iso.datetime({"offset":true})
+}).describe('A saved draft as the careers apply page fills the form from it. `jobSlug` is the job it belongs to; the page\r\nrefuses a draft for another job.')
+
+
+export const SavePublicApplicationDraftParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string()
+})
+
+export const savePublicApplicationDraftBodyAccommodationRequestedDefault = false;
+export const savePublicApplicationDraftBodyAiUseDeclarationDefault = `NotProvided`;
+
+export const SavePublicApplicationDraftBody = zod.object({
+  "candidate": zod.object({
+  "firstName": zod.string(),
+  "email": zod.string(),
+  "lastName": zod.string().nullish(),
+  "phone": zod.string().nullish()
+}).describe('The candidate as the apply form asks: a first name, an optional last name, the email and an optional phone.'),
+  "answers": zod.array(zod.object({
+  "questionId": zod.string(),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish()
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')).nullish(),
+  "accommodationRequested": zod.boolean().default(savePublicApplicationDraftBodyAccommodationRequestedDefault),
+  "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(savePublicApplicationDraftBodyAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
+  "aiUseDetails": zod.string().nullish()
+}).describe('What a candidate saves of the apply form to finish later (ApplicationDraft): their details, their\r\nanswers to the non-file questions, the assistive-technology switch and the AI-use answer. Nothing is required yet\r\nbeyond the first name and the email the link goes to.')
+
+export const SavePublicApplicationDraftResponse = zod.object({
+  "token": zod.string(),
+  "expiresAt": zod.iso.datetime({"offset":true})
+}).describe('A saved draft: the token in its link, which the careers page keeps to save it again, and when it is deleted.')
 
 
 export const GetPublicQuestionnaireParams = zod.object({
@@ -647,8 +744,19 @@ export const GetPublicQuestionnaireResponse = zod.object({
   "max": zod.number().nullable(),
   "maxLength": zod.int().nullable(),
   "acceptedFileTypes": zod.array(zod.string()).nullable()
-}).describe('One question of a job\'s application form, as a candidate sees it. Knockout settings stay on the server: the form\r\naccepts every answer, and a person reviews what follows from it.'))
-}).describe('A follow-up questionnaire as its careers page shows it, through the signed link in the candidate\'s email.\r\n`questions` are listed only while the link is `Open`; knockout settings stay on the server.')
+}).describe('One question of a job\'s application form, as a candidate sees it. Knockout settings stay on the server: the form\r\naccepts every answer, and a person reviews what follows from it.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullable(),
+  "questionsPerPage": zod.int(),
+  "draft": zod.array(zod.object({
+  "questionId": zod.string(),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish()
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
+}).describe('A follow-up questionnaire as its careers page shows it, through the signed link in the candidate\'s email.\r\n`questions`, `sections` and `draft` are listed only while the link is `Open`; knockout settings stay\r\non the server. `sections` are its named pages, or null to split it into pages of `questionsPerPage`.\r\n`draft` holds the answers the candidate saved to finish later, empty when there are none.')
 
 
 export const AnswerPublicQuestionnaireParams = zod.object({
@@ -665,6 +773,22 @@ export const AnswerPublicQuestionnaireBody = zod.object({
 }).describe('The candidate\'s answers to a follow-up questionnaire, keyed by question id as on the apply form.')
 
 export const AnswerPublicQuestionnaireResponse = zod.void()
+
+
+export const SavePublicQuestionnaireDraftParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string()
+})
+
+export const SavePublicQuestionnaireDraftBody = zod.object({
+  "answers": zod.array(zod.object({
+  "questionId": zod.string(),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish()
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
+}).describe('The candidate\'s answers to a follow-up questionnaire, keyed by question id as on the apply form.')
+
+export const SavePublicQuestionnaireDraftResponse = zod.void()
 
 
 export const GetPublicTalentPoolStatusParams = zod.object({
@@ -843,7 +967,12 @@ export const CreateJobResponse = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
   "integrityPolicy": zod.object({
   "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
@@ -903,7 +1032,12 @@ export const CreateJobResponse = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
@@ -1026,7 +1160,12 @@ export const GetJobResponse = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
   "integrityPolicy": zod.object({
   "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
@@ -1086,7 +1225,12 @@ export const GetJobResponse = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
@@ -1231,7 +1375,12 @@ export const UpdateJobResponse = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
   "integrityPolicy": zod.object({
   "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
@@ -1291,7 +1440,12 @@ export const UpdateJobResponse = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
@@ -1452,7 +1606,12 @@ export const PublishJobResponse = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
   "integrityPolicy": zod.object({
   "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
@@ -1512,7 +1671,12 @@ export const PublishJobResponse = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
@@ -1635,7 +1799,12 @@ export const CloseJobResponse = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
   "integrityPolicy": zod.object({
   "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
@@ -1695,7 +1864,12 @@ export const CloseJobResponse = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
@@ -1861,7 +2035,12 @@ export const UpdateJobWorkflowBody = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
   "integrityPolicy": zod.object({
   "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
@@ -1921,7 +2100,12 @@ export const UpdateJobWorkflowBody = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "expectedWorkflowVersion": zod.int()
@@ -1999,7 +2183,12 @@ export const UpdateJobWorkflowResponse = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
   "integrityPolicy": zod.object({
   "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
@@ -2059,7 +2248,12 @@ export const UpdateJobWorkflowResponse = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
@@ -2187,7 +2381,12 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
   "integrityPolicy": zod.object({
   "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
@@ -2247,7 +2446,12 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
@@ -2370,7 +2574,12 @@ export const CreateHiringTemplateBody = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
   "integrityPolicy": zod.object({
   "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
@@ -2430,7 +2639,12 @@ export const CreateHiringTemplateBody = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
@@ -2631,7 +2845,12 @@ export const CreateHiringTemplateVersionBody = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
   "integrityPolicy": zod.object({
   "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
@@ -2691,7 +2910,12 @@ export const CreateHiringTemplateVersionBody = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
@@ -2760,7 +2984,12 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
   "integrityPolicy": zod.object({
   "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
@@ -2820,7 +3049,12 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
@@ -2898,7 +3132,12 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
   "integrityPolicy": zod.object({
   "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
@@ -2958,7 +3197,12 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
@@ -3032,7 +3276,12 @@ export const UpdateHiringTemplateVersionBody = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
   "integrityPolicy": zod.object({
   "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
@@ -3092,7 +3341,12 @@ export const UpdateHiringTemplateVersionBody = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
@@ -3161,7 +3415,12 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
   "integrityPolicy": zod.object({
   "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
@@ -3221,7 +3480,12 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
@@ -3299,7 +3563,12 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
   "integrityPolicy": zod.object({
   "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
@@ -3359,7 +3628,12 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
@@ -5061,13 +5335,15 @@ export const GetOrganizationResponse = zod.object({
   "userId": zod.uuid().nullish(),
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(getOrganizationResponseLastUpdatedCreatedDefault)
-}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
-}).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain. `lastUpdated` is the name\'s\r\nlast change, or when the organization was made; its history is `/v1/organization/history`.')
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "questionsPerPage": zod.int()
+}).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain. `questionsPerPage` is how\r\nmany questions candidates see on each page of a questionnaire that has no sections. `lastUpdated` is the last\r\nchange to the name or the questions per page, or when the organization was made; its history is\r\n`/v1/organization/history`.')
 
 
 export const UpdateOrganizationBody = zod.object({
-  "name": zod.string()
-}).describe('Renames the organization. Its slug, and so its careers address, stays as it is.')
+  "name": zod.string(),
+  "questionsPerPage": zod.int().nullish()
+}).describe('Renames the organization and, when given, sets its questions per page (1 to 50); null keeps it. Its slug, and so its\r\ncareers address, stays as it is.')
 
 export const updateOrganizationResponseLastUpdatedCreatedDefault = false;
 
@@ -5084,8 +5360,9 @@ export const UpdateOrganizationResponse = zod.object({
   "userId": zod.uuid().nullish(),
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(updateOrganizationResponseLastUpdatedCreatedDefault)
-}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
-}).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain. `lastUpdated` is the name\'s\r\nlast change, or when the organization was made; its history is `/v1/organization/history`.')
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "questionsPerPage": zod.int()
+}).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain. `questionsPerPage` is how\r\nmany questions candidates see on each page of a questionnaire that has no sections. `lastUpdated` is the last\r\nchange to the name or the questions per page, or when the organization was made; its history is\r\n`/v1/organization/history`.')
 
 
 export const GetOrganizationHistoryQueryParams = zod.object({
@@ -6034,7 +6311,12 @@ export const ValidateWorkflowBody = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
   "integrityPolicy": zod.object({
   "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
@@ -6094,7 +6376,12 @@ export const ValidateWorkflowBody = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.')
 }).describe('A workflow to check, as the builder holds it before saving.')
@@ -6158,7 +6445,12 @@ export const SimulateWorkflowBody = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
   "integrityPolicy": zod.object({
   "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
@@ -6218,7 +6510,12 @@ export const SimulateWorkflowBody = zod.object({
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
   "acceptedFileTypes": zod.array(zod.string()).nullish()
-}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the integrity\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "trigger": zod.object({

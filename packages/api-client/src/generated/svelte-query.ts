@@ -121,6 +121,9 @@ import type {
   OrganizationTalentPoolSettings,
   PendingInvitation,
   ProblemDetails,
+  PublicApplicationDraft,
+  PublicApplicationDraftReceipt,
+  PublicApplicationDraftRequest,
   PublicApplicationForm,
   PublicApplicationReceipt,
   PublicApplicationRequest,
@@ -181,6 +184,123 @@ import type { ErrorType } from '../http.ts';
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
+
+export type createPublicApplicationDraftResponse201 = {
+  data: PublicApplicationDraftReceipt
+  status: 201
+}
+
+export type createPublicApplicationDraftResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createPublicApplicationDraftResponse404 = {
+  data: void
+  status: 404
+}
+
+export type createPublicApplicationDraftResponse410 = {
+  data: ProblemDetails
+  status: 410
+}
+
+export type createPublicApplicationDraftResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type createPublicApplicationDraftResponseSuccess = (createPublicApplicationDraftResponse201) & {
+  headers: Headers;
+};
+export type createPublicApplicationDraftResponseError = (createPublicApplicationDraftResponse400 | createPublicApplicationDraftResponse404 | createPublicApplicationDraftResponse410 | createPublicApplicationDraftResponse429) & {
+  headers: Headers;
+};
+
+export const getCreatePublicApplicationDraftUrl = (organizationSlug: string,
+    jobId: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/jobs/${jobId}/application-drafts`
+}
+
+export const createPublicApplicationDraft = async (organizationSlug: string,
+    jobId: string,
+    publicApplicationDraftRequest: PublicApplicationDraftRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<createPublicApplicationDraftResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<createPublicApplicationDraftResponseSuccess>(getCreatePublicApplicationDraftUrl(organizationSlug,jobId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicApplicationDraftRequest)
+  }
+);}
+
+
+
+
+
+export const getCreatePublicApplicationDraftMutationKey = () => ['createPublicApplicationDraft'] as const;
+
+export const getCreatePublicApplicationDraftMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createPublicApplicationDraft>>, TError,CreatePublicApplicationDraftMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof createPublicApplicationDraft>>, TError,CreatePublicApplicationDraftMutationVariables, TContext> => {
+
+const mutationKey = getCreatePublicApplicationDraftMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPublicApplicationDraft>>, CreatePublicApplicationDraftMutationVariables> = (props) => {
+          const {organizationSlug,jobId,data} = props ?? {};
+
+          return  createPublicApplicationDraft(organizationSlug,jobId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePublicApplicationDraftMutationResult = NonNullable<Awaited<ReturnType<typeof createPublicApplicationDraft>>>
+    export type CreatePublicApplicationDraftMutationBody = PublicApplicationDraftRequest
+    export type CreatePublicApplicationDraftMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type CreatePublicApplicationDraftMutationVariables = {organizationSlug: string;jobId: string;data: PublicApplicationDraftRequest}
+
+    export const createCreatePublicApplicationDraft = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createPublicApplicationDraft>>, TError,CreatePublicApplicationDraftMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof createPublicApplicationDraft>>,
+        TError,
+        CreatePublicApplicationDraftMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getCreatePublicApplicationDraftMutationOptions(options?.()) }), queryClient);
+    }
 
 export type sendPublicTelemetryResponse202 = {
   data: void
@@ -2415,6 +2535,227 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return createMutation(() => ({ ...getSubmitPublicApplicationMutationOptions(options?.()) }), queryClient);
     }
 
+export type getPublicApplicationDraftResponse200 = {
+  data: PublicApplicationDraft
+  status: 200
+}
+
+export type getPublicApplicationDraftResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicApplicationDraftResponse410 = {
+  data: ProblemDetails
+  status: 410
+}
+
+export type getPublicApplicationDraftResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getPublicApplicationDraftResponseSuccess = (getPublicApplicationDraftResponse200) & {
+  headers: Headers;
+};
+export type getPublicApplicationDraftResponseError = (getPublicApplicationDraftResponse404 | getPublicApplicationDraftResponse410 | getPublicApplicationDraftResponse429) & {
+  headers: Headers;
+};
+
+export const getGetPublicApplicationDraftUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/application-drafts/${token}`
+}
+
+export const getPublicApplicationDraft = async (organizationSlug: string,
+    token: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getPublicApplicationDraftResponseSuccess> => {
+
+  return apiQueryFetch<getPublicApplicationDraftResponseSuccess>(getGetPublicApplicationDraftUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicApplicationDraftQueryKey = (organizationSlug: string,
+    token: string,) => {
+    return [
+    'v1','public','organizations',organizationSlug,'application-drafts',token
+    ] as const;
+    }
+
+
+export const getGetPublicApplicationDraftQueryOptions = <TData = Awaited<ReturnType<typeof getPublicApplicationDraft>>, TError = ErrorType<void | ProblemDetails>>(organizationSlug: string,
+    token: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getPublicApplicationDraft>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicApplicationDraftQueryKey(organizationSlug,token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicApplicationDraft>>> = ({ signal }) => getPublicApplicationDraft(organizationSlug,token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: organizationSlug !== null && organizationSlug !== undefined && token !== null && token !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getPublicApplicationDraft>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPublicApplicationDraftQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicApplicationDraft>>>
+export type GetPublicApplicationDraftQueryError = ErrorType<void | ProblemDetails>
+
+
+
+export function createGetPublicApplicationDraft<TData = Awaited<ReturnType<typeof getPublicApplicationDraft>>, TError = ErrorType<void | ProblemDetails>>(
+ organizationSlug: () =>  string,
+    token: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getPublicApplicationDraft>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetPublicApplicationDraftQueryOptions(organizationSlug(),
+    token(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type savePublicApplicationDraftResponse200 = {
+  data: PublicApplicationDraftReceipt
+  status: 200
+}
+
+export type savePublicApplicationDraftResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type savePublicApplicationDraftResponse404 = {
+  data: void
+  status: 404
+}
+
+export type savePublicApplicationDraftResponse410 = {
+  data: ProblemDetails
+  status: 410
+}
+
+export type savePublicApplicationDraftResponse429 = {
+  data: void
+  status: 429
+}
+
+export type savePublicApplicationDraftResponseSuccess = (savePublicApplicationDraftResponse200) & {
+  headers: Headers;
+};
+export type savePublicApplicationDraftResponseError = (savePublicApplicationDraftResponse400 | savePublicApplicationDraftResponse404 | savePublicApplicationDraftResponse410 | savePublicApplicationDraftResponse429) & {
+  headers: Headers;
+};
+
+export const getSavePublicApplicationDraftUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/application-drafts/${token}`
+}
+
+export const savePublicApplicationDraft = async (organizationSlug: string,
+    token: string,
+    publicApplicationDraftRequest: PublicApplicationDraftRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<savePublicApplicationDraftResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<savePublicApplicationDraftResponseSuccess>(getSavePublicApplicationDraftUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicApplicationDraftRequest)
+  }
+);}
+
+
+
+
+
+export const getSavePublicApplicationDraftMutationKey = () => ['savePublicApplicationDraft'] as const;
+
+export const getSavePublicApplicationDraftMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof savePublicApplicationDraft>>, TError,SavePublicApplicationDraftMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof savePublicApplicationDraft>>, TError,SavePublicApplicationDraftMutationVariables, TContext> => {
+
+const mutationKey = getSavePublicApplicationDraftMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof savePublicApplicationDraft>>, SavePublicApplicationDraftMutationVariables> = (props) => {
+          const {organizationSlug,token,data} = props ?? {};
+
+          return  savePublicApplicationDraft(organizationSlug,token,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SavePublicApplicationDraftMutationResult = NonNullable<Awaited<ReturnType<typeof savePublicApplicationDraft>>>
+    export type SavePublicApplicationDraftMutationBody = PublicApplicationDraftRequest
+    export type SavePublicApplicationDraftMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type SavePublicApplicationDraftMutationVariables = {organizationSlug: string;token: string;data: PublicApplicationDraftRequest}
+
+    export const createSavePublicApplicationDraft = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof savePublicApplicationDraft>>, TError,SavePublicApplicationDraftMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof savePublicApplicationDraft>>,
+        TError,
+        SavePublicApplicationDraftMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getSavePublicApplicationDraftMutationOptions(options?.()) }), queryClient);
+    }
+
 export type getPublicQuestionnaireResponse200 = {
   data: PublicQuestionnaire
   status: 200
@@ -2639,6 +2980,133 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getAnswerPublicQuestionnaireMutationOptions(options?.()) }), queryClient);
+    }
+
+export type savePublicQuestionnaireDraftResponse204 = {
+  data: void
+  status: 204
+}
+
+export type savePublicQuestionnaireDraftResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type savePublicQuestionnaireDraftResponse404 = {
+  data: void
+  status: 404
+}
+
+export type savePublicQuestionnaireDraftResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type savePublicQuestionnaireDraftResponse410 = {
+  data: ProblemDetails
+  status: 410
+}
+
+export type savePublicQuestionnaireDraftResponse429 = {
+  data: void
+  status: 429
+}
+
+export type savePublicQuestionnaireDraftResponse503 = {
+  data: ProblemDetails
+  status: 503
+}
+
+export type savePublicQuestionnaireDraftResponseSuccess = (savePublicQuestionnaireDraftResponse204) & {
+  headers: Headers;
+};
+export type savePublicQuestionnaireDraftResponseError = (savePublicQuestionnaireDraftResponse400 | savePublicQuestionnaireDraftResponse404 | savePublicQuestionnaireDraftResponse409 | savePublicQuestionnaireDraftResponse410 | savePublicQuestionnaireDraftResponse429 | savePublicQuestionnaireDraftResponse503) & {
+  headers: Headers;
+};
+
+export const getSavePublicQuestionnaireDraftUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/questionnaires/${token}/draft`
+}
+
+export const savePublicQuestionnaireDraft = async (organizationSlug: string,
+    token: string,
+    publicQuestionnaireAnswers: PublicQuestionnaireAnswers, options?: Parameters<typeof apiQueryFetch>[1]): Promise<savePublicQuestionnaireDraftResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<savePublicQuestionnaireDraftResponseSuccess>(getSavePublicQuestionnaireDraftUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicQuestionnaireAnswers)
+  }
+);}
+
+
+
+
+
+export const getSavePublicQuestionnaireDraftMutationKey = () => ['savePublicQuestionnaireDraft'] as const;
+
+export const getSavePublicQuestionnaireDraftMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof savePublicQuestionnaireDraft>>, TError,SavePublicQuestionnaireDraftMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof savePublicQuestionnaireDraft>>, TError,SavePublicQuestionnaireDraftMutationVariables, TContext> => {
+
+const mutationKey = getSavePublicQuestionnaireDraftMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof savePublicQuestionnaireDraft>>, SavePublicQuestionnaireDraftMutationVariables> = (props) => {
+          const {organizationSlug,token,data} = props ?? {};
+
+          return  savePublicQuestionnaireDraft(organizationSlug,token,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SavePublicQuestionnaireDraftMutationResult = NonNullable<Awaited<ReturnType<typeof savePublicQuestionnaireDraft>>>
+    export type SavePublicQuestionnaireDraftMutationBody = PublicQuestionnaireAnswers
+    export type SavePublicQuestionnaireDraftMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type SavePublicQuestionnaireDraftMutationVariables = {organizationSlug: string;token: string;data: PublicQuestionnaireAnswers}
+
+    export const createSavePublicQuestionnaireDraft = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof savePublicQuestionnaireDraft>>, TError,SavePublicQuestionnaireDraftMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof savePublicQuestionnaireDraft>>,
+        TError,
+        SavePublicQuestionnaireDraftMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getSavePublicQuestionnaireDraftMutationOptions(options?.()) }), queryClient);
     }
 
 export type getPublicTalentPoolStatusResponse200 = {
