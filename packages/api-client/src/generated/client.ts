@@ -98,6 +98,7 @@ import type {
   MagicLinkVerification,
   ManualAutomationQueued,
   MemberJob,
+  MemberNotificationSettings,
   MembershipLogEntry,
   MoveApplicationRequest,
   MyOrganization,
@@ -157,6 +158,7 @@ import type {
   UpdateIntegritySettingsRequest,
   UpdateJobRequest,
   UpdateJobWorkflowRequest,
+  UpdateNotificationSettingsRequest,
   UpdateOrganizationRequest,
   UpdateRoleRequest,
   UpdateScorecardTemplateRequest,
@@ -6566,6 +6568,115 @@ export const revokeInvitation = async (invitationId: string, options?: Parameter
     method: 'DELETE'
 
 
+  }
+);}
+
+
+
+export type getNotificationSettingsResponse200 = {
+  data: MemberNotificationSettings
+  status: 200
+}
+
+export type getNotificationSettingsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getNotificationSettingsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getNotificationSettingsResponseSuccess = (getNotificationSettingsResponse200) & {
+  headers: Headers;
+};
+export type getNotificationSettingsResponseError = (getNotificationSettingsResponse401 | getNotificationSettingsResponse404) & {
+  headers: Headers;
+};
+
+export type getNotificationSettingsResponse = (getNotificationSettingsResponseSuccess | getNotificationSettingsResponseError)
+
+export const getGetNotificationSettingsUrl = () => {
+
+
+
+
+  return `/v1/notification-settings`
+}
+
+export const getNotificationSettings = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getNotificationSettingsResponse> => {
+
+  return apiFetch<getNotificationSettingsResponse>(getGetNotificationSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type updateNotificationSettingsResponse200 = {
+  data: MemberNotificationSettings
+  status: 200
+}
+
+export type updateNotificationSettingsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateNotificationSettingsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateNotificationSettingsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateNotificationSettingsResponseSuccess = (updateNotificationSettingsResponse200) & {
+  headers: Headers;
+};
+export type updateNotificationSettingsResponseError = (updateNotificationSettingsResponse400 | updateNotificationSettingsResponse401 | updateNotificationSettingsResponse404) & {
+  headers: Headers;
+};
+
+export type updateNotificationSettingsResponse = (updateNotificationSettingsResponseSuccess | updateNotificationSettingsResponseError)
+
+export const getUpdateNotificationSettingsUrl = () => {
+
+
+
+
+  return `/v1/notification-settings`
+}
+
+export const updateNotificationSettings = async (updateNotificationSettingsRequest: UpdateNotificationSettingsRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateNotificationSettingsResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateNotificationSettingsResponse>(getUpdateNotificationSettingsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateNotificationSettingsRequest)
   }
 );}
 

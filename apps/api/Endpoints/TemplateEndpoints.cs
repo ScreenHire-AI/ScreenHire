@@ -337,9 +337,15 @@ internal static class TemplateEndpoints
                 return TypedResults.ValidationProblem(problems);
             }
 
+            // Read before the save writes this publish's own change: the member who changed the template last, when that
+            // is someone other than the publisher. A later change by the publisher, a key or ScreenHire means nobody else
+            // was the last to change it.
+            var lastChange = await ChangeHistoryQueries.LastAsync(
+                outbox.DbContext, ChangeSubjectKind.HiringTemplate, SubjectId(template.Id), cancellationToken);
+            var previousEditor = lastChange?.UserId is { } lastEditor && lastEditor != tenant.UserId ? lastEditor : (Guid?)null;
             template.Publish(found, time.GetUtcNow(), tenant.UserId);
             await outbox.PublishAsync(new HiringTemplateVersionPublished(
-                template.OrganizationId!.Value, template.Id, found.Id, found.Version, found.PublishedAt!.Value));
+                template.OrganizationId!.Value, template.Id, found.Id, found.Version, found.PublishedAt!.Value, tenant.UserId, previousEditor));
             try
             {
                 await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);

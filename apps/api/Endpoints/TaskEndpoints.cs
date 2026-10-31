@@ -102,7 +102,8 @@ internal static class TaskEndpoints
         {
             var jobId = await db.Applications.AsNoTracking()
                 .Where(a => a.Id == task.ApplicationId).Select(a => a.JobId).SingleAsync(cancellationToken);
-            await outbox.PublishAsync(new ApplicationTaskCompleted(task.OrganizationId, task.Id, task.ApplicationId, jobId, now));
+            await outbox.PublishAsync(new ApplicationTaskCompleted(
+                task.OrganizationId, task.Id, task.ApplicationId, jobId, now, userId, task.AssigneeUserId));
             try
             {
                 await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
@@ -124,6 +125,7 @@ internal static class TaskEndpoints
     private static async Task<Results<Ok<ApplicationTaskEntry>, NotFound, ProblemHttpResult>> ReopenTask(
         Guid taskId,
         IDbContextOutbox<ScreenHireDbContext> outbox,
+        ITenantContext tenant,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
@@ -144,7 +146,8 @@ internal static class TaskEndpoints
         {
             var jobId = await db.Applications.AsNoTracking()
                 .Where(a => a.Id == task.ApplicationId).Select(a => a.JobId).SingleAsync(cancellationToken);
-            await outbox.PublishAsync(new ApplicationTaskReopened(task.OrganizationId, task.Id, task.ApplicationId, jobId, time.GetUtcNow()));
+            await outbox.PublishAsync(new ApplicationTaskReopened(
+                task.OrganizationId, task.Id, task.ApplicationId, jobId, time.GetUtcNow(), tenant.UserId, task.AssigneeUserId));
             try
             {
                 await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);

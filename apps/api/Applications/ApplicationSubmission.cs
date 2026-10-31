@@ -119,7 +119,7 @@ internal static class ApplicationSubmission
         }
 
         await outbox.PublishAsync(new ApplicationSubmitted(
-            application.OrganizationId, application.Id, job.Id, application.CurrentStageId, submitted.Id, now));
+            application.OrganizationId, application.Id, job.Id, application.CurrentStageId, submitted.Id, now, actorUserId));
 
         // A candidate in the talent pool who applies again, or whom a person adds to a job, is back in a job: they leave
         // the pool, and the application they were kept from names this one (docs/architecture/talent-pool.md). A member on

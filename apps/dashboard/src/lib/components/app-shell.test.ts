@@ -158,6 +158,16 @@ describe('app shell', () => {
     await waitFor(() => expect(sheet).toContainElement(document.activeElement as HTMLElement));
   });
 
+  it('opens the Notifications sheet from the user menu', async () => {
+    stubViewport(1280);
+    render(ShellHarness, { props: { user } });
+
+    await fireEvent.pointerDown(screen.getByRole('button', { name: /^Avery Quinn/ }), { button: 0, pointerType: 'mouse' });
+    await fireEvent.click(await screen.findByRole('menuitem', { name: 'Notifications' }));
+
+    expect(await screen.findByText('Notifications sheet open')).toBeInTheDocument();
+  });
+
   it('keeps the sheet shut after the window widens past phone size and narrows again', async () => {
     const viewport = stubViewport(390);
     render(ShellHarness, { props: { user } });

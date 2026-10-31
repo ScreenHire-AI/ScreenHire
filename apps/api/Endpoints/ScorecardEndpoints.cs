@@ -185,7 +185,8 @@ internal static class ScorecardEndpoints
         db.ApplicationEvents.Add(entry);
         await outbox.PublishAsync(new RunAutomations(
             application.OrganizationId, application.Id, TriggerType.ReviewerDecision, stageId, entry.Id, now, ActorUserId: reviewerUserId));
-        await outbox.PublishAsync(new ScorecardSubmitted(application.OrganizationId, application.Id, application.JobId, scorecard.Id, entry.Id, now));
+        await outbox.PublishAsync(new ScorecardSubmitted(
+            application.OrganizationId, application.Id, application.JobId, scorecard.Id, entry.Id, now, reviewerUserId));
 
         // The tasks this scorecard is the work of: the reviewer's review, a review for the whole team, and a request for
         // this scorecard (ADR-0017 decision 11). Read under the same filters, so only this application's.
@@ -196,7 +197,8 @@ internal static class ScorecardEndpoints
         foreach (var task in open.Where(t => t.CompletesWith(reviewerUserId, key)))
         {
             task.Complete(reviewerUserId, now);
-            await outbox.PublishAsync(new ApplicationTaskCompleted(application.OrganizationId, task.Id, application.Id, application.JobId, now));
+            await outbox.PublishAsync(new ApplicationTaskCompleted(
+                application.OrganizationId, task.Id, application.Id, application.JobId, now, reviewerUserId, task.AssigneeUserId));
         }
 
         try

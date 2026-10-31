@@ -29,6 +29,22 @@ public sealed class OrganizationMember : ITenantOwned
 
     public required DateTimeOffset CreatedAt { get; init; }
 
+    /// <summary>Which teammates' changes this member's dashboard shows as toasts; all of them until they change it.</summary>
+    public NotificationSettings Notifications { get; private set; } = NotificationSettings.Default;
+
+    /// <summary>Replaces the member's notification settings. Returns whether they changed.</summary>
+    public bool SetNotifications(NotificationSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        if (Notifications == settings)
+        {
+            return false;
+        }
+
+        Notifications = settings;
+        return true;
+    }
+
     /// <summary>Sets which jobs the member sees. Returns whether it changed.</summary>
     public bool SetJobAccess(JobAccess access)
     {

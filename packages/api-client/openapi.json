@@ -6330,6 +6330,86 @@
         ]
       }
     },
+    "/v1/notification-settings": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "operationId": "GetNotificationSettings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberNotificationSettings"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Notifications"
+        ],
+        "operationId": "UpdateNotificationSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNotificationSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberNotificationSettings"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/jobs/{jobId}/hiring-team": {
       "get": {
         "tags": [
@@ -15697,6 +15777,29 @@
         },
         "description": "A job whose hiring team a member is on, for their access sheet. Changed through the job's own hiring team."
       },
+      "MemberNotificationSettings": {
+        "required": [
+          "toasts",
+          "closeToasts",
+          "off"
+        ],
+        "type": "object",
+        "properties": {
+          "toasts": {
+            "type": "boolean"
+          },
+          "closeToasts": {
+            "type": "boolean"
+          },
+          "off": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ToastKind"
+            }
+          }
+        },
+        "description": "The signed-in member's settings for teammates' changes as toasts, in their current organization. `toasts` turns\r\nthem on or off; `closeToasts` closes each after a few seconds, and off keeps it until dismissed; `off` lists\r\nthe kinds of change that do not toast. Everything starts on."
+      },
       "MembershipEventKind": {
         "enum": [
           "Invited",
@@ -19096,6 +19199,19 @@
         },
         "description": "Days from applying to being hired, for the hires made in the range."
       },
+      "ToastKind": {
+        "enum": [
+          "Moves",
+          "NewCandidates",
+          "Notes",
+          "Tags",
+          "Emails",
+          "Scorecards",
+          "Tasks",
+          "Templates"
+        ],
+        "description": "A kind of teammate's change a member can turn off. The first six are about a candidate on a job whose hiring team\r\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\r\nlast, published by someone else. Stored and sent as text."
+      },
       "TriggerType": {
         "enum": [
           "ApplicationSubmitted",
@@ -19339,6 +19455,29 @@
           }
         },
         "description": "Replaces a job's workflow with the recruiter's edit of it: the job's own copy, tailored. `expectedWorkflowVersion`\r\nis the `workflowVersion` the edit started from; if someone saved in between, the request is refused (409) rather\r\nthan overwriting their change. A stage that still holds applications cannot be removed."
+      },
+      "UpdateNotificationSettingsRequest": {
+        "required": [
+          "toasts",
+          "closeToasts",
+          "off"
+        ],
+        "type": "object",
+        "properties": {
+          "toasts": {
+            "type": "boolean"
+          },
+          "closeToasts": {
+            "type": "boolean"
+          },
+          "off": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ToastKind"
+            }
+          }
+        },
+        "description": "Replaces the signed-in member's notification settings; `off` names each kind at most once."
       },
       "UpdateOrganizationRequest": {
         "required": [
@@ -19977,6 +20116,9 @@
     },
     {
       "name": "Team"
+    },
+    {
+      "name": "Notifications"
     },
     {
       "name": "Hiring teams"

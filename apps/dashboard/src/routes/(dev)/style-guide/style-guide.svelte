@@ -106,6 +106,7 @@
   import { applyFormKinds, scorecardKinds } from '#lib/form-builder.js';
   import { aiAssistanceLevels, aiAssistanceOrder, authenticityLevels, authenticityOrder } from '#lib/integrity.js';
   import { mentionToken, type PickedMention } from '#lib/mentions.js';
+  import type { TrayItem } from '#lib/notifications.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { sections } from '#lib/shell.js';
   import type { StatusName } from '#lib/status.js';
@@ -332,7 +333,17 @@
       scorecardName: 'Interview',
     },
   ];
-  let notifications = $state([
+  // Teammates' changes as toasts (one change, then several on one job), newest first, above a notification card (section 11, Notification tray).
+  let notifications = $state<TrayItem[]>([
+    {
+      toast: true,
+      id: 't1',
+      kind: 'Moves',
+      sentence: ['Jordan Ellis moved ', 'Taylor Brook', ' to Interview'],
+      href: '/style-guide',
+      context: 'Platform Engineer',
+    },
+    { toast: true, id: 't2', kind: 'Emails', sentence: ['Jordan Ellis emailed 12 candidates on ', 'Platform Engineer', ''], href: '/style-guide', context: '' },
     { id: 'n1', title: 'Priya Natarajan, Product Designer', detail: 'A referral arrived. Call within a day.', href: '/style-guide' },
   ]);
   let sheetOpen = $state(false);

@@ -259,6 +259,7 @@
                 Keyboard shortcuts
                 {#if preferences.shortcutsEnabled}<DropdownMenu.Shortcut><Kbd>?</Kbd></DropdownMenu.Shortcut>{/if}
               </DropdownMenu.Item>
+              <DropdownMenu.Item onSelect={() => shell.openNotifications()}>Notifications</DropdownMenu.Item>
               <DropdownMenu.CheckboxItem
                 checked={preferences.shortcutsEnabled}
                 onCheckedChange={(checked) => preferences.setShortcutsEnabled(checked)}>Single-key shortcuts</DropdownMenu.CheckboxItem

@@ -89,7 +89,7 @@ public static partial class SendTalentPoolInvitationHandler
         db.ApplicationEvents.Add(application.EmailSent(copy, now, message.ActorUserId));
         entry!.Invited(job.Id, now);
 
-        outgoing.Add(new ApplicationEmailed(application.OrganizationId, application.Id, application.JobId, message.SendId, now));
+        outgoing.Add(new ApplicationEmailed(application.OrganizationId, application.Id, application.JobId, message.SendId, now, message.ActorUserId));
         outgoing.Add(TalentPoolMembership.Changed(entry, now));
         return outgoing;
     }

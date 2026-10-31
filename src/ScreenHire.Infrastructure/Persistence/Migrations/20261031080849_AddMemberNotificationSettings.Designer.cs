@@ -13,8 +13,8 @@ using ScreenHire.Infrastructure.Persistence;
 namespace ScreenHire.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ScreenHireDbContext))]
-    [Migration("20261031081355_AddCareersEmbedding")]
-    partial class AddCareersEmbedding
+    [Migration("20261031080849_AddMemberNotificationSettings")]
+    partial class AddMemberNotificationSettings
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -657,11 +657,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("source");
-
-                    b.Property<string>("SourceSite")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("source_site");
 
                     b.Property<DateTimeOffset>("StageEnteredAt")
                         .HasColumnType("timestamp with time zone")
@@ -2915,13 +2910,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
-                    b.PrimitiveCollection<List<string>>("EmbedOrigins")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("text[]")
-                        .HasColumnName("embed_origins")
-                        .HasDefaultValueSql("'{}'::text[]");
-
                     b.Property<Guid?>("FaviconImageId")
                         .HasColumnType("uuid")
                         .HasColumnName("favicon_image_id");
@@ -3094,6 +3082,13 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasDefaultValue("All")
                         .HasColumnName("job_access");
+
+                    b.Property<string>("Notifications")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("notifications")
+                        .HasDefaultValueSql("'{\"toasts\":true,\"closeToasts\":true,\"off\":[]}'::jsonb");
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
