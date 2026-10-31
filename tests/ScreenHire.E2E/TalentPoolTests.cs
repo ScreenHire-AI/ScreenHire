@@ -156,7 +156,7 @@ public sealed partial class TalentPoolTests(E2EFixture fixture) : BrowserTest(fi
         await Page.GetByLabel("Email").FillAsync(email);
         await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to review" }).ClickAsync();
 
-        await Expect(Page.Locator("[aria-current='step']")).ToContainTextAsync("REVIEW");
+        await Expect(Page.Locator("#step-heading")).ToHaveTextAsync("Review and send");
         await Page.GetByLabel("No, I did not use AI tools").CheckAsync();
         var box = Page.GetByLabel("Keep my details for future roles (optional)");
         await Expect(box).Not.ToBeCheckedAsync(); // the box is the candidate's to tick, never ticked for them
