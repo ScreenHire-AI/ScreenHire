@@ -57,6 +57,31 @@ public sealed class AddCandidateTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_resume_uploaded_for_one_job_cannot_be_used_on_another_job_or_by_another_organization()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var job = await recruiter.CreateJobAsync(Samples.RemoteJob("Platform Engineer"));
+        var other = await recruiter.CreateJobAsync(Samples.RemoteJob("Payroll Specialist"));
+        var ticket = await TicketAsync(recruiter, job.Id(), "jordan-lee.pdf", CareersUploads.Pdf.Length);
+        await CareersUploads.PutAsync(ticket, CareersUploads.Pdf);
+        var uploadId = ticket.GetProperty("uploadId").GetGuid();
+        using var stranger = await fixture.SignedInWithOrganizationAsync();
+        var strangersJob = await stranger.CreateJobAsync(Samples.RemoteJob("Platform Engineer"));
+
+        // Uploads are keyed by the job's organization and the job, so an id from elsewhere is a file that is not there.
+        foreach (var (tenant, jobId) in new[] { (recruiter, other.Id()), (stranger, strangersJob.Id()) })
+        {
+            var refused = await tenant.PostAsync($"/v1/jobs/{jobId}/applications", new JsonObject
+            {
+                ["candidate"] = new JsonObject { ["firstName"] = "Jordan", ["email"] = ApiSession.NewEmail("jordan") },
+                ["resumeUploadId"] = uploadId,
+            });
+            refused.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("resumeUploadId");
+            (await tenant.GetAsync($"/v1/jobs/{jobId}/applications")).Expect(HttpStatusCode.OK).Count().Should().Be(0);
+        }
+    }
+
+    [Fact]
     public async Task An_upload_link_is_refused_for_a_wrong_type_a_closed_job_a_viewer_and_a_job_out_of_sight()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
