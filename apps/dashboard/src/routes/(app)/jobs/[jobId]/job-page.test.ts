@@ -1,5 +1,5 @@
 import type { JobDetail } from '@screenhire/api-client';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { page } from '$app/state';
 import { apiStub, applications, board, jobId, posting, stages, user } from '../../../../test-support/fixtures.js';
@@ -121,6 +121,19 @@ describe('job page', () => {
     expect(screen.queryByRole('region', { name: 'Distribution' })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Selected candidate' })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Authenticity' })).not.toBeInTheDocument();
+  });
+
+  it("says a draft's creation once: as its last fact while nothing has changed it, else as its own Created fact (W7)", async () => {
+    const draft = { ...job, status: 'Draft', publishedAt: null } as JobDetail;
+    stub({ ...draft, lastUpdated: { at: job.createdAt, by: 'Member', userId: user.id, created: true } } as JobDetail);
+    await screen.findByRole('heading', { level: 1 });
+    const terms = () => within(document.querySelector<HTMLElement>('[data-slot=header-band]')!).getAllByRole('term').map((term) => term.textContent);
+    expect(terms()).toEqual(['Location', 'Type', 'Salary', 'Created']);
+    cleanup();
+
+    stub(draft);
+    await screen.findByRole('heading', { level: 1 });
+    expect(terms()).toEqual(['Location', 'Type', 'Salary', 'Created', 'Last updated']);
   });
 
   it('has a Candidates tab with its count and a Distribution tab whose count says how many boards the job is on (E2)', async () => {
