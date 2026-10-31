@@ -77,8 +77,14 @@
               <span aria-hidden="true" class="flex min-w-0 flex-col gap-0.5">
                 {#each row.values as value, index (index)}
                   <span class="flex min-w-0 items-center gap-2">
+                    <!-- A zero draws no bar and leaves no gap, so its value starts at the baseline. -->
                     <span
-                      class={cn('shrink-0 rounded-r-sm group-hover/row:opacity-85', series.length > 1 ? 'h-3.5' : 'h-5', tones[series[index]?.tone ?? 'chart-1'])}
+                      class={cn(
+                        'shrink-0 rounded-r-sm group-hover/row:opacity-85',
+                        series.length > 1 ? 'h-3.5' : 'h-5',
+                        tones[series[index]?.tone ?? 'chart-1'],
+                        !(max > 0 && value > 0) && 'hidden',
+                      )}
                       style:width={width(value)}
                     ></span>
                     <span class="shrink-0 text-body whitespace-nowrap tabular-nums">{row.texts[index]}</span>
