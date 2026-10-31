@@ -39,6 +39,19 @@ public sealed class SlackErrorsTests
         SlackErrors.ProblemFor(code).Should().BeNull();
 
     [Fact]
+    public void A_refused_direct_message_in_a_channel_is_a_channel_that_cannot_be_posted_in() =>
+        SlackErrors.InChannel(SlackProblem.CannotMessage).Should().Be(SlackProblem.CannotPost);
+
+    [Theory]
+    [InlineData(SlackProblem.Disconnected)]
+    [InlineData(SlackProblem.ChannelNotFound)]
+    [InlineData(SlackProblem.NotInChannel)]
+    [InlineData(SlackProblem.ChannelArchived)]
+    [InlineData(SlackProblem.CannotPost)]
+    public void Every_other_problem_is_the_same_in_a_channel(SlackProblem problem) =>
+        SlackErrors.InChannel(problem).Should().Be(problem);
+
+    [Fact]
     public void The_exception_carries_the_code_and_its_problem()
     {
         var exception = new SlackApiException("not_in_channel");

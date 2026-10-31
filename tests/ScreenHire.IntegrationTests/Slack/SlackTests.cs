@@ -108,6 +108,54 @@ public sealed class SlackTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task Connecting_the_same_workspace_again_keeps_the_channel_the_events_and_the_linked_accounts()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        await SetUpChannelAsync(owner, Hiring, ["JobPublished", "ApplicationSubmitted"]);
+        using var robin = await fixture.InviteAndJoinAsync(owner, "Recruiter");
+        await LinkAccountAsync(robin);
+        var firstTime = (await owner.GetAsync("/v1/slack")).At("settings.connectedAt").GetDateTimeOffset();
+
+        (await ConnectAsync(owner)).PathAndQuery.Should().Be("/settings/slack?slack=connected");
+
+        var status = (await owner.GetAsync("/v1/slack")).Expect(HttpStatusCode.OK);
+        status.At("settings.connectedAt").GetDateTimeOffset().Should().BeAfter(firstTime, "the second install did reconnect");
+        status.Text("settings.channel.id").Should().Be(Hiring);
+        status.Text("settings.channel.name").Should().Be("hiring");
+        status.At("settings.events").EnumerateArray().Select(e => e.GetString()).Should().Equal("ApplicationSubmitted", "JobPublished");
+        var account = (await robin.GetAsync("/v1/slack")).Expect(HttpStatusCode.OK);
+        account.At("account").ValueKind.Should().Be(JsonValueKind.Object, "the same workspace keeps its links");
+        account.Text("account.slackName").Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task A_slack_account_another_member_linked_moves_to_the_member_who_signs_in_to_it()
+    {
+        // The sandbox gives each ScreenHire user their own Slack user, so two members cannot reach the same one through
+        // its consent page. Real Slack can: one person holding two ScreenHire accounts. The first member's link is put
+        // in the table as that earlier round trip would have left it, naming the second member's Slack user.
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        await ConnectAsync(owner);
+        using var first = await fixture.InviteAndJoinAsync(owner, "Recruiter");
+        using var second = await fixture.InviteAndJoinAsync(owner, "Recruiter");
+        await using (var db = await TenantDbAsync(owner.OrganizationId))
+        {
+            var installation = await db.SlackInstallations.SingleAsync(Ct);
+            db.SlackAccountLinks.Add(SlackAccountLink.Create(
+                owner.OrganizationId, installation.Id, first.UserId, SandboxSlackClient.SlackUserIdFor(second.UserId), "Shared account", installation.ConnectedAt));
+            await db.SaveChangesAsync(Ct);
+        }
+
+        (await first.GetAsync("/v1/slack")).At("account").ValueKind.Should().Be(JsonValueKind.Object);
+        (await LinkAsync(second)).PathAndQuery.Should().Be("/settings/slack?slack-account=linked");
+
+        (await second.GetAsync("/v1/slack")).At("account").ValueKind.Should().Be(JsonValueKind.Object);
+        (await first.GetAsync("/v1/slack")).At("account").ValueKind.Should().Be(JsonValueKind.Null, "a Slack account belongs to one member");
+        await using var check = await TenantDbAsync(owner.OrganizationId);
+        (await check.SlackAccountLinks.ToListAsync(Ct)).Should().ContainSingle().Which.UserId.Should().Be(second.UserId);
+    }
+
+    [Fact]
     public async Task A_state_that_does_not_read_is_expired_and_a_cancelled_install_is_denied()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
@@ -385,6 +433,29 @@ public sealed class SlackTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_scorecard_requested_of_a_teammate_reaches_them_as_a_task_in_a_direct_message()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        await ConnectAsync(owner);
+        using var robin = await fixture.InviteAndJoinAsync(owner, "Recruiter");
+        await LinkAccountAsync(robin);
+        var (_, application) = await ApplicationAsync(owner, "Platform Engineer", "Robin Ellis");
+        (await owner.PostAsync($"/v1/applications/{application}/move", new JsonObject { ["toStageId"] = "interview" })).Expect(HttpStatusCode.OK);
+
+        (await owner.PostAsync($"/v1/applications/{application}/scorecard-requests", new JsonObject
+        {
+            ["assigneeUserId"] = robin.UserId.ToString(),
+            ["scorecardTemplateId"] = "interview",
+            ["note"] = "Focus on the heliotrope exercise.",
+        })).Expect(HttpStatusCode.Created);
+
+        var text = await WaitForMessageAsync(owner, DirectMessageOf(robin), "You have a new task", "the requested scorecard's direct message");
+        text.Should().Contain("Robin Ellis").And.Contain("Platform Engineer").And.Contain($"/applications/{application}");
+        text.Should().NotContain("heliotrope", "a direct message never quotes the request's note");
+        (await ChannelMessagesAsync(owner, DirectMessageOf(robin))).Should().ContainSingle();
+    }
+
+    [Fact]
     public async Task A_reviewer_an_automation_assigns_gets_the_task_in_a_direct_message()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
@@ -515,6 +586,33 @@ public sealed class SlackTests(AppHostFixture fixture)
         (await db.SlackAccountLinks.CountAsync(l => l.UserId == robin.UserId, Ct)).Should().Be(0, "no direct message reaches someone who left");
     }
 
+    // The daily sweep fans out one message per organization; the test sends one organization's message with a cutoff
+    // far ahead of the clock, so the cron cannot touch the rows, and the other organization's rows must survive.
+    [Fact]
+    public async Task The_retention_purge_deletes_only_the_old_records_and_sandbox_messages_of_its_organization()
+    {
+        using var first = await fixture.SignedInWithOrganizationAsync();
+        using var second = await fixture.SignedInWithOrganizationAsync();
+        var cutoff = new DateTimeOffset(2100, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        await SeedRetentionRowsAsync(first.OrganizationId, cutoff);
+        await SeedRetentionRowsAsync(second.OrganizationId, cutoff);
+
+        await using var publisher = await MessagingHost.StartPublisherToAppHostQueuesAsync(fixture, Ct);
+        await publisher.Services.GetRequiredService<IMessageBus>().PublishAsync(new PurgeOrganizationSlackMessages(first.OrganizationId, cutoff));
+
+        await WolverineStore.WaitUntilAsync(async () =>
+        {
+            await using var db = await TenantDbAsync(first.OrganizationId);
+            return await db.SlackMessages.CountAsync(Ct) == 1 && await db.SlackSandboxMessages.CountAsync(Ct) == 1;
+        }, "the purge to remove the first organization's old rows", Ct);
+        await using var purged = await TenantDbAsync(first.OrganizationId);
+        (await purged.SlackMessages.SingleAsync(Ct)).IdempotencyKey.Should().Be("newer");
+        (await purged.SlackSandboxMessages.SingleAsync(Ct)).Text.Should().Be("newer");
+        await using var untouched = await TenantDbAsync(second.OrganizationId);
+        (await untouched.SlackMessages.Select(m => m.IdempotencyKey).ToListAsync(Ct)).Should().BeEquivalentTo(["older", "newer"]);
+        (await untouched.SlackSandboxMessages.Select(m => m.Text).ToListAsync(Ct)).Should().BeEquivalentTo(["older", "newer"]);
+    }
+
     [Fact]
     public async Task Another_organization_sees_no_workspace_and_none_of_the_messages()
     {
@@ -609,6 +707,19 @@ public sealed class SlackTests(AppHostFixture fixture)
 
     private static string DirectMessageOf(Tenant member) =>
         SandboxSlackClient.DirectMessageId(SandboxSlackClient.SlackUserIdFor(member.UserId));
+
+    // One record and one sandbox message a day before the cutoff, and the same a day after it.
+    private async Task SeedRetentionRowsAsync(Guid organizationId, DateTimeOffset cutoff)
+    {
+        await using var db = await TenantDbAsync(organizationId);
+        foreach (var (name, at) in new[] { ("older", cutoff.AddDays(-1)), ("newer", cutoff.AddDays(1)) })
+        {
+            db.SlackMessages.Add(new SlackMessageRecord { OrganizationId = organizationId, IdempotencyKey = name, Outcome = SlackMessageOutcome.Sent, At = at });
+            db.SlackSandboxMessages.Add(new SlackSandboxMessage { OrganizationId = organizationId, Conversation = Hiring, Text = name, PostedAt = at });
+        }
+
+        await db.SaveChangesAsync(Ct);
+    }
 
     private async Task<ScreenHire.Infrastructure.Persistence.ScreenHireDbContext> TenantDbAsync(Guid organizationId)
     {
