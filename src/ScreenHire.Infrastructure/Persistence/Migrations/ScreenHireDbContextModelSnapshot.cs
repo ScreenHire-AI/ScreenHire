@@ -1929,6 +1929,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(30)")
                         .HasColumnName("dismiss_reason");
 
+                    b.Property<string>("ExplainReason")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("explain_reason");
+
                     b.Property<string>("Note")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)")
@@ -1941,6 +1946,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
                         .HasColumnName("organization_id");
+
+                    b.Property<Guid?>("SignalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("signal_id");
 
                     b.Property<string>("Type")
                         .IsRequired()
