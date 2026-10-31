@@ -48,7 +48,8 @@ and sends the whole list. `EmbedOrigins.Normalize` keeps each as a browser write
   with `ScreenHire:CareersEmbedding:AllowLoopback`, which Development and the test stacks turn on (the AppHost forwards
   `CareersEmbedding:*` to the API) and production never does;
 - refused, in words keyed `origins[i]`: a `*`, a user name or password, an IP address (a CSP host source cannot say an
-  IPv6 one), and more than 20 sites.
+  IPv6 one), a name with anything but letters, digits, dots and hyphens or with a dot at either end (the careers pages
+  could never match it), and more than 20 sites.
 
 Each added and removed site is a line on the Organization page's History ("let **https://www.example.com** embed the
 careers page", "stopped ... embedding the careers page"). The list is public: `PublicOrganization` and
