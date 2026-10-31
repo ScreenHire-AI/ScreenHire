@@ -11,6 +11,8 @@ export interface Shell {
   openPalette(): void;
   /** Opens the keyboard shortcuts dialog (`?`). */
   openShortcuts(): void;
+  /** Opens the Notifications sheet: which teammates' changes show as toasts. */
+  openNotifications(): void;
   /** The hub connection's state, for the top bar's Live indicator. */
   live(): ConnectionStatus;
 }

@@ -12,10 +12,12 @@ namespace ScreenHire.Application.Applications;
 
 /// <summary>
 /// An application moved from one stage of its job's workflow to another. <see cref="EventId"/> is the timeline event,
-/// so the engine's <c>StageExited</c> and <c>StageEntered</c> triggers can run once per move.
+/// so the engine's <c>StageExited</c> and <c>StageEntered</c> triggers can run once per move. <see cref="ActorUserId"/>
+/// is the member who moved it, null for an API key or an automation (teammates' changes as toasts, realtime.md).
 /// </summary>
 public sealed record ApplicationMoved(
-    Guid OrganizationId, Guid ApplicationId, Guid JobId, string FromStageId, string ToStageId, Guid EventId, DateTimeOffset MovedAt)
+    Guid OrganizationId, Guid ApplicationId, Guid JobId, string FromStageId, string ToStageId, Guid EventId, DateTimeOffset MovedAt,
+    Guid? ActorUserId = null)
     : IJobEvent;
 
 /// <summary>

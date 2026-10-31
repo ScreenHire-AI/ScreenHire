@@ -76,6 +76,24 @@ describe('hiring events', () => {
     }
   });
 
+  it('reads a move no member made (an API key or an automation) as one with a null actor', () => {
+    const event = parseRealtimeEvent({
+      type: 'ApplicationMoved',
+      data: { ...ids, fromStageId: 'applied', toStageId: 'screening', movedAt: '2026-10-20T09:00:00+00:00', actorUserId: null },
+    });
+
+    expect(event?.type === 'ApplicationMoved' && event.data.actorUserId).toBeNull();
+  });
+
+  it('accepts a task event with its actor and assignee, and one queued before either existed', () => {
+    const task = { organizationId: ids.organizationId, taskId: ids.eventId, applicationId: ids.applicationId, jobId: ids.jobId, createdAt: '2026-10-20T09:00:00+00:00' };
+    const withPeople = parseRealtimeEvent({ type: 'ApplicationTaskCreated', data: { ...task, actorUserId: ids.organizationId, assigneeUserId: null } });
+    const older = parseRealtimeEvent({ type: 'ApplicationTaskCreated', data: task });
+
+    expect(withPeople?.type === 'ApplicationTaskCreated' && withPeople.data.actorUserId).toBe(ids.organizationId);
+    expect(older?.type === 'ApplicationTaskCreated' && older.data.actorUserId).toBeUndefined();
+  });
+
   it('accepts a JobPublished that has no job version id, as one queued before the version existed carries', () => {
     const event = parseRealtimeEvent({
       type: 'JobPublished',

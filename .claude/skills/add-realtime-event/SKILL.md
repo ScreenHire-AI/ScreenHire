@@ -22,6 +22,9 @@ handled and drops it.
 
 - An event that carries a `JobId` implements `IJobEvent` instead, so it reaches only the members who see that job
   (ADR-0015, `RealtimeGroups`); `RealtimeGroupsTests.Every_event_that_names_a_job_is_a_job_event` fails otherwise.
+- An event a person causes carries `Guid? ActorUserId` (`tenant.UserId`, null for an API key or an automation), so
+  the dashboard can say who did it and never tells people about their own changes (realtime.md, "Who made a change").
+  A member added to an existing event goes last with a null default, so envelopes already queued still deserialize.
 - Every signed-in member of the organization receives the payload in their browser. Carry ids, statuses and times,
   never names, emails, answers or integrity evidence. The client refetches anything else through the REST API, which
   applies its own authorization.

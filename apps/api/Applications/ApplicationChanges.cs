@@ -63,7 +63,7 @@ internal static class ApplicationChanges
         {
             db.ApplicationEvents.Add(moved);
             await outbox.PublishAsync(new ApplicationMoved(
-                application.OrganizationId, application.Id, application.JobId, from, target.Id, moved.Id, now));
+                application.OrganizationId, application.Id, application.JobId, from, target.Id, moved.Id, now, tenant.UserId));
             try
             {
                 await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
@@ -114,7 +114,7 @@ internal static class ApplicationChanges
         var (note, entry) = application.AddNote(request.Note, now, tenant.UserId, user.ApiKeyId());
         db.ApplicationNotes.Add(note);
         db.ApplicationEvents.Add(entry);
-        await outbox.PublishAsync(new ApplicationNoteAdded(application.OrganizationId, application.Id, application.JobId, entry.Id, now));
+        await outbox.PublishAsync(new ApplicationNoteAdded(application.OrganizationId, application.Id, application.JobId, entry.Id, now, tenant.UserId));
         await PublishMentionsAsync(outbox, application, note, note.Mentions, now);
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
         return TypedResults.Created(
@@ -205,7 +205,8 @@ internal static class ApplicationChanges
         var (task, entry) = application.AddTask(request.Note, request.AssigneeUserId, now, tenant.UserId, user.ApiKeyId());
         db.ApplicationTasks.Add(task);
         db.ApplicationEvents.Add(entry);
-        await outbox.PublishAsync(new ApplicationTaskCreated(application.OrganizationId, task.Id, application.Id, application.JobId, now));
+        await outbox.PublishAsync(new ApplicationTaskCreated(
+            application.OrganizationId, task.Id, application.Id, application.JobId, now, tenant.UserId, task.AssigneeUserId));
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
         return TypedResults.Created($"/v1/applications/{application.Id}/tasks", task.ToEntry());
     }
@@ -307,7 +308,7 @@ internal static class ApplicationChanges
         if (change(application, now) is { } changed)
         {
             db.ApplicationEvents.Add(changed);
-            await outbox.PublishAsync(new ApplicationTagsChanged(application.OrganizationId, application.Id, application.JobId, changed.Id, now));
+            await outbox.PublishAsync(new ApplicationTagsChanged(application.OrganizationId, application.Id, application.JobId, changed.Id, now, tenant.UserId));
             try
             {
                 await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);

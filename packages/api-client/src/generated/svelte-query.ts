@@ -96,6 +96,7 @@ import type {
   MagicLinkVerification,
   ManualAutomationQueued,
   MemberJob,
+  MemberNotificationSettings,
   MembershipLogEntry,
   MoveApplicationRequest,
   MyOrganization,
@@ -138,6 +139,7 @@ import type {
   UpdateIntegritySettingsRequest,
   UpdateJobRequest,
   UpdateJobWorkflowRequest,
+  UpdateNotificationSettingsRequest,
   UpdateOrganizationRequest,
   UpdateRoleRequest,
   UpdateScorecardTemplateRequest,
@@ -9648,6 +9650,208 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getRevokeInvitationMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getNotificationSettingsResponse200 = {
+  data: MemberNotificationSettings
+  status: 200
+}
+
+export type getNotificationSettingsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getNotificationSettingsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getNotificationSettingsResponseSuccess = (getNotificationSettingsResponse200) & {
+  headers: Headers;
+};
+export type getNotificationSettingsResponseError = (getNotificationSettingsResponse401 | getNotificationSettingsResponse404) & {
+  headers: Headers;
+};
+
+export const getGetNotificationSettingsUrl = () => {
+
+
+
+
+  return `/v1/notification-settings`
+}
+
+export const getNotificationSettings = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<getNotificationSettingsResponseSuccess> => {
+
+  return apiQueryFetch<getNotificationSettingsResponseSuccess>(getGetNotificationSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetNotificationSettingsQueryKey = () => {
+    return [
+    'v1','notification-settings'
+    ] as const;
+    }
+
+
+export const getGetNotificationSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getNotificationSettings>>, TError = ErrorType<void>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getNotificationSettings>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetNotificationSettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getNotificationSettings>>> = ({ signal }) => getNotificationSettings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getNotificationSettings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetNotificationSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getNotificationSettings>>>
+export type GetNotificationSettingsQueryError = ErrorType<void>
+
+
+
+export function createGetNotificationSettings<TData = Awaited<ReturnType<typeof getNotificationSettings>>, TError = ErrorType<void>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getNotificationSettings>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetNotificationSettingsQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type updateNotificationSettingsResponse200 = {
+  data: MemberNotificationSettings
+  status: 200
+}
+
+export type updateNotificationSettingsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateNotificationSettingsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateNotificationSettingsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateNotificationSettingsResponseSuccess = (updateNotificationSettingsResponse200) & {
+  headers: Headers;
+};
+export type updateNotificationSettingsResponseError = (updateNotificationSettingsResponse400 | updateNotificationSettingsResponse401 | updateNotificationSettingsResponse404) & {
+  headers: Headers;
+};
+
+export const getUpdateNotificationSettingsUrl = () => {
+
+
+
+
+  return `/v1/notification-settings`
+}
+
+export const updateNotificationSettings = async (updateNotificationSettingsRequest: UpdateNotificationSettingsRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<updateNotificationSettingsResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<updateNotificationSettingsResponseSuccess>(getUpdateNotificationSettingsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateNotificationSettingsRequest)
+  }
+);}
+
+
+
+
+
+export const getUpdateNotificationSettingsMutationKey = () => ['updateNotificationSettings'] as const;
+
+export const getUpdateNotificationSettingsMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateNotificationSettings>>, TError,UpdateNotificationSettingsMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof updateNotificationSettings>>, TError,UpdateNotificationSettingsMutationVariables, TContext> => {
+
+const mutationKey = getUpdateNotificationSettingsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateNotificationSettings>>, UpdateNotificationSettingsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateNotificationSettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateNotificationSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateNotificationSettings>>>
+    export type UpdateNotificationSettingsMutationBody = UpdateNotificationSettingsRequest
+    export type UpdateNotificationSettingsMutationError = ErrorType<HttpValidationProblemDetails | void>
+    export type UpdateNotificationSettingsMutationVariables = {data: UpdateNotificationSettingsRequest}
+
+    export const createUpdateNotificationSettings = <TError = ErrorType<HttpValidationProblemDetails | void>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateNotificationSettings>>, TError,UpdateNotificationSettingsMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof updateNotificationSettings>>,
+        TError,
+        UpdateNotificationSettingsMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getUpdateNotificationSettingsMutationOptions(options?.()) }), queryClient);
     }
 
 export type getJobHiringTeamResponse200 = {

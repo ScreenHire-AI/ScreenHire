@@ -87,6 +87,7 @@
         Show keyboard shortcuts
         {#if preferences.shortcutsEnabled}<Command.Shortcut><Kbd>?</Kbd></Command.Shortcut>{/if}
       </Command.Item>
+      <Command.Item value="Show notification settings" onSelect={() => run(() => shell.openNotifications())}>Show notification settings</Command.Item>
       <Command.Item
         value="Single-key shortcuts"
         onSelect={() => run(() => preferences.setShortcutsEnabled(!preferences.shortcutsEnabled))}

@@ -2,6 +2,11 @@ import { z } from 'zod';
 
 const id = z.uuid();
 const instant = z.iso.datetime({ offset: true });
+/**
+ * The member who made a change, null when no member did (an API key, an automation, the candidate). Missing from an
+ * event an older API queued before the field existed, which reads as no member.
+ */
+const actor = id.nullish();
 
 /**
  * One Zod schema per tenant event the API pushes, keyed by the C# record's name (the event's `type` on the wire).
@@ -17,11 +22,12 @@ export const realtimeEventSchemas = {
     toStageId: z.string(),
     eventId: id,
     movedAt: instant,
+    actorUserId: actor,
   }),
   // An email went to an application's candidate and is on its timeline.
-  ApplicationEmailed: z.object({ organizationId: id, applicationId: id, jobId: id, eventId: id, sentAt: instant }),
+  ApplicationEmailed: z.object({ organizationId: id, applicationId: id, jobId: id, eventId: id, sentAt: instant, actorUserId: actor }),
   // A note from the hiring team: ids only, the dashboard reads the note through GET /v1/applications/{id}/timeline.
-  ApplicationNoteAdded: z.object({ organizationId: id, applicationId: id, jobId: id, eventId: id, addedAt: instant }),
+  ApplicationNoteAdded: z.object({ organizationId: id, applicationId: id, jobId: id, eventId: id, addedAt: instant, actorUserId: actor }),
   // A note's author changed its text, or someone deleted it (and its text): the timeline refetches.
   ApplicationNoteEdited: z.object({ organizationId: id, applicationId: id, jobId: id, noteId: id, editedAt: instant }),
   ApplicationNoteDeleted: z.object({ organizationId: id, applicationId: id, jobId: id, noteId: id, deletedAt: instant }),
@@ -43,15 +49,48 @@ export const realtimeEventSchemas = {
     stageId: z.string(),
     eventId: id,
     submittedAt: instant,
+    actorUserId: actor,
   }),
   // A person or an API key added or removed a tag; lists that filter by tag refetch.
-  ApplicationTagsChanged: z.object({ organizationId: id, applicationId: id, jobId: id, eventId: id, changedAt: instant }),
-  ScorecardSubmitted: z.object({ organizationId: id, applicationId: id, jobId: id, scorecardId: id, eventId: id, submittedAt: instant }),
+  ApplicationTagsChanged: z.object({ organizationId: id, applicationId: id, jobId: id, eventId: id, changedAt: instant, actorUserId: actor }),
+  ScorecardSubmitted: z.object({
+    organizationId: id,
+    applicationId: id,
+    jobId: id,
+    scorecardId: id,
+    eventId: id,
+    submittedAt: instant,
+    actorUserId: actor,
+  }),
   QuestionnaireAnswered: z.object({ organizationId: id, applicationId: id, jobId: id, requestId: id, eventId: id, answeredAt: instant }),
-  ApplicationTaskCreated: z.object({ organizationId: id, taskId: id, applicationId: id, jobId: id, createdAt: instant }),
-  ApplicationTaskCompleted: z.object({ organizationId: id, taskId: id, applicationId: id, jobId: id, completedAt: instant }),
+  ApplicationTaskCreated: z.object({
+    organizationId: id,
+    taskId: id,
+    applicationId: id,
+    jobId: id,
+    createdAt: instant,
+    actorUserId: actor,
+    assigneeUserId: id.nullish(),
+  }),
+  ApplicationTaskCompleted: z.object({
+    organizationId: id,
+    taskId: id,
+    applicationId: id,
+    jobId: id,
+    completedAt: instant,
+    actorUserId: actor,
+    assigneeUserId: id.nullish(),
+  }),
   // Undo after ticking a task.
-  ApplicationTaskReopened: z.object({ organizationId: id, taskId: id, applicationId: id, jobId: id, reopenedAt: instant }),
+  ApplicationTaskReopened: z.object({
+    organizationId: id,
+    taskId: id,
+    applicationId: id,
+    jobId: id,
+    reopenedAt: instant,
+    actorUserId: actor,
+    assigneeUserId: id.nullish(),
+  }),
   // Raised for Completed, Failed and Blocked runs; the enum is the C# AutomationRunStatus.
   AutomationRunFinished: z.object({
     organizationId: id,
@@ -68,6 +107,9 @@ export const realtimeEventSchemas = {
     versionId: id,
     version: z.number().int(),
     publishedAt: instant,
+    actorUserId: actor,
+    // The member other than the publisher who changed the template last, whose dashboard can say so.
+    previousEditorUserId: id.nullish(),
   }),
   // Levels only, never evidence: the dashboard reads the assessment itself through the API. Enums are the C#
   // AuthenticityLevel and AiAssistanceLevel.

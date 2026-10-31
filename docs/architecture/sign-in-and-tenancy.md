@@ -207,7 +207,9 @@ CORS origin. Leave `CookieDomain` empty: a parent-domain cookie would also reach
 belong to several organizations and works in one at a time: the one in `users.active_organization_id` while they are
 still a member of it, otherwise the first one they joined. Joining by invitation and `POST /v1/auth/switch-organization`
 set it. It is per user, not per session, so it follows them to every device, and switching closes their live-update
-connections into the organization they left (`docs/architecture/realtime.md`). Onboarding creates the organization and the
+connections into the organization they left (`docs/architecture/realtime.md`). A membership also holds the member's own notification
+settings (`organization_members.notifications`), so each organization keeps its own (realtime.md, "Teammates' changes
+as toasts"). Onboarding creates the organization and the
 Owner membership in one transaction, under a per-user advisory lock, so a double submit makes one organization, not
 two. A slug is a DNS label (3 to 63 lower-case letters, digits and hyphens) that is not reserved, because it becomes
 a careers subdomain. The slug never changes after onboarding: `PUT /v1/organization` (Edit settings) renames the

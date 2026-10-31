@@ -101,6 +101,7 @@ app.MapDistributionEndpoints();
 app.MapPublicDistributionEndpoints();
 app.MapOrganizationEndpoints();
 app.MapTeamEndpoints();
+app.MapNotificationSettingsEndpoints();
 app.MapHiringTeamEndpoints();
 app.MapRoleEndpoints();
 app.MapApiKeyEndpoints();

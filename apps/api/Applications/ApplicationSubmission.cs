@@ -102,7 +102,7 @@ internal static class ApplicationSubmission
         }
 
         await outbox.PublishAsync(new ApplicationSubmitted(
-            application.OrganizationId, application.Id, job.Id, application.CurrentStageId, submitted.Id, now));
+            application.OrganizationId, application.Id, job.Id, application.CurrentStageId, submitted.Id, now, actorUserId));
 
         foreach (var upload in files)
         {

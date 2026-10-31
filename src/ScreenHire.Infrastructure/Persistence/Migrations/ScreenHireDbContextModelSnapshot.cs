@@ -2824,6 +2824,13 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasDefaultValue("All")
                         .HasColumnName("job_access");
 
+                    b.Property<string>("Notifications")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("notifications")
+                        .HasDefaultValueSql("'{\"toasts\":true,\"closeToasts\":true,\"off\":[]}'::jsonb");
+
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
                         .HasColumnName("organization_id");

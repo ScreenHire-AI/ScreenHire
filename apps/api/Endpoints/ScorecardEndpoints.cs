@@ -127,7 +127,8 @@ internal static class ScorecardEndpoints
         db.ApplicationEvents.Add(entry);
         await outbox.PublishAsync(new RunAutomations(
             application.OrganizationId, application.Id, TriggerType.ReviewerDecision, stage.Id, entry.Id, now, ActorUserId: reviewerUserId));
-        await outbox.PublishAsync(new ScorecardSubmitted(application.OrganizationId, application.Id, application.JobId, scorecard.Id, entry.Id, now));
+        await outbox.PublishAsync(new ScorecardSubmitted(
+            application.OrganizationId, application.Id, application.JobId, scorecard.Id, entry.Id, now, reviewerUserId));
         try
         {
             await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);

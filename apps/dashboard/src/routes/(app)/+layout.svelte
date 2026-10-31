@@ -1,6 +1,14 @@
 <script lang="ts">
   import { getApplication, listAutomationRuns, listTeamMembers } from '@screenhire/api-client';
-  import { createListApplications } from '@screenhire/api-client/svelte-query';
+  import {
+    createListApplications,
+    getGetApplicationQueryOptions,
+    getGetHiringTemplateQueryOptions,
+    getGetNotificationSettingsQueryOptions,
+    getListApplicationTasksQueryOptions,
+    getListMemberJobsQueryOptions,
+    getListTeamMembersQueryOptions,
+  } from '@screenhire/api-client/svelte-query';
   import { setQueryClientContext } from '@tanstack/svelte-query';
   import { onDestroy } from 'svelte';
   import { MediaQuery } from 'svelte/reactivity';
@@ -8,6 +16,7 @@
   import { clock } from '#lib/clock.svelte.js';
   import AppSidebar from '#lib/components/app-sidebar.svelte';
   import CommandPalette from '#lib/components/command-palette.svelte';
+  import NotificationSettingsSheet from '#lib/components/notification-settings-sheet.svelte';
   import NotificationTray from '#lib/components/notification-tray.svelte';
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
@@ -18,6 +27,8 @@
   import { savedViews } from '#lib/saved-views.js';
   import { sections, setShell } from '#lib/shell.js';
   import { createChordHandler } from '#lib/shortcuts.js';
+  import { defaultNotificationSettings } from '#lib/teammate-changes.js';
+  import { TeammateToasts } from '#lib/teammate-toasts.js';
   import type { LayoutProps } from './$types';
 
   let { data, children }: LayoutProps = $props();
@@ -30,7 +41,35 @@
 
   // A NotifyTeam action shows in the tray. TeamNotified carries ids only, so the tray reads the application and the run
   // (for the action's note) through the API first; an application this person cannot read shows nothing.
-  const notifications = new Notifications();
+  // The person's settings for teammates' changes, kept fresh in the cache so a toast follows a change in the sheet.
+  let closeToasts = true;
+  const notifications = new Notifications({ closeToasts: () => closeToasts });
+  async function readSettings() {
+    try {
+      const settings = (await queryClient.fetchQuery(getGetNotificationSettingsQueryOptions())).data;
+      closeToasts = settings.closeToasts;
+      return settings;
+    } catch {
+      // Unreadable settings are everything on, as for a member who never changed them.
+      return defaultNotificationSettings;
+    }
+  }
+
+  // A teammate's change to something this person works on shows as a toast (docs/architecture/realtime.md). The events
+  // carry ids only; names come through the API, read through the shell's cache, so a burst of events reads the team once.
+  const teammateToasts = new TeammateToasts(
+    {
+      userId: () => data.user?.id,
+      members: async () => (await queryClient.fetchQuery(getListTeamMembersQueryOptions())).data,
+      memberJobs: async (memberId) => (await queryClient.fetchQuery(getListMemberJobsQueryOptions(memberId))).data,
+      settings: readSettings,
+      application: async (applicationId) => (await queryClient.fetchQuery(getGetApplicationQueryOptions(applicationId))).data,
+      tasks: async (applicationId) => (await queryClient.fetchQuery(getListApplicationTasksQueryOptions(applicationId))).data,
+      templateName: async (templateId) => (await queryClient.fetchQuery(getGetHiringTemplateQueryOptions(templateId))).data.name,
+    },
+    (toast) => notifications.toast(toast),
+  );
+  const stopToasting = live.onEvent((event) => void teammateToasts.receive(event));
   // A note that mentions this person shows in their tray only: the event reaches the whole organization, ids only. A
   // deleted note takes its card with it, so the card never links to a note that is gone.
   const stopNotifying = live.onEvent((event) => {
@@ -66,13 +105,23 @@
 
   onDestroy(() => {
     stopNotifying();
+    stopToasting();
+    teammateToasts.dispose();
+    notifications.dispose();
     void live.stop();
     queryClient.clear();
   });
 
   let paletteOpen = $state(false);
   let shortcutsOpen = $state(false);
-  setShell({ openPalette: () => (paletteOpen = true), openShortcuts: () => (shortcutsOpen = true), live: () => live.connection.status });
+  let notificationsOpen = $state(false);
+  let announcement = $state('');
+  setShell({
+    openPalette: () => (paletteOpen = true),
+    openShortcuts: () => (shortcutsOpen = true),
+    openNotifications: () => (notificationsOpen = true),
+    live: () => live.connection.status,
+  });
 
   const chords = createChordHandler(Object.fromEntries(sections.map((section) => [section.key, section.href])), (href) => void goto(href));
 
@@ -111,6 +160,8 @@
   </Sidebar.Inset>
 </Sidebar.Provider>
 
-<NotificationTray items={notifications.items} ondismiss={(id) => notifications.dismiss(id)} />
+<NotificationTray items={notifications.items} ondismiss={(id) => notifications.dismiss(id)} onhold={(reason, held) => notifications.hold(reason, held)} />
+<NotificationSettingsSheet bind:open={notificationsOpen} onsaved={(sentence) => (announcement = sentence)} />
+<p role="status" class="sr-only">{announcement}</p>
 <CommandPalette bind:open={paletteOpen} />
 <ShortcutsDialog bind:open={shortcutsOpen} />

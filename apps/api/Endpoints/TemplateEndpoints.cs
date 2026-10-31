@@ -336,9 +336,12 @@ internal static class TemplateEndpoints
                 return TypedResults.ValidationProblem(problems);
             }
 
+            // Read before the save writes this publish's own change: the person whose work the publish builds on.
+            var previousEditor = await ChangeHistoryQueries.LastEditorOtherThanAsync(
+                outbox.DbContext, ChangeSubjectKind.HiringTemplate, SubjectId(template.Id), tenant.UserId, cancellationToken);
             template.Publish(found, time.GetUtcNow(), tenant.UserId);
             await outbox.PublishAsync(new HiringTemplateVersionPublished(
-                template.OrganizationId!.Value, template.Id, found.Id, found.Version, found.PublishedAt!.Value));
+                template.OrganizationId!.Value, template.Id, found.Id, found.Version, found.PublishedAt!.Value, tenant.UserId, previousEditor));
             try
             {
                 await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);

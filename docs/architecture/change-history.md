@@ -125,6 +125,9 @@ the webhook address of" the automation, with no values (`DefinitionChanges`).
   A system hiring template is by ScreenHire; a built-in email template nobody changed, and a built-in role, are by
   ScreenHire with no `at`.
   Lists read every object's newest change in one query (`ChangeHistoryQueries.LastAsync`).
+  `ChangeHistoryQueries.LastEditorOtherThanAsync` names the member other than a given one who changed an object last,
+  which a published hiring template version carries so its previous editor hears of it (realtime.md, "Teammates' changes
+  as toasts").
 - The history, newest first, `?limit=` (1 to 100, default 50) and `?before=` (the previous page's `nextBefore`, the id
   of its last entry; an id that is not one of the object's entries is a 400):
   - `GET /v1/templates/{templateId}/history` (the hiring API: API keys too)
