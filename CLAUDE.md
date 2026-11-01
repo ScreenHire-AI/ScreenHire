@@ -60,7 +60,8 @@ subsystem.
   Aspire's teardown on Windows can also kill an unrelated process whose launcher has exited; see "Processes on the
   dev machine" in [`docs/process/board-pipeline.md`](docs/process/board-pipeline.md).
 - Build / check: `pnpm build` (= `dotnet build ScreenHire.slnx` + `pnpm -r build`), `pnpm check` (svelte-check
-  `--fail-on-warnings`, astro check, tsc), `pnpm -r --if-present test` (Vitest), `dotnet test --solution
+  `--fail-on-warnings`, astro check, tsc), and, for the owner only (see "When to run tests locally" below),
+  `pnpm -r --if-present test` (Vitest) and `dotnet test --solution
   ScreenHire.slnx` (Microsoft Testing Platform via `global.json`: unit, Aspire integration and Playwright
   end-to-end; the last two boot the AppHost, so Docker must be running (`pnpm docker:start`), and the end-to-end
   tests serve the `pnpm -r build` output).

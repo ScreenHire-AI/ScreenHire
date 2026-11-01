@@ -20,7 +20,8 @@ Fix small problems here and merge. Do not hand them back.
 - Never `--admin`, and no Bash timeout above 600000 ms. No `sleep`: re-read, or wait with `gh pr checks --watch`.
 - Branch protection on `main` does not require `Gate` today, so this skill checks it itself, by name, on the head
   SHA. Never use `gh pr checks --required` (it lists nothing here) and never decide on `mergeStateStatus`.
-- Never look at `main`'s CI. A red `main` does not block a merge.
+- A red `main` never blocks a merge. Read `main`'s CI only inside a fix round, to classify a failing job as
+  `/pull-request`'s fix round does.
 - No Lighthouse here: Testing reported it.
 
 ## Pre-flight
@@ -39,21 +40,22 @@ Fix small problems here and merge. Do not hand them back.
 
 1. Commit anything left in the tree (`git add -A`, a conventional message). A new commit needs a push and a CI run:
    go to Step 2, item 3.
-2. Read `gh pr view <pr> --json headRefOid,mergeable,statusCheckRollup --jq '{head: .headRefOid, mergeable, gate: [.statusCheckRollup[] | select(.name == "Gate") | .conclusion]}'`.
+2. Read `gh pr view <pr> --json headRefOid,mergeable,statusCheckRollup --jq '{head: .headRefOid, mergeable, gate: [.statusCheckRollup[] | select(.name == "Gate" and .workflowName == "CI") | .conclusion]}'`.
 3. `head` must equal `git rev-parse HEAD`.
    - Local HEAD has commits the PR lacks: push them (`git push origin HEAD:<prHead>`) and go to Step 2, item 4.
    - The PR head has commits the worktree lacks: someone else pushed. Report it and end with `PR: blocked`.
-4. `gate`:
-   - `["SUCCESS"]`: go on.
-   - Empty or pending: wait with `gh pr checks <pr> --watch --interval 30` (Bash timeout 600000 ms), as
-     `/pull-request` Step 7 describes, then read item 2 again.
-   - `FAILURE` (or cancelled): fix it as `/pull-request` Step 7's fix round does, at most two rounds, one push each.
-     Still red after that: report and end with `PR: blocked`.
-5. `mergeable`:
-   - `MERGEABLE`: go to Step 3.
+4. `mergeable` (before `gate`: GitHub starts no pull request run while the PR conflicts):
+   - `MERGEABLE`: go on.
    - `CONFLICTING`: go to Step 2.
    - `UNKNOWN`: GitHub is still computing it. Read item 2 again, up to three times. Still unknown: report and end
      with `PR: blocked`.
+5. `gate`:
+   - `["SUCCESS"]`: go to Step 3.
+   - Empty or pending: wait with `gh pr checks <pr> --watch --interval 30` (Bash timeout 600000 ms), as
+     `/pull-request` Step 7 describes, then read item 2 again. If two waits in a row report no checks or no check
+     finishes, read `gh run list --branch <prHead> --workflow CI --limit 1`, report it and end with `PR: blocked`.
+   - `FAILURE` (or cancelled): fix it as `/pull-request` Step 7's fix round does, at most two rounds, one push each.
+     Still red after that: report and end with `PR: blocked`.
 
 ## Step 2: Resolve a conflict (only when the PR conflicts)
 

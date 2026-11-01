@@ -2,6 +2,13 @@
 
 ## 2026-10-31
 
+**The test gate runs on GitHub Actions** ([ADR-0020](adr/0020-test-gate-on-github-actions.md)). Agents run
+`pnpm verify:fast` and the tests their branch added or changed; the whole suite runs in CI behind the `Gate` check.
+[Board pipeline](process/board-pipeline.md), [testing](process/testing.md) and [dev tooling](process/dev-tooling.md)
+describe the new Testing and Merge columns: one push, one CI run, and a merge that relies on that run.
+
+## 2026-10-31
+
 **Owner review of the second workflow's build.** Settings has three named groups (Organization, Hiring, Integrations);
 Organization's page is General, and a new Careers site page holds the careers address, the apply form's questions per
 page and the sites that may embed it. The Talent pool settings page is gone: everyone keeps 12 months until the owner's

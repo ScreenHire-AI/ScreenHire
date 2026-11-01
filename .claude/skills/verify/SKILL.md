@@ -49,6 +49,9 @@ Locally an agent proves only what it touched, cheaply, so a batch of tasks does 
    | `<package>/**/<name>.test.ts` | `pnpm --filter <package name> test <path inside the package>` (the package's `test` script keeps its `--fsModuleCachePath`) |
    | anything else under `tests/` or `test-support/` (fixtures, helpers) | nothing; CI runs the suites that use them |
 
+   The `.cs` rows assume the class is named after its file. When a file holds other classes, or a differently named
+   one, take the names from its `class ...Tests` lines. A `*.test.ts` in a package with no `test` script runs
+   nowhere locally; CI covers it.
    You may also run one existing class or file that directly covers code you changed, in the same scoped form.
    Never run a whole test project, `pnpm -r test`, `verify:test` or `pnpm verify`: CI runs those.
 5. A scoped Aspire run boots its own AppHost, about 40 s. Start it with `run_in_background` if it may pass the

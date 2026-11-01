@@ -20,7 +20,9 @@ push. A push starts a new run and cancels the one in flight, so each extra push 
 - No Bash timeout above 600000 ms, and no `sleep`. Wait with `gh pr checks --watch`.
 - Branch protection on `main` does not require `Gate` today, so this skill checks it itself. Never use
   `gh pr checks --required`: it lists nothing here.
-- A failed `Lighthouse (report-only)` job is not a CI failure. Note it and keep watching until `Gate` finishes.
+- A Lighthouse budget miss is not a CI failure. Its step has `continue-on-error`, so the job passes with a warning and
+  Step 8 reads the result from its log. If the `Lighthouse (report-only)` row ever does fail, note it and keep
+  watching until `Gate` finishes.
 
 ## Pre-flight
 
@@ -90,7 +92,9 @@ not only the exit code: it exits 8 while checks are pending.
 
 - **Every row passed** (exit 0): go to Step 8.
 - **"no checks reported"** right after the PR opened: the run has not registered yet. Confirm it with
-  `gh run list --branch <type>/<slug> --workflow CI --limit 1`, then watch again.
+  `gh run list --branch <type>/<slug> --workflow CI --limit 1`, then watch again. If that list is empty, read
+  `gh pr view <pr> --json mergeable`: GitHub starts no pull request run while the PR conflicts with `main`, so
+  `CONFLICTING` means `main` moved after Step 2. Merge it as Step 2 does, run `/verify`, push once and watch again.
 - **The timeout fired with checks pending:** watch again. If two watches in a row end with no check finished in
   between, CI is stuck: go to Step 9b.
 - **Only `Lighthouse (report-only)` failed:** watch again without `--fail-fast` until `Gate` finishes, and note the
@@ -126,8 +130,9 @@ After the third round still fails, go to Step 9b.
 ## Step 8: Record the result
 
 1. Confirm the green run is on the commit you pushed:
-   `gh pr view <pr> --json headRefOid,statusCheckRollup --jq '{head: .headRefOid, gate: [.statusCheckRollup[] | select(.name == "Gate") | .conclusion]}'`.
-   `head` must equal `git rev-parse HEAD`, and `gate` must read `["SUCCESS"]`.
+   `gh pr view <pr> --json headRefOid,statusCheckRollup --jq '{head: .headRefOid, gate: [.statusCheckRollup[] | select(.name == "Gate" and .workflowName == "CI") | .conclusion]}'`.
+   `head` must equal `git rev-parse HEAD`, and `gate` must read `["SUCCESS"]`. If not (a newer run cancelled this
+   one, or the rollup lags a rerun), go back to Step 7 and watch again. After two such returns, go to Step 9b.
 2. Read Lighthouse: the `link` of `Lighthouse (report-only)` from `gh pr checks <pr> --json name,link`, then
    `gh run view --job <job-id> --log | grep "lighthouse:"`. It prints `N page(s) within budget` or the budget
    failures with each page's numbers. With no `lighthouse:` lines the job skipped the run: no marketing change.
