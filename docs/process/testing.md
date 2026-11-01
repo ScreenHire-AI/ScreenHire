@@ -9,6 +9,7 @@ sources:
   - resource: tests/ScreenHire.Testing/ScheduledMessages.cs
   - resource: apps/marketing/scripts/check-dist.mjs
   - resource: apps/marketing/scripts/lighthouse.mjs
+  - resource: tools/lighthouse/index.mjs
   - resource: tools/lighthouse/package.json
   - resource: scripts/install-browsers.mjs
   - resource: global.json

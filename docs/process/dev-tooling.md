@@ -20,6 +20,7 @@ sources:
   - resource: .claude/skills/task-review/SKILL.md
   - resource: .claude/skills/task-review/visual-probe.js
   - resource: .claude/skills/verify/SKILL.md
+  - resource: Directory.Build.props
   - resource: .claude/agents/design-review.md
   - resource: .claude/agents/doc-auditor.md
   - resource: .claude/agents/verification-guardrails.md
@@ -101,7 +102,7 @@ convention; the rule holds the detail.
 | [`writing-style`](../../.claude/rules/writing-style.md) | always | prose without model tells: no em-dashes or curly quotes, plain words, short sentences |
 | [`no-personal-info`](../../.claude/rules/no-personal-info.md) | always | no personal paths, emails, secrets or real applicant data in committed files |
 | [`cli-features-over-custom-layers`](../../.claude/rules/cli-features-over-custom-layers.md) | always | use Aspire, ASP.NET Core, EF Core, Orval and Claude Code features before writing a layer; no model-name lists |
-| [`dotnet-api`](../../.claude/rules/dotnet-api.md) | `apps/api`, `apps/worker`, `apps/apphost`, `src`, `tests` | backend conventions: endpoints, contracts, errors, data, tenancy, background work, integrations |
+| [`dotnet-api`](../../.claude/rules/dotnet-api.md) | `apps/api`, `apps/worker`, `apps/apphost`, `src`, `tests`, `Directory.Packages.props` | backend conventions: endpoints, contracts, errors, data, tenancy, background work, integrations |
 | [`utc-timestamps`](../../.claude/rules/utc-timestamps.md) | `src`, `apps/api`, `apps/worker` | `DateTimeOffset` in UTC from `TimeProvider`, `timestamp with time zone` |
 | [`svelte-dashboard`](../../.claude/rules/svelte-dashboard.md) | `apps/dashboard`, `packages/ui` | Svelte 5 runes, SvelteKit 3 imports, generated client, shadcn-svelte, tokens, status marks, accessibility; points to the design system for how screens look |
 | [`astro-public`](../../.claude/rules/astro-public.md) | `apps/careers`, `apps/marketing` | about 0 KB JS (one upload island), forms that work without JS, strict CSP, SEO and JSON-LD, domains as configuration, notice before collection |
@@ -209,6 +210,10 @@ What would help, filed as tasks:
   run each, 2026-11-01). The dashboard's icons then moved from `@lucide/svelte` (three files per icon, 8,164 files) to
   `unplugin-icons` with `@iconify-json/lucide` (one JSON file): a clean install with `--ignore-scripts` took 16.5 s and
   44,093 files before, 12.3 s and 35,929 files after (same day, one run each).
+- The same task set `SatelliteResourceLanguages` to `en` and hardlinks for copy-local files in `Directory.Build.props`. Seven
+  bin folders held the same package DLLs (Playwright's `node.exe` alone is 94 MB) and about 1,100 localized resource
+  files, 77 MB, that nothing reads; a worktree's bin was about 895 MB. The saving is a finder's estimate, not a timed
+  build.
 
 Things that look like levers but are not (all measured on 2026-11-01, one run each, so a gain under a second is inside the noise):
 - Superforms installs every validator library it has an adapter for (`typebox`, `effect`, `class-validator` and

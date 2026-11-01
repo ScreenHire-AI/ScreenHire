@@ -6,6 +6,8 @@ tags: [design-system, ui, checklist]
 sources:
   - resource: packages/ui/src/tokens.css
   - resource: packages/ui/src/theme.css
+  - resource: apps/dashboard/vite.config.ts
+  - resource: apps/dashboard/src/app.css
   - resource: apps/dashboard/src/lib/status.ts
   - resource: apps/marketing/src/components/StatusIcon.astro
   - resource: apps/dashboard/src/routes/(dev)/style-guide/style-guide.svelte

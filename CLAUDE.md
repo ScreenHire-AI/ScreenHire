@@ -47,8 +47,8 @@ subsystem.
   API or worker, `dotnet aspire resource api rebuild` (or `worker`) rebuilds and restarts just that service.
 - **Parallel worktrees:** several Kangentic tasks may run at once. In a worktree `/preview` starts with
   `dotnet aspire start --isolated`, which gives every port, the Aspire dashboard's included, a random free number, so
-  stacks never collide and nothing needs reserving. Data volumes are already per-worktree; integration tests use no
-  volumes and random ports.
+  stacks never collide and nothing needs reserving. A worktree's stack starts with no data volumes (`/preview keep`
+  gives it per-worktree ones); integration tests use no volumes and random ports.
 - **Aspire MCP server:** `.mcp.json` runs `dotnet tool run aspire agent mcp`, which gives agents the running stack's
   resources, console and structured logs, traces and resource commands. Never run `aspire agent init`: it installs
   hooks and MCP settings into the machine-wide Claude Code and Copilot configuration. `.claude/settings.json` approves
