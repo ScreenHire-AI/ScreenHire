@@ -20,10 +20,21 @@
     @apply bg-background text-body text-foreground;
   }
 
-  /* Lucide's stroke weight for every icon (design system section 14). The iconify paths carry stroke-width 2 as an
-     attribute, and any CSS rule beats an attribute. The icon customizer in vite.config.ts sets data-icon. */
-  svg[data-icon] * {
+  /* Lucide's stroke weight for every icon (design system section 14), set on the svg so a class there reaches the
+     shapes: `fill-current` on a rating star, `stroke-[2.5]` on a check. The iconify shapes carry fill and stroke-width
+     as attributes, which would stop inheritance, and any CSS rule beats an attribute. The dots some icons fill (`tag`)
+     keep their fill="currentColor". The icon customizer in vite.config.ts sets data-icon. */
+  svg[data-icon] {
+    fill: none;
     stroke-width: 1.75;
+  }
+
+  svg[data-icon] * {
+    stroke-width: inherit;
+  }
+
+  svg[data-icon] :not([fill='currentColor']) {
+    fill: inherit;
   }
 
   :focus-visible {

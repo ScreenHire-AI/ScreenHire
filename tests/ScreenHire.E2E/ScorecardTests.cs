@@ -58,6 +58,8 @@ public sealed class ScorecardTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(scorecards).ToContainTextAsync("Testing");
         var rating = Page.GetByRole(AriaRole.Button, new() { Name = "Rated 4.7 out of 5 from 1 scorecard" });
         await Expect(rating).ToBeVisibleAsync();
+        // A filled star is filled: its class is on the svg, and the path inside carries fill="none" as an attribute.
+        await Expect(rating.Locator("svg.fill-current path").First).Not.ToHaveCSSAsync("fill", "none");
         await rating.ClickAsync();
         await Expect(Page.GetByText("From 1 scorecard", new() { Exact = true })).ToBeVisibleAsync();
         await Page.Keyboard.PressAsync("Escape");
