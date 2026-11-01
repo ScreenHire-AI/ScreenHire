@@ -1,6 +1,6 @@
 <script lang="ts">
-  import CheckIcon from '@lucide/svelte/icons/check';
-  import CopyIcon from '@lucide/svelte/icons/copy';
+  import CheckIcon from '~icons/lucide/check';
+  import CopyIcon from '~icons/lucide/copy';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Dialog from '#lib/components/ui/dialog/index.js';
   import * as Field from '#lib/components/ui/field/index.js';

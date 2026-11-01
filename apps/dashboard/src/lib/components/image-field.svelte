@@ -1,5 +1,5 @@
 <script lang="ts">
-  import UploadIcon from '@lucide/svelte/icons/upload';
+  import UploadIcon from '~icons/lucide/upload';
   import type { BrandingImage } from '@screenhire/api-client';
   import FailureText from '#lib/components/failure-text.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';

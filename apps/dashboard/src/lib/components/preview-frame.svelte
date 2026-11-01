@@ -1,7 +1,7 @@
 <script lang="ts">
-  import MonitorIcon from '@lucide/svelte/icons/monitor';
-  import SmartphoneIcon from '@lucide/svelte/icons/smartphone';
-  import TabletIcon from '@lucide/svelte/icons/tablet';
+  import MonitorIcon from '~icons/lucide/monitor';
+  import SmartphoneIcon from '~icons/lucide/smartphone';
+  import TabletIcon from '~icons/lucide/tablet';
   import type { Snippet } from 'svelte';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import { cn } from '#lib/utils.js';

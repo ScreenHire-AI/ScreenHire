@@ -69,7 +69,7 @@ with several worktrees running it takes much longer. Start it with `run_in_backg
 
 `pnpm verify:lighthouse` runs Lighthouse on every marketing page (mobile LCP under 1.8 s, CLS under 0.05) against the
 marketing build. CI's `Lighthouse (report-only)` job runs it for a pull request that changes `apps/marketing`,
-`packages/ui` or `pnpm-lock.yaml`, and `/pull-request` reports its result. It is report-only until it is calibrated on
+`packages/ui`, `pnpm-lock.yaml` or `tools/lighthouse`, and `/pull-request` reports its result. It is report-only until it is calibrated on
 the runners. Locally, run it with paths while you work on a page (`pnpm --filter @screenhire/marketing lighthouse
 /pricing/`, with `MSYS_NO_PATHCONV=1` in Git Bash). Only one local run measures at a time; a second one waits.
 

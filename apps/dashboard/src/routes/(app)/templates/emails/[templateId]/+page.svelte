@@ -1,10 +1,10 @@
 <script lang="ts">
-  import FolderArchiveIcon from '@lucide/svelte/icons/folder-archive';
-  import ArchiveRestoreIcon from '@lucide/svelte/icons/archive-restore';
-  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
-  import CopyIcon from '@lucide/svelte/icons/copy';
-  import RotateCcwIcon from '@lucide/svelte/icons/rotate-ccw';
-  import SaveIcon from '@lucide/svelte/icons/save';
+  import FolderArchiveIcon from '~icons/lucide/folder-archive';
+  import ArchiveRestoreIcon from '~icons/lucide/archive-restore';
+  import ArrowLeftIcon from '~icons/lucide/arrow-left';
+  import CopyIcon from '~icons/lucide/copy';
+  import RotateCcwIcon from '~icons/lucide/rotate-ccw';
+  import SaveIcon from '~icons/lucide/save';
   import type { EmailPreview } from '@screenhire/api-client';
   import {
     ApiError,

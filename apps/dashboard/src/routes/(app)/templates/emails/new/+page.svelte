@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SaveIcon from '@lucide/svelte/icons/save';
+  import SaveIcon from '~icons/lucide/save';
   import type { EmailPreview } from '@screenhire/api-client';
   import { createCreateEmailTemplate, createListEmailTemplates } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';

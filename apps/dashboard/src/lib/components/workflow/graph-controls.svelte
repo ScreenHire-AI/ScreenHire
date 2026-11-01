@@ -1,7 +1,7 @@
 <script lang="ts">
-  import MaximizeIcon from '@lucide/svelte/icons/maximize';
-  import ZoomInIcon from '@lucide/svelte/icons/zoom-in';
-  import ZoomOutIcon from '@lucide/svelte/icons/zoom-out';
+  import MaximizeIcon from '~icons/lucide/maximize';
+  import ZoomInIcon from '~icons/lucide/zoom-in';
+  import ZoomOutIcon from '~icons/lucide/zoom-out';
   import { Panel, useSvelteFlow } from '@xyflow/svelte';
   import IconButton from '#lib/components/icon-button.svelte';
 

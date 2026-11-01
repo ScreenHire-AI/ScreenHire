@@ -1,6 +1,6 @@
 <script lang="ts">
   // Every Lucide icon has this one component type.
-  import type LucideIcon from '@lucide/svelte/icons/circle';
+  import type LucideIcon from '~icons/lucide/circle';
   import Hint from '#lib/components/hint.svelte';
   import { cn } from '#lib/utils.js';
 

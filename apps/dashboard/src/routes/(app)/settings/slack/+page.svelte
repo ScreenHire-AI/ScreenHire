@@ -1,9 +1,9 @@
 <script lang="ts">
-  import HashIcon from '@lucide/svelte/icons/hash';
-  import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
-  import SaveIcon from '@lucide/svelte/icons/save';
-  import SendIcon from '@lucide/svelte/icons/send';
-  import UnplugIcon from '@lucide/svelte/icons/unplug';
+  import HashIcon from '~icons/lucide/hash';
+  import RefreshCwIcon from '~icons/lucide/refresh-cw';
+  import SaveIcon from '~icons/lucide/save';
+  import SendIcon from '~icons/lucide/send';
+  import UnplugIcon from '~icons/lucide/unplug';
   import { type HttpValidationProblemDetails, SlackChannelEvent } from '@screenhire/api-client';
   import {
     ApiError,

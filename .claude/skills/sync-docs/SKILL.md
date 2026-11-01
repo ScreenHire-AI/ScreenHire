@@ -30,7 +30,7 @@ Each row is a list in a doc that must match a source exactly.
 | Root scripts | every key of `scripts` in `package.json` | CLAUDE.md "Commands" (each script named) |
 | Pinned ports | every `PortFor("<Name>", <port>)` in `apps/apphost/AppHost.cs` | CLAUDE.md "Commands" (the `pnpm dev` ports line) |
 | AppHost settings | every `ScreenHire:*` key read in `AppHost.cs` | the header comment in `AppHost.cs` |
-| Projects | every folder directly under `apps/`, `packages/` and `src/` | CLAUDE.md "Repo layout" (one row each; `tests/` is one row for all test projects) |
+| Projects | every folder directly under `apps/`, `packages/`, `src/` and `tools/` | CLAUDE.md "Repo layout" (one row each; `tests/` is one row for all test projects) |
 | Skills, agents, rules | `.claude/skills/*/SKILL.md`, `.claude/agents/*.md`, `.claude/rules/*.md` | `docs/process/dev-tooling.md` |
 | Docs files and ADRs | `docs/**/*.md` but `index.md` and `log.md` | the `index.md` of the doc's folder (one `* [Title](file.md) - description` line each); `DocsBundleTests` also enforces it |
 

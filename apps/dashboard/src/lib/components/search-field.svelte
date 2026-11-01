@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SearchIcon from '@lucide/svelte/icons/search';
+  import SearchIcon from '~icons/lucide/search';
   import { cn } from '#lib/utils.js';
 
   // A list's search box, in its table panel's header (design system section 7). The page filters the rows it passes to

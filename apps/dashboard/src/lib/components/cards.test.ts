@@ -1,5 +1,5 @@
-import GlobeIcon from '@lucide/svelte/icons/globe';
-import UsersIcon from '@lucide/svelte/icons/users';
+import GlobeIcon from '~icons/lucide/globe';
+import UsersIcon from '~icons/lucide/users';
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';

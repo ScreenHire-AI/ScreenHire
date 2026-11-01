@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { CurrentUser, SlackStatus } from '@screenhire/api-client';
-  import ChevronsUpDownIcon from '@lucide/svelte/icons/chevrons-up-down';
-  import SettingsIcon from '@lucide/svelte/icons/settings';
+  import ChevronsUpDownIcon from '~icons/lucide/chevrons-up-down';
+  import SettingsIcon from '~icons/lucide/settings';
   import type { Attachment } from 'svelte/attachments';
   import { SvelteSet } from 'svelte/reactivity';
   import { goto } from '$app/navigation';

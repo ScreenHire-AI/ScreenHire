@@ -25,6 +25,7 @@ subsystem.
 | `src/ScreenHire.Domain` | Domain model (no framework dependencies) |
 | `src/ScreenHire.Infrastructure` | EF Core (Postgres, snake_case), migrations |
 | `src/ScreenHire.ServiceDefaults` | Aspire service defaults: OpenTelemetry, health checks, service discovery, resilience |
+| `tools/lighthouse` | Lighthouse and chrome-launcher for `pnpm verify:lighthouse`, outside `pnpm-workspace.yaml` so a worktree's install skips their 73 packages; the script installs them on first use (`pnpm install --frozen-lockfile --ignore-workspace --dir tools/lighthouse`) |
 | `tests/` | xUnit v3 + AwesomeAssertions: `ScreenHire.UnitTests`, `ScreenHire.IntegrationTests` (Aspire), `ScreenHire.E2E` (Playwright), `ScreenHire.Testing` (shared AppHost fixture). Vitest lives next to the frontend code. See [`docs/process/testing.md`](docs/process/testing.md) |
 
 ## Commands
@@ -39,14 +40,15 @@ subsystem.
   with **Dev SSO** (the local mock provider; "Avery Quinn" owns the seeded Brightwater) or an email link; every email
   lands in **Mailpit**. No real provider accounts or secrets are needed. `pnpm dev` also seeds the demo data
   (`DevelopmentDemo`); the five-minute demo is [`docs/operations/local-demo.md`](docs/operations/local-demo.md).
-- **To look at the app, use `/preview`** (`/preview fresh` for a clean demo, `/preview stop`). It runs the stack
-  through the Aspire CLI (`dotnet aspire start`, `wait`, `describe`, `stop`), reports the URLs and logins and opens the
+- **To look at the app, use `/preview`** (`/preview fresh` for a clean demo, `/preview api` for the backend only,
+  `/preview keep` to keep a worktree's data, `/preview stop`; a worktree starts with no data volumes by default). It
+  runs the stack through the Aspire CLI (`dotnet aspire start`, `wait`, `describe`, `stop`), reports the URLs and logins and opens the
   dashboard in the task's browser pane; `/run` uses it too. Agents never `dotnet run` the AppHost. After a change to the
   API or worker, `dotnet aspire resource api rebuild` (or `worker`) rebuilds and restarts just that service.
 - **Parallel worktrees:** several Kangentic tasks may run at once. In a worktree `/preview` starts with
   `dotnet aspire start --isolated`, which gives every port, the Aspire dashboard's included, a random free number, so
-  stacks never collide and nothing needs reserving. Data volumes are already per-worktree; integration tests use no
-  volumes and random ports.
+  stacks never collide and nothing needs reserving. A worktree's stack starts with no data volumes (`/preview keep`
+  gives it per-worktree ones); integration tests use no volumes and random ports.
 - **Aspire MCP server:** `.mcp.json` runs `dotnet tool run aspire agent mcp`, which gives agents the running stack's
   resources, console and structured logs, traces and resource commands. Never run `aspire agent init`: it installs
   hooks and MCP settings into the machine-wide Claude Code and Copilot configuration. `.claude/settings.json` approves
@@ -92,7 +94,7 @@ subsystem.
   those.
 - Marketing budgets: `pnpm --filter @screenhire/marketing build` fails on more than 15 KB of JS per page or a broken
   internal link; `pnpm --filter @screenhire/marketing lighthouse [paths]` (= `verify:lighthouse`) checks mobile LCP
-  under 1.8 s and CLS under 0.05 on the build, headless, using Playwright's Chromium. CI's `Lighthouse (report-only)` job
+  under 1.8 s and CLS under 0.05 on the build, headless, using Playwright's Chromium (it installs `tools/lighthouse` on first use). CI's `Lighthouse (report-only)` job
   runs it for a pull request that changes the marketing build, and `/pull-request` reports the result without
   blocking on it until the budgets are calibrated on the runners. Locally, run it with paths while you work on a page;
   only one run measures at a time on the machine (the next one waits).
@@ -162,6 +164,8 @@ Procedures: `/add-dashboard-page`, `/add-careers-page`, `/add-marketing-page`.
   invalidate queries by API path (`#lib/realtime.ts`). Single-key shortcuts can be turned off (WCAG 2.1.4).
 - **shadcn-svelte:** components in `apps/dashboard/src/lib/components/ui` are our code; edit freely. Use `field` +
   superforms 3, not the `form` component; Sheet, not Drawer.
+- **Icons:** Lucide through `~icons/lucide/<name>` (unplugin-icons, design system section 14); never `@lucide/svelte`,
+  whose three files per icon were a fifth of every worktree's install.
 - **Tokens only:** colours, fonts, type sizes and radii come from `@screenhire/ui` (Tailwind classes like `bg-card`,
   `text-status-review`); never hard-code hex values or pixel font sizes. Status = its icon + colour + text label,
   always.

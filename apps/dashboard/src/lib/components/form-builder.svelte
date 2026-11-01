@@ -9,12 +9,12 @@
 </script>
 
 <script lang="ts" generics="T, K extends string">
-  import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
-  import CopyIcon from '@lucide/svelte/icons/copy';
-  import PlusIcon from '@lucide/svelte/icons/plus';
-  import Rows3Icon from '@lucide/svelte/icons/rows-3';
-  import Trash2Icon from '@lucide/svelte/icons/trash-2';
-  import XIcon from '@lucide/svelte/icons/x';
+  import ChevronDownIcon from '~icons/lucide/chevron-down';
+  import CopyIcon from '~icons/lucide/copy';
+  import PlusIcon from '~icons/lucide/plus';
+  import Rows3Icon from '~icons/lucide/rows-3';
+  import Trash2Icon from '~icons/lucide/trash-2';
+  import XIcon from '~icons/lucide/x';
   import { tick, type Snippet } from 'svelte';
   import AnswerMenu from '#lib/components/answer-menu.svelte';
   import IconButton from '#lib/components/icon-button.svelte';

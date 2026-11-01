@@ -1,9 +1,9 @@
-import BookmarkIcon from '@lucide/svelte/icons/bookmark';
-import BriefcaseIcon from '@lucide/svelte/icons/briefcase';
-import ChartBarIcon from '@lucide/svelte/icons/chart-bar';
-import LayoutTemplateIcon from '@lucide/svelte/icons/layout-template';
-import ListTodoIcon from '@lucide/svelte/icons/list-todo';
-import UsersIcon from '@lucide/svelte/icons/users';
+import BookmarkIcon from '~icons/lucide/bookmark';
+import BriefcaseIcon from '~icons/lucide/briefcase';
+import ChartBarIcon from '~icons/lucide/chart-bar';
+import LayoutTemplateIcon from '~icons/lucide/layout-template';
+import ListTodoIcon from '~icons/lucide/list-todo';
+import UsersIcon from '~icons/lucide/users';
 import type { ConnectionStatus } from '@screenhire/realtime';
 import { getContext, setContext } from 'svelte';
 

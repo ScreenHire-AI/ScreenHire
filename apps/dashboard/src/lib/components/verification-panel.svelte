@@ -1,14 +1,14 @@
 <script lang="ts">
-  import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
-  import BotIcon from '@lucide/svelte/icons/bot';
-  import FileSearchIcon from '@lucide/svelte/icons/file-search';
-  import FileTextIcon from '@lucide/svelte/icons/file-text';
-  import GlobeIcon from '@lucide/svelte/icons/globe';
-  import InfoIcon from '@lucide/svelte/icons/info';
-  import KeyboardIcon from '@lucide/svelte/icons/keyboard';
-  import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
-  import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
-  import UserRoundIcon from '@lucide/svelte/icons/user-round';
+  import ArrowRightIcon from '~icons/lucide/arrow-right';
+  import BotIcon from '~icons/lucide/bot';
+  import FileSearchIcon from '~icons/lucide/file-search';
+  import FileTextIcon from '~icons/lucide/file-text';
+  import GlobeIcon from '~icons/lucide/globe';
+  import InfoIcon from '~icons/lucide/info';
+  import KeyboardIcon from '~icons/lucide/keyboard';
+  import ChevronDownIcon from '~icons/lucide/chevron-down';
+  import TriangleAlertIcon from '~icons/lucide/triangle-alert';
+  import UserRoundIcon from '~icons/lucide/user-round';
   import {
     undoVerificationReasonExplanation,
     type AiAssistanceAssessmentView,

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
+  import ArrowLeftIcon from '~icons/lucide/arrow-left';
   import { ApiError, createGetWebhookEndpoint, createUpdateWebhookEndpoint } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { goto } from '$app/navigation';

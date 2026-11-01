@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SaveIcon from '@lucide/svelte/icons/save';
+  import SaveIcon from '~icons/lucide/save';
   import type { HttpValidationProblemDetails, OrganizationProfile } from '@screenhire/api-client';
   import {
     ApiError,

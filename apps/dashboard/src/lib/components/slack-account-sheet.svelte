@@ -1,6 +1,6 @@
 <script lang="ts">
-  import HashIcon from '@lucide/svelte/icons/hash';
-  import UnlinkIcon from '@lucide/svelte/icons/unlink';
+  import HashIcon from '~icons/lucide/hash';
+  import UnlinkIcon from '~icons/lucide/unlink';
   import type { SlackAccount, SlackStatus } from '@screenhire/api-client';
   import { createStartSlackLink, createUnlinkSlackAccount, createUpdateSlackAccount } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';

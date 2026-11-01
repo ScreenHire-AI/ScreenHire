@@ -1,6 +1,7 @@
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
+import Icons from 'unplugin-icons/vite';
 import { defineConfig } from 'vite';
 import { fileViewer } from './file-viewer-plugin.ts';
 
@@ -15,6 +16,17 @@ const proxy = { '/v1': { target: apiUrl, changeOrigin: true, xfwd: true, ws: tru
 export default defineConfig({
   plugins: [
     tailwindcss(),
+    // Lucide icons as Svelte components (`~icons/lucide/<name>`) from @iconify-json/lucide, one JSON file for the whole set.
+    // @lucide/svelte ships three files per icon, which was 8,100 of the 44,000 files every worktree's install linked.
+    // Size 16 is the default (design system section 14); `data-icon` is the name, for the stroke rule in app.css and for tests.
+    Icons({
+      compiler: 'svelte',
+      iconCustomizer(_collection, icon, props) {
+        props.width = '16';
+        props.height = '16';
+        props['data-icon'] = icon;
+      },
+    }),
     fileViewer(),
     sveltekit({
       adapter: adapter({ fallback: '200.html' }),

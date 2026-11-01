@@ -1,7 +1,7 @@
 import type { ApplicationSummary } from '@screenhire/api-client';
-import CalendarPlusIcon from '@lucide/svelte/icons/calendar-plus';
-import InboxIcon from '@lucide/svelte/icons/inbox';
-import MessagesSquareIcon from '@lucide/svelte/icons/messages-square';
+import CalendarPlusIcon from '~icons/lucide/calendar-plus';
+import InboxIcon from '~icons/lucide/inbox';
+import MessagesSquareIcon from '~icons/lucide/messages-square';
 import { needsReview, verificationRecommended } from '#lib/verification.js';
 import type { LucideIcon } from '#lib/shell.js';
 import { isOverdue } from '#lib/sla.js';

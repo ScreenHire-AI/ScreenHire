@@ -1,10 +1,10 @@
 <script lang="ts">
-  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
-  import BookmarkIcon from '@lucide/svelte/icons/bookmark';
-  import BriefcaseBusinessIcon from '@lucide/svelte/icons/briefcase-business';
-  import CalendarIcon from '@lucide/svelte/icons/calendar';
-  import MailIcon from '@lucide/svelte/icons/mail';
-  import StarIcon from '@lucide/svelte/icons/star';
+  import ArrowLeftIcon from '~icons/lucide/arrow-left';
+  import BookmarkIcon from '~icons/lucide/bookmark';
+  import BriefcaseBusinessIcon from '~icons/lucide/briefcase-business';
+  import CalendarIcon from '~icons/lucide/calendar';
+  import MailIcon from '~icons/lucide/mail';
+  import StarIcon from '~icons/lucide/star';
   import {
     ApiError,
     createGetApplication,
@@ -27,7 +27,7 @@
   import ActionBar from '#lib/components/action-bar.svelte';
   import ActivityPanel from '#lib/components/candidate/activity-panel.svelte';
   import AskScorecardSheet from '#lib/components/ask-scorecard-sheet.svelte';
-  import PhoneIcon from '@lucide/svelte/icons/phone';
+  import PhoneIcon from '~icons/lucide/phone';
   import ApplicationTab from '#lib/components/candidate/application-tab.svelte';
   import MessagesTab from '#lib/components/candidate/messages-tab.svelte';
   import OverviewTab from '#lib/components/candidate/overview-tab.svelte';

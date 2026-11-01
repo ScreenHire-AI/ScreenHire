@@ -12,8 +12,8 @@
 </script>
 
 <script lang="ts" generics="T extends RowData">
-  import ChartBarIcon from '@lucide/svelte/icons/chart-bar';
-  import TableIcon from '@lucide/svelte/icons/table';
+  import ChartBarIcon from '~icons/lucide/chart-bar';
+  import TableIcon from '~icons/lucide/table';
   import { createSortedRowModel, createTable, rowSortingFeature, sortFn_alphanumeric, sortFn_basic, tableFeatures, type ColumnDef, type RowData } from '@tanstack/svelte-table';
   import { untrack, type Snippet } from 'svelte';
   import Panel from '#lib/components/panel.svelte';

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import ClipboardCheckIcon from '@lucide/svelte/icons/clipboard-check';
-  import StarIcon from '@lucide/svelte/icons/star';
+  import ClipboardCheckIcon from '~icons/lucide/clipboard-check';
+  import StarIcon from '~icons/lucide/star';
   import type { ApplicationRating, ScorecardEntry, TeamMember } from '@screenhire/api-client';
   import Hint from '#lib/components/hint.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';

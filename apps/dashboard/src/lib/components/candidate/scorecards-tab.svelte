@@ -1,6 +1,6 @@
 <script lang="ts">
-  import ClipboardCheckIcon from '@lucide/svelte/icons/clipboard-check';
-  import SendIcon from '@lucide/svelte/icons/send';
+  import ClipboardCheckIcon from '~icons/lucide/clipboard-check';
+  import SendIcon from '~icons/lucide/send';
   import type { ScorecardEntry, TeamMember } from '@screenhire/api-client';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';

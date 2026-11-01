@@ -1,0 +1,12 @@
+{
+  "name": "@screenhire/lighthouse-tool",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "description": "Lighthouse and chrome-launcher for apps/marketing/scripts/lighthouse.mjs. Outside pnpm-workspace.yaml on purpose, so the workspace install does not link its 73 packages.",
+  "dependencies": {
+    "chrome-launcher": "^1.2.2",
+    "lighthouse": "^13.5.0"
+  }
+}

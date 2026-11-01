@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SaveIcon from '@lucide/svelte/icons/save';
+  import SaveIcon from '~icons/lucide/save';
   import type { HttpValidationProblemDetails, JobDetail } from '@screenhire/api-client';
   import { ApiError, createUpdateJob } from '@screenhire/api-client/svelte-query';
   import { UpdateJobBody } from '@screenhire/api-client/zod';

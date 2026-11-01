@@ -1,7 +1,7 @@
 <script lang="ts">
-  import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
-  import BookmarkIcon from '@lucide/svelte/icons/bookmark';
-  import StickyNoteIcon from '@lucide/svelte/icons/sticky-note';
+  import ArrowRightIcon from '~icons/lucide/arrow-right';
+  import BookmarkIcon from '~icons/lucide/bookmark';
+  import StickyNoteIcon from '~icons/lucide/sticky-note';
   import type { WorkflowStage } from '@screenhire/api-client';
   import { buttonVariants, type ButtonSize, type ButtonVariant } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';

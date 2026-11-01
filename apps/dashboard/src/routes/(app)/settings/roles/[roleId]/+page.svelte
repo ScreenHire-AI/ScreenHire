@@ -1,10 +1,10 @@
 <script lang="ts">
-  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
-  import CopyIcon from '@lucide/svelte/icons/copy';
-  import LockIcon from '@lucide/svelte/icons/lock';
-  import SaveIcon from '@lucide/svelte/icons/save';
-  import Trash2Icon from '@lucide/svelte/icons/trash-2';
-  import UsersRoundIcon from '@lucide/svelte/icons/users-round';
+  import ArrowLeftIcon from '~icons/lucide/arrow-left';
+  import CopyIcon from '~icons/lucide/copy';
+  import LockIcon from '~icons/lucide/lock';
+  import SaveIcon from '~icons/lucide/save';
+  import Trash2Icon from '~icons/lucide/trash-2';
+  import UsersRoundIcon from '~icons/lucide/users-round';
   import type { CustomRoleDetail, HttpValidationProblemDetails, Permission, PermissionGroup, PermissionSummary, RoleSummary } from '@screenhire/api-client';
   import {
     ApiError,
