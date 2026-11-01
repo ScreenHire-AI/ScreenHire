@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: "Claude Code tooling"
-description: "Every skill, agent and rule in .claude/ and when to use each, commands that were never run, why pnpm's global virtual store was not adopted for worktree installs, where a new task's start-up time goes and what would cut it, and how to add a new skill, agent or rule."
+description: "Every skill, agent and rule in .claude/ and when to use each, commands that were never run, why pnpm's global virtual store was not adopted for worktree installs, where a new task's start-up time goes and what would cut it, what a preview stack commits in memory and why working set hides it, and how to add a new skill, agent or rule."
 tags: [claude-code, skills, agents, rules]
 sources:
   - resource: .claude/skills/add-careers-page/SKILL.md
@@ -20,6 +20,7 @@ sources:
   - resource: .claude/skills/task-review/SKILL.md
   - resource: .claude/skills/task-review/visual-probe.js
   - resource: .claude/skills/verify/SKILL.md
+  - resource: apps/dashboard/scripts/prebundle.mjs
   - resource: Directory.Build.props
   - resource: .claude/agents/design-review.md
   - resource: .claude/agents/doc-auditor.md
@@ -236,3 +237,33 @@ Things that look like levers but are not (all measured on 2026-11-01, one run ea
 
 `.kangentic/config.json` also lists `.claude/settings.local.json` in `copyFiles`, but Kangentic skips `.claude/` entries,
 so a new worktree does not get that file.
+
+## What a preview stack commits
+
+Kangentic's low-memory pause reads commit (private bytes), not working set, and working set hides most of it. Measured
+on 2026-11-01 in a worktree with no data volumes, one run each, as the private bytes (`PrivateMemorySize64`) of the
+host processes the stack started, 60 s after four requests to the dashboard's `/` and `/sign-in`. The containers run in
+Docker's VM and are not counted. The worker's commit swings between samples (251 to 897 MB across them), so read the
+totals to within a few hundred MB.
+
+| Run | Dashboard `vite dev` commit | Resident | Whole stack commit |
+|---|---|---|---|
+| Cold cache, `vite dev` as it was | 1,201 MB | 352 MB | 4,035 MB (13 processes) |
+| Warm cache (dashboard restarted on the cache that run left) | 349 MB | 182 MB | 3,198 MB |
+| Cold cache, `vite optimize && vite dev` | 1,162 MB | 354 MB | 4,028 MB |
+| Cold cache, `node scripts/prebundle.mjs && vite dev` (now) | 344 MB | 184 MB | 2,956 MB |
+| `/preview api`, backend only | not started | not started | 1,353 MB (10 processes; working set 2,005 MB) |
+
+The cold cache costs the dashboard about 850 MB of commit that the process keeps for its whole life, the shape
+Kangentic found in its own dev server. It is the in-process dependency pre-bundle: the log of a cold start says
+"Forced re-optimization of dependencies", and a warm restart does not. Careers (1,064 MB) and marketing (788 MB) hold
+more commit than their working set (346 and 286 MB) in the same way, and were not investigated.
+
+`vite optimize` is the native way to pre-bundle in a process that exits, and it does not work here. It calls
+`optimizeDeps` alone, but vite-plugin-svelte checks in its `buildStart` hook, which only a dev server runs, whether
+Svelte's settings changed since the cache was written. With no `_svelte_metadata.json` it forces a second, in-process
+optimization when the real server starts. So `apps/dashboard/scripts/prebundle.mjs` starts a Vite server in middleware
+mode, which runs those hooks and opens no port for the app, waits for the optimizer, and closes. The dashboard's `dev`
+script runs it first. It takes about 3 s on a cold cache and 1.6 s on a warm one. If it fails, `vite dev` bundles
+in-process as before. The `/preview` figures in [the local demo guide](../operations/local-demo.md#start-over) are
+working set; the commit above is beside them.

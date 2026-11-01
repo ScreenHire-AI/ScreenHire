@@ -18,7 +18,17 @@
       "modelOverride": "sonnet",
       "effortOverride": "high",
       "planApproval": "automatic",
-      "planExitTarget": "Executing"
+      "planExitTarget": "Executing",
+      "automations": {
+        "onTurnEnd": [
+          {
+            "name": "Dependency missing",
+            "type": "notify",
+            "finalLine": "Blocked: dependency not on main",
+            "title": "Blocked on a dependency: #{{taskNumber}} {{title}}"
+          }
+        ]
+      }
     },
     {
       "id": "d33d4435-8173-40eb-9437-9143cf787ee0",
@@ -42,7 +52,7 @@
             "name": "Apply findings",
             "type": "send_message",
             "finalLine": "Implementation: complete",
-            "message": "Check your last message for findings, recommendations or follow-up changes you have not applied yet, and apply them here in this task, not as follow-up tasks. Where one needs a decision, take your recommended option and name the alternative. If there are none, say so. If you changed anything, re-run /verify (pnpm verify:fast and the tests you added or changed) and commit. Either way, end your turn with a short summary and the line \"Findings: applied\".",
+            "message": "Check your last message for findings, recommendations or follow-up changes you have not applied yet, and apply them here in this task, not as follow-up tasks. Skip any that is already filed as a task on the board: someone else owns it, possibly with an agent running on it. Never delete or move a task. A finding nobody has filed still ships in this task. Where one needs a decision, take your recommended option and name the alternative. If there are none, say so. If you changed anything, re-run /verify (pnpm verify:fast and the tests you added or changed) and commit. Either way, end your turn with a short summary and the line \"Findings: applied\".",
             "mode": "immediate"
           },
           {

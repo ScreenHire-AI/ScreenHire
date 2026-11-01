@@ -63,6 +63,8 @@ start has the same candidates, the same emails and anything you changed.
   data had left 123 volumes, about 3 GB, by that date. `/preview keep` keeps this worktree's data instead.
 - **Backend only:** `/preview api` starts no frontends. Measured on 2026-11-01, one run each with no data volumes: 5
   processes and 1,219 MB, healthy after 31 s, against 8 processes and 2,272 MB, healthy after 25 s, for the full stack.
+  Those are working set. Commit, which Kangentic's low-memory pause reads, is a different number and the dashboard's Vite
+  alone held 1.2 GB of it on a cold cache; see [what a preview stack commits](../process/dev-tooling.md#what-a-preview-stack-commits).
 - **A clean demo, keeping your data:** `/preview fresh`, or
   `dotnet aspire start --apphost apps/apphost/ScreenHire.AppHost.csproj -- --ScreenHire:PersistData=false` (add
   `--isolated` before `--` in a worktree). It runs with no volumes at all and deletes nothing; the next normal start has
