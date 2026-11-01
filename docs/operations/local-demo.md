@@ -33,8 +33,8 @@ In Claude Code, run **`/preview`** ([the skill](../../.claude/skills/preview/SKI
 packages, starts the stack in the background with the Aspire CLI (`dotnet aspire start`; in a Kangentic worktree with
 `--isolated`, which gives it random free ports), waits until the demo data is in, and reports the URLs, the logins and
 the Aspire dashboard's link. In a Kangentic task it also signs in as Avery Quinn in the task's browser pane.
-`/preview fresh` starts a clean demo and `/preview stop` stops it. The Aspire CLI is a repo-local tool: run
-`dotnet tool restore` once. Without Claude Code:
+`/preview fresh` starts a clean demo, `/preview api` starts the backend only and `/preview stop` stops it. The Aspire
+CLI is a repo-local tool: run `dotnet tool restore` once. Without Claude Code:
 
 ```bash
 pnpm install   # once, and again after pulling changes to any package.json
@@ -53,15 +53,16 @@ Aspire dashboard. Attach a debugger to the `ScreenHire.Api` or `ScreenHire.Worke
 your IDE. After a change to the AppHost itself, start it again; this clone's running stack is replaced.
 
 Stop with Ctrl+C (or `/preview stop`, which is `dotnet aspire stop`). Aspire then removes the containers it started. The database, uploaded files and
-Mailpit's inbox stay in Docker volumes (one set per clone or worktree), so the next start has the same candidates, the
-same emails and anything you changed.
+Mailpit's inbox stay in Docker volumes (one set per clone, or per worktree started with `/preview keep`), so the next
+start has the same candidates, the same emails and anything you changed.
 
 ### Start over
 
-- **A worktree starts clean:** in a Kangentic worktree `/preview` starts with no volumes, so the demo reseeds on each start
-  (the API was healthy 25 s after the start command on 2026-11-01) and the worktree leaves nothing behind. `/preview keep`
-  keeps this worktree's data instead.
-- **Backend only:** `/preview api` starts no frontends (5 processes and 1,219 MB against 8 and 2,272 MB on 2026-11-01).
+- **A worktree starts clean:** in a Kangentic worktree `/preview` starts with no volumes, so the demo reseeds on each
+  start (the API was healthy 25 s after the start command on 2026-11-01) and the worktree leaves nothing behind. Kept
+  data had left 123 volumes, about 3 GB, by that date. `/preview keep` keeps this worktree's data instead.
+- **Backend only:** `/preview api` starts no frontends. Measured on 2026-11-01, one run each with no data volumes: 5
+  processes and 1,219 MB, healthy after 31 s, against 8 processes and 2,272 MB, healthy after 25 s, for the full stack.
 - **A clean demo, keeping your data:** `/preview fresh`, or
   `dotnet aspire start --apphost apps/apphost/ScreenHire.AppHost.csproj -- --ScreenHire:PersistData=false` (add
   `--isolated` before `--` in a worktree). It runs with no volumes at all and deletes nothing; the next normal start has
