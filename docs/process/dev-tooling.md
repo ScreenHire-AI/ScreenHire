@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: "Claude Code tooling"
-description: "Every skill, agent and rule in .claude/ and when to use each, commands that were never run, why pnpm's global virtual store was not adopted for worktree installs, and how to add a new skill, agent or rule."
+description: "Every skill, agent and rule in .claude/ and when to use each, commands that were never run, why pnpm's global virtual store was not adopted for worktree installs, where a new task's start-up time goes and what would cut it, and how to add a new skill, agent or rule."
 tags: [claude-code, skills, agents, rules]
 sources:
   - resource: .claude/skills/add-careers-page/SKILL.md
@@ -179,3 +179,39 @@ and a pnpm release reuses filled `links` entries without linking every package a
 
 Follow [`skill-authoring`](../../.claude/rules/skill-authoring.md): run every command once, word not-yet-merged
 dependencies by what exists, and add a row here in the same change.
+
+## Where a new task's start-up time goes
+
+Measured on 2026-10-31 from Kangentic's log for task #80, which started when its dependency reached Done. It took
+43 s from that Done to Claude's `SessionStart`, and every step waited for the one before it:
+
+| Step | Time |
+|---|---|
+| Done until Kangentic's git queue starts (cause not found) | 4.2 s |
+| Resolve the base branch, `git fetch` | 2.2 s |
+| `git worktree add`, long paths and sparse-checkout settings | 1.4 s |
+| `pnpm install --frozen-lockfile` (the post-worktree script) | 27.0 s |
+| Kangentic's spawn until "Trust ensured", then Claude's start until `SessionStart` | 7.8 s |
+
+The install is the cost. It links about 55,000 files into 712 packages. A cold install in a throwaway worktree took
+19.9 and 25.4 s, and a no-op install 2.6 s. The board's 27 s ran beside Kangentic deleting the finished task's
+`node_modules`, which took 32 s. None of pnpm's flags helped: `--prefer-offline` took 20.3 to 20.7 s, hardlinks
+(`package-import-method`) 19.3 to 19.8 s, `--ignore-scripts` 19.7 s and higher network concurrency 20.6 s. Resolution
+and the network are not the cost.
+
+What would help, filed as tasks:
+- In Kangentic (#955 to #957 on its board): start the agent while the install runs and hold its first prompt until
+  the install ends; keep a finished task's cleanup out of its dependents' installs; investigate a spare worktree that
+  is already installed.
+- Here (#81): `lighthouse` alone reaches 73 packages, about 8,300 files, that nothing else needs. It moves out of the
+  workspace install.
+
+Two things that look like levers but are not:
+- Superforms installs every validator library it has an adapter for (`typebox`, `effect`, `class-validator` and
+  more), although the dashboard uses only `zod4`. `sveltekit-superforms/adapters` imports them all statically, so
+  leaving them out with pnpm's `ignoredOptionalDependencies` would break the dashboard build.
+- Kangentic's `linkNodeModules` links only the root `node_modules`, from the root checkout's lockfile, so the
+  `apps/*` and `packages/*` folders would still install. Keep it off.
+
+`.kangentic/config.json` also lists `.claude/settings.local.json` in `copyFiles`, but Kangentic skips `.claude/` entries,
+so a new worktree does not get that file.
