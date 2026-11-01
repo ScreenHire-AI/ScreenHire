@@ -20,6 +20,12 @@
     @apply bg-background text-body text-foreground;
   }
 
+  /* Lucide's stroke weight for every icon (design system section 14). The iconify paths carry stroke-width 2 as an
+     attribute, and any CSS rule beats an attribute. The icon customizer in vite.config.ts sets data-icon. */
+  svg[data-icon] * {
+    stroke-width: 1.75;
+  }
+
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;

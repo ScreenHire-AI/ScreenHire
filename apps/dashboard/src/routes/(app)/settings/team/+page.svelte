@@ -1,10 +1,10 @@
 <script lang="ts">
-  import SendIcon from '@lucide/svelte/icons/send';
-  import ShieldUserIcon from '@lucide/svelte/icons/shield-user';
-  import UserMinusIcon from '@lucide/svelte/icons/user-minus';
-  import UserPlusIcon from '@lucide/svelte/icons/user-plus';
-  import UsersRoundIcon from '@lucide/svelte/icons/users-round';
-  import XIcon from '@lucide/svelte/icons/x';
+  import SendIcon from '~icons/lucide/send';
+  import ShieldUserIcon from '~icons/lucide/shield-user';
+  import UserMinusIcon from '~icons/lucide/user-minus';
+  import UserPlusIcon from '~icons/lucide/user-plus';
+  import UsersRoundIcon from '~icons/lucide/users-round';
+  import XIcon from '~icons/lucide/x';
   import type { HttpValidationProblemDetails, JobAccess, OrganizationRole, PendingInvitation, RoleSummary, TeamMember } from '@screenhire/api-client';
   import {
     ApiError,

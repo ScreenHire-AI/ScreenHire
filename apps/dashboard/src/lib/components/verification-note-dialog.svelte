@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ClipboardPenIcon from '@lucide/svelte/icons/clipboard-pen';
+  import ClipboardPenIcon from '~icons/lucide/clipboard-pen';
   import { addVerificationNote } from '@screenhire/api-client';
   import { AddVerificationNoteBody } from '@screenhire/api-client/zod';
   import { defaults, superForm } from 'sveltekit-superforms';

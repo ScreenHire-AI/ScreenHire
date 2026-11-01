@@ -1,5 +1,5 @@
 <script lang="ts">
-  import KeyRoundIcon from '@lucide/svelte/icons/key-round';
+  import KeyRoundIcon from '~icons/lucide/key-round';
   import { createGetMeta } from '@screenhire/api-client/svelte-query';
   import CodeBlock from '#lib/components/code-block.svelte';
   import FailureText from '#lib/components/failure-text.svelte';

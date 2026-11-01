@@ -1,6 +1,6 @@
 <script lang="ts">
-  import LogInIcon from '@lucide/svelte/icons/log-in';
-  import MailIcon from '@lucide/svelte/icons/mail';
+  import LogInIcon from '~icons/lucide/log-in';
+  import MailIcon from '~icons/lucide/mail';
   import { verifyMagicLink } from '@screenhire/api-client';
   import { tick } from 'svelte';
   import { goto } from '$app/navigation';

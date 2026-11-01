@@ -1,5 +1,5 @@
 <script lang="ts">
-  import UserPlusIcon from '@lucide/svelte/icons/user-plus';
+  import UserPlusIcon from '~icons/lucide/user-plus';
   import { createListApplications, createListEmailTemplates } from '@screenhire/api-client/svelte-query';
   import { page } from '$app/state';
   import { can } from '#lib/permissions.js';

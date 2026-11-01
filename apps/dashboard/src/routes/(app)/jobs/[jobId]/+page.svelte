@@ -1,10 +1,10 @@
 <script lang="ts">
-  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
-  import PencilIcon from '@lucide/svelte/icons/pencil';
-  import SendIcon from '@lucide/svelte/icons/send';
-  import UserPlusIcon from '@lucide/svelte/icons/user-plus';
-  import UsersRoundIcon from '@lucide/svelte/icons/users-round';
-  import WorkflowIcon from '@lucide/svelte/icons/workflow';
+  import ArrowLeftIcon from '~icons/lucide/arrow-left';
+  import PencilIcon from '~icons/lucide/pencil';
+  import SendIcon from '~icons/lucide/send';
+  import UserPlusIcon from '~icons/lucide/user-plus';
+  import UsersRoundIcon from '~icons/lucide/users-round';
+  import WorkflowIcon from '~icons/lucide/workflow';
   import {
     ApiError,
     createGetJob,

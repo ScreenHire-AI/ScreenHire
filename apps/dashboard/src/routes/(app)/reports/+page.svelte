@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ChartBarIcon from '@lucide/svelte/icons/chart-bar';
+  import ChartBarIcon from '~icons/lucide/chart-bar';
   import type { FunnelStage, HiringReport, JobTimeToHire, SourceCount } from '@screenhire/api-client';
   import { createGetHiringReport, createListJobs } from '@screenhire/api-client/svelte-query';
   import { keepPreviousData } from '@tanstack/svelte-query';

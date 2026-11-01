@@ -1,17 +1,17 @@
-import ArchiveIcon from '@lucide/svelte/icons/archive';
-import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
-import CircleMinusIcon from '@lucide/svelte/icons/circle-minus';
-import ClockAlertIcon from '@lucide/svelte/icons/clock-alert';
-import Clock4Icon from '@lucide/svelte/icons/clock-4';
-import DoorClosedIcon from '@lucide/svelte/icons/door-closed';
-import DoorOpenIcon from '@lucide/svelte/icons/door-open';
-import EyeIcon from '@lucide/svelte/icons/eye';
-import FilePenLineIcon from '@lucide/svelte/icons/file-pen-line';
-import IdCardIcon from '@lucide/svelte/icons/id-card';
-import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
-import ShieldXIcon from '@lucide/svelte/icons/shield-x';
-import SparklesIcon from '@lucide/svelte/icons/sparkles';
-import WrenchIcon from '@lucide/svelte/icons/wrench';
+import ArchiveIcon from '~icons/lucide/archive';
+import CircleCheckIcon from '~icons/lucide/circle-check';
+import CircleMinusIcon from '~icons/lucide/circle-minus';
+import ClockAlertIcon from '~icons/lucide/clock-alert';
+import Clock4Icon from '~icons/lucide/clock-4';
+import DoorClosedIcon from '~icons/lucide/door-closed';
+import DoorOpenIcon from '~icons/lucide/door-open';
+import EyeIcon from '~icons/lucide/eye';
+import FilePenLineIcon from '~icons/lucide/file-pen-line';
+import IdCardIcon from '~icons/lucide/id-card';
+import LoaderCircleIcon from '~icons/lucide/loader-circle';
+import ShieldXIcon from '~icons/lucide/shield-x';
+import SparklesIcon from '~icons/lucide/sparkles';
+import WrenchIcon from '~icons/lucide/wrench';
 import type { LucideIcon } from '#lib/shell.js';
 
 /**

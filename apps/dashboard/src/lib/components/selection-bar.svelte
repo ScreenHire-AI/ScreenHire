@@ -1,6 +1,6 @@
 <script lang="ts" generics="Stage extends { id: string; name: string }">
-  import BookmarkIcon from '@lucide/svelte/icons/bookmark';
-  import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
+  import BookmarkIcon from '~icons/lucide/bookmark';
+  import ChevronDownIcon from '~icons/lucide/chevron-down';
   import EmailSelectionButton from '#lib/components/email-selection-button.svelte';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';

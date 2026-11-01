@@ -1,9 +1,9 @@
 <script lang="ts">
-  import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
-  import ArrowDownToLineIcon from '@lucide/svelte/icons/arrow-down-to-line';
-  import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
-  import ArrowUpToLineIcon from '@lucide/svelte/icons/arrow-up-to-line';
-  import GripVerticalIcon from '@lucide/svelte/icons/grip-vertical';
+  import ArrowDownIcon from '~icons/lucide/arrow-down';
+  import ArrowDownToLineIcon from '~icons/lucide/arrow-down-to-line';
+  import ArrowUpIcon from '~icons/lucide/arrow-up';
+  import ArrowUpToLineIcon from '~icons/lucide/arrow-up-to-line';
+  import GripVerticalIcon from '~icons/lucide/grip-vertical';
   import { mergeProps } from 'bits-ui';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';

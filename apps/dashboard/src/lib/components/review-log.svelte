@@ -1,8 +1,8 @@
 <script lang="ts">
-  import CircleSlashIcon from '@lucide/svelte/icons/circle-slash';
-  import ClipboardPenIcon from '@lucide/svelte/icons/clipboard-pen';
-  import MessageSquareCheckIcon from '@lucide/svelte/icons/message-square-check';
-  import Undo2Icon from '@lucide/svelte/icons/undo-2';
+  import CircleSlashIcon from '~icons/lucide/circle-slash';
+  import ClipboardPenIcon from '~icons/lucide/clipboard-pen';
+  import MessageSquareCheckIcon from '~icons/lucide/message-square-check';
+  import Undo2Icon from '~icons/lucide/undo-2';
   import type { VerificationReviewEntry } from '@screenhire/api-client';
   import { createGetApplicationVerification } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import UserPlusIcon from '@lucide/svelte/icons/user-plus';
+  import UserPlusIcon from '~icons/lucide/user-plus';
   import type { TalentPoolMember } from '@screenhire/api-client';
   import { createAddFromTalentPool, createListJobs } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';

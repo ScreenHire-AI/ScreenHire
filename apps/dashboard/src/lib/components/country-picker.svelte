@@ -1,6 +1,6 @@
 <script lang="ts">
-  import CheckIcon from '@lucide/svelte/icons/check';
-  import XIcon from '@lucide/svelte/icons/x';
+  import CheckIcon from '~icons/lucide/check';
+  import XIcon from '~icons/lucide/x';
   import { Combobox } from 'bits-ui';
   import { tick } from 'svelte';
   import IconButton from '#lib/components/icon-button.svelte';

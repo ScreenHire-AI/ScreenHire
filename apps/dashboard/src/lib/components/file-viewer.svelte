@@ -1,7 +1,7 @@
 <script lang="ts">
   import { getDownloadApplicationFileUrl, type ApplicationFileSummary } from '@screenhire/api-client';
-  import DownloadIcon from '@lucide/svelte/icons/download';
-  import XIcon from '@lucide/svelte/icons/x';
+  import DownloadIcon from '~icons/lucide/download';
+  import XIcon from '~icons/lucide/x';
   import FileFrame from '#lib/components/file-frame.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Dialog from '#lib/components/ui/dialog/index.js';

@@ -14,15 +14,15 @@
     createUpdateHiringTemplateVersion,
     getGetHiringTemplateHistoryQueryOptions,
   } from '@screenhire/api-client/svelte-query';
-  import FolderArchiveIcon from '@lucide/svelte/icons/folder-archive';
-  import ArchiveRestoreIcon from '@lucide/svelte/icons/archive-restore';
-  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
-  import CheckIcon from '@lucide/svelte/icons/check';
-  import CopyIcon from '@lucide/svelte/icons/copy';
-  import LayersIcon from '@lucide/svelte/icons/layers';
-  import PencilIcon from '@lucide/svelte/icons/pencil';
-  import SaveIcon from '@lucide/svelte/icons/save';
-  import SendIcon from '@lucide/svelte/icons/send';
+  import FolderArchiveIcon from '~icons/lucide/folder-archive';
+  import ArchiveRestoreIcon from '~icons/lucide/archive-restore';
+  import ArrowLeftIcon from '~icons/lucide/arrow-left';
+  import CheckIcon from '~icons/lucide/check';
+  import CopyIcon from '~icons/lucide/copy';
+  import LayersIcon from '~icons/lucide/layers';
+  import PencilIcon from '~icons/lucide/pencil';
+  import SaveIcon from '~icons/lucide/save';
+  import SendIcon from '~icons/lucide/send';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';

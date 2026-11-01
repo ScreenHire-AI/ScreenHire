@@ -597,8 +597,10 @@ Always the browser's locale (US English by default), through one shared formatte
 
 ## 14. Icons
 
-Lucide (`@lucide/svelte`, per-icon imports). 16px beside 14px text, 20px in touch bars and the icon rail. Size 16 and
-stroke 1.75 are set once with `setLucideProps` in the root layout. Navigation and main buttons pair an icon with a
+Lucide, imported per icon as `~icons/lucide/<name>` (unplugin-icons with `@iconify-json/lucide`, which keeps the whole
+set in one file; `@lucide/svelte` ships three files per icon and is not used). 16px beside 14px text, 20px in touch bars
+and the icon rail. Size 16 is the default from the icon customizer in `apps/dashboard/vite.config.ts`, and stroke 1.75
+is one rule on `svg[data-icon]` in `app.css`. Navigation and main buttons pair an icon with a
 label; decorative icons are `aria-hidden`. Status icons (section 3.2) appear only in status badges and in a status's
 saved view in the sidebar (section 21), and no other control or decoration uses them. The warning triangle marks only
 the verification cards that fed a level (section 16). A problem in words (a failed action, a form error, a builder's

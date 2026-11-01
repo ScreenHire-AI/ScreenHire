@@ -1,8 +1,8 @@
 <script lang="ts">
-  import AtSignIcon from '@lucide/svelte/icons/at-sign';
-  import BellIcon from '@lucide/svelte/icons/bell';
-  import LayoutTemplateIcon from '@lucide/svelte/icons/layout-template';
-  import XIcon from '@lucide/svelte/icons/x';
+  import AtSignIcon from '~icons/lucide/at-sign';
+  import BellIcon from '~icons/lucide/bell';
+  import LayoutTemplateIcon from '~icons/lucide/layout-template';
+  import XIcon from '~icons/lucide/x';
   import type { ToastKind } from '@screenhire/api-client';
   import type { Component } from 'svelte';
   import IconButton from '#lib/components/icon-button.svelte';

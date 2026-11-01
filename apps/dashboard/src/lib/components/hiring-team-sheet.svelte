@@ -1,8 +1,8 @@
 <script lang="ts">
-  import CopyIcon from '@lucide/svelte/icons/copy';
-  import SaveIcon from '@lucide/svelte/icons/save';
-  import UserPlusIcon from '@lucide/svelte/icons/user-plus';
-  import XIcon from '@lucide/svelte/icons/x';
+  import CopyIcon from '~icons/lucide/copy';
+  import SaveIcon from '~icons/lucide/save';
+  import UserPlusIcon from '~icons/lucide/user-plus';
+  import XIcon from '~icons/lucide/x';
   import {
     createGetHiringTemplateTeam,
     createGetJobHiringTeam,

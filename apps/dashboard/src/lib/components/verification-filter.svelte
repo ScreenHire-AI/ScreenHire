@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { AiAssistanceLevel, AuthenticityLevel } from '@screenhire/api-client';
-  import ListFilterIcon from '@lucide/svelte/icons/list-filter';
+  import ListFilterIcon from '~icons/lucide/list-filter';
   import { buttonVariants } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';

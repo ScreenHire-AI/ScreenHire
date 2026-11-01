@@ -1,7 +1,7 @@
 <script lang="ts">
-  import BookmarkXIcon from '@lucide/svelte/icons/bookmark-x';
-  import SendIcon from '@lucide/svelte/icons/send';
-  import UserPlusIcon from '@lucide/svelte/icons/user-plus';
+  import BookmarkXIcon from '~icons/lucide/bookmark-x';
+  import SendIcon from '~icons/lucide/send';
+  import UserPlusIcon from '~icons/lucide/user-plus';
   import type { TalentPoolMember } from '@screenhire/api-client';
   import { createListEmailTemplates, createListTalentPool, createRemoveFromTalentPool } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';

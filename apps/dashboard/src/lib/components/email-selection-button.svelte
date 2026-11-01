@@ -1,5 +1,5 @@
 <script lang="ts">
-  import MailIcon from '@lucide/svelte/icons/mail';
+  import MailIcon from '~icons/lucide/mail';
   import { buttonVariants } from '#lib/components/ui/button/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { watchTruncation } from '#lib/truncation.js';

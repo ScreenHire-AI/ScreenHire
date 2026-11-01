@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SendIcon from '@lucide/svelte/icons/send';
+  import SendIcon from '~icons/lucide/send';
   import type { EmailPreview as Preview, TalentPoolMember } from '@screenhire/api-client';
   import { createInviteToApply, createListJobs, createPreviewTalentPoolInvitation } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';

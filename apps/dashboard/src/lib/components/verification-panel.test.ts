@@ -134,13 +134,13 @@ describe('verification panel', () => {
     const network = checks.find((check) => check.dataset.check === 'Network')!;
     const identity = checks.find((check) => check.dataset.check === 'Identity')!;
     expect(network).toHaveTextContent('1 signal');
-    expect(network.querySelector('svg.lucide-triangle-alert')).toBeInTheDocument();
+    expect(network.querySelector('svg[data-icon="triangle-alert"]')).toBeInTheDocument();
     // Its reason sits under it and does not repeat the check's name.
     const reason = network.querySelector('[data-signal="NET_DATACENTER_IP"] summary')!;
     expect(reason).not.toHaveTextContent('Network');
-    expect(reason.querySelector('svg.lucide-chevron-down')).toBeInTheDocument();
+    expect(reason.querySelector('svg[data-icon="chevron-down"]')).toBeInTheDocument();
     expect(identity).toHaveTextContent('Nothing found');
-    expect(identity.querySelector('svg.lucide-triangle-alert')).not.toBeInTheDocument();
+    expect(identity.querySelector('svg[data-icon="triangle-alert"]')).not.toBeInTheDocument();
     // There is no second list of the same reasons.
     expect(authenticity.querySelectorAll('[data-signal="NET_DATACENTER_IP"]')).toHaveLength(1);
   });

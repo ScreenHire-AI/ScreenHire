@@ -1,5 +1,5 @@
 <script lang="ts">
-  import BookmarkIcon from '@lucide/svelte/icons/bookmark';
+  import BookmarkIcon from '~icons/lucide/bookmark';
   import { createKeepInMind } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { untrack } from 'svelte';

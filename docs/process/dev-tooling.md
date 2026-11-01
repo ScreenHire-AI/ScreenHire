@@ -206,7 +206,9 @@ What would help, filed as tasks:
 - Here (#81, done): `lighthouse` alone reached 73 packages, about 8,300 files, that nothing else needs. It now lives in
   `tools/lighthouse`, outside the workspace, and `pnpm verify:lighthouse` installs it on first use. A cold install in a
   throwaway worktree went from 23.0 s, 55,089 files and 714 packages to 18.0 s, 44,092 files and 640 packages (one
-  run each, 2026-11-01).
+  run each, 2026-11-01). The dashboard's icons then moved from `@lucide/svelte` (three files per icon, 8,164 files) to
+  `unplugin-icons` with `@iconify-json/lucide` (one JSON file): a clean install with `--ignore-scripts` took 16.5 s and
+  44,093 files before, 12.3 s and 35,929 files after (same day, one run each).
 
 Two things that look like levers but are not:
 - Superforms installs every validator library it has an adapter for (`typebox`, `effect`, `class-validator` and

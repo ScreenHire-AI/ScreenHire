@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import StarIcon from '@lucide/svelte/icons/star';
+import StarIcon from '~icons/lucide/star';
 import { applyFormKinds, duplicateId, followUpKinds, insertAt, kindIn, scorecardKinds } from './form-builder.js';
 
 describe('answer kinds', () => {

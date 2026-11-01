@@ -1,6 +1,6 @@
 <script lang="ts">
-  import CheckIcon from '@lucide/svelte/icons/check';
-  import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
+  import CheckIcon from '~icons/lucide/check';
+  import ChevronDownIcon from '~icons/lucide/chevron-down';
   import FailureText from '#lib/components/failure-text.svelte';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';

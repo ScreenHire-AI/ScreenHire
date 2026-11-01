@@ -1,5 +1,5 @@
 <script lang="ts">
-  import PlayIcon from '@lucide/svelte/icons/play';
+  import PlayIcon from '~icons/lucide/play';
   import { runManualAutomation, type Automation } from '@screenhire/api-client';
   import { createListAutomationRuns } from '@screenhire/api-client/svelte-query';
   import FailureText from '#lib/components/failure-text.svelte';

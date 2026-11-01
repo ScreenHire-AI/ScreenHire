@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SendIcon from '@lucide/svelte/icons/send';
+  import SendIcon from '~icons/lucide/send';
   import type { CandidateEmailEntry, TeamMember } from '@screenhire/api-client';
   import SentEmail from '#lib/components/candidate/sent-email.svelte';
   import EmailComposer from '#lib/components/email-composer.svelte';

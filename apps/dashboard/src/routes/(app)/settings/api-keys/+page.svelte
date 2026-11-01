@@ -1,8 +1,8 @@
 <script lang="ts">
-  import BanIcon from '@lucide/svelte/icons/ban';
-  import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
-  import KeyRoundIcon from '@lucide/svelte/icons/key-round';
-  import PlusIcon from '@lucide/svelte/icons/plus';
+  import BanIcon from '~icons/lucide/ban';
+  import ExternalLinkIcon from '~icons/lucide/external-link';
+  import KeyRoundIcon from '~icons/lucide/key-round';
+  import PlusIcon from '~icons/lucide/plus';
   import type { ApiKeyScope, ApiKeySummary, HttpValidationProblemDetails } from '@screenhire/api-client';
   import {
     ApiError,

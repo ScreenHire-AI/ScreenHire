@@ -52,7 +52,9 @@ new route is the `/add-dashboard-page` skill.
 - shadcn-svelte components in `src/lib/components/ui` are our code: edit them freely, and keep ScreenHire variants
   there (the `clear`, `review`, `verify`, `ai`, `neutral`, `quiet`, `muted` and `count` badge variants). Add new ones with
   `pnpm exec svelte-kit sync` then `pnpm dlx shadcn-svelte@1.7.0 add <name> --yes --no-deps-install` from
-  `apps/dashboard`, then change only what the tokens rule below needs (`card` came in this way). Use `field` with
+  `apps/dashboard`, then change only what the tokens rule below needs (`card` came in this way). The generated files import icons from
+  `@lucide/svelte/icons/<name>`: change each to `~icons/lucide/<name>` (design system section 14), and the dashboard
+  does not depend on `@lucide/svelte`. Use `field` with
   superforms 3 for forms, not the `form` component; use Sheet, not Drawer.
 - Tokens only. Colours, fonts, type sizes and radii come from `@screenhire/ui` through Tailwind classes (`bg-card`,
   `text-muted-foreground`, `text-status-review`). Never a hex value, never `rgb(...)`, never a Tailwind palette

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
+  import EllipsisIcon from '~icons/lucide/ellipsis';
   import type { Snippet } from 'svelte';
   import { buttonVariants, type ButtonSize } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';

@@ -163,6 +163,8 @@ Procedures: `/add-dashboard-page`, `/add-careers-page`, `/add-marketing-page`.
   invalidate queries by API path (`#lib/realtime.ts`). Single-key shortcuts can be turned off (WCAG 2.1.4).
 - **shadcn-svelte:** components in `apps/dashboard/src/lib/components/ui` are our code; edit freely. Use `field` +
   superforms 3, not the `form` component; Sheet, not Drawer.
+- **Icons:** Lucide through `~icons/lucide/<name>` (unplugin-icons, design system section 14); never `@lucide/svelte`,
+  whose three files per icon were a fifth of every worktree's install.
 - **Tokens only:** colours, fonts, type sizes and radii come from `@screenhire/ui` (Tailwind classes like `bg-card`,
   `text-status-review`); never hard-code hex values or pixel font sizes. Status = its icon + colour + text label,
   always.

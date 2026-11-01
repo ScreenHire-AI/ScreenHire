@@ -1,5 +1,5 @@
 <script lang="ts">
-  import CircleXIcon from '@lucide/svelte/icons/circle-x';
+  import CircleXIcon from '~icons/lucide/circle-x';
   import { createCloseJob, createKeepInMind, createListJobApplications } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { page } from '$app/state';

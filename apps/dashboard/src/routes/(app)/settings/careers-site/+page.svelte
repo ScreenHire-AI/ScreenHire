@@ -1,6 +1,6 @@
 <script lang="ts">
-  import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
-  import SaveIcon from '@lucide/svelte/icons/save';
+  import ExternalLinkIcon from '~icons/lucide/external-link';
+  import SaveIcon from '~icons/lucide/save';
   import type { HttpValidationProblemDetails, OrganizationProfile } from '@screenhire/api-client';
   import {
     ApiError,

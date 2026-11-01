@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { ActionType, Automation, ConditionOperator, DefinitionError, HiringWorkflow, TriggerType } from '@screenhire/api-client';
   import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
-  import Trash2Icon from '@lucide/svelte/icons/trash-2';
+  import Trash2Icon from '~icons/lucide/trash-2';
   import { createListRoles, createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import IconButton from '#lib/components/icon-button.svelte';
   import ReorderList from '#lib/components/reorder-list.svelte';

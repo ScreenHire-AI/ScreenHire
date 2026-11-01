@@ -1,5 +1,5 @@
 <script lang="ts">
-  import UserPlusIcon from '@lucide/svelte/icons/user-plus';
+  import UserPlusIcon from '~icons/lucide/user-plus';
   import { QueryClient, setQueryClientContext } from '@tanstack/svelte-query';
   import AddCandidateSheet from '#lib/components/add-candidate-sheet.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
