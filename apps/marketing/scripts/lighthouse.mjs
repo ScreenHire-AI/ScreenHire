@@ -253,17 +253,25 @@ export async function stopChrome(chrome, waitMs = 5_000) {
   return waitForExit();
 }
 
+/** How to run `pnpm install` in tools/lighthouse: through the pnpm that started this script when there is one, else the `pnpm` on PATH. */
+export function toolInstallCommand({ npmExecPath, platform, dir = toolDir }) {
+  const args = ['install', '--frozen-lockfile', '--ignore-workspace', '--dir', dir];
+  if (npmExecPath?.includes('pnpm')) {
+    return { command: process.execPath, args: [npmExecPath, ...args], shell: false };
+  }
+
+  // `pnpm` is a .cmd shim on Windows, which only a shell can start.
+  return { command: 'pnpm', args, shell: platform === 'win32' };
+}
+
 /**
  * Installs tools/lighthouse (frozen to its lockfile) and returns `{ lighthouse, chromeLauncher }` from it. pnpm is
  * started the way the caller started it: through npm_execpath under `pnpm run`, else the `pnpm` on PATH (a .cmd shim on
  * Windows, which needs a shell).
  */
 export async function loadTool() {
-  const pnpmArgs = ['install', '--frozen-lockfile', '--ignore-workspace', '--dir', toolDir];
-  const pnpmScript = process.env.npm_execpath?.includes('pnpm') ? process.env.npm_execpath : undefined;
-  const install = pnpmScript
-    ? spawnSync(process.execPath, [pnpmScript, ...pnpmArgs], { stdio: 'inherit', timeout: TOOL_INSTALL_LIMIT_MS })
-    : spawnSync('pnpm', pnpmArgs, { stdio: 'inherit', timeout: TOOL_INSTALL_LIMIT_MS, shell: process.platform === 'win32' });
+  const { command, args, shell } = toolInstallCommand({ npmExecPath: process.env.npm_execpath, platform: process.platform });
+  const install = spawnSync(command, args, { stdio: 'inherit', timeout: TOOL_INSTALL_LIMIT_MS, shell });
   if (install.status !== 0) {
     throw new Error(`pnpm install in tools/lighthouse failed (${install.error?.message ?? `exit ${install.status}`})`);
   }

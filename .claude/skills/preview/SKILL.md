@@ -1,6 +1,6 @@
 ---
 description: Start ScreenHire locally with its demo data through the Aspire CLI, wait until it is usable, report the URLs and logins, and open it in the task's browser pane; rebuild one service after a code change; or stop it. Use for "preview", "run the app", "start the stack", "show me", "look at my change in the app", and when /run looks for a project skill. Arguments: none (keep this clone's data), fresh (a clean demo, nothing deleted), stop.
-argument-hint: [fresh | stop]
+argument-hint: [fresh | keep | api | stop]
 ---
 
 # Preview
@@ -11,8 +11,17 @@ Brightwater's demo data, through the Aspire CLI. What the demo data is, and the 
 
 **Arguments:** $ARGUMENTS
 
-- none: keep this clone's data volumes, so changes from earlier previews are still there.
-- `fresh`: a clean demo with no volumes at all. Nothing is deleted; the next run without `fresh` has the old data back.
+- none: in the main checkout, keep this clone's data volumes, so changes from earlier previews are still there. In a
+  Kangentic worktree (the path contains `.kangentic/worktrees/`), start with no volumes, like `fresh`: the volumes are
+  named from the AppHost's path, so every worktree that kept data left three behind when it was deleted (123 of them,
+  about 3 GB, on 2026-11-01). The demo reseeds on each start; the API was healthy 25 s after the start command on
+  2026-11-01.
+- `fresh`: a clean demo with no volumes at all. Nothing is deleted; the next run with `keep` (or in the main checkout
+  without `fresh`) has the old data back.
+- `keep`: in a worktree, keep this worktree's data volumes, as the main checkout does. Remove them yourself when the
+  worktree is finished (the wipe steps at the end).
+- `api`: the backend only, for a task that touches no frontend: no dashboard, careers or marketing dev servers and no
+  Node installers. See "API only" below.
 - `stop`: go to step 6.
 
 The Aspire CLI is a repo-local tool (`dotnet-tools.json`, pinned to the AppHost's Aspire version), so every command is
@@ -42,11 +51,14 @@ dotnet aspire start --non-interactive --nologo --isolated --apphost apps/apphost
 - `--isolated` gives every port a random free number and the run its own user secrets, so worktrees never collide and
   no port needs reserving. Use it in a Kangentic worktree (the path contains `.kangentic/worktrees/`). In the main
   checkout leave it out, which keeps the pinned ports from CLAUDE.md "Commands".
-- `fresh`: append `-- --ScreenHire:PersistData=false`.
+- `fresh`, or no argument in a worktree (and not `keep`): append `-- --ScreenHire:PersistData=false`.
+- `api`: append `-- --ScreenHire:Frontends=None --ScreenHire:Demo=true` (and `--ScreenHire:PersistData=false` unless
+  `keep` in a worktree). `Demo` is on by default only with `Dev` frontends, so it is set here; the API is still healthy
+  only once the demo data is in.
 - It returns once the AppHost is up, with JSON holding `dashboardUrl` (the Aspire dashboard, login token included). A
   first start pulls images and builds, so give the call a 10-minute timeout.
-- Without `fresh`, a second start (isolated or not) reuses this clone's data volumes: their names come from the
-  AppHost's path, not from the run.
+- With data volumes (the main checkout, or `keep`), a second start (isolated or not) reuses this clone's volumes: their
+  names come from the AppHost's path, not from the run.
   Nothing keeps running in this session's shell, so a Kangentic task's turn-end automations are not held.
 - One stack per clone: starting again replaces this clone's running stack (which is how a `fresh` start or an AppHost
   change is picked up). Other worktrees' stacks are other AppHosts and are not touched.
@@ -57,7 +69,7 @@ dotnet aspire start --non-interactive --nologo --isolated --apphost apps/apphost
 dotnet aspire wait api --non-interactive --nologo --apphost apps/apphost/ScreenHire.AppHost.csproj --timeout 600
 ```
 
-Then the same for `dashboard`, `careers` and `mailpit`. The API turns healthy only once the demo data is in, so ready
+Then the same for `dashboard`, `careers` and `mailpit` (in `api` mode, only `mailpit`). The API turns healthy only once the demo data is in, so ready
 means the data is there. A first start pulls images and builds, hence the long timeout. If a wait fails, report its
 output and `dotnet aspire logs <resource> --non-interactive --nologo --apphost apps/apphost/ScreenHire.AppHost.csproj`.
 
@@ -79,7 +91,7 @@ prints any, report that the demo data is partial, with the exception. Report:
 - the logins: **Continue with Dev SSO** on the dashboard, then Avery Quinn, Brightwater's Owner (the guide's "Demo
   logins" has the others);
 - one line on the data, linking `docs/operations/local-demo.md` ("What the demo data is");
-- unless `fresh`, this clone's data volumes (each resource's `volumes`), so a wipe can name them;
+- when the stack has data volumes (the main checkout, or `keep`), this clone's data volumes (each resource's `volumes`), so a wipe can name them;
 - editing while it runs: frontend changes reload on their own. After a change to the API or the worker, run
   `dotnet aspire resource api rebuild --non-interactive --nologo --apphost apps/apphost/ScreenHire.AppHost.csproj`
   (or `worker`): it rebuilds that project and restarts it while the rest keeps running. After an AppHost change, run
@@ -106,6 +118,18 @@ An offscreen pane (another project is open in Kangentic) screenshots blank; read
 
 Outside Kangentic, print the dashboard URL and the sign-in steps.
 
+## API only (`/preview api`)
+
+Steps 1 to 4 and 6 as above, with the `api` flags in step 2. Step 5 does not apply: nothing serves a dashboard. Report the
+API URL, its reference (`/scalar`), Mailpit, and how to sign in: open `<api URL>/v1/auth/challenge/dev-sso?returnUrl=%2F`,
+which redirects to Dev SSO, and pick Avery Quinn. Without a session the API answers 401. An organization API key
+(ADR-0011) is created on the dashboard's API keys page, so a task that needs one starts the full stack instead.
+
+Measured on 2026-11-01, one run each, with no data volumes: the full stack was 8 processes and 2,272 MB of working set
+for this worktree's dotnet and node processes, 19 resources, healthy 25 s after the start command; `api` mode was 5
+processes and 1,219 MB, 13 resources, healthy 31 s after. It saves memory and processes, not start-up time. The
+redirect to Dev SSO, Scalar and the 401 were checked; completing the login in a browser was not.
+
 ## 6. Stop (`/preview stop`)
 
 ```bash
@@ -126,5 +150,5 @@ stay. Confirm:
 Leave it running for a person who asked for it. A board agent that started it to check its own change runs
 `/preview stop` before printing a board outcome line, so the worktree can be removed later.
 
-To wipe this clone's persisted demo data: `/preview stop`, then `docker volume rm <name>` for each of the three data
+To wipe this clone's persisted demo data (only the main checkout and a worktree started with `keep` have any): `/preview stop`, then `docker volume rm <name>` for each of the three data
 volumes step 4 reported, one by one.

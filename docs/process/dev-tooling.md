@@ -62,7 +62,7 @@ A skill is a procedure, run with `/<name>` or loaded by Claude Code when the tas
 | [`add-marketing-page`](../../.claude/skills/add-marketing-page/SKILL.md) | adding a marketing, pricing, legal or content page | static Astro page through `BaseLayout` and `Seo.astro`, JSON-LD, sitemap and `llms.txt`, no client JS |
 | [`commit`](../../.claude/skills/commit/SKILL.md) | saving work mid-task | a local conventional commit; no push, no gate |
 | [`merge-back`](../../.claude/skills/merge-back/SKILL.md) | the owner lands a small tooling, config or docs change from the root checkout | commit, rebase onto `origin/main`, path-scoped checks (or `full` for `pnpm verify`), push to `main` with no PR; only when the owner asks, and it refuses inside a task worktree |
-| [`preview`](../../.claude/skills/preview/SKILL.md) | looking at the app, or checking a change in it (`/run` uses it) | starts the stack through the Aspire CLI (`dotnet aspire start --isolated` in a worktree), waits with `aspire wait` until the demo data is in, reports URLs and logins from `aspire describe`, signs in as Avery Quinn in the task's browser pane, rebuilds one service after a code change; `fresh` for a clean demo, `stop` for `aspire stop` |
+| [`preview`](../../.claude/skills/preview/SKILL.md) | looking at the app, or checking a change in it (`/run` uses it) | starts the stack through the Aspire CLI (`dotnet aspire start --isolated` in a worktree), waits with `aspire wait` until the demo data is in, reports URLs and logins from `aspire describe`, signs in as Avery Quinn in the task's browser pane, rebuilds one service after a code change; `fresh` for a clean demo (the default in a worktree, so it leaves no volumes; `keep` persists them), `api` for the backend only, `stop` for `aspire stop` |
 | [`sync-docs`](../../.claude/skills/sync-docs/SKILL.md) | a change touches commands, AppHost resources, projects, `.claude/` or `docs/` | owns the source-to-doc anchor table, maps a changed file to its docs with `node scripts/docs-bundle.mjs sources`, runs `doc-auditor`, fixes drifted docs and prose |
 | [`verify`](../../.claude/skills/verify/SKILL.md) | before every commit, before calling implementation done, and inside Code Review and Testing | the local checks: `pnpm verify:fast` and the tests the branch added or changed, by class or file; `/verify full` runs `pnpm verify` for the owner |
 | [`task-review`](../../.claude/skills/task-review/SKILL.md) | the Code Review column runs it | independent review with the agents below; for a dashboard change it starts `/preview`, screenshots `/style-guide` and the changed pages at 1440, 768 and 390px, measures them with [`visual-probe.js`](../../.claude/skills/task-review/visual-probe.js) and hands both to `design-review`, then stops the stack; fixes findings and proves the fixes with `/verify` and the covering test classes by name; `Verdict: Ready` or `Verdict: Blocked` |
@@ -210,12 +210,24 @@ What would help, filed as tasks:
   `unplugin-icons` with `@iconify-json/lucide` (one JSON file): a clean install with `--ignore-scripts` took 16.5 s and
   44,093 files before, 12.3 s and 35,929 files after (same day, one run each).
 
-Two things that look like levers but are not:
+Things that look like levers but are not (all measured on 2026-11-01, one run each, so a gain under a second is inside the noise):
 - Superforms installs every validator library it has an adapter for (`typebox`, `effect`, `class-validator` and
   more), although the dashboard uses only `zod4`. `sveltekit-superforms/adapters` imports them all statically, so
   leaving them out with pnpm's `ignoredOptionalDependencies` would break the dashboard build.
 - Kangentic's `linkNodeModules` links only the root `node_modules`, from the root checkout's lockfile, so the
   `apps/*` and `packages/*` folders would still install. Keep it off.
+- pnpm's global virtual store (`enableGlobalVirtualStore`, pnpm 10.34) on Windows: the first install took 28 s, and a
+  second fresh worktree 28 s again with the shared links already there, against 18 s for the normal install.
+- Skipping `verify:dotnet` and `verify:contract` in `/verify` when no .NET input changed: 19 of the last 20 merged
+  pull requests changed one, so the rule would have skipped the build once.
+- CI's analyzer and OpenAPI flags on a local test build (`-p:RunAnalyzers=false -p:EnforceCodeStyleInBuild=false
+  -p:OpenApiGenerateDocuments=false`): a warm build of `tests/ScreenHire.UnitTests` took 7.1 to 7.7 s without them and
+  4.6 to 5.1 s with them. The saving is 2.5 s, so `/verify` does not carry the flags.
+- Root `pnpm.overrides` for `aria-query` (5.3.2), `yaml` (2.9.1) and `@opentelemetry/api` (`-`, an optional peer nothing
+  imports): the checks, the builds and 199 dashboard tests passed, and it removed 1,138 of 38,220 files, about 3%, about
+  0.5 s. Three permanent pins for that were reverted.
+- Moving `orval` to `tools/orval` like Lighthouse: 2,320 files, about 1 s, and an install step inside `verify:contract`,
+  which every column runs.
 
 `.kangentic/config.json` also lists `.claude/settings.local.json` in `copyFiles`, but Kangentic skips `.claude/` entries,
 so a new worktree does not get that file.

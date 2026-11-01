@@ -40,7 +40,7 @@ subsystem.
   with **Dev SSO** (the local mock provider; "Avery Quinn" owns the seeded Brightwater) or an email link; every email
   lands in **Mailpit**. No real provider accounts or secrets are needed. `pnpm dev` also seeds the demo data
   (`DevelopmentDemo`); the five-minute demo is [`docs/operations/local-demo.md`](docs/operations/local-demo.md).
-- **To look at the app, use `/preview`** (`/preview fresh` for a clean demo, `/preview stop`). It runs the stack
+- **To look at the app, use `/preview`** (`/preview fresh` for a clean demo, `/preview api` for the backend only, `/preview keep` to keep a worktree's data, `/preview stop`; a worktree starts with no data volumes by default). It runs the stack
   through the Aspire CLI (`dotnet aspire start`, `wait`, `describe`, `stop`), reports the URLs and logins and opens the
   dashboard in the task's browser pane; `/run` uses it too. Agents never `dotnet run` the AppHost. After a change to the
   API or worker, `dotnet aspire resource api rebuild` (or `worker`) rebuilds and restarts just that service.

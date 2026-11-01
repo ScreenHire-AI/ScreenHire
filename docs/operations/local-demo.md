@@ -58,6 +58,10 @@ same emails and anything you changed.
 
 ### Start over
 
+- **A worktree starts clean:** in a Kangentic worktree `/preview` starts with no volumes, so the demo reseeds on each start
+  (the API was healthy 25 s after the start command on 2026-11-01) and the worktree leaves nothing behind. `/preview keep`
+  keeps this worktree's data instead.
+- **Backend only:** `/preview api` starts no frontends (5 processes and 1,219 MB against 8 and 2,272 MB on 2026-11-01).
 - **A clean demo, keeping your data:** `/preview fresh`, or
   `dotnet aspire start --apphost apps/apphost/ScreenHire.AppHost.csproj -- --ScreenHire:PersistData=false` (add
   `--isolated` before `--` in a worktree). It runs with no volumes at all and deletes nothing; the next normal start has
