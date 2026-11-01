@@ -44,7 +44,7 @@ Fix small problems here and merge. Do not hand them back.
 3. `head` must equal `git rev-parse HEAD`.
    - Local HEAD has commits the PR lacks: push them (`git push origin HEAD:<prHead>`) and go to Step 2, item 4.
    - The PR head has commits the worktree lacks: someone else pushed. Report it and end with `PR: blocked`.
-4. `mergeable` (before `gate`: GitHub starts no pull request run while the PR conflicts):
+4. `mergeable`. Read it before `gate`, because GitHub starts no pull request run while the PR conflicts.
    - `MERGEABLE`: go on.
    - `CONFLICTING`: go to Step 2.
    - `UNKNOWN`: GitHub is still computing it. Read item 2 again, up to three times. Still unknown: report and end
