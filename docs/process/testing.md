@@ -9,6 +9,7 @@ sources:
   - resource: tests/ScreenHire.Testing/ScheduledMessages.cs
   - resource: apps/marketing/scripts/check-dist.mjs
   - resource: apps/marketing/scripts/lighthouse.mjs
+  - resource: tools/lighthouse/package.json
   - resource: scripts/install-browsers.mjs
   - resource: global.json
   - resource: .github/workflows/ci.yml
@@ -260,11 +261,16 @@ The marketing site's SEO and performance budgets (ADR-0003) are checked at three
 |---|---|---|
 | Unique titles and descriptions in the page registry, JSON-LD builders, pricing placeholders | Vitest, `apps/marketing/src/lib/*.test.ts` | `pnpm -r --if-present test` |
 | At most 15 KB of brotli JS per page (JSON-LD excluded), no broken internal links or Open Graph images, a body-font preload on every page | `apps/marketing/scripts/check-dist.mjs`, after `astro build` | `pnpm -r build` |
-| Mobile LCP under 1.8 s, CLS under 0.05, JS bytes, on every page in the sitemap | `apps/marketing/scripts/lighthouse.mjs` (Lighthouse on Astro's preview server) | `verify:lighthouse`, run by CI's report-only `lighthouse` job for a change to `apps/marketing`, `packages/ui` or `pnpm-lock.yaml`, with the result reported by `/pull-request`; by hand while working on a page; not in `pnpm verify` |
+| Mobile LCP under 1.8 s, CLS under 0.05, JS bytes, on every page in the sitemap | `apps/marketing/scripts/lighthouse.mjs` (Lighthouse on Astro's preview server) | `verify:lighthouse`, run by CI's report-only `lighthouse` job for a change to `apps/marketing`, `packages/ui`, `pnpm-lock.yaml` or `tools/lighthouse`, with the result reported by `/pull-request`; by hand while working on a page; not in `pnpm verify` |
 | Unique title, description and canonical; hreflang; Open Graph image; JSON-LD types per page; no script but JSON-LD; axe; no sideways scroll at 390px; 404 | `tests/ScreenHire.E2E/MarketingTests.cs` | `verify:test` |
 
 `MarketingTests` keeps a table of every indexable page and the schema.org types it must carry, and fails if the
-sitemap lists a page the table does not, so a new page cannot skip the checks. Lighthouse uses CHROME_PATH, then
+sitemap lists a page the table does not, so a new page cannot skip the checks. Lighthouse and chrome-launcher are not
+workspace dependencies: they live in `tools/lighthouse` (its own `package.json` and lockfile, outside
+`pnpm-workspace.yaml`), because they reach 73 packages that nothing else uses and every new worktree installs the
+workspace. The script runs `pnpm install --frozen-lockfile --ignore-workspace --dir tools/lighthouse` before each run
+(a second or two when current; `--ignore-workspace` stops pnpm installing the root workspace instead). Change their
+versions there, not in `apps/marketing`. Lighthouse uses CHROME_PATH, then
 Playwright's Chromium, then an installed Chrome. On Linux it starts Chrome with `--no-sandbox`, because Ubuntu 24.04
 restricts the user namespaces Chromium's sandbox needs; Playwright's own launches run without it by default. Its simulated mobile numbers were identical to within 3 ms across
 two consecutive full runs (about 90 s each). Run a subset with
@@ -344,7 +350,7 @@ another's.
 | `vitest` (2 shards) | The dashboard's Vitest suite with Vitest's own `--shard`. No .NET | 15 min |
 | `integration` (8 shards) | `tests/ScreenHire.IntegrationTests` on the runner's Docker Engine, one AppHost per shard | 25 min |
 | `e2e` (8 shards) | `pnpm -r build`, then `tests/ScreenHire.E2E` with Playwright's Chromium, one AppHost per shard | 25 min |
-| `lighthouse` | `pnpm verify:lighthouse` on the marketing build, only when the change touches `apps/marketing`, `packages/ui` or `pnpm-lock.yaml` (otherwise a notice says so). Report-only: a budget miss is a warning, the job stays green, and it is not in the gate, because shared runners have no LCP baseline yet | 20 min |
+| `lighthouse` | `pnpm verify:lighthouse` on the marketing build, only when the change touches `apps/marketing`, `packages/ui`, `pnpm-lock.yaml` or `tools/lighthouse` (otherwise a notice says so). It installs `tools/lighthouse` in its own step. Report-only: a budget miss is a warning, the job stays green, and it is not in the gate, because shared runners have no LCP baseline yet | 20 min |
 | `gate` (`Gate`) | Nothing but a check that `checks` and every shard of `vitest`, `integration` and `e2e` succeeded. It runs even when they fail (`always()`), so a skipped or cancelled job never reads as a pass. The board's skills read it by name on the PR's head. Branch protection on `main` did not require it as of 2026-10-31 (an owner action), so the skills check it themselves | 5 min |
 
 xUnit and Microsoft Testing Platform have no shard option, so [`scripts/test-shard.mjs`](../../scripts/test-shard.mjs)

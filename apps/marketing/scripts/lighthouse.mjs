@@ -15,6 +15,12 @@
 // reads the built sitemap, so every new page is measured without a list to keep in step, and it adds no second copy
 // of Lighthouse to the tree.
 //
+// Lighthouse and chrome-launcher live in tools/lighthouse, outside pnpm-workspace.yaml: they reach 73 packages (about
+// 8,300 files) that nothing else uses, and every new worktree installs the workspace. A run installs that folder first
+// with `pnpm install --frozen-lockfile --ignore-workspace` (a second or two when it is current), then imports both
+// through tools/lighthouse/index.mjs. --ignore-workspace is needed: without it pnpm walks up to the root workspace and
+// installs that instead. Nothing else in this file imports from there, so lighthouse.test.mjs runs without the tool.
+//
 // Browser: CHROME_PATH if set; otherwise the Chromium that `pnpm e2e:install` puts in Playwright's cache (so a run
 // needs nothing the end-to-end tests do not already need); otherwise an installed Chrome found by chrome-launcher.
 //
@@ -23,15 +29,14 @@
 // `taskkill /T /F` in a shell and only logs a failure, and a live Chrome child keeps Node's event loop running. So each
 // page has a time limit, the whole run has one, Chrome's exit is checked after the kill (with a direct kill as the
 // fallback), and the script ends with process.exit.
+import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, rmSync, statSync, writeSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { homedir, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { preview } from 'astro';
-import * as chromeLauncher from 'chrome-launcher';
-import lighthouse from 'lighthouse';
 
 const BUDGETS = { lcpMs: 1800, cls: 0.05, scriptBytes: 15 * 1024 };
 
@@ -45,7 +50,11 @@ const LOCK_PATH = join(tmpdir(), 'screenhire-lighthouse.lock');
 const LOCK_STALE_MS = RUN_LIMIT_MS + 60_000;
 const LOCK_WAIT_LIMIT_MS = 10 * 60_000;
 
+// A first install downloads about 110 packages; a current one takes a second or two.
+const TOOL_INSTALL_LIMIT_MS = 3 * 60_000;
+
 const root = fileURLToPath(new URL('..', import.meta.url));
+const toolDir = fileURLToPath(new URL('../../../tools/lighthouse/', import.meta.url));
 const dist = fileURLToPath(new URL('../dist', import.meta.url));
 
 function freePort() {
@@ -244,6 +253,24 @@ export async function stopChrome(chrome, waitMs = 5_000) {
   return waitForExit();
 }
 
+/**
+ * Installs tools/lighthouse (frozen to its lockfile) and returns `{ lighthouse, chromeLauncher }` from it. pnpm is
+ * started the way the caller started it: through npm_execpath under `pnpm run`, else the `pnpm` on PATH (a .cmd shim on
+ * Windows, which needs a shell).
+ */
+export async function loadTool() {
+  const pnpmArgs = ['install', '--frozen-lockfile', '--ignore-workspace', '--dir', toolDir];
+  const pnpmScript = process.env.npm_execpath?.includes('pnpm') ? process.env.npm_execpath : undefined;
+  const install = pnpmScript
+    ? spawnSync(process.execPath, [pnpmScript, ...pnpmArgs], { stdio: 'inherit', timeout: TOOL_INSTALL_LIMIT_MS })
+    : spawnSync('pnpm', pnpmArgs, { stdio: 'inherit', timeout: TOOL_INSTALL_LIMIT_MS, shell: process.platform === 'win32' });
+  if (install.status !== 0) {
+    throw new Error(`pnpm install in tools/lighthouse failed (${install.error?.message ?? `exit ${install.status}`})`);
+  }
+
+  return import(pathToFileURL(join(toolDir, 'index.mjs')).href);
+}
+
 /** Measures every path; returns the exit code. */
 async function main() {
   if (!existsSync(`${dist}/sitemap-0.xml`)) {
@@ -256,6 +283,16 @@ async function main() {
   if (invalid.length > 0) {
     // Git Bash rewrites "/pricing/" into a Windows path; MSYS_NO_PATHCONV=1 stops it.
     console.error(`lighthouse: paths must start with "/": ${invalid.join(', ')}. In Git Bash, set MSYS_NO_PATHCONV=1.`);
+    return 1;
+  }
+
+  // Before the lock, so installing is neither charged to the run limit nor held against a queued run.
+  let lighthouse;
+  let chromeLauncher;
+  try {
+    ({ lighthouse, chromeLauncher } = await loadTool());
+  } catch (error) {
+    console.error(`lighthouse: ${error.message}. Report it as infrastructure (see /verify).`);
     return 1;
   }
 

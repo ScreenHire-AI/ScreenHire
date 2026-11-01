@@ -203,8 +203,10 @@ What would help, filed as tasks:
 - In Kangentic (#955 to #957 on its board): start the agent while the install runs and hold its first prompt until
   the install ends; keep a finished task's cleanup out of its dependents' installs; investigate a spare worktree that
   is already installed.
-- Here (#81): `lighthouse` alone reaches 73 packages, about 8,300 files, that nothing else needs. It moves out of the
-  workspace install.
+- Here (#81, done): `lighthouse` alone reached 73 packages, about 8,300 files, that nothing else needs. It now lives in
+  `tools/lighthouse`, outside the workspace, and `pnpm verify:lighthouse` installs it on first use. A cold install in a
+  throwaway worktree went from 23.0 s, 55,089 files and 714 packages to 18.0 s, 44,092 files and 640 packages (one
+  run each, 2026-11-01).
 
 Two things that look like levers but are not:
 - Superforms installs every validator library it has an adapter for (`typebox`, `effect`, `class-validator` and

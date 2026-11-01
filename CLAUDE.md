@@ -25,6 +25,7 @@ subsystem.
 | `src/ScreenHire.Domain` | Domain model (no framework dependencies) |
 | `src/ScreenHire.Infrastructure` | EF Core (Postgres, snake_case), migrations |
 | `src/ScreenHire.ServiceDefaults` | Aspire service defaults: OpenTelemetry, health checks, service discovery, resilience |
+| `tools/lighthouse` | Lighthouse and chrome-launcher for `pnpm verify:lighthouse`, outside `pnpm-workspace.yaml` so a worktree's install skips their 73 packages; the script installs them on first use (`pnpm install --frozen-lockfile --ignore-workspace --dir tools/lighthouse`) |
 | `tests/` | xUnit v3 + AwesomeAssertions: `ScreenHire.UnitTests`, `ScreenHire.IntegrationTests` (Aspire), `ScreenHire.E2E` (Playwright), `ScreenHire.Testing` (shared AppHost fixture). Vitest lives next to the frontend code. See [`docs/process/testing.md`](docs/process/testing.md) |
 
 ## Commands
@@ -92,7 +93,7 @@ subsystem.
   those.
 - Marketing budgets: `pnpm --filter @screenhire/marketing build` fails on more than 15 KB of JS per page or a broken
   internal link; `pnpm --filter @screenhire/marketing lighthouse [paths]` (= `verify:lighthouse`) checks mobile LCP
-  under 1.8 s and CLS under 0.05 on the build, headless, using Playwright's Chromium. CI's `Lighthouse (report-only)` job
+  under 1.8 s and CLS under 0.05 on the build, headless, using Playwright's Chromium (it installs `tools/lighthouse` on first use). CI's `Lighthouse (report-only)` job
   runs it for a pull request that changes the marketing build, and `/pull-request` reports the result without
   blocking on it until the budgets are calibrated on the runners. Locally, run it with paths while you work on a page;
   only one run measures at a time on the machine (the next one waits).
