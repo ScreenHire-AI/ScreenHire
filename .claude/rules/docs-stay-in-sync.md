@@ -35,8 +35,8 @@ docs to re-check after changing it. A file no doc lists is a gap to fill in the 
 
 ## Enforcement
 
-- **Test.** `DocsBundleTests` (`tests/ScreenHire.UnitTests/Tooling/`) in `pnpm verify` fails on a doc without
-  frontmatter, an index line that differs from its doc's title or description, a `sources:` path that no longer
+- **Test.** `DocsBundleTests` (`tests/ScreenHire.UnitTests/Tooling/`), in CI's `checks` job and in `/sync-docs`,
+  fails on a doc without frontmatter, an index line that differs from its doc's title or description, a `sources:` path that no longer
   exists, a broken link or heading fragment (or a link whose case differs from its file), and a `docs/...` path
   cited from code, CLAUDE.md or `.claude/` that does not exist.
 - **Agent.** `doc-auditor` compares each enumerated source with its doc and reports what is missing or extra.

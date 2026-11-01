@@ -1,7 +1,7 @@
 ---
 type: Guide
 title: "Testing"
-description: "Which test tier proves what (xUnit, Vitest, Aspire integration, Playwright), running one test, the shared AppHostFixture, isolating data by organization, golden files, the marketing JS and Lighthouse checks, CI on GitHub Actions and how to read a failed run, the flake policy and its history, and gate time."
+description: "Which test tier proves what (xUnit, Vitest, Aspire integration, Playwright), running one test and a branch's own tests, the shared AppHostFixture, isolating data by organization, golden files, the marketing JS and Lighthouse checks, CI on GitHub Actions as the board's gate and how to read a failed run, the flake policy and its history, and gate time locally and in CI."
 tags: [testing, xunit, playwright, vitest]
 sources:
   - resource: tests/ScreenHire.Testing/AppHostFixture.cs
@@ -17,9 +17,10 @@ sources:
 ---
 # Testing
 
-Every tier of test has a home, a pattern and a place in `pnpm verify`, so a feature task only adds tests. The local
-gate ([`/verify`](../../.claude/skills/verify/SKILL.md)) is the board's gate, and CI runs the same suites on Linux for
-every pull request ([Continuous integration](#continuous-integration)); a suite that is in neither does not exist.
+Every tier of test has a home, a pattern and a place in CI, so a feature task only adds tests. CI runs every suite on
+Linux for every pull request, and its `Gate` check is the board's gate ([Continuous integration](#continuous-integration),
+ADR-0020). Locally an agent runs the fast check and its branch's own tests ([`/verify`](../../.claude/skills/verify/SKILL.md));
+`pnpm verify` still runs everything on one machine, for the owner. A suite that is in neither does not exist.
 
 ## Which tier for what
 
@@ -39,12 +40,15 @@ covers the endpoint. End-to-end tests prove that the pieces connect and render; 
 
 | What | Command |
 |---|---|
-| The whole gate | `pnpm verify` (see `/verify`) |
-| All .NET suites | `dotnet test --solution ScreenHire.slnx` |
-| One .NET project | `dotnet test --project tests/ScreenHire.UnitTests` |
-| One .NET test or class | `dotnet test --project tests/ScreenHire.UnitTests --filter-method "*closed_job_cannot*"` (also `--filter-class`, `--filter-trait`) |
+| The fast check | `pnpm verify:fast`: `verify:dotnet`, `verify:contract`, `pnpm check` (about 50 s warm on the dev machine) |
+| The branch's own tests | `/verify`: the test files in `git diff --name-only --diff-filter=d origin/main...HEAD` and `git status`, by class or file |
+| The whole suite | CI, on the pull request. Locally `pnpm verify` (`/verify full`), only when the owner asks |
+| All .NET suites | `dotnet test --solution ScreenHire.slnx` (owner only, as above) |
+| One .NET project | `dotnet test --project tests/ScreenHire.UnitTests` (owner only, as above) |
+| One .NET test or class | `dotnet test --project tests/ScreenHire.UnitTests --filter-method "*closed_job_cannot*"` (also `--filter-class`, `--filter-trait`; repeat `--filter-class` for several classes) |
 | All Vitest suites | `pnpm -r --if-present test` |
-| One Vitest file or test | `pnpm --filter @screenhire/careers exec vitest run src/lib/format.test.ts -t formatSalary` |
+| One Vitest file | `pnpm --filter @screenhire/careers test src/lib/format.test.ts` (the `test` script keeps its `--fsModuleCachePath`) |
+| One Vitest test | `pnpm --filter @screenhire/careers exec vitest run src/lib/format.test.ts -t formatSalary` |
 | Watch a Vitest suite | `pnpm --filter @screenhire/dashboard exec vitest` (the `test` scripts use `vitest run`, which never watches, so the gate cannot hang; each also sets its own `--fsModuleCachePath`, because packages that share Vitest's default cache folder race to clear it on Windows) |
 
 The .NET suites run on Microsoft Testing Platform (`global.json`); `dotnet test` runs the test projects in parallel.
@@ -62,7 +66,7 @@ package (the npm `playwright` CLI may fetch a different one). Browsers go to Pla
 `Microsoft.Playwright`. Without it the end-to-end tests fail at once with a message that names this command.
 
 The end-to-end tests serve the frontends' **production builds**, so run `pnpm -r build` before running them on their
-own (`pnpm verify` builds first). They fail fast, naming the missing folders, when a build is absent; after changing a
+own (`pnpm verify` and CI's `e2e` job build first). They fail fast, naming the missing folders, when a build is absent; after changing a
 frontend, rebuild or they test the old build. `HEADED=1` shows the browser while you debug.
 
 ## Fixtures
@@ -256,7 +260,7 @@ The marketing site's SEO and performance budgets (ADR-0003) are checked at three
 |---|---|---|
 | Unique titles and descriptions in the page registry, JSON-LD builders, pricing placeholders | Vitest, `apps/marketing/src/lib/*.test.ts` | `pnpm -r --if-present test` |
 | At most 15 KB of brotli JS per page (JSON-LD excluded), no broken internal links or Open Graph images, a body-font preload on every page | `apps/marketing/scripts/check-dist.mjs`, after `astro build` | `pnpm -r build` |
-| Mobile LCP under 1.8 s, CLS under 0.05, JS bytes, on every page in the sitemap | `apps/marketing/scripts/lighthouse.mjs` (Lighthouse on Astro's preview server) | `verify:lighthouse`, run by the Testing column (`/pull-request`) for a branch that changes `apps/marketing`, `packages/ui` or `pnpm-lock.yaml`, and by CI's report-only `lighthouse` job for the same paths; not in `pnpm verify` |
+| Mobile LCP under 1.8 s, CLS under 0.05, JS bytes, on every page in the sitemap | `apps/marketing/scripts/lighthouse.mjs` (Lighthouse on Astro's preview server) | `verify:lighthouse`, run by CI's report-only `lighthouse` job for a change to `apps/marketing`, `packages/ui` or `pnpm-lock.yaml`, with the result reported by `/pull-request`; by hand while working on a page; not in `pnpm verify` |
 | Unique title, description and canonical; hreflang; Open Graph image; JSON-LD types per page; no script but JSON-LD; axe; no sideways scroll at 390px; 404 | `tests/ScreenHire.E2E/MarketingTests.cs` | `verify:test` |
 
 `MarketingTests` keeps a table of every indexable page and the schema.org types it must carry, and fails if the
@@ -272,10 +276,12 @@ paths are rewritten into Windows paths.
 Lighthouse used to be the last step of `pnpm verify`. On 2026-10-21 five gates ran it at once on one machine:
 five `lighthouse.mjs` processes at about 250 MB each and fourteen `pnpm` wrappers at about 92 MB each, about 2.5 GB
 before their Chromes. Five runs also measure each other, because Lighthouse multiplies the main-thread time it
-observes by 4. So it left the gate. The Testing column runs it once per task, and only when the branch changes what
-the marketing build outputs. Merge does not run it again after merging a newer `main`, so two marketing changes are
-never measured together before both land. That is a deliberate trade. Every page sits about 300 ms under the LCP
-budget, and the next marketing task's Testing run measures the combined site.
+observes by 4. So it left the gate. The Testing column then ran it once per task, for a branch that changed what the
+marketing build outputs. Since ADR-0020 no column runs it locally: CI's `lighthouse` job runs it on its own runner,
+report-only until the budgets are calibrated there, and `/pull-request` reports the result. Until then an LCP or CLS
+regression is reported in the PR body and nothing blocks it. Merge does not measure again after `main` moves, so two
+marketing changes are never measured together before both land; the next marketing pull request measures the combined
+site. The lock below now matters only for runs by hand.
 
 `lighthouse.mjs` takes a lock file, `screenhire-lighthouse.lock` in the user's temp folder, before it starts the
 preview server. A second run waits for it, up to 10 minutes, and says so. A lock older than the 5-minute run limit
@@ -322,8 +328,11 @@ should not be there. The budget stays with Lighthouse.
 
 [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs the gate's suites on GitHub's hosted Linux runners
 for every pull request to `main`, every push to `main`, and on demand (`workflow_dispatch`). A newer push to the same
-branch cancels the run before it. The board still gates on the local `pnpm verify`; CI is the second opinion on
-another OS until the board moves to it.
+branch cancels the run before it. CI is the board's gate (ADR-0020): `/pull-request` in the Testing column pushes
+once and waits for `Gate`, and `/merge-pull-request` merges only when `Gate` passed on the PR's head. A pull request
+run tests `refs/pull/<n>/merge`, the head merged with `main` as it was when the run started, so Merge does not run it
+again when `main` moves; the run on every push to `main` is the backstop for two green branches that break each
+other, and the next task whose CI fails on a red `main` fixes it in its own branch.
 
 The runners have 4 cores and each long suite is CPU-bound there, so the long suites run as matrix shards on separate
 runners. Every matrix sets `fail-fast: false`, so one shard's failure never hides
@@ -336,7 +345,7 @@ another's.
 | `integration` (8 shards) | `tests/ScreenHire.IntegrationTests` on the runner's Docker Engine, one AppHost per shard | 25 min |
 | `e2e` (8 shards) | `pnpm -r build`, then `tests/ScreenHire.E2E` with Playwright's Chromium, one AppHost per shard | 25 min |
 | `lighthouse` | `pnpm verify:lighthouse` on the marketing build, only when the change touches `apps/marketing`, `packages/ui` or `pnpm-lock.yaml` (otherwise a notice says so). Report-only: a budget miss is a warning, the job stays green, and it is not in the gate, because shared runners have no LCP baseline yet | 20 min |
-| `gate` (`Gate`) | Nothing but a check that `checks` and every shard of `vitest`, `integration` and `e2e` succeeded. It runs even when they fail (`always()`), so a skipped or cancelled job never reads as a pass. It is the one check branch protection requires | 5 min |
+| `gate` (`Gate`) | Nothing but a check that `checks` and every shard of `vitest`, `integration` and `e2e` succeeded. It runs even when they fail (`always()`), so a skipped or cancelled job never reads as a pass. The board's skills read it by name on the PR's head. Branch protection on `main` did not require it as of 2026-10-31 (an owner action), so the skills check it themselves | 5 min |
 
 xUnit and Microsoft Testing Platform have no shard option, so [`scripts/test-shard.mjs`](../../scripts/test-shard.mjs)
 splits a .NET test project by class:
@@ -441,8 +450,8 @@ and the test-only build flags take about a third off each shard's compile on top
    an artifact for 7 days: `integration-logs-<shard>` or `e2e-results-<shard>`, with each resource's console log in `logs/` and a
    screenshot of every failed end-to-end test in `screenshots/`. `gh run download <run-id> -n e2e-results-2` fetches the second shard's.
    Read the resource logs first, as locally ([`AppHostFixture`](#apphostfixture-testsscreenhiretesting)).
-4. Rerun a job only to tell a flake from a defect, and record a flake in [Flake history](#flake-history) as for a
-   local run.
+4. Rerun a job only to tell a flake from a defect: `gh run rerun <run-id> --failed` reruns the failed jobs on the same
+   commit with no push. Record a flake in [Flake history](#flake-history) as for a local run.
 
 ### Time
 
@@ -482,8 +491,8 @@ machine.
 
 A test that passes on a rerun with no change is a bug. Fix the cause: an unawaited task, a fixed delay, a shared
 port, shared data, or ordering between tests. Never add retries, sleeps or `Skip`, and never loosen an assertion to get
-through the gate. In end-to-end tests, wait on a condition (`Expect(...)`, a health check), never on time. The gate
-must pass twice in a row with no changes.
+through the gate. In end-to-end tests, wait on a condition (`Expect(...)`, a health check), never on time. A change to the test harness, or a flake fix, is proven in CI: the same commit passes twice in a row
+with no change, the second time through `gh run rerun <run-id>`.
 
 ### Flake history
 
@@ -526,7 +535,13 @@ What failed the gate with no change, and the cause that was fixed, so the next f
 
 ## Gate time
 
-Measured on the owner's machine (Windows 11, Docker Desktop), warm caches. Target: under ~8 minutes.
+Since ADR-0020 the gate is CI. Run 41246212243 (2026-10-31) took 9 min 0 s from start to `Gate`, most of it waiting
+for runners; with 20 runners at once the same run takes about 4.5 minutes ([Time](#time) has the jobs). Locally an
+agent runs `pnpm verify:fast`, 47 s on 2026-10-31 with warm caches, plus its own test classes; an Aspire class adds
+about 40 s for its AppHost.
+
+The measurements below are of the full local gate, `pnpm verify`, on the owner's machine (Windows 11, Docker
+Desktop), warm caches. Target: under ~8 minutes.
 
 | | Before this harness | After |
 |---|---|---|

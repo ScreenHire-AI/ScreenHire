@@ -55,11 +55,13 @@ subsystem.
 - **Never stop processes by name, port or process tree.** This machine also runs Kangentic (the board driving these
   tasks; its dev server owns :5173 and Electron owns other local ports). Stop only what you started — via the tool that
   started it, or a PID whose full command line you have checked points at this repo — and remove containers by exact
-  name after checking their Aspire labels. Never TaskStop a running `pnpm verify`: on Windows its tree keeps running.
+  name after checking their Aspire labels. Never TaskStop a running `pnpm verify:fast`, test run or `pnpm verify`:
+  on Windows its tree keeps running.
   Aspire's teardown on Windows can also kill an unrelated process whose launcher has exited; see "Processes on the
   dev machine" in [`docs/process/board-pipeline.md`](docs/process/board-pipeline.md).
 - Build / check: `pnpm build` (= `dotnet build ScreenHire.slnx` + `pnpm -r build`), `pnpm check` (svelte-check
-  `--fail-on-warnings`, astro check, tsc), `pnpm -r --if-present test` (Vitest), `dotnet test --solution
+  `--fail-on-warnings`, astro check, tsc), and, for the owner only (see "When to run tests locally" below),
+  `pnpm -r --if-present test` (Vitest) and `dotnet test --solution
   ScreenHire.slnx` (Microsoft Testing Platform via `global.json`: unit, Aspire integration and Playwright
   end-to-end; the last two boot the AppHost, so Docker must be running (`pnpm docker:start`), and the end-to-end
   tests serve the `pnpm -r build` output).
@@ -76,16 +78,24 @@ subsystem.
   Mailpit data in per-worktree volumes; `false` starts with none, as the tests do. `ScreenHire:Demo` (default: on with `Dev`
   frontends only) seeds the local demo's data on Brightwater, and the API is healthy only once it is in. The header of `apps/apphost/AppHost.cs`
   describes every setting.
-- **The gate:** `pnpm verify` runs all of the above with warnings as errors, plus an API-contract drift check and
-  every test suite (unit, Vitest, Aspire integration, Playwright end-to-end; steps `verify:dotnet`, `verify:contract`
-  and `verify:test` run alone too); see the `/verify` skill. The board gates on this local run. GitHub Actions
-  (`.github/workflows/ci.yml`) runs the same suites on Linux for every pull request, behind one required check,
-  `Gate` ([`docs/process/testing.md`](docs/process/testing.md#continuous-integration)).
+- **The gate is CI** (ADR-0020): GitHub Actions (`.github/workflows/ci.yml`) runs every suite on Linux for each pull
+  request and push to `main`, behind one check, `Gate`
+  ([`docs/process/testing.md`](docs/process/testing.md#continuous-integration)). Testing waits for it and Merge
+  requires it on the PR's head. Locally, `pnpm verify:fast` (`verify:dotnet` with warnings as errors,
+  `verify:contract` for API-contract drift, `pnpm check`) plus the tests the branch added or changed is the check
+  every column runs (`/verify`). `pnpm verify` is the whole suite locally (`verify:fast`, `pnpm -r build`, Vitest
+  and `verify:test`): the owner's, through `/verify full`.
+- **When to run tests locally:** always fine: `pnpm verify:fast`, and test classes or files by name
+  (`dotnet test --project <project> --filter-class "*<Class>"`, `pnpm --filter <package> test <file>`) for tests you
+  added or changed, or one that directly covers code you changed. Never, unless the owner asks: `pnpm verify`,
+  `verify:test`, `dotnet test --solution`, a `dotnet test --project` with no filter, or `pnpm -r test`. CI runs
+  those.
 - Marketing budgets: `pnpm --filter @screenhire/marketing build` fails on more than 15 KB of JS per page or a broken
   internal link; `pnpm --filter @screenhire/marketing lighthouse [paths]` (= `verify:lighthouse`) checks mobile LCP
-  under 1.8 s and CLS under 0.05 on the build, headless, using Playwright's Chromium. It is not in `pnpm verify`: the
-  Testing column runs it once for a branch that changes the marketing build, and only one run measures at a time on
-  the machine (the next one waits).
+  under 1.8 s and CLS under 0.05 on the build, headless, using Playwright's Chromium. CI's `Lighthouse (report-only)` job
+  runs it for a pull request that changes the marketing build, and `/pull-request` reports the result without
+  blocking on it until the budgets are calibrated on the runners. Locally, run it with paths while you work on a page;
+  only one run measures at a time on the machine (the next one waits).
 - After changing an endpoint or contract: `pnpm generate:api` and commit `openapi.json` + `src/generated`.
 - After changing code a doc describes: `node scripts/docs-bundle.mjs sources <file>` names the docs whose `sources:`
   list it (`/sync-docs`). A new or changed doc keeps its frontmatter and its line in the folder's `index.md` in step;
@@ -108,10 +118,10 @@ after it.
 
 | Column | Skill | Outcome lines |
 |---|---|---|
-| Executing | (the brief) | `Implementation: complete` when the brief is done and `pnpm verify` passes. The column then asks for a findings pass, which ends `Findings: applied` and moves the task to Code Review. |
+| Executing | (the brief) | `Implementation: complete` when the brief is done, `pnpm verify:fast` passes and the tests the task added or changed pass, run by class or file (`/verify`). The column then asks for a findings pass, which ends `Findings: applied` and moves the task to Code Review. |
 | Code Review | `/task-review` (isolated session) | `Verdict: Ready` → Testing; numbered steps + `Verdict: Blocked` → back to Executing (at most 3 times) |
-| Testing | `/pull-request` (plus Lighthouse for a marketing change) | `PR: ready to merge` → Merge; `PR: blocked` stays and notifies |
-| Merge | `/merge-pull-request` | `PR: merged` → Done (worktree removed, dependents start); `PR: blocked` stays and notifies |
+| Testing | `/pull-request` (one push, then CI's `Gate`; Lighthouse reported) | `PR: ready to merge` → Merge; `PR: blocked` stays and notifies |
+| Merge | `/merge-pull-request` (`Gate` green on the head; CI again only after a conflict) | `PR: merged` → Done (worktree removed, dependents start); `PR: blocked` stays and notifies |
 
 Unattended-run rules are in `.claude/rules/unattended-runs.md`, and the conflict playbook for integrating `main` is
 in `.claude/rules/integration-conflicts.md`. `scripts/guard-processes.mjs` is a PreToolUse hook that refuses

@@ -14,8 +14,9 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-# The same suites as the local gate (`pnpm verify`), spread over jobs that run side by side on GitHub's hosted Linux
-# runners. Gate is the one required check: it passes only when every test job succeeded. Lighthouse is report-only
+# The board's test gate (ADR-0020): the suites `pnpm verify` runs locally, spread over jobs that run side by side on
+# GitHub's hosted Linux runners. Gate is the one check the board's skills read: it passes only when every test job
+# succeeded. Branch protection does not require it yet (ADR-0020, Consequences). Lighthouse is report-only
 # and outside the gate. The layout, how to read a failed run and the measured times are in docs/process/testing.md,
 # "Continuous integration".
 #
@@ -257,7 +258,7 @@ jobs:
           if-no-files-found: ignore
 
   # The marketing budgets (mobile LCP under 1.8 s, CLS under 0.05), only when the change touches what the marketing
-  # build outputs, as the Testing column decides locally. Report-only and not in the gate: the LCP margin is about
+  # build outputs (apps/marketing, packages/ui, pnpm-lock.yaml). Report-only and not in the gate: the LCP margin is about
   # 300 ms, and shared runners have no baseline yet. A miss is a warning on the run, not a red check.
   lighthouse:
     name: Lighthouse (report-only)
@@ -312,7 +313,7 @@ jobs:
         if: ${{ steps.lighthouse.outcome == 'failure' }}
         run: echo "::warning::Lighthouse budgets failed on this runner (report-only). The step's log names the pages."
 
-  # The one check branch protection requires. It runs whatever happened upstream (`always()`) and fails unless every
+  # The one check /pull-request and /merge-pull-request read by name. It runs whatever happened upstream (`always()`) and fails unless every
   # test job succeeded, each matrix's shards included, so a skipped or cancelled job never reads as a pass.
   gate:
     name: Gate

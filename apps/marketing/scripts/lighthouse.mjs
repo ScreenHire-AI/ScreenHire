@@ -5,10 +5,10 @@
 //   pnpm --filter @screenhire/marketing lighthouse              # every page in the sitemap
 //   pnpm --filter @screenhire/marketing lighthouse / /pricing/  # just these paths
 //
-// It is not part of `pnpm verify`. The Testing column (/pull-request) runs it once for a branch that changes the
-// marketing build, and every run waits for any other run on the machine to finish first (acquireLock). Lighthouse
-// multiplies the main-thread time it observes by 4, so two runs at once measure each other. The lock does not keep a
-// sibling task's tests off the CPU; docs/process/testing.md says what that means for a failure.
+// It is not part of `pnpm verify`. CI's report-only `lighthouse` job runs it for a pull request that changes the
+// marketing build (ADR-0020). Every local run waits for any other run on the machine to finish first (acquireLock).
+// Lighthouse multiplies the main-thread time it observes by 4, so two runs at once measure each other. The lock does
+// not keep a sibling task's tests off the CPU; docs/process/testing.md says what that means for a failure.
 //
 // Why not Lighthouse CI (@lhci/cli): it serves dist with its own static server and takes its URL list from config.
 // This script uses Astro's own preview server, in process (the end-to-end tests serve dist from Caddy instead), and

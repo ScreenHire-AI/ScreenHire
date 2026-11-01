@@ -22,15 +22,18 @@ task, and every task that waits on it, until morning.
 - Never push to `main` directly. Code reaches `main` only through the Merge column's `/merge-pull-request`.
   `/merge-back` is the owner's escape hatch from the root checkout. Run it only when a person asks; it refuses
   inside a task worktree.
+- CI on GitHub Actions (`.github/workflows/ci.yml`) is the one remote compute a task uses, and only through its pull
+  request: `/pull-request` pushes once and watches the `Gate` check. The repository is public, so CI never reads a
+  secret and never runs on a self-hosted runner (ADR-0020).
 
 ## Leave the process alone
 
 - Do not edit `kangentic.json`, `.kangentic/`, `.claude/settings*.json`, `scripts/guard-processes.mjs` or the
   pipeline skills (`task-review`, `pull-request`, `merge-pull-request`, `verify`) unless the task is about them.
 - Processes: never stop anything by name, port or process tree (the guard hook refuses it). Run long commands with
-  `run_in_background` and stop them with TaskStop, except the gate: let a running `pnpm verify` finish (about 3.5
-  minutes) and run it again after further edits. On Windows TaskStop ends the Bash tool's shell and leaves
-  `pnpm verify` and its whole tree running, out of reach and holding the worktree folder (`/verify` has the details).
+  `run_in_background` and stop them with TaskStop, except checks and tests: let a running `pnpm verify:fast` or
+  test run finish and run it again after further edits. On Windows TaskStop ends the Bash tool's shell and leaves the
+  command's whole tree running, out of reach and holding the worktree folder (`/verify` has the details).
 - Docker down: run `pnpm docker:start`, and report infrastructure only if it fails. Never launch Docker Desktop
   yourself (the guard refuses it): it would belong to the task and keep the worktree from being deleted.
 - To run the stack, use `/preview`: it starts it detached with
@@ -50,7 +53,9 @@ task, and every task that waits on it, until morning.
 
 - Tests ship with the code: unit tests for logic, Aspire integration tests for endpoints and data rules, Playwright
   for user journeys. A brief's acceptance criteria are the minimum.
-- Run targeted tests while you work and `pnpm verify` before you call implementation done.
+- Run targeted tests while you work and `/verify` before you call implementation done: `pnpm verify:fast` and the
+  tests your branch added or changed, by class or file. Never run a whole test project or `pnpm verify` unless the
+  owner asks. CI runs the whole suite in the Testing column.
 - Commit with conventional messages (`feat(auth): ...`). Keep commits focused; the merge squashes them.
 - Board outcome lines are contracts. Print one only when its condition holds, alone, as the last line of the
   message (see CLAUDE.md, "Board pipeline").

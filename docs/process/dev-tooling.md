@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: "Claude Code tooling"
-description: "Every skill, agent and rule in .claude/ and when to use each, commands that were never run, why pnpm's global virtual store was not adopted for worktree installs, and how to add a new skill, agent or rule."
+description: "Every skill, agent and rule in .claude/ and when to use each, commands that were never run, why pnpm's global virtual store was not adopted for worktree installs, where a new task's start-up time goes and what would cut it, and how to add a new skill, agent or rule."
 tags: [claude-code, skills, agents, rules]
 sources:
   - resource: .claude/skills/add-careers-page/SKILL.md
@@ -64,10 +64,10 @@ A skill is a procedure, run with `/<name>` or loaded by Claude Code when the tas
 | [`merge-back`](../../.claude/skills/merge-back/SKILL.md) | the owner lands a small tooling, config or docs change from the root checkout | commit, rebase onto `origin/main`, path-scoped checks (or `full` for `pnpm verify`), push to `main` with no PR; only when the owner asks, and it refuses inside a task worktree |
 | [`preview`](../../.claude/skills/preview/SKILL.md) | looking at the app, or checking a change in it (`/run` uses it) | starts the stack through the Aspire CLI (`dotnet aspire start --isolated` in a worktree), waits with `aspire wait` until the demo data is in, reports URLs and logins from `aspire describe`, signs in as Avery Quinn in the task's browser pane, rebuilds one service after a code change; `fresh` for a clean demo, `stop` for `aspire stop` |
 | [`sync-docs`](../../.claude/skills/sync-docs/SKILL.md) | a change touches commands, AppHost resources, projects, `.claude/` or `docs/` | owns the source-to-doc anchor table, maps a changed file to its docs with `node scripts/docs-bundle.mjs sources`, runs `doc-auditor`, fixes drifted docs and prose |
-| [`verify`](../../.claude/skills/verify/SKILL.md) | before calling implementation done, and inside the Testing and Merge columns | the local gate, `pnpm verify` |
-| [`task-review`](../../.claude/skills/task-review/SKILL.md) | the Code Review column runs it | independent review with the agents below; for a dashboard change it starts `/preview`, screenshots `/style-guide` and the changed pages at 1440, 768 and 390px, measures them with [`visual-probe.js`](../../.claude/skills/task-review/visual-probe.js) and hands both to `design-review`, then stops the stack; fixes findings; `Verdict: Ready` or `Verdict: Blocked` |
-| [`pull-request`](../../.claude/skills/pull-request/SKILL.md) | the Testing column runs it | commit, integrate `main`, gate (plus Lighthouse for a marketing change), push, open and link the PR |
-| [`merge-pull-request`](../../.claude/skills/merge-pull-request/SKILL.md) | the Merge column runs it | re-gate if `main` moved, squash-merge, confirm, realign |
+| [`verify`](../../.claude/skills/verify/SKILL.md) | before every commit, before calling implementation done, and inside Code Review and Testing | the local checks: `pnpm verify:fast` and the tests the branch added or changed, by class or file; `/verify full` runs `pnpm verify` for the owner |
+| [`task-review`](../../.claude/skills/task-review/SKILL.md) | the Code Review column runs it | independent review with the agents below; for a dashboard change it starts `/preview`, screenshots `/style-guide` and the changed pages at 1440, 768 and 390px, measures them with [`visual-probe.js`](../../.claude/skills/task-review/visual-probe.js) and hands both to `design-review`, then stops the stack; fixes findings and proves the fixes with `/verify` and the covering test classes by name; `Verdict: Ready` or `Verdict: Blocked` |
+| [`pull-request`](../../.claude/skills/pull-request/SKILL.md) | the Testing column runs it | commit, merge `main`, `/sync-docs`, `/verify`, one push, open and link the PR, watch CI's `Gate` with up to three fix rounds (one push each), report the Lighthouse result |
+| [`merge-pull-request`](../../.claude/skills/merge-pull-request/SKILL.md) | the Merge column runs it | require `Gate` green on the PR's head and the PR mergeable, squash-merge with `--match-head-commit` (CI again only after a conflict), confirm, realign |
 
 The last four are the board pipeline ([board-pipeline.md](board-pipeline.md)). Change them only in a task about the
 pipeline.
@@ -116,6 +116,8 @@ Every command in these files was run once when they were written (October 2026),
 |---|---|---|
 | `dotnet ef migrations remove`, `dotnet ef database update` | `add-migration`, `migration-safety` (as forbidden) | both connect to whatever Postgres answers on `localhost:5432`, which on a shared machine is not this worktree's |
 | `dotnet aspire start` without `--isolated`, in the root checkout | `preview` | agents run it from a worktree, with `--isolated`; the root checkout belongs to the owner, who runs it there and whose own stack may be running |
+| `gh run rerun <run-id> --failed` | `pull-request` | it starts CI jobs again; it runs the first time a pull request's CI fails in code its branch did not touch |
+| `merge-pull-request` Step 2 (merge `origin/main` into a conflicting PR, `pnpm verify:fast`, push, one CI run) | `merge-pull-request` | it needs a PR that conflicts with `main`; the steps are `/pull-request`'s Steps 2 and 7, which were run |
 | `git rebase origin/main` and its conflict steps (`git diff --name-only --diff-filter=U`, `git checkout --ours`, `git rebase --continue`), `git push origin HEAD:main` | `merge-back` | they move `main`, so they run only when the owner asks for a merge back |
 
 The unit, Vitest and end-to-end commands (`dotnet test --project tests/ScreenHire.UnitTests --filter-class ...`,
@@ -177,3 +179,39 @@ and a pnpm release reuses filled `links` entries without linking every package a
 
 Follow [`skill-authoring`](../../.claude/rules/skill-authoring.md): run every command once, word not-yet-merged
 dependencies by what exists, and add a row here in the same change.
+
+## Where a new task's start-up time goes
+
+Measured on 2026-10-31 from Kangentic's log for task #80, which started when its dependency reached Done. It took
+43 s from that Done to Claude's `SessionStart`, and every step waited for the one before it:
+
+| Step | Time |
+|---|---|
+| Done until Kangentic's git queue starts (cause not found) | 4.2 s |
+| Resolve the base branch, `git fetch` | 2.2 s |
+| `git worktree add`, long paths and sparse-checkout settings | 1.4 s |
+| `pnpm install --frozen-lockfile` (the post-worktree script) | 27.0 s |
+| Kangentic's spawn until "Trust ensured", then Claude's start until `SessionStart` | 7.8 s |
+
+The install is the cost. It links about 55,000 files into 712 packages. A cold install in a throwaway worktree took
+19.9 and 25.4 s, and a no-op install 2.6 s. The board's 27 s ran beside Kangentic deleting the finished task's
+`node_modules`, which took 32 s. None of pnpm's flags helped: `--prefer-offline` took 20.3 to 20.7 s, hardlinks
+(`package-import-method`) 19.3 to 19.8 s, `--ignore-scripts` 19.7 s and higher network concurrency 20.6 s. Resolution
+and the network are not the cost.
+
+What would help, filed as tasks:
+- In Kangentic (#955 to #957 on its board): start the agent while the install runs and hold its first prompt until
+  the install ends; keep a finished task's cleanup out of its dependents' installs; investigate a spare worktree that
+  is already installed.
+- Here (#81): `lighthouse` alone reaches 73 packages, about 8,300 files, that nothing else needs. It moves out of the
+  workspace install.
+
+Two things that look like levers but are not:
+- Superforms installs every validator library it has an adapter for (`typebox`, `effect`, `class-validator` and
+  more), although the dashboard uses only `zod4`. `sveltekit-superforms/adapters` imports them all statically, so
+  leaving them out with pnpm's `ignoredOptionalDependencies` would break the dashboard build.
+- Kangentic's `linkNodeModules` links only the root `node_modules`, from the root checkout's lockfile, so the
+  `apps/*` and `packages/*` folders would still install. Keep it off.
+
+`.kangentic/config.json` also lists `.claude/settings.local.json` in `copyFiles`, but Kangentic skips `.claude/` entries,
+so a new worktree does not get that file.

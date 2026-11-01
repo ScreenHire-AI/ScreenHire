@@ -43,9 +43,10 @@ providers, the LLM check, job boards and IP data all have local stand-ins.
 The demo script, logins, what is faked and how to reset the data: [`docs/operations/local-demo.md`](docs/operations/local-demo.md).
 What is built and what the owner still has to do before real use: [MVP status](docs/status.md).
 
-Tests and the gate: `pnpm e2e:install` once per machine, then `pnpm verify`
-([`docs/process/testing.md`](docs/process/testing.md)). GitHub Actions runs the same suites on Linux for every pull
-request ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+Tests and the gate: GitHub Actions runs every suite on Linux for every pull request, and its `Gate` check is the
+gate ([`.github/workflows/ci.yml`](.github/workflows/ci.yml), [`docs/process/testing.md`](docs/process/testing.md)).
+Locally, `pnpm verify:fast` runs the build, contract and type checks; `pnpm verify` runs every suite on your machine
+(`pnpm e2e:install` once per machine first).
 
 ## Stack
 
