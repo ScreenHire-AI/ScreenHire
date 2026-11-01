@@ -253,9 +253,13 @@ export async function stopChrome(chrome, waitMs = 5_000) {
   return waitForExit();
 }
 
-/** How to run `pnpm install` in tools/lighthouse: through the pnpm that started this script when there is one, else the `pnpm` on PATH. */
-export function toolInstallCommand({ npmExecPath, platform, dir = toolDir }) {
-  const args = ['install', '--frozen-lockfile', '--ignore-workspace', '--dir', dir];
+/**
+ * How to run `pnpm install`, from tools/lighthouse as the working directory: through the pnpm that started this script
+ * when there is one, else the `pnpm` on PATH. The folder is the working directory and not a `--dir` argument because
+ * cmd.exe would split a checkout path with a space in it.
+ */
+export function toolInstallCommand({ npmExecPath, platform }) {
+  const args = ['install', '--frozen-lockfile', '--ignore-workspace'];
   if (npmExecPath?.includes('pnpm')) {
     return { command: process.execPath, args: [npmExecPath, ...args], shell: false };
   }
@@ -264,14 +268,10 @@ export function toolInstallCommand({ npmExecPath, platform, dir = toolDir }) {
   return { command: 'pnpm', args, shell: platform === 'win32' };
 }
 
-/**
- * Installs tools/lighthouse (frozen to its lockfile) and returns `{ lighthouse, chromeLauncher }` from it. pnpm is
- * started the way the caller started it: through npm_execpath under `pnpm run`, else the `pnpm` on PATH (a .cmd shim on
- * Windows, which needs a shell).
- */
-export async function loadTool() {
+/** Installs tools/lighthouse (frozen to its lockfile) and returns `{ lighthouse, chromeLauncher }` from it. */
+async function loadTool() {
   const { command, args, shell } = toolInstallCommand({ npmExecPath: process.env.npm_execpath, platform: process.platform });
-  const install = spawnSync(command, args, { stdio: 'inherit', timeout: TOOL_INSTALL_LIMIT_MS, shell });
+  const install = spawnSync(command, args, { stdio: 'inherit', timeout: TOOL_INSTALL_LIMIT_MS, shell, cwd: toolDir });
   if (install.status !== 0) {
     throw new Error(`pnpm install in tools/lighthouse failed (${install.error?.message ?? `exit ${install.status}`})`);
   }
