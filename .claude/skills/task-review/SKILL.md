@@ -113,7 +113,9 @@ drive a browser, so you take the screenshots and measurements and it judges them
 1. Check every finding yourself against the code. Drop the ones that do not hold and list them as refuted.
 2. Fix every confirmed finding you can do well inside a review: code, tests, docs. Add tests for any acceptance
    criterion or changed behaviour that has none (the `test-builder` agent in write mode picks the tier).
-3. Run what proves the fixes: `pnpm verify:dotnet`, `pnpm check`, and the affected test projects or suites.
+3. Run what proves the fixes: `/verify` (`pnpm verify:fast` and the branch's added or changed tests), plus each test
+   class or file that covers a fix, by name in the scoped form `/verify` shows. Never a whole test project or AppHost
+   suite: CI runs those in the Testing column.
 4. Commit review work separately from the implementer's: `fix(review): ...`, `test(review): ...`, `docs(review): ...`.
    If you confirmed nothing, make no commit.
 

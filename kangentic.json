@@ -23,7 +23,7 @@
     {
       "id": "d33d4435-8173-40eb-9437-9143cf787ee0",
       "name": "Executing",
-      "description": "Implements the brief. Ends \"Implementation: complete\" (gate green), then a findings pass ending \"Findings: applied\" moves it to Code Review.",
+      "description": "Implements the brief. Ends \"Implementation: complete\" (pnpm verify:fast and the task's own tests green, run by class or file), then a findings pass ending \"Findings: applied\" moves it to Code Review.",
       "icon": "square-terminal",
       "autoSpawn": true,
       "permissionMode": "auto",
@@ -42,7 +42,7 @@
             "name": "Apply findings",
             "type": "send_message",
             "finalLine": "Implementation: complete",
-            "message": "Check your last message for findings, recommendations or follow-up changes you have not applied yet, and apply them here in this task, not as follow-up tasks. Where one needs a decision, take your recommended option and name the alternative. If there are none, say so. If you changed anything, re-run the affected checks and commit. Either way, end your turn with a short summary and the line \"Findings: applied\".",
+            "message": "Check your last message for findings, recommendations or follow-up changes you have not applied yet, and apply them here in this task, not as follow-up tasks. Where one needs a decision, take your recommended option and name the alternative. If there are none, say so. If you changed anything, re-run /verify (pnpm verify:fast and the tests you added or changed) and commit. Either way, end your turn with a short summary and the line \"Findings: applied\".",
             "mode": "immediate"
           },
           {
@@ -103,7 +103,7 @@
     {
       "id": "bbc605fd-c21e-46f3-b0b3-78c6a897e2f4",
       "name": "Testing",
-      "description": "/pull-request: integrate origin/main, full local gate (pnpm verify), push, open + link PR. \"PR: ready to merge\" → Merge.",
+      "description": "/pull-request: merge origin/main, sync docs, fast local checks, one push, open + link PR, CI's Gate green on the head. \"PR: ready to merge\" → Merge.",
       "icon": "flask-conical",
       "color": "#06b6d4",
       "autoSpawn": true,
@@ -139,7 +139,7 @@
     {
       "id": "86b15f5e-0b1a-4a74-9278-88a2d343ee95",
       "name": "Merge",
-      "description": "/merge-pull-request: re-gate if main moved, squash-merge, confirm on origin/main, realign. \"PR: merged\" → Done.",
+      "description": "/merge-pull-request: Gate green on the head and mergeable, squash-merge (CI again only after a conflict), confirm on origin/main, realign. \"PR: merged\" → Done.",
       "icon": "merge",
       "color": "#f97316",
       "autoSpawn": true,

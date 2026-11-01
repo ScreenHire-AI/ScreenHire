@@ -257,7 +257,7 @@ jobs:
           if-no-files-found: ignore
 
   # The marketing budgets (mobile LCP under 1.8 s, CLS under 0.05), only when the change touches what the marketing
-  # build outputs, as the Testing column decides locally. Report-only and not in the gate: the LCP margin is about
+  # build outputs (apps/marketing, packages/ui, pnpm-lock.yaml). Report-only and not in the gate: the LCP margin is about
   # 300 ms, and shared runners have no baseline yet. A miss is a warning on the run, not a red check.
   lighthouse:
     name: Lighthouse (report-only)
