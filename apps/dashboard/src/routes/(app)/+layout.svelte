@@ -118,6 +118,8 @@
   let paletteOpen = $state(false);
   let shortcutsOpen = $state(false);
   let notificationsOpen = $state(false);
+  // The Calendar sheet lives in the account menu (AppSidebar); a page that needs a calendar opens it through the shell.
+  let calendarOpen = $state(false);
   let announcement = $state('');
   setShell({
     openPalette: () => (paletteOpen = true),
@@ -127,6 +129,7 @@
       announcement = '';
       notificationsOpen = true;
     },
+    openCalendar: () => (calendarOpen = true),
     live: () => live.connection.status,
     features: () => ({ slack: slackFeature(slack.data?.data, slack.isError) }),
   });
@@ -167,7 +170,7 @@
 
 <!-- The full sidebar from lg, the icon rail at md, and a sheet behind the menu button on phones (design system section 8). -->
 <Sidebar.Provider open={laptop.current}>
-  <AppSidebar user={data.user} {viewCounts} slack={slack.data?.data} calendar={calendar.data?.data} />
+  <AppSidebar user={data.user} {viewCounts} slack={slack.data?.data} calendar={calendar.data?.data} bind:calendarOpen />
   <Sidebar.Inset class="min-w-0">
     {@render children()}
   </Sidebar.Inset>

@@ -30,6 +30,7 @@
     viewCounts,
     slack,
     calendar,
+    calendarOpen = $bindable(false),
   }: {
     user: CurrentUser | null;
     /** Applications in each saved view, by view id; missing while the list loads. */
@@ -38,6 +39,8 @@
     slack?: SlackStatus;
     /** The person's calendar (`GET /v1/calendar`), for the Calendar item in their menu; missing while it loads. */
     calendar?: CalendarStatus;
+    /** The Calendar sheet is open. The shell opens it for a page that needs the person's calendar connected. */
+    calendarOpen?: boolean;
   } = $props();
 
   const sidebar = Sidebar.useSidebar();
@@ -64,8 +67,11 @@
 
   // Each person's own calendar, in their menu once this ScreenHire has a calendar to connect (docs/architecture/interview-scheduling.md).
   const calendarAvailable = $derived(Boolean(calendar && calendar.providers.length > 0));
-  let calendarOpen = $state(false);
   let calendarOutcome = $state('');
+  // An outcome belongs to the visit it came back with, so the sheet opens clean when a page opens it through the shell.
+  $effect(() => {
+    if (!calendarOpen) calendarOutcome = '';
+  });
   // Connecting comes back to the page it started on with ?calendar=: the sheet opens to show how it went, and the
   // parameter leaves the address so a reload does not repeat it.
   $effect(() => {

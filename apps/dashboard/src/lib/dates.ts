@@ -19,6 +19,18 @@ export const formatDate = (iso: string) => date.format(new Date(iso));
 export const formatDateTime = (iso: string) => dateTime.format(new Date(iso));
 
 /**
+ * The date an instant falls on in another IANA zone, not the browser's: `Oct 20, 2026`. For a day someone chose in that
+ * zone, such as an interview's window. A zone the browser does not know reads in the browser's own.
+ */
+export function formatDateIn(iso: string, zone: string): string {
+  try {
+    return new Intl.DateTimeFormat(locales, { dateStyle: 'medium', timeZone: zone }).format(new Date(iso));
+  } catch {
+    return formatDate(iso);
+  }
+}
+
+/**
  * Time until an instant, in its largest whole unit and the browser's locale: `20s`, `5m`, `4h`, `1d` narrow, or
  * `20 seconds`, `1 day` long.
  */

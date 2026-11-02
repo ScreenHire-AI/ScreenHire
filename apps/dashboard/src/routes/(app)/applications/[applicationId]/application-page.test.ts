@@ -1,5 +1,6 @@
 import type {
   ApplicationDetail,
+  ApplicationInterview,
   ApplicationTaskEntry,
   CandidateEmailEntry,
   ApplicationTimelineEntry,
@@ -12,6 +13,8 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiStub, interviewer, jobId, roleCatalogue, stages, user, userAs } from '../../../../test-support/fixtures.js';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
+import { stubViewport } from '../../../../test-support/viewport.js';
+import { formatDateTime } from '#lib/dates.js';
 import { botVerification, pendingVerification } from '../../../../test-support/verification-fixtures.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 // After the fixtures: the mock below reads `user`.
@@ -177,6 +180,7 @@ const reads = {
   [`GET /v1/applications/${applicationId}/tasks`]: () => Response.json([task]),
   [`GET /v1/applications/${applicationId}/automation-runs`]: () => Response.json([]),
   [`GET /v1/applications/${applicationId}/scorecards`]: () => Response.json([]),
+  [`GET /v1/applications/${applicationId}/interviews`]: () => Response.json([]),
   [`GET /v1/jobs/${jobId}`]: () => Response.json(job),
   [`GET /v1/applications/${applicationId}/verification`]: () => Response.json({ ...pendingVerification(), applicationId }),
   [`GET /v1/candidates/${candidateId}/emails`]: () => Response.json([]),
@@ -350,6 +354,7 @@ describe('application page', () => {
         'Notes 1',
         'Emails 0',
         'Scorecards 0',
+        'Interviews 0',
         'Stage and tags 4',
       ]),
     );
@@ -1334,6 +1339,166 @@ describe('application page', () => {
 
       await within(activity).findByText(/Scorecard for Interview/);
       expect(activity).not.toHaveTextContent('Strong yes');
+    });
+  });
+
+  describe('interviews', () => {
+    const interviewId = '01a157d4-0000-7000-8000-000000000400';
+    const interview = (overrides: Partial<ApplicationInterview> = {}): ApplicationInterview => ({
+      id: interviewId,
+      status: 'Open',
+      startsAt: null,
+      endsAt: null,
+      windowStart: '2026-11-03T05:00:00Z',
+      windowEnd: '2026-11-17T05:00:00Z',
+      timeZone: 'America/New_York',
+      durationMinutes: 30,
+      dayStart: '09:00',
+      dayEnd: '17:00',
+      meetingUrl: null,
+      interviewers: [{ userId: user.id, displayName: 'Avery Quinn', isOrganizer: true, syncStatus: 'Synced', syncProblem: null }],
+      createdAt: '2026-10-20T12:00:00Z',
+      createdByUserId: user.id,
+      cancelledByCandidate: false,
+      ...overrides,
+    });
+    const startsAt = '2026-11-05T15:00:00Z';
+    const sending = { 'GET /v1/email-templates': () => Response.json({ sendingEnabled: true, templates: [], variables: [] }) };
+    // A query the page asked for has been answered, so a control that should have appeared by now is really absent.
+    const answered = async (fetch: ReturnType<typeof stubApi>, path: string) => {
+      await waitFor(() => expect(fetch.mock.calls.some(([url]) => String(url) === path)).toBe(true));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    };
+    const header = async () => (await screen.findByRole('heading', { level: 1, name: 'Casey Morgan' })).closest<HTMLElement>('[data-slot="header-band"]')!;
+
+    it('offers Schedule interview beside Email, to someone who may email candidates, where this deployment can send', async () => {
+      stubApi(sending);
+      renderPage();
+      const band = await header();
+
+      expect(await within(band).findByRole('button', { name: 'Email' })).toBeInTheDocument();
+      expect(within(band).getByRole('button', { name: 'Schedule interview' })).toBeInTheDocument();
+      await fireEvent.click(within(band).getByRole('button', { name: 'Schedule interview' }));
+      expect(await screen.findByRole('dialog', { name: 'Schedule interview' })).toBeInTheDocument();
+    });
+
+    it('hides it without a way to send email', async () => {
+      const fetch = stubApi({ 'GET /v1/email-templates': () => Response.json({ sendingEnabled: false, templates: [], variables: [] }) });
+      renderPage();
+      const band = await header();
+
+      await within(band).findByRole('button', { name: 'Move to stage, Casey Morgan' });
+      await answered(fetch, '/v1/email-templates');
+      expect(within(band).queryByRole('button', { name: 'Schedule interview' })).toBeNull();
+    });
+
+    it('hides it from a role that may not email candidates', async () => {
+      const fetch = stubApi(sending);
+      asRole('Viewer');
+      renderPage();
+      const band = await header();
+
+      await answered(fetch, '/v1/email-templates');
+      expect(within(band).queryByRole('button', { name: 'Schedule interview' })).toBeNull();
+      expect(within(band).queryByRole('button', { name: 'Email' })).toBeNull();
+    });
+
+    it('hides it once the application has ended', async () => {
+      stubApi({ ...sending, [`GET /v1/applications/${applicationId}`]: () => Response.json({ ...application, stage: { id: 'rejected', name: 'Rejected', kind: 'Rejected' } }) });
+      renderPage();
+      const band = await header();
+
+      await within(band).findByRole('button', { name: 'Email' });
+      expect(within(band).queryByRole('button', { name: 'Schedule interview' })).toBeNull();
+    });
+
+    it('hides it for a candidate kept in mind', async () => {
+      stubApi({ ...sending, [`GET /v1/applications/${applicationId}`]: () => Response.json({ ...application, keptInMindAt: '2026-10-21T09:00:00Z' }) });
+      renderPage();
+      const band = await header();
+
+      await within(band).findByRole('button', { name: 'Email' });
+      expect(within(band).queryByRole('button', { name: 'Schedule interview' })).toBeNull();
+    });
+
+    it('hides it while an interview is open or booked, and offers it again once that one is cancelled or has expired', async () => {
+      for (const status of ['Open', 'Booked'] as const) {
+        const fetch = stubApi({ ...sending, [`GET /v1/applications/${applicationId}/interviews`]: () => Response.json([interview({ status })]) });
+        renderPage();
+        const band = await header();
+        await within(band).findByRole('button', { name: 'Email' });
+        await answered(fetch, `/v1/applications/${applicationId}/interviews`);
+        expect(within(band).queryByRole('button', { name: 'Schedule interview' })).toBeNull();
+        cleanup();
+      }
+
+      stubApi({
+        ...sending,
+        [`GET /v1/applications/${applicationId}/interviews`]: () => Response.json([interview({ status: 'Cancelled' }), interview({ id: 'older', status: 'Expired' })]),
+      });
+      renderPage();
+      expect(await within(await header()).findByRole('button', { name: 'Schedule interview' })).toBeInTheDocument();
+    });
+
+    it('folds it into the More menu on a phone, beside Email', async () => {
+      stubViewport(390);
+      stubApi(sending);
+      renderPage();
+      const band = await header();
+
+      await fireEvent.pointerDown(await within(band).findByRole('button', { name: 'More actions' }), { button: 0, pointerType: 'mouse' });
+      const menu = await screen.findByRole('menu');
+      expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Email', 'Schedule interview']);
+      await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Schedule interview' }));
+      expect(await screen.findByRole('dialog', { name: 'Schedule interview' })).toBeInTheDocument();
+    });
+
+    it('puts a booked time in the header once, in the reader zone, and the Interview panel under Next steps without it', async () => {
+      stubApi({ [`GET /v1/applications/${applicationId}/interviews`]: () => Response.json([interview({ status: 'Booked', startsAt, endsAt: '2026-11-05T15:30:00Z' })]) });
+      renderPage();
+      const band = await header();
+
+      const facts = await waitFor(() => {
+        const terms = within(band)
+          .getAllByRole('term')
+          .map((term) => [term.textContent?.trim(), term.nextElementSibling?.textContent?.replace(/\s+/g, ' ').trim()]);
+        if (!terms.some(([label]) => label === 'Interview')) throw new Error('No interview fact yet');
+        return terms;
+      });
+      expect(facts.map(([label]) => label)).toEqual(['Stage', 'Job', 'Applied', 'Interview', 'Rating']);
+      expect(facts[3]![1]).toBe(`Booked for ${formatDateTime(startsAt)}`);
+
+      const panels = await waitFor(() => {
+        const names = [...document.querySelectorAll('[data-slot="panel"] > header h2')].map((heading) => heading.textContent?.trim());
+        if (!names.includes('Interview')) throw new Error('No interview panel yet');
+        return names;
+      });
+      expect(panels.slice(0, 3)).toEqual(['Next steps', 'Interview', 'Automations']);
+      expect(screen.getByRole('region', { name: 'Interview' }).textContent).not.toContain(formatDateTime(startsAt));
+      // Said once on the whole screen.
+      expect(document.body.textContent?.split(formatDateTime(startsAt))).toHaveLength(2);
+    });
+
+    it('shows no interview fact while the candidate has yet to pick a time, only the panel saying so', async () => {
+      stubApi({ [`GET /v1/applications/${applicationId}/interviews`]: () => Response.json([interview()]) });
+      renderPage();
+      const band = await header();
+
+      const region = await screen.findByRole('region', { name: 'Interview' });
+      expect(region).toHaveTextContent('Waiting for the candidate to pick a time');
+      expect(within(band).getAllByRole('term').map((term) => term.textContent?.trim())).toEqual(['Stage', 'Job', 'Applied', 'Rating']);
+    });
+
+    it('lists an interview in Activity with its time and counts it under Interviews', async () => {
+      stubApi({
+        [`GET /v1/applications/${applicationId}/timeline`]: () =>
+          Response.json([...timeline, entry({ type: 'InterviewBooked', occurredAt: '2026-10-22T09:00:00Z', startsAt, endsAt: '2026-11-05T15:30:00Z', interviewId })]),
+      });
+      renderPage('activity');
+      const region = await screen.findByRole('region', { name: 'Activity' });
+
+      await within(region).findByText(`Interview booked for ${formatDateTime(startsAt)}`);
+      await waitFor(() => expect(within(within(region).getByRole('group', { name: 'Show' })).getByRole('button', { name: /^Interviews/ })).toHaveTextContent('Interviews 1'));
     });
   });
 });

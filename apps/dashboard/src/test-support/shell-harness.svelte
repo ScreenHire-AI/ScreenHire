@@ -28,6 +28,7 @@
     openPalette: () => {},
     openShortcuts: () => (shortcutsOpen = true),
     openNotifications: () => (notificationsOpen = true),
+    openCalendar: () => {},
     live: () => 'connected',
     features: () => ({ slack: true }),
   });

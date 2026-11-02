@@ -6,6 +6,7 @@
   import AnswersPanel from '#lib/components/candidate/answers-panel.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import FileRow from '#lib/components/file-row.svelte';
+  import InterviewPanel from '#lib/components/candidate/interview-panel.svelte';
   import ManualAutomations from '#lib/components/manual-automations.svelte';
   import OtherApplications from '#lib/components/candidate/other-applications.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -19,9 +20,10 @@
   import { completesByHand, createTaskCompletion, scorecardLink } from '#lib/tasks.svelte.js';
 
   // A candidate's Overview (design system section 22): a grid of panels that uses the width. On the left, what needs you
-  // now (Next steps: the application's tasks and, when the verification level needs a look, its suggested next step) and the
-  // last five things anyone did with a box for a note; on the right, the files, the tags and the answers. One column when
-  // the page is narrow. The verification step links to its reasons and is never a reason to reject on its own (ADR-0004).
+  // now (Next steps: the application's tasks and, when the verification level needs a look, its suggested next step), the
+  // interview once one is offered, and the last five things anyone did with a box for a note; on the right, the files, the
+  // tags and the answers. One column when the page is narrow. The verification step links to its reasons and is never a
+  // reason to reject on its own (ADR-0004).
   let {
     detail,
     timeline,
@@ -120,6 +122,9 @@
     <p role="status" class="sr-only">{completion.announcement}</p>
   </div>
 </Panel>
+
+<!-- The interview offered to the candidate, once there is one (docs/architecture/interview-scheduling.md). -->
+<InterviewPanel applicationId={detail.id} mayCancel={permissions.includes('EmailCandidates')} />
 
 {#if permissions.includes('RunAutomations') && manualAutomations.length > 0}
   <ManualAutomations applicationId={detail.id} automations={manualAutomations} />

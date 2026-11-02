@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Interview scheduling on team calendars"
-description: "Members connect their own Google, Outlook or sandbox calendar from the account menu: the OAuth round trip kept apart from sign-in, tokens under Data Protection for each member, the ICalendarProvider seam with a Postgres-backed sandbox, token refresh under an advisory lock, and the configuration that hides a provider until its client id and secret are set. Interview requests: the slot finder in the interview's time zone, the offered times, and the booking transaction that never double-books an interviewer. Offering, booking, moving and cancelling an interview: the staff and candidate routes with their problem codes, and the worker that writes one calendar event per interviewer and emails the candidate. The careers page where the candidate picks, moves or cancels a time with JavaScript off."
+description: "Members connect their own Google, Outlook or sandbox calendar from the account menu: the OAuth round trip kept apart from sign-in, tokens under Data Protection for each member, the ICalendarProvider seam with a Postgres-backed sandbox, token refresh under an advisory lock, and the configuration that hides a provider until its client id and secret are set. Interview requests: the slot finder in the interview's time zone, the offered times, and the booking transaction that never double-books an interviewer. Offering, booking, moving and cancelling an interview: the staff and candidate routes with their problem codes, and the worker that writes one calendar event per interviewer and emails the candidate. The careers page where the candidate picks, moves or cancels a time with JavaScript off. The recruiter's side in the dashboard: the Schedule interview sheet on the candidate's page, the booked time in the page's header and the Interview panel on Overview."
 tags: [scheduling, calendar, integrations, oauth]
 sources:
   - resource: src/ScreenHire.Domain/Scheduling/CalendarConnection.cs
@@ -31,19 +31,24 @@ sources:
   - resource: tests/ScreenHire.IntegrationTests/Scheduling/InterviewBookingTests.cs
   - resource: apps/dashboard/src/lib/components/calendar-account-sheet.svelte
   - resource: apps/dashboard/src/lib/calendar.ts
+  - resource: apps/dashboard/src/lib/schedule-interview.ts
+  - resource: apps/dashboard/src/lib/components/schedule-interview-sheet.svelte
+  - resource: apps/dashboard/src/lib/components/candidate/interview-panel.svelte
+  - resource: apps/dashboard/src/lib/activity.ts
   - resource: tests/ScreenHire.IntegrationTests/Calendar/CalendarConnectionTests.cs
   - resource: tests/ScreenHire.IntegrationTests/Calendar/CalendarSandboxTests.cs
   - resource: apps/careers/src/pages/[organization]/interviews/[token].astro
   - resource: apps/careers/src/lib/interview.ts
   - resource: tests/ScreenHire.E2E/InterviewBookingTests.cs
+  - resource: tests/ScreenHire.E2E/ScheduleInterviewTests.cs
 ---
 # Interview scheduling on team calendars
 
 ScreenHire schedules interviews on the calendars the team already uses, through the free Google Calendar and Microsoft
 Graph APIs. This page describes the parts that exist so far: a member connecting and disconnecting their own calendar, the interview
 request with its slot finder and booking transaction, the routes that offer, book, move and cancel an interview, the
-worker that writes the events and emails the candidate, and the careers page the candidate books on. The workflow action
-builds on them and is described here as it lands.
+worker that writes the events and emails the candidate, the careers page the candidate books on, and the recruiter's side
+in the dashboard. The workflow action builds on them and is described here as it lands.
 
 ## Connecting a calendar
 
@@ -215,6 +220,44 @@ A conflict maps to its notice by the problem's `type`. The page shows one screen
 next, shows no meeting link of its own (the calendar invitation has it), names no interviewer, and says nothing about
 verification. The browser test (`InterviewBookingTests`) runs the whole journey with JavaScript off, axe clean, and checks
 the page at 390 and 1280 pixels wide for sideways scrolling and touch targets.
+
+## The dashboard
+
+A recruiter offers an interview from the candidate's page, and the page then shows it in two places (design system
+ADR-0017: a record's facts sit in its header, and Overview is a grid of panels).
+
+**Schedule interview** is a button beside Email in the header band, and an item in the More menu on a phone. It shows only
+where Email does (the person may email candidates and this deployment can send), and it is hidden while the application has
+ended, while an interview is open or booked (the API would refuse both) and until the application's interviews have loaded.
+It opens `ScheduleInterviewSheet`, which lists the members who see the job from `GET /v1/interviewers`:
+
+- A member with no calendar is listed but cannot be ticked, and says "No calendar connected" in words. The person scheduling
+  starts ticked when their own calendar is connected. The first person ticked is the organizer, in the order of ticking, and
+  the sheet says whose calendar sends the invitation.
+- When nobody can be ticked, the sheet shows one line and a Connect your calendar button instead of the form. The button
+  closes the sheet and opens the Calendar sheet of the account menu through `shell.openCalendar()`.
+- Length is one of the six the API allows. The first and last day are the person's own days in the zone they pick, which
+  starts as the browser's zone, and the working hours default to 9:00 to 17:00 on weekdays. `lib/schedule-interview.ts` turns
+  the days into the instants the API takes: the start of the first day to the start of the day after the last, in the chosen
+  zone whatever zone the browser is in (the offset is read twice, so a clock change in the window is right). A window longer
+  than 90 days is refused in the form; a 90-day window that crosses the clock change that ends daylight saving time is an
+  hour over the API's 90 days of elapsed time, so its end is held to 90 days.
+- The form checks the same things the API does and names the same fields, so a 400 lands under the field it is about. A 422
+  becomes one sentence naming the interviewers whose calendars do not work, under the list. A 409 shows the API's own words
+  (an interview is already open or booked, or the application has ended), and a 404 says scheduling is not set up here.
+
+**The header** gets one fact, "Booked for" and the time in the reader's own zone, only while an interview is booked. The
+time is said nowhere else on the screen except Activity, which records the time each entry was about.
+
+**The Interview panel** sits under Next steps on Overview and is not drawn while no interview was ever offered. An open
+interview says it is waiting for the candidate and gives the days they can choose from, in the interview's zone. A booked
+one lists the interviewers with the organizer marked in words, the meeting link, and a note under an interviewer whose
+calendar event is still pending or failed (the failure's own words, such as "Their calendar refused the event"). A cancelled or expired
+one is one line saying how it ended. Cancel is a destructive item in the panel's menu behind a dialog, for people who may
+email candidates, because it tells the candidate and removes the event from every calendar.
+
+Activity lists the four interview entries under an Interviews filter. A booking or a move says the time it was about, so a
+move is history the header no longer shows.
 
 ## Tenancy
 
