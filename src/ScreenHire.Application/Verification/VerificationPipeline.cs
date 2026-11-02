@@ -163,14 +163,14 @@ public sealed class VerificationPipeline(ScreenHireDbContext db, IEnumerable<IVe
                 .Where(a => a.ApplicationId == applicationId && a.Kind == VerificationAssessmentKind.Authenticity)
                 .OrderByDescending(a => a.AssessedAt).ThenByDescending(a => a.Id)
                 .Select(a => (Guid?)a.Id).FirstOrDefaultAsync(cancellationToken);
-        if (assessmentId is { } id)
-        {
-            var why = written.Count > 0
-                ? $"New evidence: {written[0].Explanation}"
-                : "A detail this application shared with another application no longer applies.";
-            db.VerificationReviewActions.Add(VerificationReviewAction.EvidenceChanged(
-                context.Application.OrganizationId, applicationId, id, why, now));
-        }
+        // An earlier run exists, so the application has an assessment (AssessAsync adds the first one otherwise). If it
+        // somehow does not, fail so the message retries: the new evidence must never move a level without its reason.
+        var id = assessmentId ?? throw new InvalidOperationException($"Application {applicationId} has a verification run but no authenticity assessment.");
+        var why = written.Count > 0
+            ? $"New evidence: {written[0].Explanation}"
+            : "A detail this application shared with another application no longer applies.";
+        db.VerificationReviewActions.Add(VerificationReviewAction.EvidenceChanged(
+            context.Application.OrganizationId, applicationId, id, why, now));
 
         return assessed.Messages;
     }

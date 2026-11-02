@@ -52,10 +52,19 @@ organization API keys does not carry them, and no MCP tool reads the history.
 Each application's page links to the profile as **Also applied to**, with the number of other jobs the reader sees.
 It sits in the header's meta line until the header gets its mini cards, where it becomes the third card.
 
+The history shows tags and notes as the team wrote them, the same as an application's own activity. A team that
+tags from a verification condition in an automation therefore sees that tag in the history too. That is the team's
+own action, not a ScreenHire verdict, so it is not filtered.
+
 ## Duplicate checks stay in step
 
 The duplicate check of an earlier application re-runs when a later application shares a detail with it. The mechanism,
 the review log entry and the limits are in [verification-engine.md](verification-engine.md) §10.2.
+
+The review log entry names no other application, job or candidate. Its text can carry a count ("2 other applications"),
+and that count is over the whole organization, so a member on Only jobs they're on may see a number that includes jobs
+they cannot open. The duplicate signal on the application already shows the same count, so the entry adds nothing new.
+Wording both without a number, or counting only the jobs the reader sees, is the alternative if that ever matters.
 
 ## Erasure
 
