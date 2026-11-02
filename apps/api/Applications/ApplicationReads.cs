@@ -138,8 +138,10 @@ internal static class ApplicationReads
     }
 
     /// <summary>
-    /// Verification output is evidence for the person reviewing an application (ADR-0004), so an API key never receives it:
-    /// an integrator's system could reject on it, which ScreenHire's own automations may not (ADR-0011).
+    /// Verification output is evidence for the person reviewing an application (ADR-0004), so no list, detail or timeline
+    /// gives it to an API key: an integrator's system could reject on it, which ScreenHire's own automations may not
+    /// (ADR-0011). A key with the Verification read scope reads it only through the verification routes and tools, which
+    /// record every read in the review log (ADR-0021).
     /// </summary>
     public static async Task<Dictionary<Guid, VerificationSummary>> VerificationSummariesAsync(
         ClaimsPrincipal user, ScreenHireDbContext db, IReadOnlyCollection<Guid> applicationIds, CancellationToken cancellationToken) =>

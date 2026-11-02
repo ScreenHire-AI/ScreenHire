@@ -24,6 +24,9 @@ sources:
   - resource: apps/api/Endpoints/TeamEndpoints.cs
   - resource: apps/api/Endpoints/RoleEndpoints.cs
   - resource: apps/api/Endpoints/ApiKeyEndpoints.cs
+  - resource: apps/api/Contracts/ApiKeyContracts.cs
+  - resource: apps/dashboard/src/routes/(app)/settings/api-keys/+page.svelte
+  - resource: apps/api/Endpoints/VerificationEndpoints.cs
   - resource: apps/api/Endpoints/HiringTeamEndpoints.cs
   - resource: apps/api/Hiring/HiringTeams.cs
   - resource: apps/api/Configuration/DomainOptions.cs
@@ -145,7 +148,7 @@ API keys (Owners and Admins) manages keys in a session, on the dashboard's Setti
 | Route | What it does |
 |---|---|
 | `GET /v1/organization/api-keys` | The organization's keys, revoked ones too: prefix, name, scopes, rate limit, created, last used, revoked, and who created it. |
-| `POST /v1/organization/api-keys` | Creates a key and returns it once, with `Cache-Control: no-store`. |
+| `POST /v1/organization/api-keys` | Creates a key and returns it once, with `Cache-Control: no-store`. The `VerificationRead` scope needs the Owner-only Give a key verification access permission, otherwise 403 "Owners only". |
 | `GET /v1/organization/api-keys/{id}` | One key, without the key itself. |
 | `POST /v1/organization/api-keys/{id}/revoke` | Revokes it. The next request with it gets 401. |
 | `GET /v1/organization/api-keys/history`, `GET /v1/organization/api-keys/last-update` | The page's change history: each key created and revoked, with its name, access and who, never its hash or prefix (`docs/architecture/change-history.md`). |
@@ -162,22 +165,32 @@ API keys (Owners and Admins) manages keys in a session, on the dashboard's Setti
   authorization policy, whose scheme `SessionOrApiKey` forwards to the key handler when the request has an
   `Authorization` header and to the cookie otherwise. A request is judged by one credential: a bad key with a good
   cookie is 401. Every other route keeps the cookie-only default and fallback policies, so a key gets 401 on sign-in,
-  onboarding, key management, organization settings, verification review, automations, distribution and the hub.
-- **No verification output.** Application and candidate reads send a key `verification: null`, and the application
-  timeline leaves out `VerificationAssessed` entries (ADR-0011): levels and reason codes are for the person reviewing
-  (ADR-0004), not for another system to reject on. The MCP server returns none either.
+  onboarding, key management, organization settings, the routes that act on a verification, automations, distribution
+  and the hub.
+- **Verification only with its scope.** Application and candidate reads send a key `verification: null`, and the
+  application timeline leaves out `VerificationAssessed` entries (ADR-0011): levels and reason codes are for the person
+  reviewing (ADR-0004), not for another system to reject on. A key with the `VerificationRead` scope an Owner gave it
+  (ADR-0021) reads them through two routes only, `GET /v1/applications/{id}/verification` and
+  `GET /v1/verification/applications` (applications by level), whose `verification-api` policy admits the session or a
+  key with that scope and answers 403 to any other key. Each read through a key adds a `ReadByKey` row to the
+  application's verification review log, saved before the answer goes out: the key, the time and no person. Dismissing,
+  explaining and noting stay the session's. The MCP server's verification tools use the same reads
+  ([MCP server](mcp-server.md)).
 - **The MCP server** at `/v1/mcp` lets a team's AI assistant use the hiring API with a key, and only a key: its own
   `mcp` policy authenticates the `ApiKey` scheme alone, so a session cookie gets 401 there
   ([MCP server](mcp-server.md)). Its write tools check the same scope rule as the routes
-  (`HiringAuthorization.KeyRefusal`).
+  (`HiringAuthorization.KeyRefusal`), its verification tools need the `VerificationRead` scope, and its report and
+  saved-candidate tools need only `Read` and call the read services of session-only routes.
 - **The tenant** is the key's organization, with no user (`TenantResolutionMiddleware`, which runs after
   authorization because the hiring policy replaces the request's user there). Writes by a key record no user; the
   application timeline records the key as `actorApiKeyId`.
-- **Scopes** are `Read` and `Write`. A key always has `Read`; `Write` passes `RequirePermission` for the hiring
-  writes (`RolePermissions.HiringWrites`), what a Recruiter does, and a read-only key gets 403 "Read-only key". Every
-  other permission refuses a key ("Not for API keys"). Creating a Write key needs every hiring write in the creator's
-  role, so a key never carries more than the person who made it (ADR-0014). A member on Only jobs they're on creates no
-  key at all, because a key reads every job (ADR-0015).
+- **Scopes** are `Read`, `Write` and `VerificationRead`. A key always has `Read`; `Write` passes `RequirePermission`
+  for the hiring writes (`RolePermissions.HiringWrites`), what a Recruiter does, and a read-only key gets 403
+  "Read-only key". Every other permission refuses a key ("Not for API keys"). `VerificationRead` includes nothing and
+  `Write` does not include it. Creating a Write key needs every hiring write in the creator's role, and creating a
+  `VerificationRead` key needs Give a key verification access, which only the Owner role has, so a key never carries
+  more than the person who made it (ADR-0014, ADR-0021). A key's scopes are fixed at creation. A member on Only jobs
+  they're on creates no key at all, because a key reads every job (ADR-0015).
 - **Antiforgery** is skipped for a request the key scheme authenticated: it carries no cookie to forge with.
 - **Rate limit.** The `api-key` rate-limiter policy on the hiring groups gives each key a fixed window per minute of
   `ScreenHire:ApiKeys:PermitsPerMinute` (default 600), or the lower `permitsPerMinute` set on the key, and answers 429
@@ -185,8 +198,8 @@ API keys (Owners and Admins) manages keys in a session, on the dashboard's Setti
   `ScreenHire:ApiKeys:FailedAttemptsPerMinute` (default 30) the address gets 429 with `Retry-After` for every key until
   the minute is up, without a database lookup. Both counts are per API instance.
 - **OpenAPI** declares two security schemes, `session` (the cookie) on every signed-in route and `apiKey` (HTTP
-  bearer) as the alternative on the hiring API (`apps/api/Auth/SecuritySchemes.cs`), so Scalar and the generated
-  client show them.
+  bearer) as the alternative on the hiring API and the two verification reads (`apps/api/Auth/SecuritySchemes.cs`), so
+  Scalar and the generated client show them.
 - **The API reference** (Scalar at `/scalar`) and the OpenAPI file (`/openapi/v1.json`) are public in every
   environment, at the same paths: they document the public API and hold no data. `GET /v1/meta` reports the API's
   public origin (`ScreenHire:Domains:ApiHost`), and the dashboard's API keys and Webhooks pages build their base URL and
@@ -230,8 +243,8 @@ candidates."). Removing a member also closes their open real-time connections in
 
 **The permission catalogue** (`src/ScreenHire.Domain/Organizations/RolePermissions.cs`) names what a role lets a person
 do, in three groups (Hiring, Templates, Organization), and the set each built-in role has. See jobs and candidates is in
-every role (`EveryRole`): reads are not permission-checked, and job access will narrow which jobs. Manage Owners is
-Owner-only (`OwnerOnly`): no custom role holds it. Delete anyone's notes (`NotePolicy`) lets a role delete a note
+every role (`EveryRole`): reads are not permission-checked, and job access will narrow which jobs. Manage Owners and
+Give a key verification access are Owner-only (`OwnerOnly`): no custom role holds either, and Admin has neither. Delete anyone's notes (`NotePolicy`) lets a role delete a note
 someone else wrote; Owners and Admins have it. It comes with Add notes and tags, which the delete route asks for first.
 
 Create tasks came after custom roles, with the route that creates a task by hand. The built-in roles that write hiring

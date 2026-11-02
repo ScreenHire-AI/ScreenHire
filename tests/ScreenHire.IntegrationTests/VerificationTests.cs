@@ -467,6 +467,41 @@ public sealed class VerificationTests(AppHostFixture fixture)
         (await forget.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
     }
 
+    [Fact]
+    public async Task The_review_log_takes_a_person_or_a_key_never_both_or_neither_and_stays_append_only()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        var (slug, jobId) = await OpenJobAsync(tenant);
+        var applicationId = await ApplyAsync(slug, jobId, SyntheticApplicants.Bot);
+        var keyId = (await tenant.CreateKeyAsync("Auditor", ["Read", "VerificationRead"])).Id("key.id");
+        var now = DateTimeOffset.UtcNow;
+
+        VerificationReviewAction Row(Guid? person, Guid? key) => new()
+        {
+            OrganizationId = tenant.OrganizationId, ApplicationId = applicationId, Type = VerificationReviewActionType.NoteAdded,
+            Note = "probe", ActorUserId = person, ApiKeyId = key, OccurredAt = now,
+        };
+
+        async Task<PostgresException> RefusedAsync(VerificationReviewAction row)
+        {
+            await using var db = await TenantDbAsync(tenant.OrganizationId);
+            db.VerificationReviewActions.Add(row);
+            var save = () => db.SaveChangesAsync(Ct);
+            return (await save.Should().ThrowAsync<DbUpdateException>()).Which.InnerException.Should().BeOfType<PostgresException>().Subject;
+        }
+
+        (await RefusedAsync(Row(null, null))).SqlState.Should().Be(PostgresErrorCodes.CheckViolation, "a row names who acted");
+        (await RefusedAsync(Row(tenant.UserId, keyId))).SqlState.Should().Be(PostgresErrorCodes.CheckViolation, "a row is a person's or a key's");
+
+        await using var db = await TenantDbAsync(tenant.OrganizationId);
+        db.VerificationReviewActions.Add(VerificationReviewAction.ReadByKey(tenant.OrganizationId, applicationId, keyId, now));
+        await db.SaveChangesAsync(Ct);
+        var change = () => db.VerificationReviewActions.Where(a => a.ApiKeyId == keyId).ExecuteUpdateAsync(s => s.SetProperty(a => a.Note, "edited"), Ct);
+        var erase = () => db.VerificationReviewActions.Where(a => a.ApiKeyId == keyId).ExecuteDeleteAsync(Ct);
+        (await change.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
+        (await erase.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
+    }
+
     // A published remote job with the default workflow, in the tenant's organization, and the organization's slug.
     private Task<(string Slug, Guid JobId)> OpenJobAsync(Tenant tenant) => VerificationSupport.OpenJobAsync(fixture, tenant);
 

@@ -52,6 +52,9 @@ sources:
   - resource: src/ScreenHire.Infrastructure/Verification/Llm/LlmAccess.cs
   - resource: src/ScreenHire.Infrastructure/Verification/TextSimilarity.cs
   - resource: apps/api/Endpoints/VerificationEndpoints.cs
+  - resource: apps/api/Contracts/VerificationContracts.cs
+  - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/VerificationConfiguration.cs
+  - resource: apps/dashboard/src/lib/components/review-log.svelte
   - resource: apps/api/Endpoints/PublicTelemetryEndpoints.cs
   - resource: apps/dashboard/src/lib/verification.ts
   - resource: packages/telemetry/src/collector.ts
@@ -526,6 +529,7 @@ Every route is tenant-scoped (another organization's application is 404). No res
 | Route | What |
 |---|---|
 | `GET /v1/applications/{id}/verification` | `status` (`Pending` until assessed), both current assessments with level, reason codes, summary, next step, signals with evidence and counter-evidence, any dismissal, AI policy context, the review log, and whether verification can be requested (not until phase 2) |
+| `GET /v1/verification/applications` | the applications whose current authenticity or AI assistance level is the one asked for (`authenticity`, `aiAssistance`, `jobId`, `includeDismissed`, `limit` up to 50), newest first and never ranked, each with both levels, their reason codes and whether each was dismissed. At least one level is required. For a key with the Verification read scope; each application returned is logged (below) |
 | `POST .../verification/assessments/{assessmentId}/dismiss` | a reason (`VerifiedOutsideScreenHire`, `ExplainedByCandidate`, `FalsePositive`, or `Other` with a note); only the current assessment, above the lowest level, once |
 | `POST .../verification/assessments/{assessmentId}/signals/{signalId}/explain` | marks one reason explained: a reason (`ConfirmedWithCandidate`, `ExpectedForRole`, `KnownFalsePositive`, or `Other` with a note) and an optional note; only the current assessment, above the lowest level and not dismissed, and once until undone. It changes nothing but the review log |
 | `POST .../verification/assessments/{assessmentId}/signals/{signalId}/undo-explanation` | takes an explanation back; only its author (403 otherwise), and only while the assessment is not dismissed |
@@ -536,6 +540,14 @@ Every route is tenant-scoped (another organization's application is 404). No res
 
 The verification view also carries `consistencyCheck` (status, note, prompt version, models) once the check is decided, and
 each signal's `informational` flag and, for `CNT_INCONSISTENCY`, its `llm` provenance.
+
+The two GET routes above accept the session or an API key with the Verification read scope an Owner gave it (ADR-0021);
+a key without the scope gets 403, and every other route here is the session's, so a key reads and never decides. A read
+through a key adds a `ReadByKey` row to the review log for each application read, in the same save that precedes the
+answer: the key's id and the time, no acting user. A database check keeps every row to a person (`actor_user_id`) or a
+key (`api_key_id`), never both. The view shows it as `type: ReadByKey` with `apiKeyId`, `apiKeyName` and
+`keyCreatedByName`, and the dashboard's review log folds a run of reads by one key into one line with a count. Reading
+decides nothing: no level, filter, automation fact or webhook reads these rows (ADR-0004).
 
 Writes need a hiring role and the antiforgery header. Dismissing records a decision and never changes the assessment.
 A unique index (`ix_verification_review_actions_one_dismissal`) keeps one dismissal per assessment when two reviewers

@@ -10,6 +10,15 @@ a review action to its signal and a backfill of `change_records.created`. See [r
 [branding](architecture/branding.md), [careers widget](architecture/careers-widget.md) and
 [testing](process/testing.md) for the details.
 
+**Verification read, an API key scope only an Owner can give** ([ADR-0021](adr/0021-verification-read-scope-for-api-keys.md)).
+This is the owner's decision that the MCP server sees verification results. An Owner can add a third scope,
+Verification read, when creating a key (a new Owner-only permission, so no Admin or custom role can). A key with it
+reads an application's verification and lists applications by level, over HTTP and as two MCP tools; every read adds
+a "Read through the API key" line to the application's review log; a key without it sees exactly what it did. A level
+is still never a reason to reject: the tools and the server instructions say so, and nothing here dismisses, notes or
+moves anyone. The MCP server also gains read tools for the hiring report and the saved candidates (today's talent
+pool; the rename and rating work for saved candidates is its own task).
+
 ## 2026-10-31
 
 **The test gate runs on GitHub Actions** ([ADR-0020](adr/0020-test-gate-on-github-actions.md)). Agents run
