@@ -268,15 +268,16 @@ change, so a crash between the two cannot leave one without the other.
   one with nobody left is cancelled. A Booked interview goes on without a leaver who was not the organizer, so it can still
   be moved. If the organizer left, or nobody is left, it is cancelled and the candidate is told, because the candidate's
   invitation is on an event ScreenHire can no longer reach, and it could not be moved later. That event stays on the
-  leaver's own calendar.
+  leaver's own calendar. The handler takes the locks of all those interviews in one sorted pass, as a booking does.
 - **The candidate is erased.** An event holds the candidate's name and address, and the rows that say where it is go with
   the candidate. So the erase route takes the interviewers' locks, reads each Booked interview's attendees (user, saved
   event id, time), and sends `RemoveInterviewEvents` with those ids and times only. The handler deletes each event without
   notifying guests on Google; Microsoft Graph has no switch for that, and a meeting deleted by its organizer tells its
   attendees. An event whose id was never saved (a create whose transaction rolled back after the provider answered) is
-  found by the id its create used: Google's event id is derived from it, and Graph is searched by `transactionId` in the
-  interview's window. A cancellation uses the same lookup, so a rolled-back create cannot leave an event behind. The
-  sandbox deletes the row for good.
+  found by the id its create used: Google's event id is derived from it, and Graph is searched by `transactionId` across the
+  interview's whole window, because such an event sits at a time the interview may have moved from. A cancellation and a
+  move use the same lookup, so a rolled-back create cannot leave an event behind or at the old time. The sandbox deletes
+  the row for good.
 
 ## The workflow action
 
@@ -333,7 +334,8 @@ The timeline entry of the email has the send's id, so a redelivery sends nothing
 calendar, so it lands natively whichever provider each uses. The organizer's event invites the candidate by address and
 asks for a meeting link; the other copies carry that link in their text and invite nobody. The title is
 `Interview: {candidate} - {job}` and the body holds the job, the candidate and a link to the application, nothing else.
-Event ids derive from the interview and the member, so creating twice finds the first. A message does nothing when the
+Event ids derive from the interview and the member, so creating twice finds the first. A find does not change the event's
+time, so a move with no saved id looks the event up first and moves it, and creates one only when there is none. A message does nothing when the
 request has a newer revision or is no longer in the state the message is about (`InterviewText.IsCurrent`). A member with
 no usable calendar, or a calendar that refuses the event for good, is marked `Failed` with a short problem and the others
 go on; a calendar that is only down throws, so Wolverine retries and the events already made are found again. Then the
@@ -341,7 +343,8 @@ candidate gets `interview-confirmation` (or `interview-cancelled`), whose timeli
 and revision, and `InterviewChanged` tells open dashboards.
 
 These handlers take the interviewers' locks before they read the request and hold them through the calendar calls, until
-the handler's transaction commits. A cancellation or a move takes the same locks, so it cannot slip in while events are
+the handler's transaction commits. `ScreenHire:Calendar:Timeout` (10 seconds) bounds each call, so a provider that hangs
+holds an interviewer's bookings for seconds, not for good. A cancellation or a move takes the same locks, so it cannot slip in while events are
 being written: it waits, then finds the event ids it needs to remove or move.
 
 ## The candidate's page

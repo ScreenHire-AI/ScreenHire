@@ -325,7 +325,7 @@ whole life. The page asks the API for the interview (`GET .../interviews/{token}
 - **Open.** The heading names the job and the length, then a time zone `<select>` in a plain GET form (the interview's own
   zone first, then a short list of common ones and the zone being shown; "Show times in this zone" reloads with `?tz=`),
   then the offered times. The careers server writes every time with `Intl.DateTimeFormat` in that zone, so no script is
-  needed: a fieldset per local day, a radio per time ("10:00 to 10:30", 24-hour), and "Book this time", posted to the
+  needed: a fieldset per local day, a radio per start time ("10:00 AM"), and "Book this time", posted to the
   `interviewBook` action. One screen shows at most five days that have times; "Show later times" and "Back to the first
   times" are plain links (`?from=` a local day), so a 90-day window never becomes a thousand radios. No times, or a
   calendar that cannot be read, gets a calm notice that says to try again later or reply to the email.

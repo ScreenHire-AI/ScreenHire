@@ -121,7 +121,7 @@ carries, and a template cannot add one. The rendered subject is one line, cut at
   `{{ manageLink }}` and may use `{{ meetingLink }}` (empty until the organizer's calendar event has one, so wrap it in
   `{% if meetingLink != blank %}`) and `{{ interviewLength }}`. `interview-cancelled` may use `{{ interviewTime }}`, which
   is empty when the offer was withdrawn before a time was booked. The worker writes `interviewTime` from the instant and
-  the interview's time zone (`Tuesday 3 November 2026, 10:00 to 10:30 (Europe/London)`); the API never sends formatted
+  the interview's time zone (`Tuesday, November 3, 2026, 10:00 AM to 10:30 AM (Europe/London)`); the API never sends formatted
   dates. The copy the team keeps hides the candidate's own link, as the follow-up questions email does.
 
 The template preview (`POST /v1/email-templates/preview`) renders unsaved wording with a made-up candidate, Jordan Lee.
