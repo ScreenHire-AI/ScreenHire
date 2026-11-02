@@ -1,3 +1,5 @@
+using Npgsql;
+
 namespace ScreenHire.IntegrationTests;
 
 /// <summary>
@@ -91,5 +93,38 @@ public sealed class SearchTests(AppHostFixture fixture)
         using var integrator = new KeyClient(fixture, key.Text("token"));
         (await integrator.GetAsync("/v1/search?q=robin")).Status
             .Should().Be(HttpStatusCode.Unauthorized, "search is the dashboard's, not the hiring API's");
+    }
+
+    // The columns the search filters with ILIKE '%text%' have a trigram index (migration HardenFromWorkflowFollowUps). The
+    // plan is read as the stack's owner: a superuser skips row-level security, and the application role does not use
+    // these indexes today because ILIKE is not leakproof, so the planner will not apply it before the policy (see
+    // docs/architecture/sign-in-and-tenancy.md). This proves the indexes fit the query's shape, so they work the day that
+    // changes (a leakproof wrapper, or a role that bypasses the policy).
+    [Theory]
+    [InlineData("candidates", "full_name", "ix_candidates_full_name")]
+    [InlineData("candidates", "email", "ix_candidates_email")]
+    [InlineData("jobs", "title", "ix_jobs_title")]
+    public async Task The_columns_the_search_filters_have_a_trigram_index_that_serves_a_contains_search(string table, string column, string index)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var connection = new NpgsqlConnection(await fixture.GetOwnerConnectionStringAsync(ct));
+        await connection.OpenAsync(ct);
+        await using var transaction = await connection.BeginTransactionAsync(ct);
+        await using (var disable = new NpgsqlCommand("SET LOCAL enable_seqscan = off", connection, transaction))
+        {
+            await disable.ExecuteNonQueryAsync(ct);
+        }
+
+        await using var explain = new NpgsqlCommand($"EXPLAIN SELECT 1 FROM {table} WHERE {column} ILIKE '%quin%' ESCAPE '\\'", connection, transaction);
+        var plan = new List<string>();
+        await using (var reader = await explain.ExecuteReaderAsync(ct))
+        {
+            while (await reader.ReadAsync(ct))
+            {
+                plan.Add(reader.GetString(0));
+            }
+        }
+
+        string.Join(Environment.NewLine, plan).Should().Contain(index);
     }
 }

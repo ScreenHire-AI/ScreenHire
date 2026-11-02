@@ -316,7 +316,7 @@ internal static class OrganizationEndpoints
     // tenant filter scopes the lookup), of its slot's kind, and past its scan.
     private static async Task<Results<Ok<OrganizationBranding>, NotFound, ValidationProblem>> UpdateBranding(
         UpdateBrandingRequest request, ScreenHireDbContext db, ITenantContext tenant, IOptions<DomainOptions> domains,
-        CancellationToken cancellationToken)
+        TimeProvider time, CancellationToken cancellationToken)
     {
         var problems = new Dictionary<string, string[]>();
         CheckColor(problems, "brandColor", request.BrandColor, "A brand colour", BrandColorCheck.CheckBrand);
@@ -333,7 +333,7 @@ internal static class OrganizationEndpoints
             ("sharingImageId", request.SharingImageId, BrandImageKind.SharingImage),
         ];
         var ids = slots.Select(s => s.Id).OfType<Guid>().ToList();
-        var images = ids.Count == 0 ? [] : await db.BrandImages.AsNoTracking().Where(i => ids.Contains(i.Id)).ToListAsync(cancellationToken);
+        var images = ids.Count == 0 ? [] : await db.BrandImages.Where(i => ids.Contains(i.Id)).ToListAsync(cancellationToken);
         foreach (var (field, id, kind) in slots)
         {
             if (id is { } imageId && ImageProblem(images.SingleOrDefault(i => i.Id == imageId), kind) is { } problem)
@@ -355,6 +355,12 @@ internal static class OrganizationEndpoints
 
         organization.SetBranding(
             request.BrandColor, request.SecondColor, request.HeadingFont, request.LogoId, request.FaviconId, request.SharingImageId);
+        // An image stays out of the daily clean-up of abandoned uploads once it has been saved (PurgeExpiredBrandImageUploads).
+        foreach (var image in images)
+        {
+            image.MarkSaved(time.GetUtcNow());
+        }
+
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.Ok(await ToBrandingAsync(db, organization, domains.Value, cancellationToken));
     }

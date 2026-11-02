@@ -7,7 +7,9 @@ import {
   type RealtimeEvent,
 } from '@screenhire/realtime';
 import type { QueryClient } from '@tanstack/svelte-query';
+import { emailTemplatesPath } from '#lib/email.js';
 import { invalidatePath } from '#lib/query.js';
+import { scorecardTemplatesPath, templateUsagePath } from '#lib/templates.js';
 
 /** API paths whose queries live events make stale; `invalidatePath` covers every query under each. */
 export const jobsPath = '/v1/jobs';
@@ -44,6 +46,10 @@ export const invalidations: InvalidationMap = {
   // A job's team (`/v1/jobs/{id}/hiring-team`), the Team page's job counts, and for someone just added, the job itself.
   HiringTeamChanged: [jobsPath, membersPath],
   HiringTemplateVersionPublished: [jobsPath, templatesPath],
+  // Any template edit, of the three kinds: the Templates page, the pickers on a new job, the email composer and an
+  // application's scorecard library read them, and the usage list shows where each is used. Events are mapped by
+  // type, not by kind, so all of them refetch.
+  TemplateChanged: [templatesPath, emailTemplatesPath, scorecardTemplatesPath, templateUsagePath],
   ApplicationSubmitted: [jobsPath, applicationsPath, candidatesPath, reportsPath],
   ApplicationMoved: [jobsPath, applicationsPath, candidatesPath, reportsPath],
   // The application's Activity, the candidate's Messages (every email to them) and every list's last activity.

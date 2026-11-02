@@ -51,6 +51,13 @@ public sealed class BrandImage : ITenantOwned
     public Guid? UploadedByUserId { get; init; }
 
     /// <summary>
+    /// When someone first saved this image into the organization's branding, or null while nobody has. An upload that
+    /// stays null for a day is abandoned and the worker removes it. Once set it stays set: a replaced logo is still
+    /// linked from emails already sent, so a saved image is never removed.
+    /// </summary>
+    public DateTimeOffset? SavedAt { get; private set; }
+
+    /// <summary>
     /// Clean, or not scanned because no scanner is configured, as applicant files are offered (docs/architecture/branding.md).
     /// A pending or infected image is never served or saved.
     /// </summary>
@@ -68,6 +75,9 @@ public sealed class BrandImage : ITenantOwned
         ArgumentNullException.ThrowIfNull(careersBoardUrl);
         return $"{careersBoardUrl.TrimEnd('/')}/brand/images/{Id:D}.{Extension}";
     }
+
+    /// <summary>Records that the image was saved into the branding, the first time only.</summary>
+    public void MarkSaved(DateTimeOffset now) => SavedAt ??= now;
 
     /// <summary>Records a scan's result, once; a second result changes nothing and returns false.</summary>
     public bool RecordScan(MalwareScanStatus status, DateTimeOffset now)

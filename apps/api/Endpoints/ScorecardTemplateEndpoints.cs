@@ -9,6 +9,9 @@ using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Persistence.History;
 using ScreenHire.Infrastructure.Tenancy;
+using ScreenHire.Api.Hiring;
+using ScreenHire.Application.Templates;
+using Wolverine.EntityFrameworkCore;
 
 namespace ScreenHire.Api.Endpoints;
 
@@ -100,6 +103,7 @@ internal static class ScorecardTemplateEndpoints
         CreateScorecardTemplateRequest request,
         IValidator<CreateScorecardTemplateRequest> validator,
         ScreenHireDbContext db,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
         TimeProvider time,
         CancellationToken cancellationToken)
@@ -123,7 +127,7 @@ internal static class ScorecardTemplateEndpoints
 
         var template = ScorecardTemplate.Create(tenant.OrganizationId!.Value, request.Name.Trim(), request.Questions, time.GetUtcNow(), request.CopiedFrom);
         db.ScorecardTemplates.Add(template);
-        await db.SaveChangesAsync(cancellationToken);
+        await outbox.SaveTemplateChangeAsync(TemplateKind.ScorecardTemplate, template.Key, tenant, time, cancellationToken);
         return TypedResults.Created($"/v1/scorecard-templates/{template.Key}", await DetailAsync(db, template, cancellationToken));
     }
 
@@ -132,6 +136,8 @@ internal static class ScorecardTemplateEndpoints
         UpdateScorecardTemplateRequest request,
         IValidator<UpdateScorecardTemplateRequest> validator,
         ScreenHireDbContext db,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        ITenantContext tenant,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
@@ -160,7 +166,7 @@ internal static class ScorecardTemplateEndpoints
         if (template.Name != name || !SameQuestions(template.Questions, request.Questions))
         {
             template.Update(name, request.Questions, time.GetUtcNow());
-            await db.SaveChangesAsync(cancellationToken);
+            await outbox.SaveTemplateChangeAsync(TemplateKind.ScorecardTemplate, templateId, tenant, time, cancellationToken);
         }
 
         return TypedResults.Ok(await DetailAsync(db, template, cancellationToken));
@@ -169,15 +175,18 @@ internal static class ScorecardTemplateEndpoints
     // Archiving takes an own scorecard out of the pickers; stages that name it keep it, and jobs keep their copy. Both
     // directions are idempotent and recorded in the scorecard's History.
     private static Task<Results<Ok<ScorecardTemplateDetail>, NotFound, ProblemHttpResult>> ArchiveScorecardTemplate(
-        string templateId, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken) =>
-        SetArchivedAsync(templateId, archived: true, db, time, cancellationToken);
+        string templateId, ScreenHireDbContext db, IDbContextOutbox<ScreenHireDbContext> outbox, ITenantContext tenant, TimeProvider time,
+        CancellationToken cancellationToken) =>
+        SetArchivedAsync(templateId, archived: true, db, outbox, tenant, time, cancellationToken);
 
     private static Task<Results<Ok<ScorecardTemplateDetail>, NotFound, ProblemHttpResult>> UnarchiveScorecardTemplate(
-        string templateId, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken) =>
-        SetArchivedAsync(templateId, archived: false, db, time, cancellationToken);
+        string templateId, ScreenHireDbContext db, IDbContextOutbox<ScreenHireDbContext> outbox, ITenantContext tenant, TimeProvider time,
+        CancellationToken cancellationToken) =>
+        SetArchivedAsync(templateId, archived: false, db, outbox, tenant, time, cancellationToken);
 
     private static async Task<Results<Ok<ScorecardTemplateDetail>, NotFound, ProblemHttpResult>> SetArchivedAsync(
-        string templateId, bool archived, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken)
+        string templateId, bool archived, ScreenHireDbContext db, IDbContextOutbox<ScreenHireDbContext> outbox, ITenantContext tenant,
+        TimeProvider time, CancellationToken cancellationToken)
     {
         if (BuiltInScorecards.Find(templateId) is not null)
         {
@@ -199,7 +208,7 @@ internal static class ScorecardTemplateEndpoints
             template.Unarchive(time.GetUtcNow());
         }
 
-        await db.SaveChangesAsync(cancellationToken);
+        await outbox.SaveTemplateChangeAsync(TemplateKind.ScorecardTemplate, templateId, tenant, time, cancellationToken);
         return TypedResults.Ok(await DetailAsync(db, template, cancellationToken));
     }
 

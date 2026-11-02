@@ -25,6 +25,8 @@ sources:
   - resource: apps/api/Endpoints/NotificationSettingsEndpoints.cs
   - resource: src/ScreenHire.Domain/Organizations/NotificationSettings.cs
   - resource: tests/ScreenHire.UnitTests/Realtime/RealtimeContractTests.cs
+  - resource: src/ScreenHire.Application/Templates/TemplateChanged.cs
+  - resource: apps/api/Hiring/TemplateChangeEvents.cs
 ---
 # Real-time updates
 
@@ -115,7 +117,7 @@ The migration `GrantAppRoleApiMessagingAccess` creates `wolverine_api` and grant
   on. A connection is in one of the two kinds, never both, so an event sent to both arrives once, and neither name is a
   record topic. Every tenant event that carries a job id implements `IJobEvent` and goes to the all-jobs group and its
   job's team group (`RealtimeGroups.For`, held by `RealtimeGroupsTests`); one with no job, such as
-  `HiringTemplateVersionPublished`, goes to `org:{organizationId}`. `TeamNotified` and `TeammateMentioned` are job
+  `HiringTemplateVersionPublished` and `TemplateChanged`, goes to `org:{organizationId}`. `TeamNotified` and `TeammateMentioned` are job
   events too, so a notification card never tells anyone about a job they cannot see.
 - **Subscriptions.** `Subscribe(topic, id)` and `Unsubscribe(topic, id)` add a connection to one record's group,
   `org:{organizationId}:{topic}:{id}`. `RealtimeTopics.Exists` checks the record as the caller, so another
@@ -190,8 +192,16 @@ feeds every event to `TeammateToasts` (`apps/dashboard/src/lib/teammate-toasts.t
 
 Every toast needs an `ActorUserId` that is not the person's own. A change by an API key, an automation or the candidate
 never toasts: it is not a teammate's, and a key may be the person's own AI assistant. Any event the table does not name
-never toasts, so a verification result (`VerificationAssessed`) cannot. Edits to a hiring template's draft raise no event,
-so only a publish toasts. Email and scorecard template edits raise no event, so they do not toast yet.
+never toasts, so a verification result (`VerificationAssessed`) cannot. `TemplateChanged` is named nowhere in the table:
+every edit of a hiring, email or scorecard template (create, change, archive, restore, delete or reset, and a hiring
+template's default team) raises it so open dashboards refresh the template lists and pickers, but only a publish toasts.
+
+`TemplateChanged(OrganizationId, Kind, TemplateId, ChangedAt, ActorUserId)` carries no content. `Kind` is `HiringTemplate`,
+`EmailTemplate` or `ScorecardTemplate`, and `TemplateId` is text because a built-in email template or scorecard has a
+name for an id. The API raises it with the save that changed the template, through `IDbContextOutbox`
+(`TemplateChangeEvents.SaveTemplateChangeAsync`), only when something changed, and publishing a version raises
+`HiringTemplateVersionPublished` instead. The dashboard maps it to `/v1/templates`, `/v1/email-templates`,
+`/v1/scorecard-templates` and the usage list: an event is mapped by type, so one edit refetches all of them.
 
 Each change waits one second under its kind, its actor and its job before anything is read: one becomes a toast about
 the candidate, read with `GET /v1/applications/{id}`; several become one toast about the job, so a bulk move or a bulk
@@ -240,7 +250,7 @@ otherwise run.
 | Test | Proves |
 |---|---|
 | `RealtimeHubTests` (integration) | with the .NET SignalR client and a signed-in cookie: an anonymous connection gets 401; a WebSocket from another origin gets 403; a user without an organization is disconnected; each organization receives its own job events and never another's; an event the worker raises (`CheckLiveUpdates` in, `LiveUpdatesChecked` out) reaches its organization only; subscribing checks the job's organization |
-| `HiringRealtimeTests` (integration) | publishing a job (with its version), adding an application, moving it and publishing a template version each reach their own organization with their facts and never another's; republishing changed content pushes a second `JobPublished`, an unchanged publish none; editing a job's workflow raises `JobWorkflowChanged` with the new version to its own organization only; the worker's `VerificationAssessed` reaches its own organization with ids and levels only; a note, a tag, a task made by hand, a completed and a reopened task and a submitted scorecard raise `ApplicationNoteAdded`, `ApplicationTagsChanged`, `ApplicationTaskCreated`, `ApplicationTaskCompleted`, `ApplicationTaskReopened` and `ScorecardSubmitted` with ids only, to their own organization only. `TalentPoolChanged` (keeping someone in mind, leaving the pool, an invitation) carries ids only and refreshes the pool and the lists ([talent pool](talent-pool.md)) |
+| `HiringRealtimeTests` (integration) | a template edit of each kind (create, rename, archive; a built-in email template's edit and reset; a library scorecard's create and change, with a save that changed nothing raising none) raises `TemplateChanged` to its own organization only; publishing a job (with its version), adding an application, moving it and publishing a template version each reach their own organization with their facts and never another's; republishing changed content pushes a second `JobPublished`, an unchanged publish none; editing a job's workflow raises `JobWorkflowChanged` with the new version to its own organization only; the worker's `VerificationAssessed` reaches its own organization with ids and levels only; a note, a tag, a task made by hand, a completed and a reopened task and a submitted scorecard raise `ApplicationNoteAdded`, `ApplicationTagsChanged`, `ApplicationTaskCreated`, `ApplicationTaskCompleted`, `ApplicationTaskReopened` and `ScorecardSubmitted` with ids only, to their own organization only. `TalentPoolChanged` (keeping someone in mind, leaving the pool, an invitation) carries ids only and refreshes the pool and the lists ([talent pool](talent-pool.md)) |
 | `ApplicationNotesTests` (integration) | editing and deleting a note raise `ApplicationNoteEdited` and `ApplicationNoteDeleted`, and a mention raises `TeammateMentioned` with the mentioned person's id, ids only and to their own organization only |
 | `EmailTests` (integration) | a send to a selection raises `ApplicationEmailed` to its own organization once each email is on the timeline, and never to another |
 | `FollowUpQuestionnaireTests` (integration) | answering a follow-up questionnaire raises `QuestionnaireAnswered` with ids only, to its own organization only |

@@ -244,6 +244,16 @@
     }
   },
   {
+    "type": "TemplateChanged",
+    "data": {
+      "organizationId": "0199f0c4-0000-7000-8000-000000000001",
+      "kind": "HiringTemplate",
+      "templateId": "sample-3",
+      "changedAt": "2026-10-20T09:04:00+00:00",
+      "actorUserId": "0199f0c4-0000-7000-8000-000000000005"
+    }
+  },
+  {
     "type": "VerificationAssessed",
     "data": {
       "organizationId": "0199f0c4-0000-7000-8000-000000000001",

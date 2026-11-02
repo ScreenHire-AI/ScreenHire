@@ -57,6 +57,7 @@ sources:
   - resource: packages/telemetry/src/collector.ts
   - resource: packages/telemetry/src/device.ts
   - resource: packages/telemetry/src/index.ts
+  - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/VerificationConfiguration.cs
 ---
 # Verification Engine: Applicant Authenticity & AI-Assistance Signals
 
@@ -435,11 +436,11 @@ Rules of thumb in the analyzers:
   signals (timing, telemetry, the honeypot) are never stored, the behavioural analyzer never asks for telemetry, and the
   run's note reads the same either way, so nothing records the switch.
 
-### 10.3 Ruleset (`VerificationRuleset`, version `2026-10-21.2`)
+### 10.3 Ruleset (`VerificationRuleset`, version `2026-11-02.1`)
 
 Weights count `Low` 1, `Medium` 2, `High` 3. A category **corroborates** when its weights add up to at least 2;
 context-only signals (`NET_ANON_PROXY`, `AUTO_TURNSTILE_FAIL`) add their weight only next to a direct signal of the same
-category. Informational signals (`CNT_TEMPLATED_ANSWER`) add nothing at all; version `2026-10-20.3` added that rule. Version `2026-10-20.4` added `telemetry-only-alongside-another-category`. Version `2026-10-21.1` took the declaration out of AI assistance summaries. Version `2026-10-21.2` shortened summaries to the count and the kinds of check; the reasons list names each signal. The honeypot is `Medium` and accessibility-sensitive: autofill and assistive tools can fill a hidden field.
+category. Informational signals (`CNT_TEMPLATED_ANSWER`) add nothing at all; version `2026-10-20.3` added that rule. Version `2026-10-20.4` added `telemetry-only-alongside-another-category`. Version `2026-10-21.1` took the declaration out of AI assistance summaries. Version `2026-10-21.2` shortened summaries to the count and the kinds of check; the reasons list names each signal. Version `2026-11-02.1` followed the automation analyzer to version 2 (active time per page replaced the time from first showing the form to sending it): the ruleset version moves whenever an analyzer changes what its signals mean, so an assessment says which meaning it was made under. The honeypot is `Medium` and accessibility-sensitive: autofill and assistive tools can fill a hidden field.
 For each assessment, in order:
 
 | Rule id | Rule |
@@ -475,7 +476,7 @@ made with.
 | `verification_analyzer_runs` | one row per analyzer version per application | insert, read |
 | `verification_signals` | signals with their evidence (JSONB) | insert, read |
 | `verification_assessments` | each assessment, newest per kind is current | insert, read |
-| `verification_review_actions` | the reviewers' audit log | insert, read |
+| `verification_review_actions` | the reviewers' audit log. A reason explained or undone names its signal by a composite foreign key `(organization_id, signal_id)` to `verification_signals`, cascading with the signal's application, so an invented id or another organization's signal is refused by the database | insert, read |
 | `application_documents` | what each uploaded file says: visible text, metadata, hidden text (§10.10) | insert, read |
 | `answer_fingerprints` | a SimHash per free-text answer, for near-duplicate lookups | insert, read |
 | `consistency_checks` | the consistency check per application and prompt version, with its contradictions and token use | insert, read, update |

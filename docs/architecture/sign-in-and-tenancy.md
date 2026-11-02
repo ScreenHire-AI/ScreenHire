@@ -55,6 +55,7 @@ sources:
   - resource: apps/dashboard/src/routes/(app)/settings/roles/+page.svelte
   - resource: apps/dashboard/src/routes/(app)/settings/roles/[roleId]/+page.svelte
   - resource: apps/dashboard/src/routes/(app)/settings/roles/compare/+page.svelte
+  - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/CandidateConfiguration.cs
 ---
 # Sign-in, organizations and tenant isolation
 
@@ -448,6 +449,19 @@ Who the tenant is:
 | Accepting an invitation | The organization the token names, for the lookup by hash and the join that follows |
 | Switching organization | The chosen one, after a check that the user is a member of it |
 | Worker handler | `TenantMessageMiddleware`: the `OrganizationId` of an `ITenantMessage`; none for system messages, which set each organization in turn. Every job. |
+
+### Row-level security and indexes
+
+A user's condition on a table with row-level security (the search box's `ILIKE '%text%'`) is applied after the policy, and
+Postgres lets a planner use an index for it only when its function is **leakproof**, which `texticlike` and `textlike`
+are not. So as `screenhire_app` the trigram indexes on `candidates.full_name`, `candidates.email` and `jobs.title`
+(migration `HardenFromWorkflowFollowUps`) do not serve the search today: `EXPLAIN` as that role scans the table, with
+the policy and the `ILIKE` both applied as filters, while the owner (a superuser, which skips the policy) uses the
+index. The indexes are right for the query's shape (`SearchTests` proves it as the owner) and cost writes, and they
+help the day a leakproof wrapper exists. Marking a function leakproof needs a superuser, so it is an owner action
+before anything claims a faster search; check any new index for an RLS table with `EXPLAIN` as the application role,
+never the owner. `pg_trgm` is a trusted extension, and Azure Database for PostgreSQL also needs it in the server's
+`azure.extensions` list before `CREATE EXTENSION` runs.
 
 ### Adding a tenant-owned table
 

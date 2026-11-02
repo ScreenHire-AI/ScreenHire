@@ -224,7 +224,8 @@ nothing.
   engine's retention sweep, `PurgeExpiredVerificationData`, runs daily and fans out one tenant message per organization;
   `PurgeExpiredWebhookDeliveries` does the same for webhook delivery logs, `PurgeExpiredApplicationDrafts` for answers
   saved to finish later ([apply-flow.md](apply-flow.md) §7), `PurgeExpiredSlackMessages` for the records that Slack
-  messages went ([slack.md](slack.md)), and `ExpireTalentPool` for the people whose
+  messages went ([slack.md](slack.md)), `PurgeExpiredBrandImageUploads` for brand images nobody saved, a day after the
+  upload, with their blobs ([branding.md](branding.md) §4), and `ExpireTalentPool` for the people whose
   permission for future roles ran out ([talent pool](talent-pool.md)).
   A schedule faster than every five seconds is refused.
 - **Job distribution** ([job-distribution.md](job-distribution.md) §5) uses both. A push board's answer schedules

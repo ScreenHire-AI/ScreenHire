@@ -98,6 +98,34 @@ internal sealed class EventsConnection : IAsyncDisposable
         }
     }
 
+    /// <summary>Waits for an event of <paramref name="type"/> whose data has the text <paramref name="property"/> equal to <paramref name="value"/>.</summary>
+    public async Task<JsonElement> WaitForAsync(string type, string property, string value, CancellationToken cancellationToken)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(Deadline);
+        try
+        {
+            while (true)
+            {
+                if (received.FirstOrDefault(e => e.Type == type
+                    && e.Data.TryGetProperty(property, out var actual)
+                    && actual.ValueKind == JsonValueKind.String
+                    && actual.GetString() == value) is { } match)
+                {
+                    return match.Data;
+                }
+
+                await Task.Delay(TimeSpan.FromMilliseconds(100), deadline.Token);
+            }
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException(
+                $"No {type} with {property} {value} within {Deadline.TotalSeconds:0} seconds. Received: " +
+                string.Join(", ", received.Select(e => $"{e.Type} {e.Data}")));
+        }
+    }
+
     /// <summary>Whether any received event, of any type, mentions <paramref name="id"/>.</summary>
     public bool ReceivedAnythingAbout(Guid id) =>
         received.Any(e => e.Data.GetRawText().Contains(id.ToString(), StringComparison.OrdinalIgnoreCase));

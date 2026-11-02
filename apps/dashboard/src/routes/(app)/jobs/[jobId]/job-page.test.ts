@@ -40,12 +40,22 @@ const job = {
 
 const boards = [board('careers', 'Careers page', { canUnpublishPerBoard: false }), board('sandbox', 'Sandbox board')];
 
+const organization = {
+  id: '01a157d4-0000-7000-8000-0000000000bb',
+  name: 'Brightwater Studio',
+  slug: 'brightwater',
+  careersUrl: 'https://jobs.brightwater.example.com',
+  questionsPerPage: 8,
+  embedOrigins: [] as string[],
+};
+
 function stub(detail: JobDetail, routes: Parameters<typeof apiStub>[0] = {}) {
   const fetchMock = vi.fn(
     apiStub({
       [`GET /v1/jobs/${jobId}`]: () => Response.json(detail),
       [`GET /v1/jobs/${jobId}/applications`]: () => Response.json(applications),
       'GET /v1/boards': () => Response.json(boards),
+      'GET /v1/organization': () => Response.json(organization),
       'GET /v1/organization/members': () => Response.json([]),
       [`GET /v1/jobs/${jobId}/hiring-team`]: () => Response.json([]),
       ...routes,
@@ -348,5 +358,33 @@ describe('job page', () => {
     const publish = await screen.findByRole('button', { name: 'Publish to 2 boards' });
     expect(publish.closest('[data-slot=action-bar]')).not.toBeNull();
     expect(publish.closest('[data-slot=header-band]')).toBeNull();
+  });
+  describe('embed code for this job', () => {
+    it('shows the snippet with the job address once a site may embed the careers page', async () => {
+      onPostingsTab();
+      stub(job, { 'GET /v1/organization': () => Response.json({ ...organization, embedOrigins: ['https://www.brightwater.example.com'] }) });
+
+      expect(await screen.findByLabelText('Embed code for this job')).toHaveTextContent(
+        '<script src="https://jobs.brightwater.example.com/embed.js" data-job="senior-dotnet-engineer" async></script>',
+      );
+      expect(screen.getByRole('button', { name: 'Copy' })).toBeInTheDocument();
+    });
+
+    it('sends someone with no listed site to add one, instead of showing code that would not work', async () => {
+      onPostingsTab();
+      stub(job);
+
+      expect(await screen.findByText(/Only sites on your list can show your jobs/)).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Careers site settings' })).toHaveAttribute('href', '/settings/careers-site');
+      expect(screen.queryByLabelText('Embed code for this job')).toBeNull();
+    });
+
+    it('is not offered for a job that is not open', async () => {
+      onPostingsTab();
+      stub({ ...job, status: 'Closed', closedAt: '2026-10-20T10:00:00Z' });
+
+      expect((await screen.findAllByText('Careers page')).length).toBeGreaterThan(0);
+      expect(screen.queryByRole('heading', { name: 'Embed on your website' })).toBeNull();
+    });
   });
 });

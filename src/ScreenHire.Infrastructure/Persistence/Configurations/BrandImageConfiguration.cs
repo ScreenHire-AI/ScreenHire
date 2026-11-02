@@ -18,5 +18,7 @@ internal sealed class BrandImageConfiguration : IEntityTypeConfiguration<BrandIm
 
         builder.HasOne<Organization>().WithMany().HasForeignKey(i => i.OrganizationId).OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(i => new { i.OrganizationId, i.Kind });
+        // The daily clean-up of abandoned uploads looks for unsaved images by age, one organization at a time.
+        builder.HasIndex(i => new { i.OrganizationId, i.UploadedAt }).HasFilter("saved_at is null");
     }
 }

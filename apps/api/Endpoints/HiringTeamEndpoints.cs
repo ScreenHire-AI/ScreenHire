@@ -10,6 +10,7 @@ using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
+using ScreenHire.Application.Templates;
 
 namespace ScreenHire.Api.Endpoints;
 
@@ -131,8 +132,8 @@ internal static class HiringTeamEndpoints
     // The default team gives nobody access by itself: it becomes a job's team when someone creates a job from the
     // template (JobEndpoints.CreateJob), and that is logged per job too.
     private static async Task<Results<Ok<List<HiringTeamMember>>, NotFound, ValidationProblem, ProblemHttpResult>> SetTemplateTeam(
-        Guid templateId, HiringTeamRequest request, IValidator<HiringTeamRequest> validator, ScreenHireDbContext db, ITenantContext tenant,
-        TimeProvider time, CancellationToken cancellationToken)
+        Guid templateId, HiringTeamRequest request, IValidator<HiringTeamRequest> validator, ScreenHireDbContext db,
+        IDbContextOutbox<ScreenHireDbContext> outbox, ITenantContext tenant, TimeProvider time, CancellationToken cancellationToken)
     {
         if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
         {
@@ -170,6 +171,9 @@ internal static class HiringTeamEndpoints
             HiringTeams.Log(db, tenant, members, change, time.GetUtcNow(), templateId: template.Id);
             await db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+            // After the commit, in the outbox's own transaction (this one is the member lock's): a lost event only leaves
+            // another dashboard's template page stale until its next refetch.
+            await outbox.SaveTemplateChangeAsync(TemplateKind.HiringTemplate, templateId.ToString("D"), tenant, time, cancellationToken);
         }
 
         return TypedResults.Ok(await HiringTeams.DescribeAsync(db, members, template.DefaultHiringTeam, cancellationToken));

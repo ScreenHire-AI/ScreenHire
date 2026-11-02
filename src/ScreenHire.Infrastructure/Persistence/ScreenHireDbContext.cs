@@ -183,6 +183,9 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     {
         base.OnModelCreating(builder);
 
+        // Trigram indexes for the search box (CandidateConfiguration, JobConfiguration).
+        builder.HasPostgresExtension("pg_trgm");
+
         builder.Entity<ApplicationUser>().ToTable("users");
         builder.Entity<IdentityUserClaim<Guid>>().ToTable("user_claims");
         builder.Entity<IdentityUserLogin<Guid>>().ToTable("user_logins");
