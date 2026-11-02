@@ -45,7 +45,7 @@ describe('pipeline tracker', () => {
     const dots = [...container.querySelectorAll('li > span:first-child > span.rounded-full')];
     expect(dots[0]).toHaveClass('bg-primary');
     expect(dots[1]).toHaveClass('bg-card', 'border-primary', 'outline-2');
-    expect(dots[2]).toHaveClass('bg-card', 'border-input');
+    expect(dots[2]).toHaveClass('bg-card', 'border-muted-foreground');
     expect(dots[2]).not.toHaveClass('bg-primary');
   });
 

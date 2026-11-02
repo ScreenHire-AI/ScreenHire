@@ -493,7 +493,7 @@
 <!-- A candidate header's three mini cards: Contact, Application, then Also applied to (or Rating once someone scored them). -->
 {#snippet candidateCards()}
   <div class="@container">
-    <div class="grid min-w-0 gap-3 @3xl:grid-cols-3">
+    <div class="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] gap-3">
       <MiniCard title="Contact">
         <div class="flex min-w-0 items-center gap-1">
           <TruncatedText text="samuel.okonkwo@example.com" href="mailto:samuel.okonkwo@example.com" icon={MailIcon} underlined />

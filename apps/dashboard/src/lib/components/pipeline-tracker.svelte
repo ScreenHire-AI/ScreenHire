@@ -29,7 +29,7 @@
             step.state === 'passed' && 'border-primary bg-primary',
             step.state === 'current' && 'border-primary bg-card outline-2 outline-offset-2 outline-primary/40',
             step.state === 'left' && 'border-foreground bg-foreground',
-            step.state === 'upcoming' && 'border-input bg-card',
+            step.state === 'upcoming' && 'border-muted-foreground bg-card',
           ]}
         ></span>
         {#if !last}

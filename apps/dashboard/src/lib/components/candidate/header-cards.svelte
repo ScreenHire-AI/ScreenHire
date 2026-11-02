@@ -43,7 +43,8 @@
   const rated = $derived(detail.rating != null && detail.rating.state !== 'NotRated');
 </script>
 
-<div class="grid min-w-0 gap-3 @3xl:grid-cols-3">
+<!-- As many columns as hold a card of 16rem or more, so a card keeps its two lines: three across in a wide band, two at a laptop, one on a phone (F2). -->
+<div class="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] gap-3">
   <MiniCard title="Contact">
     <div class="flex min-w-0 items-center gap-1">
       <TruncatedText
