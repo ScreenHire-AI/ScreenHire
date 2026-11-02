@@ -64,6 +64,7 @@ import type {
   CustomRoleDetail,
   DismissVerificationAssessmentRequest,
   EditApplicationNoteRequest,
+  EditSavedNoteRequest,
   EmailPreview,
   EmailTemplateDraft,
   EmailTemplateEntry,
@@ -79,9 +80,9 @@ import type {
   GetOrganizationBrandingHistoryParams,
   GetOrganizationHistoryParams,
   GetOrganizationSendingDomainHistoryParams,
-  GetOrganizationTalentPoolSettingsHistoryParams,
   GetOrganizationVerificationSettingsHistoryParams,
   GetRoleHistoryParams,
+  GetSavedNoteHistoryParams,
   GetScorecardTemplateHistoryParams,
   GetTeamHistoryParams,
   HiringReport,
@@ -125,7 +126,6 @@ import type {
   OrganizationBranding,
   OrganizationProfile,
   OrganizationSendingDomain,
-  OrganizationTalentPoolSettings,
   OrganizationVerificationSettings,
   PendingInvitation,
   ProblemDetails,
@@ -187,7 +187,6 @@ import type {
   UpdateScorecardTemplateRequest,
   UpdateSlackAccountRequest,
   UpdateSlackChannelRequest,
-  UpdateTalentPoolSettingsRequest,
   UpdateVerificationSettingsRequest,
   UpdateWebhookEndpointRequest,
   UploadRequest,
@@ -10527,308 +10526,6 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return createMutation(() => ({ ...getUpdateOrganizationVerificationSettingsMutationOptions(options?.()) }), queryClient);
     }
 
-export type getOrganizationTalentPoolSettingsResponse200 = {
-  data: OrganizationTalentPoolSettings
-  status: 200
-}
-
-export type getOrganizationTalentPoolSettingsResponse401 = {
-  data: void
-  status: 401
-}
-
-export type getOrganizationTalentPoolSettingsResponseSuccess = (getOrganizationTalentPoolSettingsResponse200) & {
-  headers: Headers;
-};
-export type getOrganizationTalentPoolSettingsResponseError = (getOrganizationTalentPoolSettingsResponse401) & {
-  headers: Headers;
-};
-
-export const getGetOrganizationTalentPoolSettingsUrl = () => {
-
-
-
-
-  return `/v1/organization/talent-pool-settings`
-}
-
-export const getOrganizationTalentPoolSettings = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<getOrganizationTalentPoolSettingsResponseSuccess> => {
-
-  return apiQueryFetch<getOrganizationTalentPoolSettingsResponseSuccess>(getGetOrganizationTalentPoolSettingsUrl(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetOrganizationTalentPoolSettingsQueryKey = () => {
-    return [
-    'v1','organization','talent-pool-settings'
-    ] as const;
-    }
-
-
-export const getGetOrganizationTalentPoolSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizationTalentPoolSettings>>, TError = ErrorType<void>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationTalentPoolSettings>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationTalentPoolSettingsQueryKey();
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationTalentPoolSettings>>> = ({ signal }) => getOrganizationTalentPoolSettings({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationTalentPoolSettings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetOrganizationTalentPoolSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizationTalentPoolSettings>>>
-export type GetOrganizationTalentPoolSettingsQueryError = ErrorType<void>
-
-
-
-export function createGetOrganizationTalentPoolSettings<TData = Awaited<ReturnType<typeof getOrganizationTalentPoolSettings>>, TError = ErrorType<void>>(
-  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationTalentPoolSettings>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
- , queryClient?: () => QueryClient
- ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-
-
-  const query = createQuery(() => getGetOrganizationTalentPoolSettingsQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return query
-}
-
-
-
-
-
-
-
-export type updateOrganizationTalentPoolSettingsResponse200 = {
-  data: OrganizationTalentPoolSettings
-  status: 200
-}
-
-export type updateOrganizationTalentPoolSettingsResponse400 = {
-  data: HttpValidationProblemDetails
-  status: 400
-}
-
-export type updateOrganizationTalentPoolSettingsResponse401 = {
-  data: void
-  status: 401
-}
-
-export type updateOrganizationTalentPoolSettingsResponse403 = {
-  data: ProblemDetails
-  status: 403
-}
-
-export type updateOrganizationTalentPoolSettingsResponseSuccess = (updateOrganizationTalentPoolSettingsResponse200) & {
-  headers: Headers;
-};
-export type updateOrganizationTalentPoolSettingsResponseError = (updateOrganizationTalentPoolSettingsResponse400 | updateOrganizationTalentPoolSettingsResponse401 | updateOrganizationTalentPoolSettingsResponse403) & {
-  headers: Headers;
-};
-
-export const getUpdateOrganizationTalentPoolSettingsUrl = () => {
-
-
-
-
-  return `/v1/organization/talent-pool-settings`
-}
-
-export const updateOrganizationTalentPoolSettings = async (updateTalentPoolSettingsRequest: UpdateTalentPoolSettingsRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<updateOrganizationTalentPoolSettingsResponseSuccess> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return apiQueryFetch<updateOrganizationTalentPoolSettingsResponseSuccess>(getUpdateOrganizationTalentPoolSettingsUrl(),
-  {
-    ...options,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(updateTalentPoolSettingsRequest)
-  }
-);}
-
-
-
-
-
-export const getUpdateOrganizationTalentPoolSettingsMutationKey = () => ['updateOrganizationTalentPoolSettings'] as const;
-
-export const getUpdateOrganizationTalentPoolSettingsMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
-    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateOrganizationTalentPoolSettings>>, TError,UpdateOrganizationTalentPoolSettingsMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
-): CreateMutationOptions<Awaited<ReturnType<typeof updateOrganizationTalentPoolSettings>>, TError,UpdateOrganizationTalentPoolSettingsMutationVariables, TContext> => {
-
-const mutationKey = getUpdateOrganizationTalentPoolSettingsMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOrganizationTalentPoolSettings>>, UpdateOrganizationTalentPoolSettingsMutationVariables> = (props) => {
-          const {data} = props ?? {};
-
-          return  updateOrganizationTalentPoolSettings(data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type UpdateOrganizationTalentPoolSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateOrganizationTalentPoolSettings>>>
-    export type UpdateOrganizationTalentPoolSettingsMutationBody = UpdateTalentPoolSettingsRequest
-    export type UpdateOrganizationTalentPoolSettingsMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
-    export type UpdateOrganizationTalentPoolSettingsMutationVariables = {data: UpdateTalentPoolSettingsRequest}
-
-    export const createUpdateOrganizationTalentPoolSettings = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
-    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateOrganizationTalentPoolSettings>>, TError,UpdateOrganizationTalentPoolSettingsMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
- , queryClient?: () => QueryClient): CreateMutationResult<
-        Awaited<ReturnType<typeof updateOrganizationTalentPoolSettings>>,
-        TError,
-        UpdateOrganizationTalentPoolSettingsMutationVariables,
-        TContext
-      > => {
-      return createMutation(() => ({ ...getUpdateOrganizationTalentPoolSettingsMutationOptions(options?.()) }), queryClient);
-    }
-
-export type getOrganizationTalentPoolSettingsHistoryResponse200 = {
-  data: HistoryPage
-  status: 200
-}
-
-export type getOrganizationTalentPoolSettingsHistoryResponse400 = {
-  data: HttpValidationProblemDetails
-  status: 400
-}
-
-export type getOrganizationTalentPoolSettingsHistoryResponse401 = {
-  data: void
-  status: 401
-}
-
-export type getOrganizationTalentPoolSettingsHistoryResponse404 = {
-  data: void
-  status: 404
-}
-
-export type getOrganizationTalentPoolSettingsHistoryResponseSuccess = (getOrganizationTalentPoolSettingsHistoryResponse200) & {
-  headers: Headers;
-};
-export type getOrganizationTalentPoolSettingsHistoryResponseError = (getOrganizationTalentPoolSettingsHistoryResponse400 | getOrganizationTalentPoolSettingsHistoryResponse401 | getOrganizationTalentPoolSettingsHistoryResponse404) & {
-  headers: Headers;
-};
-
-export const getGetOrganizationTalentPoolSettingsHistoryUrl = (params?: GetOrganizationTalentPoolSettingsHistoryParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/v1/organization/talent-pool-settings/history?${stringifiedParams}` : `/v1/organization/talent-pool-settings/history`
-}
-
-export const getOrganizationTalentPoolSettingsHistory = async (params?: GetOrganizationTalentPoolSettingsHistoryParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getOrganizationTalentPoolSettingsHistoryResponseSuccess> => {
-
-  return apiQueryFetch<getOrganizationTalentPoolSettingsHistoryResponseSuccess>(getGetOrganizationTalentPoolSettingsHistoryUrl(params),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetOrganizationTalentPoolSettingsHistoryQueryKey = (params?: GetOrganizationTalentPoolSettingsHistoryParams,) => {
-    return [
-    'v1','organization','talent-pool-settings','history', ...(params ? [params] : [])
-    ] as const;
-    }
-
-
-export const getGetOrganizationTalentPoolSettingsHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizationTalentPoolSettingsHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(params?: GetOrganizationTalentPoolSettingsHistoryParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationTalentPoolSettingsHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationTalentPoolSettingsHistoryQueryKey(params);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationTalentPoolSettingsHistory>>> = ({ signal }) => getOrganizationTalentPoolSettingsHistory(params, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationTalentPoolSettingsHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetOrganizationTalentPoolSettingsHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizationTalentPoolSettingsHistory>>>
-export type GetOrganizationTalentPoolSettingsHistoryQueryError = ErrorType<HttpValidationProblemDetails | void>
-
-
-
-export function createGetOrganizationTalentPoolSettingsHistory<TData = Awaited<ReturnType<typeof getOrganizationTalentPoolSettingsHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
- params?: () =>  GetOrganizationTalentPoolSettingsHistoryParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationTalentPoolSettingsHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
- , queryClient?: () => QueryClient
- ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-
-
-  const query = createQuery(() => getGetOrganizationTalentPoolSettingsHistoryQueryOptions(params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return query
-}
-
-
-
-
-
-
-
 export type listTeamMembersResponse200 = {
   data: TeamMember[]
   status: 200
@@ -20056,6 +19753,232 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return createMutation(() => ({ ...getKeepInMindMutationOptions(options?.()) }), queryClient);
     }
+
+export type editSavedNoteResponse204 = {
+  data: void
+  status: 204
+}
+
+export type editSavedNoteResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type editSavedNoteResponse401 = {
+  data: void
+  status: 401
+}
+
+export type editSavedNoteResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type editSavedNoteResponse404 = {
+  data: void
+  status: 404
+}
+
+export type editSavedNoteResponseSuccess = (editSavedNoteResponse204) & {
+  headers: Headers;
+};
+export type editSavedNoteResponseError = (editSavedNoteResponse400 | editSavedNoteResponse401 | editSavedNoteResponse403 | editSavedNoteResponse404) & {
+  headers: Headers;
+};
+
+export const getEditSavedNoteUrl = (candidateId: string,) => {
+
+
+
+
+  return `/v1/talent-pool/${candidateId}/note`
+}
+
+export const editSavedNote = async (candidateId: string,
+    editSavedNoteRequest: EditSavedNoteRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<editSavedNoteResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<editSavedNoteResponseSuccess>(getEditSavedNoteUrl(candidateId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(editSavedNoteRequest)
+  }
+);}
+
+
+
+
+
+export const getEditSavedNoteMutationKey = () => ['editSavedNote'] as const;
+
+export const getEditSavedNoteMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof editSavedNote>>, TError,EditSavedNoteMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof editSavedNote>>, TError,EditSavedNoteMutationVariables, TContext> => {
+
+const mutationKey = getEditSavedNoteMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof editSavedNote>>, EditSavedNoteMutationVariables> = (props) => {
+          const {candidateId,data} = props ?? {};
+
+          return  editSavedNote(candidateId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EditSavedNoteMutationResult = NonNullable<Awaited<ReturnType<typeof editSavedNote>>>
+    export type EditSavedNoteMutationBody = EditSavedNoteRequest
+    export type EditSavedNoteMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type EditSavedNoteMutationVariables = {candidateId: string;data: EditSavedNoteRequest}
+
+    export const createEditSavedNote = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof editSavedNote>>, TError,EditSavedNoteMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof editSavedNote>>,
+        TError,
+        EditSavedNoteMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getEditSavedNoteMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getSavedNoteHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getSavedNoteHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getSavedNoteHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getSavedNoteHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getSavedNoteHistoryResponseSuccess = (getSavedNoteHistoryResponse200) & {
+  headers: Headers;
+};
+export type getSavedNoteHistoryResponseError = (getSavedNoteHistoryResponse400 | getSavedNoteHistoryResponse401 | getSavedNoteHistoryResponse404) & {
+  headers: Headers;
+};
+
+export const getGetSavedNoteHistoryUrl = (candidateId: string,
+    params?: GetSavedNoteHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/talent-pool/${candidateId}/history?${stringifiedParams}` : `/v1/talent-pool/${candidateId}/history`
+}
+
+export const getSavedNoteHistory = async (candidateId: string,
+    params?: GetSavedNoteHistoryParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getSavedNoteHistoryResponseSuccess> => {
+
+  return apiQueryFetch<getSavedNoteHistoryResponseSuccess>(getGetSavedNoteHistoryUrl(candidateId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSavedNoteHistoryQueryKey = (candidateId: string,
+    params?: GetSavedNoteHistoryParams,) => {
+    return [
+    'v1','talent-pool',candidateId,'history', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetSavedNoteHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getSavedNoteHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(candidateId: string,
+    params?: GetSavedNoteHistoryParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getSavedNoteHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSavedNoteHistoryQueryKey(candidateId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSavedNoteHistory>>> = ({ signal }) => getSavedNoteHistory(candidateId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: candidateId !== null && candidateId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getSavedNoteHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetSavedNoteHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getSavedNoteHistory>>>
+export type GetSavedNoteHistoryQueryError = ErrorType<HttpValidationProblemDetails | void>
+
+
+
+export function createGetSavedNoteHistory<TData = Awaited<ReturnType<typeof getSavedNoteHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
+ candidateId: () =>  string,
+    params?: () =>  GetSavedNoteHistoryParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getSavedNoteHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetSavedNoteHistoryQueryOptions(candidateId(),
+    params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
 
 export type removeFromTalentPoolResponse204 = {
   data: void

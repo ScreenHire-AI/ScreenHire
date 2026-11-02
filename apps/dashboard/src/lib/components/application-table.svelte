@@ -24,7 +24,8 @@
   import { preferences } from '#lib/preferences.svelte.js';
   import { hasModifier, isTypingTarget } from '#lib/shortcuts.js';
   import { isOverdue } from '#lib/sla.js';
-  import { stageLabel } from '#lib/talent-pool.js';
+  import StatusBadge from '#lib/components/status-badge.svelte';
+  import { keptInMindLabel, stageLabel } from '#lib/talent-pool.js';
   import { createTableSort, tableSortOptions, type TableSortState } from '#lib/table-sort.svelte.js';
 
   let {
@@ -117,7 +118,7 @@
   // Overdue rows rank below every stage position, ordered by when they fell due; the rest rank by pipeline position.
   function attentionRank(application: ApplicationSummary): number {
     if (isOverdue(application, Date.now())) return Date.parse(application.slaDueAt!) - 1e15;
-    // A candidate kept in mind has left the job, so they sort after every stage, with the endings.
+    // A saved candidate has left the job, so they sort after every stage, with the endings.
     const position = application.keptInMindAt ? -1 : (stages?.findIndex((stage) => stage.id === application.stage.id) ?? -1);
     return position < 0 ? Number.MAX_SAFE_INTEGER : position;
   }
@@ -277,7 +278,11 @@
        pill (L1). -->
   <span class="flex min-w-0 items-center gap-1.5">
     <OverdueBadge dueAt={application.slaDueAt} />
-    <TruncatedText text={stageLabel(application)} class="max-w-48" />
+    {#if application.keptInMindAt}
+      <StatusBadge status="saved" label={keptInMindLabel} quiet />
+    {:else}
+      <TruncatedText text={application.stage.name} class="max-w-48" />
+    {/if}
   </span>
 {/snippet}
 
@@ -328,7 +333,11 @@
     {#snippet facts()}
       <!-- relative: above the item's link, so the due time's tooltip opens on tap. -->
       <OverdueBadge dueAt={application.slaDueAt} class="relative" />
-      <Badge variant="muted">{stageLabel(application)}</Badge>
+      {#if application.keptInMindAt}
+        <StatusBadge status="saved" label={keptInMindLabel} quiet />
+      {:else}
+        <Badge variant="muted">{application.stage.name}</Badge>
+      {/if}
       {#if showJob}
         <!-- relative: above the item's link, so the full title's tooltip opens on tap. -->
         <Badge variant="muted" class="relative max-w-full"><TruncatedText text={application.jobTitle} /></Badge>

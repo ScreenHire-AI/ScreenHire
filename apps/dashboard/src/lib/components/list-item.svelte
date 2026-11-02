@@ -20,7 +20,7 @@
     /** One short value on the right, such as a date. It stays clickable above the row's link. */
     meta?: Snippet;
     /**
-     * The row's More menu, last on the first line, for a list whose actions live only on its rows (the talent pool). It
+     * The row's More menu, last on the first line, for a list whose actions live only on its rows (saved candidates). It
      * stays clickable above the row's link.
      */
     actions?: Snippet;

@@ -6,8 +6,8 @@
  */
 
 /**
- * What happened: `kept` joined the pool; `notAllowed` have no permission for future roles (they never gave it,
- * it ran out or they took it back); `alreadyEnded` were hired, rejected, withdrawn or kept in mind already.
+ * What happened: `kept` were saved; `notAllowed` have no permission for future roles (they never gave it or
+ * they took it back); `alreadyEnded` were hired, rejected, withdrawn or saved already.
  */
 export interface KeptInMind {
   kept: number;

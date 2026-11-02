@@ -126,14 +126,18 @@ public static class SettingsChanges
         return lines;
     }
 
-    /// <param name="before">The settings before the save; null on the first save, which compares with the default.</param>
-    /// <param name="after">The settings after the save.</param>
-    public static IReadOnlyList<ChangeLine> TalentPool(TalentPoolSettings? before, TalentPoolSettings? after)
+    /// <param name="before">The saved entry before the save; null when the save added it.</param>
+    /// <param name="after">The saved entry after the save; null when the save removed it.</param>
+    public static IReadOnlyList<ChangeLine> SavedNote(TalentPoolEntry? before, TalentPoolEntry? after)
     {
-        var was = TalentPoolSettings.MonthsOf(before);
-        return after is null || was == after.PermissionMonths
-            ? []
-            : [ChangeLine.Of($"changed how long permission for future roles lasts from {Months(was)} to ", Months(after.PermissionMonths))];
+        // Saving someone and taking them out are on the candidate's Activity; only an edit of the note is a change here.
+        if (before is null || after is null || before.Note == after.Note)
+        {
+            return [];
+        }
+
+        var lead = after.Note is null ? "removed the note" : before.Note is null ? "added a note" : "edited the note";
+        return [ChangeLine.Plain(lead, [new ChangeDetail("Note", before.Note, after.Note, ChangeValueKind.Paragraphs)])];
     }
 
     /// <summary>
@@ -167,6 +171,4 @@ public static class SettingsChanges
             ? [ChangeLine.Of("found the sending domain ", after.Domain, " no longer verified: email comes from ScreenHire again")]
             : [];
     }
-
-    private static string Months(int months) => string.Create(CultureInfo.InvariantCulture, $"{months} months");
 }

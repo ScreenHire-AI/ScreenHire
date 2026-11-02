@@ -7,10 +7,9 @@
 import type { TalentPoolMember } from './talentPoolMember.ts';
 
 /**
- * The organization's talent pool (docs/architecture/talent-pool.md): the candidates the team kept in mind, whose
- * permission for future roles still holds. `permissionMonths` is the organization's period now.
+ * The organization's saved candidates (docs/architecture/talent-pool.md): the candidates the team saved, whose permission
+ * for future roles still holds. They stay until the team removes them or the candidate asks to stop.
  */
 export interface TalentPoolList {
-  permissionMonths: number;
   people: TalentPoolMember[];
 }

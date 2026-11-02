@@ -334,13 +334,14 @@ const answerText = (questionId: string): string => {
               multiline
             />
 
-            {/* The candidate's own choice, unticked unless they tick it (docs/architecture/talent-pool.md). */}
+            {/* The candidate's own choice, unticked unless they tick it. Only a candidate who ticked it can be saved, and a saved
+                candidate has no end date (docs/architecture/talent-pool.md). */}
             <label class="choice">
               <input type="checkbox" name="keepForFutureRoles" checked={state.keepForFutureRoles} aria-describedby="future-roles-hint" />
               <span class="flex flex-col">
                 <span class="text-sm font-semibold">Keep my details for future roles (optional)</span>
                 <span id="future-roles-hint" class="text-candidate-hint text-candidate-muted-foreground">
-                  {employer.name} keeps this application for {form!.talentPoolMonths} months and may invite you to apply for other
+                  {employer.name} keeps your details until you ask, or they remove them, and may invite you to apply for other
                   roles. Every invitation has a link to stop, and you can ask {employer.name} at any time.
                 </span>
               </span>

@@ -36,9 +36,11 @@ words (design system T6). This doc is how that is recorded and read. History cov
 templates, email templates, scorecard templates, jobs, custom roles and the organization's settings today: its name,
 its branding and its verification settings, each with a history of its own (`/v1/organization/history`,
 `/branding/history`, `/verification-settings/history`). The Team page and the API keys page have one history each: the
-team's members, roles, job access and invitations, and every key created and revoked. The sending domain has one too
+team's members, roles, job access and invitations, and every key created and revoked. A saved candidate's note has one
+history per saved entry ([saved candidates](talent-pool.md)); the sending domain has one too
 (`/v1/organization/sending-domain/history`): added, verified, no longer verified and removed, and nothing for a check that
-only refreshes its records. Built-in roles never change, so
+only refreshes its records. The retired talent pool settings (the permission period) keep the `TalentPoolSettings` kind so
+their old rows still read, and nothing writes it now. Built-in roles never change, so
 they have no history. A webhook
 endpoint has none either: its row holds the signing secret, which the allow-list keeps out (Secrets, below), so its page
 shows when it was added and when its secret was last rotated instead. It never holds
@@ -51,7 +53,7 @@ One `change_records` row (`ChangeRecord`) per object per save:
 
 | Column | Holds |
 |---|---|
-| `subject_kind`, `subject_id` | The object: `HiringTemplate`, `EmailTemplate`, `ScorecardTemplate`, `Job`, `Role`, `Organization`, `Branding`, `VerificationSettings`, `TalentPoolSettings`, `SendingDomain`, `Team` or `ApiKeys`, and its id (the organization's id for the settings kinds, the team and the keys). A built-in email template's id is its built-in id (`stage-change`), because restoring deletes its row and the next edit adds a new one. A template version belongs to its template |
+| `subject_kind`, `subject_id` | The object: `HiringTemplate`, `EmailTemplate`, `ScorecardTemplate`, `Job`, `Role`, `Organization`, `Branding`, `VerificationSettings`, `SendingDomain`, `Team`, `ApiKeys` or `TalentPoolEntry` (and the retired `TalentPoolSettings`), and its id (the organization's id for the settings kinds, the sending domain, the team and the keys; the saved entry's own id for `TalentPoolEntry`). A built-in email template's id is its built-in id (`stage-change`), because restoring deletes its row and the next edit adds a new one. A template version belongs to its template |
 | `actor_user_id`, `actor_api_key_id` | The member who made it, or the organization API key. Neither means ScreenHire: the worker, an automation, the demo's setup |
 | `occurred_at` | From `TimeProvider`, when the save ran |
 | `created` | Whether the save created the object: its first line says so, and Last updated says Created until a later change |
@@ -169,6 +171,10 @@ the webhook address of" the automation, with no values (`DefinitionChanges`).
   - `GET /v1/organization/roles/{roleId}/history` (any member, as the role routes are)
   - `GET /v1/organization/team/history` (Manage the team, because it names invited addresses)
   - `GET /v1/organization/api-keys/history` (Manage API keys; signed-in members only, as the key routes are)
+  - `GET /v1/talent-pool/{candidateId}/history` (any member who can see the saved candidate's entry). The route takes the
+    candidate's id but reads the history of the candidate's current entry, whose own id is the subject: saving them again
+    replaces the entry and starts a fresh note and History, so a member on Only jobs they're on never reads edits made
+    under a job they cannot see
 
   Each route first checks that the caller can see the object, so another organization's id is a 404.
 - `GET /v1/organization/team/last-update` and `GET /v1/organization/api-keys/last-update` return the `LastUpdate` of

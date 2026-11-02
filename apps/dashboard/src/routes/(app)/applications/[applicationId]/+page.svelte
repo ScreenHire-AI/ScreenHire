@@ -1,6 +1,5 @@
 <script lang="ts">
   import ArrowLeftIcon from '~icons/lucide/arrow-left';
-  import BookmarkIcon from '~icons/lucide/bookmark';
   import BriefcaseBusinessIcon from '~icons/lucide/briefcase-business';
   import CalendarIcon from '~icons/lucide/calendar';
   import MailCheckIcon from '~icons/lucide/mail-check';
@@ -38,7 +37,7 @@
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import VerificationPanel from '#lib/components/verification-panel.svelte';
-  import KeepInMindSheet from '#lib/components/keep-in-mind-sheet.svelte';
+  import SaveCandidateSheet from '#lib/components/save-candidate-sheet.svelte';
   import MetaItem from '#lib/components/meta-item.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import MoveNoteSheet from '#lib/components/move-note-sheet.svelte';
@@ -66,9 +65,8 @@
   import { emailIssueNotice, emailIssueStatus } from '#lib/email-issue.js';
   import { authenticityLevels } from '#lib/verification.js';
   import { createMoves } from '#lib/moves.svelte.js';
-  import { formatDate } from '#lib/dates.js';
   import { siteName } from '#lib/format.js';
-  import { canKeepInMind, stageLabel } from '#lib/talent-pool.js';
+  import { canKeepInMind, keptInMindLabel } from '#lib/talent-pool.js';
   import { membersWhoSee } from '#lib/hiring-team.js';
   import { can } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
@@ -118,7 +116,7 @@
   const mayScore = $derived(can(page.data.user, 'FillInScorecards'));
   const mayAsk = $derived(can(page.data.user, 'CreateTasks'));
   let moveNoteOpen = $state(false);
-  // Keep in mind (docs/architecture/talent-pool.md) sits in Move to stage beside Rejected, for a candidate who allowed it.
+  // Save candidate (docs/architecture/talent-pool.md) sits in Move to stage beside Rejected, for a candidate who allowed it.
   let keepOpen = $state(false);
   let keptMessage = $state('');
   let scorecardOpen = $state(false);
@@ -176,7 +174,7 @@
   const questions = $derived(new Map((workflow?.questionnaire.questions ?? []).map((question) => [question.id, question])));
   const followUpName = (requestId: string | null | undefined) =>
     detail?.followUps.find((followUp) => followUp.id === requestId)?.name ?? 'a follow-up questionnaire';
-  // The talent pool's entries name other jobs: where the candidate was invited, added or applied.
+  // Saved candidates' entries name other jobs: where the candidate was invited, added or applied.
   const jobs = createListJobs();
   const jobName = (id: string | null | undefined) => jobs.data?.data.find((candidate) => candidate.id === id)?.title ?? 'another job';
   const names: ActivityNames = { stageName, followUpName, jobName };
@@ -357,8 +355,10 @@
         {/snippet}
         {#snippet meta()}
           <!-- The stage is the one fact a recruiter acts on, so it is a muted pill: a fact, not a second status (T2). -->
-          <!-- A candidate kept in mind has left the job: the pill says so where the stage was. -->
-          <MetaItem label="Stage"><Badge variant="muted">{stageLabel(detail)}</Badge></MetaItem>
+          <!-- A saved candidate has left the job: the Saved status says so where the stage was. -->
+          <MetaItem label="Stage">
+            {#if detail.keptInMindAt}<StatusBadge status="saved" label={keptInMindLabel} />{:else}<Badge variant="muted">{detail.stage.name}</Badge>{/if}
+          </MetaItem>
           <MetaItem label="Job" icon={BriefcaseBusinessIcon}><TruncatedText text={detail.jobTitle} href={`/jobs/${detail.jobId}`} underlined /></MetaItem>
           <!-- When and where from, as one phrase that reads without its label. -->
           <MetaItem label="Applied" icon={CalendarIcon}>
@@ -369,8 +369,9 @@
                 recruiter <RelativeTime at={detail.submittedAt} class="inline" />{/if}
             </span>
           </MetaItem>
-          {#if detail.inTalentPool && detail.futureRolesUntil}
-            <MetaItem label="Talent pool" icon={BookmarkIcon}><span>In the talent pool until {formatDate(detail.futureRolesUntil)}</span></MetaItem>
+          <!-- Saved stays once they leave the list, so this says they are still on it. -->
+          {#if detail.inTalentPool}
+            <MetaItem label="Saved candidates"><TruncatedText text="In Saved candidates" href="/saved" underlined /></MetaItem>
           {/if}
           <MetaItem label="Rating" icon={StarIcon}>
             <!-- From people's scorecards only (ADR-0013); it opens to each scorecard. -->
@@ -513,11 +514,10 @@
       />
     {/if}
     {#if mayMove}
-      <KeepInMindSheet
+      <SaveCandidateSheet
         bind:open={keepOpen}
         applicationIds={[detail.id]}
         candidateName={detail.candidate.fullName}
-        until={detail.futureRolesUntil}
         ondone={(message) => (keptMessage = message)}
       />
       <MoveNoteSheet

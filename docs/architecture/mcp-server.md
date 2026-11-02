@@ -82,10 +82,11 @@ own.
 - `get_hiring_report` takes the dashboard's range rule (`from` inclusive, `to` exclusive, at most five years, at most
   200 jobs, an optional previous range and the time zone that decides where Monday weeks start) from
   `ReportEndpoints.Problems`, and returns the headline numbers, weekly trend, funnel, days per stage, sources and open
-  jobs of `HiringReportReads.ReadAsync`. `list_saved_candidates` lists the talent pool's people whose permission
-  still holds, by name, 20 unless the assistant asks and 50 at most. Their HTTP routes stay session-only: the tools
-  call the read services directly, which is why a Read key can use them (ADR-0021 decision 6). A saved candidate is the
-  team's "kept in mind" entry; the tool only reads the list and keeps, removes and invites no one.
+  jobs of `HiringReportReads.ReadAsync`. `list_saved_candidates` lists the saved candidates who allowed it and have not
+  asked to stop, by name, with each one's rating, note and last contacted date, 20 unless the assistant asks and 50 at
+  most. Their HTTP routes stay session-only: the tools call the read services directly, which is why a Read key can use
+  them (ADR-0021 decision 6). A saved candidate is the team's Saved entry; the tool only reads the list and saves,
+  removes, invites and edits no one. A key has no scorecards to give, so the rating is always the full one.
 - **The Write scope hides the write tools.** They carry `[Authorize(Policy = McpSetup.WritePolicy)]`, which the SDK's
   authorization filter applies: a Read key does not see them in `tools/list`, and calling one is a protocol error.
   Each write tool also asks `HiringAuthorization.KeyRefusal` for its permission, the same check the routes' filter

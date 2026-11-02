@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ScreenHire.Application.Verification;
@@ -5,8 +6,8 @@ using ScreenHire.Application.Verification;
 namespace ScreenHire.IntegrationTests.TalentPool;
 
 /// <summary>
-/// Keeping a candidate in mind (docs/architecture/talent-pool.md): the permission the candidate gives on the apply form,
-/// who can be kept, what the pool lists, taking someone out, and bringing a kept application back to its job. Each test
+/// Saving a candidate (docs/architecture/talent-pool.md): the permission the candidate gives on the apply form,
+/// who can be saved, what the list holds, taking someone out, and bringing a saved application back to its job. Each test
 /// makes its own organization and people.
 /// </summary>
 public sealed class TalentPoolKeepTests(AppHostFixture fixture)
@@ -14,20 +15,23 @@ public sealed class TalentPoolKeepTests(AppHostFixture fixture)
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task The_tick_on_the_apply_form_stores_twelve_months_of_permission_and_no_tick_stores_none()
+    public async Task The_tick_on_the_apply_form_stores_the_permission_with_no_end_date_and_no_tick_stores_none()
     {
         using var world = await PoolWorld.CreateAsync(fixture);
-        var (job, _) = await world.OpenJobAsync("Platform Engineer");
+        var (job, jobSlug) = await world.OpenJobAsync("Platform Engineer");
 
         var ticked = await world.DetailAsync(await world.ApplyAsync(job, ApiSession.NewEmail("ticked"), keep: true));
         var unticked = await world.DetailAsync(await world.ApplyAsync(job, ApiSession.NewEmail("unticked"), keep: false));
 
-        var given = ticked.At("futureRolesGivenAt").GetDateTimeOffset();
-        given.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromMinutes(5), "the permission starts when the candidate submits");
-        ticked.At("futureRolesUntil").GetDateTimeOffset().Should().Be(given.AddMonths(12), "the default period is 12 months");
+        ticked.At("futureRolesGivenAt").GetDateTimeOffset().Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromMinutes(5), "the permission starts when the candidate submits");
+        ticked.At("allowsFutureRoles").GetBoolean().Should().BeTrue();
+        ticked.Body.TryGetProperty("futureRolesUntil", out _).Should().BeFalse("the permission has no end date any more");
         ticked.At("keptInMindAt").ValueKind.Should().Be(JsonValueKind.Null);
         unticked.At("futureRolesGivenAt").ValueKind.Should().Be(JsonValueKind.Null);
-        unticked.At("futureRolesUntil").ValueKind.Should().Be(JsonValueKind.Null);
+        unticked.At("allowsFutureRoles").GetBoolean().Should().BeFalse();
+
+        var form = await world.Careers.GetFromJsonAsync<JsonElement>($"/v1/public/organizations/{world.Slug}/jobs/{jobSlug}/application-form", Ct);
+        form.TryGetProperty("talentPoolMonths", out _).Should().BeFalse("the form promises no period");
     }
 
     [Fact]
@@ -38,20 +42,21 @@ public sealed class TalentPoolKeepTests(AppHostFixture fixture)
         var (second, _) = await world.OpenJobAsync("Office Manager");
         var email = ApiSession.NewEmail("again");
         var ticked = await world.ApplyAsync(first, email, keep: true);
-        var before = (await world.DetailAsync(ticked)).At("futureRolesUntil").GetDateTimeOffset();
+        var before = (await world.DetailAsync(ticked)).At("futureRolesGivenAt").GetDateTimeOffset();
 
         var unticked = await world.ApplyAsync(second, email, keep: false);
 
         var firstAfter = await world.DetailAsync(ticked);
-        firstAfter.At("futureRolesUntil").GetDateTimeOffset().Should().Be(before);
-        firstAfter.At("futureRolesGivenAt").ValueKind.Should().Be(JsonValueKind.String);
+        firstAfter.At("futureRolesGivenAt").GetDateTimeOffset().Should().Be(before);
+        firstAfter.At("allowsFutureRoles").GetBoolean().Should().BeTrue();
         var secondDetail = await world.DetailAsync(unticked);
         secondDetail.At("futureRolesGivenAt").ValueKind.Should().Be(JsonValueKind.Null, "a tick on one job's form does not cover another job");
+        secondDetail.At("allowsFutureRoles").GetBoolean().Should().BeFalse();
         secondDetail.Id("candidate.id").Should().Be((await world.DetailAsync(ticked)).Id("candidate.id"), "it is the same person");
     }
 
     [Fact]
-    public async Task Keeping_an_application_leaves_its_stage_records_the_note_and_lists_the_person_in_the_pool()
+    public async Task Saving_an_application_leaves_its_stage_records_the_note_and_lists_the_person_in_the_saved_candidates()
     {
         using var world = await PoolWorld.CreateAsync(fixture);
         var (job, _) = await world.OpenJobAsync("Support Lead");
@@ -66,21 +71,24 @@ public sealed class TalentPoolKeepTests(AppHostFixture fixture)
         kept.At("alreadyEnded").GetInt32().Should().Be(0);
         var detail = await world.DetailAsync(application);
         detail.At("keptInMindAt").ValueKind.Should().Be(JsonValueKind.String);
-        detail.Text("stage.id").Should().Be(stageBefore, "keeping someone in mind is not a move and not a rejection");
+        detail.Text("stage.id").Should().Be(stageBefore, "saving someone is not a move and not a rejection");
         detail.At("inTalentPool").GetBoolean().Should().BeTrue();
         var entry = await world.EntryAsync(application, "KeptInMind");
         entry.GetProperty("note").GetString().Should().Be("Strong on support tooling, ask again in spring");
         entry.GetProperty("actorUserId").GetGuid().Should().Be(world.Owner.UserId);
 
         var pool = (await world.Owner.GetAsync("/v1/talent-pool")).Expect(HttpStatusCode.OK);
-        pool.At("permissionMonths").GetInt32().Should().Be(12);
         pool.Count("people").Should().Be(1);
         pool.Text("people.0.candidateName").Should().Be("Noor Haddad");
         pool.Text("people.0.email").Should().Be(email);
         pool.Text("people.0.note").Should().Be("Strong on support tooling, ask again in spring");
         pool.Text("people.0.jobTitle").Should().Be("Support Lead");
         pool.Id("people.0.applicationId").Should().Be(application);
-        pool.At("people.0.permissionEndsAt").GetDateTimeOffset().Should().Be(detail.At("futureRolesUntil").GetDateTimeOffset());
+        pool.Text("people.0.rating.state").Should().Be("NotRated");
+        pool.At("people.0.lastContactedAt").ValueKind.Should().Be(JsonValueKind.Null, "nobody has emailed them");
+        pool.At("people.0.noteUpdated").ValueKind.Should().Be(JsonValueKind.Null, "nobody has edited the note");
+        pool.Body.GetProperty("people")[0].TryGetProperty("permissionEndsAt", out _).Should().BeFalse("the permission has no end date");
+        pool.Body.TryGetProperty("permissionMonths", out _).Should().BeFalse();
         pool.At("people.0.lastInvitedJobId").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
@@ -106,7 +114,7 @@ public sealed class TalentPoolKeepTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task A_viewer_cannot_keep_anyone_in_mind()
+    public async Task A_viewer_cannot_save_anyone()
     {
         using var world = await PoolWorld.CreateAsync(fixture);
         var (job, _) = await world.OpenJobAsync("Viewer job");
@@ -149,7 +157,7 @@ public sealed class TalentPoolKeepTests(AppHostFixture fixture)
 
         var seenByRecruiter = await world.PoolCandidateIdsAsync(recruiter);
 
-        seenByRecruiter.Should().Equal([visible.CandidateId], "the person kept from the job they are on is listed, the other is not");
+        seenByRecruiter.Should().Equal([visible.CandidateId], "the person saved from the job they are on is listed, the other is not");
         (await world.PoolCandidateIdsAsync()).Should().BeEquivalentTo([visible.CandidateId, hidden.CandidateId], "the owner sees both");
         (await recruiter.PostAsync($"/v1/talent-pool/{hidden.CandidateId}/remove", new JsonObject()))
             .Status.Should().Be(HttpStatusCode.NotFound, "an entry from a job they are not on does not exist for them");
@@ -157,7 +165,7 @@ public sealed class TalentPoolKeepTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task Removing_someone_takes_them_out_of_the_pool_and_keeps_their_permission()
+    public async Task Removing_someone_takes_them_out_of_the_saved_candidates_and_keeps_their_permission()
     {
         using var world = await PoolWorld.CreateAsync(fixture);
         var (job, _) = await world.OpenJobAsync("Remove job");
@@ -168,12 +176,12 @@ public sealed class TalentPoolKeepTests(AppHostFixture fixture)
         (await world.PoolAsync()).Should().BeEmpty();
         var detail = await world.DetailAsync(person.ApplicationId);
         detail.At("inTalentPool").GetBoolean().Should().BeFalse();
-        detail.At("futureRolesUntil").ValueKind.Should().Be(JsonValueKind.String, "a person removing them is not the candidate withdrawing");
+        detail.At("allowsFutureRoles").GetBoolean().Should().BeTrue("a person removing them is not the candidate withdrawing");
         var left = await world.EntryAsync(person.ApplicationId, "LeftTalentPool");
         left.GetProperty("poolExit").GetString().Should().Be("Removed");
         left.GetProperty("actorUserId").GetGuid().Should().Be(world.Owner.UserId);
         (await world.Owner.PostAsync($"/v1/talent-pool/{person.CandidateId}/remove", new JsonObject()))
-            .Status.Should().Be(HttpStatusCode.NotFound, "they are no longer in the pool");
+            .Status.Should().Be(HttpStatusCode.NotFound, "they are no longer saved");
     }
 
     [Fact]
@@ -188,16 +196,16 @@ public sealed class TalentPoolKeepTests(AppHostFixture fixture)
 
         (await world.PoolAsync()).Should().BeEmpty();
         var detail = await world.DetailAsync(person.ApplicationId);
-        detail.At("futureRolesUntil").ValueKind.Should().Be(JsonValueKind.Null, "the permission is withdrawn");
+        detail.At("allowsFutureRoles").GetBoolean().Should().BeFalse("the permission is withdrawn");
         (await world.EntryAsync(person.ApplicationId, "LeftTalentPool")).GetProperty("poolExit").GetString().Should().Be("CandidateAsked");
         (await world.KeepAsync([person.ApplicationId])).Expect(HttpStatusCode.OK).At("alreadyEnded").GetInt32()
-            .Should().Be(1, "the application is still kept in mind, so it cannot be kept again");
+            .Should().Be(1, "the application is still saved, so it cannot be saved again");
     }
 
     [Theory]
     [InlineData("applied")]
     [InlineData("screening")]
-    public async Task Moving_a_kept_application_to_a_stage_brings_it_back_to_the_job_and_out_of_the_pool(string stage)
+    public async Task Moving_a_saved_application_to_a_stage_brings_it_back_to_the_job_and_out_of_the_saved_candidates(string stage)
     {
         using var world = await PoolWorld.CreateAsync(fixture);
         var (job, _) = await world.OpenJobAsync("Back in job");
@@ -215,7 +223,7 @@ public sealed class TalentPoolKeepTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task The_stage_change_email_is_skipped_for_a_kept_application_and_still_queued_for_an_open_one()
+    public async Task The_stage_change_email_is_skipped_for_a_saved_application_and_still_queued_for_an_open_one()
     {
         using var world = await PoolWorld.CreateAsync(fixture);
         var (job, _) = await world.OpenJobAsync("Email job");
@@ -229,11 +237,11 @@ public sealed class TalentPoolKeepTests(AppHostFixture fixture)
         })).Expect(HttpStatusCode.Accepted);
 
         queued.At("queued").GetInt32().Should().Be(1);
-        queued.At("skipped").GetInt32().Should().Be(1, "a kept application left the job, so it is not told it moved on");
+        queued.At("skipped").GetInt32().Should().Be(1, "a saved application left the job, so it is not told it moved on");
     }
 
     [Fact]
-    public async Task Keeping_listing_and_adding_to_a_job_never_depend_on_the_Verification_level()
+    public async Task Saving_listing_and_adding_to_a_job_never_depend_on_the_Verification_level()
     {
         // ADR-0004: a candidate the checks flagged and one they cleared are kept, listed and added alike, and the pool
         // carries no Verification output to sort or pick people by.

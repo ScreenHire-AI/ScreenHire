@@ -5,7 +5,6 @@ using ScreenHire.Api.Applications;
 using ScreenHire.Api.Branding;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
-using ScreenHire.Application.TalentPool;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Infrastructure.Verification;
@@ -154,7 +153,6 @@ internal static class PublicJobEndpoints
                 telemetry.Issue(job.OrganizationId, job.Id, time.GetUtcNow()), TelemetrySessions.DeviceCheckFor(job, verification.Value)),
             job.Workflow.Questionnaire.Sections is { Count: > 0 } sections ? sections : null,
             organization.QuestionsPerPage,
-            drafts.IsEnabled,
-            await TalentPoolMembership.MonthsAsync(db, cancellationToken)));
+            drafts.IsEnabled));
     }
 }

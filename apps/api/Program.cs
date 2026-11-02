@@ -48,6 +48,7 @@ builder.Services.AddSingleton<IValidator<EmailTemplateDraft>, EmailTemplateDraft
 builder.Services.AddSingleton<IValidator<ApplicationEmailDraft>, ApplicationEmailDraftValidator>();
 builder.Services.AddSingleton<IValidator<SendEmailsRequest>, SendEmailsRequestValidator>();
 builder.Services.AddSingleton<IValidator<KeepInMindRequest>, KeepInMindRequestValidator>();
+builder.Services.AddSingleton<IValidator<EditSavedNoteRequest>, EditSavedNoteRequestValidator>();
 builder.Services.AddSingleton<IValidator<InviteToApplyRequest>, InviteToApplyRequestValidator>();
 builder.Services.AddSingleton<IValidator<AddFromTalentPoolRequest>, AddFromTalentPoolRequestValidator>();
 if (builder.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("ScreenHire:Demo:Enabled"))

@@ -67,34 +67,34 @@ describe('activity', () => {
     expect(kindCounts([task])).toEqual({ all: 1, notes: 0, emails: 0, scorecards: 0, stage: 0 });
   });
 
-  describe('talent pool entries', () => {
+  describe('saved candidate entries', () => {
     const jobNames = { ...names, jobName: (id: string | null | undefined) => (id === 'j2' ? 'Support Engineer' : 'another job') };
 
-    it('says a candidate was kept in mind without a rejection, and lists it under Stage', () => {
+    it('says a candidate was saved without a rejection, and lists it under Stage', () => {
       const kept = entry('k', { type: 'KeptInMind', note: 'Strong, wrong timing.' });
-      expect(describeEvent(kept, jobNames)).toBe('Kept in mind: left the job without a rejection');
+      expect(describeEvent(kept, jobNames)).toBe('Saved');
       expect(kindCounts([kept]).stage).toBe(1);
     });
 
     it.each([
-      ['Expired', 'Left the talent pool: their permission ran out'],
-      ['Removed', 'Took them out of the talent pool'],
-      ['CandidateAsked', 'Took them out of the talent pool at their request'],
-      ['AddedToJob', 'Added them to Support Engineer from the talent pool'],
-      ['AppliedAgain', 'Left the talent pool: applied for Support Engineer'],
-      ['BackInJob', 'Left the talent pool: back in this job'],
-      ['KeptFromAnotherJob', 'Left the talent pool here: kept in mind from Support Engineer instead'],
+      ['Expired', 'Left saved candidates: their permission ran out'],
+      ['Removed', 'Removed them from saved candidates'],
+      ['CandidateAsked', 'Removed them from saved candidates at their request'],
+      ['AddedToJob', 'Added them to Support Engineer from saved candidates'],
+      ['AppliedAgain', 'Left saved candidates: applied for Support Engineer'],
+      ['BackInJob', 'Left saved candidates: back in this job'],
+      ['KeptFromAnotherJob', 'Left saved candidates here: saved from Support Engineer instead'],
     ] as const)('words leaving the pool by %s', (poolExit, text) => {
       expect(describeEvent(entry('l', { type: 'LeftTalentPool', poolExit, otherJobId: 'j2' }), jobNames)).toBe(text);
     });
 
     it('words a leave with no recorded reason as a removal, and names no job the reader cannot see', () => {
-      expect(describeEvent(entry('l', { type: 'LeftTalentPool', poolExit: null }), jobNames)).toBe('Took them out of the talent pool');
+      expect(describeEvent(entry('l', { type: 'LeftTalentPool', poolExit: null }), jobNames)).toBe('Removed them from saved candidates');
       expect(describeEvent(entry('l', { type: 'LeftTalentPool', poolExit: 'AddedToJob', otherJobId: 'hidden' }), jobNames)).toBe(
-        'Added them to another job from the talent pool',
+        'Added them to another job from saved candidates',
       );
       expect(describeEvent(entry('l', { type: 'LeftTalentPool', poolExit: 'AddedToJob', otherJobId: 'j2' }), names)).toBe(
-        'Added them to another job from the talent pool',
+        'Added them to another job from saved candidates',
       );
     });
 

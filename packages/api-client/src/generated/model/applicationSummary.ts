@@ -31,8 +31,7 @@ export interface ApplicationSummary {
   rating?: null | ApplicationRating;
   /** @nullable */
   keptInMindAt?: string | null;
-  /** @nullable */
-  futureRolesUntil?: string | null;
+  allowsFutureRoles?: boolean;
   /** @nullable */
   sourceSite?: string | null;
 }

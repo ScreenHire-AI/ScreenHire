@@ -159,7 +159,8 @@ public sealed class McpServerTests(AppHostFixture fixture)
         person.GetProperty("candidateId").GetGuid().Should().Be(kept.CandidateId);
         person.GetProperty("note").GetString().Should().Be("Strong referral.");
         person.GetProperty("name").GetProperty("candidateWritten").GetString().Should().NotBeNullOrEmpty();
-        saved.GetProperty("permissionMonths").GetInt32().Should().Be(12);
+        saved.TryGetProperty("permissionMonths", out _).Should().BeFalse("a saved candidate's permission has no end date");
+        person.GetProperty("rating").GetProperty("state").GetString().Should().Be("NotRated");
         (await mcp.CallFailingAsync("get_hiring_report", new() { ["from"] = to, ["to"] = from })).Should().Contain("to:");
         (await mcp.CallFailingAsync("get_hiring_report", new() { ["from"] = from, ["to"] = to, ["timeZone"] = "Nowhere/Atlantis" })).Should().Contain("timeZone:");
     }

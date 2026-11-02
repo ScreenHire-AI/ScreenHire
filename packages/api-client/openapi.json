@@ -5701,149 +5701,6 @@
         ]
       }
     },
-    "/v1/organization/talent-pool-settings": {
-      "get": {
-        "tags": [
-          "Organization"
-        ],
-        "operationId": "GetOrganizationTalentPoolSettings",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrganizationTalentPoolSettings"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      },
-      "put": {
-        "tags": [
-          "Organization"
-        ],
-        "operationId": "UpdateOrganizationTalentPoolSettings",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateTalentPoolSettingsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrganizationTalentPoolSettings"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      }
-    },
-    "/v1/organization/talent-pool-settings/history": {
-      "get": {
-        "tags": [
-          "Organization"
-        ],
-        "operationId": "GetOrganizationTalentPoolSettingsHistory",
-        "parameters": [
-          {
-            "name": "before",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HistoryPage"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      }
-    },
     "/v1/organization/members": {
       "get": {
         "tags": [
@@ -10593,7 +10450,7 @@
     "/v1/talent-pool": {
       "get": {
         "tags": [
-          "Talent pool"
+          "Saved candidates"
         ],
         "operationId": "ListTalentPool",
         "responses": {
@@ -10619,7 +10476,7 @@
       },
       "post": {
         "tags": [
-          "Talent pool"
+          "Saved candidates"
         ],
         "operationId": "KeepInMind",
         "requestBody": {
@@ -10684,10 +10541,143 @@
         ]
       }
     },
+    "/v1/talent-pool/{candidateId}/note": {
+      "put": {
+        "tags": [
+          "Saved candidates"
+        ],
+        "operationId": "EditSavedNote",
+        "parameters": [
+          {
+            "name": "candidateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditSavedNoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/talent-pool/{candidateId}/history": {
+      "get": {
+        "tags": [
+          "Saved candidates"
+        ],
+        "operationId": "GetSavedNoteHistory",
+        "parameters": [
+          {
+            "name": "candidateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/talent-pool/{candidateId}/remove": {
       "post": {
         "tags": [
-          "Talent pool"
+          "Saved candidates"
         ],
         "operationId": "RemoveFromTalentPool",
         "parameters": [
@@ -10742,7 +10732,7 @@
     "/v1/talent-pool/invitations/preview": {
       "post": {
         "tags": [
-          "Talent pool"
+          "Saved candidates"
         ],
         "operationId": "PreviewTalentPoolInvitation",
         "requestBody": {
@@ -10793,7 +10783,7 @@
     "/v1/talent-pool/invitations": {
       "post": {
         "tags": [
-          "Talent pool"
+          "Saved candidates"
         ],
         "operationId": "InviteToApply",
         "requestBody": {
@@ -10854,7 +10844,7 @@
     "/v1/talent-pool/applications": {
       "post": {
         "tags": [
-          "Talent pool"
+          "Saved candidates"
         ],
         "operationId": "AddFromTalentPool",
         "requestBody": {
@@ -11088,7 +11078,7 @@
             "format": "uuid"
           }
         },
-        "description": "Adds these candidates from the talent pool to `jobId`, which must not be closed."
+        "description": "Adds these saved candidates to `jobId`, which must not be closed."
       },
       "AddVerificationNoteRequest": {
         "required": [
@@ -11471,12 +11461,9 @@
             ],
             "format": "date-time"
           },
-          "futureRolesUntil": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
+          "allowsFutureRoles": {
+            "type": "boolean",
+            "default": false
           },
           "futureRolesGivenAt": {
             "type": [
@@ -11841,12 +11828,9 @@
             ],
             "format": "date-time"
           },
-          "futureRolesUntil": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
+          "allowsFutureRoles": {
+            "type": "boolean",
+            "default": false
           },
           "sourceSite": {
             "type": [
@@ -13118,6 +13102,13 @@
           },
           "stage": {
             "$ref": "#/components/schemas/ApplicationStage"
+          },
+          "keptInMindAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         },
         "description": "A candidate whose name or email matched, on one of their applications: the record to open."
@@ -13976,6 +13967,21 @@
         },
         "description": "The note's new text. Only its author edits a note; a mention the new text adds notifies only the person added."
       },
+      "EditSavedNoteRequest": {
+        "required": [
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Replaces a saved candidate's note. Blank clears it. The Activity entry from when they were saved keeps the first note."
+      },
       "EmailDirection": {
         "enum": [
           "Sent",
@@ -14156,7 +14162,7 @@
             "default": false
           }
         },
-        "description": "A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.\n`questionnaireOnly`: only the follow-up questions email has it. `invitationOnly`: only the talent pool\ninvitation has it."
+        "description": "A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.\n`questionnaireOnly`: only the follow-up questions email has it. `invitationOnly`: only saved candidates\ninvitation has it."
       },
       "EmploymentType": {
         "enum": [
@@ -15028,7 +15034,7 @@
             "format": "uuid"
           }
         },
-        "description": "Invites these candidates from the talent pool to apply for `jobId`, an open job."
+        "description": "Invites these saved candidates to apply for `jobId`, an open job."
       },
       "JobAccess": {
         "enum": [
@@ -15909,7 +15915,7 @@
             ]
           }
         },
-        "description": "Keeps the candidates of these applications in mind: each leaves its job without a rejection and joins the talent pool.\n`note` says why, once for all of them. Only an open application whose candidate gave permission for future roles\non its form can be kept."
+        "description": "Saves the candidates of these applications: each leaves its job without a rejection and joins the saved candidates.\n`note` says why, once for all of them. Only an open application whose candidate gave permission for future roles\non its form can be saved."
       },
       "KeptInMind": {
         "required": [
@@ -15932,7 +15938,7 @@
             "format": "int32"
           }
         },
-        "description": "What happened: `kept` joined the pool; `notAllowed` have no permission for future roles (they never gave it,\nit ran out or they took it back); `alreadyEnded` were hired, rejected, withdrawn or kept in mind already."
+        "description": "What happened: `kept` were saved; `notAllowed` have no permission for future roles (they never gave it or\nthey took it back); `alreadyEnded` were hired, rejected, withdrawn or saved already."
       },
       "Knockout": {
         "required": [
@@ -16521,33 +16527,6 @@
         },
         "description": "The organization's sending domain (Settings, Sending domain). `available` is false when this deployment has no email\nprovider: the page says so and offers nothing. `sandbox` says the records are made up for a local run. `domain`\nis null until one is added. `lastUpdated` is the newest change to it (added, verified, no longer verified), null with\nno domain; its History is `GET /v1/organization/sending-domain/history`."
       },
-      "OrganizationTalentPoolSettings": {
-        "required": [
-          "permissionMonths",
-          "minMonths",
-          "maxMonths",
-          "lastUpdated"
-        ],
-        "type": "object",
-        "properties": {
-          "permissionMonths": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "minMonths": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "maxMonths": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "lastUpdated": {
-            "$ref": "#/components/schemas/LastUpdate"
-          }
-        },
-        "description": "The organization's talent pool settings (docs/architecture/talent-pool.md). `permissionMonths` is how long a\ncandidate's permission to keep their details for future roles lasts from when they gave it: 12 by default, from\n`minMonths` to `maxMonths`. A permission ends at the shorter of the period when it was given and this one.\n`lastUpdated` is the settings' last change (\"by ScreenHire\" while they are the default); their history is\n`/talent-pool-settings/history`."
-      },
       "OrganizationVerificationSettings": {
         "required": [
           "llmConsistencyCheck",
@@ -16966,8 +16945,7 @@
           "telemetry",
           "sections",
           "questionsPerPage",
-          "saveDraftEnabled",
-          "talentPoolMonths"
+          "saveDraftEnabled"
         ],
         "type": "object",
         "properties": {
@@ -17013,13 +16991,9 @@
           },
           "saveDraftEnabled": {
             "type": "boolean"
-          },
-          "talentPoolMonths": {
-            "type": "integer",
-            "format": "int32"
           }
         },
-        "description": "Everything the careers apply page needs for one open job. The resume question comes first\n(ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured.\n`telemetry` is a new telemetry session for the form; the page keeps the first one it gets.\n`sections` are the questionnaire's named pages, or null to split it into pages of `questionsPerPage`\n(apply-flow.md §7). `saveDraftEnabled` says whether the candidate can save the form to finish later: false when\nthis deployment sends no email or has no careers host to link to.\n`talentPoolMonths` is how long the organization keeps a candidate's details for future roles if they say so,\nwhich the form's \"Keep my details for future roles\" box tells them."
+        "description": "Everything the careers apply page needs for one open job. The resume question comes first\n(ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured.\n`telemetry` is a new telemetry session for the form; the page keeps the first one it gets.\n`sections` are the questionnaire's named pages, or null to split it into pages of `questionsPerPage`\n(apply-flow.md §7). `saveDraftEnabled` says whether the candidate can save the form to finish later: false when\nthis deployment sends no email or has no careers host to link to."
       },
       "PublicApplicationReceipt": {
         "required": [
@@ -17677,7 +17651,7 @@
             "type": "boolean"
           }
         },
-        "description": "The page a candidate opens from the link in an invitation to stop being kept. `kept`: the organization still\nkeeps their details for future roles; false once they stopped it, or it ran out."
+        "description": "The page a candidate opens from the link in an invitation to stop being kept. `kept`: the organization still\nkeeps their details for future roles; false once they stopped it."
       },
       "PublicTelemetrySettings": {
         "required": [
@@ -17996,7 +17970,7 @@
             "default": false
           }
         },
-        "description": "Takes the candidate out of the talent pool. `candidateAsked`: they asked to be removed, so their permission for\nfuture roles is withdrawn too, and they cannot be kept again until they give it on a new application."
+        "description": "Takes the candidate out of the saved candidates. `candidateAsked`: they asked to be removed, so their permission for\nfuture roles is withdrawn too, and they cannot be saved again until they give it on a new application."
       },
       "ReportHeadline": {
         "required": [
@@ -19494,15 +19468,10 @@
       },
       "TalentPoolList": {
         "required": [
-          "permissionMonths",
           "people"
         ],
         "type": "object",
         "properties": {
-          "permissionMonths": {
-            "type": "integer",
-            "format": "int32"
-          },
           "people": {
             "type": "array",
             "items": {
@@ -19510,7 +19479,7 @@
             }
           }
         },
-        "description": "The organization's talent pool (docs/architecture/talent-pool.md): the candidates the team kept in mind, whose\npermission for future roles still holds. `permissionMonths` is the organization's period now."
+        "description": "The organization's saved candidates (docs/architecture/talent-pool.md): the candidates the team saved, whose permission\nfor future roles still holds. They stay until the team removes them or the candidate asks to stop."
       },
       "TalentPoolMember": {
         "required": [
@@ -19521,10 +19490,12 @@
           "jobId",
           "jobTitle",
           "note",
+          "noteUpdated",
           "tags",
           "keptAt",
           "keptByUserId",
-          "permissionEndsAt",
+          "rating",
+          "lastContactedAt",
           "lastInvitedJobId",
           "lastInvitedJobTitle",
           "lastInvitedAt",
@@ -19559,6 +19530,16 @@
               "string"
             ]
           },
+          "noteUpdated": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LastUpdate"
+              }
+            ]
+          },
           "tags": {
             "type": "array",
             "items": {
@@ -19576,8 +19557,14 @@
             ],
             "format": "uuid"
           },
-          "permissionEndsAt": {
-            "type": "string",
+          "rating": {
+            "$ref": "#/components/schemas/ApplicationRating"
+          },
+          "lastContactedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
             "format": "date-time"
           },
           "lastInvitedJobId": {
@@ -19608,7 +19595,7 @@
             }
           }
         },
-        "description": "One candidate in the talent pool."
+        "description": "One saved candidate."
       },
       "TaskListItem": {
         "required": [
@@ -20256,19 +20243,6 @@
           }
         },
         "description": "The channel to post to, by its id from the channel list, and the events posted there (none is allowed)."
-      },
-      "UpdateTalentPoolSettingsRequest": {
-        "required": [
-          "permissionMonths"
-        ],
-        "type": "object",
-        "properties": {
-          "permissionMonths": {
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "description": "Sets how long a candidate's permission for future roles lasts, in whole months from 6 to 24."
       },
       "UpdateVerificationSettingsRequest": {
         "required": [
@@ -21307,7 +21281,7 @@
       "name": "Email"
     },
     {
-      "name": "Talent pool"
+      "name": "Saved candidates"
     },
     {
       "name": "Schemas"

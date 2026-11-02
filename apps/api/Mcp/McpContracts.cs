@@ -166,14 +166,15 @@ public sealed record McpSourceCount(string Key, string Name, int Applications, i
 public sealed record McpOpenJob(Guid JobId, string Title, int Applications, int InInterview, int DaysOpen, int Hires);
 
 /// <summary>
-/// The saved candidates <c>list_saved_candidates</c> found: the people the team kept in mind, whose permission to be
-/// considered for future roles still holds (<c>permissionMonths</c> is how long it lasts).
+/// The saved candidates <c>list_saved_candidates</c> found: the people the team saved, who allowed it and have not asked
+/// to stop. Their permission has no end date.
 /// </summary>
-public sealed record McpSavedCandidates(int PermissionMonths, IReadOnlyList<McpSavedCandidate> Candidates, bool HasMore);
+public sealed record McpSavedCandidates(IReadOnlyList<McpSavedCandidate> Candidates, bool HasMore);
 
 /// <summary>
-/// One saved candidate and the application they were kept from (pass <c>applicationId</c> to <c>get_application</c>).
-/// <c>note</c> is why the team kept them, written by the team. <c>appliedJobIds</c> are every job they applied to.
+/// One saved candidate and the application they were saved from (pass <c>applicationId</c> to <c>get_application</c>).
+/// <c>note</c> is the team's note on them, written by the team. <c>rating</c> is that application's rating.
+/// <c>lastContactedAt</c> is the newest email to them for any job, or null. <c>appliedJobIds</c> are every job they applied to.
 /// </summary>
 public sealed record McpSavedCandidate(
     Guid CandidateId,
@@ -186,7 +187,8 @@ public sealed record McpSavedCandidate(
     IReadOnlyList<string> Tags,
     DateTimeOffset KeptAt,
     Guid? KeptByUserId,
-    DateTimeOffset PermissionEndsAt,
+    ApplicationRating Rating,
+    DateTimeOffset? LastContactedAt,
     Guid? LastInvitedJobId,
     string? LastInvitedJobTitle,
     DateTimeOffset? LastInvitedAt,
@@ -207,10 +209,9 @@ internal static class McpMappings
         new(headline.Applications, headline.ReachedInterview, headline.Offers, headline.Hires, headline.MedianDaysToHire);
 
     public static McpSavedCandidates ToMcp(this TalentPoolList pool, int limit) =>
-        new(pool.PermissionMonths,
-            [.. pool.People.Take(limit).Select(p => new McpSavedCandidate(
+        new([.. pool.People.Take(limit).Select(p => new McpSavedCandidate(
                 p.CandidateId, new(p.CandidateName), p.Email, p.ApplicationId, p.JobId, p.JobTitle, p.Note, p.Tags, p.KeptAt, p.KeptByUserId,
-                p.PermissionEndsAt, p.LastInvitedJobId, p.LastInvitedJobTitle, p.LastInvitedAt, p.AppliedJobIds))],
+                p.Rating, p.LastContactedAt, p.LastInvitedJobId, p.LastInvitedJobTitle, p.LastInvitedAt, p.AppliedJobIds))],
             pool.People.Count > limit);
 
     public static McpJob ToMcp(this JobSummary job) =>

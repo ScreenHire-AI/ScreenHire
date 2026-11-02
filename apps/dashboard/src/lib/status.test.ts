@@ -21,6 +21,7 @@ describe('status catalogue', () => {
       closed: 'neutral door-closed',
       draft: 'neutral file-pen-line',
       archived: 'neutral archive',
+      saved: 'neutral bookmark',
       notInEffect: 'neutral circle-minus',
     });
   });

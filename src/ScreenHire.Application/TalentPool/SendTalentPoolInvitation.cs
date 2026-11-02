@@ -11,8 +11,8 @@ using Wolverine;
 namespace ScreenHire.Application.TalentPool;
 
 /// <summary>
-/// A person's invitation to a candidate in the talent pool to apply for <see cref="JobId"/>, queued through the outbox
-/// (docs/architecture/talent-pool.md). <see cref="ApplicationId"/> is the application the candidate was kept in mind
+/// A person's invitation to a saved candidate to apply for <see cref="JobId"/>, queued through the outbox
+/// (docs/architecture/talent-pool.md). <see cref="ApplicationId"/> is the application the candidate was saved
 /// from, which the email and its Activity belong to. The message carries ids only; the worker renders the organization's
 /// wording of <see cref="EmailTemplateIds.TalentPoolInvitation"/> and issues the link to stop being kept, so that link
 /// never sits in a message or in the copy the team reads. <see cref="SendId"/> becomes the email's timeline entry, so a
@@ -51,9 +51,8 @@ public static partial class SendTalentPoolInvitationHandler
         var application = await db.Applications.AsNoTracking().SingleOrDefaultAsync(a => a.Id == message.ApplicationId, cancellationToken);
         var entry = await db.TalentPoolEntries.SingleOrDefaultAsync(e => e.ApplicationId == message.ApplicationId, cancellationToken);
         var job = await db.Jobs.AsNoTracking().SingleOrDefaultAsync(j => j.Id == message.JobId, cancellationToken);
-        var months = await TalentPoolMembership.MonthsAsync(db, cancellationToken);
-        var reason = application is null || entry is null ? "the candidate is no longer in the talent pool"
-            : !application.AllowsFutureRoles(months, now) ? "the candidate's permission for future roles has ended"
+        var reason = application is null || entry is null ? "the candidate is no longer a saved candidate"
+            : !application.AllowsFutureRoles ? "the candidate's permission for future roles has ended"
             : job is not { Status: JobStatus.Open } ? "the job no longer takes applications"
             : !email.IsConfigured ? "this host has no email sender"
             : !links.IsConfigured ? "the careers site address is not set up"
@@ -102,6 +101,6 @@ public static partial class SendTalentPoolInvitationHandler
         return outgoing;
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Talent pool invitation {SendId} was not sent: {Reason}")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Invitation to apply {SendId} was not sent: {Reason}")]
     private static partial void LogNotSent(ILogger logger, Guid sendId, string reason);
 }

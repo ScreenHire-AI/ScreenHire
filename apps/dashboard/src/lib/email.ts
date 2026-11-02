@@ -11,7 +11,7 @@ export const emailTemplatesPath = '/v1/email-templates';
 export function sendableTemplates<
   Template extends Pick<EmailTemplateEntry, 'rejectOnly'> & { questionnaireOnly?: boolean; invitationOnly?: boolean; archived?: boolean },
 >(templates: readonly Template[]): Template[] {
-  // The talent pool's invitation goes only with Invite to apply, which makes its links (docs/architecture/talent-pool.md).
+  // The saved candidates' invitation goes only with Invite to apply, which makes its links (docs/architecture/talent-pool.md).
   return templates.filter((template) => !template.rejectOnly && !template.questionnaireOnly && !template.invitationOnly && !template.archived);
 }
 

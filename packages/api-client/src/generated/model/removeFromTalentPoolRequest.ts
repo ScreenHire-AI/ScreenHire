@@ -6,8 +6,8 @@
  */
 
 /**
- * Takes the candidate out of the talent pool. `candidateAsked`: they asked to be removed, so their permission for
- * future roles is withdrawn too, and they cannot be kept again until they give it on a new application.
+ * Takes the candidate out of the saved candidates. `candidateAsked`: they asked to be removed, so their permission for
+ * future roles is withdrawn too, and they cannot be saved again until they give it on a new application.
  */
 export interface RemoveFromTalentPoolRequest {
   candidateAsked?: boolean;

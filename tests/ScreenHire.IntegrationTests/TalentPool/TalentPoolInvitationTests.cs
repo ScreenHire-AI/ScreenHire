@@ -5,7 +5,7 @@ using System.Text.Json.Nodes;
 namespace ScreenHire.IntegrationTests.TalentPool;
 
 /// <summary>
-/// Inviting people in the talent pool to apply for another job, through the API, the worker and Mailpit: the email the
+/// Inviting saved candidates to apply for another job, through the API, the worker and Mailpit: the email the
 /// candidate gets, the copy the team keeps, the timeline, and the refusals.
 /// </summary>
 public sealed class TalentPoolInvitationTests(AppHostFixture fixture)
@@ -39,7 +39,7 @@ public sealed class TalentPoolInvitationTests(AppHostFixture fixture)
         copy.Text("html").Should().NotContain(token).And.NotContain("/talent-pool/");
         copy.Text("text").Should().Contain($"/jobs/{targetSlug}", "the job link is public and stays in the copy");
 
-        // The worker commits the pool entry's invitation with the timeline entries.
+        // The worker commits the saved entry's invitation with the timeline entries.
         var listed = (await world.PoolAsync()).Single();
         listed.GetProperty("lastInvitedJobTitle").GetString().Should().Be("Invited to here");
         listed.GetProperty("lastInvitedJobId").GetGuid().Should().Be(target);
@@ -94,7 +94,7 @@ public sealed class TalentPoolInvitationTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task Adding_a_pooled_candidate_to_another_job_keeps_the_original_permission_clock_and_takes_them_out_of_the_pool()
+    public async Task Adding_a_saved_candidate_to_another_job_keeps_the_original_permission_date_and_takes_them_out_of_the_saved_candidates()
     {
         using var world = await PoolWorld.CreateAsync(fixture);
         var (keptFrom, _) = await world.OpenJobAsync("Origin");
@@ -116,8 +116,8 @@ public sealed class TalentPoolInvitationTests(AppHostFixture fixture)
         created.Id("jobId").Should().Be(target);
         created.Id("candidate.id").Should().Be(person.CandidateId);
         created.At("futureRolesGivenAt").GetDateTimeOffset().Should().Be(
-            original.At("futureRolesGivenAt").GetDateTimeOffset(), "the candidate's clock does not restart when they are added to a job");
-        created.At("futureRolesUntil").GetDateTimeOffset().Should().Be(original.At("futureRolesUntil").GetDateTimeOffset());
+            original.At("futureRolesGivenAt").GetDateTimeOffset(), "the candidate's permission date does not restart when they are added to a job");
+        created.At("allowsFutureRoles").GetBoolean().Should().BeTrue("the permission is carried over");
         (await world.PoolAsync()).Should().BeEmpty();
         (await world.DetailAsync(person.ApplicationId)).At("inTalentPool").GetBoolean().Should().BeFalse();
         var left = await world.EntryAsync(person.ApplicationId, "LeftTalentPool");
@@ -152,12 +152,12 @@ public sealed class TalentPoolInvitationTests(AppHostFixture fixture)
 
         skipped.Count("applicationIds").Should().Be(0);
         skipped.At("skipped").GetInt32().Should().Be(1);
-        (await world.PoolCandidateIdsAsync()).Should().Equal([candidate], "nothing was added, so they stay in the pool");
+        (await world.PoolCandidateIdsAsync()).Should().Equal([candidate], "nothing was added, so they stay saved");
         (await world.DetailAsync(existing)).At("keptInMindAt").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
     [Fact]
-    public async Task A_pooled_candidate_who_applies_again_on_the_careers_site_leaves_the_pool()
+    public async Task A_saved_candidate_who_applies_again_on_the_careers_site_leaves_the_saved_candidates()
     {
         using var world = await PoolWorld.CreateAsync(fixture);
         var (origin, _) = await world.OpenJobAsync("Origin");
@@ -202,7 +202,7 @@ public sealed class PublicTalentPoolLinkTests(AppHostFixture fixture)
 
         (await world.PoolAsync()).Should().BeEmpty();
         (await world.Careers.GetFromJsonAsync<JsonElement>(path, Ct)).At("kept").GetBoolean().Should().BeFalse();
-        (await world.DetailAsync(person.ApplicationId)).At("futureRolesUntil").ValueKind.Should().Be(JsonValueKind.Null);
+        (await world.DetailAsync(person.ApplicationId)).At("allowsFutureRoles").GetBoolean().Should().BeFalse();
         (await world.EntryAsync(person.ApplicationId, "LeftTalentPool")).GetProperty("poolExit").GetString().Should().Be("CandidateAsked");
         (await world.Careers.PostAsync(path, null, Ct)).StatusCode.Should().Be(HttpStatusCode.NoContent, "stopping twice changes nothing");
         (await world.TimelineAsync(person.ApplicationId)).Count(e => e.GetProperty("type").GetString() == "LeftTalentPool")
@@ -228,23 +228,23 @@ public sealed class PublicTalentPoolLinkTests(AppHostFixture fixture)
         }
 
         (await world.PoolCandidateIdsAsync()).Should().Equal(person.CandidateId);
-        (await world.DetailAsync(person.ApplicationId)).At("futureRolesUntil").ValueKind.Should().Be(JsonValueKind.String);
+        (await world.DetailAsync(person.ApplicationId)).At("allowsFutureRoles").GetBoolean().Should().BeTrue();
     }
 
     [Fact]
-    public async Task The_preview_shows_the_invitation_for_someone_in_the_pool_and_nobody_else()
+    public async Task The_preview_shows_the_invitation_for_someone_saved_and_nobody_else()
     {
         using var world = await PoolWorld.CreateAsync(fixture);
         var (keptFrom, _) = await world.OpenJobAsync("Previewed from");
         var (target, targetSlug) = await world.OpenJobAsync("Previewed for");
         var person = await world.KeptPersonAsync(keptFrom, "previewed");
         var applicant = await world.ApplyAsync(keptFrom, ApiSession.NewEmail("notkept"), keep: true);
-        var notKept = (await world.DetailAsync(applicant)).Id("candidate.id");
+        var notSaved = (await world.DetailAsync(applicant)).Id("candidate.id");
 
         var preview = (await PreviewAsync(world, person.CandidateId, target)).Expect(HttpStatusCode.OK);
         preview.Text("text").Should().Contain($"/jobs/{targetSlug}").And.Contain("[the candidate's link, not kept in this copy]");
 
-        (await PreviewAsync(world, notKept, target)).Expect(HttpStatusCode.NotFound); // outside the pool, so no invitation to preview
+        (await PreviewAsync(world, notSaved, target)).Expect(HttpStatusCode.NotFound); // not saved, so no invitation to preview
     }
 
     private static Task<ApiResult> PreviewAsync(PoolWorld world, Guid candidateId, Guid jobId) =>

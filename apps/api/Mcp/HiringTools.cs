@@ -124,14 +124,14 @@ internal sealed class HiringTools(
     }
 
     [McpServerTool(Name = "list_saved_candidates", Title = "List saved candidates", ReadOnly = true, OpenWorld = false, UseStructuredContent = true)]
-    [Description("List the saved candidates: people the team kept in mind for future roles, whose permission to be considered still holds, by "
-        + "name. Each has the application they were kept from (pass its applicationId to get_application), the team's note and tags, when "
-        + "and by whom they were kept, when their permission ends, their last invitation and the jobs they applied to. Returns at most `limit` (20 unless you say, 50 at most).")]
+    [Description("List the saved candidates: people the team saved for future roles, who allowed it and have not asked to stop, by "
+        + "name. Each has the application they were saved from (pass its applicationId to get_application), the team's note and tags, its rating, "
+        + "when and by whom they were saved, when they were last emailed, their last invitation and the jobs they applied to. Returns at most `limit` (20 unless you say, 50 at most).")]
     public async Task<McpSavedCandidates> ListSavedCandidates(
         [Description("How many saved candidates to return, 1 to 50.")] int? limit = null,
         CancellationToken cancellationToken = default)
     {
-        var pool = await TalentPoolReads.ReadAsync(db, time.GetUtcNow(), cancellationToken);
+        var pool = await TalentPoolReads.ReadAsync(db, null, cancellationToken);
         return pool.ToMcp(Limit(limit));
     }
 
