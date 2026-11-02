@@ -304,7 +304,9 @@ hidden, with a line saying so, when this deployment has no provider.
 - **Locally**, the sandbox provider makes up records and validates once a dev route (`/v1/dev/sending-domains/publish`)
   publishes the domain, so the whole flow runs with no DNS.
 
-The domain has no change history yet, and the page shows when it was added, not by whom.
+Adding, verifying, losing verification and removing a domain are recorded in the page's History (`ChangeSubjectKind.SendingDomain`,
+one history per organization, so a replacement reads as the old domain removed and the new one added); a check that only
+refreshes the records' states records nothing ([change history](change-history.md)).
 
 ## Not built
 
@@ -312,4 +314,3 @@ The domain has no change history yet, and the page shows when it was added, not 
 - Attachments on outgoing mail, scheduled sends and per-person signatures.
 - A Slack direct message for a reply (the card and the email are the notifications).
 - A scheduled re-check of a sending domain that is still waiting for DNS: Check records is by hand.
-- Change history for the sending domain.

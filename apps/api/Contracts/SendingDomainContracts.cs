@@ -5,9 +5,10 @@ namespace ScreenHire.Api.Contracts;
 /// <summary>
 /// The organization's sending domain (Settings, Sending domain). <c>available</c> is false when this deployment has no email
 /// provider: the page says so and offers nothing. <c>sandbox</c> says the records are made up for a local run. <c>domain</c>
-/// is null until one is added.
+/// is null until one is added. <c>lastUpdated</c> is the newest change to it (added, verified, no longer verified), null with
+/// no domain; its History is <c>GET /v1/organization/sending-domain/history</c>.
 /// </summary>
-public sealed record OrganizationSendingDomain(bool Available, bool Sandbox, SendingDomainDetail? Domain);
+public sealed record OrganizationSendingDomain(bool Available, bool Sandbox, SendingDomainDetail? Domain, LastUpdate? LastUpdated = null);
 
 /// <summary>
 /// A sending domain and what is left to do. <c>status</c> is Verified only once the email provider confirms the records,

@@ -175,7 +175,7 @@ Authors check their screens against this list, and the `design-review` agent rep
 - **T6** Anything people edit says who updated it last and how long ago: the last fact in its header ("2 hours ago by
   Avery Quinn") with History beside it, and a Last updated column in its list. ScreenHire's own templates and roles
   say "by ScreenHire". Something nothing has changed since it was created says so: the fact is Created, "2 hours ago by
-  Avery Quinn", never Updated with nobody, and no second Created fact repeats it (W7). A sending domain is added or removed, never edited, so it has no History, and its Domain panel says when it was added. History opens a sheet with every change, newest first and grouped by day: who, when and what,
+  Avery Quinn", never Updated with nobody, and no second Created fact repeats it (W7). History opens a sheet with every change, newest first and grouped by day: who, when and what,
   with before and after on request. The one exception is a record whose row holds a secret (a webhook endpoint):
   change history never reads it, so its header says when it was added and when its secret was last rotated instead
   (ADR-0016).

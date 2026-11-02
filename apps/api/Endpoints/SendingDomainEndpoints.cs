@@ -5,9 +5,11 @@ using ScreenHire.Api.Auth;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Application.SendingDomains;
+using ScreenHire.Domain.History;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
+using ScreenHire.Infrastructure.Persistence.History;
 using ScreenHire.Infrastructure.Tenancy;
 
 namespace ScreenHire.Api.Endpoints;
@@ -31,6 +33,7 @@ internal static class SendingDomainEndpoints
     {
         var group = app.MapGroup("/v1/organization/sending-domain").WithTags("Organization").RequireAuthorization();
         group.MapGet("", GetSendingDomain).WithName("GetOrganizationSendingDomain").Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/history", GetSendingDomainHistory).WithName("GetOrganizationSendingDomainHistory").Produces(StatusCodes.Status401Unauthorized);
         group.MapPut("", SetSendingDomain).WithName("SetOrganizationSendingDomain")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditSettings)
@@ -50,11 +53,20 @@ internal static class SendingDomainEndpoints
     }
 
     private static async Task<Ok<OrganizationSendingDomain>> GetSendingDomain(
-        ScreenHireDbContext db, SendingDomainService service, CancellationToken cancellationToken)
+        ScreenHireDbContext db, SendingDomainService service, ITenantContext tenant, CancellationToken cancellationToken)
     {
         var domain = await db.SendingDomains.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        return TypedResults.Ok(new OrganizationSendingDomain(service.IsAvailable, service.Mode == SendingDomainMode.Sandbox, domain?.ToDetail()));
+        var last = domain is null
+            ? null
+            : await ChangeHistoryQueries.LastAsync(db, ChangeSubjectKind.SendingDomain, ChangeHistoryRoutes.SubjectId(tenant.OrganizationId!.Value), cancellationToken);
+        return TypedResults.Ok(new OrganizationSendingDomain(
+            service.IsAvailable, service.Mode == SendingDomainMode.Sandbox, domain?.ToDetail(),
+            domain is null ? null : LastUpdate.FromChange(last, domain.CreatedAt)));
     }
+
+    private static Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> GetSendingDomainHistory(
+        Guid? before, int? limit, ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
+        ChangeHistoryRoutes.OrganizationPageAsync(ChangeSubjectKind.SendingDomain, before, limit, db, tenant, cancellationToken);
 
     private static async Task<Results<Ok<SendingDomainDetail>, NotFound, ValidationProblem, ProblemHttpResult>> SetSendingDomain(
         SetSendingDomainRequest request,

@@ -67,8 +67,9 @@ an address bounced, which its event webhook provides. Both come with the provide
 - The inbound secret and the event webhook's public key are configuration the owner sets in SendGrid and Key Vault.
 - Inbound Parse posts are unsigned. If SendGrid adds a signature, check it as well as the Basic credentials.
 - A custom sending domain needs the owner to add DNS records at the company's host; ScreenHire cannot do it for them.
-- Slack direct messages for replies, a scheduled re-check of pending domains and change history for the sending domain
-  are not built.
+- Slack direct messages for replies and a scheduled re-check of pending domains are not built. Slack messages go to a
+  person for their own mentions and tasks, and the card and email already tell the sender; Check records is by hand,
+  because a timer would query every pending domain's DNS and the provider across all organizations. Either is a later task.
 
 ## Alternatives considered
 

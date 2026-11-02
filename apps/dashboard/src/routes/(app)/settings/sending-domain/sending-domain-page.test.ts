@@ -29,6 +29,8 @@ const domain = (overrides: Partial<SendingDomainDetail> = {}): SendingDomainDeta
   ...overrides,
 });
 
+const lastUpdated = { at: '2026-11-01T10:00:00+00:00', by: 'Member' as const, userId: null, apiKeyId: null, created: false };
+
 function renderPage(current: OrganizationSendingDomain, routes: Parameters<typeof apiStub>[0] = {}) {
   const bodies: unknown[] = [];
   vi.stubGlobal(
@@ -102,6 +104,12 @@ describe('sending domain page', () => {
     expect(screen.getByText('Records to add')).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Replies host' })).toHaveTextContent('reply.example.com');
     await expectNoAxeViolations();
+  });
+
+  it('shows who last changed the domain and opens its history beside the title', async () => {
+    renderPage({ available: true, sandbox: false, domain: domain(), lastUpdated });
+
+    expect(await screen.findByRole('button', { name: /History/ })).toBeInTheDocument();
   });
 
   it('says email still comes from ScreenHire until the domain is verified, then from the domain', async () => {

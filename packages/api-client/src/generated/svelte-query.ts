@@ -77,6 +77,7 @@ import type {
   GetJobHistoryParams,
   GetOrganizationBrandingHistoryParams,
   GetOrganizationHistoryParams,
+  GetOrganizationSendingDomainHistoryParams,
   GetOrganizationTalentPoolSettingsHistoryParams,
   GetOrganizationVerificationSettingsHistoryParams,
   GetRoleHistoryParams,
@@ -19400,6 +19401,111 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return createMutation(() => ({ ...getDeleteOrganizationSendingDomainMutationOptions(options?.()) }), queryClient);
     }
+
+export type getOrganizationSendingDomainHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getOrganizationSendingDomainHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getOrganizationSendingDomainHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationSendingDomainHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getOrganizationSendingDomainHistoryResponseSuccess = (getOrganizationSendingDomainHistoryResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationSendingDomainHistoryResponseError = (getOrganizationSendingDomainHistoryResponse400 | getOrganizationSendingDomainHistoryResponse401 | getOrganizationSendingDomainHistoryResponse404) & {
+  headers: Headers;
+};
+
+export const getGetOrganizationSendingDomainHistoryUrl = (params?: GetOrganizationSendingDomainHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/sending-domain/history?${stringifiedParams}` : `/v1/organization/sending-domain/history`
+}
+
+export const getOrganizationSendingDomainHistory = async (params?: GetOrganizationSendingDomainHistoryParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getOrganizationSendingDomainHistoryResponseSuccess> => {
+
+  return apiQueryFetch<getOrganizationSendingDomainHistoryResponseSuccess>(getGetOrganizationSendingDomainHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOrganizationSendingDomainHistoryQueryKey = (params?: GetOrganizationSendingDomainHistoryParams,) => {
+    return [
+    'v1','organization','sending-domain','history', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetOrganizationSendingDomainHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizationSendingDomainHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(params?: GetOrganizationSendingDomainHistoryParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationSendingDomainHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationSendingDomainHistoryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationSendingDomainHistory>>> = ({ signal }) => getOrganizationSendingDomainHistory(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationSendingDomainHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOrganizationSendingDomainHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizationSendingDomainHistory>>>
+export type GetOrganizationSendingDomainHistoryQueryError = ErrorType<HttpValidationProblemDetails | void>
+
+
+
+export function createGetOrganizationSendingDomainHistory<TData = Awaited<ReturnType<typeof getOrganizationSendingDomainHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
+ params?: () =>  GetOrganizationSendingDomainHistoryParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationSendingDomainHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetOrganizationSendingDomainHistoryQueryOptions(params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
 
 export type checkOrganizationSendingDomainResponse200 = {
   data: SendingDomainDetail

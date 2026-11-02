@@ -118,6 +118,7 @@ export * from './getHiringTemplateHistoryParams.ts';
 export * from './getJobHistoryParams.ts';
 export * from './getOrganizationBrandingHistoryParams.ts';
 export * from './getOrganizationHistoryParams.ts';
+export * from './getOrganizationSendingDomainHistoryParams.ts';
 export * from './getOrganizationTalentPoolSettingsHistoryParams.ts';
 export * from './getOrganizationVerificationSettingsHistoryParams.ts';
 export * from './getRoleHistoryParams.ts';

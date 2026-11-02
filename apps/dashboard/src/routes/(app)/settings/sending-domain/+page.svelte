@@ -8,6 +8,7 @@
     createCheckOrganizationSendingDomain,
     createDeleteOrganizationSendingDomain,
     createGetOrganizationSendingDomain,
+    getGetOrganizationSendingDomainHistoryQueryOptions,
     createSetOrganizationSendingDomain,
   } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
@@ -18,6 +19,7 @@
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import HistoryFact from '#lib/components/history-fact.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Notice from '#lib/components/notice.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -42,8 +44,8 @@
   // Settings > Sending domain (docs/architecture/email.md), on the settings template: the company's own domain that
   // candidate email comes from. ScreenHire lists the DNS records the email provider needs, looks each one up on request, and
   // switches the From address only once the provider has confirmed the domain, so nothing goes out unauthenticated in the
-  // company's name. Removing the domain goes back to ScreenHire's address; it confirms (A2). A settings page's header stays
-  // one row (S8), so when the domain was added is a fact in the work area.
+  // company's name. Removing the domain goes back to ScreenHire's address; it confirms (A2). Who added, verified or removed it
+  // is the History beside the title (T6).
   const path = '/v1/organization/sending-domain';
   const queryClient = useQueryClient();
   const settled = () => invalidatePath(queryClient, path);
@@ -120,6 +122,9 @@
     {/snippet}
     {#snippet actions()}
       {#if domain}
+        {#if current?.lastUpdated}
+          <HistoryFact value={current.lastUpdated} name="Sending domain" page={(before) => getGetOrganizationSendingDomainHistoryQueryOptions({ before })} />
+        {/if}
         <Button variant="outline" disabled={check.isPending} onclick={checkRecords}><RefreshCwIcon aria-hidden="true" />Check records</Button>
         <MoreMenu label="More actions" onclosed={onMenuClosed}>
           <DropdownMenu.Item variant="destructive" onSelect={() => (chosen = 'remove')}><Trash2Icon aria-hidden="true" />Remove sending domain</DropdownMenu.Item>
@@ -182,7 +187,6 @@
           <SummaryList>
             <SummaryItem label="Domain"><TruncatedText text={domain.domain} /></SummaryItem>
             <SummaryItem label="Email comes from"><TruncatedText text={domain.status === 'Verified' ? domain.fromAddress : 'ScreenHire, until the domain is verified'} /></SummaryItem>
-            <SummaryItem label="Added"><RelativeTime at={domain.createdAt} /></SummaryItem>
             {#if domain.lastCheckedAt}<SummaryItem label="Checked"><RelativeTime at={domain.lastCheckedAt} /></SummaryItem>{/if}
           </SummaryList>
         </Panel>

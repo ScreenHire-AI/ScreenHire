@@ -188,6 +188,43 @@ public sealed class SendingDomainTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task The_history_says_who_added_verified_and_removed_the_domain_and_a_check_that_changes_nothing_adds_no_line()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var domain = NewDomain();
+        (await owner.GetAsync(Path)).At("lastUpdated").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null, "no domain, nothing to date");
+        (await owner.PutAsync(Path, Set(domain))).Expect(HttpStatusCode.OK);
+        (await owner.PostAsync(Path + "/check", new JsonObject())).Expect(HttpStatusCode.OK);
+        (await owner.PostAsync(Path + "/check", new JsonObject())).Expect(HttpStatusCode.OK);
+        await PublishAsync(domain);
+        (await owner.PostAsync(Path + "/check", new JsonObject())).Expect(HttpStatusCode.OK).Text("status").Should().Be("Verified");
+
+        var last = (await owner.GetAsync(Path)).Expect(HttpStatusCode.OK);
+        last.Text("lastUpdated.by").Should().Be("Member");
+        last.Id("lastUpdated.userId").Should().Be(owner.UserId);
+
+        (await owner.DeleteAsync(Path)).Expect(HttpStatusCode.NoContent);
+
+        var history = (await owner.GetAsync(Path + "/history")).Expect(HttpStatusCode.OK);
+        history.Count("entries").Should().Be(3, "added, verified and removed; the two checks that found nothing new recorded nothing");
+        history.Text("entries.0.lines.0.text").Should().Be($"removed the sending domain {domain}");
+        history.Text("entries.1.lines.0.text").Should().StartWith($"verified the sending domain {domain}");
+        history.Text("entries.2.lines.0.text").Should().Be($"added the sending domain {domain}");
+        history.Id("entries.2.userId").Should().Be(owner.UserId);
+    }
+
+    [Fact]
+    public async Task Another_organizations_history_is_its_own_and_a_recruiter_can_read_it()
+    {
+        using var ours = await fixture.SignedInWithOrganizationAsync();
+        using var theirs = await fixture.SignedInWithOrganizationAsync();
+        (await ours.PutAsync(Path, Set(NewDomain()))).Expect(HttpStatusCode.OK);
+
+        (await theirs.GetAsync(Path + "/history")).Expect(HttpStatusCode.OK).Count("entries").Should().Be(0);
+        (await ours.GetAsync(Path + "/history")).Expect(HttpStatusCode.OK).Count("entries").Should().Be(1);
+    }
+
+    [Fact]
     public async Task A_recruiter_and_a_viewer_read_the_domain_but_only_owners_and_admins_change_it()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();

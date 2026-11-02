@@ -32,6 +32,9 @@ public enum ChangeSubjectKind
     ApiKeys,
     /// <summary>The organization's talent pool settings, on Settings, Talent pool.</summary>
     TalentPoolSettings,
+
+    /// <summary>The organization's sending domain, on Settings, Sending domain: added, verified, no longer verified and removed.</summary>
+    SendingDomain,
 }
 
 /// <summary>

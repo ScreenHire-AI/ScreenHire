@@ -4,15 +4,18 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { LastUpdate } from './lastUpdate.ts';
 import type { SendingDomainDetail } from './sendingDomainDetail.ts';
 
 /**
  * The organization's sending domain (Settings, Sending domain). `available` is false when this deployment has no email
  * provider: the page says so and offers nothing. `sandbox` says the records are made up for a local run. `domain`
- * is null until one is added.
+ * is null until one is added. `lastUpdated` is the newest change to it (added, verified, no longer verified), null with
+ * no domain; its History is `GET /v1/organization/sending-domain/history`.
  */
 export interface OrganizationSendingDomain {
   available: boolean;
   sandbox: boolean;
   domain: null | SendingDomainDetail;
+  lastUpdated?: null | LastUpdate;
 }

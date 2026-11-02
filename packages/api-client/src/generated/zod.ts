@@ -8342,6 +8342,8 @@ export const ClearCandidateEmailIssueResponse = zod.object({
 }).describe('A candidate: one person per email address within the organization.')
 
 
+export const getOrganizationSendingDomainResponseLastUpdatedTwoCreatedDefault = false;
+
 export const GetOrganizationSendingDomainResponse = zod.object({
   "available": zod.boolean(),
   "sandbox": zod.boolean(),
@@ -8363,8 +8365,15 @@ export const GetOrganizationSendingDomainResponse = zod.object({
   "lastCheckedAt": zod.iso.datetime({"offset":true}).nullable(),
   "verifiedAt": zod.iso.datetime({"offset":true}).nullable(),
   "providerMessage": zod.string().nullable()
-}).describe('A sending domain and what is left to do. `status` is Verified only once the email provider confirms the records,\nand only then does mail come from `fromAddress`; until then it keeps ScreenHire\'s address.')])
-}).describe('The organization\'s sending domain (Settings, Sending domain). `available` is false when this deployment has no email\nprovider: the page says so and offers nothing. `sandbox` says the records are made up for a local run. `domain`\nis null until one is added.')
+}).describe('A sending domain and what is left to do. `status` is Verified only once the email provider confirms the records,\nand only then does mail come from `fromAddress`; until then it keeps ScreenHire\'s address.')]),
+  "lastUpdated": zod.union([zod.null(),zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(getOrganizationSendingDomainResponseLastUpdatedTwoCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')]).optional()
+}).describe('The organization\'s sending domain (Settings, Sending domain). `available` is false when this deployment has no email\nprovider: the page says so and offers nothing. `sandbox` says the records are made up for a local run. `domain`\nis null until one is added. `lastUpdated` is the newest change to it (added, verified, no longer verified), null with\nno domain; its History is `GET /v1/organization/sending-domain/history`.')
 
 
 export const SetOrganizationSendingDomainBody = zod.object({
@@ -8393,6 +8402,36 @@ export const SetOrganizationSendingDomainResponse = zod.object({
 
 
 export const DeleteOrganizationSendingDomainResponse = zod.void()
+
+
+export const GetOrganizationSendingDomainHistoryQueryParams = zod.object({
+  "before": zod.uuid().optional(),
+  "limit": zod.int().optional()
+})
+
+export const GetOrganizationSendingDomainHistoryResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "id": zod.uuid(),
+  "at": zod.iso.datetime({"offset":true}),
+  "by": zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)]),
+  "userId": zod.uuid().nullable(),
+  "apiKeyId": zod.uuid().nullable(),
+  "lines": zod.array(zod.object({
+  "text": zod.string(),
+  "parts": zod.array(zod.object({
+  "text": zod.string(),
+  "strong": zod.boolean()
+})),
+  "details": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string().nullable(),
+  "after": zod.string().nullable(),
+  "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
+}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
+}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
+}).describe('Everything one save changed in the object: who, when, and a line per change.')),
+  "nextBefore": zod.uuid().nullable()
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
 
 
 export const CheckOrganizationSendingDomainResponse = zod.object({
