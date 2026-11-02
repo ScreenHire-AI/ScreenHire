@@ -1,5 +1,6 @@
 import { defineAction } from 'astro:actions';
 import { applyStep } from '../lib/apply-server';
+import { changeInterview } from '../lib/interview';
 import { answerQuestionnaire } from '../lib/questionnaire';
 import { stopKeeping } from '../lib/talent-pool';
 
@@ -40,6 +41,23 @@ export const server = {
   questionnaire: defineAction({
     accept: 'form',
     handler: async (form: FormData, context) => answerQuestionnaire(form, addressOf(context)),
+  }),
+
+  /**
+   * An interview's time, picked, moved or cancelled from the link in the invitation email (docs/architecture/interview-scheduling.md),
+   * posted as HTML forms. The choice and nothing about the browser goes with it. Never throws for the candidate.
+   */
+  interviewBook: defineAction({
+    accept: 'form',
+    handler: async (form: FormData, context) => changeInterview('book', form, addressOf(context)),
+  }),
+  interviewReschedule: defineAction({
+    accept: 'form',
+    handler: async (form: FormData, context) => changeInterview('reschedule', form, addressOf(context)),
+  }),
+  interviewCancel: defineAction({
+    accept: 'form',
+    handler: async (form: FormData, context) => changeInterview('cancel', form, addressOf(context)),
   }),
 
   /**

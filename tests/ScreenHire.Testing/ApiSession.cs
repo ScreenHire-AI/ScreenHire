@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using ScreenHire.Application.Scheduling;
 
 namespace ScreenHire.Testing;
 
@@ -108,6 +109,35 @@ public sealed class ApiSession : IDisposable
             using var hop = await Client.GetAsync(next, cancellationToken);
             location = hop.Headers.Location ?? throw new InvalidOperationException($"{next.AbsolutePath} answered {hop.StatusCode}.");
         }
+    }
+
+    /// <summary>
+    /// Connects the signed-in member's sandbox calendar through the real round trip (connect, the sandbox's consent page,
+    /// the callback), so the API can read the tokens it stored. Rows written straight to the database are protected under a
+    /// key the running API does not have. Needs <c>ScreenHire:Calendar:Sandbox:Enabled</c>, which the test stacks set.
+    /// </summary>
+    public async Task ConnectSandboxCalendarAsync(CancellationToken cancellationToken)
+    {
+        using var started = await PostAsync("/v1/calendar/connect", new { provider = "Sandbox", returnUrl = "/" }, cancellationToken);
+        started.StatusCode.Should().Be(HttpStatusCode.OK);
+        var authorize = (await started.Content.ReadFromJsonAsync<JsonElement>(cancellationToken)).GetProperty("authorizeUrl").GetString()!;
+        var next = new Uri(BaseAddress, new Uri(authorize).PathAndQuery);
+        for (var hops = 0; hops < 6; hops++)
+        {
+            using var response = await Client.GetAsync(next, cancellationToken);
+            response.StatusCode.Should().Be(HttpStatusCode.Redirect, $"{next.AbsolutePath} should redirect");
+            var location = response.Headers.Location!;
+            var target = location.IsAbsoluteUri ? location : new Uri(BaseAddress, location);
+            if (target.AbsolutePath != SandboxCalendarProvider.AuthorizePath && !target.AbsolutePath.StartsWith("/v1/calendar/oauth/callback", StringComparison.Ordinal))
+            {
+                target.Query.Should().Contain("calendar=connected");
+                return;
+            }
+
+            next = new Uri(BaseAddress, target.PathAndQuery);
+        }
+
+        throw new InvalidOperationException("The OAuth round trip did not end.");
     }
 
     /// <summary><c>GET /v1/auth/me</c>, or null when signed out.</summary>

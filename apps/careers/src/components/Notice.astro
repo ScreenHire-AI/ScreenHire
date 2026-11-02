@@ -1,0 +1,22 @@
+---
+// A message about what just happened, always an icon and words (never colour alone). The icon is the circle-alert
+// shape for a problem and the info shape otherwise, never a status icon (design-system section 14). A problem is announced at once
+// (`role="alert"`) and takes the strong border; the calm kinds are read out politely.
+interface Props {
+  kind: 'success' | 'info' | 'problem';
+  message: string;
+}
+
+const { kind, message } = Astro.props;
+---
+
+<div
+  role={kind === 'problem' ? 'alert' : 'status'}
+  class:list={['flex items-start gap-3 rounded-2xl bg-candidate-surface px-4 py-3.5 text-sm', kind === 'problem' ? 'border-2 border-destructive' : 'border border-candidate-border']}
+>
+  <svg aria-hidden="true" class:list={['mt-0.5 size-5 flex-none', kind === 'problem' && 'text-destructive']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"></circle>
+    {kind === 'problem' ? <path d="M12 8v4M12 16h.01"></path> : <path d="M12 16v-4M12 8h.01"></path>}
+  </svg>
+  <p class="font-semibold">{message}</p>
+</div>

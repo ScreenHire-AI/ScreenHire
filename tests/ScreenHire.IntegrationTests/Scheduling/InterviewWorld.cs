@@ -77,32 +77,8 @@ internal sealed partial class InterviewWorld : IDisposable
         }
     }
 
-    /// <summary>
-    /// Connects the member's sandbox calendar through the real round trip (authorize, callback), so the API can read the
-    /// tokens it stored. Rows written straight to the database are protected under a key the running API does not have.
-    /// </summary>
-    public static async Task ConnectCalendarAsync(Tenant member)
-    {
-        var authorize = (await member.PostAsync("/v1/calendar/connect", new JsonObject { ["provider"] = "Sandbox", ["returnUrl"] = "/" }))
-            .Expect(HttpStatusCode.OK).Text("authorizeUrl");
-        var next = new Uri(member.Session.BaseAddress, new Uri(authorize).PathAndQuery);
-        for (var hops = 0; hops < 6; hops++)
-        {
-            using var response = await member.Session.Client.GetAsync(next, Ct);
-            response.StatusCode.Should().Be(HttpStatusCode.Redirect, $"{next.AbsolutePath} should redirect");
-            var location = response.Headers.Location!;
-            var target = location.IsAbsoluteUri ? location : new Uri(member.Session.BaseAddress, location);
-            if (target.AbsolutePath != SandboxCalendarProvider.AuthorizePath && !target.AbsolutePath.StartsWith("/v1/calendar/oauth/callback", StringComparison.Ordinal))
-            {
-                target.Query.Should().Contain("calendar=connected");
-                return;
-            }
-
-            next = new Uri(member.Session.BaseAddress, target.PathAndQuery);
-        }
-
-        throw new InvalidOperationException("The OAuth round trip did not end.");
-    }
+    /// <summary>Connects the member's sandbox calendar through the real round trip (see <see cref="ApiSession.ConnectSandboxCalendarAsync"/>).</summary>
+    public static Task ConnectCalendarAsync(Tenant member) => member.Session.ConnectSandboxCalendarAsync(Ct);
 
     /// <summary>Another application on the same job, from a new candidate. Returns its id and the candidate's email.</summary>
     public async Task<(Guid ApplicationId, string Email)> AddApplicationAsync()

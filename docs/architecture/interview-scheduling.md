@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Interview scheduling on team calendars"
-description: "Members connect their own Google, Outlook or sandbox calendar from the account menu: the OAuth round trip kept apart from sign-in, tokens under Data Protection for each member, the ICalendarProvider seam with a Postgres-backed sandbox, token refresh under an advisory lock, and the configuration that hides a provider until its client id and secret are set. Interview requests: the slot finder in the interview's time zone, the offered times, and the booking transaction that never double-books an interviewer. Offering, booking, moving and cancelling an interview: the staff and candidate routes with their problem codes, and the worker that writes one calendar event per interviewer and emails the candidate."
+description: "Members connect their own Google, Outlook or sandbox calendar from the account menu: the OAuth round trip kept apart from sign-in, tokens under Data Protection for each member, the ICalendarProvider seam with a Postgres-backed sandbox, token refresh under an advisory lock, and the configuration that hides a provider until its client id and secret are set. Interview requests: the slot finder in the interview's time zone, the offered times, and the booking transaction that never double-books an interviewer. Offering, booking, moving and cancelling an interview: the staff and candidate routes with their problem codes, and the worker that writes one calendar event per interviewer and emails the candidate. The careers page where the candidate picks, moves or cancels a time with JavaScript off."
 tags: [scheduling, calendar, integrations, oauth]
 sources:
   - resource: src/ScreenHire.Domain/Scheduling/CalendarConnection.cs
@@ -33,14 +33,17 @@ sources:
   - resource: apps/dashboard/src/lib/calendar.ts
   - resource: tests/ScreenHire.IntegrationTests/Calendar/CalendarConnectionTests.cs
   - resource: tests/ScreenHire.IntegrationTests/Calendar/CalendarSandboxTests.cs
+  - resource: apps/careers/src/pages/[organization]/interviews/[token].astro
+  - resource: apps/careers/src/lib/interview.ts
+  - resource: tests/ScreenHire.E2E/InterviewBookingTests.cs
 ---
 # Interview scheduling on team calendars
 
 ScreenHire schedules interviews on the calendars the team already uses, through the free Google Calendar and Microsoft
 Graph APIs. This page describes the parts that exist so far: a member connecting and disconnecting their own calendar, the interview
 request with its slot finder and booking transaction, the routes that offer, book, move and cancel an interview, the
-worker that writes the events and emails the candidate. The candidate's page and the workflow action build on them and are
-described here as they land.
+worker that writes the events and emails the candidate, and the careers page the candidate books on. The workflow action
+builds on them and is described here as it lands.
 
 ## Connecting a calendar
 
@@ -200,6 +203,18 @@ no usable calendar, or a calendar that refuses the event for good, is marked `Fa
 go on; a calendar that is only down throws, so Wolverine retries and the events already made are found again. Then the
 candidate gets `interview-confirmation` (or `interview-cancelled`), whose timeline entry has an id derived from the interview
 and revision, and `InterviewChanged` tells open dashboards.
+
+## The candidate's page
+
+The invitation and confirmation emails link to `/interviews/{token}` on the careers site ([apply flow](apply-flow.md), §8.1),
+which calls the public routes above. It is plain HTML with no script: the candidate picks a time zone with a GET form and
+a time with a radio, and the careers server writes every time with `Intl.DateTimeFormat` in the chosen zone. The API
+offers instants and the zone; it never sends formatted text. Booking, moving and cancelling are Astro actions that
+redirect back to the same address with an outcome word (`booked`, `rescheduled`, `cancelled`, `slot-taken`, `too-late`).
+A conflict maps to its notice by the problem's `type`. The page shows one screen of five days that have times and links to the
+next, shows no meeting link of its own (the calendar invitation has it), names no interviewer, and says nothing about
+verification. The browser test (`InterviewBookingTests`) runs the whole journey with JavaScript off, axe clean, and checks
+the page at 390 and 1280 pixels wide for sideways scrolling and touch targets.
 
 ## Tenancy
 
