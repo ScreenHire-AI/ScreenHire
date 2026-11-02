@@ -108,7 +108,16 @@ brackets.
   embedded disposable-domain list from time to time (#13).
 - **Storage and scanning.** Create the uploads container with a CORS rule for PUT from the careers hosts and GET from the
   dashboard host (the file viewer, #25), and a one-day lifecycle rule for unclaimed uploads (#11). Wire a real
-  malware scanner behind `IMalwareScanner` (#11, #15). Optionally, Turnstile keys in `ScreenHire:Turnstile` (#11).
+  malware scanner behind `IMalwareScanner` (#11, #15). Optionally, Turnstile keys in `ScreenHire:Turnstile` (#11); with them, saving a draft application also needs the check
+  to pass. Create the private `brand-images` container, and give the worker's identity permission to list and delete
+  blobs in it: the daily clean-up of brand images nobody saved fails without it (branding.md §4).
+- **Database.** On Azure Database for PostgreSQL, add `pg_trgm` to the server's `azure.extensions` list before the
+  migrations run, or `CREATE EXTENSION` fails. The trigram indexes on candidate names and emails and job titles do not
+  serve the search as `screenhire_app` yet, because `ILIKE` is not leakproof under row-level security; marking a
+  function leakproof needs a superuser, so decide whether to provision one before anyone expects a faster search (see
+  [sign-in and tenancy](architecture/sign-in-and-tenancy.md), Row-level security and indexes). The follow-ups migration
+  takes heavy locks while it runs (it lifts FORCE on four tables and builds the indexes in one transaction), so run it
+  in a quiet window.
 - **Deploy.** Run the EF migrations and `ScreenHireMessaging.ProvisionStorageAsync` as the owner, give `screenhire_app`
   its login, and give the API and worker only that connection (#7). Wolverine's static code generation is deferred
   until hosting (#5). Set `SITE_URL` for marketing builds and redirect URLs without a trailing slash (#6); set Astro's

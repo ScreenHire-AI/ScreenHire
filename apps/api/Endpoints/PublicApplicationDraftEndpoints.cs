@@ -37,6 +37,7 @@ internal static class PublicApplicationDraftEndpoints
             .AllowAnonymous()
             .RequireRateLimiting(ApplyOptions.RateLimitPolicy)
             .WithName("CreatePublicApplicationDraft")
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status410Gone)
             .ProducesProblem(StatusCodes.Status429TooManyRequests);
 
@@ -61,6 +62,8 @@ internal static class PublicApplicationDraftEndpoints
         ScreenHireDbContext db,
         TenantContext tenant,
         ApplicationDrafts drafts,
+        TurnstileVerifier turnstile,
+        HttpContext http,
         CancellationToken cancellationToken)
     {
         if (!drafts.IsEnabled)
@@ -71,6 +74,12 @@ internal static class PublicApplicationDraftEndpoints
         if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
         {
             return TypedResults.ValidationProblem(problems);
+        }
+
+        // Before anything is looked up or sent: this route emails a link to whatever address was typed.
+        if (await BotCheckProblemAsync(turnstile, request.BotCheckToken, http.Connection.RemoteIpAddress?.ToString(), cancellationToken) is { } refused)
+        {
+            return refused;
         }
 
         var organization = await PublicOrganizations.FindAsync(organizationSlug, db, tenant, cancellationToken);
@@ -101,6 +110,22 @@ internal static class PublicApplicationDraftEndpoints
 
         return TypedResults.Created((string?)null, new PublicApplicationDraftReceipt(created.Token, created.Draft.ExpiresAt));
     }
+
+    /// <summary>
+    /// The refusal for a saved draft's first link when the bot check failed, or null to go on. Saving a draft is the one
+    /// public route that sends an email to an address the visitor typed, so unlike a submission (which only records the
+    /// result as a signal) it needs the check to pass. A check that was not run, because Turnstile is not configured or
+    /// Cloudflare was unreachable, goes on, and the per-address limit still applies. Sending the application never
+    /// needs the check, so a candidate who cannot pass it still applies.
+    /// </summary>
+    internal static async Task<ProblemHttpResult?> BotCheckProblemAsync(
+        TurnstileVerifier turnstile, string? token, string? remoteAddress, CancellationToken cancellationToken) =>
+        await turnstile.VerifyAsync(token, remoteAddress, cancellationToken) == BotCheckResult.Failed
+            ? TypedResults.Problem(
+                title: "Security check not passed",
+                detail: "We could not finish the security check, so no link was emailed. You can send your application now instead.",
+                statusCode: StatusCodes.Status403Forbidden)
+            : null;
 
     private static async Task<Results<Ok<PublicApplicationDraft>, NotFound, ProblemHttpResult>> GetDraft(
         string organizationSlug,

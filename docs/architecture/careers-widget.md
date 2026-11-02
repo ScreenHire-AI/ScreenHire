@@ -16,6 +16,8 @@ sources:
   - resource: apps/dashboard/src/routes/(app)/settings/careers-site/+page.svelte
   - resource: apps/dashboard/src/lib/components/code-block.svelte
   - resource: tests/ScreenHire.Testing/HostPage.cs
+  - resource: apps/dashboard/src/lib/embed-snippet.ts
+  - resource: apps/dashboard/src/lib/components/job-embed-panel.svelte
 ---
 # Embeddable careers widget
 
@@ -34,7 +36,23 @@ code with Copy:
 ```
 
 The address is the organization's careers board (`careersUrl` on `GET /v1/organization`) plus `/embed.js`, on a tenant
-host or with the organization in the path alike. One snippet frames the board; there is no per-job snippet.
+host or with the organization in the path alike. That snippet frames the board.
+
+A job has its own snippet, on its Postings tab (Embed on your website, shown for an open job): the same tag with the
+job's address, which frames that job's page and its application instead of the board.
+
+```html
+<script src="https://brightwater.careers.example/embed.js" data-job="senior-barista" async></script>
+```
+
+The script is the same file for every organization. `data-job` is the job's slug, lowercase letters and digits
+separated by single hyphens (at most 120 characters, the rule the API enforces on a slug); anything else is ignored and
+the board shows, so a mistyped attribute never builds an address of its own. The frame is
+`{board}/jobs/{slug}?embed={origin}`, so branding, the origin list and `frame-ancestors` behave as for the board. A job
+that is closed or gone shows the same "no longer available" page inside the frame. One limit: the page after sending an
+application offers "See other open roles", which opens the board inside the frame, because the careers pages do not know
+the frame was a single job's. Like the organization snippet, the job's appears once a site is on the list; before that,
+the panel sends the person to Careers site settings. Both snippets come from `#lib/embed-snippet.ts`.
 
 ## 2. The sites allowed to frame the careers pages
 
@@ -76,7 +94,8 @@ server serves it at `{board}/embed.js` (`[organization]/embed.js.ts`, the same b
 an hour). It:
 
 1. finds its own tag (`document.currentScript`) and takes the board and the careers origin from its `src`;
-2. adds `<iframe class="screenhire-careers" title="Jobs">` right after itself, at `{board}?embed={location.origin}`,
+2. adds `<iframe class="screenhire-careers" title="Jobs">` right after itself, at `{board}?embed={location.origin}` (or
+   `{board}/jobs/{slug}?embed=...` when its tag has a valid `data-job`),
    full width, no border, 600px tall to start, set through the style object rather than a `style` attribute, so a host
    policy without `unsafe-inline` still works;
 3. on `message`, accepts only `event.origin` equal to the careers origin and `event.source` equal to its own frame, with
@@ -137,11 +156,11 @@ There are no owner actions beyond the careers domain itself.
 - Unit: `EmbedOriginsTests` (normalizing and refusing sites), `SettingsChangesTests` (the history lines),
   `JobApplicationTests` (the source site).
 - Vitest: `lib/embed.test.ts` (the helpers and the policy, hostile values included), `lib/embed-script.test.ts` (the
-  script against a stand-in page: the frame, sizing, which messages it ignores), `apply-server.test.ts` (a delisted site
-  is dropped); the dashboard's organization page and `CodeBlock`.
+  script against a stand-in page: the frame, a job's address and the ones it ignores, sizing, which messages it ignores), `apply-server.test.ts` (a delisted site
+  is dropped); the dashboard's organization page, the job page's embed panel (`job-page.test.ts`), `embed-snippet.test.ts` and `CodeBlock`.
 - Integration: `CareersEmbeddingTests` (saving, refusals, roles, the public responses, the source site and the
   observation).
 - End to end: `EmbedTests` serves a company's page from `HostPage`, a loopback server, because Chromium's Local Network
   Access stops a routed page it cannot place on this machine from loading the careers pages here. A listed site embeds
-  the board, branded and sized, the candidate applies inside the frame, and the dashboard shows the site; a site off the
-  list is refused.
+  the board, branded and sized, the candidate applies inside the frame, the dashboard shows the site, and the job's own
+  snippet from its Postings tab frames that job; a site off the list is refused.

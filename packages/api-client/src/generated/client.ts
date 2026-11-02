@@ -191,6 +191,11 @@ export type createPublicApplicationDraftResponse400 = {
   status: 400
 }
 
+export type createPublicApplicationDraftResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
 export type createPublicApplicationDraftResponse404 = {
   data: void
   status: 404
@@ -209,7 +214,7 @@ export type createPublicApplicationDraftResponse429 = {
 export type createPublicApplicationDraftResponseSuccess = (createPublicApplicationDraftResponse201) & {
   headers: Headers;
 };
-export type createPublicApplicationDraftResponseError = (createPublicApplicationDraftResponse400 | createPublicApplicationDraftResponse404 | createPublicApplicationDraftResponse410 | createPublicApplicationDraftResponse429) & {
+export type createPublicApplicationDraftResponseError = (createPublicApplicationDraftResponse400 | createPublicApplicationDraftResponse403 | createPublicApplicationDraftResponse404 | createPublicApplicationDraftResponse410 | createPublicApplicationDraftResponse429) & {
   headers: Headers;
 };
 

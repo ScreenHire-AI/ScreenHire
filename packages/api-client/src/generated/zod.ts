@@ -28,7 +28,8 @@ export const CreatePublicApplicationDraftBody = zod.object({
 }).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')).nullish(),
   "accommodationRequested": zod.boolean().default(createPublicApplicationDraftBodyAccommodationRequestedDefault),
   "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(createPublicApplicationDraftBodyAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
-  "aiUseDetails": zod.string().nullish()
+  "aiUseDetails": zod.string().nullish(),
+  "botCheckToken": zod.string().nullish()
 }).describe('What a candidate saves of the apply form to finish later (ApplicationDraft): their details, their\nanswers to the non-file questions, the assistive-technology switch and the AI-use answer. Nothing is required yet\nbeyond the first name and the email the link goes to.')
 
 export const CreatePublicApplicationDraftResponse = zod.object({
@@ -678,7 +679,8 @@ export const SavePublicApplicationDraftBody = zod.object({
 }).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')).nullish(),
   "accommodationRequested": zod.boolean().default(savePublicApplicationDraftBodyAccommodationRequestedDefault),
   "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(savePublicApplicationDraftBodyAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
-  "aiUseDetails": zod.string().nullish()
+  "aiUseDetails": zod.string().nullish(),
+  "botCheckToken": zod.string().nullish()
 }).describe('What a candidate saves of the apply form to finish later (ApplicationDraft): their details, their\nanswers to the non-file questions, the assistive-technology switch and the AI-use answer. Nothing is required yet\nbeyond the first name and the email the link goes to.')
 
 export const SavePublicApplicationDraftResponse = zod.object({

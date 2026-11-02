@@ -445,7 +445,8 @@ The data model and API from the jobs and templates task, and the engine that run
   tasks (`ApplicationActivity`), read in the list's own query.
 - **Events** through the outbox: `JobPublished` (with the job version), `JobClosed`, `ApplicationSubmitted`,
   `ApplicationMoved` (both carrying the timeline event id, the engine's idempotency key) and
-  `HiringTemplateVersionPublished`.
+  `HiringTemplateVersionPublished`, and `TemplateChanged` for any other edit of a hiring, email or scorecard template
+  ([realtime](realtime.md)).
 
 ## 8. The engine (v1)
 
