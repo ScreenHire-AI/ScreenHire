@@ -24,6 +24,8 @@ sources:
   - resource: apps/api/Endpoints/TeamEndpoints.cs
   - resource: apps/api/Endpoints/RoleEndpoints.cs
   - resource: apps/api/Endpoints/ApiKeyEndpoints.cs
+  - resource: apps/api/Contracts/ApiKeyContracts.cs
+  - resource: apps/dashboard/src/routes/(app)/settings/api-keys/+page.svelte
   - resource: apps/api/Endpoints/VerificationEndpoints.cs
   - resource: apps/api/Endpoints/HiringTeamEndpoints.cs
   - resource: apps/api/Hiring/HiringTeams.cs

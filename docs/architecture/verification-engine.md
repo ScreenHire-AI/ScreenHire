@@ -52,6 +52,9 @@ sources:
   - resource: src/ScreenHire.Infrastructure/Verification/Llm/LlmAccess.cs
   - resource: src/ScreenHire.Infrastructure/Verification/TextSimilarity.cs
   - resource: apps/api/Endpoints/VerificationEndpoints.cs
+  - resource: apps/api/Contracts/VerificationContracts.cs
+  - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/VerificationConfiguration.cs
+  - resource: apps/dashboard/src/lib/components/review-log.svelte
   - resource: apps/api/Endpoints/PublicTelemetryEndpoints.cs
   - resource: apps/dashboard/src/lib/verification.ts
   - resource: packages/telemetry/src/collector.ts
