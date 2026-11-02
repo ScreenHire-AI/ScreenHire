@@ -66,6 +66,12 @@ public sealed record VerificationContext(
 /// </remarks>
 public sealed record AnalyzerResult(IReadOnlyList<ObservedSignal> Signals, string? Note = null, bool Ready = true)
 {
+    /// <summary>
+    /// Other applications whose own result depends on what this analyzer found, such as the earlier applications that share
+    /// a detail with this one. The pipeline sends each a re-check; most analyzers have none.
+    /// </summary>
+    public IReadOnlyList<Guid> RelatedApplicationIds { get; init; } = [];
+
     public static AnalyzerResult Nothing(string? note = null) => new([], note);
 
     /// <summary>Not yet: run again later, and record nothing now.</summary>

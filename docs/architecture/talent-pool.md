@@ -172,8 +172,10 @@ organization's normal retention.
 
 ## Not built
 
-- **Erasure.** No erasure or data-access request feature exists yet ("Before real customers" in the
-  [roadmap](../roadmap.md)). The entry cascades from the candidate, so a future erasure removes them from the pool.
+- **Erasure.** An Owner or Admin can erase a candidate from their profile ([candidates.md](candidates.md)). The entry
+  cascades from the candidate, so erasing removes them from the pool. A candidate's own request to stop being kept deletes
+  nothing; the profile then offers Erase candidate. There is still no request form for data access or erasure ("Before real
+  customers" in the [roadmap](../roadmap.md)).
   Until then, a person removes them with "They asked to be removed", which also withdraws the permission.
 - **Record retention.** Nothing deletes an ended application after a period; that is the same roadmap item.
 - **API keys, MCP and webhooks.** The pool's routes take no API key, the MCP server has no pool tool, and there is no

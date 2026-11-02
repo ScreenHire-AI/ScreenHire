@@ -126,6 +126,14 @@
     }
   },
   {
+    "type": "CandidateErased",
+    "data": {
+      "organizationId": "0199f0c4-0000-7000-8000-000000000001",
+      "candidateId": "0199f0c4-0000-7000-8000-000000000002",
+      "erasedAt": "2026-10-20T09:03:00+00:00"
+    }
+  },
+  {
     "type": "HiringTeamChanged",
     "data": {
       "organizationId": "0199f0c4-0000-7000-8000-000000000001",

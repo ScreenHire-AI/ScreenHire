@@ -2,6 +2,7 @@
   import CircleSlashIcon from '~icons/lucide/circle-slash';
   import ClipboardPenIcon from '~icons/lucide/clipboard-pen';
   import MessageSquareCheckIcon from '~icons/lucide/message-square-check';
+  import ScanSearchIcon from '~icons/lucide/scan-search';
   import Undo2Icon from '~icons/lucide/undo-2';
   import type { VerificationReviewEntry } from '@screenhire/api-client';
   import { createGetApplicationVerification } from '@screenhire/api-client/svelte-query';
@@ -17,7 +18,8 @@
   import { describeError } from '#lib/query.js';
 
   // The people's side of an application's verification: every dismissal, explained reason, undo and note, newest first,
-  // with who and when. It reads the verification panel's query, so the two share one request and update together.
+  // with who and when, and the evidence a re-check added or took away (written by ScreenHire, with its reason, so a level
+  // never moves without one; a person's note is never mixed up with it). It reads the verification panel's query, so the two share one request and update together.
   let { applicationId }: { applicationId: string } = $props();
 
   const queryClient = useQueryClient();
@@ -38,6 +40,8 @@
     if (entry.type === 'Dismissed') return `Dismissed ${about ?? 'an assessment'}: ${entry.dismissReason ? dismissReasonLabels[entry.dismissReason] : 'no reason'}`;
     if (entry.type === 'ReasonExplained') return `Explained ${reason}: ${entry.explainReason ? explainReasonLabels[entry.explainReason] : 'no reason'}`;
     if (entry.type === 'ExplanationUndone') return `Undid the explanation of ${reason}`;
+    // The reason is the entry's note, in words that name no other application, job or candidate (ADR-0015).
+    if (entry.type === 'EvidenceChanged') return entry.note ?? 'Evidence changed';
     return about ? `Note on ${about}` : 'Note';
   }
 
@@ -46,6 +50,7 @@
     NoteAdded: ClipboardPenIcon,
     ReasonExplained: MessageSquareCheckIcon,
     ExplanationUndone: Undo2Icon,
+    EvidenceChanged: ScanSearchIcon,
   };
 
   const items = $derived<Activity[]>(
@@ -53,8 +58,9 @@
       id: entry.id,
       icon: icons[entry.type],
       event: describeEntry(entry),
-      actor: `by ${reviewerName(entry.actorUserId, entry.actorName, page.data.user?.id)}`,
-      note: entry.note ?? undefined,
+      actor: entry.actorUserId ? `by ${reviewerName(entry.actorUserId, entry.actorName, page.data.user?.id)}` : 'by ScreenHire',
+      // The system's reason is the event line itself; a reviewer's words are quoted under theirs.
+      note: entry.type === 'EvidenceChanged' ? undefined : (entry.note ?? undefined),
       at: entry.occurredAt,
     })),
   );

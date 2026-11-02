@@ -216,7 +216,9 @@ public static class ScreenHireMessaging
         // processing orders them by application instead. The consistency check races the same way on its own row.
         opts.MessagePartitioning
             .ByMessage<AnalyzeApplicationVerification>(message => message.ApplicationId.ToString())
-            .ByMessage<CheckApplicationConsistency>(message => message.ApplicationId.ToString());
+            .ByMessage<CheckApplicationConsistency>(message => message.ApplicationId.ToString())
+            .ByMessage<RecheckApplicationDuplicates>(message => message.ApplicationId.ToString());
+        opts.LocalQueueFor<RecheckApplicationDuplicates>().PartitionProcessingByGroupId(PartitionSlots.Five);
         opts.LocalQueueFor<AnalyzeApplicationVerification>().PartitionProcessingByGroupId(PartitionSlots.Five);
         opts.LocalQueueFor<CheckApplicationConsistency>().PartitionProcessingByGroupId(PartitionSlots.Five);
 

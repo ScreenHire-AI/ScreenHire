@@ -31,6 +31,7 @@ public enum Permission
     DeleteAnyNote,
     CreateTasks,
     ManageIntegrations,
+    EraseCandidates,
 }
 
 /// <summary>The groups the Roles page shows permissions in.</summary>
@@ -82,6 +83,8 @@ public static class RolePermissions
         new(Permission.RunAutomations, PermissionGroup.Hiring, "Run automations", "Run a manual automation on a candidate."),
         new(Permission.EditHiringTemplates, PermissionGroup.Templates, "Edit hiring templates",
             "Create, edit and publish hiring templates."),
+        new(Permission.EraseCandidates, PermissionGroup.Hiring, "Erase candidates",
+            "Erase a candidate and all of their applications, files, notes and verification data."),
         new(Permission.EditEmailTemplates, PermissionGroup.Templates, "Edit email templates",
             "Create, edit and delete email templates, and send a test."),
         new(Permission.EditSettings, PermissionGroup.Organization, "Edit settings",
@@ -122,7 +125,7 @@ public static class RolePermissions
     private static readonly Permission[] Administration =
     [
         Permission.DeleteAnyNote, Permission.EditEmailTemplates, Permission.EditSettings, Permission.ManageApiKeys, Permission.ManageWebhooks,
-        Permission.ManageIntegrations, Permission.ManageTeam,
+        Permission.ManageIntegrations, Permission.ManageTeam, Permission.EraseCandidates,
     ];
 
     /// <summary>The built-in roles, most access first.</summary>

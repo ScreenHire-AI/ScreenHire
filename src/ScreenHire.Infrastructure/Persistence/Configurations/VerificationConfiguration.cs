@@ -19,8 +19,10 @@ internal sealed class VerificationAnalyzerRunConfiguration : IEntityTypeConfigur
             .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasAlternateKey(r => new { r.OrganizationId, r.Id });
-        // The pipeline's idempotency key (verification-engine.md §5): each analyzer version runs once per application.
-        builder.HasIndex(r => new { r.OrganizationId, r.ApplicationId, r.Analyzer, r.AnalyzerVersion }).IsUnique();
+        builder.Property(r => r.Revision).HasDefaultValue(1);
+        // The pipeline's idempotency key (verification-engine.md §5): each analyzer version runs once per application. A
+        // re-check of the same version (the duplicate check when a later application shares a detail) is the next revision.
+        builder.HasIndex(r => new { r.OrganizationId, r.ApplicationId, r.Analyzer, r.AnalyzerVersion, r.Revision }).IsUnique();
     }
 }
 
@@ -34,6 +36,7 @@ internal sealed class VerificationSignalConfiguration : IEntityTypeConfiguration
         builder.Property(s => s.Weight).HasConversion<string>().HasMaxLength(10);
         builder.Property(s => s.Confidence).HasConversion<string>().HasMaxLength(10);
         builder.Property(s => s.Source).HasMaxLength(40);
+        builder.Property(s => s.SourceRevision).HasDefaultValue(1);
         builder.Property(s => s.Explanation).HasMaxLength(1000);
         builder.Property(s => s.Evidence).HasJsonColumn();
         builder.Property(s => s.CounterEvidence).HasJsonColumn();
@@ -87,6 +90,8 @@ internal sealed class VerificationReviewActionConfiguration : IEntityTypeConfigu
     public void Configure(EntityTypeBuilder<VerificationReviewAction> builder)
     {
         builder.Property(a => a.Type).HasConversion<string>().HasMaxLength(20);
+        // Null for EvidenceChanged, which the system writes.
+        builder.Property(a => a.ActorUserId).IsRequired(false);
         builder.Property(a => a.DismissReason).HasConversion<string>().HasMaxLength(30);
         builder.Property(a => a.ExplainReason).HasConversion<string>().HasMaxLength(30);
         // SignalId has no foreign key: signals have no (organization_id, id) key to point at. The endpoint checks the

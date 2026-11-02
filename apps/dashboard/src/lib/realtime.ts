@@ -63,6 +63,8 @@ export const invalidations: InvalidationMap = {
   // Keeping someone in mind ends their application in every list; leaving the pool, or an invitation, changes the pool
   // and the kept application's page.
   TalentPoolChanged: [talentPoolPath, jobsPath, applicationsPath, candidatesPath],
+  // An erased candidate leaves every list, the pool and the job tables, and an open page of theirs finds nothing.
+  CandidateErased: [talentPoolPath, jobsPath, applicationsPath, candidatesPath, tasksPath, reportsPath],
 };
 
 export interface LiveUpdates {

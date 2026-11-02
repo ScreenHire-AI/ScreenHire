@@ -294,7 +294,7 @@ internal static class VerificationReads
             .Where(s => s.ApplicationId == applicationId && signalIds.Contains(s.Id))
             .ToDictionaryAsync(s => s.Id, cancellationToken);
         var explanations = VerificationReviewAction.CurrentExplanations(actions);
-        var actorIds = actions.Select(a => a.ActorUserId).Distinct().ToList();
+        var actorIds = actions.Select(a => a.ActorUserId).OfType<Guid>().Distinct().ToList();
         var names = await db.Users.AsNoTracking()
             .Where(u => actorIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, u => u.DisplayName ?? u.Email, cancellationToken);
@@ -305,7 +305,7 @@ internal static class VerificationReads
 
         VerificationDismissal? DismissalOf(VerificationAssessment assessment) =>
             actions.LastOrDefault(a => a.AssessmentId == assessment.Id && a.Type == VerificationReviewActionType.Dismissed) is { } action
-                ? new VerificationDismissal(action.Id, action.DismissReason!.Value, action.Note, action.ActorUserId, names.GetValueOrDefault(action.ActorUserId), action.OccurredAt)
+                ? new VerificationDismissal(action.Id, action.DismissReason!.Value, action.Note, action.ActorUserId!.Value, names.GetValueOrDefault(action.ActorUserId.Value), action.OccurredAt)
                 : null;
 
         static string TitleOf(VerificationSignal signal) => SignalCatalogue.All.TryGetValue(signal.Code, out var definition) ? definition.Title : signal.Code;
@@ -313,7 +313,7 @@ internal static class VerificationReads
         VerificationReasonExplanation? ExplanationOf(VerificationAssessment assessment, Guid signalId) =>
             explanations.TryGetValue((assessment.Id, signalId), out var action)
                 ? new VerificationReasonExplanation(
-                    action.Id, action.ExplainReason!.Value, action.Note, action.ActorUserId, names.GetValueOrDefault(action.ActorUserId), action.OccurredAt)
+                    action.Id, action.ExplainReason!.Value, action.Note, action.ActorUserId!.Value, names.GetValueOrDefault(action.ActorUserId.Value), action.OccurredAt)
                 : null;
 
         List<VerificationSignalView> SignalsOf(VerificationAssessment assessment) =>
@@ -342,7 +342,7 @@ internal static class VerificationReads
             [
                 .. actions.Select(a => new VerificationReviewEntry(
                     a.Id, a.Type, a.AssessmentId is { } id && kinds.TryGetValue(id, out var kind) ? kind : null, a.AssessmentId, a.DismissReason,
-                    a.Note, a.ActorUserId, names.GetValueOrDefault(a.ActorUserId), a.OccurredAt, a.SignalId,
+                    a.Note, a.ActorUserId, a.ActorUserId is { } actor ? names.GetValueOrDefault(actor) : null, a.OccurredAt, a.SignalId,
                     a.SignalId is { } signalId && signals.TryGetValue(signalId, out var signal) ? TitleOf(signal) : null, a.ExplainReason)),
             ],
             new VerificationActionAvailability(false, VerificationEndpoints.VerificationUnavailable),

@@ -130,9 +130,10 @@ brackets.
   applicant, and they count an application through the careers widget under the careers page although it records its
   site; the MCP server and API keys have no report yet; and stage kinds come from each job's current workflow, so a
   removed stage's history drops out of the funnel (`architecture/reports.md` section 6).
-- Erasure requests: nothing deletes a candidate yet. A talent pool entry goes with its candidate when one is deleted,
-  and until erasure exists a person removes someone from the pool with "They asked to be removed", which withdraws their
-  permission for future roles ([talent pool](architecture/talent-pool.md)).
+- Erasure requests: an Owner or Admin erases a candidate from their profile, with the name typed to confirm
+  ([candidates](architecture/candidates.md)). There is no form for a candidate to ask for their data or its erasure: the
+  privacy page tells them to write to the employer. A candidate who uses the link in a talent pool invitation is only
+  taken out of the pool ([talent pool](architecture/talent-pool.md)); the profile then offers Erase candidate.
 
 - The MCP server gives an assistant no verification output, as ADR-0011 refuses it to every API key, although roadmap item 6
   asked for levels, reasons and evidence. Opening it to `/v1/mcp` is an owner decision: an amendment to ADR-0011, then

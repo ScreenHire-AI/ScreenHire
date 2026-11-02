@@ -92,6 +92,7 @@ public sealed partial class RolePermissionsTests
         ["UpdateSlackChannel"] = Permission.ManageIntegrations,
         ["SendSlackTestMessage"] = Permission.ManageIntegrations,
         ["DisconnectSlack"] = Permission.ManageIntegrations,
+        ["EraseCandidate"] = Permission.EraseCandidates,
         ["ListInvitations"] = Permission.ManageTeam,
         ["ListMembershipLog"] = Permission.ManageTeam,
         ["GetTeamHistory"] = Permission.ManageTeam,
@@ -120,7 +121,7 @@ public sealed partial class RolePermissionsTests
     {
         // Written out, not derived: these are the sets the role-name checks allowed before custom roles, plus Create tasks,
         // which came with the task route and went to every role that writes hiring data (custom roles do not get it), and Manage
-        // integrations, which came with Slack and went to Owners and Admins.
+        // integrations, which came with Slack and went to Owners and Admins, and Erase candidates, which came with erasure and went to the same two.
         Permission[] viewer = [Permission.ViewHiring];
         Permission[] recruiter =
         [
@@ -131,7 +132,7 @@ public sealed partial class RolePermissionsTests
         Permission[] admin =
         [
             .. recruiter, Permission.DeleteAnyNote, Permission.EditEmailTemplates, Permission.EditSettings, Permission.ManageApiKeys, Permission.ManageWebhooks,
-            Permission.ManageIntegrations, Permission.ManageTeam,
+            Permission.ManageIntegrations, Permission.ManageTeam, Permission.EraseCandidates,
         ];
         Permission[] owner = [.. admin, Permission.ManageOwners];
 

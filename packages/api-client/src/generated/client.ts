@@ -28,6 +28,7 @@ import type {
   BrandingImage,
   CandidateDetail,
   CandidateEmailEntry,
+  CandidateHistoryEntry,
   CandidateSummary,
   ChallengeProviderParams,
   ChangeMemberJobAccessRequest,
@@ -53,6 +54,7 @@ import type {
   EmailTemplateEntry,
   EmailTemplateList,
   EmailsQueued,
+  EraseCandidateRequest,
   ExplainVerificationReasonRequest,
   GetApiKeysHistoryParams,
   GetEmailTemplateHistoryParams,
@@ -4362,6 +4364,121 @@ export const getCandidate = async (candidateId: string, options?: Parameters<typ
     method: 'GET'
 
 
+  }
+);}
+
+
+
+export type getCandidateHistoryResponse200 = {
+  data: CandidateHistoryEntry[]
+  status: 200
+}
+
+export type getCandidateHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getCandidateHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getCandidateHistoryResponseSuccess = (getCandidateHistoryResponse200) & {
+  headers: Headers;
+};
+export type getCandidateHistoryResponseError = (getCandidateHistoryResponse401 | getCandidateHistoryResponse404) & {
+  headers: Headers;
+};
+
+export type getCandidateHistoryResponse = (getCandidateHistoryResponseSuccess | getCandidateHistoryResponseError)
+
+export const getGetCandidateHistoryUrl = (candidateId: string,) => {
+
+
+
+
+  return `/v1/candidates/${candidateId}/history`
+}
+
+export const getCandidateHistory = async (candidateId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getCandidateHistoryResponse> => {
+
+  return apiFetch<getCandidateHistoryResponse>(getGetCandidateHistoryUrl(candidateId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type eraseCandidateResponse204 = {
+  data: void
+  status: 204
+}
+
+export type eraseCandidateResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type eraseCandidateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type eraseCandidateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type eraseCandidateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type eraseCandidateResponseSuccess = (eraseCandidateResponse204) & {
+  headers: Headers;
+};
+export type eraseCandidateResponseError = (eraseCandidateResponse400 | eraseCandidateResponse401 | eraseCandidateResponse403 | eraseCandidateResponse404) & {
+  headers: Headers;
+};
+
+export type eraseCandidateResponse = (eraseCandidateResponseSuccess | eraseCandidateResponseError)
+
+export const getEraseCandidateUrl = (candidateId: string,) => {
+
+
+
+
+  return `/v1/candidates/${candidateId}/erase`
+}
+
+export const eraseCandidate = async (candidateId: string,
+    eraseCandidateRequest: EraseCandidateRequest, options?: Parameters<typeof apiFetch>[1]): Promise<eraseCandidateResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<eraseCandidateResponse>(getEraseCandidateUrl(candidateId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(eraseCandidateRequest)
   }
 );}
 

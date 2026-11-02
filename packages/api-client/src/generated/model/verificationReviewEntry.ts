@@ -21,7 +21,8 @@ export interface VerificationReviewEntry {
   dismissReason: null | DismissReason;
   /** @nullable */
   note: string | null;
-  actorUserId: string;
+  /** @nullable */
+  actorUserId: string | null;
   /** @nullable */
   actorName: string | null;
   occurredAt: string;

@@ -20,6 +20,13 @@ public sealed class VerificationAnalyzerRun : IApplicationScoped
 
     public int AnalyzerVersion { get; init; }
 
+    /// <summary>
+    /// 1 for the run the pipeline makes. A later pass of the same version over the same application, such as the duplicate
+    /// check when another application shares a detail with it, writes the next revision and speaks for the analyzer from
+    /// then on; the earlier revisions' rows stay for the audit trail.
+    /// </summary>
+    public int Revision { get; init; } = 1;
+
     /// <summary>How many signals the run wrote, including none.</summary>
     public int SignalCount { get; init; }
 

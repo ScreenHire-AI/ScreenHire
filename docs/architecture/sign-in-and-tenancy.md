@@ -232,6 +232,8 @@ do, in three groups (Hiring, Templates, Organization), and the set each built-in
 every role (`EveryRole`): reads are not permission-checked, and job access will narrow which jobs. Manage Owners is
 Owner-only (`OwnerOnly`): no custom role holds it. Delete anyone's notes (`NotePolicy`) lets a role delete a note
 someone else wrote; Owners and Admins have it. It comes with Add notes and tags, which the delete route asks for first.
+Erase candidates (`POST /v1/candidates/{id}/erase`) is held by Owners and Admins and can go in a custom role; the route also
+needs a person who sees every job, and refuses organization API keys ([candidates](candidates.md)).
 
 Create tasks came after custom roles, with the route that creates a task by hand. The built-in roles that write hiring
 data have it. It is a hiring write, and a Write key needs every hiring write in its creator's role, so the

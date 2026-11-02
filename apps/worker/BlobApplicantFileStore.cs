@@ -7,8 +7,8 @@ namespace ScreenHire.Worker;
 
 /// <summary>
 /// Reads candidates' uploads from the applicant uploads container (<c>ScreenHire:Apply:Container</c>, the API's setting),
-/// for content forensics. Read only: the worker never writes or deletes an upload. A missing blob throws, so the message
-/// retries and then dead-letters rather than recording a file as read when it was not.
+/// for content forensics, and deletes them when a candidate is erased. It never writes one. A missing blob throws on a
+/// read, so the message retries and then dead-letters rather than recording a file as read when it was not.
 /// </summary>
 internal sealed class BlobApplicantFileStore(BlobServiceClient blobs, IConfiguration configuration) : IApplicantFileStore
 {
@@ -26,4 +26,7 @@ internal sealed class BlobApplicantFileStore(BlobServiceClient blobs, IConfigura
         var content = await blob.DownloadContentAsync(cancellationToken);
         return new StoredFile(content.Value.Content.ToArray());
     }
+
+    public async Task DeleteAsync(string blobName, CancellationToken cancellationToken) =>
+        await blobs.GetBlobContainerClient(container).GetBlobClient(blobName).DeleteIfExistsAsync(cancellationToken: cancellationToken);
 }

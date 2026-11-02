@@ -38,6 +38,7 @@ internal sealed class VerificationHarness
     private static readonly byte[] DeviceKey = "unit-test-device-hash-key-0123456789"u8.ToArray();
 
     private readonly List<Submitted> earlier = [];
+    private readonly List<VerificationContext> contexts = [];
     private readonly Guid organizationId = Guid.CreateVersion7();
     private DateTimeOffset clock = Start;
 
@@ -55,6 +56,9 @@ internal sealed class VerificationHarness
     }
 
     public Job Job { get; }
+
+    /// <summary>The context each submitted applicant was analyzed in, in order, so a test can run an analyzer over one again.</summary>
+    public IReadOnlyList<VerificationContext> Contexts => contexts;
 
     /// <summary>The model the consistency check asks: the local fake unless a test sets another.</summary>
     public LlmAccess Llm { get; set; } = LlmAccess.Create(new LlmOptions { Provider = LlmProvider.Fake });
@@ -142,6 +146,7 @@ internal sealed class VerificationHarness
         };
 
         var context = new VerificationContext(application, candidate, Job, observation, [file], clock);
+        contexts.Add(context);
         await PrepareContentAsync(application, file, resume);
 
         var signals = new List<VerificationSignal>();

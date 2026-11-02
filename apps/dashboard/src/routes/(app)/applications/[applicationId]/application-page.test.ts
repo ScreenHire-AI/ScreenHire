@@ -253,11 +253,12 @@ describe('application page', () => {
     const facts = within(band)
       .getAllByRole('term')
       .map((term) => [term.textContent?.trim(), term.nextElementSibling?.textContent?.replace(/\s+/g, ' ').trim()]);
-    expect(facts.map(([label]) => label)).toEqual(['Stage', 'Job', 'Applied', 'Rating']);
+    expect(facts.map(([label]) => label)).toEqual(['Stage', 'Job', 'Applied', 'Candidate profile', 'Rating']);
     for (const term of within(band).getAllByRole('term')) expect(term).toHaveClass('sr-only');
     expect(facts[0]![1]).toBe('Screening');
     expect(facts[2]![1]).toMatch(/^Applied .+ via the careers page$/);
     expect(within(band).getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/jobs/${jobId}`);
+    expect(within(band).getByRole('link', { name: /^Also applied to/ })).toHaveAttribute('href', `/candidates/${candidateId}`);
     expect(within(band).getByRole('link', { name: 'casey.morgan@example.com' })).toHaveAttribute('href', 'mailto:casey.morgan@example.com');
     expect(screen.queryByRole('complementary', { name: 'Details' })).toBeNull();
     const files = await screen.findByRole('region', { name: 'Files' });

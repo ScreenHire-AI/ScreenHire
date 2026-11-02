@@ -39,11 +39,33 @@ public sealed class VerificationReviewAction : IApplicationScoped
     /// </summary>
     public string? Note { get; init; }
 
-    public Guid ActorUserId { get; init; }
+    /// <summary>The reviewer. Null for <see cref="VerificationReviewActionType.EvidenceChanged"/>, which the system writes.</summary>
+    public Guid? ActorUserId { get; init; }
 
     public DateTimeOffset OccurredAt { get; init; }
 
     public const int MaxNoteLength = 2000;
+
+    /// <summary>
+    /// The system's entry when a re-check changed an application's evidence, so nobody sees a level move without a reason.
+    /// The words say what kind of detail is shared and never name the other application, its job or its candidate, because
+    /// the reader may not see that job (ADR-0015).
+    /// </summary>
+    public static VerificationReviewAction EvidenceChanged(
+        Guid organizationId, Guid applicationId, Guid assessmentId, string reason, DateTimeOffset now)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        return new()
+        {
+            OrganizationId = organizationId,
+            ApplicationId = applicationId,
+            AssessmentId = assessmentId,
+            Type = VerificationReviewActionType.EvidenceChanged,
+            Note = reason.Trim(),
+            ActorUserId = null,
+            OccurredAt = now,
+        };
+    }
 
     public static VerificationReviewAction Dismiss(
         VerificationAssessment assessment, DismissReason reason, string? note, Guid actorUserId, DateTimeOffset now)
@@ -177,6 +199,9 @@ public enum VerificationReviewActionType
 
     /// <summary>The author of an explanation took it back.</summary>
     ExplanationUndone,
+
+    /// <summary>A re-check found evidence to add or take away; the system wrote it, with the reason in its note.</summary>
+    EvidenceChanged,
 }
 
 /// <summary>Why a reviewer dismissed an assessment.</summary>

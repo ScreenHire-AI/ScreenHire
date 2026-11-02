@@ -142,6 +142,8 @@ export const realtimeEventSchemas = {
   // Someone joined or left the talent pool, or was invited from it (docs/architecture/talent-pool.md). applicationId is
   // the application they were kept in mind from.
   TalentPoolChanged: z.object({ organizationId: id, applicationId: id, jobId: id, candidateId: id, changedAt: instant }),
+  // A candidate and everything about them was erased. Carries the id and the time only (an erased id names no one).
+  CandidateErased: z.object({ organizationId: id, candidateId: id, erasedAt: instant }),
   TeamNotified: z.object({ organizationId: id, applicationId: id, jobId: id, runId: id, notifiedAt: instant }),
 } as const;
 

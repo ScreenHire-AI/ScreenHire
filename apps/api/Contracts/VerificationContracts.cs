@@ -125,7 +125,8 @@ public sealed record VerificationDismissal(Guid ActionId, DismissReason Reason, 
 /// <remarks>
 /// <c>assessmentKind</c> and <c>assessmentId</c> are null for a note on the application's verification as a whole.
 /// <c>signalId</c> and <c>signalTitle</c> name the reason an explanation or its undo is about; <c>explainReason</c> is why
-/// it was explained.
+/// it was explained. <c>actorUserId</c> is null for an <c>EvidenceChanged</c> entry, which the system writes when a
+/// re-check adds or removes evidence; its <c>note</c> says why.
 /// </remarks>
 public sealed record VerificationReviewEntry(
     Guid Id,
@@ -134,7 +135,7 @@ public sealed record VerificationReviewEntry(
     Guid? AssessmentId,
     DismissReason? DismissReason,
     string? Note,
-    Guid ActorUserId,
+    Guid? ActorUserId,
     string? ActorName,
     DateTimeOffset OccurredAt,
     Guid? SignalId,
