@@ -344,6 +344,8 @@ internal static class TeamEndpoints
 
         // Their Slack account goes with them: no direct message reaches someone who left.
         await db.SlackAccountLinks.Where(l => l.UserId == member.UserId).ExecuteDeleteAsync(cancellationToken);
+        // So does their calendar: its tokens are for their own use, and nothing is booked on a calendar of someone who left.
+        await db.CalendarConnections.Where(c => c.UserId == member.UserId).ExecuteDeleteAsync(cancellationToken);
         db.MembershipEvents.Add(new MembershipEvent
         {
             OrganizationId = member.OrganizationId,

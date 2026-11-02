@@ -26,6 +26,8 @@ import type {
   BrandImageUploadRequest,
   BrandingContrast,
   BrandingImage,
+  CalendarAuthorization,
+  CalendarStatus,
   CandidateDetail,
   CandidateEmailEntry,
   CandidateSummary,
@@ -141,6 +143,7 @@ import type {
   SlackChannelOption,
   SlackStatus,
   SlackTestResult,
+  StartCalendarConnectRequest,
   StartSlackLinkRequest,
   SubmitScorecardRequest,
   SwitchOrganizationRequest,
@@ -9598,6 +9601,145 @@ export const unlinkSlackAccount = async ( options?: Parameters<typeof apiFetch>[
     method: 'DELETE'
 
 
+  }
+);}
+
+
+
+export type getCalendarResponse200 = {
+  data: CalendarStatus
+  status: 200
+}
+
+export type getCalendarResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getCalendarResponseSuccess = (getCalendarResponse200) & {
+  headers: Headers;
+};
+export type getCalendarResponseError = (getCalendarResponse401) & {
+  headers: Headers;
+};
+
+export type getCalendarResponse = (getCalendarResponseSuccess | getCalendarResponseError)
+
+export const getGetCalendarUrl = () => {
+
+
+
+
+  return `/v1/calendar`
+}
+
+export const getCalendar = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getCalendarResponse> => {
+
+  return apiFetch<getCalendarResponse>(getGetCalendarUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type disconnectCalendarResponse204 = {
+  data: void
+  status: 204
+}
+
+export type disconnectCalendarResponse401 = {
+  data: void
+  status: 401
+}
+
+export type disconnectCalendarResponseSuccess = (disconnectCalendarResponse204) & {
+  headers: Headers;
+};
+export type disconnectCalendarResponseError = (disconnectCalendarResponse401) & {
+  headers: Headers;
+};
+
+export type disconnectCalendarResponse = (disconnectCalendarResponseSuccess | disconnectCalendarResponseError)
+
+export const getDisconnectCalendarUrl = () => {
+
+
+
+
+  return `/v1/calendar`
+}
+
+export const disconnectCalendar = async ( options?: Parameters<typeof apiFetch>[1]): Promise<disconnectCalendarResponse> => {
+
+  return apiFetch<disconnectCalendarResponse>(getDisconnectCalendarUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type startCalendarConnectResponse200 = {
+  data: CalendarAuthorization
+  status: 200
+}
+
+export type startCalendarConnectResponse401 = {
+  data: void
+  status: 401
+}
+
+export type startCalendarConnectResponse404 = {
+  data: void
+  status: 404
+}
+
+export type startCalendarConnectResponseSuccess = (startCalendarConnectResponse200) & {
+  headers: Headers;
+};
+export type startCalendarConnectResponseError = (startCalendarConnectResponse401 | startCalendarConnectResponse404) & {
+  headers: Headers;
+};
+
+export type startCalendarConnectResponse = (startCalendarConnectResponseSuccess | startCalendarConnectResponseError)
+
+export const getStartCalendarConnectUrl = () => {
+
+
+
+
+  return `/v1/calendar/connect`
+}
+
+export const startCalendarConnect = async (startCalendarConnectRequest: StartCalendarConnectRequest, options?: Parameters<typeof apiFetch>[1]): Promise<startCalendarConnectResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<startCalendarConnectResponse>(getStartCalendarConnectUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(startCalendarConnectRequest)
   }
 );}
 

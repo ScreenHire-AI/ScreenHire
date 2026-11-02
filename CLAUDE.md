@@ -76,7 +76,10 @@ subsystem.
   `ScreenHire:Verification:Llm:*` (the consistency check's model: `Fake` in Development, `None`, or `Anthropic` with the
   `anthropic-api-key` secret) goes to the worker. `ScreenHire:Slack:*` (real Slack with `ClientId` and the
   `slack-client-secret` parameter, or `Sandbox:Enabled` for the local sandbox workspace; off in `pnpm dev`, on in the
-  test stacks) goes to the API and worker alike; see [`docs/architecture/slack.md`](docs/architecture/slack.md). `ScreenHire:PersistData` (default `true`) keeps Postgres, Azurite and
+  test stacks) goes to the API and worker alike; see [`docs/architecture/slack.md`](docs/architecture/slack.md). `ScreenHire:Calendar:*` (members' calendars for interview scheduling:
+  Google and Microsoft each need a `ClientId` and their `google-calendar-client-secret` / `microsoft-calendar-client-secret`
+  parameter, `Sandbox:Enabled` is the local sandbox calendar, on in `pnpm dev` and the test stacks) goes to the API and worker alike; see
+  [`docs/architecture/interview-scheduling.md`](docs/architecture/interview-scheduling.md). `ScreenHire:PersistData` (default `true`) keeps Postgres, Azurite and
   Mailpit data in per-worktree volumes; `false` starts with none, as the tests do. `ScreenHire:Demo` (default: on with `Dev`
   frontends only) seeds the local demo's data on Brightwater, and the API is healthy only once it is in. The header of `apps/apphost/AppHost.cs`
   describes every setting.

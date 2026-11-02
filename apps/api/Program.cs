@@ -14,6 +14,7 @@ using ScreenHire.Api.Realtime;
 using ScreenHire.Application.Automations;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Messaging;
+using ScreenHire.Application.Scheduling;
 using ScreenHire.Application.Slack;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
@@ -74,6 +75,8 @@ builder.Services.AddOptions<WebhookOptions>().BindConfiguration(WebhookOptions.S
 builder.Services.AddOptions<CareersEmbeddingOptions>().BindConfiguration(CareersEmbeddingOptions.Section);
 // Slack (docs/architecture/slack.md): connecting a workspace and linking accounts happen here; the worker posts.
 builder.Services.AddScreenHireSlack();
+// Calendars (docs/architecture/interview-scheduling.md): members connect theirs here; the worker puts interviews in them.
+builder.Services.AddScreenHireCalendar();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     // Strict numbers keep OpenAPI integer/number types clean for the generated TypeScript client.
@@ -128,6 +131,7 @@ app.MapScorecardTemplateEndpoints();
 app.MapTemplateUsageEndpoints();
 app.MapWebhookEndpoints();
 app.MapSlackEndpoints();
+app.MapCalendarEndpoints();
 app.MapEmailEndpoints();
 app.MapTalentPoolEndpoints();
 app.MapSchemaEndpoints();

@@ -9242,6 +9242,94 @@
         ]
       }
     },
+    "/v1/calendar": {
+      "get": {
+        "tags": [
+          "Calendar"
+        ],
+        "operationId": "GetCalendar",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Calendar"
+        ],
+        "operationId": "DisconnectCalendar",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/calendar/connect": {
+      "post": {
+        "tags": [
+          "Calendar"
+        ],
+        "operationId": "StartCalendarConnect",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartCalendarConnectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarAuthorization"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/email-templates": {
       "get": {
         "tags": [
@@ -12303,6 +12391,117 @@
           }
         },
         "description": "An uploaded brand image. `scanStatus` is the malware scan's: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served."
+      },
+      "CalendarAccount": {
+        "required": [
+          "provider",
+          "providerName",
+          "accountEmail",
+          "connectedAt",
+          "problem"
+        ],
+        "type": "object",
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/CalendarProvider"
+          },
+          "providerName": {
+            "type": "string"
+          },
+          "accountEmail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "connectedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "problem": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CalendarProblem"
+              }
+            ]
+          }
+        },
+        "description": "The member's connected calendar. `accountEmail` is the calendar owner's address when the provider says it.\n`problem` is `NeedsReconnect` once the provider stopped accepting the connection."
+      },
+      "CalendarAuthorization": {
+        "required": [
+          "authorizeUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "authorizeUrl": {
+            "type": "string"
+          }
+        },
+        "description": "Where to send the browser next: the provider's consent page (or the sandbox's)."
+      },
+      "CalendarProblem": {
+        "enum": [
+          "NeedsReconnect",
+          null
+        ]
+      },
+      "CalendarProvider": {
+        "enum": [
+          "Google",
+          "Microsoft",
+          "Sandbox"
+        ],
+        "description": "Whose calendar a member connected. CalendarProvider.Sandbox is the local stand-in (Development and tests only)."
+      },
+      "CalendarProviderOption": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/CalendarProvider"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "description": "A calendar the member can connect: its id, and the name the sheet shows."
+      },
+      "CalendarStatus": {
+        "required": [
+          "sandbox",
+          "providers",
+          "connection"
+        ],
+        "type": "object",
+        "properties": {
+          "sandbox": {
+            "type": "boolean"
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CalendarProviderOption"
+            }
+          },
+          "connection": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CalendarAccount"
+              }
+            ]
+          }
+        },
+        "description": "The signed-in member's calendar (docs/architecture/interview-scheduling.md). `providers` are the calendars they\ncan connect here, empty when this ScreenHire has none configured. `connection` is their own, null until they\nconnect one. No token is ever in an answer."
       },
       "CandidateDetail": {
         "required": [
@@ -18334,6 +18533,25 @@
           "Custom"
         ]
       },
+      "StartCalendarConnectRequest": {
+        "required": [
+          "provider",
+          "returnUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/CalendarProvider"
+          },
+          "returnUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Connects the member's calendar. `returnUrl`: the dashboard path to come back to, a local path only."
+      },
       "StartSlackLinkRequest": {
         "required": [
           "returnUrl"
@@ -20143,6 +20361,9 @@
     },
     {
       "name": "Slack"
+    },
+    {
+      "name": "Calendar"
     },
     {
       "name": "Email"

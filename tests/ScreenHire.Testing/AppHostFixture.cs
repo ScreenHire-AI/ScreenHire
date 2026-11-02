@@ -112,6 +112,8 @@ public class AppHostFixture : IAsyncLifetime
                 "--ScreenHire:CareersEmbedding:AllowLoopback=true",
                 // Slack: the local sandbox workspace (docs/architecture/slack.md), so connecting and posting run with no Slack.
                 "--ScreenHire:Slack:Sandbox:Enabled=true",
+                // Calendars: the local sandbox calendar (docs/architecture/interview-scheduling.md), so members connect one with no Google or Microsoft.
+                "--ScreenHire:Calendar:Sandbox:Enabled=true",
                 .. ExtraArguments,
             ],
             startup.Token);

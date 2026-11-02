@@ -13,6 +13,7 @@ using ScreenHire.Domain.History;
 using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.Scheduling;
 using ScreenHire.Domain.Slack;
 using ScreenHire.Domain.TalentPool;
 using ScreenHire.Domain.Webhooks;
@@ -145,6 +146,15 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     /// <summary>What the local sandbox workspace received (see <see cref="SlackSandboxMessage"/>).</summary>
     public DbSet<SlackSandboxMessage> SlackSandboxMessages => Set<SlackSandboxMessage>();
+
+    /// <summary>A member's connected calendar, one each (docs/architecture/interview-scheduling.md).</summary>
+    public DbSet<CalendarConnection> CalendarConnections => Set<CalendarConnection>();
+
+    /// <summary>Busy time in the local sandbox calendar (see <see cref="CalendarSandboxBusy"/>).</summary>
+    public DbSet<CalendarSandboxBusy> CalendarSandboxBusy => Set<CalendarSandboxBusy>();
+
+    /// <summary>What the local sandbox calendar received (see <see cref="CalendarSandboxEvent"/>).</summary>
+    public DbSet<CalendarSandboxEvent> CalendarSandboxEvents => Set<CalendarSandboxEvent>();
 
     /// <summary>
     /// The cross-employer Signal Network (ADR-0005). Not tenant-owned; the application role has no access to the table,

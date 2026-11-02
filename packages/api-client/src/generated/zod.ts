@@ -7944,6 +7944,35 @@ export const UpdateSlackAccountResponse = zod.object({
 export const UnlinkSlackAccountResponse = zod.void()
 
 
+export const GetCalendarResponse = zod.object({
+  "sandbox": zod.boolean(),
+  "providers": zod.array(zod.object({
+  "id": zod.enum(['Google', 'Microsoft', 'Sandbox']).describe('Whose calendar a member connected. CalendarProvider.Sandbox is the local stand-in (Development and tests only).'),
+  "name": zod.string()
+}).describe('A calendar the member can connect: its id, and the name the sheet shows.')),
+  "connection": zod.union([zod.null(),zod.object({
+  "provider": zod.enum(['Google', 'Microsoft', 'Sandbox']).describe('Whose calendar a member connected. CalendarProvider.Sandbox is the local stand-in (Development and tests only).'),
+  "providerName": zod.string(),
+  "accountEmail": zod.string().nullable(),
+  "connectedAt": zod.iso.datetime({"offset":true}),
+  "problem": zod.union([zod.null(),zod.union([zod.literal('NeedsReconnect'),zod.literal(null)])])
+}).describe('The member\'s connected calendar. `accountEmail` is the calendar owner\'s address when the provider says it.\n`problem` is `NeedsReconnect` once the provider stopped accepting the connection.')])
+}).describe('The signed-in member\'s calendar (docs/architecture/interview-scheduling.md). `providers` are the calendars they\ncan connect here, empty when this ScreenHire has none configured. `connection` is their own, null until they\nconnect one. No token is ever in an answer.')
+
+
+export const DisconnectCalendarResponse = zod.void()
+
+
+export const StartCalendarConnectBody = zod.object({
+  "provider": zod.enum(['Google', 'Microsoft', 'Sandbox']).describe('Whose calendar a member connected. CalendarProvider.Sandbox is the local stand-in (Development and tests only).'),
+  "returnUrl": zod.string().nullable()
+}).describe('Connects the member\'s calendar. `returnUrl`: the dashboard path to come back to, a local path only.')
+
+export const StartCalendarConnectResponse = zod.object({
+  "authorizeUrl": zod.string()
+}).describe('Where to send the browser next: the provider\'s consent page (or the sandbox\'s).')
+
+
 export const listEmailTemplatesResponseTemplatesItemLastUpdatedCreatedDefault = false;
 export const listEmailTemplatesResponseTemplatesItemInvitationOnlyDefault = false;
 export const listEmailTemplatesResponseVariablesItemQuestionnaireOnlyDefault = false;

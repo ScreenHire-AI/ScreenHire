@@ -42,6 +42,8 @@ import type {
   BrandImageUploadRequest,
   BrandingContrast,
   BrandingImage,
+  CalendarAuthorization,
+  CalendarStatus,
   CandidateDetail,
   CandidateEmailEntry,
   CandidateSummary,
@@ -157,6 +159,7 @@ import type {
   SlackChannelOption,
   SlackStatus,
   SlackTestResult,
+  StartCalendarConnectRequest,
   StartSlackLinkRequest,
   SubmitScorecardRequest,
   SwitchOrganizationRequest,
@@ -17358,6 +17361,283 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getUnlinkSlackAccountMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getCalendarResponse200 = {
+  data: CalendarStatus
+  status: 200
+}
+
+export type getCalendarResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getCalendarResponseSuccess = (getCalendarResponse200) & {
+  headers: Headers;
+};
+export type getCalendarResponseError = (getCalendarResponse401) & {
+  headers: Headers;
+};
+
+export const getGetCalendarUrl = () => {
+
+
+
+
+  return `/v1/calendar`
+}
+
+export const getCalendar = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<getCalendarResponseSuccess> => {
+
+  return apiQueryFetch<getCalendarResponseSuccess>(getGetCalendarUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCalendarQueryKey = () => {
+    return [
+    'v1','calendar'
+    ] as const;
+    }
+
+
+export const getGetCalendarQueryOptions = <TData = Awaited<ReturnType<typeof getCalendar>>, TError = ErrorType<void>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getCalendar>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCalendarQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCalendar>>> = ({ signal }) => getCalendar({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getCalendar>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetCalendarQueryResult = NonNullable<Awaited<ReturnType<typeof getCalendar>>>
+export type GetCalendarQueryError = ErrorType<void>
+
+
+
+export function createGetCalendar<TData = Awaited<ReturnType<typeof getCalendar>>, TError = ErrorType<void>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getCalendar>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetCalendarQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type disconnectCalendarResponse204 = {
+  data: void
+  status: 204
+}
+
+export type disconnectCalendarResponse401 = {
+  data: void
+  status: 401
+}
+
+export type disconnectCalendarResponseSuccess = (disconnectCalendarResponse204) & {
+  headers: Headers;
+};
+export type disconnectCalendarResponseError = (disconnectCalendarResponse401) & {
+  headers: Headers;
+};
+
+export const getDisconnectCalendarUrl = () => {
+
+
+
+
+  return `/v1/calendar`
+}
+
+export const disconnectCalendar = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<disconnectCalendarResponseSuccess> => {
+
+  return apiQueryFetch<disconnectCalendarResponseSuccess>(getDisconnectCalendarUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDisconnectCalendarMutationKey = () => ['disconnectCalendar'] as const;
+
+export const getDisconnectCalendarMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof disconnectCalendar>>, TError,void, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof disconnectCalendar>>, TError,void, TContext> => {
+
+const mutationKey = getDisconnectCalendarMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof disconnectCalendar>>, void> = () => {
+
+
+          return  disconnectCalendar(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DisconnectCalendarMutationResult = NonNullable<Awaited<ReturnType<typeof disconnectCalendar>>>
+
+    export type DisconnectCalendarMutationError = ErrorType<void>
+
+
+    export const createDisconnectCalendar = <TError = ErrorType<void>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof disconnectCalendar>>, TError,void, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof disconnectCalendar>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getDisconnectCalendarMutationOptions(options?.()) }), queryClient);
+    }
+
+export type startCalendarConnectResponse200 = {
+  data: CalendarAuthorization
+  status: 200
+}
+
+export type startCalendarConnectResponse401 = {
+  data: void
+  status: 401
+}
+
+export type startCalendarConnectResponse404 = {
+  data: void
+  status: 404
+}
+
+export type startCalendarConnectResponseSuccess = (startCalendarConnectResponse200) & {
+  headers: Headers;
+};
+export type startCalendarConnectResponseError = (startCalendarConnectResponse401 | startCalendarConnectResponse404) & {
+  headers: Headers;
+};
+
+export const getStartCalendarConnectUrl = () => {
+
+
+
+
+  return `/v1/calendar/connect`
+}
+
+export const startCalendarConnect = async (startCalendarConnectRequest: StartCalendarConnectRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<startCalendarConnectResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<startCalendarConnectResponseSuccess>(getStartCalendarConnectUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(startCalendarConnectRequest)
+  }
+);}
+
+
+
+
+
+export const getStartCalendarConnectMutationKey = () => ['startCalendarConnect'] as const;
+
+export const getStartCalendarConnectMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof startCalendarConnect>>, TError,StartCalendarConnectMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof startCalendarConnect>>, TError,StartCalendarConnectMutationVariables, TContext> => {
+
+const mutationKey = getStartCalendarConnectMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startCalendarConnect>>, StartCalendarConnectMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  startCalendarConnect(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartCalendarConnectMutationResult = NonNullable<Awaited<ReturnType<typeof startCalendarConnect>>>
+    export type StartCalendarConnectMutationBody = StartCalendarConnectRequest
+    export type StartCalendarConnectMutationError = ErrorType<void>
+    export type StartCalendarConnectMutationVariables = {data: StartCalendarConnectRequest}
+
+    export const createStartCalendarConnect = <TError = ErrorType<void>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof startCalendarConnect>>, TError,StartCalendarConnectMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof startCalendarConnect>>,
+        TError,
+        StartCalendarConnectMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getStartCalendarConnectMutationOptions(options?.()) }), queryClient);
     }
 
 export type listEmailTemplatesResponse200 = {
