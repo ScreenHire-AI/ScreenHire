@@ -17,7 +17,9 @@ public sealed class ProjectStopScriptTests
 
         script.Should().NotBeNullOrWhiteSpace("kangentic.json must name the Stop script that ends a parked stack");
         script.Should().Contain("dotnet aspire stop ");
+        script.Should().Contain("ASPIRE_CLI_TELEMETRY_OPTOUT=true&&", "every Aspire CLI call opts out, and cmd keeps a space before && in the value");
         script.Should().Contain("--non-interactive", "an unattended run must never prompt");
+        script.Should().Contain("--nologo");
         script.Should().Contain("--apphost apps/apphost/ScreenHire.AppHost.csproj", "the stop must name this clone's AppHost");
         script.Should().NotContain("--all", "it stops other clones' stacks");
         script.Should().NotContain("--force", "it cleans up persistent resources");

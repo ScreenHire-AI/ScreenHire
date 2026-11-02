@@ -10,6 +10,7 @@ sources:
   - resource: apps/apphost/DevSso/config.json
   - resource: src/ScreenHire.Infrastructure/Persistence/DevelopmentDataSeeder.cs
   - resource: .claude/skills/preview/SKILL.md
+  - resource: kangentic.json
 ---
 # Run ScreenHire locally and demo it
 
@@ -57,10 +58,11 @@ Mailpit's inbox stay in Docker volumes (one set per clone, or per worktree start
 start has the same candidates, the same emails and anything you changed.
 
 In a Kangentic task a stack also ends by itself. The project's Stop script (`stopScript` in `kangentic.json`) runs
-`dotnet aspire stop` for that clone when the task pauses after the idle timeout or for low memory, unless something is
-connected to the stack (a browser tab, or the task's Browser pane, which Kangentic closes first), and before it clears
-a finished task. A Pause or Stop pressed by a person leaves the stack up. The next agent is told what stopped and
-starts it again with `/preview` when it needs the app; a worktree without `keep` reseeds the demo.
+`dotnet aspire stop` for that clone when the task pauses after the idle timeout or for low memory, and before it clears
+a finished task. A browser tab or the task's Browser pane connected to the stack holds a pause's stop off, and Kangentic
+tries again about every five minutes. The offscreen browser an agent drove does not count: Kangentic closes it first. A
+Pause or Stop pressed by a person leaves the stack up. After a pause, the next agent is told what stopped and starts it
+again with `/preview` when it needs the app; a worktree without `keep` reseeds the demo.
 
 ### Start over
 

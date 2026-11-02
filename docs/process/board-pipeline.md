@@ -184,9 +184,14 @@ Kangentic's project Stop script (`stopScript` in `kangentic.json`) runs `dotnet 
 so it goes through DCP's stop with no pre-stop. That is on purpose. The fixture can stop the app's processes by identity
 because it holds each resource's PID and start time; a script would have to parse `dotnet aspire describe` for them and
 repeat the identity check, which is a second stopping path to keep right. The script replaces a `/preview stop` the
-agent would have run, so a stack still goes through DCP's stop about once. Checked on 2026-11-01 with DCP 0.26.5: the
-script stopped this clone's isolated stack in under a second, left another worktree's stack running, and exited 0 with
-no stack up.
+agent would have run, so a stack still goes through DCP's stop about once. Checked by hand on 2026-11-01 with DCP
+0.26.5, not through a real pause: the script stopped this clone's isolated stack in under a second, left another
+worktree's stack running, and exited 0 with no stack up.
+
+The script is `cmd.exe` syntax, because Kangentic runs it through the platform shell and the board runs on Windows.
+Under `sh` the `set` does nothing, so the stop still runs but without the telemetry opt-out. Its `--apphost` path is
+relative to where Kangentic runs it: the task's worktree, or the project folder when the task has no worktree or the
+folder is gone. In that last case the script stops the root checkout's stack, not one the task started.
 
 ### Docker Desktop belongs to the machine, not to a task
 
@@ -210,7 +215,7 @@ exited, and ends with `process.exit`.
 | Columns, automations, outcome lines, models | [`kangentic.json`](../../kangentic.json) |
 | The test gate: CI's jobs and the `Gate` check | [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml); [testing.md](testing.md#continuous-integration) has the layout and how to read a failed run; [ADR-0020](../adr/0020-test-gate-on-github-actions.md) has why |
 | Local checks (`/verify`): the fast check, the branch's tests by class or file, `/verify full` | [`.claude/skills/verify/SKILL.md`](../../.claude/skills/verify/SKILL.md); scripts `verify:fast`, `verify`, `verify:dotnet`, `verify:contract`, `verify:test` and `verify:lighthouse` in [`package.json`](../../package.json) |
-| Stop script: ends a parked task's stack on an idle or low-memory pause (unless a client is connected) and before a finished task is cleared; a Pause or Stop pressed by a person leaves it up | `stopScript` in [`kangentic.json`](../../kangentic.json) (a machine can override it in the git-ignored `kangentic.local.json`); needs a Kangentic build that has the setting |
+| Stop script: ends a parked task's stack on an idle or low-memory pause (unless a client is connected) and before a finished task is cleared; a Pause or Stop pressed by a person leaves it up | `stopScript` in [`kangentic.json`](../../kangentic.json). A machine can override it in the git-ignored `kangentic.local.json`. A Kangentic build older than the setting ignores the key and drops it the next time it writes the file, so restart Kangentic on a build that has it. |
 | Column skills | [`task-review`](../../.claude/skills/task-review/SKILL.md), [`pull-request`](../../.claude/skills/pull-request/SKILL.md), [`merge-pull-request`](../../.claude/skills/merge-pull-request/SKILL.md) |
 | Conflict playbook for integrating `main` (merge, not rebase; regenerate lockfile, API client and migrations) | [`.claude/rules/integration-conflicts.md`](../../.claude/rules/integration-conflicts.md) |
 | Unattended-run rules (never wait for a person, stay local, start from what is merged) | [`.claude/rules/unattended-runs.md`](../../.claude/rules/unattended-runs.md) |
