@@ -3,6 +3,7 @@ import Building2Icon from '~icons/lucide/building-2';
 import HashIcon from '~icons/lucide/hash';
 import KeyRoundIcon from '~icons/lucide/key-round';
 import PlugIcon from '~icons/lucide/plug';
+import MailCheckIcon from '~icons/lucide/mail-check';
 import PaletteIcon from '~icons/lucide/palette';
 import ShieldUserIcon from '~icons/lucide/shield-user';
 import ShieldCheckIcon from '~icons/lucide/shield-check';
@@ -39,6 +40,7 @@ export const settingsSections: readonly {
   { label: 'Careers site', href: '/settings/careers-site', icon: GlobeIcon, permission: 'EditSettings', group: 'Hiring' },
   { label: 'Branding', href: '/settings/branding', icon: PaletteIcon, permission: 'EditSettings', group: 'Hiring' },
   { label: 'Verification', href: '/settings/verification', icon: ShieldCheckIcon, permission: 'EditSettings', group: 'Hiring' },
+  { label: 'Sending domain', href: '/settings/sending-domain', icon: MailCheckIcon, permission: 'EditSettings', group: 'Hiring' },
   // A channel post reaches everyone in the channel, whatever jobs they see, so Slack needs all jobs too. Each person links
   // their own account from their menu (SlackAccountSheet), not here.
   { label: 'Slack', href: '/settings/slack', icon: HashIcon, permission: 'ManageIntegrations', group: 'Integrations', allJobs: true },

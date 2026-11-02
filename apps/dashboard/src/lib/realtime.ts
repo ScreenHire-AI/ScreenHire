@@ -31,6 +31,8 @@ export const reportsPath = '/v1/reports';
  * (`lastActivityAt`), which anything the candidate or the team does moves: a note and its edits and deletion, a sent
  * email (ApplicationEmailed), answers to a follow-up questionnaire (QuestionnaireAnswered), a task, an automation run.
  * So those refetch the lists too, the job's own table (under `/v1/jobs`) and a candidate's applications included.
+ * A candidate's reply (CandidateReplied) is a new line in Activity and Messages and moves the list's last activity, like a
+ * sent email. The flag on an address (CandidateEmailStatusChanged) changes the candidate shown beside every application.
  * TeammateMentioned refreshes nothing: the note's own event does, and the shell turns the mention into a card for the
  * person mentioned. Reports count applications by when they arrived and the stages they reached, so arriving and
  * moving refresh them.
@@ -48,6 +50,8 @@ export const invalidations: InvalidationMap = {
   ApplicationMoved: [jobsPath, applicationsPath, candidatesPath, reportsPath],
   // The application's Activity, the candidate's Messages (every email to them) and every list's last activity.
   ApplicationEmailed: [jobsPath, applicationsPath, candidatesPath],
+  CandidateReplied: [jobsPath, applicationsPath, candidatesPath],
+  CandidateEmailStatusChanged: [applicationsPath, candidatesPath],
   ApplicationNoteAdded: [jobsPath, applicationsPath, candidatesPath],
   ApplicationNoteEdited: [jobsPath, applicationsPath, candidatesPath],
   ApplicationNoteDeleted: [jobsPath, applicationsPath, candidatesPath],

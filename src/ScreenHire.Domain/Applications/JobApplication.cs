@@ -454,6 +454,21 @@ public sealed class JobApplication : IJobScoped
         };
 
     /// <summary>
+    /// The timeline event for a reply from the candidate. It takes the reply's id so a redelivered post finds it and
+    /// records nothing twice, and it points at the reply, which holds the body. Nobody acted: the candidate wrote.
+    /// </summary>
+    public ApplicationEvent EmailReceived(InboundEmail reply) =>
+        new()
+        {
+            Id = reply.Id,
+            OrganizationId = OrganizationId,
+            ApplicationId = Id,
+            Type = ApplicationEventType.EmailReceived,
+            Data = new ApplicationEventData(EmailSubject: reply.Subject, EmailId: reply.Id),
+            OccurredAt = reply.ReceivedAt,
+        };
+
+    /// <summary>
     /// A task a person or an API key gives the hiring team about this application (<paramref name="note"/>, trimmed), for
     /// <paramref name="assigneeUserId"/> or, when null, anyone on the team, and the timeline entry that records it with
     /// who created it. The task starts in the application's current stage; it changes nothing about the application.

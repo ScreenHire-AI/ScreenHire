@@ -28,21 +28,30 @@ describe('activity', () => {
     entry('e4', { type: 'NoteEdited', noteId: 'n1' }),
     entry('e5', { type: 'NoteDeleted', noteId: 'n2', actorUserId: 'u1' }),
     entry('e6', { type: 'EmailSent', emailSubject: 'Application received' }),
+    entry('e6b', { type: 'EmailReceived', emailSubject: 'Re: Application received' }),
     entry('e7', { type: 'VerificationAssessed' }),
   ];
 
   it('lists entries newest first without edit lines or deleted notes', () => {
-    expect(visibleEntries(entries).map((item) => item.id)).toEqual(['e7', 'e6', 'e5', 'e2', 'e1']);
+    expect(visibleEntries(entries).map((item) => item.id)).toEqual(['e7', 'e6b', 'e6', 'e5', 'e2', 'e1']);
   });
 
   it('counts each kind, and the checks only under All', () => {
-    expect(kindCounts(visibleEntries(entries))).toEqual({ all: 5, notes: 2, emails: 1, scorecards: 0, stage: 1 });
+    expect(kindCounts(visibleEntries(entries))).toEqual({ all: 6, notes: 2, emails: 2, scorecards: 0, stage: 1 });
   });
 
   it('says a note was deleted and by whom, never what it said', () => {
     const deleted = entries[4]!;
     expect(describeEvent(deleted, names)).toBe('Deleted a note');
     expect(actorText(deleted, [{ id: 'm', userId: 'u1', email: 'a@example.com', displayName: 'Avery Quinn', role: 'Admin', customRoleId: null, roleName: 'Admin', joinedAt: base.occurredAt, jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 }], 'me')).toBe('by Avery Quinn');
+  });
+
+  it('words a reply as the candidate writing, names nobody, and lists it under Emails', () => {
+    const reply = entries[6]!;
+
+    expect(describeEvent(reply, names)).toBe('Candidate replied "Re: Application received"');
+    expect(actorText(reply, [], undefined)).toBeUndefined();
+    expect(kindCounts([reply]).emails).toBe(1);
   });
 
   it("names an API key's changes by the key", () => {

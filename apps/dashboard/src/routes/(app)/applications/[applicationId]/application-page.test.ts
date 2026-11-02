@@ -505,9 +505,119 @@ describe('application page', () => {
 
     await fireEvent.click(rows[1]!);
     expect(within(messages).getByText(/Only the subject was kept/)).toBeInTheDocument();
-    // Candidates cannot reply into ScreenHire yet, and the tab does not say they can; a viewer gets no email box.
+    // No reply is listed here, so the tab says nothing about replies; a viewer gets no email box.
     expect(messages).not.toHaveTextContent(/repl/i);
     expect(within(messages).queryByRole('form')).not.toBeInTheDocument();
+  });
+
+  it('lists a reply on Messages beside the emails sent, opening to who it is from and its files, offering only the files the scan allows', async () => {
+    const replyId = '01a157d4-0000-7000-8000-000000000392';
+    const cleanFile = '01a157d4-0000-7000-8000-000000000393';
+    const unsafeFile = '01a157d4-0000-7000-8000-000000000394';
+    const emails: CandidateEmailEntry[] = [
+      {
+        id: replyId,
+        applicationId,
+        jobTitle: 'Senior .NET Engineer',
+        templateId: null,
+        subject: 'Re: Next steps',
+        actorUserId: null,
+        automationRunId: null,
+        sentAt: '2026-10-20T11:00:00Z',
+        kept: true,
+        direction: 'Received',
+        fromAddress: 'casey.morgan@example.com',
+        attachmentCount: 2,
+      },
+    ];
+    stubApi({
+      [`GET /v1/candidates/${candidateId}/emails`]: () => Response.json(emails),
+      [`GET /v1/replies/${replyId}`]: () =>
+        Response.json({
+          id: replyId,
+          applicationId,
+          fromAddress: 'casey.morgan@example.com',
+          fromName: 'Casey Morgan',
+          subject: 'Re: Next steps',
+          html: '',
+          text: 'Thursday works for me.',
+          receivedAt: '2026-10-20T11:00:00Z',
+          autoReply: false,
+          attachments: [
+            { id: cleanFile, fileName: 'availability.pdf', contentType: 'application/pdf', sizeBytes: 2048, scanStatus: 'Clean' },
+            { id: unsafeFile, fileName: 'macro.docx', contentType: 'application/msword', sizeBytes: 4096, scanStatus: 'Infected' },
+          ],
+        }),
+    });
+    renderPage('messages');
+    const messages = await screen.findByRole('region', { name: 'Messages' });
+    const row = within(await within(messages).findByRole('list', { name: 'Emails' })).getByRole('button');
+
+    // Who it is from, not who sent it, and the files as a count.
+    expect(row).toHaveTextContent('Re: Next steps');
+    expect(row).toHaveTextContent('Reply from casey.morgan@example.com');
+    expect(within(row).getByRole('img', { name: '2 files' })).toBeInTheDocument();
+
+    await fireEvent.click(row);
+    expect(await within(messages).findByText('Casey Morgan <casey.morgan@example.com>')).toBeInTheDocument();
+    const attachments = await within(messages).findByRole('list', { name: 'Attachments' });
+    expect(within(attachments).getByRole('link', { name: 'Download availability.pdf' })).toHaveAttribute(
+      'href',
+      `/v1/replies/${replyId}/attachments/${cleanFile}`,
+    );
+    // A file the scan flagged is named and withheld, with no download.
+    expect(within(attachments).getByText('Unsafe file')).toBeInTheDocument();
+    expect(within(attachments).queryByRole('link', { name: 'Download macro.docx' })).not.toBeInTheDocument();
+  });
+
+  describe('an address the email provider flagged', () => {
+    const flagged = (issue: 'Bounced' | 'SpamComplaint') => ({
+      ...application,
+      candidate: { ...application.candidate, emailIssue: issue, emailIssueAt: '2026-10-21T08:00:00Z', emailIssueReason: '550 mailbox not found' },
+    });
+
+    it('says so beside the name and in a notice that names the way back, and offers no email box', async () => {
+      stubApi({ [`GET /v1/applications/${applicationId}`]: () => Response.json(flagged('Bounced')) });
+      renderPage('messages');
+
+      expect(await screen.findByText('Email bounced')).toBeInTheDocument();
+      expect(screen.getByText(/ScreenHire does not email this address any more/)).toHaveTextContent('(550 mailbox not found)');
+      expect(screen.getByRole('button', { name: 'Allow email again' })).toBeInTheDocument();
+      expect(screen.queryByRole('form', { name: /Email Casey Morgan/ })).not.toBeInTheDocument();
+    });
+
+    it('words a spam complaint without any judgement of the candidate', async () => {
+      stubApi({ [`GET /v1/applications/${applicationId}`]: () => Response.json(flagged('SpamComplaint')) });
+      renderPage();
+
+      expect(await screen.findByText('Marked as spam')).toBeInTheDocument();
+      expect(screen.getByText(/says nothing else about the candidate/)).toBeInTheDocument();
+    });
+
+    it('clears the flag on Allow email again', async () => {
+      let cleared = 0;
+      stubApi({
+        [`GET /v1/applications/${applicationId}`]: () => Response.json(flagged('Bounced')),
+        [`POST /v1/candidates/${candidateId}/email-issue/clear`]: () => {
+          cleared += 1;
+          return Response.json(application.candidate);
+        },
+      });
+      renderPage();
+
+      await fireEvent.click(await screen.findByRole('button', { name: 'Allow email again' }));
+
+      await waitFor(() => expect(cleared).toBe(1));
+    });
+
+    it('gives a viewer the notice but not the button', async () => {
+      asRole('Viewer');
+      stubApi({ [`GET /v1/applications/${applicationId}`]: () => Response.json(flagged('Bounced')) });
+      renderPage();
+
+      expect(await screen.findByText(/ScreenHire does not email this address any more/)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Allow email again' })).not.toBeInTheDocument();
+    });
   });
 
   it('shows the Verification tab with its checks and the review log, also at its old address', async () => {

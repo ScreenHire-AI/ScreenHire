@@ -15,6 +15,9 @@ internal sealed class CandidateConfiguration : IEntityTypeConfiguration<Candidat
         builder.Property(c => c.Email).HasMaxLength(320);
         builder.Property(c => c.NormalizedEmail).HasMaxLength(320);
         builder.Property(c => c.Phone).HasMaxLength(50);
+        // Existing candidates have no delivery problem; the column default keeps every old row valid.
+        builder.Property(c => c.EmailIssue).HasConversion<string>().HasMaxLength(20).HasDefaultValue(CandidateEmailIssue.None);
+        builder.Property(c => c.EmailIssueReason).HasMaxLength(Candidate.MaxEmailIssueReasonLength);
 
         builder.HasOne<Organization>().WithMany().HasForeignKey(c => c.OrganizationId).OnDelete(DeleteBehavior.Cascade);
         // Target of the applications' composite tenant foreign key.

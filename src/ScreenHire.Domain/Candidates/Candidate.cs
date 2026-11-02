@@ -46,6 +46,62 @@ public sealed class Candidate : ITenantOwned
 
     public DateTimeOffset CreatedAt { get; init; }
 
+    /// <summary>
+    /// Whether the email provider reported this address as undeliverable or as a spam complaint. ScreenHire stops
+    /// emailing a flagged address and says so on the candidate. Per organization, like the candidate. It is a
+    /// delivery fact only: it never feeds a verification level, a score or a rejection (ADR-0004).
+    /// </summary>
+    public CandidateEmailIssue EmailIssue { get; private set; } = CandidateEmailIssue.None;
+
+    public DateTimeOffset? EmailIssueAt { get; private set; }
+
+    /// <summary>The provider's short reason for a bounce ("550 mailbox not found"). Never message content.</summary>
+    public string? EmailIssueReason { get; private set; }
+
+    /// <summary>The longest provider reason kept.</summary>
+    public const int MaxEmailIssueReasonLength = 300;
+
+    /// <summary>False while <see cref="EmailIssue"/> is set: nothing is sent to the address.</summary>
+    public bool CanReceiveEmail => EmailIssue == CandidateEmailIssue.None;
+
+    /// <summary>
+    /// Flags the address. A complaint is never downgraded to a bounce, and a repeat report changes nothing. Returns true
+    /// when the flag changed.
+    /// </summary>
+    public bool FlagEmail(CandidateEmailIssue issue, string? reason, DateTimeOffset now)
+    {
+        if (issue == CandidateEmailIssue.None)
+        {
+            throw new ArgumentException("Use ClearEmailIssue to remove a flag.", nameof(issue));
+        }
+
+        if (EmailIssue == issue || EmailIssue == CandidateEmailIssue.SpamComplaint)
+        {
+            return false;
+        }
+
+        EmailIssue = issue;
+        EmailIssueAt = now;
+        EmailIssueReason = string.IsNullOrWhiteSpace(reason)
+            ? null
+            : reason.Trim()[..Math.Min(reason.Trim().Length, MaxEmailIssueReasonLength)];
+        return true;
+    }
+
+    /// <summary>Removes the flag, because the candidate wrote back from the address or a person says it works. Returns true when there was one.</summary>
+    public bool ClearEmailIssue()
+    {
+        if (EmailIssue == CandidateEmailIssue.None)
+        {
+            return false;
+        }
+
+        EmailIssue = CandidateEmailIssue.None;
+        EmailIssueAt = null;
+        EmailIssueReason = null;
+        return true;
+    }
+
     public static Candidate Create(Guid organizationId, string firstName, string? lastName, string email, string? phone, DateTimeOffset now)
     {
         var first = firstName.Trim();
@@ -68,4 +124,16 @@ public sealed class Candidate : ITenantOwned
         string.IsNullOrWhiteSpace(lastName) ? firstName : $"{firstName} {lastName}";
 
     public static string Normalize(string email) => email.Trim().ToLowerInvariant();
+}
+
+/// <summary>Why ScreenHire no longer emails a candidate's address (reported by the email provider).</summary>
+public enum CandidateEmailIssue
+{
+    None,
+
+    /// <summary>The address does not accept mail: a hard bounce, or a send the provider dropped because it bounced before.</summary>
+    Bounced,
+
+    /// <summary>The candidate marked an email as spam. Writing again would be unwelcome as well as undeliverable.</summary>
+    SpamComplaint,
 }

@@ -9,10 +9,22 @@ namespace ScreenHire.Api.Contracts;
 /// <summary>A candidate: one person per email address within the organization.</summary>
 /// <remarks>
 /// <c>fullName</c> is the first name, then the last name when there is one. A candidate from before the name was split
-/// has their whole name as <c>firstName</c> and no <c>lastName</c>.
+/// has their whole name as <c>firstName</c> and no <c>lastName</c>. <c>emailIssue</c> is set when the email provider
+/// reported the address as undeliverable (<c>Bounced</c>) or as a spam complaint (<c>SpamComplaint</c>): ScreenHire sends
+/// the address nothing more, and <c>emailIssueAt</c> and <c>emailIssueReason</c> say when and why. It is a delivery fact
+/// only and never counts against the candidate.
 /// </remarks>
 public sealed record CandidateSummary(
-    Guid Id, string FullName, string Email, string? Phone, DateTimeOffset CreatedAt, string FirstName, string? LastName);
+    Guid Id,
+    string FullName,
+    string Email,
+    string? Phone,
+    DateTimeOffset CreatedAt,
+    string FirstName,
+    string? LastName,
+    CandidateEmailIssue EmailIssue = CandidateEmailIssue.None,
+    DateTimeOffset? EmailIssueAt = null,
+    string? EmailIssueReason = null);
 
 /// <summary>A candidate and every application they made to the organization.</summary>
 /// <remarks><c>fullName</c>, <c>firstName</c>, <c>lastName</c>: as on <see cref="CandidateSummary"/>.</remarks>
@@ -269,7 +281,9 @@ public sealed record AddApplicationTagRequest(string Tag);
 internal static class ApplicationMappings
 {
     public static CandidateSummary ToSummary(this Candidate candidate) =>
-        new(candidate.Id, candidate.FullName, candidate.Email, candidate.Phone, candidate.CreatedAt, candidate.FirstName, candidate.LastName);
+        new(
+            candidate.Id, candidate.FullName, candidate.Email, candidate.Phone, candidate.CreatedAt, candidate.FirstName, candidate.LastName,
+            candidate.EmailIssue, candidate.EmailIssueAt, candidate.EmailIssueReason);
 
     /// <summary>The application's stage in <paramref name="job"/>'s workflow, falling back to the bare id.</summary>
     public static ApplicationStage StageIn(this JobApplication application, Job job) =>

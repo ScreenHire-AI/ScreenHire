@@ -2,6 +2,7 @@
   import AtSignIcon from '~icons/lucide/at-sign';
   import BellIcon from '~icons/lucide/bell';
   import LayoutTemplateIcon from '~icons/lucide/layout-template';
+  import ReplyIcon from '~icons/lucide/reply';
   import XIcon from '~icons/lucide/x';
   import type { ToastKind } from '@screenhire/api-client';
   import type { Component } from 'svelte';
@@ -11,7 +12,7 @@
   import { cn } from '#lib/utils.js';
 
   // The shell's notifications (design system section 11): overlay cards in the bottom corner, newest on top, each with
-  // an icon for what raised it, its link and a Dismiss button. A card (a bell for the team, an at sign for a mention)
+  // an icon for what raised it, its link and a Dismiss button. A card (a bell for the team, an at sign for a mention, a reply arrow for a candidate's answer)
   // never times out, because it holds a link (WCAG 2.2.1). A toast says who changed what, with the record as its link,
   // and closes on its own unless the pointer or the focus is here (`onhold`), or the person turned that off. The region
   // is always in the page, so a screen reader hears a new one politely. On phones they sit above a page's action bar.
@@ -62,7 +63,7 @@
             {#if item.context}<p class="break-words text-muted-foreground">{item.context}</p>{/if}
           </div>
         {:else}
-          <span aria-hidden="true" class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground">{#if item.kind === 'mention'}<AtSignIcon />{:else}<BellIcon />{/if}</span>
+          <span aria-hidden="true" class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground">{#if item.kind === 'mention'}<AtSignIcon />{:else if item.kind === 'reply'}<ReplyIcon />{:else}<BellIcon />{/if}</span>
           <div class="flex min-w-0 flex-1 flex-col gap-0.5 pt-1">
             <a href={item.href} class="font-semibold break-words underline underline-offset-2">{item.title}</a>
             <p class="break-words">{item.detail}</p>

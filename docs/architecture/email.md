@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Email to candidates"
-description: "Organization email templates in Liquid with a rich-text body over fixed variables, the email composer (a template or a blank email changed for one send, previewed with the candidate's details), each email kept as it went for Messages, sending through the worker, the rules that the rejection email goes only with Reject, the follow-up questions email only with SendQuestionnaire and the talent pool invitation only with Invite to apply, the link to finish a saved application, and what is not built (replies, an inbox)."
+description: "Organization email templates in Liquid with a rich-text body over fixed variables, the email composer (a template or a blank email changed for one send, previewed with the candidate's details), each email kept as it went for Messages, sending through the worker, the rules that the rejection email goes only with Reject, the follow-up questions email only with SendQuestionnaire and the talent pool invitation only with Invite to apply, the link to finish a saved application, sending through SendGrid, candidates' replies with their attachments, bounces and spam complaints, the company's own sending domain, and what is not built (an inbox, attachments on outgoing mail, scheduled sends)."
 tags: [email, templates, liquid]
 sources:
   - resource: src/ScreenHire.Domain/Hiring/EmailTemplate.cs
@@ -27,14 +27,37 @@ sources:
   - resource: src/ScreenHire.Application/Applications/ApplicationNotes.cs
   - resource: apps/api/Applications/ApplicationDrafts.cs
   - resource: src/ScreenHire.Infrastructure/Email/EmailHeader.cs
+  - resource: src/ScreenHire.Infrastructure/Email/IEmailSender.cs
+  - resource: src/ScreenHire.Infrastructure/Email/EmailOptions.cs
+  - resource: src/ScreenHire.Infrastructure/Email/EmailRegistration.cs
+  - resource: src/ScreenHire.Infrastructure/Email/SmtpEmailSender.cs
+  - resource: src/ScreenHire.Infrastructure/Email/SendGridEmailSender.cs
+  - resource: src/ScreenHire.Infrastructure/Email/SendGridEventSignature.cs
+  - resource: src/ScreenHire.Infrastructure/Email/ReplyAddresses.cs
+  - resource: src/ScreenHire.Infrastructure/Email/MailRoute.cs
+  - resource: src/ScreenHire.Application/Applications/CandidateMailRouting.cs
+  - resource: src/ScreenHire.Application/Applications/CandidateReplies.cs
+  - resource: src/ScreenHire.Application/SendingDomains/SendingDomainProviders.cs
+  - resource: src/ScreenHire.Application/SendingDomains/SendingDomainService.cs
+  - resource: src/ScreenHire.Domain/Applications/InboundEmail.cs
+  - resource: src/ScreenHire.Domain/Organizations/SendingDomain.cs
+  - resource: src/ScreenHire.Domain/Candidates/Candidate.cs
+  - resource: apps/api/Endpoints/EmailWebhookEndpoints.cs
+  - resource: apps/api/Endpoints/SendingDomainEndpoints.cs
+  - resource: apps/api/Email/InboundEmailIngest.cs
+  - resource: apps/api/Email/EmailAttachmentStore.cs
+  - resource: apps/api/Contracts/SendingDomainContracts.cs
+  - resource: apps/dashboard/src/routes/(app)/settings/sending-domain/+page.svelte
+  - resource: apps/dashboard/src/lib/components/candidate/received-email.svelte
+  - resource: apps/dashboard/src/lib/email-issue.ts
 ---
 # Email to candidates
 
 A hiring team writes its own emails and sends them to candidates by hand, to a selection, or from an automation. A
 person starts from one of the organization's templates or a blank email and may change it for that one send; an
 automation sends a template as it stands. Every email goes out through the worker, is kept exactly as it went, and
-appears in the application's Activity and the candidate's Messages. Candidates cannot reply into ScreenHire yet (see
-"Not built").
+appears in the application's Activity and the candidate's Messages. A candidate's answer comes back to the same
+application (see "Replies"). SendGrid sends it in production, Mailpit locally (see "Sending provider").
 
 ## Templates
 
@@ -186,8 +209,107 @@ Like a sign-in link it goes out inside the request, because its token lets whoev
 sit in the outbox's message table, and it is never kept as a copy or shown in Messages. An address gets at most 5 a day
 in one organization. With no `IEmailSender`, saving is hidden on the careers page.
 
+## Sending provider
+
+[ADR-0021](../adr/0021-sendgrid-through-azure-marketplace.md): ScreenHire sends through SendGrid, bought on the Azure
+Marketplace, so email is billed with the rest of the hosting. Everything above talks to `IEmailSender`; which adapter is
+registered depends on configuration (`ScreenHire:Email:*`, `EmailOptions`), the same in the API and the worker:
+
+- **SendGrid** when `SendGrid:ApiKey` is set (the `sendgrid-api-key` secret parameter, asked for only with
+  `Email:SendGrid:Enabled=true` in the AppHost). `SendGridEmailSender` posts to the v3 Mail Send API with plain
+  `HttpClient`, in a client of its own with no retries, because a retried POST could send one email twice. Click and open
+  tracking are off. Each email carries the organization and the send as custom arguments, which SendGrid echoes in its
+  events.
+- **Mailpit** (`SmtpEmailSender`) locally, from the AppHost's connection string. It honours From and Reply-To, so a
+  developer sees the reply address in Mailpit.
+- **Neither:** no sender, and email is hidden, as under "Rules".
+
+Another provider (Azure Communication Services Email) would be one more class behind `IEmailSender` and
+`ISendingDomainProvider`. `ScreenHire:Email:From` is the default From address.
+
+## Replies
+
+Every email about an application goes out with `Reply-To: reply+<token>@<reply host>` (`ReplyAddresses`,
+`CandidateMailRouting`). The token is lowercase base32 of the organization, the send (the `application_emails` id) and a
+4-byte HMAC under the generated `email-reply-key`: 58 characters, so the local part is exactly 64, the limit. The send's
+id, not the application's, so the original sender is known. The sign-in, invitation and saved-application emails carry
+none: they are not correspondence on an application. The talent pool invitation does, and a flagged address gets none. Without a reply key and a reply host
+(`ScreenHire:Email:ReplyDomain`, or the sandbox) no Reply-To is added and nothing else changes.
+
+SendGrid Inbound Parse posts a reply to `POST /v1/webhooks/email/inbound`, which is anonymous, not in the generated
+client, rate limited, and at most 25 MB. Inbound Parse cannot sign a post, so the URL SendGrid is given holds HTTP Basic
+credentials (user `sendgrid`, the `sendgrid-inbound-secret` as the password): they travel in a header, never in a logged
+path. Behind that, the signed reply address must be valid, and the webhook reads it from the envelope, not the To header
+(candidates reply to all, forward and edit). A post with no valid address, or for an email that never went, changes
+nothing and still answers 200, so SendGrid does not retry it. In one transaction `InboundEmailIngest` then stores:
+
+- the reply (`inbound_emails`): who it is from, the subject, the plain text, and the HTML cleaned to the editor's
+  elements by `RichText.Sanitize`, shown only in a sandboxed frame like a sent email. The same `Message-ID` twice is one
+  reply. An out-of-office or other automatic answer (`Auto-Submitted`, an auto-reply `Precedence`) is kept and notifies
+  nobody;
+- its attachments (`inbound_email_attachments`), only PDF, Word and PNG or JPEG files whose first bytes match, at most
+  10 MB each and ten in all. Anything else is dropped, and the text says how many. Each goes to the private
+  `email-attachments` container, then a `ScanEmailAttachment` message runs the same `IMalwareScanner` as an applicant's
+  upload. A reviewer downloads one through a short-lived read link, and the route answers 409 while the scan is pending
+  and for an infected file;
+- an `EmailReceived` timeline entry with the reply's id, no actor, in Activity under Emails. It counts as the candidate's
+  activity;
+- a `CandidateReplied` event. Open dashboards refetch Messages and Activity. The person who sent the original gets a card
+  in the tray, and the worker's `CandidateRepliedHandler` emails them once (the reply's `notified_at`): fixed wording, a
+  link to Messages, never the reply's text, and only if they can still see the job. An email an automation sent has
+  no one to email, so every member who sees the job gets the card and nobody gets mail.
+
+Messages lists sent and received together, newest first (`direction`); a reply opens to who it is from, the message and its
+files. `GET /v1/replies/{replyId}` and its attachment route are read like sent mail, row-level security and job access
+included. A reply from a flagged address clears the flag (see below).
+
+Locally and in tests, `ScreenHire:Email:Sandbox:Enabled` (Development only; `EmailSandboxGate` stops a real host with it
+on) maps `POST /v1/dev/inbound-email`, which delivers a reply as SendGrid would, taking the Reply-To address of an email in
+Mailpit as `to`. No test needs SendGrid. [Local demo](../operations/local-demo.md) has the steps.
+
+## Bounces and complaints
+
+`POST /v1/webhooks/email/events` takes SendGrid's signed event webhook: an ECDSA P-256 signature over the timestamp and the
+body, checked against `SendGrid:EventWebhookPublicKey` (`SendGridEventSignature`), within five minutes. Without the key
+the route is a 404; a bad signature is a 401. It reads three kinds of event on an email carrying our custom arguments: a
+hard bounce (a `blocked` bounce is soft and ignored), a drop because the address bounced before, and a spam report. The
+candidate is found through the send, and must still have the event's address.
+
+The candidate then carries `emailIssue` (`Bounced` or `SpamComplaint`, with when and the provider's short reason):
+
+- ScreenHire sends the address nothing more. A person's send counts the candidate as skipped, the worker checks again, and
+  an automation records that nothing was sent. The composer and Email buttons are hidden for that candidate.
+- The candidate's page shows a status beside the name ("Email bounced", "Marked as spam") and a notice that says what it
+  means and that it says nothing else about the candidate. People who may email candidates get **Allow email again**,
+  and a reply from the address clears it too. `CandidateEmailStatusChanged` refreshes open dashboards.
+- It is a delivery fact only. It never feeds a verification level, a score or a rejection (ADR-0004).
+
+## Sending domain
+
+Out of the box, mail comes from ScreenHire's address under the company's name. An Owner or Admin can add the company's own
+domain under Settings, Sending domain (`/v1/organization/sending-domain`, `EditSettings`; every member reads it). The page is
+hidden, with a line saying so, when this deployment has no provider.
+
+- **Records.** The provider returns them (`ISendingDomainProvider`; SendGrid's domain authentication with automated
+  security): two DKIM CNAMEs and a return-path CNAME that carries SPF on its own subdomain, so the company never adds a
+  second SPF record at the apex. One more, an MX on `reply.<domain>`, brings replies to ScreenHire. It is on a subdomain
+  because an MX on the domain itself would take all of the company's mail.
+- **Checking.** Check records looks each one up (`IDnsRecordChecker`, DnsClient, no cache) and shows Found, Not found or
+  Different value. When all are in place ScreenHire asks the provider to validate. Only the provider's yes makes the
+  domain Verified, and only then does mail come from `hiring@<domain>` with the organization's name and its replies come to
+  `reply.<domain>`. Until then mail keeps ScreenHire's address, so nothing goes out unauthenticated in the company's name.
+  Adding a different domain replaces the first; removing it goes back to ScreenHire's address.
+- **Rules.** One domain per organization, and one organization per domain. Mail providers' domains and ScreenHire's own
+  (`ScreenHire:Domains:*`, ADR-0003) are refused. Nothing names a host in code.
+- **Locally**, the sandbox provider makes up records and validates once a dev route (`/v1/dev/sending-domains/publish`)
+  publishes the domain, so the whole flow runs with no DNS.
+
+The domain has no change history yet, and the page shows when it was added, not by whom.
+
 ## Not built
 
-- Replies and an inbox. Candidates reply to the sender address, which nobody reads. Threading replies onto an
-  application needs a real email provider with inbound routing; the provider is still to be chosen.
-- Attachments, scheduled sends and per-person signatures.
+- An inbox across candidates. Replies are read on the candidate's Messages tab.
+- Attachments on outgoing mail, scheduled sends and per-person signatures.
+- A Slack direct message for a reply (the card and the email are the notifications).
+- A scheduled re-check of a sending domain that is still waiting for DNS: Check records is by hand.
+- Change history for the sending domain.

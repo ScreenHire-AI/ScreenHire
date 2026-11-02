@@ -7,6 +7,7 @@ tags: [adr, hosting, azure]
 # ADR-0007: Host on Azure (bootstrap config), Cloudflare in front
 
 - **Status:** Accepted — owner preference (2026-10-18)
+- **Amended by:** [ADR-0021](0021-sendgrid-through-azure-marketplace.md) for the Email row: SendGrid through the Azure Marketplace sends and receives candidate email; ACS Email stays a possible sender.
 - **Research:** `docs/research/hosting-bootstrap.md`, `docs/research/hosting.md`
 
 ## Context

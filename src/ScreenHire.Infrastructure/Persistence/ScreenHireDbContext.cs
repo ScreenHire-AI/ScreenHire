@@ -82,6 +82,14 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<ApplicationEmail> ApplicationEmails => Set<ApplicationEmail>();
 
+    /// <summary>A candidate's replies to the emails sent them, and their attachments.</summary>
+    public DbSet<InboundEmail> InboundEmails => Set<InboundEmail>();
+
+    public DbSet<InboundEmailAttachment> InboundEmailAttachments => Set<InboundEmailAttachment>();
+
+    /// <summary>The organization's own domain that candidate email is sent from.</summary>
+    public DbSet<SendingDomain> SendingDomains => Set<SendingDomain>();
+
     public DbSet<ApplicationNoteMention> ApplicationNoteMentions => Set<ApplicationNoteMention>();
 
     public DbSet<JobPosting> JobPostings => Set<JobPosting>();

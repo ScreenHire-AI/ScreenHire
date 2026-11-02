@@ -38,6 +38,7 @@ What comes next, in order, is the [roadmap](roadmap.md).
 | Collaboration | Notes on an application and on a stage move, tags with a tag filter, My tasks for the tasks automations and people make (Mine, For the team and Everyone's, each row a link to where the task is done; a to-do or a rejection review is ticked on the candidate's Next steps with Undo for 10 seconds, and a review or a requested scorecard is done when the scorecard is submitted), a real reviewer in AssignReviewer, a Run button for manual automations, a notification tray, and teammates' changes as toasts that each person picks in a Notifications sheet | #40, the remaining screens, roadmap item 10 |
 | Scorecards | A scorecard library (built-ins and your own, with history) whose questions take answer kinds, a stage picking one and each job keeping its copy, a required recommendation; submitting one raises the "reviewer decision" trigger. Fill in takes a reached stage's scorecard or any library scorecard, and Ask for one gives a teammate who sees the job a Scorecard task, done when they submit it. Rating questions make the candidate's one-to-five-star rating, shown after a reviewer gives their own and never read by an automation ([workflow engine](architecture/workflow-engine.md#8-the-engine-v1), ADR-0013) | #41, the scorecards v0.3 task, the scorecard requests task |
 | Email | Organization email templates (Liquid subject, rich-text message with variables as chips, live preview, a test send), email to one candidate or a selection, the rejection email only with Reject ([email](architecture/email.md)) | #42, the rich text task |
+| Replies and SendGrid | SendGrid sends candidate email (Mailpit locally); every email carries a signed reply address, so the candidate's answer lands in Messages and Activity with its attachments scanned and the sender told; bounces and spam complaints flag the address; an Owner or Admin can add the company's own sending domain, verified by SendGrid ([email](architecture/email.md), ADR-0021) | the replies task |
 | Rich text | A small editor with a toolbar (bold, italic, headings, lists, links) for a job's description and email messages, stored as sanitized HTML limited to the toolbar's elements and rendered on careers pages, in Google for Jobs, in feeds and in email ([rich text](architecture/rich-text.md)) | the rich text task |
 | Change history | Who changed a hiring template, an email template, a scorecard, a job, a custom role or an organization setting (its name, brand colour or verification settings), when and what: Last updated as the last header fact and a History sheet of every change in plain words, newest first by day, with before and after on request; the paged history on the API ([change history](architecture/change-history.md)) | the change history task |
 | Follow-up questionnaires | Answers and the application's source as automation facts, so a knockout can match; follow-up questionnaires in a workflow, sent by a SendQuestionnaire automation through a signed, time-limited link to a careers page that works without JavaScript; answering one fires the "questionnaire answered" trigger ([workflow engine](architecture/workflow-engine.md#8-the-engine-v1)) | #45 |
@@ -62,7 +63,7 @@ hidden rather than an error.
 | Integration | Local stand-in |
 |---|---|
 | Identity providers | Dev SSO (navikt/mock-oauth2-server) with seeded users; Google, Microsoft and generic OIDC appear only with a client id and secret |
-| Email | Mailpit, through the SMTP adapter behind `IEmailSender`; invitations, sign-in links and candidate email all land there |
+| Email | Mailpit, through the SMTP adapter behind `IEmailSender`; invitations, sign-in links and candidate email all land there. SendGrid is used only with its API key. Replies are delivered by the sandbox route `/v1/dev/inbound-email` and sending domains verify in the sandbox with no DNS (`ScreenHire:Email:Sandbox`, Development only) |
 | LLM | A deterministic fake model for the consistency check; with no provider the check records "unavailable"; off per organization by default |
 | Job boards | A sandbox push board (Development only) and the feeds; Google Indexing has a local fake and is off unless set; Indeed is flags only |
 | Webhook receivers | `WebhookReceiver` in `tests/ScreenHire.Testing`, a local server, so no test needs the internet |
@@ -83,9 +84,13 @@ brackets.
   and shared by the API and the worker; protect its keys at rest with a key vault or certificate
   (`ProtectKeysWith...`) in production (#7, #18). List the reverse proxies and the careers
   servers in `ScreenHire:Auth:TrustedProxies` (#7, #11).
-- **Email.** Choose the production provider behind `IEmailSender`, and set `ScreenHire:Email:From` and the worker's
-  SMTP connection; without them automations skip email, and invitations and candidate email cannot go out (#7, #10,
-  #38, #42). Candidate replies and an inbox need that provider to route inbound mail (#42). Set a production
+- **Email.** Subscribe to SendGrid in the Azure Marketplace (ADR-0021) and set `Parameters:sendgrid-api-key` and
+  `Email:SendGrid:Enabled=true` in the AppHost, `ScreenHire:Email:From`, `ReplyDomain` (the host replies arrive on, with an MX
+  record to SendGrid) and a production `sendgrid-inbound-secret` and `email-reply-key`. In SendGrid, add an Inbound Parse
+  setting for that host that posts to `https://<api host>/v1/webhooks/email/inbound` with the secret as Basic credentials
+  (user `sendgrid`), and turn on the signed Event Webhook to `/v1/webhooks/email/events` with its public key in
+  `ScreenHire:Email:SendGrid:EventWebhookPublicKey`. Each customer's own domain is verified from Settings, Sending domain.
+  Without a provider automations skip email, and invitations and candidate email cannot go out (#7, #10, #38, #42). Set a production
   `ScreenHire:Webhooks:SigningKey` for the API and the worker; without it creating or rotating a webhook endpoint
   returns 503 and deliveries are skipped (#10, #36).
 - **Slack.** Create the Slack app at api.slack.com: bot scopes `chat:write`, `chat:write.public`, `channels:read`,

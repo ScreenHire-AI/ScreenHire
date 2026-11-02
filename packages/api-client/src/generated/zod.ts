@@ -3786,6 +3786,7 @@ export const CreateApplicationBody = zod.object({
   "resumeUploadId": zod.uuid().nullish()
 }).describe('A recruiter adds an application by hand, for a candidate who applied another way. The candidate is matched by email\nwithin the organization and created if new. The public apply flow is the careers site\'s.')
 
+export const createApplicationResponseCandidateEmailIssueDefault = `None`;
 export const createApplicationResponseAiUseDeclarationDefault = `NotProvided`;
 export const createApplicationResponseFollowUpsItemQuestionsItemRequiredDefault = false;
 export const createApplicationResponseRatingTwoScorecardsDefault = 0;
@@ -3802,7 +3803,10 @@ export const CreateApplicationResponse = zod.object({
   "phone": zod.string().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "firstName": zod.string(),
-  "lastName": zod.string().nullable()
+  "lastName": zod.string().nullable(),
+  "emailIssue": zod.enum(['None', 'Bounced', 'SpamComplaint']).default(createApplicationResponseCandidateEmailIssueDefault).describe('Why ScreenHire no longer emails a candidate\'s address (reported by the email provider).'),
+  "emailIssueAt": zod.iso.datetime({"offset":true}).nullish(),
+  "emailIssueReason": zod.string().nullish()
 }).describe('A candidate: one person per email address within the organization.'),
   "stage": zod.object({
   "id": zod.string(),
@@ -3942,6 +3946,7 @@ export const GetApplicationParams = zod.object({
   "applicationId": zod.uuid()
 })
 
+export const getApplicationResponseCandidateEmailIssueDefault = `None`;
 export const getApplicationResponseAiUseDeclarationDefault = `NotProvided`;
 export const getApplicationResponseFollowUpsItemQuestionsItemRequiredDefault = false;
 export const getApplicationResponseRatingTwoScorecardsDefault = 0;
@@ -3958,7 +3963,10 @@ export const GetApplicationResponse = zod.object({
   "phone": zod.string().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "firstName": zod.string(),
-  "lastName": zod.string().nullable()
+  "lastName": zod.string().nullable(),
+  "emailIssue": zod.enum(['None', 'Bounced', 'SpamComplaint']).default(getApplicationResponseCandidateEmailIssueDefault).describe('Why ScreenHire no longer emails a candidate\'s address (reported by the email provider).'),
+  "emailIssueAt": zod.iso.datetime({"offset":true}).nullish(),
+  "emailIssueReason": zod.string().nullish()
 }).describe('A candidate: one person per email address within the organization.'),
   "stage": zod.object({
   "id": zod.string(),
@@ -4045,6 +4053,7 @@ export const MoveApplicationBody = zod.object({
   "note": zod.string().nullish()
 }).describe('Moves an application to another stage of its job\'s workflow. Only people move applications here. The optional\n`note` is kept on the move\'s timeline entry.')
 
+export const moveApplicationResponseCandidateEmailIssueDefault = `None`;
 export const moveApplicationResponseAiUseDeclarationDefault = `NotProvided`;
 export const moveApplicationResponseFollowUpsItemQuestionsItemRequiredDefault = false;
 export const moveApplicationResponseRatingTwoScorecardsDefault = 0;
@@ -4061,7 +4070,10 @@ export const MoveApplicationResponse = zod.object({
   "phone": zod.string().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "firstName": zod.string(),
-  "lastName": zod.string().nullable()
+  "lastName": zod.string().nullable(),
+  "emailIssue": zod.enum(['None', 'Bounced', 'SpamComplaint']).default(moveApplicationResponseCandidateEmailIssueDefault).describe('Why ScreenHire no longer emails a candidate\'s address (reported by the email provider).'),
+  "emailIssueAt": zod.iso.datetime({"offset":true}).nullish(),
+  "emailIssueReason": zod.string().nullish()
 }).describe('A candidate: one person per email address within the organization.'),
   "stage": zod.object({
   "id": zod.string(),
@@ -4145,7 +4157,7 @@ export const GetApplicationTimelineParams = zod.object({
 
 export const GetApplicationTimelineResponseItem = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'EmailReceived']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -4183,7 +4195,7 @@ export const AddApplicationNoteBody = zod.object({
 
 export const AddApplicationNoteResponse = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'EmailReceived']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -4246,6 +4258,7 @@ export const AddApplicationTagBody = zod.object({
   "tag": zod.string()
 }).describe('A tag to add to an application. Tags compare ignoring case; conditions read them as `application.tags`.')
 
+export const addApplicationTagResponseCandidateEmailIssueDefault = `None`;
 export const addApplicationTagResponseAiUseDeclarationDefault = `NotProvided`;
 export const addApplicationTagResponseFollowUpsItemQuestionsItemRequiredDefault = false;
 export const addApplicationTagResponseRatingTwoScorecardsDefault = 0;
@@ -4262,7 +4275,10 @@ export const AddApplicationTagResponse = zod.object({
   "phone": zod.string().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "firstName": zod.string(),
-  "lastName": zod.string().nullable()
+  "lastName": zod.string().nullable(),
+  "emailIssue": zod.enum(['None', 'Bounced', 'SpamComplaint']).default(addApplicationTagResponseCandidateEmailIssueDefault).describe('Why ScreenHire no longer emails a candidate\'s address (reported by the email provider).'),
+  "emailIssueAt": zod.iso.datetime({"offset":true}).nullish(),
+  "emailIssueReason": zod.string().nullish()
 }).describe('A candidate: one person per email address within the organization.'),
   "stage": zod.object({
   "id": zod.string(),
@@ -4348,6 +4364,7 @@ export const RemoveApplicationTagQueryParams = zod.object({
   "tag": zod.string().optional()
 })
 
+export const removeApplicationTagResponseCandidateEmailIssueDefault = `None`;
 export const removeApplicationTagResponseAiUseDeclarationDefault = `NotProvided`;
 export const removeApplicationTagResponseFollowUpsItemQuestionsItemRequiredDefault = false;
 export const removeApplicationTagResponseRatingTwoScorecardsDefault = 0;
@@ -4364,7 +4381,10 @@ export const RemoveApplicationTagResponse = zod.object({
   "phone": zod.string().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "firstName": zod.string(),
-  "lastName": zod.string().nullable()
+  "lastName": zod.string().nullable(),
+  "emailIssue": zod.enum(['None', 'Bounced', 'SpamComplaint']).default(removeApplicationTagResponseCandidateEmailIssueDefault).describe('Why ScreenHire no longer emails a candidate\'s address (reported by the email provider).'),
+  "emailIssueAt": zod.iso.datetime({"offset":true}).nullish(),
+  "emailIssueReason": zod.string().nullish()
 }).describe('A candidate: one person per email address within the organization.'),
   "stage": zod.object({
   "id": zod.string(),
@@ -4492,6 +4512,8 @@ export const DownloadApplicationFileParams = zod.object({
 export const DownloadApplicationFileResponse = zod.void()
 
 
+export const listCandidatesResponseEmailIssueDefault = `None`;
+
 export const ListCandidatesResponseItem = zod.object({
   "id": zod.uuid(),
   "fullName": zod.string(),
@@ -4499,7 +4521,10 @@ export const ListCandidatesResponseItem = zod.object({
   "phone": zod.string().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "firstName": zod.string(),
-  "lastName": zod.string().nullable()
+  "lastName": zod.string().nullable(),
+  "emailIssue": zod.enum(['None', 'Bounced', 'SpamComplaint']).default(listCandidatesResponseEmailIssueDefault).describe('Why ScreenHire no longer emails a candidate\'s address (reported by the email provider).'),
+  "emailIssueAt": zod.iso.datetime({"offset":true}).nullish(),
+  "emailIssueReason": zod.string().nullish()
 }).describe('A candidate: one person per email address within the organization.')
 export const ListCandidatesResponse = zod.array(ListCandidatesResponseItem)
 
@@ -8222,7 +8247,7 @@ export const SendEmailsBody = zod.object({
 export const SendEmailsResponse = zod.object({
   "queued": zod.int(),
   "skipped": zod.int()
-}).describe('How many emails were queued. `skipped` counts applications the email does not fit: the stage-change email to a\ncandidate whose application has ended. Each sent email appears in its application\'s activity.')
+}).describe('How many emails were queued. `skipped` counts applications the email does not fit: the stage-change email to a\ncandidate whose application has ended, and a candidate whose address bounced or marked an email as spam. Each sent email appears in its application\'s activity.')
 
 
 export const GetSentEmailParams = zod.object({
@@ -8241,9 +8266,44 @@ export const GetSentEmailResponse = zod.object({
 }).describe('An email exactly as it went to the candidate: the address, the subject, the HTML part and the plain-text part.')
 
 
+export const GetReceivedEmailParams = zod.object({
+  "replyId": zod.uuid()
+})
+
+export const GetReceivedEmailResponse = zod.object({
+  "id": zod.uuid(),
+  "applicationId": zod.uuid(),
+  "fromAddress": zod.string(),
+  "fromName": zod.string().nullable(),
+  "subject": zod.string(),
+  "html": zod.string(),
+  "text": zod.string(),
+  "receivedAt": zod.iso.datetime({"offset":true}),
+  "autoReply": zod.boolean(),
+  "attachments": zod.array(zod.object({
+  "id": zod.uuid(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "sizeBytes": zod.int(),
+  "scanStatus": zod.enum(['Pending', 'Clean', 'Infected', 'NotScanned'])
+}).describe('A file that came with a reply. It can be downloaded once `scanStatus` is `Clean` or `NotScanned`; while it is\n`Pending` the download answers 409, and an `Infected` file is never offered.'))
+}).describe('A candidate\'s reply as it arrived: who it is from, the subject, the sanitized HTML part (may be empty) and the plain-text\npart, and the files that came with it. `autoReply` marks an out-of-office or other automatic answer.')
+
+
+export const DownloadReplyAttachmentParams = zod.object({
+  "replyId": zod.uuid(),
+  "attachmentId": zod.uuid()
+})
+
+export const DownloadReplyAttachmentResponse = zod.void()
+
+
 export const ListCandidateEmailsParams = zod.object({
   "candidateId": zod.uuid()
 })
+
+export const listCandidateEmailsResponseDirectionDefault = `Sent`;
+export const listCandidateEmailsResponseAttachmentCountDefault = 0;
 
 export const ListCandidateEmailsResponseItem = zod.object({
   "id": zod.uuid(),
@@ -8254,9 +8314,106 @@ export const ListCandidateEmailsResponseItem = zod.object({
   "actorUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
   "sentAt": zod.iso.datetime({"offset":true}),
-  "kept": zod.boolean()
+  "kept": zod.boolean(),
+  "direction": zod.enum(['Sent', 'Received']).default(listCandidateEmailsResponseDirectionDefault).describe('Which way an email in Messages went.'),
+  "fromAddress": zod.string().nullish(),
+  "attachmentCount": zod.int().default(listCandidateEmailsResponseAttachmentCountDefault)
 }).describe('One email to the candidate, for Messages: what went, when, and who or which automation sent it. `kept` is false\nfor an email sent before ScreenHire kept each email\'s copy: only its subject is known.')
 export const ListCandidateEmailsResponse = zod.array(ListCandidateEmailsResponseItem)
+
+
+export const ClearCandidateEmailIssueParams = zod.object({
+  "candidateId": zod.uuid()
+})
+
+export const clearCandidateEmailIssueResponseEmailIssueDefault = `None`;
+
+export const ClearCandidateEmailIssueResponse = zod.object({
+  "id": zod.uuid(),
+  "fullName": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "firstName": zod.string(),
+  "lastName": zod.string().nullable(),
+  "emailIssue": zod.enum(['None', 'Bounced', 'SpamComplaint']).default(clearCandidateEmailIssueResponseEmailIssueDefault).describe('Why ScreenHire no longer emails a candidate\'s address (reported by the email provider).'),
+  "emailIssueAt": zod.iso.datetime({"offset":true}).nullish(),
+  "emailIssueReason": zod.string().nullish()
+}).describe('A candidate: one person per email address within the organization.')
+
+
+export const GetOrganizationSendingDomainResponse = zod.object({
+  "available": zod.boolean(),
+  "sandbox": zod.boolean(),
+  "domain": zod.union([zod.null(),zod.object({
+  "domain": zod.string(),
+  "status": zod.enum(['Pending', 'Verified']),
+  "fromAddress": zod.string(),
+  "replyHost": zod.string(),
+  "records": zod.array(zod.object({
+  "purpose": zod.enum(['Dkim', 'ReturnPath', 'Replies']).describe('Why a record is on the list.'),
+  "type": zod.string(),
+  "host": zod.string(),
+  "value": zod.string(),
+  "priority": zod.int().nullable(),
+  "state": zod.enum(['NotChecked', 'Matches', 'Differs', 'Missing']).describe('What the last DNS lookup found for a record.'),
+  "reason": zod.string()
+}).describe('One DNS record to add at the domain\'s DNS host, why it is needed, and what the last check found.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastCheckedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "verifiedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "providerMessage": zod.string().nullable()
+}).describe('A sending domain and what is left to do. `status` is Verified only once the email provider confirms the records,\nand only then does mail come from `fromAddress`; until then it keeps ScreenHire\'s address.')])
+}).describe('The organization\'s sending domain (Settings, Sending domain). `available` is false when this deployment has no email\nprovider: the page says so and offers nothing. `sandbox` says the records are made up for a local run. `domain`\nis null until one is added.')
+
+
+export const SetOrganizationSendingDomainBody = zod.object({
+  "domain": zod.string()
+}).describe('The domain to send from, such as `example.com`. Replaces the organization\'s current one.')
+
+export const SetOrganizationSendingDomainResponse = zod.object({
+  "domain": zod.string(),
+  "status": zod.enum(['Pending', 'Verified']),
+  "fromAddress": zod.string(),
+  "replyHost": zod.string(),
+  "records": zod.array(zod.object({
+  "purpose": zod.enum(['Dkim', 'ReturnPath', 'Replies']).describe('Why a record is on the list.'),
+  "type": zod.string(),
+  "host": zod.string(),
+  "value": zod.string(),
+  "priority": zod.int().nullable(),
+  "state": zod.enum(['NotChecked', 'Matches', 'Differs', 'Missing']).describe('What the last DNS lookup found for a record.'),
+  "reason": zod.string()
+}).describe('One DNS record to add at the domain\'s DNS host, why it is needed, and what the last check found.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastCheckedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "verifiedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "providerMessage": zod.string().nullable()
+}).describe('A sending domain and what is left to do. `status` is Verified only once the email provider confirms the records,\nand only then does mail come from `fromAddress`; until then it keeps ScreenHire\'s address.')
+
+
+export const DeleteOrganizationSendingDomainResponse = zod.void()
+
+
+export const CheckOrganizationSendingDomainResponse = zod.object({
+  "domain": zod.string(),
+  "status": zod.enum(['Pending', 'Verified']),
+  "fromAddress": zod.string(),
+  "replyHost": zod.string(),
+  "records": zod.array(zod.object({
+  "purpose": zod.enum(['Dkim', 'ReturnPath', 'Replies']).describe('Why a record is on the list.'),
+  "type": zod.string(),
+  "host": zod.string(),
+  "value": zod.string(),
+  "priority": zod.int().nullable(),
+  "state": zod.enum(['NotChecked', 'Matches', 'Differs', 'Missing']).describe('What the last DNS lookup found for a record.'),
+  "reason": zod.string()
+}).describe('One DNS record to add at the domain\'s DNS host, why it is needed, and what the last check found.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastCheckedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "verifiedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "providerMessage": zod.string().nullable()
+}).describe('A sending domain and what is left to do. `status` is Verified only once the email provider confirms the records,\nand only then does mail come from `fromAddress`; until then it keeps ScreenHire\'s address.')
 
 
 export const ListTalentPoolResponse = zod.object({

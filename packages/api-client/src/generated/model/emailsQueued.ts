@@ -7,7 +7,7 @@
 
 /**
  * How many emails were queued. `skipped` counts applications the email does not fit: the stage-change email to a
- * candidate whose application has ended. Each sent email appears in its application's activity.
+ * candidate whose application has ended, and a candidate whose address bounced or marked an email as spam. Each sent email appears in its application's activity.
  */
 export interface EmailsQueued {
   queued: number;
