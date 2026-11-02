@@ -39,7 +39,7 @@
   const shell = getShell();
   const rail = $derived(sidebar.state === 'collapsed' && !sidebar.isMobile);
   const currentView = $derived(page.url.pathname === '/candidates' ? page.url.searchParams.get('view') : null);
-  const settingsPages = $derived(visibleSettingsSections(user));
+  const settingsPages = $derived(visibleSettingsSections(user, { slack: slack?.available }));
 
   // Each person's own Slack account, in their menu while the organization's workspace is connected (docs/architecture/slack.md).
   const slackConnected = $derived(Boolean(slack?.available && slack.workspace));

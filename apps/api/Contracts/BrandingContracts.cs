@@ -34,10 +34,11 @@ public sealed record UpdateBrandingRequest(
 
 /// <summary>
 /// An uploaded brand image. <c>scanStatus</c> is the malware scan's: a Pending or Infected image cannot be saved or
-/// served. <c>url</c> is its public address on the careers board, null until it may be served.
+/// served. <c>url</c> is its public address on the careers board, null until it may be served. <c>fileName</c> is the
+/// name it was uploaded with.
 /// </summary>
 public sealed record BrandingImage(
-    Guid Id, BrandImageKind Kind, MalwareScanStatus ScanStatus, string ContentType, int Width, int Height, long SizeBytes, string? Url);
+    Guid Id, BrandImageKind Kind, MalwareScanStatus ScanStatus, string ContentType, int Width, int Height, long SizeBytes, string FileName, string? Url);
 
 /// <summary>Asks for a link to upload one brand image of <c>kind</c>: a PNG or JPEG of <c>sizeBytes</c>.</summary>
 public sealed record BrandImageUploadRequest(BrandImageKind Kind, string FileName, long SizeBytes);
@@ -94,7 +95,7 @@ internal sealed class BrandImageUploadRequestValidator : AbstractValidator<Brand
 internal static class BrandingMappings
 {
     public static BrandingImage ToBrandingImage(this BrandImage image, string careersBoardUrl) =>
-        new(image.Id, image.Kind, image.ScanStatus, image.ContentType, image.Width, image.Height, image.SizeBytes,
+        new(image.Id, image.Kind, image.ScanStatus, image.ContentType, image.Width, image.Height, image.SizeBytes, image.FileName,
             image.IsServable ? image.UrlUnder(careersBoardUrl) : null);
 
     public static PublicBrandImage ToPublic(this BrandImage image, string careersBoardUrl) =>

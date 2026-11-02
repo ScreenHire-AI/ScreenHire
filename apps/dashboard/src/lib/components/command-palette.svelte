@@ -78,9 +78,9 @@
         </Command.Item>
       {/each}
     </Command.Group>
-    {#if visibleSettingsSections(page.data?.user).length > 0}
+    {#if visibleSettingsSections(page.data?.user, shell?.features()).length > 0}
       <Command.Group heading="Settings">
-        {#each visibleSettingsSections(page.data?.user) as setting (setting.href)}
+        {#each visibleSettingsSections(page.data?.user, shell?.features()) as setting (setting.href)}
           <Command.Item value={`Settings ${setting.label}`} onSelect={() => run(() => goto(setting.href))}>{setting.label}</Command.Item>
         {/each}
       </Command.Group>

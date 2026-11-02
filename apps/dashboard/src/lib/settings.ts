@@ -24,6 +24,14 @@ export const teamPath = '/v1/organization/team';
  */
 export type SettingsGroup = 'Organization' | 'Hiring' | 'Integrations';
 
+/**
+ * A feature the installation may not have. Slack needs a Slack app set up where ScreenHire is hosted (`GET /v1/slack` says
+ * `available`), so its page and menu entry are hidden everywhere it is not. A feature is off until the shell has heard
+ * that it is on.
+ */
+export type SettingsFeature = 'slack';
+export type SettingsFeatures = Readonly<Partial<Record<SettingsFeature, boolean>>>;
+
 export const settingsSections: readonly {
   label: string;
   href: string;
@@ -31,6 +39,8 @@ export const settingsSections: readonly {
   permission: Permission;
   group: SettingsGroup;
   allJobs?: true;
+  /** The page exists only where this feature is set up (design system A3): hidden, not shown unavailable. */
+  feature?: SettingsFeature;
 }[] = [
   // The group is Organization, so its first page is General: the name, where the data lives and when it was created.
   { label: 'General', href: '/settings/organization', icon: Building2Icon, permission: 'EditSettings', group: 'Organization' },
@@ -41,7 +51,7 @@ export const settingsSections: readonly {
   { label: 'Verification', href: '/settings/verification', icon: ShieldCheckIcon, permission: 'EditSettings', group: 'Hiring' },
   // A channel post reaches everyone in the channel, whatever jobs they see, so Slack needs all jobs too. Each person links
   // their own account from their menu (SlackAccountSheet), not here.
-  { label: 'Slack', href: '/settings/slack', icon: HashIcon, permission: 'ManageIntegrations', group: 'Integrations', allJobs: true },
+  { label: 'Slack', href: '/settings/slack', icon: HashIcon, permission: 'ManageIntegrations', group: 'Integrations', allJobs: true, feature: 'slack' },
   // The MCP server signs in with an API key, so it needs what API keys need.
   { label: 'MCP server', href: '/settings/mcp-server', icon: PlugIcon, permission: 'ManageApiKeys', group: 'Integrations', allJobs: true },
   { label: 'Webhooks', href: '/settings/webhooks', icon: WebhookIcon, permission: 'ManageWebhooks', group: 'Integrations', allJobs: true },
@@ -50,10 +60,13 @@ export const settingsSections: readonly {
 
 /**
  * The Settings pages the person's role may use: none means no Settings item at all. API keys, webhooks and Slack reach every
- * job, so they also need all jobs (ADR-0015); the API refuses them otherwise with 403 "Needs all jobs".
+ * job, so they also need all jobs (ADR-0015); the API refuses them otherwise with 403 "Needs all jobs". A page of a
+ * feature that is not set up (Slack) is left out whoever asks.
  */
-export const visibleSettingsSections = (user: CurrentUser | null | undefined) =>
-  settingsSections.filter((section) => can(user, section.permission) && (!section.allJobs || seesAllJobs(user)));
+export const visibleSettingsSections = (user: CurrentUser | null | undefined, features: SettingsFeatures = {}) =>
+  settingsSections.filter(
+    (section) => can(user, section.permission) && (!section.allJobs || seesAllJobs(user)) && (!section.feature || features[section.feature] === true),
+  );
 
 /** The Settings page a path belongs to, such as Roles for `/settings/roles/compare`. */
 export const settingsSectionOf = (path: string) =>

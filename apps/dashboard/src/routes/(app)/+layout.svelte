@@ -126,6 +126,8 @@
       notificationsOpen = true;
     },
     live: () => live.connection.status,
+    // A Slack status that cannot be read counts as no Slack (A3), so its page does not wait for it forever.
+    features: () => ({ slack: slack.isError ? false : slack.data?.data.available }),
   });
 
   const chords = createChordHandler(Object.fromEntries(sections.map((section) => [section.key, section.href])), (href) => void goto(href));

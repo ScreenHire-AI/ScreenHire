@@ -256,7 +256,7 @@ Settings is one item at the bottom of the sidebar; its pages share the Settings 
 - **Team**, **Organization** (rename; the careers address stays), **Verification** (the consistency check, off until
   turned on; the Fake model answers locally) and **Webhooks** (add an endpoint, see its signing secret once, then its
   delivery log with replay).
-- **Slack.** With no Slack app it says "Slack is not set up here", as `pnpm dev` starts. To try it, turn on the local
+- **Slack.** With no Slack app Settings has no Slack page, as `pnpm dev` starts. To try it, turn on the local
   sandbox workspace before starting: `dotnet user-secrets set ScreenHire:Slack:Sandbox:Enabled true --project apps/apphost`
   (or `ScreenHire__Slack__Sandbox__Enabled=true` in the environment of `dotnet aspire start`; `dotnet user-secrets
   remove ScreenHire:Slack:Sandbox:Enabled --project apps/apphost` turns it off again). **Add to Slack** comes straight

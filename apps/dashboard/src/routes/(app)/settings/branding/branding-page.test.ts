@@ -18,6 +18,7 @@ const logo: BrandingImage = {
   width: 400,
   height: 100,
   sizeBytes: 24_576,
+  fileName: 'brightwater-logo.png',
   url: 'https://brightwater.careers.example.com/brand/images/0f8b3a52-6a4e-4a9b-9c1e-2d7f3e4b5a6c.png',
 };
 const saved: OrganizationBranding = {
@@ -97,15 +98,50 @@ describe('branding page', () => {
     expect(screen.getByLabelText<HTMLInputElement>('Second colour').value).toBe('');
     expect(screen.getByRole('radio', { name: 'Fraunces' })).toBeChecked();
     expect(screen.getAllByAltText('The logo')[0]).toHaveAttribute('src', logo.url);
-    expect(screen.getByText(/^400 by 100 pixels, 25 kB$/)).toBeInTheDocument();
+    // The tile names the file and its size beside Replace and Remove.
+    const tile = document.querySelector<HTMLElement>('[data-image-tile="logo"]')!;
+    expect(within(tile).getByText('brightwater-logo.png')).toBeInTheDocument();
+    expect(within(tile).getByText(/^400 by 100 pixels, 25 kB$/)).toBeInTheDocument();
+    expect(within(tile).getByRole('button', { name: 'Replace logo' })).toBeInTheDocument();
+    expect(within(tile).getByRole('button', { name: 'Remove logo' })).toBeInTheDocument();
+    expect(tile).not.toHaveAttribute('data-empty');
     await expectNoAxeViolations();
+  });
+
+  it('draws each image where it is used: the logo on a light checkerboard, the favicon at 32px in a tab, the sharing image as a shared link', async () => {
+    const image = (kind: BrandingImage['kind'], width: number, height: number, name: string): BrandingImage => ({
+      ...logo,
+      id: `${kind}-id`,
+      kind,
+      width,
+      height,
+      fileName: name,
+      url: `https://brightwater.careers.example.com/brand/images/${kind}.png`,
+    });
+    renderPage({ ...saved, favicon: image('Favicon', 64, 64, 'tab.png'), sharingImage: image('SharingImage', 1200, 630, 'share.jpg') });
+
+    const logoTile = await screen.findByText('brightwater-logo.png').then((name) => name.closest<HTMLElement>('[data-image-tile]')!);
+    expect(logoTile.querySelector('[class*="conic-gradient"]')).not.toBeNull();
+    const faviconTile = document.querySelector<HTMLElement>('[data-image-tile="favicon"]')!;
+    expect(within(faviconTile).getByAltText('The favicon')).toHaveClass('size-8');
+    expect(within(faviconTile).getByText('Jobs at Brightwater Studio')).toBeInTheDocument();
+    const sharingTile = document.querySelector<HTMLElement>('[data-image-tile="sharing"]')!;
+    expect(within(sharingTile).getByAltText('The sharing image').className).toContain('aspect-[1.91/1]');
+    expect(within(sharingTile).getByText('Open roles at Brightwater Studio.')).toBeInTheDocument();
+    expect(within(sharingTile).getByText('share.jpg')).toBeInTheDocument();
   });
 
   it("offers ScreenHire's heading font while none is picked", async () => {
     renderPage(unset);
 
     expect(await screen.findByRole('radio', { name: /Bricolage Grotesque/ })).toBeChecked();
-    expect(screen.getByText('No logo')).toBeInTheDocument();
+    expect(screen.getByText('No logo yet')).toBeInTheDocument();
+    // An empty tile is dashed and has Upload, not Replace or Remove.
+    const tile = document.querySelector<HTMLElement>('[data-image-tile="logo"]')!;
+    expect(tile).toHaveAttribute('data-empty');
+    expect(tile.className).toContain('border-dashed');
+    expect(within(tile).getByRole('button', { name: 'Upload logo' })).toBeInTheDocument();
+    expect(within(tile).queryByRole('button', { name: 'Remove logo' })).toBeNull();
     // An empty brand colour is ScreenHire's; an empty second colour is no header band at all.
     expect(screen.getByLabelText('Brand colour')).toHaveAttribute('placeholder', "ScreenHire's");
     expect(screen.getByLabelText('Second colour')).toHaveAttribute('placeholder', 'None');
@@ -203,6 +239,37 @@ describe('branding page', () => {
     await waitFor(() => expect(bodies[0]).toMatchObject({ faviconId: ticket.uploadId }));
   });
 
+  it('takes a file dropped on an empty tile, and ignores one dropped on a tile that has an image', async () => {
+    const ticket = {
+      uploadId: '7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f',
+      uploadUrl: 'http://storage.test/brand-images/upload?sig=x',
+      method: 'PUT',
+      headers: {},
+      expiresAt: '2026-10-30T10:00:00Z',
+      maxBytes: 1_048_576,
+    };
+    const asked: unknown[] = [];
+    renderPage(unset, {
+      'POST /v1/organization/branding/images': (init) => {
+        asked.push(JSON.parse(String(init?.body)));
+        return Response.json(ticket);
+      },
+      [`PUT ${ticket.uploadUrl}`]: () => new Response(null, { status: 201 }),
+      [`POST /v1/organization/branding/images/${ticket.uploadId}/verify`]: () => Response.json({ ...logo, id: ticket.uploadId, fileName: 'dropped.png' }),
+    });
+    await screen.findByText('No logo yet');
+    const tile = document.querySelector<HTMLElement>('[data-image-tile="logo"]')!;
+    const file = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], 'dropped.png', { type: 'image/png' });
+
+    await fireEvent.drop(tile, { dataTransfer: { files: [file] } });
+
+    await waitFor(() => expect(asked).toEqual([{ kind: 'Logo', fileName: 'dropped.png', sizeBytes: 4 }]));
+    expect(await screen.findByText('dropped.png')).toBeInTheDocument();
+
+    await fireEvent.drop(tile, { dataTransfer: { files: [file] } });
+    expect(asked).toHaveLength(1);
+  });
+
   it('says when the malware scan blocked an upload', async () => {
     renderPage({ ...saved, logo: { ...logo, scanStatus: 'Infected', url: null } });
 
@@ -232,6 +299,30 @@ describe('branding page', () => {
 
     expect(await screen.findByText('Enter the brand colour as six hex digits, such as 1f4e5a.')).toBeInTheDocument();
     expect(bodies).toEqual([]);
+  });
+
+  it('opens the preview on Phone, and on Desktop once the pane has room for a tablet frame', async () => {
+    // The test setup gives every element a 1024px box, room enough for a tablet frame.
+    renderPage(saved);
+
+    const frame = await screen.findByRole('region', { name: 'Careers page' }).then((region) => region.querySelector('[data-preview-device]')!);
+    await waitFor(() => expect(frame).toHaveAttribute('data-preview-device', 'desktop'));
+
+    // A size the person picks stays.
+    await fireEvent.click(screen.getAllByRole('button', { name: 'Phone' })[0]!);
+    expect(frame).toHaveAttribute('data-preview-device', 'phone');
+  });
+
+  it('opens the preview on Phone where the pane is narrow', async () => {
+    const width = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(500);
+    try {
+      renderPage(saved);
+
+      const region = await screen.findByRole('region', { name: 'Careers page' });
+      expect(region.querySelector('[data-preview-device]')).toHaveAttribute('data-preview-device', 'phone');
+    } finally {
+      width.mockRestore();
+    }
   });
 
   it('previews the careers page and links to it', async () => {
