@@ -57,6 +57,7 @@ import type {
   ExplainVerificationReasonRequest,
   GetApiKeysHistoryParams,
   GetEmailTemplateHistoryParams,
+  GetFunnelApplicationsParams,
   GetHiringReportParams,
   GetHiringTemplateHistoryParams,
   GetJobHistoryParams,
@@ -141,6 +142,7 @@ import type {
   SlackChannelOption,
   SlackStatus,
   SlackTestResult,
+  StageKind,
   StartSlackLinkRequest,
   SubmitScorecardRequest,
   SwitchOrganizationRequest,
@@ -7826,6 +7828,73 @@ export const getGetHiringReportUrl = (params?: GetHiringReportParams,) => {
 export const getHiringReport = async (params?: GetHiringReportParams, options?: Parameters<typeof apiFetch>[1]): Promise<getHiringReportResponse> => {
 
   return apiFetch<getHiringReportResponse>(getGetHiringReportUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getFunnelApplicationsResponse200 = {
+  data: string[]
+  status: 200
+}
+
+export type getFunnelApplicationsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getFunnelApplicationsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getFunnelApplicationsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getFunnelApplicationsResponseSuccess = (getFunnelApplicationsResponse200) & {
+  headers: Headers;
+};
+export type getFunnelApplicationsResponseError = (getFunnelApplicationsResponse400 | getFunnelApplicationsResponse401 | getFunnelApplicationsResponse404) & {
+  headers: Headers;
+};
+
+export type getFunnelApplicationsResponse = (getFunnelApplicationsResponseSuccess | getFunnelApplicationsResponseError)
+
+export const getGetFunnelApplicationsUrl = (kind: StageKind,
+    params?: GetFunnelApplicationsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["jobId"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/reports/hiring/funnel/${kind}/applications?${stringifiedParams}` : `/v1/reports/hiring/funnel/${kind}/applications`
+}
+
+export const getFunnelApplications = async (kind: StageKind,
+    params?: GetFunnelApplicationsParams, options?: Parameters<typeof apiFetch>[1]): Promise<getFunnelApplicationsResponse> => {
+
+  return apiFetch<getFunnelApplicationsResponse>(getGetFunnelApplicationsUrl(kind,params),
   {
     ...options,
     method: 'GET'

@@ -58,6 +58,12 @@ public sealed class JobApplication : IJobScoped
     /// </summary>
     public string? SourceSite { get; init; }
 
+    /// <summary>
+    /// The job board whose feed link the candidate followed to apply (a board id such as <c>talent</c>), or null when no
+    /// board sent them. Only a hint for reports; <see cref="Source"/> stays <see cref="ApplicationSource.CareersSite"/>.
+    /// </summary>
+    public string? SourceBoard { get; init; }
+
     /// <summary>The candidate's answers to the job's questions (<see cref="ApplicationForm"/>), empty ones left out.</summary>
     public IReadOnlyList<ApplicationAnswer> Answers { get; init; } = [];
 
@@ -132,6 +138,7 @@ public sealed class JobApplication : IJobScoped
             StageEnteredAt = now,
             Source = intake.Source,
             SourceSite = intake.SourceSite,
+            SourceBoard = intake.SourceBoard,
             Answers = ApplicationForm.Normalize(intake.Answers),
             PrivacyNoticeVersion = intake.PrivacyNoticeVersion,
             HoneypotFilled = intake.HoneypotFilled,
@@ -566,6 +573,7 @@ public enum TalentPoolExit
 /// <remarks>
 /// <c>FutureRoles</c>: the candidate's permission to keep their details for future roles, if they gave it.
 /// <c>SourceSite</c>: the organization's own site the careers page was embedded in, if it was (<see cref="JobApplication.SourceSite"/>).
+/// <c>SourceBoard</c>: the job board whose link the candidate followed, if it was a known one (<see cref="JobApplication.SourceBoard"/>).
 /// </remarks>
 public sealed record ApplicationIntake(
     ApplicationSource Source,
@@ -574,7 +582,8 @@ public sealed record ApplicationIntake(
     bool HoneypotFilled = false,
     BotCheckResult BotCheck = BotCheckResult.NotChecked,
     FutureRolesConsent? FutureRoles = null,
-    string? SourceSite = null)
+    string? SourceSite = null,
+    string? SourceBoard = null)
 {
     /// <summary>A recruiter added the application by hand: no answers and no careers-form checks.</summary>
     public static ApplicationIntake Recruiter { get; } = new(ApplicationSource.Recruiter, []);

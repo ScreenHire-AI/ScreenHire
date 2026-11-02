@@ -9,7 +9,8 @@ import type { MalwareScanStatus } from './malwareScanStatus.ts';
 
 /**
  * An uploaded brand image. `scanStatus` is the malware scan's: a Pending or Infected image cannot be saved or
- * served. `url` is its public address on the careers board, null until it may be served.
+ * served. `url` is its public address on the careers board, null until it may be served. `fileName` is the
+ * name it was uploaded with.
  */
 export interface BrandingImage {
   id: string;
@@ -19,6 +20,7 @@ export interface BrandingImage {
   width: number;
   height: number;
   sizeBytes: number;
+  fileName: string;
   /** @nullable */
   url: string | null;
 }

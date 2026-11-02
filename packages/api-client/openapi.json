@@ -7536,6 +7536,30 @@
             }
           },
           {
+            "name": "previousFrom",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "previousTo",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "timeZone",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "UTC"
+            }
+          },
+          {
             "name": "jobId",
             "in": "query",
             "schema": {
@@ -7557,6 +7581,88 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/reports/hiring/funnel/{kind}/applications": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "operationId": "GetFunnelApplications",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/StageKind"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "400": {
             "description": "Bad Request",
@@ -12250,6 +12356,7 @@
           "width",
           "height",
           "sizeBytes",
+          "fileName",
           "url"
         ],
         "type": "object",
@@ -12279,6 +12386,9 @@
             "type": "integer",
             "format": "int64"
           },
+          "fileName": {
+            "type": "string"
+          },
           "url": {
             "type": [
               "null",
@@ -12286,7 +12396,7 @@
             ]
           }
         },
-        "description": "An uploaded brand image. `scanStatus` is the malware scan's: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served."
+        "description": "An uploaded brand image. `scanStatus` is the malware scan's: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served. `fileName` is the\nname it was uploaded with."
       },
       "CandidateDetail": {
         "required": [
@@ -13671,9 +13781,13 @@
         "required": [
           "from",
           "to",
+          "headline",
+          "previous",
+          "weekly",
           "funnel",
           "timeToHire",
-          "sources"
+          "sources",
+          "openJobs"
         ],
         "type": "object",
         "properties": {
@@ -13684,6 +13798,25 @@
           "to": {
             "type": "string",
             "format": "date-time"
+          },
+          "headline": {
+            "$ref": "#/components/schemas/ReportHeadline"
+          },
+          "previous": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ReportHeadline"
+              }
+            ]
+          },
+          "weekly": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportWeek"
+            }
           },
           "funnel": {
             "type": "array",
@@ -13699,9 +13832,15 @@
             "items": {
               "$ref": "#/components/schemas/SourceCount"
             }
+          },
+          "openJobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportOpenJob"
+            }
           }
         },
-        "description": "The Reports page (docs/architecture/reports.md): the funnel, time to hire and sources for the jobs the person can see,\nbetween two instants. All three come from one snapshot, so their numbers agree. Nothing here reads verification\n(verification) results."
+        "description": "The Reports page (docs/architecture/reports.md): headline numbers, applications and hires by week, the funnel, time to\nhire, sources and open jobs for the jobs the person can see, between two instants. All of it comes from one snapshot,\nso the numbers agree. Nothing here reads verification (verification) results."
       },
       "HiringTeamMember": {
         "required": [
@@ -16379,6 +16518,12 @@
               "null",
               "string"
             ]
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "description": "A candidate's application from the careers page. The candidate is matched by email within the organization and\ncreated if new; an existing candidate's details are never changed by a public submission."
@@ -17140,6 +17285,102 @@
           }
         },
         "description": "Takes the candidate out of the saved candidates. `candidateAsked`: they asked to be removed, so their permission for\nfuture roles is withdrawn too, and they cannot be saved again until they give it on a new application."
+      },
+      "ReportHeadline": {
+        "required": [
+          "applications",
+          "reachedInterview",
+          "offers",
+          "hires",
+          "medianDaysToHire"
+        ],
+        "type": "object",
+        "properties": {
+          "applications": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reachedInterview": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "offers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hires": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "medianDaysToHire": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        },
+        "description": "The headline numbers of one range."
+      },
+      "ReportOpenJob": {
+        "required": [
+          "jobId",
+          "title",
+          "applications",
+          "inInterview",
+          "daysOpen",
+          "hires"
+        ],
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "applications": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "inInterview": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "daysOpen": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hires": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "An open job: applications in the range, applications in an Interview stage now, days open and hires in the range."
+      },
+      "ReportWeek": {
+        "required": [
+          "weekStart",
+          "applications",
+          "hires"
+        ],
+        "type": "object",
+        "properties": {
+          "weekStart": {
+            "type": "string",
+            "format": "date"
+          },
+          "applications": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hires": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "One Monday-start week: applications submitted in it and hires made in it, both inside the range."
       },
       "RequestScorecardRequest": {
         "required": [
@@ -18267,14 +18508,18 @@
       },
       "SourceCount": {
         "required": [
-          "source",
+          "key",
+          "name",
           "applications",
           "hires"
         ],
         "type": "object",
         "properties": {
-          "source": {
-            "$ref": "#/components/schemas/ApplicationSource"
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
           },
           "applications": {
             "type": "integer",
@@ -18286,6 +18531,28 @@
           }
         },
         "description": "Applications submitted in the range from one source, and how many of them are hired now."
+      },
+      "StageDays": {
+        "required": [
+          "kind",
+          "medianDays",
+          "hires"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/StageKind"
+          },
+          "medianDays": {
+            "type": "number",
+            "format": "double"
+          },
+          "hires": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "The median days the hires made in the range spent in one stage kind, and how many of them were in it."
       },
       "StageKind": {
         "enum": [
@@ -18781,22 +19048,16 @@
       },
       "TimeToHire": {
         "required": [
-          "medianDays",
-          "hires",
+          "stages",
           "jobs"
         ],
         "type": "object",
         "properties": {
-          "medianDays": {
-            "type": [
-              "null",
-              "number"
-            ],
-            "format": "double"
-          },
-          "hires": {
-            "type": "integer",
-            "format": "int32"
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StageDays"
+            }
           },
           "jobs": {
             "type": "array",

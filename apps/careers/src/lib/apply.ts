@@ -406,6 +406,8 @@ export function toRequest(
     automationMarkers?: string[];
     /** The organization's own site the careers page was embedded in, already checked against its list. */
     embedOrigin?: string | null;
+    /** The job board whose link brought the candidate, already checked for shape. */
+    source?: string | null;
   },
 ): PublicApplicationRequest {
   // The module never runs with the assistive-technology switch on; nothing it might have left is sent either, and no
@@ -443,6 +445,7 @@ export function toRequest(
     telemetrySessionToken: state.telemetrySession || null,
     telemetry: measured ? (checks.telemetry ?? null) : null,
     embedOrigin: checks.embedOrigin ?? null,
+    source: checks.source ?? null,
   };
 }
 

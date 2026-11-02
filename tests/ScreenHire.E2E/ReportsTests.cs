@@ -4,8 +4,9 @@ using ScreenHire.Domain.Applications;
 namespace ScreenHire.E2E;
 
 /// <summary>
-/// Reports (docs/architecture/reports.md): a hiring team opens Reports from the sidebar, reads its funnel, time to hire
-/// and sources, switches a chart to its table, widens the dates and narrows to one job. Signs in as a new person with a
+/// Reports (docs/architecture/reports.md): a hiring team opens Reports from the sidebar, reads its headline numbers, funnel,
+/// time to hire and sources, compares with the period before, exports a CSV, follows a funnel stage to its candidates,
+/// switches a chart to its table, widens the dates and narrows to one job. Signs in as a new person with a
 /// new organization whose history is written already dated.
 /// </summary>
 public sealed class ReportsTests(E2EFixture fixture) : BrowserTest(fixture)
@@ -24,14 +25,35 @@ public sealed class ReportsTests(E2EFixture fixture) : BrowserTest(fixture)
 
         // The last 30 days: three applications arrived, one is hired; two hires were made, 10 and 40 days after applying.
         var funnel = Region("Hiring funnel");
-        await Expect(funnel.GetByRole(AriaRole.Img, new() { Name = "Applied: 3 applications, 67% moved on" })).ToBeVisibleAsync();
+        await Expect(funnel.GetByRole(AriaRole.Img, new() { Name = "Applied: 3 applications, 100% of applicants, 67% moved on" })).ToBeVisibleAsync();
         await Expect(funnel.GetByRole(AriaRole.Img, new() { Name = "Hired: 1 application" })).ToBeVisibleAsync();
-        await Expect(Region("Time to hire")).ToContainTextAsync("Median across 2 hires");
         await Expect(Region("Time to hire").GetByRole(AriaRole.Img, new() { Name = "Platform Engineer: 25 days, 2 hires" })).ToBeVisibleAsync();
-        await Expect(Region("Sources").GetByRole(AriaRole.Img, new() { Name = "Careers page: 2 applications, 1 hire" })).ToBeVisibleAsync();
+        await Expect(Region("Sources").GetByRole(AriaRole.Img, new() { Name = "Careers page: 2 applications, 1 hire, 50% hire rate" })).ToBeVisibleAsync();
         await Expect(Region("Sources").GetByRole(AriaRole.Img, new() { Name = "Added by a recruiter: 1 application, 0 hires" })).ToBeVisibleAsync();
+        await Expect(Region("Applications and hires by week")).ToBeVisibleAsync();
+        await Expect(Region("Open jobs")).ToContainTextAsync("No open jobs");
+
+        // The headline numbers say how far they moved from the 30 days before, in words and never a status colour.
+        var headline = Page.GetByRole(AriaRole.Group, new() { Name = "Headline numbers" });
+        await Expect(headline).ToContainTextAsync("Applications");
+        await Expect(headline).ToContainTextAsync("2 more than before");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-reports-1440");
+
+        // Compare is on by default and off on request.
+        var compare = Page.GetByRole(AriaRole.Switch, new() { Name = "Compare periods" });
+        await Expect(compare).ToBeCheckedAsync();
+        await compare.ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex("compare=off"));
+        await Expect(headline).Not.ToContainTextAsync("more than before");
+        await compare.ClickAsync();
+        await Expect(headline).ToContainTextAsync("2 more than before");
+
+        // Export CSV saves every panel's table.
+        var download = await Page.RunAndWaitForDownloadAsync(() => Page.GetByRole(AriaRole.Button, new() { Name = "Export CSV" }).ClickAsync());
+        download.SuggestedFilename.Should().MatchRegex(@"^screenhire-reports-\d{4}-\d{2}-\d{2}-to-\d{4}-\d{2}-\d{2}\.csv$");
+        var csv = await File.ReadAllTextAsync((await download.PathAsync())!, Ct);
+        csv.Should().ContainAll("Headline numbers", "Applications and hires by week", "Hiring funnel", "Time to hire", "Sources", "Open jobs", "Platform Engineer");
 
         // Every chart has its table.
         await funnel.GetByRole(AriaRole.Button, new() { Name = "Table" }).ClickAsync();
@@ -39,17 +61,25 @@ public sealed class ReportsTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(funnel.GetByRole(AriaRole.Table)).ToContainTextAsync("Moved on");
         await funnel.GetByRole(AriaRole.Button, new() { Name = "Chart" }).ClickAsync();
 
+        // A stage's name opens the candidates behind it: the two applications that reached Interview.
+        await funnel.GetByRole(AriaRole.Link, new() { Name = "Interview" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Candidates");
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Clear filter: Reached Interview" })).ToBeVisibleAsync();
+        await Expect(Page.Locator("[data-slot='header-band']")).ToContainTextAsync("2 applications");
+        await Page.GoBackAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Reports");
+
         // The last 90 days takes in the application from 45 days ago, and the address keeps the choice.
         await Page.GetByRole(AriaRole.Button, new() { Name = "Dates: Last 30 days" }).ClickAsync();
         await Page.GetByRole(AriaRole.Radio, new() { Name = "Last 90 days" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex("range=90"));
-        await Expect(funnel.GetByRole(AriaRole.Img, new() { Name = "Applied: 4 applications, 75% moved on" })).ToBeVisibleAsync();
+        await Expect(funnel.GetByRole(AriaRole.Img, new() { Name = "Applied: 4 applications, 100% of applicants, 75% moved on" })).ToBeVisibleAsync();
 
         // One job: Data Engineer's single application, in Applied.
         await Page.GetByRole(AriaRole.Button, new() { Name = "Job: All" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitemcheckbox, new() { Name = "Data Engineer" }).ClickAsync();
         await Page.Keyboard.PressAsync("Escape");
-        await Expect(funnel.GetByRole(AriaRole.Img, new() { Name = "Applied: 1 application, 0% moved on" })).ToBeVisibleAsync();
+        await Expect(funnel.GetByRole(AriaRole.Img, new() { Name = "Applied: 1 application" })).ToBeVisibleAsync();
         await Expect(Region("Time to hire")).ToContainTextAsync("No hires in these dates");
 
         // A phone: one column, nothing scrolls sideways.
@@ -75,11 +105,11 @@ public sealed class ReportsTests(E2EFixture fixture) : BrowserTest(fixture)
         var now = DateTimeOffset.UtcNow;
         DateTimeOffset Ago(int days) => now.AddDays(-days);
         await Fixture.AddApplicationHistoryAsync(
-            organizationId, platform.Id, Ago(20), ApplicationSource.CareersSite, [("screening", Ago(18)), ("interview", Ago(15)), ("offer", Ago(12)), ("hired", Ago(10))], Ct);
+            organizationId, platform.Id, Ago(20), ApplicationSource.CareersSite, [("screening", Ago(18)), ("interview", Ago(15)), ("offer", Ago(12)), ("hired", Ago(10))], cancellationToken: Ct);
         await Fixture.AddApplicationHistoryAsync(
-            organizationId, platform.Id, Ago(25), ApplicationSource.Recruiter, [("screening", Ago(24)), ("interview", Ago(20)), ("rejected", Ago(19))], Ct);
+            organizationId, platform.Id, Ago(25), ApplicationSource.Recruiter, [("screening", Ago(24)), ("interview", Ago(20)), ("rejected", Ago(19))], cancellationToken: Ct);
         await Fixture.AddApplicationHistoryAsync(
-            organizationId, platform.Id, Ago(45), ApplicationSource.CareersSite, [("interview", Ago(40)), ("hired", Ago(5))], Ct);
+            organizationId, platform.Id, Ago(45), ApplicationSource.CareersSite, [("interview", Ago(40)), ("hired", Ago(5))], cancellationToken: Ct);
         await Fixture.AddApplicationHistoryAsync(organizationId, data.Id, Ago(8), ApplicationSource.CareersSite, cancellationToken: Ct);
         return email;
     }

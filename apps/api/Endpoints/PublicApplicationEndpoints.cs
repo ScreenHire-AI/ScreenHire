@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Applications;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Application.Distribution;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
@@ -151,6 +152,11 @@ internal static class PublicApplicationEndpoints
         return origins.Contains(embedOrigin, StringComparer.Ordinal) ? embedOrigin : null;
     }
 
+    // The job board whose link the candidate followed, when it is one that tags its links (BoardUrls): anything else is
+    // dropped, never a reason to refuse an application.
+    private static string? SourceBoard(string? source) =>
+        source is not null && BoardUrls.TaggedBoards.Contains(source) ? source : null;
+
     private static async Task<Results<Created<PublicApplicationReceipt>, NotFound, ValidationProblem, ProblemHttpResult>> SubmitApplication(
         string organizationSlug,
         Guid jobId,
@@ -240,7 +246,8 @@ internal static class PublicApplicationEndpoints
             request.HoneypotFilled,
             await turnstile.VerifyAsync(request.BotCheckToken, remoteAddress, cancellationToken),
             futureRoles,
-            await SourceSiteAsync(request.EmbedOrigin, job.OrganizationId, outbox.DbContext, cancellationToken));
+            await SourceSiteAsync(request.EmbedOrigin, job.OrganizationId, outbox.DbContext, cancellationToken),
+            SourceBoard(request.Source));
 
         var submitted = await ApplicationSubmission.SubmitAsync(
             outbox, job, ApplicationSubmission.CandidateDetails.From(request.Candidate),

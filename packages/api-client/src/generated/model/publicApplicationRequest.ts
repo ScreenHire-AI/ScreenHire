@@ -41,4 +41,6 @@ export interface PublicApplicationRequest {
   keepForFutureRoles?: boolean;
   /** @nullable */
   embedOrigin?: string | null;
+  /** @nullable */
+  source?: string | null;
 }
