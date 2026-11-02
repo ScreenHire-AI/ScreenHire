@@ -265,7 +265,8 @@ for anyone whose role has a settings permission; it opens the Settings menu (Org
 Verification, API keys and Webhooks, under `/settings/*`; email templates are on the Templates page, and their old
 `/settings/email-templates` addresses redirect there), each page
 behind its permission (`settingsSections` in `apps/dashboard/src/lib/settings.ts`), and the command palette lists the
-same pages. The settings layout tells anyone who opens another page by its address that their role cannot change it.
+same pages. Slack's page and entry are left out wherever `GET /v1/slack` says Slack is not `available` (a feature on its
+settings row, `SettingsFeatures`), and an address to it goes to the first page the person may use. The settings layout tells anyone who opens another page by its address that their role cannot change it.
 Hiring controls show by the permission their route needs: an Interviewer sees Add note and Fill scorecard but no Move.
 The Team page offers only what `TeamPolicy` allows (`settings.ts` mirrors it): an Admin sees no Owner role and no actions
 on an Owner's row, and nobody gets actions on their own row. Removing a member offers to revoke the active API keys they

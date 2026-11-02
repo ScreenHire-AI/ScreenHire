@@ -90,6 +90,7 @@ public sealed class OrganizationBrandingTests(AppHostFixture fixture)
 
         var image = await UploadAsync(owner, "Logo", "logo.png", png);
         image.Text("scanStatus").Should().Be("Pending");
+        image.Text("fileName").Should().Be("logo.png", "the tile on Settings names the file");
         image.At("url").ValueKind.Should().Be(JsonValueKind.Null, "an image is not served before its scan");
         var id = image.Text("id");
         var scanned = await ScannedAsync(owner, id);

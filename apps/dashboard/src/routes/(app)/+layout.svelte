@@ -26,6 +26,7 @@
   import { createQueryClient } from '#lib/query.js';
   import { startLiveUpdates } from '#lib/realtime.js';
   import { savedViews } from '#lib/saved-views.js';
+  import { slackFeature } from '#lib/settings.js';
   import { sections, setShell } from '#lib/shell.js';
   import { createChordHandler } from '#lib/shortcuts.js';
   import { defaultNotificationSettings } from '#lib/teammate-changes.js';
@@ -126,6 +127,7 @@
       notificationsOpen = true;
     },
     live: () => live.connection.status,
+    features: () => ({ slack: slackFeature(slack.data?.data, slack.isError) }),
   });
 
   const chords = createChordHandler(Object.fromEntries(sections.map((section) => [section.key, section.href])), (href) => void goto(href));
