@@ -36,7 +36,8 @@ pool; the rename and rating work for saved candidates is its own task).
 every application they made and their history across them; each application's header links to it as Also applied to.
 A later application that shares a detail with an earlier one re-checks the earlier one's duplicates, and the review log
 says why ([verification engine](architecture/verification-engine.md) section 10.2). An Owner or Admin can erase a
-candidate with their name typed to confirm, leaving a line in the team log with no personal data.
+candidate with their name typed to confirm, leaving a line in the team log with no personal data. Erasing also deletes
+their replies' attachments and the history of their saved notes, which sit outside the candidate's cascade.
 
 ## 2026-10-31
 

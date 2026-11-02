@@ -44,7 +44,7 @@ look at.
 `/candidates/{id}` shows who they are (name, contact), every application in the order it was made (the job, when they
 applied, how far it got, how it ended) and their history across all of them. "How far it got" is the stage an ended
 application was in before its last move, shown once it has ended; while it is open its stage is on the pill. "How it
-ended" is Hired, Rejected, Withdrawn or Kept in mind, with the date.
+ended" is Hired, Rejected, Withdrawn or Saved, with the date.
 Both come from `GET /v1/candidates/{id}` and `GET /v1/candidates/{id}/history`. The history is every timeline entry of
 every application the reader may see, newest first, each with its job. It has no verification output (ADR-0004) and no
 scorecard scores or recommendations. Both routes are for people: the `/v1/candidates` group the hiring API shares with
@@ -73,26 +73,33 @@ Wording both without a number, or counting only the jobs the reader sees, is the
 sees every job (a member on Only jobs they're on gets a 404), the antiforgery token, and the candidate's full name as
 `confirmation`. The dashboard asks the person to type the name; the server checks it again (a 400 otherwise).
 
-In one transaction:
+In one transaction, which first locks the candidate's row so an application arriving now waits and cannot go with the
+cascade while its files are missing from the list below:
 
 - the candidate row is deleted. The foreign keys cascade to every application and everything under it: answers, file
-  rows, notes, emails, tasks, scorecards, questionnaires, automation runs, the talent pool entry, and all verification
-  data. The application role cannot delete from the append-only tables (events, review log, signals) itself; the
+  rows, notes, emails, replies and their attachment rows, tasks, scorecards, questionnaires, automation runs, the saved
+  candidate entry, and all verification data. The application role cannot delete from the append-only tables (events, review log, signals) itself; the
   cascade does it, with the database's rights;
 - drafts saved to finish an application, which are keyed by the address and have no foreign key to the candidate, are
   deleted;
+- `erase_saved_note_history` deletes the history of their saved notes from `change_records`. That history holds the
+  note's free text and is keyed by the entry alone, so an entry that left the list leaves no link to the candidate. The
+  function keeps the records of every other candidate's entry and deletes the rest, which also takes the orphans of other
+  people who left the list; nobody can read those. It runs with the owner's rights and only for the current tenant,
+  because `screenhire_app` has no `DELETE` on the table ([change history](change-history.md#isolation));
 - the tombstone is a `CandidateErased` entry in the team log (`membership_events`): who and when, nothing about the
   candidate, not even their id;
-- `EraseApplicantFiles` carries the blob names to the worker, which deletes the files from storage. The names can hold a
-  file name, so the message lives only until the worker has handled it;
+- `EraseApplicantFiles` carries the blob names to the worker, which deletes the uploads and the attachments of the
+  candidate's replies, each from its own container. The names can hold a file name, so the message lives only until the
+  worker has handled it;
 - `RecheckApplicationDuplicates` is sent for every application that shared details with the erased ones, so no level
   keeps resting on someone who is gone; and `CandidateErased` tells open dashboards to drop them.
 
 Messages already queued for an erased application (analysis, scans, automations, a webhook or Slack post) find nothing
 and finish without error instead of retrying into the dead-letter table.
 
-Two stops lead here. A candidate who uses the link in a talent pool invitation is taken out of the pool and the
-profile then says so, with a pointer to **Erase candidate** (the link itself deletes nothing). A privacy request from a
+Two stops lead here. A candidate who uses the stop link in an invitation from Saved candidates comes off the list and
+the profile then says so, with a pointer to **Erase candidate** (the link itself deletes nothing). A privacy request from a
 candidate arrives by the email address the employer writes from, as the careers privacy page says; there is no intake form
 for it yet, and the team erases from the profile.
 

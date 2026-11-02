@@ -151,7 +151,8 @@ the webhook address of" the automation, with no values (`DefinitionChanges`).
 
 `change_records` is tenant-owned (`ITenantOwned`, the `Tenant` query filter) with forced row-level security and the
 `tenant_isolation` policy (migration `AddChangeHistory`). It is append-only: `screenhire_app` has no `UPDATE` or
-`DELETE` on it. It has no foreign key to users or API keys, so a removed member or a revoked key keeps their record.
+`DELETE` on it. The one exception is `erase_saved_note_history`, a function that runs with the owner's rights: erasing a
+candidate removes the history of saved notes, whose text is about them ([candidates](candidates.md#erasure)). It has no foreign key to users or API keys, so a removed member or a revoked key keeps their record.
 
 ## API
 

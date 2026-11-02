@@ -190,7 +190,7 @@ by side.
 |---|---|---|
 | `AnalyzeApplicationVerification` | the application | The submission and each content stage as it lands ask for an analysis within milliseconds of each other. Two at once inserted the same analyzer run, and the second failed on the unique index, then waited out a retry (1 s, then 5 s) before finding the run. One integration run logged 434 such failures, and each delayed the assessment people watch arrive live |
 | `CheckApplicationConsistency` | the application | Two checks of one application inserted the same consistency check row |
-| `RecheckApplicationDuplicates` | the application | A later application's duplicate check and an erasure can both ask for a re-check of one earlier application, and two would both write the next revision of its duplicate run. It has an idempotency key from the pair of applications, so a redelivery does nothing |
+| `RecheckApplicationDuplicates` | the application | A later application's duplicate check and an erasure can both ask for a re-check of one earlier application, and two would both write the next revision of its duplicate run. It has an idempotency key from the pair of applications and why it was sent, a match or an erasure, so a redelivery does nothing and an erasure is never taken for the match that came before it |
 
 Ordering is per worker process: the worker is one process, and these messages travel on its local queues. Each queue
 has five slots (`PartitionSlots.Five`), so at most five applications are analyzed at once, and two applications whose

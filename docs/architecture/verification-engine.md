@@ -336,7 +336,10 @@ separate message so the pipeline retries and fails apart from the workflow engin
    and its signals. A unique index on the run (application, name, version, revision) is the idempotency key. The pipeline
    writes revision 1; a re-check (below) writes the next;
 2. derives both assessments with the ruleset. An assessment row is written only when its inputs changed: its
-   `fingerprint` (ruleset version, signal ids, policy, declaration, accommodation) has a unique index;
+   `fingerprint` (ruleset version, signal ids, policy, declaration, accommodation) has a unique index. It also counts the
+   signals of that kind a later run replaced, when there are any: evidence that came and went leaves the signals of an
+   earlier assessment, and the newest assessment is the current one, so going back has to be a new row. A re-check that
+   touches only authenticity leaves the AI assistance row alone, so a dismissal of it stands;
 3. when a level changed (or on the first assessment), appends a `VerificationAssessed` timeline entry with both level
    names, and publishes the `VerificationAssessed` tenant event and `RunAutomations(VerificationAssessed)` for the workflow
    engine. New evidence at the same levels is stored as a new assessment row and not announced: content forensics
@@ -436,7 +439,8 @@ Rules of thumb in the analyzers:
   `High`; a shared email base or phone alone is `Medium`. One person is one candidate (matched by email within the
   organization, `docs/architecture/candidates.md`), so a person's own applications never match each other.
   **Re-checks.** When a later application's duplicate check finds earlier applications, the pipeline sends each a
-  `RecheckApplicationDuplicates` (up to 25, one per pair, `[Deduplicated]`, ordered per application like the analysis).
+  `RecheckApplicationDuplicates` (up to 25, one per pair and cause, `[Deduplicated]`, ordered per application like the
+  analysis).
   Its handler runs only the duplicate analyzer again over the earlier application. When the findings are the same as the
   latest run's, nothing is written. Otherwise it writes the next `revision` of the run with its signals, reassesses (the
   usual rule: a level change is announced, new evidence at the same level is stored quietly) and appends an
@@ -646,6 +650,9 @@ assessment, shown next to it as context; it is never a reason on its own.
   with no OCR.
 - Duplicate answers have the same blind spot as other duplicates, and one more: two applications analyzed at the same
   moment may miss each other, because each keeps its fingerprints only when its pipeline commits.
+- A re-check that reaches an application whose duplicate check has not run yet does nothing, because that run will read
+  the data as it then stands. An erasure in the moment after that run has read the data and before it commits leaves the
+  application with the finding until something re-checks it.
 - Turning the consistency check on does not reach back: applications already checked, skipped or switched off keep that
   outcome.
 - The dashboard's verification panel (§7) and questionnaire editor both exist now. A job asks for a LinkedIn export only
