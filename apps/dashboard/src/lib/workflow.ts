@@ -176,7 +176,7 @@ export const actionFieldLabels: Record<ActionField, string> = {
 export const interviewFieldLabels = {
   interviewerUserIds: 'Interviewers',
   interviewMinutes: 'Length',
-  interviewWindowDays: 'Days to pick a time',
+  interviewWindowDays: 'Days to choose',
   interviewTimeZone: 'Time zone',
 } as const;
 

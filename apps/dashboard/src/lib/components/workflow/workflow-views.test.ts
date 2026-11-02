@@ -278,6 +278,28 @@ describe('workflow builder', () => {
     expect(options(within(sheet).getByRole('combobox', { name: 'Action 1' }))).toEqual(['Add a tag', 'Assign a reviewer', 'Notify the team', 'Create a task']);
   });
 
+  // F6: a message sits under the field it is about, and the action's own list keeps only what no field holds.
+  it("shows an interview field's message under that field and the action's own message under the action", async () => {
+    const withInterview = structuredClone(workflow);
+    withInterview.automations![0]!.actions = [
+      { type: 'ScheduleInterview', interviewerUserIds: [], interviewMinutes: 45, interviewWindowDays: 0, interviewTimeZone: 'Europe/London' },
+    ];
+    const errors: DefinitionError[] = [
+      { path: 'automations[0].actions[0].interviewWindowDays', message: 'Give the candidate 1 to 60 days.' },
+      { path: 'automations[0].actions[0]', message: 'Offering an interview is not allowed here.' },
+    ];
+    render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: withInterview, errors, mode: 'editor', tab: 'pipeline' } } });
+    await fireEvent.click(within(screen.getByRole('region', { name: 'Stages' })).getByRole('button', { name: 'Edit automations for Phone screen' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Automations: Phone screen' });
+
+    const days = within(sheet).getByRole('spinbutton', { name: 'Days to choose' });
+    const described = (control: HTMLElement) => control.getAttribute('aria-describedby')?.split(' ').map((id) => document.getElementById(id)?.textContent?.trim());
+    expect(days).toHaveAttribute('aria-invalid', 'true');
+    expect(described(days)).toEqual(['Give the candidate 1 to 60 days.']);
+    const action = within(sheet).getByRole('combobox', { name: 'Action 1' });
+    expect(described(action)).toEqual(['Offering an interview is not allowed here.']);
+  });
+
   it('gives a review stage a scorecard from the library in a sheet, and an end stage none', async () => {
     vi.stubGlobal(
       'fetch',

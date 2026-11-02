@@ -1,8 +1,7 @@
 <script lang="ts">
   import type { ActionType, Automation, ConditionOperator, DefinitionError, HiringWorkflow, TriggerType } from '@screenhire/api-client';
-  import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
+  import { createListEmailTemplates, createListRoles, createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import Trash2Icon from '~icons/lucide/trash-2';
-  import { createListRoles, createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import IconButton from '#lib/components/icon-button.svelte';
   import ReorderList from '#lib/components/reorder-list.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -298,7 +297,10 @@
         {@const actionIndex = automation.actions.indexOf(action)}
         {@const field = actionField[action.type]}
         {@const actionPath = `${path}.actions[${actionIndex}]`}
-        {@const actionErrors = errorsUnder(errors, actionPath).map((error) => error.message)}
+        {@const interviewPaths = Object.keys(interviewFieldLabels).map((name) => `${actionPath}.${name}`)}
+        {@const at = (name: keyof typeof interviewFieldLabels) => errorsAt(errors, `${actionPath}.${name}`)}
+        <!-- The four interview fields show their messages under themselves (F6), so the action's own list holds the rest. -->
+        {@const actionErrors = errorsUnder(errors, actionPath).filter((error) => !interviewPaths.includes(error.path)).map((error) => error.message)}
         <div class={insetClass}>
           <div class="grid items-end gap-2 @xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto]">
             <label class={labelClass}>
@@ -368,7 +370,7 @@
               </label>
             {:else}
               <!-- ScheduleInterview draws its four fields below. -->
-              <span></span>
+              <span class="hidden @xl:block"></span>
             {/if}
             <div class="flex shrink-0 items-center gap-0.5">
               {#if automation.actions.length > 1}{@render grip()}{/if}
@@ -384,7 +386,7 @@
             <div class="mt-3 flex flex-col gap-3">
               <fieldset
                 class="flex min-w-0 flex-col gap-1"
-                aria-describedby={`${uid}-action-${actionIndex}-interviewers-hint`}
+                aria-describedby={describedBy(`${uid}-action-${actionIndex}-interviewers-hint`, at('interviewerUserIds').length > 0 && `${uid}-action-${actionIndex}-interviewers-errors`)}
               >
                 <legend class={labelClass}>{interviewFieldLabels.interviewerUserIds}</legend>
                 {#each people as member (member.userId)}
@@ -411,17 +413,22 @@
                     <span class="min-w-0 break-words text-muted-foreground">{team.isSuccess ? 'No longer on the team' : 'Loading the team…'}</span>
                   </label>
                 {/each}
+                {#if people.length === 0 && gone.length === 0}
+                  <p class="text-muted-foreground">{team.isPending ? 'Loading the team…' : 'No teammates to choose from.'}</p>
+                {/if}
                 <p id={`${uid}-action-${actionIndex}-interviewers-hint`} class="text-muted-foreground">
-                  Choose one to {maxInterviewers}. The first person you choose is the organizer: their calendar sends the invitation, and each
-                  interviewer needs a connected calendar when it runs.
+                  The first person you choose sends the invitation from their calendar. Everyone needs a connected calendar when it runs. {maxInterviewers} at most.
                 </p>
+                <FieldErrors id={`${uid}-action-${actionIndex}-interviewers-errors`} messages={at('interviewerUserIds')} />
               </fieldset>
-              <div class="grid gap-2 @xl:grid-cols-3">
+              <div class="grid items-start gap-2 @xl:grid-cols-3">
+                <div class="flex min-w-0 flex-col gap-1">
                 <label class={labelClass}>
                   {interviewFieldLabels.interviewMinutes}
                   <select
                     class={selectClass}
-                    aria-invalid={errorsAt(errors, `${actionPath}.interviewMinutes`).length > 0 || undefined}
+                    aria-invalid={at('interviewMinutes').length > 0 || undefined}
+                    aria-describedby={describedBy(at('interviewMinutes').length > 0 && `${uid}-action-${actionIndex}-minutes-errors`)}
                     bind:value={action.interviewMinutes}
                   >
                     {#each durations as minutes (minutes)}<option value={minutes}>{durationLabel(minutes)}</option>{/each}
@@ -430,34 +437,44 @@
                     {/if}
                   </select>
                 </label>
+                <FieldErrors id={`${uid}-action-${actionIndex}-minutes-errors`} messages={at('interviewMinutes')} />
+                </div>
+                <div class="flex min-w-0 flex-col gap-1">
                 <label class={labelClass}>
                   {interviewFieldLabels.interviewWindowDays}
                   <Input
                     type="number"
                     min={1}
                     max={maxInterviewWindowDays}
-                    aria-invalid={errorsAt(errors, `${actionPath}.interviewWindowDays`).length > 0 || undefined}
+                    aria-invalid={at('interviewWindowDays').length > 0 || undefined}
+                    aria-describedby={describedBy(at('interviewWindowDays').length > 0 && `${uid}-action-${actionIndex}-days-errors`)}
                     bind:value={action.interviewWindowDays}
                   />
                 </label>
+                <FieldErrors id={`${uid}-action-${actionIndex}-days-errors`} messages={at('interviewWindowDays')} />
+                </div>
+                <div class="flex min-w-0 flex-col gap-1">
                 <label class={labelClass}>
                   {interviewFieldLabels.interviewTimeZone}
                   <select
                     class={selectClass}
-                    aria-invalid={errorsAt(errors, `${actionPath}.interviewTimeZone`).length > 0 || undefined}
+                    aria-invalid={at('interviewTimeZone').length > 0 || undefined}
+                    aria-describedby={describedBy(at('interviewTimeZone').length > 0 && `${uid}-action-${actionIndex}-zone-errors`)}
                     bind:value={action.interviewTimeZone}
                   >
                     {#each zones as zone (zone.value)}<option value={zone.value}>{zone.label}</option>{/each}
                     {#if zoneId && !zones.some((zone) => zone.value === zoneId)}<option value={zoneId}>{zoneId}</option>{/if}
                   </select>
                 </label>
+                <FieldErrors id={`${uid}-action-${actionIndex}-zone-errors`} messages={at('interviewTimeZone')} />
+                </div>
               </div>
               <p class="text-muted-foreground">
-                The window starts when the automation runs. The candidate picks a weekday time between 09:00 and 17:00 in the chosen time zone.
+                The window starts when the automation runs. The candidate picks a weekday time during working hours in the chosen time zone.
               </p>
             </div>
           {/if}
-          <!-- Every message under the action, the interview fields' too. -->
+          <!-- What no field of its own holds: the action as a whole. -->
           <FieldErrors id={`${uid}-action-${actionIndex}-errors`} messages={actionErrors} />
         </div>
       {/snippet}
