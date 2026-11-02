@@ -151,9 +151,10 @@
   const source = createPreviewSource(() => draft);
 
   const images = $derived([
-    { id: 'logo', noun: 'logo', slot: logo, errors: $errors.logoId, description: 'PNG or JPEG, up to 1 MB. At the top of your careers pages and emails.' },
+    { id: 'logo', kind: 'logo' as const, noun: 'logo', slot: logo, errors: $errors.logoId, description: 'PNG or JPEG, up to 1 MB. At the top of your careers pages and emails.' },
     {
       id: 'favicon',
+      kind: 'favicon' as const,
       noun: 'favicon',
       slot: favicon,
       errors: $errors.faviconId,
@@ -161,6 +162,7 @@
     },
     {
       id: 'sharing-image',
+      kind: 'sharing' as const,
       noun: 'sharing image',
       slot: sharingImage,
       errors: $errors.sharingImageId,
@@ -259,9 +261,11 @@
 
             <Panel title="Images">
               <div class="flex flex-col gap-6">
-                {#each images as { id, noun, description, slot, errors } (id)}
+                {#each images as { id, kind, noun, description, slot, errors } (id)}
                   <ImageField
                     {id}
+                    {kind}
+                    organizationName={draft.organizationName}
                     {noun}
                     {description}
                     image={slot.image}

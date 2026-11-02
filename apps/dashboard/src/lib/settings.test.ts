@@ -1,7 +1,17 @@
 import type { CurrentUser, OrganizationRole } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import { builtInPermissions, interviewer, interviewerRoleId, roleCatalogue, userAs } from '../test-support/fixtures.js';
-import { assignableRoles, mayAssign, mayGiveJobAccess, roleFromKey, roleKey, seesAllJobsWith, settingsSectionOf, visibleSettingsSections } from './settings.js';
+import {
+  assignableRoles,
+  mayAssign,
+  mayGiveJobAccess,
+  roleFromKey,
+  roleKey,
+  seesAllJobsWith,
+  settingsSectionOf,
+  slackFeature,
+  visibleSettingsSections,
+} from './settings.js';
 
 // The expectations follow TeamPolicy.cs (src/ScreenHire.Domain/Organizations): someone with Manage the team gives a role
 // only when it holds nothing their own role does not. For the built-in roles that is Owners managing everyone, Admins
@@ -61,13 +71,38 @@ describe('role keys', () => {
   });
 });
 
+describe('slackFeature', () => {
+  it('waits for the first answer', () => {
+    expect(slackFeature(undefined, false)).toBeUndefined();
+  });
+
+  it('counts a status that was never read as no Slack', () => {
+    expect(slackFeature(undefined, true)).toBe(false);
+  });
+
+  it('keeps the last answer through a failed refetch', () => {
+    expect(slackFeature({ available: true }, true)).toBe(true);
+    expect(slackFeature({ available: false }, true)).toBe(false);
+  });
+});
+
 describe('visibleSettingsSections', () => {
   const labels = (user: CurrentUser | null) => visibleSettingsSections(user).map((section) => section.label);
 
   it('shows Owners and Admins every page, and email templates on the Templates page instead', () => {
-    expect(labels(userAs('Owner'))).toHaveLength(10);
-    expect(labels(userAs('Admin'))).toHaveLength(10);
+    const withSlack = (user: CurrentUser) => visibleSettingsSections(user, { slack: true });
+    expect(withSlack(userAs('Owner'))).toHaveLength(10);
+    expect(withSlack(userAs('Admin'))).toHaveLength(10);
     expect(labels(userAs('Owner'))).not.toContain('Email templates');
+  });
+
+  it('hides Slack, page and menu entry, until the installation has a Slack app (A3)', () => {
+    const owner = userAs('Owner');
+
+    expect(labels(owner)).not.toContain('Slack');
+    expect(labels(owner)).toHaveLength(9);
+    expect(visibleSettingsSections(owner, { slack: false }).map((section) => section.label)).not.toContain('Slack');
+    expect(visibleSettingsSections(owner, { slack: true }).map((section) => section.label)).toContain('Slack');
   });
 
   it('shows Recruiters, Viewers and an Interviewer none', () => {

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
 import type { CurrentUser } from '@screenhire/api-client';
 import { userAs } from '../../test-support/fixtures.js';
+import WithShell from '../../test-support/with-shell.svelte';
 import SettingsMenu from './settings-menu.svelte';
 
 const state = vi.hoisted(() => ({ user: undefined as CurrentUser | undefined }));
@@ -24,7 +25,7 @@ describe('settings menu', () => {
   });
 
   it('lists every settings page in order, in its named group, beside the page content, and marks the current one', async () => {
-    render(SettingsMenu, { props: { children: content } });
+    render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: { slack: true } } });
     const menu = screen.getByRole('navigation', { name: 'Settings' });
 
     const groups = within(menu).getAllByRole('list');
@@ -39,9 +40,22 @@ describe('settings menu', () => {
     await expectNoAxeViolations();
   });
 
+  it('leaves Slack out of the menu where no Slack app is set up, and while that is not yet known (A3)', () => {
+    for (const features of [{ slack: false }, {}]) {
+      const { unmount } = render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features } });
+      const labels = within(screen.getByRole('navigation', { name: 'Settings' }))
+        .getAllByRole('link')
+        .map((link) => link.textContent?.trim());
+
+      expect(labels).not.toContain('Slack');
+      expect(labels).toContain('MCP server');
+      unmount();
+    }
+  });
+
   it('lists only the pages the role may use', () => {
     state.user = userAs('Recruiter');
-    render(SettingsMenu, { props: { children: content } });
+    render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: { slack: true } } });
     const labels = within(screen.getByRole('navigation', { name: 'Settings' }))
       .queryAllByRole('link')
       .map((link) => link.textContent?.trim());
@@ -69,7 +83,7 @@ describe('settings menu', () => {
     const scrolledTo: number[] = [];
     Object.defineProperty(Element.prototype, 'scrollLeft', { configurable: true, get: () => 0, set: (value: number) => scrolledTo.push(value) });
     try {
-      render(SettingsMenu, { props: { children: content, current: '/settings/webhooks' } });
+      render(WithShell, { props: { component: SettingsMenu, props: { children: content, current: '/settings/webhooks' }, features: { slack: true } } });
 
       // Webhooks is the ninth entry, at 800px: the row scrolls to 750 so it sits in the middle.
       expect(scrolledTo).toEqual([750]);

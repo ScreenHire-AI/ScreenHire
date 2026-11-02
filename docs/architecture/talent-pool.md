@@ -75,7 +75,7 @@ skips an ended application uses it:
 - `slaDueAt` is null, so it is never overdue.
 
 The dashboard reads `keptInMindAt` through `#lib/talent-pool.ts`. A kept application shows "Kept in mind" where its stage
-was, counts in a job board's Closed column, and drops out of the stage views and filters.
+was, counts in a job board's Closed column, in a row of its own that opens in place to list those candidates, and drops out of the stage views and filters.
 
 **Moving it back is the undo.** `MoveTo` on a kept application clears `KeptInMindAt` and records a `StageChanged`, even
 to the stage it was in, and the API takes the candidate out of the pool. That is how a rejection is undone too.

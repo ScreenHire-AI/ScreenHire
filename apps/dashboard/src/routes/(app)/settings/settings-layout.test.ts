@@ -5,9 +5,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
 import { interviewer, user, userAs } from '../../../test-support/fixtures.js';
 import WithQueryClient from '../../../test-support/with-query-client.svelte';
+import WithShell from '../../../test-support/with-shell.svelte';
 import Layout from './+layout.svelte';
 
 const state = vi.hoisted(() => ({ url: new URL('http://dashboard.test/settings/team') }));
+const navigation = vi.hoisted(() => ({ goto: vi.fn(async () => {}) }));
+vi.mock('$app/navigation', () => navigation);
 vi.mock('$app/state', () => ({
   page: {
     data: {},
@@ -27,6 +30,7 @@ const renderAs = (signedIn: CurrentUser, path = '/settings/team') => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  navigation.goto.mockClear();
 });
 
 describe('settings layout', () => {
@@ -67,5 +71,47 @@ describe('settings layout', () => {
 
     expect(screen.getByText('Not in your role')).toBeInTheDocument();
     expect(screen.queryByText('Settings page content')).not.toBeInTheDocument();
+  });
+
+  // Slack's page exists only where a Slack app is set up (A3).
+  describe('Slack', () => {
+    const renderSlack = (features: { slack?: boolean }, signedIn: CurrentUser = userAs('Owner')) => {
+      state.url = new URL('http://dashboard.test/settings/slack');
+      return render(WithQueryClient, { props: { component: WithShell, props: { component: Layout, props: { data: { user: signedIn }, children: content }, features } } });
+    };
+
+    it('shows the page where Slack is set up', () => {
+      renderSlack({ slack: true });
+
+      expect(screen.getByText('Settings page content')).toBeInTheDocument();
+      expect(navigation.goto).not.toHaveBeenCalled();
+    });
+
+    it('sends an address to it to the first page the person may use where it is not, drawing nothing on the way', () => {
+      renderSlack({ slack: false });
+
+      expect(navigation.goto).toHaveBeenCalledWith('/settings/organization', { replaceState: true });
+      expect(screen.queryByText('Settings page content')).not.toBeInTheDocument();
+      expect(screen.queryByText('Not in your role')).not.toBeInTheDocument();
+    });
+
+    it('waits, drawing nothing and going nowhere, until the shell has heard from Slack', () => {
+      renderSlack({});
+
+      expect(navigation.goto).not.toHaveBeenCalled();
+      expect(screen.queryByText('Settings page content')).not.toBeInTheDocument();
+      expect(screen.queryByText('Not in your role')).not.toBeInTheDocument();
+    });
+
+    it.each([
+      ['a role that cannot use it', userAs('Viewer')],
+      ['no organization, where the shell never asks Slack', { ...user, organization: null }],
+    ])('answers someone with %s without waiting for Slack', (_, signedIn) => {
+      renderSlack({}, signedIn);
+
+      expect(screen.getByText('Not in your role')).toBeInTheDocument();
+      expect(screen.queryByText('Settings page content')).not.toBeInTheDocument();
+      expect(navigation.goto).not.toHaveBeenCalled();
+    });
   });
 });
