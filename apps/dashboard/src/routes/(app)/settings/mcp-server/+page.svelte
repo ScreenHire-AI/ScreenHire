@@ -48,7 +48,7 @@
   <SettingsMenu>
     <Panel title="Connect a client">
       <div class="flex flex-col gap-4">
-        <p class="max-w-measure">Any MCP client can work in ScreenHire with an API key. It never sees verification results.</p>
+        <p class="max-w-measure">Any MCP client can work in ScreenHire with an API key. It sees verification results only through a key an owner gave the Verification read scope.</p>
         <SummaryList>
           <SummaryItem label="Server URL">
             {#if serverUrl}

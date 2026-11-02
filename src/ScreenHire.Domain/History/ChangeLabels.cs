@@ -114,7 +114,12 @@ public static class ChangeLabels
     public static string JobAccess(JobAccess access) => access == Organizations.JobAccess.All ? "All jobs" : "Only jobs they're on";
 
     /// <summary>An API key's scopes as the API keys page says them (its <c>access</c> function).</summary>
-    public static string ApiKeyAccess(IEnumerable<ApiKeyScope> scopes) => scopes.Contains(ApiKeyScope.Write) ? "Read and write" : "Read only";
+    public static string ApiKeyAccess(IEnumerable<ApiKeyScope> scopes)
+    {
+        var list = scopes.ToList();
+        var access = list.Contains(ApiKeyScope.Write) ? "Read and write" : "Read only";
+        return list.Contains(ApiKeyScope.VerificationRead) ? access + " with verification" : access;
+    }
 
     public static string Days(int days) => days == 1 ? "1 day" : $"{days.ToString(CultureInfo.InvariantCulture)} days";
 

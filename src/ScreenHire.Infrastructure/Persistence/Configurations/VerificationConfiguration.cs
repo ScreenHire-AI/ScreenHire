@@ -101,6 +101,13 @@ internal sealed class VerificationReviewActionConfiguration : IEntityTypeConfigu
             .HasForeignKey(a => new { a.OrganizationId, a.AssessmentId })
             .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
             .OnDelete(DeleteBehavior.Cascade);
+        // A read through an API key (ADR-0021) names the key instead of a person. The app role cannot delete keys, and an
+        // organization's deletion removes keys and rows in one statement, so NO ACTION never blocks. The key is one column,
+        // not (OrganizationId, Id) like the other keys here: the value only ever comes from the authenticated key's own
+        // claim, with the organization resolved from that same key, so a row cannot name another organization's key.
+        builder.HasOne<ApiKey>().WithMany().HasForeignKey(a => a.ApiKeyId).OnDelete(DeleteBehavior.NoAction);
+        builder.ToTable(t => t.HasCheckConstraint(
+            "ck_verification_review_actions_one_actor", "(actor_user_id IS NOT NULL) <> (api_key_id IS NOT NULL)"));
         builder.HasIndex(a => new { a.OrganizationId, a.ApplicationId, a.OccurredAt });
         builder.HasIndex(a => new { a.OrganizationId, a.AssessmentId });
         // One dismissal per assessment, even when two reviewers press the button at once.

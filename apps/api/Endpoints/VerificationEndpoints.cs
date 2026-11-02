@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
@@ -27,8 +28,16 @@ internal static class VerificationEndpoints
 
     public static IEndpointRouteBuilder MapVerificationEndpoints(this IEndpointRouteBuilder app)
     {
+        // The reads accept an API key with the Verification read scope (ADR-0021); every other route here is the session's.
+        var reads = app.MapGroup("/v1").WithTags("Verification").AllowVerificationApiKeys();
+        reads.MapGet("/applications/{applicationId:guid}/verification", GetVerification).WithName("GetApplicationVerification")
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden);
+        reads.MapGet("/verification/applications", ListByLevel).WithName("ListVerificationApplications")
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden);
+
         var group = app.MapGroup("/v1/applications/{applicationId:guid}/verification").WithTags("Verification").RequireAuthorization();
-        group.MapGet("/", GetVerification).WithName("GetApplicationVerification").Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/assessments/{assessmentId:guid}/dismiss", Dismiss).WithName("DismissVerificationAssessment")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.ReviewVerification)
@@ -57,15 +66,55 @@ internal static class VerificationEndpoints
         return app;
     }
 
+    // A read through a key is written to the review log in the same save that precedes the answer, so a read that cannot
+    // be recorded is not answered (ADR-0021).
     private static async Task<Results<Ok<ApplicationVerification>, NotFound>> GetVerification(
-        Guid applicationId, ScreenHireDbContext db, CancellationToken cancellationToken)
+        Guid applicationId, ClaimsPrincipal user, ScreenHireDbContext db, ITenantContext tenant, TimeProvider time, CancellationToken cancellationToken)
     {
         if (!await db.Applications.AnyAsync(a => a.Id == applicationId, cancellationToken))
         {
             return TypedResults.NotFound();
         }
 
-        return TypedResults.Ok(await VerificationReads.LoadAsync(db, applicationId, cancellationToken));
+        var verification = await VerificationReads.LoadAsync(db, applicationId, cancellationToken);
+        await VerificationReads.RecordKeyReadsAsync(user, db, tenant, time, [applicationId], cancellationToken);
+        return TypedResults.Ok(verification);
+    }
+
+    /// <summary>The most applications one list returns.</summary>
+    public const int MaxMatches = 50;
+
+    /// <summary>The applications whose current verification is at a level, newest first, for a key that can read verification.</summary>
+    /// <remarks>
+    /// A level is evidence for a person to review, never a reason to reject on its own (ADR-0004): the list is in the order
+    /// applications arrived, not ranked by severity.
+    /// </remarks>
+    private static async Task<Results<Ok<VerificationMatches>, ValidationProblem>> ListByLevel(
+        AuthenticityLevel? authenticity,
+        AiAssistanceLevel? aiAssistance,
+        Guid? jobId,
+        bool? includeDismissed,
+        int? limit,
+        ClaimsPrincipal user,
+        ScreenHireDbContext db,
+        ITenantContext tenant,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        if (authenticity is null && aiAssistance is null)
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem("authenticity", "Name an authenticity level, an AI assistance level or both."));
+        }
+
+        if (limit is < 1 or > MaxMatches)
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem("limit", $"The limit is 1 to {MaxMatches}."));
+        }
+
+        var matches = await VerificationReads.ByLevelAsync(
+            db, authenticity, aiAssistance, jobId, includeDismissed ?? true, limit ?? 20, cancellationToken);
+        await VerificationReads.RecordKeyReadsAsync(user, db, tenant, time, [.. matches.Items.Select(m => m.ApplicationId)], cancellationToken);
+        return TypedResults.Ok(matches);
     }
 
     // Sets the current assessment of one kind aside, with a reason. Only an assessment above the lowest level, only the
@@ -294,10 +343,20 @@ internal static class VerificationReads
             .Where(s => s.ApplicationId == applicationId && signalIds.Contains(s.Id))
             .ToDictionaryAsync(s => s.Id, cancellationToken);
         var explanations = VerificationReviewAction.CurrentExplanations(actions);
-        var actorIds = actions.Select(a => a.ActorUserId).Distinct().ToList();
+        // A key's read names the key and, as who is behind it, the person who made the key (a revoked key keeps its name).
+        var keyIds = actions.Select(a => a.ApiKeyId).OfType<Guid>().Distinct().ToList();
+        var keys = new Dictionary<Guid, KeyOrigin>();
+        if (keyIds.Count > 0)
+        {
+            keys = await db.ApiKeys.AsNoTracking().Where(k => keyIds.Contains(k.Id))
+                .ToDictionaryAsync(k => k.Id, k => new KeyOrigin(k.Name, k.CreatedByUserId), cancellationToken);
+        }
+
+        var actorIds = actions.Select(a => a.ActorUserId).Concat(keys.Values.Select(k => k.CreatedByUserId)).OfType<Guid>().Distinct().ToList();
         var names = await db.Users.AsNoTracking()
             .Where(u => actorIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, u => u.DisplayName ?? u.Email, cancellationToken);
+        string? NameOf(Guid? userId) => userId is { } id ? names.GetValueOrDefault(id) : null;
         var kinds = assessments.ToDictionary(a => a.Id, a => a.Kind);
         var check = await db.ConsistencyChecks.AsNoTracking()
             .Where(c => c.ApplicationId == applicationId && c.PromptVersion == ConsistencyPrompts.Version)
@@ -305,7 +364,7 @@ internal static class VerificationReads
 
         VerificationDismissal? DismissalOf(VerificationAssessment assessment) =>
             actions.LastOrDefault(a => a.AssessmentId == assessment.Id && a.Type == VerificationReviewActionType.Dismissed) is { } action
-                ? new VerificationDismissal(action.Id, action.DismissReason!.Value, action.Note, action.ActorUserId, names.GetValueOrDefault(action.ActorUserId), action.OccurredAt)
+                ? new VerificationDismissal(action.Id, action.DismissReason!.Value, action.Note, action.ActorUserId!.Value, NameOf(action.ActorUserId), action.OccurredAt)
                 : null;
 
         static string TitleOf(VerificationSignal signal) => SignalCatalogue.All.TryGetValue(signal.Code, out var definition) ? definition.Title : signal.Code;
@@ -313,7 +372,7 @@ internal static class VerificationReads
         VerificationReasonExplanation? ExplanationOf(VerificationAssessment assessment, Guid signalId) =>
             explanations.TryGetValue((assessment.Id, signalId), out var action)
                 ? new VerificationReasonExplanation(
-                    action.Id, action.ExplainReason!.Value, action.Note, action.ActorUserId, names.GetValueOrDefault(action.ActorUserId), action.OccurredAt)
+                    action.Id, action.ExplainReason!.Value, action.Note, action.ActorUserId!.Value, NameOf(action.ActorUserId), action.OccurredAt)
                 : null;
 
         List<VerificationSignalView> SignalsOf(VerificationAssessment assessment) =>
@@ -342,8 +401,10 @@ internal static class VerificationReads
             [
                 .. actions.Select(a => new VerificationReviewEntry(
                     a.Id, a.Type, a.AssessmentId is { } id && kinds.TryGetValue(id, out var kind) ? kind : null, a.AssessmentId, a.DismissReason,
-                    a.Note, a.ActorUserId, names.GetValueOrDefault(a.ActorUserId), a.OccurredAt, a.SignalId,
-                    a.SignalId is { } signalId && signals.TryGetValue(signalId, out var signal) ? TitleOf(signal) : null, a.ExplainReason)),
+                    a.Note, a.ActorUserId, NameOf(a.ActorUserId), a.OccurredAt, a.SignalId,
+                    a.SignalId is { } signalId && signals.TryGetValue(signalId, out var signal) ? TitleOf(signal) : null, a.ExplainReason,
+                    a.ApiKeyId, a.ApiKeyId is { } keyId && keys.TryGetValue(keyId, out var key) ? key.Name : null,
+                    a.ApiKeyId is { } createdKeyId && keys.TryGetValue(createdKeyId, out var created) ? NameOf(created.CreatedByUserId) : null)),
             ],
             new VerificationActionAvailability(false, VerificationEndpoints.VerificationUnavailable),
             check is null || check.Status == ConsistencyCheckStatus.Running
@@ -386,4 +447,87 @@ internal static class VerificationReads
 
     private static VerificationAssessment? Current(IEnumerable<VerificationAssessment> assessments, VerificationAssessmentKind kind) =>
         assessments.Where(a => a.Kind == kind).OrderByDescending(a => a.AssessedAt).ThenByDescending(a => a.Id).FirstOrDefault();
+
+    private sealed record KeyOrigin(string Name, Guid? CreatedByUserId);
+
+    /// <summary>
+    /// Records, for a request made with an API key, that the key read the verification of each application in
+    /// <paramref name="applicationIds"/>: the key and when, one row per application (ADR-0021). Does nothing for a session.
+    /// The rows are saved before the caller answers, so a read that cannot be recorded is not answered.
+    /// </summary>
+    public static async Task RecordKeyReadsAsync(
+        ClaimsPrincipal user, ScreenHireDbContext db, ITenantContext tenant, TimeProvider time,
+        IReadOnlyCollection<Guid> applicationIds, CancellationToken cancellationToken)
+    {
+        if (user.ApiKeyId() is not { } keyId || applicationIds.Count == 0)
+        {
+            return;
+        }
+
+        var now = time.GetUtcNow();
+        db.VerificationReviewActions.AddRange(applicationIds.Select(id => VerificationReviewAction.ReadByKey(tenant.OrganizationId!.Value, id, keyId, now)));
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// The applications whose current assessment of each named kind is at the named level, newest first, with their chips.
+    /// One more row than <paramref name="limit"/> is read to know whether there are more.
+    /// </summary>
+    /// <remarks>
+    /// "Current" is the newest assessment of its kind. With <paramref name="includeDismissed"/> false, an assessment a
+    /// reviewer set aside does not match. The chips are read the same way the lists read them and the match is checked
+    /// again against them, so a tie in assessment time can never list an application under a level it no longer has.
+    /// </remarks>
+    public static async Task<VerificationMatches> ByLevelAsync(
+        ScreenHireDbContext db, AuthenticityLevel? authenticity, AiAssistanceLevel? aiAssistance, Guid? jobId, bool includeDismissed, int limit,
+        CancellationToken cancellationToken)
+    {
+        var current = db.VerificationAssessments.AsNoTracking().Where(a => !db.VerificationAssessments.Any(newer =>
+            newer.ApplicationId == a.ApplicationId && newer.Kind == a.Kind && newer.AssessedAt > a.AssessedAt));
+
+        IQueryable<Guid> Matching(VerificationAssessmentKind kind, string? level)
+        {
+            var ofKind = current.Where(a => a.Kind == kind);
+            if (level is not null)
+            {
+                ofKind = ofKind.Where(a => a.Level == level);
+                if (!includeDismissed)
+                {
+                    ofKind = ofKind.Where(a => !db.VerificationReviewActions.Any(r => r.AssessmentId == a.Id && r.Type == VerificationReviewActionType.Dismissed));
+                }
+            }
+
+            return ofKind.Select(a => a.ApplicationId);
+        }
+
+        var authenticityIds = Matching(VerificationAssessmentKind.Authenticity, authenticity?.ToString());
+        var aiAssistanceIds = Matching(VerificationAssessmentKind.AiAssistance, aiAssistance?.ToString());
+        var applications = db.Applications.AsNoTracking().Where(a => authenticityIds.Contains(a.Id) && aiAssistanceIds.Contains(a.Id));
+        if (jobId is { } id)
+        {
+            applications = applications.Where(a => a.JobId == id);
+        }
+
+        var rows = await applications
+            .Join(db.Jobs, a => a.JobId, j => j.Id, (a, j) => new { Application = a, Job = j })
+            .Join(db.Candidates, x => x.Application.CandidateId, c => c.Id, (x, c) => new
+            {
+                ApplicationId = x.Application.Id,
+                x.Application.JobId,
+                JobTitle = x.Job.Title,
+                CandidateId = c.Id,
+                CandidateName = c.FullName,
+                x.Application.SubmittedAt,
+            })
+            .OrderByDescending(r => r.SubmittedAt).ThenBy(r => r.ApplicationId)
+            .Take(limit + 1)
+            .ToListAsync(cancellationToken);
+        var summaries = await SummariesAsync(db, [.. rows.Take(limit).Select(r => r.ApplicationId)], cancellationToken);
+        var items = rows.Take(limit)
+            .Where(r => summaries.TryGetValue(r.ApplicationId, out var s)
+                && (authenticity is null || s.Authenticity == authenticity) && (aiAssistance is null || s.AiAssistance == aiAssistance))
+            .Select(r => new VerificationMatch(r.ApplicationId, r.JobId, r.JobTitle, r.CandidateId, r.CandidateName, r.SubmittedAt, summaries[r.ApplicationId]))
+            .ToList();
+        return new VerificationMatches(items, rows.Count > limit);
+    }
 }

@@ -2,7 +2,8 @@ import type { ApiKeyScope, ApiKeySummary } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
-import { apiStub, user } from '../../../../test-support/fixtures.js';
+import { apiStub, builtInPermissions, user } from '../../../../test-support/fixtures.js';
+import { page } from '$app/state';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
@@ -63,7 +64,18 @@ async function createKey(name: string, access: 'Read only' | 'Read and write') {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  page.data = { user };
 });
+
+// The signed-in person as an Admin: every permission an Owner has except the two that are Owner-only.
+function signInAsAdmin() {
+  page.data = { user: { ...user, organization: { ...user.organization!, role: 'Admin', permissions: builtInPermissions.Admin } } };
+}
+
+async function openCreateDialog() {
+  await fireEvent.click(await screen.findByRole('button', { name: 'Create key' }));
+  return screen.findByRole('dialog', { name: 'Create an API key' });
+}
 
 describe('API keys page', () => {
   it('says what the API is for, how to call it and where the reference is, at the API origin the API reports', async () => {
@@ -133,6 +145,55 @@ describe('API keys page', () => {
     await createKey(name, access);
 
     await waitFor(() => expect(bodies).toEqual([{ name, scopes }]));
+  });
+
+  it('lets an owner give a key the Verification read scope, and sends it with Read', async () => {
+    const bodies: unknown[] = [];
+    renderPage([], {
+      'POST /v1/organization/api-keys': (init) => {
+        bodies.push(JSON.parse(String(init?.body)));
+        return Response.json({ key: key('k9', 'Auditor', { scopes: ['Read', 'VerificationRead'] }), token }, { status: 201 });
+      },
+    });
+    const dialog = await openCreateDialog();
+    const verification = within(dialog).getByRole('switch', { name: 'Verification read' });
+
+    expect(verification).toBeEnabled();
+    expect(screen.getByText(/recorded in the application's review log/)).toBeInTheDocument();
+    await fireEvent.input(within(dialog).getByLabelText('Name'), { target: { value: 'Auditor' } });
+    await fireEvent.click(verification);
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Create key' }));
+
+    await waitFor(() => expect(bodies).toEqual([{ name: 'Auditor', scopes: ['Read', 'VerificationRead'] }]));
+  });
+
+  it('sends no verification scope unless the switch is on', async () => {
+    const bodies: unknown[] = [];
+    renderPage([], {
+      'POST /v1/organization/api-keys': (init) => {
+        bodies.push(JSON.parse(String(init?.body)));
+        return Response.json({ key: key('k9', 'Export'), token }, { status: 201 });
+      },
+    });
+
+    await createKey('Export', 'Read and write');
+
+    await waitFor(() => expect(bodies).toEqual([{ name: 'Export', scopes: ['Read', 'Write'] }]));
+  });
+
+  it('turns the Verification read switch off for anyone but an owner, and says why', async () => {
+    signInAsAdmin();
+    renderPage([]);
+    const dialog = await openCreateDialog();
+
+    expect(within(dialog).getByRole('switch', { name: 'Verification read' })).toBeDisabled();
+    expect(within(dialog).getByText(/Ask an owner to turn this on\./)).toBeInTheDocument();
+  });
+
+  it('says in the list that a key can read verification', async () => {
+    renderPage([key('k5', 'Auditor', { scopes: ['Read', 'VerificationRead'] })]);
+
+    expect((await screen.findAllByText('Read only with verification')).length).toBeGreaterThan(0);
   });
 
   it('shows the new token once, with Copy, and forgets it after Done', async () => {

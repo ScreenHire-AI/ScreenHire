@@ -250,7 +250,7 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
             ["create key"] = await key.PostAsync("/v1/organization/api-keys", new JsonObject { ["name"] = "Child", ["scopes"] = new JsonArray("Read", "Write") }),
             ["revoke key"] = await key.PostAsync($"/v1/organization/api-keys/{created.Id("key.id")}/revoke"),
             ["branding"] = await key.PutAsync("/v1/organization/branding", new JsonObject { ["brandColor"] = "#000000" }),
-            ["verification"] = await key.GetAsync($"/v1/applications/{application.Id()}/verification"),
+            ["verification action"] = await key.PostAsync($"/v1/applications/{application.Id()}/verification/notes", new JsonObject { ["note"] = "Via key" }),
             ["boards"] = await key.GetAsync("/v1/boards"),
         };
 

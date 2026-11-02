@@ -14,6 +14,7 @@
     getGetApiKeysHistoryQueryOptions,
   } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
+  import { page } from '$app/state';
   import {
     createSortedRowModel,
     createTable,
@@ -55,8 +56,10 @@
   import { Input } from '#lib/components/ui/input/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
+  import { Switch } from '#lib/components/ui/switch/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
   import { applyValidationProblem } from '#lib/forms.js';
+  import { can } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import { cn } from '#lib/utils.js';
@@ -69,6 +72,10 @@
   // keys' path refreshes both, since they live under it.
   const keysPath = '/v1/organization/api-keys';
 
+  // Only an owner can give a key the Verification read scope (ADR-0021); the API refuses anyone else, so the switch is
+  // off for them, with the reason beside it (design system A3).
+  const mayGrantVerification = $derived(can(page.data.user, 'GrantVerificationAccess'));
+
   const queryClient = useQueryClient();
   const sidebar = Sidebar.useSidebar();
   const keys = createListApiKeys();
@@ -80,7 +87,11 @@
   const meta = createGetMeta();
   const apiOrigin = $derived(meta.data?.data.apiOrigin);
   const list = $derived(keys.data?.data ?? []);
-  const access = (scopes: readonly ApiKeyScope[]) => (scopes.includes('Write') ? 'Read and write' : 'Read only');
+  // The words the key's history uses too (ChangeLabels.ApiKeyAccess).
+  const access = (scopes: readonly ApiKeyScope[]) => {
+    const words = scopes.includes('Write') ? 'Read and write' : 'Read only';
+    return scopes.includes('VerificationRead') ? `${words} with verification` : words;
+  };
 
   // The table sorts (L2), keys by name first.
   const features = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: { basic: sortFn_basic, alphanumeric: sortFn_alphanumeric } });
@@ -129,8 +140,9 @@
   const schema = z.object({
     name: z.string().trim().min(1, 'Give the key a name.').max(100, 'Keep the name to 100 characters or fewer.'),
     access: z.enum(['Read', 'Write']),
+    verification: z.boolean(),
   });
-  const { form, errors, enhance, submitting, reset } = superForm(defaults({ name: '', access: 'Read' as 'Read' | 'Write' }, zod4(schema)), {
+  const { form, errors, enhance, submitting, reset } = superForm(defaults({ name: '', access: 'Read' as 'Read' | 'Write', verification: false }, zod4(schema)), {
     SPA: true,
     validators: zod4(schema),
     resetForm: false,
@@ -140,6 +152,7 @@
       if (!submitted.valid) return;
       try {
         const scopes: ApiKeyScope[] = submitted.data.access === 'Write' ? ['Read', 'Write'] : ['Read'];
+        if (submitted.data.verification && mayGrantVerification) scopes.push('VerificationRead');
         const response = await create.mutateAsync({ data: { name: submitted.data.name.trim(), scopes } });
         creating = false;
         token = response.data.token;
@@ -156,7 +169,7 @@
   });
 
   $effect(() => {
-    if (creating) reset({ data: { name: '', access: 'Read' } });
+    if (creating) reset({ data: { name: '', access: 'Read', verification: false } });
   });
 </script>
 
@@ -252,8 +265,9 @@
     <Panel title="Use the ScreenHire API">
       <div class="flex flex-col gap-4">
         <p class="max-w-measure">
-          A key lets another system read and change your jobs, candidates, applications and templates. A key never sees verification
-          results.
+          A key lets another system read and change your jobs, candidates, applications and templates. A key sees verification
+          results only with the Verification read scope, which an owner gives it. Every read through it is recorded in the application's review
+          log, and a level is never a reason to reject on its own.
         </p>
         <SummaryList>
           <SummaryItem label="Base URL">
@@ -355,6 +369,22 @@
           <ChoiceCard name="access" value="Read" bind:group={$form.access} title="Read only" description="Reads jobs, candidates, applications and templates." />
           <ChoiceCard name="access" value="Write" bind:group={$form.access} title="Read and write" description="Also changes hiring data, as a Recruiter can." />
         </div>
+      </div>
+      <div class="flex items-start gap-4">
+        <div class="flex min-w-0 flex-1 flex-col gap-1">
+          <Field.Label for="key-verification">Verification read</Field.Label>
+          <Field.Description id="key-verification-hint">
+            Lets this key read verification levels, reasons and evidence, and list candidates by level.
+            {#if !mayGrantVerification}Ask an owner to turn this on.{/if}
+          </Field.Description>
+        </div>
+        <Switch
+          id="key-verification"
+          bind:checked={$form.verification}
+          disabled={!mayGrantVerification}
+          aria-describedby="key-verification-hint"
+          class="mt-1"
+        />
       </div>
       <FailureText message={$errors._errors?.[0]} />
       <Dialog.Footer>

@@ -19,8 +19,10 @@ Roadmap item 5's reports. One page in the dashboard (design system section 21, R
 
 `GET /v1/reports/hiring?from=...&to=...&jobId=...` (`apps/api/Endpoints/ReportEndpoints.cs`), named `GetHiringReport`.
 
-- **Session only.** `.RequireAuthorization()`: API keys reach only the hiring API groups (ADR-0011), so a key gets 401.
-  A report tool for the MCP server, or key access, is a later change.
+- **Session only over HTTP.** `.RequireAuthorization()`: API keys reach only the hiring API groups (ADR-0011), so a key
+  gets 401. The MCP server's `get_hiring_report` tool reads the same numbers for any key with the Read scope, by calling
+  `ReportEndpoints.Problems` and `HiringReportReads.ReadAsync` directly (ADR-0021 decision 6). A key sees every job
+  (ADR-0015), so the tool's numbers are not narrowed by job access.
 - **Every member.** No `.RequirePermission`: reads stay open to every member (ADR-0014), and See jobs and candidates is
   in every role. Job access (ADR-0015) narrows the numbers, never the page.
 - **The range is two instants**, `from` inclusive and `to` exclusive, both required. The API never computes "the last
@@ -87,4 +89,4 @@ Chart colours are the two chart tokens (design system section 3.5).
   a stage removed since adds nothing, and a stage whose kind changed is read as it is now.
 - **Two sources.** `ApplicationSource` is Careers page or Added by a recruiter. Nothing yet records which job board sent
   a careers applicant; that needs a source on the apply link, and the sources panel will show it once it is stored.
-- **No MCP tool or key access** (section 1).
+- **No key access over HTTP** (section 1). Only the MCP tool reads reports for a key.
