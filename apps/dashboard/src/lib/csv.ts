@@ -29,7 +29,7 @@ export function toCsv(sections: readonly CsvSection[]): string {
 
 /** Saves `csv` as `filename` through the browser. The byte order mark lets Excel read it as UTF-8. */
 export function downloadCsv(filename: string, csv: string): void {
-  const url = URL.createObjectURL(new Blob(['﻿', csv], { type: 'text/csv;charset=utf-8' }));
+  const url = URL.createObjectURL(new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8' }));
   const link = document.createElement('a');
   link.href = url;
   link.download = filename;

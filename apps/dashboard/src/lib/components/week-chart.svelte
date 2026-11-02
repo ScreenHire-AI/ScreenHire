@@ -2,11 +2,11 @@
   /** One week of a week chart: its label and the two counts, with the week in words for the readout. */
   export interface WeekPoint {
     key: string;
-    /** The week by its Monday ("3 Nov"). */
+    /** The week by its Monday, for the axis ("Nov 2"). */
     label: string;
     applications: number;
     hires: number;
-    /** "Week of 3 Nov: 12 applications, 2 hires". */
+    /** "Week of Nov 2, 2026: 12 applications, 2 hires". */
     summary: string;
   }
 </script>

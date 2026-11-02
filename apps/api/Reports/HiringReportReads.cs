@@ -36,9 +36,9 @@ internal static class HiringReportReads
     public static readonly TimeSpan MaxRange = TimeSpan.FromDays(1827);
 
     // Positions in FunnelKinds, 1-based as array_position counts.
-    private static readonly int HiredPosition = FunnelKinds.Count;
-    private static readonly int InterviewPosition = FunnelKinds.ToList().IndexOf(StageKind.Interview) + 1;
-    private static readonly int OfferPosition = FunnelKinds.ToList().IndexOf(StageKind.Offer) + 1;
+    private static readonly int HiredPosition = Position(StageKind.Hired);
+    private static readonly int InterviewPosition = Position(StageKind.Interview);
+    private static readonly int OfferPosition = Position(StageKind.Offer);
 
     // scoped_jobs: the jobs in scope (the filter, or all the person can see). stage_kinds: each stage of each of them with its
     // funnel position (null for a kind with no row).
@@ -113,7 +113,8 @@ internal static class HiringReportReads
         var jobs = jobIds.Distinct().ToArray();
         NpgsqlParameter[] Args(DateTimeOffset start, DateTimeOffset end) => Parameters(start, end, jobs, timeZone);
 
-        // One snapshot for every panel, so the funnel's Hired row, the headline and the sources agree.
+        // One snapshot for every panel, so they read the same data. Hired still has two bases (reports.md section 2): the
+        // headline and the weeks count hires made in the range, the funnel and the sources applications hired now.
         await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
 
         var headline = await HeadlineAsync(db, Args(from, to), cancellationToken);
@@ -169,7 +170,9 @@ internal static class HiringReportReads
 
         // Days in each stage kind: for each hire, the time between entering a stage and entering the next (the last stay
         // ends when the hire entered its Hired stage), summed per kind, then the median over the hires. Stays in a kind
-        // with no row (Verification, Custom) separate the stays around them but are not counted (ADR-0004).
+        // with no row (Verification, Custom) separate the stays around them but are not counted (ADR-0004). So does a stay
+        // in a stage removed from the workflow since, which is why the join is a left join: the entry must stay in the
+        // window, or the stay before it would run on through the removed stage.
         var stages = await db.Database.SqlQueryRaw<StageDaysRow>(
                 Scope + HiresCte + """
                 ,
@@ -179,7 +182,7 @@ internal static class HiringReportReads
                     FROM hires h
                     JOIN applications a ON a.id = h.id
                     JOIN application_events e ON e.application_id = h.id AND e.type IN ('Submitted', 'StageChanged')
-                    JOIN stage_kinds sk ON sk.job_id = h.job_id AND sk.stage_id = e.data->>'toStageId'
+                    LEFT JOIN stage_kinds sk ON sk.job_id = h.job_id AND sk.stage_id = e.data->>'toStageId'
                 ),
                 per_application AS (
                     SELECT application_id, pos, (sum(extract(epoch FROM spent)) / 86400)::double precision AS days
@@ -266,14 +269,13 @@ internal static class HiringReportReads
         StageKind kind,
         CancellationToken cancellationToken)
     {
-        var position = FunnelKinds.ToList().IndexOf(kind) + 1;
         var parameters = Parameters(from, to, jobIds.Distinct().ToArray(), "UTC");
         return await db.Database.SqlQueryRaw<Guid>(
                 Scope + CohortCte + FurthestCte + """
 
                 SELECT id AS "Value" FROM furthest WHERE pos >= @pos ORDER BY id
                 """,
-                [.. parameters, new NpgsqlParameter("pos", NpgsqlDbType.Integer) { Value = position }])
+                [.. parameters, new NpgsqlParameter("pos", NpgsqlDbType.Integer) { Value = Position(kind) }])
             .ToListAsync(cancellationToken);
     }
 
@@ -307,6 +309,8 @@ internal static class HiringReportReads
         new("offer", NpgsqlDbType.Integer) { Value = OfferPosition },
         new("tz", NpgsqlDbType.Text) { Value = timeZone },
     ];
+
+    private static int Position(StageKind kind) => FunnelKinds.ToList().IndexOf(kind) + 1;
 
     private static string SourceName(string key, Func<string, string> boardName) => key switch
     {

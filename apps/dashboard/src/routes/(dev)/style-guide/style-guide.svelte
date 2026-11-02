@@ -110,6 +110,7 @@
   import { mentionToken, type PickedMention } from '#lib/mentions.js';
   import type { TrayItem } from '#lib/notifications.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
+  import { counted } from '#lib/reports.js';
   import { sections } from '#lib/shell.js';
   import type { StatusName } from '#lib/status.js';
   import EditPreviewDemo from './edit-preview-demo.svelte';
@@ -222,7 +223,7 @@
     label: String(label),
     applications: Number(applications),
     hires: Number(hires),
-    summary: `Week of ${label}: ${applications} applications, ${hires} hires`,
+    summary: `Week of ${label}, 2026: ${applications} applications, ${counted(Number(hires), 'hire', 'hires')}`,
   }));
   const weeks = (values: number[]): MetricPoint[] =>
     values.map((value, index) => ({ label: `Week of ${formatDate(ago((values.length - 1 - index) * 7 * day))}`, value }));

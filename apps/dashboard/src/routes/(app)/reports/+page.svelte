@@ -31,7 +31,7 @@
   import { downloadCsv, toCsv, type CsvSection } from '#lib/csv.js';
   import { describeError } from '#lib/query.js';
   import { dayText, parseDay, previousInstants, rangeInstants, readRange, writeRange, zoneName, type ReportRange } from '#lib/report-range.js';
-  import { biggestDrop, changeText, counted, countText, daysText, hireRate, shareText, weekText } from '#lib/reports.js';
+  import { biggestDrop, changeText, counted, countText, daysText, hireRate, oneDecimal, shareText, weekDateText, weekText } from '#lib/reports.js';
   import { stageKindLabels, stageKinds } from '#lib/workflow.js';
 
   // Reports (design system section 7, Report; docs/architecture/reports.md): headline numbers, applications and hires by
@@ -114,6 +114,17 @@
   // Headline numbers: each with its change from the previous period, when asked for.
   const previous = $derived(compare ? data?.previous : undefined);
   const medianText = $derived(data?.headline.medianDaysToHire == null ? 'None' : daysText(data.headline.medianDaysToHire));
+  const interviewShare = $derived(data ? shareText(data.headline.reachedInterview, data.headline.applications) : null);
+  // Five cards: one row on a wide page, three over two in the middle, two columns on a phone with the last across both,
+  // so no card sits beside an empty cell.
+  const statGrid = 'grid grid-cols-2 gap-5 @3xl:grid-cols-6 @5xl:grid-cols-5';
+  const statSpans = [
+    '@3xl:col-span-2 @5xl:col-span-1',
+    '@3xl:col-span-2 @5xl:col-span-1',
+    '@3xl:col-span-2 @5xl:col-span-1',
+    '@3xl:col-span-3 @5xl:col-span-1',
+    'col-span-2 @3xl:col-span-3 @5xl:col-span-1',
+  ];
 
   // Applications and hires by week.
   const weekPoints = $derived<WeekPoint[]>(
@@ -122,11 +133,11 @@
       label: weekText(week.weekStart),
       applications: week.applications,
       hires: week.hires,
-      summary: `Week of ${weekText(week.weekStart)}: ${counted(week.applications, 'application', 'applications')}, ${counted(week.hires, 'hire', 'hires')}`,
+      summary: `Week of ${weekDateText(week.weekStart)}: ${counted(week.applications, 'application', 'applications')}, ${counted(week.hires, 'hire', 'hires')}`,
     })),
   );
   const weekColumns: ChartColumn<ReportWeek>[] = [
-    { id: 'week', header: 'Week of', text: (week) => weekText(week.weekStart), sortBy: (week) => week.weekStart, csv: (week) => week.weekStart },
+    { id: 'week', header: 'Week of', text: (week) => weekDateText(week.weekStart), sortBy: (week) => week.weekStart, csv: (week) => week.weekStart },
     numeric('applications', 'Applications', (week) => week.applications, (week) => countText(week.applications)),
     numeric('hires', 'Hires', (week) => week.hires, (week) => countText(week.hires)),
   ];
@@ -195,7 +206,7 @@
     { id: 'name', header: 'Name', text: (row) => row.name, sortBy: (row) => row.name, csv: (row) => row.name },
     { id: 'by', header: 'By', text: (row) => row.by, sortBy: (row) => row.by, csv: (row) => row.by },
     numeric('hires', 'Hires', (row) => row.hires, (row) => countText(row.hires)),
-    { id: 'median', header: 'Median days', text: (row) => daysText(row.medianDays), sortBy: (row) => row.medianDays, csv: (row) => Math.round(row.medianDays * 10) / 10 },
+    { id: 'median', header: 'Median days', text: (row) => daysText(row.medianDays), sortBy: (row) => row.medianDays, csv: (row) => oneDecimal(row.medianDays) },
   ];
 
   // Sources: applications and the hires among them side by side, with the hire rate.
@@ -241,7 +252,7 @@
       ['Reached interview', (h) => h.reachedInterview],
       ['Offers', (h) => h.offers],
       ['Hires', (h) => h.hires],
-      ['Median days to hire', (h) => (h.medianDaysToHire === null ? null : Math.round(h.medianDaysToHire * 10) / 10)],
+      ['Median days to hire', (h) => (h.medianDaysToHire === null ? null : oneDecimal(h.medianDaysToHire))],
     ];
     const csv = toCsv([
       { title: 'Headline numbers', header: ['Measure', 'These dates', ...(withPrevious ? ['Previous dates'] : [])], rows: measures.map(([name, get]) => [name, ...numbers(get)]) },
@@ -275,7 +286,7 @@
         <MultiFilterMenu label="Job" options={jobOptions} bind:values={() => jobIds, setJobs} />
         <span class="ml-2 flex shrink-0 items-center gap-2 pointer-coarse:min-h-11">
           <Switch id="reports-compare" checked={compare} onCheckedChange={setCompare} />
-          <Label for="reports-compare" class="whitespace-nowrap">Compare with previous period</Label>
+          <Label for="reports-compare" class="whitespace-nowrap">Compare periods</Label>
         </span>
       </div>
     {/snippet}
@@ -289,9 +300,9 @@
         </Panel>
       {:else if !data}
         <div aria-hidden="true" class="flex flex-col gap-5">
-          <div class="grid grid-cols-2 gap-5 @3xl:grid-cols-3 @5xl:grid-cols-5">
-            {#each [0, 1, 2, 3, 4] as card (card)}
-              <div class="flex flex-col gap-3 rounded-panel border border-border bg-card p-4.5 shadow-surface">
+          <div class={statGrid}>
+            {#each statSpans as span, card (card)}
+              <div class={['flex flex-col gap-3 rounded-panel border border-border bg-card p-4.5 shadow-surface', span]}>
                 <Skeleton class="h-8 w-32" />
                 <Skeleton class="h-9 w-20" />
               </div>
@@ -313,22 +324,24 @@
       {:else}
         <div class="flex flex-col gap-5">
           <div
-            class={['grid grid-cols-2 gap-5 transition-opacity motion-reduce:transition-none @3xl:grid-cols-3 @5xl:grid-cols-5', busy && 'opacity-60']}
+            class={[statGrid, 'transition-opacity motion-reduce:transition-none', busy && 'opacity-60']}
             aria-busy={busy || undefined}
             role="group"
             aria-label="Headline numbers"
           >
-            <ReportStat icon={InboxIcon} title="Applications" value={countText(data.headline.applications)} change={changeText(data.headline.applications, previous?.applications)} />
+            <ReportStat class={statSpans[0]} icon={InboxIcon} title="Applications" value={countText(data.headline.applications)} change={changeText(data.headline.applications, previous?.applications)} />
             <ReportStat
+              class={statSpans[1]}
               icon={CalendarCheckIcon}
               title="Reached interview"
               value={countText(data.headline.reachedInterview)}
-              share={shareText(data.headline.reachedInterview, data.headline.applications) === null ? null : `${shareText(data.headline.reachedInterview, data.headline.applications)} of applications`}
+              share={interviewShare === null ? null : `${interviewShare} of applications`}
               change={changeText(data.headline.reachedInterview, previous?.reachedInterview)}
             />
-            <ReportStat icon={FileCheckIcon} title="Offers" value={countText(data.headline.offers)} change={changeText(data.headline.offers, previous?.offers)} />
-            <ReportStat icon={UserCheckIcon} title="Hires" value={countText(data.headline.hires)} change={changeText(data.headline.hires, previous?.hires)} />
+            <ReportStat class={statSpans[2]} icon={FileCheckIcon} title="Offers" value={countText(data.headline.offers)} change={changeText(data.headline.offers, previous?.offers)} />
+            <ReportStat class={statSpans[3]} icon={UserCheckIcon} title="Hires" value={countText(data.headline.hires)} change={changeText(data.headline.hires, previous?.hires)} />
             <ReportStat
+              class={statSpans[4]}
               icon={TimerIcon}
               title="Median time to hire"
               value={medianText}

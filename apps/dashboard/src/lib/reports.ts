@@ -1,4 +1,4 @@
-import { locales } from '#lib/dates.js';
+import { formatDate, locales } from '#lib/dates.js';
 import { parseDay } from '#lib/report-range.js';
 
 // Words and numbers for the Reports page (docs/architecture/reports.md). Counts and shares use the browser's locale.
@@ -18,6 +18,9 @@ export function shareText(part: number, of: number): string | null {
 
 /** A median in whole days: `21 days`, `1 day`. */
 export const daysText = (value: number) => wholeDays.format(Math.round(value));
+
+/** A median for the export, to one decimal: `17.5`. */
+export const oneDecimal = (value: number) => Math.round(value * 10) / 10;
 
 /** A count and its noun: `1 hire`, `3 hires`. */
 export const counted = (value: number, one: string, many: string) => `${countText(value)} ${value === 1 ? one : many}`;
@@ -74,8 +77,14 @@ export function biggestDrop(rows: readonly DropRow[]): string | null {
 
 const weekName = new Intl.DateTimeFormat(locales, { day: 'numeric', month: 'short' });
 
-/** A week by its Monday, as `3 Nov`; `weekStart` is the API's `YYYY-MM-DD`. */
+/** A week by its Monday, as `Nov 2`, for the chart's axis; `weekStart` is the API's `YYYY-MM-DD`. */
 export function weekText(weekStart: string): string {
   const day = parseDay(weekStart);
   return day ? weekName.format(day) : weekStart;
+}
+
+/** A week by its Monday in full, as `Nov 2, 2026`, for the table and the readout: a report can span years (section 13). */
+export function weekDateText(weekStart: string): string {
+  const day = parseDay(weekStart);
+  return day ? formatDate(day.toISOString()) : weekStart;
 }

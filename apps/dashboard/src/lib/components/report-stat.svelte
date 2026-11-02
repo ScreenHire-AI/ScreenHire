@@ -3,7 +3,6 @@
   import type LucideIcon from '~icons/lucide/circle';
   import ArrowDownIcon from '~icons/lucide/arrow-down';
   import ArrowUpIcon from '~icons/lucide/arrow-up';
-  import TruncatedText from '#lib/components/truncated-text.svelte';
   import * as Card from '#lib/components/ui/card/index.js';
   import type { Change } from '#lib/reports.js';
   import { cn } from '#lib/utils.js';
@@ -12,6 +11,9 @@
   // title, the value in the UI typeface (`metric`), an optional muted share, and the change from the previous period in
   // words with an arrow. The change is muted text, never a status colour: a report states how far a number moved and
   // leaves it to the person to say whether that is good (T1 keeps status colours for statuses). No sparkline, no link.
+  // The title is the card's whole label, so it wraps rather than cuts. `Card.Header` is the container these sizes measure:
+  // a narrow card keeps room for two lines, so values in a row line up whichever titles wrapped, and the narrowest gives
+  // up the chip for the title.
   let {
     icon: Icon,
     title,
@@ -34,9 +36,9 @@
 
 <Card.Root class={cn('h-full', className)} data-slot="report-stat">
   <Card.Header class="gap-1.5">
-    <Card.Title class="flex min-w-0 items-center gap-2.5">
-      <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-secondary text-sidebar-foreground"><Icon aria-hidden="true" /></span>
-      <TruncatedText text={title} />
+    <Card.Title class="flex min-w-0 items-center gap-2.5 @max-[12rem]:min-h-12 @max-[9rem]:items-start">
+      <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-secondary text-sidebar-foreground @max-[9rem]:hidden"><Icon aria-hidden="true" /></span>
+      <span class="min-w-0 break-words">{title}</span>
     </Card.Title>
   </Card.Header>
   <Card.Content class="flex flex-col gap-1">
