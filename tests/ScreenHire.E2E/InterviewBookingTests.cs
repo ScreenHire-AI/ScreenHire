@@ -42,13 +42,13 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
         await Expect(Page).ToHaveURLAsync(new Regex("tz=Asia%2FKolkata"));
         await Expect(Page.Locator("#tz")).ToHaveValueAsync("Asia/Kolkata");
         await Expect(Page.GetByText("All times are in India Standard Time.")).ToBeVisibleAsync();
-        var morning = Page.GetByLabel("2:30 PM").First; // 09:00 UTC, the first hour of the working day
+        var morning = Page.GetByLabel("2:30 PM", new() { Exact = true }).First; // 09:00 UTC, the first hour of the working day
         await Expect(morning).ToBeVisibleAsync();
         var firstDay = await DayOfAsync(morning);
         await ExpectNoAccessibilityViolationsAsync();
         await ShotsAsync(scene.Link + "?tz=Asia%2FKolkata", "interview-open");
 
-        morning = Page.GetByLabel("2:30 PM").First; // the shots reopened the page in a new browser context
+        morning = Page.GetByLabel("2:30 PM", new() { Exact = true }).First; // the shots reopened the page in a new browser context
         await morning.CheckAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Book this time" }).ClickAsync();
 

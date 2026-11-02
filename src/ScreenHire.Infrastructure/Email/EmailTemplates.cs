@@ -48,7 +48,7 @@ public sealed record EmailTemplateModel(
             "https://careers.example.com/questionnaires/sample", "Jordan", "Lee",
             "https://careers.example.com/jobs/product-designer", "https://careers.example.com/talent-pool/sample",
             "https://careers.example.com/interviews/sample", "https://careers.example.com/interviews/sample", "https://meet.example.org/sample",
-            "Tuesday 3 November 2026, 10:00 to 10:30 (Europe/London)", "30 minutes");
+            "Tuesday, November 3, 2026, 10:00 AM to 10:30 AM (Europe/London)", "30 minutes");
 }
 
 /// <summary>

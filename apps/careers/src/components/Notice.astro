@@ -12,7 +12,7 @@ const { kind, message } = Astro.props;
 
 <div
   role={kind === 'problem' ? 'alert' : 'status'}
-  class:list={['flex items-start gap-3 rounded-2xl bg-candidate-surface px-4 py-3.5 text-candidate-hint', kind === 'problem' ? 'border-2 border-destructive' : 'border border-candidate-border']}
+  class:list={['flex items-start gap-3 rounded-2xl bg-candidate-surface px-4 py-3.5 text-candidate-body', kind === 'problem' ? 'border-2 border-destructive' : 'border border-candidate-border']}
 >
   <svg aria-hidden="true" class:list={['mt-0.5 size-5 flex-none', kind === 'problem' && 'text-destructive']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="12" cy="12" r="10"></circle>
