@@ -52,4 +52,9 @@
     </li>
   {/each}
 </ol>
-{#if tracker.standing}<p class="text-caption text-muted-foreground">{tracker.standing}</p>{/if}
+{#if tracker.standing}
+  <p class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-caption text-muted-foreground">
+    <span class="min-w-0">{tracker.standing}</span>
+    {#if !tracker.outcome}<OverdueBadge dueAt={overdueAt} />{/if}
+  </p>
+{/if}

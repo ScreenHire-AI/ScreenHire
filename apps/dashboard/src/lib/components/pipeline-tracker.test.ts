@@ -95,6 +95,16 @@ describe('pipeline tracker', () => {
     await expectNoAxeViolations(container);
   });
 
+  it('keeps the Overdue badge on that line while they are in the pipeline, and drops it once they left', () => {
+    const empty = tracker(['upcoming', 'upcoming', 'upcoming', 'upcoming', 'upcoming'], []);
+    const { unmount } = show({ ...empty, standing: 'Phone call, here 3 days' }, '2026-01-01T00:00:00Z');
+    expect(screen.getByText('Phone call, here 3 days').parentElement).toHaveTextContent(/Overdue/);
+    unmount();
+
+    show({ ...empty, outcome: 'Rejected', standing: 'Rejected Oct 31' }, '2026-01-01T00:00:00Z');
+    expect(screen.queryByText(/^Overdue/)).not.toBeInTheDocument();
+  });
+
   it('adds no line when a stage shows where they stand', () => {
     const { container } = show(inPipeline);
 
