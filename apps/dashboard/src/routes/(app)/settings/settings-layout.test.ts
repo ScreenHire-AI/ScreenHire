@@ -75,9 +75,9 @@ describe('settings layout', () => {
 
   // Slack's page exists only where a Slack app is set up (A3).
   describe('Slack', () => {
-    const renderSlack = (features: { slack?: boolean }) => {
+    const renderSlack = (features: { slack?: boolean }, signedIn: CurrentUser = userAs('Owner')) => {
       state.url = new URL('http://dashboard.test/settings/slack');
-      return render(WithShell, { props: { component: Layout, props: { data: { user: userAs('Owner') }, children: content }, features } });
+      return render(WithQueryClient, { props: { component: WithShell, props: { component: Layout, props: { data: { user: signedIn }, children: content }, features } } });
     };
 
     it('shows the page where Slack is set up', () => {
@@ -101,6 +101,17 @@ describe('settings layout', () => {
       expect(navigation.goto).not.toHaveBeenCalled();
       expect(screen.queryByText('Settings page content')).not.toBeInTheDocument();
       expect(screen.queryByText('Not in your role')).not.toBeInTheDocument();
+    });
+
+    it.each([
+      ['a role that cannot use it', userAs('Viewer')],
+      ['no organization, where the shell never asks Slack', { ...user, organization: null }],
+    ])('answers someone with %s without waiting for Slack', (_, signedIn) => {
+      renderSlack({}, signedIn);
+
+      expect(screen.getByText('Not in your role')).toBeInTheDocument();
+      expect(screen.queryByText('Settings page content')).not.toBeInTheDocument();
+      expect(navigation.goto).not.toHaveBeenCalled();
     });
   });
 });

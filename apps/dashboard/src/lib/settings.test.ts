@@ -1,7 +1,17 @@
 import type { CurrentUser, OrganizationRole } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import { builtInPermissions, interviewer, interviewerRoleId, roleCatalogue, userAs } from '../test-support/fixtures.js';
-import { assignableRoles, mayAssign, mayGiveJobAccess, roleFromKey, roleKey, seesAllJobsWith, settingsSectionOf, visibleSettingsSections } from './settings.js';
+import {
+  assignableRoles,
+  mayAssign,
+  mayGiveJobAccess,
+  roleFromKey,
+  roleKey,
+  seesAllJobsWith,
+  settingsSectionOf,
+  slackFeature,
+  visibleSettingsSections,
+} from './settings.js';
 
 // The expectations follow TeamPolicy.cs (src/ScreenHire.Domain/Organizations): someone with Manage the team gives a role
 // only when it holds nothing their own role does not. For the built-in roles that is Owners managing everyone, Admins
@@ -58,6 +68,21 @@ describe('role keys', () => {
     expect(roleFromKey(roleCatalogue.roles, interviewerRoleId)).toEqual({ role: 'Custom', customRoleId: interviewerRoleId });
     expect(roleFromKey(roleCatalogue.roles, 'admin')).toEqual({ role: 'Admin', customRoleId: null });
     expect(roleFromKey(roleCatalogue.roles, 'nobody')).toBeUndefined();
+  });
+});
+
+describe('slackFeature', () => {
+  it('waits for the first answer', () => {
+    expect(slackFeature(undefined, false)).toBeUndefined();
+  });
+
+  it('counts a status that was never read as no Slack', () => {
+    expect(slackFeature(undefined, true)).toBe(false);
+  });
+
+  it('keeps the last answer through a failed refetch', () => {
+    expect(slackFeature({ available: true }, true)).toBe(true);
+    expect(slackFeature({ available: false }, true)).toBe(false);
   });
 });
 

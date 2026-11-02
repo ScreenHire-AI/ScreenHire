@@ -21,14 +21,16 @@
   const roleAllows = $derived(section ? can(data.user, section.permission) : visibleSettingsSections(data.user).length > 0);
   // API keys and webhooks reach every job, so a person on Only jobs they're on cannot use them whatever their role says.
   const jobsAllow = $derived(!section?.allJobs || seesAllJobs(data.user));
+  const permitted = $derived(roleAllows && jobsAllow);
   // Slack's page exists only where a Slack app is set up (A3): an address to it elsewhere goes to the first page the person
-  // may use, once the shell has heard that Slack is off (while it loads, nothing is drawn or decided).
+  // may use, once the shell has heard that Slack is off. While that loads nothing is drawn or decided for someone who may
+  // use the page; anyone else already has their answer, and without an organization the shell never asks.
   const shell = getShell();
   const features = $derived(shell?.features() ?? {});
   const hidden = $derived(Boolean(section?.feature) && features[section!.feature!] === false);
-  const waiting = $derived(Boolean(section?.feature) && features[section!.feature!] === undefined);
+  const waiting = $derived(permitted && Boolean(section?.feature) && features[section!.feature!] === undefined);
   const pending = $derived(hidden || waiting);
-  const allowed = $derived(roleAllows && jobsAllow && !pending);
+  const allowed = $derived(permitted && !pending);
   $effect(() => {
     if (hidden) void goto(visibleSettingsSections(data.user, features)[0]?.href ?? '/', { replaceState: true });
   });
