@@ -316,6 +316,12 @@
     total: 5,
     outcome: 'Saved',
   };
+  const trackerUnplaced: Tracker = {
+    steps: ['Applied', 'Screening', 'Interview', 'Offer', 'Hired'].map((name) => trackerStep(name, 'upcoming')),
+    position: 0,
+    total: 5,
+    standing: 'Phone call, here 3 days',
+  };
 
   const people = [
     { id: '1', name: 'Jordan Ellis', status: 'review', label: 'Review suggested', stage: 'Screening', source: 'Careers page', at: ago(2 * hour) },
@@ -803,6 +809,10 @@
           <figure class="flex flex-col gap-2">
             <figcaption class="text-caption text-muted-foreground">Left: the stage they left from is dark, with how and when</figcaption>
             <PipelineTracker tracker={trackerSaved} />
+          </figure>
+          <figure class="flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">No stage to mark: their stage left the workflow, so a line says where they stand</figcaption>
+            <PipelineTracker tracker={trackerUnplaced} />
           </figure>
           <figure class="flex max-w-80 flex-col gap-2">
             <figcaption class="text-caption text-muted-foreground">Narrow: the current stage and its place</figcaption>

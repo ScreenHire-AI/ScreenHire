@@ -91,14 +91,31 @@ describe('trackerFor', () => {
     expect(tracker.steps.every((step) => step.state === 'upcoming')).toBe(true);
     expect(tracker.position).toBe(0);
     expect(tracker.outcome).toBe('Rejected');
+    expect(tracker.standing).toBe('Rejected Oct 31');
   });
 
-  it('draws no ringed dot when the stage is no longer in the workflow', () => {
+  it('draws no ringed dot when the stage is no longer in the workflow, and says where they stand instead', () => {
     const gone = { id: 'removed', name: 'Phone call', kind: 'Custom' as const };
-    const tracker = trackerFor(workflow, { stage: gone, stageEnteredAt: '2026-10-31T09:00:00Z' }, history, now);
+    const tracker = trackerFor(workflow, { stage: gone, stageEnteredAt: '2026-10-30T09:00:00Z' }, history, now);
 
     expect(tracker.steps.every((step) => step.state === 'upcoming')).toBe(true);
     expect(tracker.position).toBe(0);
+    expect(tracker.standing).toBe('Phone call, here 3 days');
+  });
+
+  it('says how a saved candidate left when nothing places them', () => {
+    const gone = { id: 'removed', name: 'Phone call', kind: 'Custom' as const };
+    const tracker = trackerFor(workflow, { stage: gone, stageEnteredAt: '2026-10-30T09:00:00Z', keptInMindAt: '2026-10-31T10:00:00Z' }, undefined, now);
+
+    expect(tracker.standing).toBe('Saved Oct 31');
+  });
+
+  it('has no separate standing once a step shows it', () => {
+    const inPipeline = trackerFor(workflow, { stage: stageOf('screening'), stageEnteredAt: '2026-10-30T09:00:00Z' }, history.slice(0, 2), now);
+    const left = trackerFor(workflow, { stage: stageOf('interview'), stageEnteredAt: '2026-10-29T09:00:00Z', keptInMindAt: '2026-10-31T10:00:00Z' }, history, now);
+
+    expect(inPipeline.standing).toBeUndefined();
+    expect(left.standing).toBeUndefined();
   });
 
   it('ends a hired candidate on the Hired step', () => {

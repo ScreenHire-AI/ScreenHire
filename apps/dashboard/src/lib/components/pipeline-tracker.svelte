@@ -7,7 +7,8 @@
   // is a dot and its name. Stages they passed are filled, with the date they reached them; the current one is ringed, with
   // how long they have been there; later ones are empty; once they left, the stage they left from is dark, with how and
   // when. Dots, because the position is a fact about the person, not a step in a form (StepMarkers). Screen readers hear
-  // "Screening, step 2 of 6". In a narrow container only that stage shows, with "2 of 6". `tracker` comes from `trackerFor`.
+  // "Screening, step 2 of 6". In a narrow container only that stage shows, with "2 of 6". When no stage can be marked, a line
+  // under the stages says where they stand, so a narrow container still shows it. `tracker` comes from `trackerFor`.
   let { tracker, overdueAt }: { tracker: Tracker; /** When the current stage's time limit passes; the Overdue badge shows beside "Here 3 days" once it has. */ overdueAt?: string | null } =
     $props();
 </script>
@@ -51,3 +52,4 @@
     </li>
   {/each}
 </ol>
+{#if tracker.standing}<p class="text-caption text-muted-foreground">{tracker.standing}</p>{/if}

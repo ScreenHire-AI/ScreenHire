@@ -312,6 +312,7 @@ describe('application page', () => {
     // The level is also the candidate's status, beside the name on every tab (S2, T2).
     const band = screen.getByRole('heading', { level: 1 }).closest<HTMLElement>('[data-slot="header-band"]')!;
     expect(within(band).getByText('Verification suggested')).toBeInTheDocument();
+    expect(within(band).queryByRole('button', { name: /reject/i })).toBeNull();
   });
 
   it("labels each answer with the job's question and shows choices by their labels", async () => {
@@ -1042,6 +1043,19 @@ describe('application page', () => {
       expect(within(band).getByRole('button', { name: 'Invite to another job' })).toBeInTheDocument();
       expect(within(band).queryByRole('button', { name: 'Email' })).toBeNull();
       expect(within(band).queryByRole('button', { name: 'Move to stage, Casey Morgan' })).toBeNull();
+    });
+
+    it('offers neither Message nor Invite to another job for a saved candidate whose address the provider flagged', async () => {
+      const fetch = stubDetail({ keptInMindAt: keptAt, allowsFutureRoles: true, inTalentPool: true, candidate: { ...application.candidate, emailIssue: 'Bounced' } }, sending);
+      renderPage();
+
+      const band = await header();
+      await within(band).findByText('Email bounced');
+      // Sending is on once this answer is in, so only the flag can hide the two buttons.
+      await waitFor(() => expect(fetch.mock.calls.some(([url]) => String(url).includes('/v1/email-templates'))).toBe(true));
+      await new Promise((resolve) => setTimeout(resolve));
+      expect(within(band).queryByRole('button', { name: 'Message' })).toBeNull();
+      expect(within(band).queryByRole('button', { name: 'Invite to another job' })).toBeNull();
     });
 
     it('shows the stage name as current, and Email and Move to stage, for an application still in the job', async () => {

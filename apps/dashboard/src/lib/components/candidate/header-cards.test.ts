@@ -82,6 +82,16 @@ describe('candidate header cards', () => {
       expect(screen.getByRole('group', { name: 'Contact' })).toHaveTextContent('Not contacted yet');
     });
 
+    it('puts last contacted on the second line for a saved candidate, in place of the phone', () => {
+      stubProfile([]);
+      show({ keptInMindAt: '2026-10-29T12:00:00Z' }, []);
+
+      const contact = screen.getByRole('group', { name: 'Contact' });
+      expect(within(contact).getByRole('link', { name: 'casey@example.com' })).toBeInTheDocument();
+      expect(within(contact).queryByRole('link', { name: '+44 20 7946 0958' })).toBeNull();
+      expect(within(contact).queryByRole('button', { name: 'Copy phone number' })).toBeNull();
+    });
+
     it('says nothing about contact until the emails have loaded, and never for an open application', () => {
       stubProfile([]);
       const { unmount } = show({ keptInMindAt: '2026-10-29T12:00:00Z' }, undefined);
@@ -153,6 +163,13 @@ describe('candidate header cards', () => {
       expect(screen.queryByRole('group', { name: 'Also applied to' })).toBeNull();
       expect(container).not.toHaveTextContent('Not rated yet');
       await expectNoAxeViolations(container);
+    });
+
+    it('still links to the candidate profile once it is the Rating, the only link to it on the page', () => {
+      stubProfile([]);
+      show({ rating: { state: 'Rated', value: 4.6, scorecards: 1 } });
+
+      expect(within(screen.getByRole('group', { name: 'Rating' })).getByRole('link', { name: 'Candidate profile' })).toHaveAttribute('href', `/candidates/${candidateId}`);
     });
 
     it('is Also applied to, with no rating text at all, while nobody has scored them', () => {

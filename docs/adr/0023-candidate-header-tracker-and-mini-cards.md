@@ -33,9 +33,10 @@ stage name.
 4. **Dots are the one exception to square steps.** ADR-0010 and T4 make steps square markers so they never read as
    counts. The tracker says where a person is, not how far a form has got, and the brief asked for dots. T4 now names
    the exception.
-5. **Three mini cards under the tracker.** Contact (email and phone, each a link with a Copy button; "Last contacted"
-   for a saved candidate), Application (the job, and when and where from, which is where the source went), and Also
-   applied to, or Rating once someone scored the candidate. The card never says "Not rated yet".
+5. **Three mini cards under the tracker.** Contact (email and phone, each a link with a Copy button; for a saved
+   candidate "Last contacted" is the second line and the phone stays on the profile), Application (the job, and when and
+   where from, which is where the source went), and Also applied to, or Rating once someone scored the candidate. The
+   card never says "Not rated yet", and keeps the link to the candidate's profile either way.
 6. **Where the dropped items went.** The Overdue badge sits beside "Here 3 days" in the tracker. The email-issue badge
    sits on the Contact card's email. The link to Saved candidates stays as the one meta item, because a badge is never
    a link (A5).
@@ -47,4 +48,6 @@ stage name.
   tab changes (S8).
 - "Last contacted" is the newest email to or from the candidate, read from the history the page already loads. It uses
   the time-ago wording of section 13, so after a week it is a date.
-- A candidate whose stage is no longer in the job's workflow gets a tracker with no ringed dot, rather than a guess.
+- A candidate whose stage is no longer in the job's workflow gets a tracker with no ringed dot, rather than a guess, and
+  a line under it says where they stand ("Phone call, here 3 days"). A candidate who left and whose history is not in
+  gets the same line ("Rejected Oct 31"). A phone shows no stages then, so the line is what it shows.

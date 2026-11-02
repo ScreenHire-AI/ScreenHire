@@ -83,12 +83,21 @@ describe('pipeline tracker', () => {
     expect(screen.queryByText(/^Overdue/)).not.toBeInTheDocument();
   });
 
-  it('draws every stage empty when nothing says where the candidate is', async () => {
-    const lost = tracker(['upcoming', 'upcoming', 'upcoming', 'upcoming', 'upcoming'], []);
+  it('draws every stage empty and says where they stand, outside the stages, when no stage can be marked', async () => {
+    const lost = { ...tracker(['upcoming', 'upcoming', 'upcoming', 'upcoming', 'upcoming'], [], 'Rejected'), standing: 'Rejected Oct 31' };
     const { container } = show(lost);
 
     expect(screen.getAllByRole('listitem').every((item) => item.getAttribute('data-state') === 'upcoming')).toBe(true);
     expect(container.querySelector('[aria-current]')).toBeNull();
+    // Every stage is hidden in a narrow container, so this line sits outside them to stay on a phone.
+    const line = screen.getByText('Rejected Oct 31');
+    expect(line.closest('ol')).toBeNull();
     await expectNoAxeViolations(container);
+  });
+
+  it('adds no line when a stage shows where they stand', () => {
+    const { container } = show(inPipeline);
+
+    expect(container.querySelector('ol + p')).toBeNull();
   });
 });

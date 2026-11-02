@@ -28,6 +28,11 @@ export interface Tracker {
   total: number;
   /** How the candidate left ("Saved", "Rejected", "Withdrawn", "Hired"); undefined while they are in the pipeline. */
   outcome?: string;
+  /**
+   * Where the candidate stands when no step can show it, because their stage left the workflow or the history that
+   * places them is not in: "Rejected Oct 31", "Phone call, here 3 days". Undefined once a step shows it.
+   */
+  standing?: string;
 }
 
 /**
@@ -75,6 +80,9 @@ export function trackerFor(
     if (anchor < 0) anchor = steps.findLastIndex((stage) => reachedAt.has(stage.id));
   }
 
+  const left = `${outcome} ${shortDate(endedAt, now)}`;
+  const here = timeSince(detail.stageEnteredAt, now);
+
   const drawn = steps.map<TrackerStep>((stage, index) => {
     const base = { id: stage.id, name: stage.name };
     if (anchor < 0 || index > anchor) return { ...base, state: 'upcoming' };
@@ -82,10 +90,9 @@ export function trackerFor(
       const at = reachedAt.get(stage.id);
       return { ...base, state: 'passed', note: at ? shortDate(at, now) : undefined };
     }
-    return ended
-      ? { ...base, state: 'left', note: `${outcome} ${shortDate(endedAt, now)}` }
-      : { ...base, state: 'current', note: `Here ${timeSince(detail.stageEnteredAt, now)}` };
+    return ended ? { ...base, state: 'left', note: left } : { ...base, state: 'current', note: `Here ${here}` };
   });
 
-  return { steps: drawn, position: anchor + 1, total: drawn.length, outcome };
+  const standing = anchor >= 0 ? undefined : ended ? left : `${detail.stage.name}, here ${here}`;
+  return { steps: drawn, position: anchor + 1, total: drawn.length, outcome, standing };
 }

@@ -186,7 +186,6 @@
   // A saved candidate has left the job, so the header offers to reach them or invite them to another job in place of Email
   // and Move to stage (docs/architecture/talent-pool.md). Invite is the page's primary action then.
   const saved = $derived(Boolean(detail?.keptInMindAt));
-  const mayInvite = $derived(Boolean(emailTemplates.data?.data.sendingEnabled) && can(page.data.user, 'EmailCandidates'));
   let inviteOpen = $state(false);
   // The jobs the candidate already applied to are skipped by the invitation; the profile lists them all.
   const profile = createGetCandidate(
@@ -205,7 +204,7 @@
       : [],
   );
   // The bottom bar on a phone holds the primary action: Invite for a saved candidate, otherwise Move to stage.
-  const primaryOnPhone = $derived(saved ? mayInvite : stages.length > 0 && mayMove);
+  const primaryOnPhone = $derived(saved ? canEmail : stages.length > 0 && mayMove);
 
   // Fill in offers every scorecard the reader can still give: the stages the application reached that have one (the
   // current stage first), then the library's, given at the current stage. A link names one (?scorecard=, My tasks' row
@@ -301,7 +300,7 @@
   {#if detail && stages.length > 0 && mayMove}
     <MoveToStage
       candidateName={detail.candidate.fullName}
-      currentStageId={detail.keptInMindAt ? '' : detail.stage.id}
+      currentStageId={detail.stage.id}
       {stages}
       variant="default"
       size="lg"
@@ -314,7 +313,7 @@
 {/snippet}
 
 {#snippet invite()}
-  {#if mayInvite}
+  {#if canEmail}
     <Button variant="default" size="lg" onclick={() => (inviteOpen = true)}><SendIcon aria-hidden="true" />Invite to another job</Button>
   {/if}
 {/snippet}
@@ -397,7 +396,7 @@
       </HeaderBand>
 
       <div class="@container w-full px-4 py-5 md:px-6 md:py-6">
-        <!-- A move that worked shows in the header's Stage and in Activity, so only screen readers hear it. A failure
+        <!-- A move that worked shows in the pipeline tracker and in Activity, so only screen readers hear it. A failure
              shows in the header band, beside Move to stage. -->
         <p role="status" class="sr-only">{moves.failure ? '' : moves.announcement}</p>
         <p role="status" class="sr-only">{emailed}</p>
@@ -506,7 +505,7 @@
         onsent={(message) => (emailed = message)}
       />
     {/if}
-    {#if saved && mayInvite}
+    {#if saved && canEmail}
       <InviteToApplySheet bind:open={inviteOpen} people={invitee} ondone={(message) => (emailed = message)} />
     {/if}
 
@@ -542,7 +541,7 @@
       <MoveNoteSheet
         bind:open={moveNoteOpen}
         candidateName={detail.candidate.fullName}
-        currentStageId={detail.keptInMindAt ? '' : detail.stage.id}
+        currentStageId={detail.stage.id}
         {stages}
         failure={moves.failure}
         onmove={(stage, note) => moves.move({ id: detail.id, jobId: detail.jobId, candidateName: detail.candidate.fullName }, stage, note)}
