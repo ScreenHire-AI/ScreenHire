@@ -56,6 +56,12 @@ Stop with Ctrl+C (or `/preview stop`, which is `dotnet aspire stop`). Aspire the
 Mailpit's inbox stay in Docker volumes (one set per clone, or per worktree started with `/preview keep`), so the next
 start has the same candidates, the same emails and anything you changed.
 
+In a Kangentic task a stack also ends by itself. The project's Stop script (`stopScript` in `kangentic.json`) runs
+`dotnet aspire stop` for that clone when the task pauses after the idle timeout or for low memory, unless something is
+connected to the stack (a browser tab, or the task's Browser pane, which Kangentic closes first), and before it clears
+a finished task. A Pause or Stop pressed by a person leaves the stack up. The next agent is told what stopped and
+starts it again with `/preview` when it needs the app; a worktree without `keep` reseeds the demo.
+
 ### Start over
 
 - **A worktree starts clean:** in a Kangentic worktree `/preview` starts with no volumes, so the demo reseeds on each
