@@ -261,7 +261,7 @@ nothing and still answers 200, so SendGrid does not retry it. In one transaction
 
 Messages lists sent and received together, newest first (`direction`); a reply opens to who it is from, the message and its
 files. `GET /v1/replies/{replyId}` and its attachment route are read like sent mail, row-level security and job access
-included. A reply from a flagged address clears the flag (see below).
+included. A person's reply from a flagged address clears the flag (see below).
 
 Locally and in tests, `ScreenHire:Email:Sandbox:Enabled` (Development only; `EmailSandboxGate` stops a real host with it
 on) maps `POST /v1/dev/inbound-email`, which delivers a reply as SendGrid would, taking the Reply-To address of an email in
@@ -281,12 +281,13 @@ The candidate then carries `emailIssue` (`Bounced` or `SpamComplaint`, with when
   an automation records that nothing was sent. The composer and Email buttons are hidden for that candidate.
 - The candidate's page shows a status beside the name ("Email bounced", "Marked as spam") and a notice that says what it
   means and that it says nothing else about the candidate. People who may email candidates get **Allow email again**,
-  and a reply from the address clears it too. `CandidateEmailStatusChanged` refreshes open dashboards.
+  and a reply from the address clears it too, unless the reply is automatic: an out-of-office is not the candidate
+  writing. `CandidateEmailStatusChanged` refreshes open dashboards.
 - It is a delivery fact only. It never feeds a verification level, a score or a rejection (ADR-0004).
 
 ## Sending domain
 
-Out of the box, mail comes from ScreenHire's address under the company's name. An Owner or Admin can add the company's own
+Out of the box, mail comes from ScreenHire's address (`ScreenHire:Email:From`). An Owner or Admin can add the company's own
 domain under Settings, Sending domain (`/v1/organization/sending-domain`, `EditSettings`; every member reads it). The page is
 hidden, with a line saying so, when this deployment has no provider.
 

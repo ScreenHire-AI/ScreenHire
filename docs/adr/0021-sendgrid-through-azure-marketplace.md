@@ -31,9 +31,9 @@ an address bounced, which its event webhook provides. Both come with the provide
 3. **Every email about an application carries a reply address**, `reply+<token>@<reply host>`. The token holds the
    organization, the send (an `application_emails` id) and a short HMAC under the `email-reply-key` secret, in lowercase
    base32 because mail systems may change the case of a local part. It is exactly 64 characters with the prefix, the
-   RFC 5321 limit, and a test holds that. The two 128-bit ids are the real capability; the MAC only rejects damaged
-   addresses cheaply. The token names the send, not the application, so the person who sent the original is known. The
-   sign-in link, invitation and saved-application emails are not correspondence and carry none.
+   RFC 5321 limit, and a test holds that. The send's id is the real capability, a version 7 Guid with about 74 random
+   bits; the MAC only rejects damaged addresses cheaply. The token names the send, not the application, so the person
+   who sent the original is known. The sign-in link, invitation and saved-application emails are not correspondence and carry none.
 4. **The reply host is a subdomain, never the company's own domain.** `reply+<token>@reply.example.com` reads the brief's
    "at the organization's sending domain" safely: an MX record on `example.com` itself would send all of the company's
    normal mail to SendGrid. Without a sending domain of its own, replies arrive on `ScreenHire:Email:ReplyDomain`.
@@ -46,7 +46,7 @@ an address bounced, which its event webhook provides. Both come with the provide
    sent the original. An automatic answer (out of office) is stored and notifies nobody.
 6. **Bounces and spam complaints come from SendGrid's signed event webhook** (ECDSA, with the public key in
    configuration). A hard bounce or a spam report flags the candidate's address, and ScreenHire sends it nothing more
-   until a person says it works or the candidate writes from it. **A flag is a delivery fact. It never feeds a
+   until a person says it works or the candidate writes from it (an automatic answer does not count). **A flag is a delivery fact. It never feeds a
    verification level, a score or a rejection** (ADR-0004).
 7. **The company's own sending domain is verified by SendGrid.** An Owner or Admin adds a domain under Settings, Sending
    domain. The records are the ones SendGrid's domain authentication returns, with automated security: two DKIM CNAMEs
