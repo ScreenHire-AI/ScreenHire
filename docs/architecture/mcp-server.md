@@ -68,7 +68,7 @@ own.
 | `remove_tag(applicationId, tag)` | `DELETE /v1/applications/{id}/tags` | Write, Add notes and tags |
 | `create_task(applicationId, note, assigneeUserId?)` | `POST /v1/applications/{id}/tasks` | Write, Create tasks |
 | `move_to_stage(applicationId, stageId, note?)` | `POST /v1/applications/{id}/move` | Write, Move candidates |
-| `get_hiring_report(from, to, jobIds?)` | `GET /v1/reports/hiring` | Read |
+| `get_hiring_report(from, to, jobIds?, timeZone?, previousFrom?, previousTo?)` | `GET /v1/reports/hiring` | Read |
 | `list_saved_candidates(limit?)` | `GET /v1/talent-pool` | Read |
 | `get_verification(applicationId)` | `GET /v1/applications/{id}/verification` | Verification read |
 | `find_candidates_by_verification_level(authenticity?, aiAssistance?, jobId?, includeDismissed?, limit?)` | `GET /v1/verification/applications` | Verification read |
@@ -80,7 +80,9 @@ own.
   only, not their contents), follow-up questionnaires, the job's stages with the current one, and the latest 20
   activity entries, newest first. The stage ids are what `move_to_stage` takes.
 - `get_hiring_report` takes the dashboard's range rule (`from` inclusive, `to` exclusive, at most five years, at most
-  200 jobs) from `ReportEndpoints.Problems`. `list_saved_candidates` lists the talent pool's people whose permission
+  200 jobs, an optional previous range and the time zone that decides where Monday weeks start) from
+  `ReportEndpoints.Problems`, and returns the headline numbers, weekly trend, funnel, days per stage, sources and open
+  jobs of `HiringReportReads.ReadAsync`. `list_saved_candidates` lists the talent pool's people whose permission
   still holds, by name, 20 unless the assistant asks and 50 at most. Their HTTP routes stay session-only: the tools
   call the read services directly, which is why a Read key can use them (ADR-0021 decision 6). A saved candidate is the
   team's "kept in mind" entry; the tool only reads the list and keeps, removes and invites no one.

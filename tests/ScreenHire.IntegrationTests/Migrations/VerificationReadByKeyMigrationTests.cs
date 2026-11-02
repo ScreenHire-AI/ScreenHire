@@ -15,7 +15,7 @@ namespace ScreenHire.IntegrationTests.Migrations;
 /// </summary>
 public sealed class VerificationReadByKeyMigrationTests(AppHostFixture fixture)
 {
-    private const string Before = "RenameIntegrityToVerification";
+    private const string Before = "AddApplicationSourceBoard";
     private const string Added = "AddVerificationReadByKey";
 
     [Fact]

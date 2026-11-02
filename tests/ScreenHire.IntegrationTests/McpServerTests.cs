@@ -151,6 +151,9 @@ public sealed class McpServerTests(AppHostFixture fixture)
         var saved = await mcp.CallAsync("list_saved_candidates", new());
 
         report.GetProperty("funnel").EnumerateArray().Select(f => f.GetProperty("applications").GetInt32()).Should().Contain(count => count >= 1);
+        report.GetProperty("headline").GetProperty("applications").GetInt32().Should().BeGreaterThanOrEqualTo(1);
+        report.GetProperty("weekly").GetArrayLength().Should().BeGreaterThan(0);
+        report.GetProperty("openJobs").EnumerateArray().Select(j => j.GetProperty("jobId").GetGuid()).Should().Contain(jobId);
         var person = saved.GetProperty("candidates").EnumerateArray().Single();
         person.GetProperty("applicationId").GetGuid().Should().Be(kept.ApplicationId);
         person.GetProperty("candidateId").GetGuid().Should().Be(kept.CandidateId);
@@ -158,6 +161,7 @@ public sealed class McpServerTests(AppHostFixture fixture)
         person.GetProperty("name").GetProperty("candidateWritten").GetString().Should().NotBeNullOrEmpty();
         saved.GetProperty("permissionMonths").GetInt32().Should().Be(12);
         (await mcp.CallFailingAsync("get_hiring_report", new() { ["from"] = to, ["to"] = from })).Should().Contain("to:");
+        (await mcp.CallFailingAsync("get_hiring_report", new() { ["from"] = from, ["to"] = to, ["timeZone"] = "Nowhere/Atlantis" })).Should().Contain("timeZone:");
     }
 
     [Fact]

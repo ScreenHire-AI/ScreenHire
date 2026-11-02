@@ -35,7 +35,7 @@ public sealed class SandboxBoardAdapter(ScreenHireDbContext db, TimeProvider tim
     public SandboxPayload Map(PostingContent content)
     {
         ArgumentNullException.ThrowIfNull(content);
-        return new SandboxPayload(content.Snapshot.Title, content.Url, content.Version);
+        return new SandboxPayload(content.Snapshot.Title, BoardUrls.Tag(content.Url, BoardId), content.Version);
     }
 
     public async Task<BoardResult> PublishAsync(PostingRequest request, CancellationToken cancellationToken)

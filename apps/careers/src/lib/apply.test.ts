@@ -297,6 +297,8 @@ describe('toRequest', () => {
       telemetry: null,
       // Applied on the careers site itself, not inside another site.
       embedOrigin: null,
+      // No job board sent this candidate.
+      source: null,
     });
   });
 

@@ -10,6 +10,7 @@ using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Endpoints;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Api.Reports;
+using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Slack;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
@@ -32,6 +33,7 @@ internal sealed class HiringTools(
     IDbContextOutbox<ScreenHireDbContext> outbox,
     ITenantContext tenant,
     SlackAccess slack,
+    BoardRegistry boards,
     TimeProvider time,
     IValidator<MoveApplicationRequest> moveValidator,
     IValidator<AddApplicationNoteRequest> noteValidator,
@@ -88,21 +90,37 @@ internal sealed class HiringTools(
     }
 
     [McpServerTool(Name = "get_hiring_report", Title = "Read the hiring report", ReadOnly = true, OpenWorld = false, UseStructuredContent = true)]
-    [Description("Read the hiring report for a date range, for every job or the jobs you name: the funnel (applications that reached each stage "
-        + "kind), time to hire (median days from applying to being hired, per job) and where applications came from. `to` is exclusive, "
-        + "the range is at most 5 years, and the numbers come from one snapshot so they agree.")]
+    [Description("Read the hiring report for a date range, for every job or the jobs you name: headline numbers, applications and hires by "
+        + "Monday week, the funnel (applications that reached each stage kind), time to hire (median days in each stage and per job), where "
+        + "applications came from, and the open jobs. `to` is exclusive, the range is at most 5 years, and the numbers come from one snapshot "
+        + "so they agree. Name a previous range to get the same headline for it.")]
     public async Task<McpHiringReport> GetHiringReport(
         [Description("When the report starts, inclusive, such as 2026-01-01T00:00:00Z.")] DateTimeOffset from,
         [Description("When the report ends, exclusive. After `from`.")] DateTimeOffset to,
         [Description("Only these jobs, by id from find_jobs, up to 200. Leave out for every job.")] Guid[]? jobIds = null,
+        [Description("The time zone that decides where each week starts, by name, such as Europe/London. UTC unless you say.")] string? timeZone = null,
+        [Description("When the previous range starts, inclusive. Name both ends of it or neither.")] DateTimeOffset? previousFrom = null,
+        [Description("When the previous range ends, exclusive.")] DateTimeOffset? previousTo = null,
         CancellationToken cancellationToken = default)
     {
-        if (ReportEndpoints.Problems(from, to, jobIds) is { Count: > 0 } problems)
+        var zone = string.IsNullOrWhiteSpace(timeZone) ? "UTC" : timeZone.Trim();
+        var problems = ReportEndpoints.Problems(from, to, jobIds, previousFrom, previousTo);
+        if (problems.Count == 0 && !await HiringReportReads.TimeZoneExistsAsync(db, zone, cancellationToken))
+        {
+            problems["timeZone"] = ["Say the time zone by its name, such as Europe/London."];
+        }
+
+        if (problems.Count > 0)
         {
             throw new McpException(string.Join(" ", problems.SelectMany(p => p.Value.Select(message => $"{p.Key}: {message}"))));
         }
 
-        return (await HiringReportReads.ReadAsync(db, from.ToUniversalTime(), to.ToUniversalTime(), jobIds ?? [], cancellationToken)).ToMcp();
+        (DateTimeOffset, DateTimeOffset)? previous = previousFrom is { } start && previousTo is { } end
+            ? (start.ToUniversalTime(), end.ToUniversalTime())
+            : null;
+        var report = await HiringReportReads.ReadAsync(
+            db, from.ToUniversalTime(), to.ToUniversalTime(), previous, jobIds ?? [], zone, time.GetUtcNow(), id => boards.Find(id)?.Name ?? id, cancellationToken);
+        return report.ToMcp();
     }
 
     [McpServerTool(Name = "list_saved_candidates", Title = "List saved candidates", ReadOnly = true, OpenWorld = false, UseStructuredContent = true)]
