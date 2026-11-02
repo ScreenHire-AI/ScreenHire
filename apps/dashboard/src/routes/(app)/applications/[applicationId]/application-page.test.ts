@@ -1605,7 +1605,7 @@ describe('application page', () => {
       renderPage();
       const band = await header();
 
-      await within(band).findByRole('button', { name: 'Email' });
+      await within(band).findByRole('button', { name: 'Message' });
       expect(within(band).queryByRole('button', { name: 'Schedule interview' })).toBeNull();
     });
 
@@ -1646,15 +1646,10 @@ describe('application page', () => {
       renderPage();
       const band = await header();
 
-      const facts = await waitFor(() => {
-        const terms = within(band)
-          .getAllByRole('term')
-          .map((term) => [term.textContent?.trim(), term.nextElementSibling?.textContent?.replace(/\s+/g, ' ').trim()]);
-        if (!terms.some(([label]) => label === 'Interview')) throw new Error('No interview fact yet');
-        return terms;
-      });
-      expect(facts.map(([label]) => label)).toEqual(['Stage', 'Job', 'Applied', 'Interview', 'Rating']);
-      expect(facts[3]![1]).toBe(`Booked for ${formatDateTime(startsAt)}`);
+      // The header's Interview mini card holds the time and nothing else about the interview.
+      const card = await within(band).findByRole('group', { name: 'Interview' });
+      expect(card).toHaveTextContent(formatDateTime(startsAt));
+      expect(card).toHaveTextContent('30 minutes with 1 interviewer');
 
       const panels = await waitFor(() => {
         const names = [...document.querySelectorAll('[data-slot="panel"] > header h2')].map((heading) => heading.textContent?.trim());
@@ -1667,14 +1662,14 @@ describe('application page', () => {
       expect(document.body.textContent?.split(formatDateTime(startsAt))).toHaveLength(2);
     });
 
-    it('shows no interview fact while the candidate has yet to pick a time, only the panel saying so', async () => {
+    it('shows no interview card while the candidate has yet to pick a time, only the panel saying so', async () => {
       stubApi({ [`GET /v1/applications/${applicationId}/interviews`]: () => Response.json([interview()]) });
       renderPage();
       const band = await header();
 
       const region = await screen.findByRole('region', { name: 'Interview' });
       expect(region).toHaveTextContent('Waiting for the candidate to pick a time');
-      expect(within(band).getAllByRole('term').map((term) => term.textContent?.trim())).toEqual(['Stage', 'Job', 'Applied', 'Rating']);
+      expect(within(band).queryByRole('group', { name: 'Interview' })).toBeNull();
     });
 
     it('lists an interview in Activity with its time and counts it under Interviews', async () => {
