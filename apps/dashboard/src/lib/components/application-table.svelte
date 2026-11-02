@@ -40,6 +40,7 @@
     emptyText = 'No candidates yet.',
     onclearfilters,
     filters,
+    filterAction,
     fill = false,
     sortId,
     sort = createTableSort(sortId, stages ? { id: 'stage', desc: false } : { id: 'applied', desc: true }, sortableColumnIds(extraColumns, showJob)),
@@ -68,6 +69,8 @@
     onclearfilters?: () => void;
     /** On a phone, the page's filters, in one row with the Sort chip above the list items (design system L2, section 8). */
     filters?: Snippet;
+    /** On a phone, what stays in view after the scrolling filters, before the Sort chip (Save view). */
+    filterAction?: Snippet;
     /** Names the table in the person's remembered sorts (`candidates`, `job-candidates`); without it the sort is forgotten. */
     sortId?: string;
     /**
@@ -363,6 +366,7 @@
        (F5), and the Sort chip stays in view at the end. -->
   <div class="flex items-center gap-2 border-b border-border-subtle px-4 py-2">
     <div class="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">{@render filters?.()}</div>
+    {@render filterAction?.()}
     <SortMenu {table} class="shrink-0" />
   </div>
   {#if rows.length === 0}

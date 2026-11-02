@@ -15,6 +15,7 @@ export class UndoOffer {
 
   #undo: (() => Promise<string | null>) | undefined;
   #timer: ReturnType<typeof setTimeout> | undefined;
+  #held = false;
   readonly #milliseconds: number;
 
   constructor(milliseconds = undoMilliseconds) {
@@ -26,10 +27,13 @@ export class UndoOffer {
   }
 
   offer(message: string, undo: () => Promise<string | null>): void {
+    // The card stays in the page when one offer replaces another, so a person holding it is still holding it.
+    const held = this.#held && this.open;
     this.dismiss();
     this.message = message;
     this.#undo = undo;
-    this.#timer = setTimeout(() => this.dismiss(), this.#milliseconds);
+    this.#held = held;
+    if (!held) this.#timer = setTimeout(() => this.dismiss(), this.#milliseconds);
   }
 
   async run(): Promise<void> {
@@ -39,7 +43,10 @@ export class UndoOffer {
     this.working = true;
     const failure = await undo();
     this.working = false;
+    // A newer offer came in while this one ran. It keeps the card.
+    if (this.#undo !== undo) return;
     this.#undo = undefined;
+    this.#held = false;
     this.message = '';
     this.failure = failure ?? '';
     // A failure stays a little longer than the offer did, then goes.
@@ -48,18 +55,21 @@ export class UndoOffer {
 
   /** Stops the clock while the person points at or focuses the notice, so there is time to reach it (WCAG 2.2.1). */
   hold(): void {
+    this.#held = true;
     clearTimeout(this.#timer);
     this.#timer = undefined;
   }
 
   /** Starts the clock again, from the full time, once the person leaves the notice. */
   release(): void {
+    this.#held = false;
     if (this.open && this.#timer === undefined && !this.working) this.#timer = setTimeout(() => this.dismiss(), this.#milliseconds);
   }
 
   dismiss(): void {
     clearTimeout(this.#timer);
     this.#timer = undefined;
+    this.#held = false;
     this.#undo = undefined;
     this.message = '';
     this.failure = '';

@@ -33,26 +33,30 @@ live on the server. "Saved" now means saved candidates only, so the heading is V
 
 A `SavedFilterView` (`saved_filter_views`) has a name (at most 80 characters, unique for one person and table without
 regard to case), an owner (a user id, because a membership id changes when someone leaves and rejoins), a scope
-(`Candidates`, or `Job` with its `JobId`), `IsShared`, and a `ViewDefinition` stored as JSON:
+(`Candidates`, or `Job` with its `JobId`), `IsShared`, and a `ViewDefinition` stored as JSON. The API checks the name and answers
+in words; the partial unique index `ux_saved_filter_views_name`, on the lower-cased name of rows not deleted, settles two saves
+at the same moment:
 
 | Member | Meaning |
 |---|---|
-| `baseView` | A built-in view it narrows, by id. A view saved while on To review keeps To review's rule and adds the filters. |
-| `jobIds`, `stages` | The jobs and stages picked. Stage names on the Candidates page (they match across jobs), stage ids on a job's table. |
+| `baseView` | A built-in view it narrows, by id. A view saved while on To review keeps To review's rule and adds the filters. Candidates page only. |
+| `jobIds`, `stages` | The jobs and stages picked. Stage names on the Candidates page (they match across jobs), stage ids on a job's table, which takes no `jobIds`. |
 | `authenticity`, `aiAssistance` | The verification filter's levels, by name; `Pending` for checks not yet run. |
 | `tag`, `sortColumn`, `sortDescending` | The tag filter and the table's sort. |
 
 Search text is not part of a view: it is a lookup, not a filter. The built-in views stay in code, so the server knows only
 their ids (`BuiltInViews`, checked against `saved-views.ts` by `ViewPolicyTests`).
 
-A view picks rows, it never stores them. The jobs a view names must be jobs its saver sees (400 otherwise), so a shared view
-never carries the id of a job they cannot see. When a member is removed, their private views go with them; the views they
-shared stay with the team.
+A view picks rows, it never stores them. The jobs a view names must be jobs its saver sees (400 otherwise). When a member is
+removed, their private views go with them; the views they shared stay with the team.
 
-Everything a table shows still passes through the job scope (ADR-0015), so a
-shared Candidates view shows each member only the candidates on jobs they see. A view of one job is returned only to
-members who see that job: the list query reads `jobs` through the `JobScope` filter. The table has tenant row-level
-security only, because a Candidates view has no job for the `job_scope` policy to check.
+A shared view shows for everyone who can see its jobs (ADR-0015). A view of one job is returned only to members who see that
+job: the list query reads `jobs` through the `JobScope` filter, and the table's `job_scope` row-level security policy holds the
+same rule, passing rows with no job. A shared Candidates view that picks jobs is returned only to members who see every one of
+them (`ViewPolicy.MaySee`), because the view carries their ids; the check runs after the query, since the picks are in
+`definition`. One job out of reach hides the whole view. Its owner keeps it after leaving a job's team, with the rows still
+narrowed by the job scope. A Candidates view that picks no jobs shows to every member, and its rows pass through the job scope
+like any table's. Stage names in a view are not checked: they are text the saver picked, and they match across jobs.
 
 A view that narrows a verification view, or filters by a verification level, keeps the page's guardrails: the Candidates
 page offers no bulk email while verification picked the rows, and bulk moves never offer a stage that ends a candidacy
@@ -71,19 +75,21 @@ The routes are session only, under `/v1/views`: an API key has no views, and non
 ## Deleting and Undo
 
 Delete is soft: it sets `deleted_at`, and `POST /v1/views/{id}/restore` clears it, so Undo brings back the same row with
-the same owner, even when an Admin deleted a teammate's view. Each delete removes the rows that stayed deleted for more
-than a minute, so there is no sweep to run. A restore is refused with 409 when another view took the name meanwhile.
+the same owner, even when an Admin deleted a teammate's view. A restore works for a minute (`SavedFilterView.RestoreWindow`),
+then answers 404. Each delete removes the rows past that minute, so there is no sweep to run, and a deleted row can wait for
+the organization's next delete. A restore is refused with 409 when another view took the name meanwhile.
 
 The dashboard shows the Undo as `UndoNotice`, a card at the bottom of the window for 10 seconds (`UndoOffer`). The Undo
-button takes focus when the card appears (the menu that deleted the view has just closed, so focus is nowhere), and the
-clock waits while the pointer or focus is on the card, so the keyboard has time to reach it (WCAG 2.2.1).
+button takes focus when the card appears (the menu that deleted the view has just closed, so focus is nowhere). That focus
+does not stop the clock, or the card would never leave. The clock waits while the pointer is on the card or the person moves
+focus to it (WCAG 2.2.1), and Escape closes it.
 
 ## Hiding built-in views
 
 Each member can hide built-in views from their own sidebar. The choice is `organization_members.views`
 (`ViewPreferences.HiddenBuiltIns`), beside the notification settings, so it follows the person across devices and each
-organization keeps its own. `PUT /v1/views/hidden-built-ins` replaces the list. The list ends with Show hidden views when
-any are hidden.
+organization keeps its own. `PUT /v1/views/hidden-built-ins` replaces the list, so the dashboard sends one change at a time. The
+list ends with Show hidden views when any are hidden.
 
 ## Real-time
 
@@ -97,17 +103,19 @@ nothing: nobody else's list changes.
   sort on the table, without changing the sort the person remembers for that table. A view that is gone shows every
   candidate and says so.
 - **Save view.** Once the filters or sort differ from the view the table is on (`differsFromView`), a Save view button ends
-  the filter row. Its dialog asks for a name and Share with the team, off by default. The new view opens.
+  the filter row, outside the part that scrolls, so it is in view at any width. Its dialog asks for a name and Share with the
+  team, off by default. The new view opens.
 - **Counts.** The sidebar counts the rows each view picks with `viewMatcher`, from the same applications list the pages show.
 - **Menu.** Each row has a button that shows on hover and on focus: Rename, Share with the team or Make private, and Delete
-  view for a view the person may change; Hide for a built-in one. All of them are menu items, so the keyboard reaches them.
+  view for a view the person may change; Hide for a built-in one. All of them are menu items, so the keyboard reaches them. A
+  tablet's icon rail has no room for the menus, so its top bar has a button that opens the full sidebar.
 
 ## Tests
 
 | Test | Proves |
 |---|---|
-| `ViewPolicyTests` (unit) | who sees and changes a view, the built-in ids match the dashboard's, the view's own rules |
-| `ViewsTests` (integration) | private until shared, 403 and 404 for others, Admin may edit, Undo restores the same row, a job view follows job access, another organization sees nothing, validation, hidden built-ins, no API key |
+| `ViewPolicyTests` (unit) | who sees and changes a view, the built-in ids match the dashboard's, the view's own rules, Undo's minute |
+| `ViewsTests` (integration) | private until shared, 403 and 404 for others, Admin may edit, Undo restores the same row, a job view and a view that picks jobs follow job access, two saves of one name leave one view, another organization sees nothing, validation, hidden built-ins, no API key |
 | `ViewsRealtimeTests` (integration) | `ViewsChanged` reaches its own organization with an id only |
 | `view-filters.test.ts`, `sidebar-views.test.ts` (Vitest) | what a view holds, when a table differs from it, the rows it picks and the sidebar's counts |
-| `sidebar-views.test.ts`, `candidates-page.test.ts`, `job-pipeline.test.ts`, `undo-notice.test.ts` (Vitest) | the menu and its keyboard path, the Save view button and dialog, opening a view, the Undo notice |
+| `app-sidebar.test.ts`, `candidates-page.test.ts`, `job-pipeline.test.ts`, `undo-notice.test.ts` (Vitest) | the menu and its keyboard path, the Save view button and dialog, opening a view, what a saved view keeps of the verification guardrails, the Undo notice |

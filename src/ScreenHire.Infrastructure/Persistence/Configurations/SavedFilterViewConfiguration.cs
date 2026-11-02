@@ -29,8 +29,8 @@ internal sealed class SavedFilterViewConfiguration : IEntityTypeConfiguration<Sa
             .HasPrincipalKey(j => new { j.OrganizationId, j.Id })
             .OnDelete(DeleteBehavior.Cascade);
 
-        // The list a member opens reads their own views and the shared ones. Names are unique per person and table, but
-        // the API checks that without regard to case, so there is no unique index to race it.
+        // The list a member opens reads their own views and the shared ones. Names are unique per person and table without
+        // regard to case: ux_saved_filter_views_name is an expression index, so it lives in the AddSavedViews migration.
         builder.HasIndex(v => new { v.OrganizationId, v.IsShared, v.OwnerUserId });
     }
 }

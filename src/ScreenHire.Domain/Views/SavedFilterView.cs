@@ -11,14 +11,17 @@ public enum ViewScope
 
 /// <summary>
 /// A named filter and sort that someone saved on a candidate table (docs/architecture/saved-views.md). Private to its
-/// owner until <see cref="IsShared"/>; a shared view shows for everyone who can see its job, or for every member when it
-/// filters the Candidates page, because the rows it picks already pass through the job scope (ADR-0015). Only the
-/// owner, or a role with Edit anyone's views, renames, shares or deletes it (<see cref="ViewPolicy"/>). Deleting is soft
-/// so Undo can restore the row; the API purges rows that stayed deleted.
+/// owner until <see cref="IsShared"/>; a shared view shows for everyone who can see its jobs: the job it filters, or every
+/// job it picks on the Candidates page (ADR-0015, <see cref="ViewPolicy.MaySee"/>). Only the owner, or a role with Edit
+/// anyone's views, renames, shares or deletes it (<see cref="ViewPolicy"/>). Deleting is soft so Undo can restore the
+/// row for <see cref="RestoreWindow"/>; the API purges rows that stayed deleted.
 /// </summary>
 public sealed class SavedFilterView : ITenantOwned
 {
     public const int MaxNameLength = 80;
+
+    /// <summary>How long Undo can restore a deleted view. Longer than the offer on screen, which waits while it is held.</summary>
+    public static readonly TimeSpan RestoreWindow = TimeSpan.FromMinutes(1);
 
     public Guid Id { get; init; } = Guid.CreateVersion7();
 
@@ -97,13 +100,20 @@ public sealed class SavedFilterView : ITenantOwned
     /// <summary>Deletes it, or does nothing when it is already deleted (a second request keeps the first time).</summary>
     public void Delete(DateTimeOffset now) => DeletedAt ??= now;
 
-    public void Restore(DateTimeOffset now)
+    /// <summary>Whether it was deleted too long ago for Undo.</summary>
+    public bool IsPastUndo(DateTimeOffset now) => DeletedAt is { } deletedAt && now - deletedAt > RestoreWindow;
+
+    /// <summary>Brings a deleted view back. Returns whether it changed.</summary>
+    public bool Restore(DateTimeOffset now)
     {
-        if (DeletedAt is not null)
+        if (DeletedAt is null)
         {
-            DeletedAt = null;
-            UpdatedAt = now;
+            return false;
         }
+
+        DeletedAt = null;
+        UpdatedAt = now;
+        return true;
     }
 }
 
@@ -163,10 +173,15 @@ public static class ViewPolicy
         return userId is { } user && (view.OwnerUserId == user || permissions?.Contains(Permission.EditAnyView) == true);
     }
 
-    /// <summary>Whether the person sees the view at all: a shared one, or their own.</summary>
-    public static bool MaySee(SavedFilterView view, Guid? userId)
+    /// <summary>
+    /// Whether the person sees the view at all: their own, or a shared one whose picked jobs they all see. One job out of
+    /// reach hides it, because the view carries the job ids (ADR-0015). <paramref name="seenJobs"/> holds the jobs they see,
+    /// at least among those the view picks. A view of one job is checked by its job, through the job scope.
+    /// </summary>
+    public static bool MaySee(SavedFilterView view, Guid? userId, IReadOnlySet<Guid> seenJobs)
     {
         ArgumentNullException.ThrowIfNull(view);
-        return view.IsShared || (userId is { } user && view.OwnerUserId == user);
+        ArgumentNullException.ThrowIfNull(seenJobs);
+        return (userId is { } user && view.OwnerUserId == user) || (view.IsShared && view.Definition.JobIds.All(seenJobs.Contains));
     }
 }

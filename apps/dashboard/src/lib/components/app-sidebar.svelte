@@ -341,7 +341,7 @@
             {#snippet child({ props: tip })}
               <DropdownMenu.Trigger {...tip} aria-label={`Actions for ${view.label}`}>
                 {#snippet child({ props })}
-                  <Sidebar.MenuAction {...props} showOnHover class="pointer-coarse:w-11 pointer-coarse:opacity-100!"><EllipsisIcon aria-hidden="true" /></Sidebar.MenuAction>
+                  <Sidebar.MenuAction {...props} showOnHover class="w-6 peer-data-[size=default]/menu-button:top-1 pointer-coarse:w-11 pointer-coarse:opacity-100!"><EllipsisIcon aria-hidden="true" /></Sidebar.MenuAction>
                 {/snippet}
               </DropdownMenu.Trigger>
             {/snippet}

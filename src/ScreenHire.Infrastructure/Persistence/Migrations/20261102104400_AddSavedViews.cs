@@ -11,14 +11,26 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
     /// </summary>
     public partial class AddSavedViews : Migration
     {
-        // Tenant row-level security like every tenant table (AddSignInAndTenantIsolation). No job_scope policy: a candidates
-        // view has no job, and the API leaves out a view of a job the member cannot see by reading jobs, which is scoped.
+        // Tenant row-level security like every tenant table (AddSignInAndTenantIsolation), and job_scope for a view of one job
+        // (ADR-0015). A candidates view has no job, so the policy passes it; the API checks the jobs it picks.
         private const string EnableRowLevelSecurity = """
             ALTER TABLE saved_filter_views ENABLE ROW LEVEL SECURITY;
             ALTER TABLE saved_filter_views FORCE ROW LEVEL SECURITY;
             CREATE POLICY tenant_isolation ON saved_filter_views
                 USING (organization_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid)
                 WITH CHECK (organization_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+            CREATE POLICY job_scope ON saved_filter_views AS RESTRICTIVE FOR ALL TO screenhire_app
+                USING (job_id IS NULL OR app_sees_job(organization_id, job_id))
+                WITH CHECK (job_id IS NULL OR app_sees_job(organization_id, job_id));
+            """;
+
+        // One name for one person and table, without regard to case. Deleted rows are out of it, so a name can be reused while
+        // Undo is on offer. An expression index, so it is SQL rather than part of the model. Candidates views have no job_id,
+        // which a plain unique index would treat as all different.
+        private const string UniqueNames = """
+            CREATE UNIQUE INDEX ux_saved_filter_views_name ON saved_filter_views
+                (organization_id, owner_user_id, scope, coalesce(job_id, '00000000-0000-0000-0000-000000000000'::uuid), lower(name))
+                WHERE deleted_at IS NULL;
             """;
 
         /// <inheritdoc />
@@ -87,6 +99,7 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                 table: "saved_filter_views",
                 column: "owner_user_id");
 
+            migrationBuilder.Sql(UniqueNames);
             migrationBuilder.Sql(EnableRowLevelSecurity);
         }
 

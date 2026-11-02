@@ -121,13 +121,13 @@
       verificationFilter = verificationOf(filters);
       tagFilter = filters.tag ?? null;
       search = '';
-      sort.sorting = [sortOf(filters, 'Candidates')];
+      sort.show(sortOf(filters, 'Candidates'));
     } else if (applied !== null) {
       jobFilter = [];
       stageFilter = [];
       verificationFilter = { ...noVerificationFilter };
       tagFilter = null;
-      sort.sorting = [preferences.sortFor('candidates') ?? defaultSorts.Candidates];
+      sort.show(preferences.sortFor('candidates'));
     }
     applied = id;
   });
@@ -203,19 +203,22 @@
           {/if}
         {/snippet}
         <!-- The filters: one row under the header, outside the table, that scrolls inside the panel rather than wrapping
-             (F5), as on a job's pipeline. -->
-        <div data-filters class="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">
-          {#if reached}
-            <Button variant="outline" onclick={clearReached} aria-label={`Clear filter: ${reachedLabel(reached)}`}>
-              {reachedLabel(reached)}<XIcon aria-hidden="true" />
-            </Button>
-          {/if}
-          <MultiFilterMenu label="Job" options={jobs} bind:values={jobFilter} />
-          <MultiFilterMenu label="Stage" options={stages} bind:values={stageFilter} />
-          <VerificationFilterMenu bind:filter={verificationFilter} />
-          <TagFilterMenu bind:tag={tagFilter} {tags} />
-          <SaveViewButton scope="Candidates" filters={filtersNow} show={canSave} class="ms-auto" />
+             (F5), as on a job's pipeline. Save view stays in view at the end, as the phone's Sort chip does. -->
+        <div data-filters class="flex shrink-0 items-center gap-2 border-b border-border-subtle px-4.5 py-2 max-md:px-4">
+          <div class="-my-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-1">
+            {#if reached}
+              <Button variant="outline" onclick={clearReached} aria-label={`Clear filter: ${reachedLabel(reached)}`}>
+                {reachedLabel(reached)}<XIcon aria-hidden="true" />
+              </Button>
+            {/if}
+            <MultiFilterMenu label="Job" options={jobs} bind:values={jobFilter} />
+            <MultiFilterMenu label="Stage" options={stages} bind:values={stageFilter} />
+            <VerificationFilterMenu bind:filter={verificationFilter} />
+            <TagFilterMenu bind:tag={tagFilter} {tags} />
+          </div>
+          <SaveViewButton scope="Candidates" filters={filtersNow} show={canSave} />
         </div>
+        <p role="status" class="border-b border-border-subtle px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4">{viewGone ? 'That view is no longer there, so this shows every candidate.' : ''}</p>
         {#if applications.isError}
           <div class="p-4">
             <QueryError message={describeError(applications.error, 'Could not load candidates')} onretry={() => applications.refetch()} inset />
@@ -244,7 +247,6 @@
               : undefined}
           />
         {/if}
-        <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4">{viewGone ? 'That view is no longer there, so this shows every candidate.' : ''}</p>
         <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4">{emailed}</p>
         <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4" data-added>
           {#if added}Added <a href={`/applications/${added.applicationId}`} class="text-foreground underline underline-offset-2">{added.name}</a> to {added.jobTitle}.{/if}

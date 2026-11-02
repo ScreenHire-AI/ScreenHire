@@ -98,17 +98,16 @@
     if (saved) {
       stageFilter = saved.filters.stages[0] ?? null;
       verificationFilter = verificationOf(saved.filters);
-      sort.sorting = [sortOf(saved.filters, 'Job')];
+      sort.show(sortOf(saved.filters, 'Job'));
     } else if (applied !== null) {
       stageFilter = null;
       verificationFilter = { ...noVerificationFilter };
-      sort.sorting = [preferences.sortFor('job-candidates') ?? defaultSorts.Job];
+      sort.show(preferences.sortFor('job-candidates'));
     }
     applied = id;
   });
   const filtersNow = $derived(
     filtersOf({
-      baseView: saved?.filters.baseView ?? null,
       stages: chosenStage ? [chosenStage] : [],
       verification: verificationFilter,
       sort: sort.sorting[0] ?? defaultSorts.Job,
@@ -205,19 +204,24 @@
   {/if}
   {#if !pending && !error}
     {#if !sidebar.isMobile}
-      <!-- The filters: one line that scrolls inside the panel rather than wrapping (F5). The board's columns are the
-           stages, so only the table has the Stage filter. -->
-      <div data-filters class="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2">
-        {#if view === 'table'}{@render stageMenu()}{/if}
-        <AuthenticityFilter {applications} filter={verificationFilter} onchange={setVerificationFilter} />
-        {@render saveView('ms-auto')}
+      <!-- The filters: one line that scrolls inside the panel rather than wrapping (F5), with Save view in view at its end.
+           The board's columns are the stages, so only the table has the Stage filter. -->
+      <div data-filters class="flex shrink-0 items-center gap-2 border-b border-border-subtle px-4.5 py-2">
+        <div class="-my-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-1">
+          {#if view === 'table'}{@render stageMenu()}{/if}
+          <AuthenticityFilter {applications} filter={verificationFilter} onchange={setVerificationFilter} />
+        </div>
+        {@render saveView()}
       </div>
     {:else if view === 'board'}
-      <div data-filters class="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border-subtle px-4 py-2">
-        <AuthenticityFilter {applications} filter={verificationFilter} onchange={setVerificationFilter} menu />
-        {@render saveView('ms-auto')}
+      <div data-filters class="flex shrink-0 items-center gap-2 border-b border-border-subtle px-4 py-2">
+        <div class="-my-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-1">
+          <AuthenticityFilter {applications} filter={verificationFilter} onchange={setVerificationFilter} menu />
+        </div>
+        {@render saveView()}
       </div>
     {/if}
+    <p role="status" class="border-b border-border-subtle px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4">{viewGone ? 'That view is no longer there, so this shows every candidate.' : ''}</p>
     {#if view === 'table' && selected.length > 0}
       <SelectionBar
         count={selected.length}
@@ -256,8 +260,8 @@
       {#snippet filters()}
         {@render stageMenu()}
         <AuthenticityFilter {applications} filter={verificationFilter} onchange={setVerificationFilter} menu />
-        {@render saveView('ms-auto')}
       {/snippet}
+      {#snippet filterAction()}{@render saveView()}{/snippet}
     </ApplicationTable>
   {:else if onBoard.length === 0}
     <Empty.Root class="gap-3 p-6">
@@ -270,7 +274,6 @@
   <!-- A move that worked is a quiet line; a failed one is a problem to fix (T1). -->
   <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4">{moves.failure ? '' : moves.announcement}</p>
   <FailureText message={moves.failure ? moves.announcement : ''} class="px-4.5 py-2 max-md:px-4" />
-  <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4">{viewGone ? 'That view is no longer there, so this shows every candidate.' : ''}</p>
   <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4">{emailed}</p>
 </Panel>
 
@@ -285,8 +288,8 @@
   <SearchField bind:value={search} label="Search candidates" class={className} />
 {/snippet}
 
-{#snippet saveView(className: string)}
-  <SaveViewButton scope="Job" {jobId} filters={filtersNow} show={canSave} class={className} />
+{#snippet saveView()}
+  <SaveViewButton scope="Job" {jobId} filters={filtersNow} show={canSave} />
 {/snippet}
 
 {#snippet stageMenu()}

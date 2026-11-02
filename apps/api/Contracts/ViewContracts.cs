@@ -65,6 +65,11 @@ internal sealed class CreateViewRequestValidator : AbstractValidator<CreateViewR
         RuleFor(r => r.JobId).NotEmpty().When(r => r.Scope == ViewScope.Job).WithMessage("Name the job this view is for.");
         RuleFor(r => r.JobId).Null().When(r => r.Scope == ViewScope.Candidates).WithMessage("A candidates view is not for one job.");
         RuleFor(r => r.Filters).NotNull().SetValidator(new ViewFiltersValidator());
+        // The job page applies neither, so the sidebar's count would disagree with its table.
+        RuleFor(r => r.Filters)
+            .Must(filters => filters is null || (filters.BaseView is null && filters.JobIds is not { Count: > 0 }))
+            .When(r => r.Scope == ViewScope.Job)
+            .WithMessage("A job's view filters that job's table: no built-in view and no other jobs.");
     }
 }
 
@@ -92,8 +97,8 @@ internal sealed class ViewFiltersValidator : AbstractValidator<ViewFilters>
     public ViewFiltersValidator()
     {
         RuleFor(f => f.BaseView).Must(id => id is null || BuiltInViews.Exists(id)).WithMessage("There is no built-in view with this id.");
-        RuleFor(f => f.JobIds).NotNull().Must(ids => ids.Count <= CreateViewRequestValidator.MaxListed).WithMessage("Pick at most 50 jobs.");
-        RuleFor(f => f.Stages).NotNull().Must(stages => stages.Count <= CreateViewRequestValidator.MaxListed).WithMessage("Pick at most 50 stages.");
+        RuleFor(f => f.JobIds).NotNull().Must(ids => ids.Count <= CreateViewRequestValidator.MaxListed).WithMessage($"Pick at most {CreateViewRequestValidator.MaxListed} jobs.");
+        RuleFor(f => f.Stages).NotNull().Must(stages => stages.Count <= CreateViewRequestValidator.MaxListed).WithMessage($"Pick at most {CreateViewRequestValidator.MaxListed} stages.");
         RuleForEach(f => f.Stages).NotEmpty().MaximumLength(100);
         RuleFor(f => f.Authenticity)
             .Must(value => value is null || value == "Pending" || Enum.GetNames<AuthenticityLevel>().Contains(value))

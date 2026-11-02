@@ -32,6 +32,8 @@ export function createViewActions(options: { undo: UndoOffer; hiddenBuiltIns: ()
   const remove = createDeleteView(() => ({ mutation: { onSettled: refetch } }));
   const restore = createRestoreView(() => ({ mutation: { onSettled: refetch } }));
   const hide = createUpdateHiddenViews(() => ({ mutation: { onSettled: refetch } }));
+  // The route replaces the whole list, so changes run one at a time: each reads the list the last one left, after its refetch.
+  let hiding: Promise<string | null> = Promise.resolve(null);
 
   async function attempt(work: () => Promise<unknown>, fallback: string): Promise<string | null> {
     try {
@@ -53,9 +55,12 @@ export function createViewActions(options: { undo: UndoOffer; hiddenBuiltIns: ()
       return null;
     },
     setHidden(builtInId, hidden) {
-      const current = options.hiddenBuiltIns().filter((id) => id !== builtInId);
-      const next = hidden ? [...current, builtInId] : current;
-      return attempt(() => hide.mutateAsync({ data: { hiddenBuiltIns: next } }), hidden ? 'Could not hide the view' : 'Could not show the view');
+      hiding = hiding.then(() => {
+        const current = options.hiddenBuiltIns().filter((id) => id !== builtInId);
+        const next = hidden ? [...current, builtInId] : current;
+        return attempt(() => hide.mutateAsync({ data: { hiddenBuiltIns: next } }), hidden ? 'Could not hide the view' : 'Could not show the view');
+      });
+      return hiding;
     },
   };
 }
