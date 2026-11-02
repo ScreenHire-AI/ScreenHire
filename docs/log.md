@@ -1,5 +1,15 @@
 # Log
 
+## 2026-11-02
+
+**Hardening from the last workflow's follow-ups.** Saving a draft application needs the bot check to pass; the
+verification ruleset moved to `2026-11-02.1` for the automation analyzer's version 2 (an analyzer that changes what its
+signals mean now moves it); `TemplateChanged` refreshes open dashboards after any template edit; brand images nobody
+saved are removed after a day; a job has its own embed snippet; and the database got trigram indexes, a foreign key from
+a review action to its signal and a backfill of `change_records.created`. See [realtime](architecture/realtime.md),
+[branding](architecture/branding.md), [careers widget](architecture/careers-widget.md) and
+[testing](process/testing.md) for the details.
+
 ## 2026-10-31
 
 **The test gate runs on GitHub Actions** ([ADR-0020](adr/0020-test-gate-on-github-actions.md)). Agents run
