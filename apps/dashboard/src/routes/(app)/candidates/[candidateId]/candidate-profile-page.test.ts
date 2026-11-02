@@ -189,6 +189,15 @@ describe('candidate profile page', () => {
     expect(screen.getByRole('region', { name: 'History' })).toHaveTextContent('3');
   });
 
+  it('shows a note in the history as the team reads it: a mention is the person, never their id', async () => {
+    const stored = `Ask @[${teammate}] about the ledger.`;
+    renderPage({ history: [item('a-senior', 'Senior .NET Engineer', entry({ type: 'NoteAdded', noteId: 'n1', actorUserId: teammate, note: stored }))] });
+
+    const list = await screen.findByRole('list', { name: 'History across all applications' });
+    await waitFor(() => expect(list).toHaveTextContent('Ask @Robin Ashby about the ledger.'));
+    expect(list).not.toHaveTextContent(teammate);
+  });
+
   it('says nothing has happened yet when the history is empty', async () => {
     renderPage({ history: [] });
 
