@@ -22,6 +22,15 @@ public sealed class ApiKeyChangesTests
     }
 
     [Fact]
+    public void A_key_with_verification_read_says_so_in_its_access()
+    {
+        var line = ApiKeyChanges.Describe(null, new ApiKeyFacts("Auditor", [ApiKeyScope.Read, ApiKeyScope.VerificationRead], null, null)).Single();
+
+        line.Details.Should().Equal(new ChangeDetail("Access", null, "Read only with verification"));
+        ChangeLabels.ApiKeyAccess([ApiKeyScope.Read, ApiKeyScope.Write, ApiKeyScope.VerificationRead]).Should().Be("Read and write with verification");
+    }
+
+    [Fact]
     public void A_rate_limit_shows_with_the_access()
     {
         var line = ApiKeyChanges.Describe(null, new ApiKeyFacts("Reports", [ApiKeyScope.Read], 1200, null)).Single();

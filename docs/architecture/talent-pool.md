@@ -215,5 +215,7 @@ out (GDPR Art. 7(3)).
   or the candidate stops it.
 - **A legal review** of keeping details with no expiry, and of the apply form and privacy page wording per market, is an
   owner action ([status](../status.md#owner-actions)).
-- **API keys, MCP and webhooks.** The routes take no API key, the MCP server has no saved-candidates tool, and there is
-  no webhook event for it.
+- **API keys, MCP and webhooks.** The routes take no API key and there is no webhook event for it. The MCP
+  server's `list_saved_candidates` tool reads the list, for any key with the Read scope, through `TalentPoolReads` (the
+  same read the list route uses, ADR-0021 decision 6), including each person's rating and last contacted. It saves,
+  removes and invites no one, edits no note, and nothing else about the list reaches a key.

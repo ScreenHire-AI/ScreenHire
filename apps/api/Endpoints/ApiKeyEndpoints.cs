@@ -81,6 +81,15 @@ internal static class ApiKeyEndpoints
             return TeamProblems.MoreAccess();
         }
 
+        // Only an Owner can give a key the Verification read scope (ADR-0021). The permission is Owner-only, so no
+        // Admin and no custom role has it.
+        if (request.Scopes.Contains(ApiKeyScope.VerificationRead)
+            && !((await RoleAccess.ForMemberAsync(db, organizationId, tenant.UserId!.Value, cancellationToken))?.Permissions
+                .Contains(Permission.GrantVerificationAccess) ?? false))
+        {
+            return TeamProblems.OwnersOnly("Only an owner can give a key the Verification read scope.");
+        }
+
         var (token, prefix, hash) = ApiKeyTokens.Create(organizationId);
         var key = new ApiKey
         {

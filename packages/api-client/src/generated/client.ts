@@ -95,6 +95,7 @@ import type {
   LastUpdate,
   ListJobBoardJobsParams,
   ListTasksParams,
+  ListVerificationApplicationsParams,
   ListWebhookDeliveriesParams,
   MagicLinkRequest,
   MagicLinkVerification,
@@ -171,6 +172,7 @@ import type {
   UploadTicket,
   UploadedFile,
   ValidateWorkflowRequest,
+  VerificationMatches,
   WebhookDeliveryEntry,
   WebhookEndpointEntry,
   WebhookEndpointWithSecret,
@@ -4378,15 +4380,25 @@ export type getApplicationVerificationResponse401 = {
   status: 401
 }
 
+export type getApplicationVerificationResponse403 = {
+  data: void
+  status: 403
+}
+
 export type getApplicationVerificationResponse404 = {
   data: void
   status: 404
 }
 
+export type getApplicationVerificationResponse429 = {
+  data: void
+  status: 429
+}
+
 export type getApplicationVerificationResponseSuccess = (getApplicationVerificationResponse200) & {
   headers: Headers;
 };
-export type getApplicationVerificationResponseError = (getApplicationVerificationResponse401 | getApplicationVerificationResponse404) & {
+export type getApplicationVerificationResponseError = (getApplicationVerificationResponse401 | getApplicationVerificationResponse403 | getApplicationVerificationResponse404 | getApplicationVerificationResponse429) & {
   headers: Headers;
 };
 
@@ -4403,6 +4415,68 @@ export const getGetApplicationVerificationUrl = (applicationId: string,) => {
 export const getApplicationVerification = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getApplicationVerificationResponse> => {
 
   return apiFetch<getApplicationVerificationResponse>(getGetApplicationVerificationUrl(applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type listVerificationApplicationsResponse200 = {
+  data: VerificationMatches
+  status: 200
+}
+
+export type listVerificationApplicationsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type listVerificationApplicationsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listVerificationApplicationsResponse403 = {
+  data: void
+  status: 403
+}
+
+export type listVerificationApplicationsResponse429 = {
+  data: void
+  status: 429
+}
+
+export type listVerificationApplicationsResponseSuccess = (listVerificationApplicationsResponse200) & {
+  headers: Headers;
+};
+export type listVerificationApplicationsResponseError = (listVerificationApplicationsResponse400 | listVerificationApplicationsResponse401 | listVerificationApplicationsResponse403 | listVerificationApplicationsResponse429) & {
+  headers: Headers;
+};
+
+export type listVerificationApplicationsResponse = (listVerificationApplicationsResponseSuccess | listVerificationApplicationsResponseError)
+
+export const getListVerificationApplicationsUrl = (params?: ListVerificationApplicationsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/verification/applications?${stringifiedParams}` : `/v1/verification/applications`
+}
+
+export const listVerificationApplications = async (params?: ListVerificationApplicationsParams, options?: Parameters<typeof apiFetch>[1]): Promise<listVerificationApplicationsResponse> => {
+
+  return apiFetch<listVerificationApplicationsResponse>(getListVerificationApplicationsUrl(params),
   {
     ...options,
     method: 'GET'

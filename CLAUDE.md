@@ -202,8 +202,9 @@ Detail: `.claude/rules/dotnet-api.md` and `.claude/rules/utc-timestamps.md`. Pro
 - Sign-in and tenancy (`docs/architecture/sign-in-and-tenancy.md`): every route needs a signed-in user unless it
   calls `.AllowAnonymous()`; cookie-authenticated POSTs need `.RequireAntiforgeryToken()`. Hiring API groups (jobs,
   applications, candidates, templates) use `.AllowApiKeys()`, which also accepts an organization API key (ADR-0011);
-  nothing else does. Tenant-owned entities implement `ITenantOwned` and get a row-level security policy in their
-  migration; a row under one job implements `IJobScoped` or `IApplicationScoped` and gets a restrictive `job_scope`
+  the verification read routes use `.AllowVerificationApiKeys()`, which accepts only a key with the `VerificationRead`
+  scope an Owner gave it (ADR-0021); nothing else accepts a key. Tenant-owned entities implement `ITenantOwned` and get
+  a row-level security policy in their migration; a row under one job implements `IJobScoped` or `IApplicationScoped` and gets a restrictive `job_scope`
   policy too, and an event that carries a `JobId` implements `IJobEvent` (ADR-0015). The API and worker connect as
   `screenhire_app` (bound by RLS); handlers never filter by organization themselves. Google, Microsoft and generic OIDC providers appear only when their client id and secret are in user
   secrets.

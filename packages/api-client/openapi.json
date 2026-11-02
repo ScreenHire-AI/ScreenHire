@@ -4207,6 +4207,9 @@
           }
         ],
         "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
           "200": {
             "description": "OK",
             "content": {
@@ -4222,11 +4225,103 @@
           },
           "401": {
             "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           }
         },
         "security": [
           {
             "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/verification/applications": {
+      "get": {
+        "tags": [
+          "Verification"
+        ],
+        "operationId": "ListVerificationApplications",
+        "parameters": [
+          {
+            "name": "authenticity",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticityLevel"
+            }
+          },
+          {
+            "name": "aiAssistance",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AiAssistanceLevel"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "includeDismissed",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationMatches"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
           }
         ]
       }
@@ -10728,7 +10823,8 @@
       "ApiKeyScope": {
         "enum": [
           "Read",
-          "Write"
+          "Write",
+          "VerificationRead"
         ],
         "description": "What an API key may do on the hiring API."
       },
@@ -12917,7 +13013,7 @@
             "format": "int32"
           }
         },
-        "description": "Creates a key. `scopes` is `[\"Read\"]` or `[\"Read\", \"Write\"]`. `permitsPerMinute` lowers the\nkey's rate limit below the deployment's; null uses the deployment's."
+        "description": "Creates a key. `scopes` is `[\"Read\"]` or `[\"Read\", \"Write\"]`, with `\"VerificationRead\"` added to\nlet the key read verification results. Only an owner can add `VerificationRead`; every read through such a key is\nrecorded in the verification review log (ADR-0021). `permitsPerMinute` lowers the key's rate limit below the\ndeployment's; null uses the deployment's."
       },
       "CreateApplicationRequest": {
         "required": [
@@ -16077,7 +16173,8 @@
           "ManageOwners",
           "DeleteAnyNote",
           "CreateTasks",
-          "ManageIntegrations"
+          "ManageIntegrations",
+          "GrantVerificationAccess"
         ],
         "description": "Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions."
       },
@@ -19684,6 +19781,65 @@
         },
         "description": "A reviewer set an assessment aside. `actorName` is the reviewer's display name, when they have one."
       },
+      "VerificationMatch": {
+        "required": [
+          "applicationId",
+          "jobId",
+          "jobTitle",
+          "candidateId",
+          "candidateName",
+          "appliedAt",
+          "verification"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "candidateName": {
+            "type": "string"
+          },
+          "appliedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "verification": {
+            "$ref": "#/components/schemas/VerificationSummary"
+          }
+        },
+        "description": "One application in VerificationMatches."
+      },
+      "VerificationMatches": {
+        "required": [
+          "items",
+          "hasMore"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VerificationMatch"
+            }
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "description": "Applications whose current verification matches a level filter, for a key with the Verification read scope. Each is a\npointer to read in full (`GET /v1/applications/{id}/verification`), not a ranking: the order is newest first and a\nlevel is evidence for a person to review, never a reason to reject on its own (ADR-0004)."
+      },
       "VerificationPolicy": {
         "required": [
           "aiUse"
@@ -19742,7 +19898,8 @@
           "Dismissed",
           "NoteAdded",
           "ReasonExplained",
-          "ExplanationUndone"
+          "ExplanationUndone",
+          "ReadByKey"
         ]
       },
       "VerificationReviewEntry": {
@@ -19758,7 +19915,10 @@
           "occurredAt",
           "signalId",
           "signalTitle",
-          "explainReason"
+          "explainReason",
+          "apiKeyId",
+          "apiKeyName",
+          "keyCreatedByName"
         ],
         "type": "object",
         "properties": {
@@ -19803,7 +19963,10 @@
             ]
           },
           "actorUserId": {
-            "type": "string",
+            "type": [
+              "null",
+              "string"
+            ],
             "format": "uuid"
           },
           "actorName": {
@@ -19837,6 +20000,25 @@
               {
                 "$ref": "#/components/schemas/ExplainReason"
               }
+            ]
+          },
+          "apiKeyId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "apiKeyName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "keyCreatedByName": {
+            "type": [
+              "null",
+              "string"
             ]
           }
         },
@@ -20300,7 +20482,7 @@
       },
       "apiKey": {
         "type": "http",
-        "description": "An organization API key, created by an owner or admin. Works on jobs, applications, candidates and templates.",
+        "description": "An organization API key, created by an owner or admin. Works on jobs, applications, candidates and templates, and, with the VerificationRead scope an owner gives it, on verification results.",
         "scheme": "bearer",
         "bearerFormat": "shk_..."
       }

@@ -7,8 +7,10 @@
 import type { ApiKeyScope } from './apiKeyScope.ts';
 
 /**
- * Creates a key. `scopes` is `["Read"]` or `["Read", "Write"]`. `permitsPerMinute` lowers the
- * key's rate limit below the deployment's; null uses the deployment's.
+ * Creates a key. `scopes` is `["Read"]` or `["Read", "Write"]`, with `"VerificationRead"` added to
+ * let the key read verification results. Only an owner can add `VerificationRead`; every read through such a key is
+ * recorded in the verification review log (ADR-0021). `permitsPerMinute` lowers the key's rate limit below the
+ * deployment's; null uses the deployment's.
  */
 export interface CreateApiKeyRequest {
   name: string;

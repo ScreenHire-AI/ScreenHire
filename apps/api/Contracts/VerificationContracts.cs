@@ -125,7 +125,8 @@ public sealed record VerificationDismissal(Guid ActionId, DismissReason Reason, 
 /// <remarks>
 /// <c>assessmentKind</c> and <c>assessmentId</c> are null for a note on the application's verification as a whole.
 /// <c>signalId</c> and <c>signalTitle</c> name the reason an explanation or its undo is about; <c>explainReason</c> is why
-/// it was explained.
+/// it was explained. An entry of type <c>ReadByKey</c> has no <c>actorUserId</c>: <c>apiKeyId</c> and <c>apiKeyName</c>
+/// name the API key that read the verification (ADR-0021), and <c>keyCreatedByName</c> the person who made the key.
 /// </remarks>
 public sealed record VerificationReviewEntry(
     Guid Id,
@@ -134,12 +135,32 @@ public sealed record VerificationReviewEntry(
     Guid? AssessmentId,
     DismissReason? DismissReason,
     string? Note,
-    Guid ActorUserId,
+    Guid? ActorUserId,
     string? ActorName,
     DateTimeOffset OccurredAt,
     Guid? SignalId,
     string? SignalTitle,
-    ExplainReason? ExplainReason);
+    ExplainReason? ExplainReason,
+    Guid? ApiKeyId,
+    string? ApiKeyName,
+    string? KeyCreatedByName);
+
+/// <summary>
+/// Applications whose current verification matches a level filter, for a key with the Verification read scope. Each is a
+/// pointer to read in full (<c>GET /v1/applications/{id}/verification</c>), not a ranking: the order is newest first and a
+/// level is evidence for a person to review, never a reason to reject on its own (ADR-0004).
+/// </summary>
+public sealed record VerificationMatches(IReadOnlyList<VerificationMatch> Items, bool HasMore);
+
+/// <summary>One application in <see cref="VerificationMatches"/>.</summary>
+public sealed record VerificationMatch(
+    Guid ApplicationId,
+    Guid JobId,
+    string JobTitle,
+    Guid CandidateId,
+    string CandidateName,
+    DateTimeOffset AppliedAt,
+    VerificationSummary Verification);
 
 /// <summary>Whether an action is offered, and why not when it is not.</summary>
 public sealed record VerificationActionAvailability(bool Available, string? Reason);

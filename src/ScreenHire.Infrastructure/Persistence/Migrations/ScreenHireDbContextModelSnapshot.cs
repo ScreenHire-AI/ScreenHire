@@ -3237,9 +3237,13 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid>("ActorUserId")
+                    b.Property<Guid?>("ActorUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("actor_user_id");
+
+                    b.Property<Guid?>("ApiKeyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("api_key_id");
 
                     b.Property<Guid>("ApplicationId")
                         .HasColumnType("uuid")
@@ -3285,6 +3289,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_verification_review_actions");
 
+                    b.HasIndex("ApiKeyId")
+                        .HasDatabaseName("ix_verification_review_actions_api_key_id");
+
                     b.HasIndex("OrganizationId", "AssessmentId")
                         .HasDatabaseName("ix_verification_review_actions_organization_id_assessment_id");
 
@@ -3296,7 +3303,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_verification_review_actions_one_dismissal")
                         .HasFilter("type = 'Dismissed'");
 
-                    b.ToTable("verification_review_actions", (string)null);
+                    b.ToTable("verification_review_actions", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_verification_review_actions_one_actor", "(actor_user_id IS NOT NULL) <> (api_key_id IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Verification.VerificationSettings", b =>
@@ -4293,6 +4303,12 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("ScreenHire.Domain.Verification.VerificationReviewAction", b =>
                 {
+                    b.HasOne("ScreenHire.Domain.Organizations.ApiKey", null)
+                        .WithMany()
+                        .HasForeignKey("ApiKeyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_verification_review_actions_api_keys_api_key_id");
+
                     b.HasOne("ScreenHire.Domain.Applications.JobApplication", null)
                         .WithMany()
                         .HasForeignKey("OrganizationId", "ApplicationId")

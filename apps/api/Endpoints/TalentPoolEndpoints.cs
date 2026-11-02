@@ -27,7 +27,8 @@ namespace ScreenHire.Api.Endpoints;
 /// <summary>
 /// The saved candidates (docs/architecture/talent-pool.md): saving a candidate, the list, editing the note on someone,
 /// taking someone out, inviting them to apply for another job and adding them to one. People only, like the email routes: no API key, so no
-/// integration and no MCP tool acts on it. The tenant and job-scope filters apply as everywhere, so a member on Only jobs
+/// integration acts on it. The MCP server's list_saved_candidates tool reads the list through <see cref="TalentPoolReads"/>
+/// and acts on nothing (ADR-0021). The tenant and job-scope filters apply as everywhere, so a member on Only jobs
 /// they're on sees and acts on the people kept from their own jobs. Nothing here reads verification output (ADR-0004).
 /// </summary>
 internal static class TalentPoolEndpoints
@@ -67,58 +68,9 @@ internal static class TalentPoolEndpoints
         return app;
     }
 
-    // What counts as contacting a candidate: the events that record an email to them. Replies are not read yet (roadmap
-    // item 1); when they are, their event type joins this list.
-    private static readonly ApplicationEventType[] ContactTypes = [ApplicationEventType.EmailSent];
-
-    // Everyone saved whose permission for future roles still holds. It has no end date: it ends when the candidate stops it,
-    // which also takes them out of the pool. A pool is a few hundred people at most, so it is one read and the rule runs here.
-    private static async Task<Ok<TalentPoolList>> ListTalentPool(ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken)
-    {
-        var rows = await db.TalentPoolEntries.AsNoTracking()
-            .Join(db.Applications, e => e.ApplicationId, a => a.Id, (e, a) => new { Entry = e, Application = a })
-            .Join(db.Jobs, x => x.Application.JobId, j => j.Id, (x, j) => new { x.Entry, x.Application, Job = j })
-            .Join(db.Candidates, x => x.Entry.CandidateId, c => c.Id, (x, c) => new { x.Entry, x.Application, x.Job, Candidate = c })
-            .ToListAsync(cancellationToken);
-        var current = rows.Where(r => r.Application.AllowsFutureRoles).ToList();
-
-        var candidateIds = current.Select(r => r.Entry.CandidateId).ToList();
-        var applied = (await db.Applications.AsNoTracking()
-                .Where(a => candidateIds.Contains(a.CandidateId))
-                .Select(a => new { a.CandidateId, a.JobId })
-                .ToListAsync(cancellationToken))
-            .ToLookup(a => a.CandidateId, a => a.JobId);
-        var invitedJobIds = current.Select(r => r.Entry.LastInvitedJobId).OfType<Guid>().Distinct().ToList();
-        var invitedTitles = await db.Jobs.AsNoTracking()
-            .Where(j => invitedJobIds.Contains(j.Id))
-            .ToDictionaryAsync(j => j.Id, j => j.Title, cancellationToken);
-
-        // The rating is the one the candidate page shows, reviewer gate included. The last email is the newest to the
-        // candidate over every application the reader sees, whichever job it was for.
-        var ratings = await RatingReads.ForAsync(db, [.. current.Select(r => r.Application.Id)], tenant.UserId, cancellationToken);
-        var lastContacted = await db.ApplicationEvents.AsNoTracking()
-            .Where(e => ContactTypes.Contains(e.Type))
-            .Join(db.Applications.Where(a => candidateIds.Contains(a.CandidateId)), e => e.ApplicationId, a => a.Id, (e, a) => new { a.CandidateId, e.OccurredAt })
-            .GroupBy(x => x.CandidateId)
-            .Select(g => new { CandidateId = g.Key, At = g.Max(x => x.OccurredAt) })
-            .ToDictionaryAsync(x => x.CandidateId, x => x.At, cancellationToken);
-        var edits = await ChangeHistoryQueries.LastAsync(
-            db, ChangeSubjectKind.TalentPoolEntry, [.. current.Select(r => r.Entry.Id.ToString("D"))], cancellationToken);
-
-        var people = current
-            .OrderBy(r => r.Candidate.FullName, StringComparer.CurrentCultureIgnoreCase)
-            .Select(r => new TalentPoolMember(
-                r.Candidate.Id, r.Candidate.FullName, r.Candidate.Email, r.Application.Id, r.Job.Id, r.Job.Title,
-                r.Entry.Note, edits.TryGetValue(r.Entry.Id.ToString("D"), out var edit) ? LastUpdate.FromChange(edit, null) : null,
-                r.Application.Tags, r.Entry.KeptAt, r.Entry.KeptByUserId,
-                ratings.GetValueOrDefault(r.Application.Id) ?? ApplicationRating.NotRated,
-                lastContacted.TryGetValue(r.Candidate.Id, out var contacted) ? contacted : null,
-                r.Entry.LastInvitedJobId,
-                r.Entry.LastInvitedJobId is { } invited ? invitedTitles.GetValueOrDefault(invited) : null, r.Entry.LastInvitedAt,
-                [.. applied[r.Candidate.Id].Distinct()]))
-            .ToList();
-        return TypedResults.Ok(new TalentPoolList(people));
-    }
+    // The list (TalentPoolReads), which the MCP server's list_saved_candidates tool reads too.
+    private static async Task<Ok<TalentPoolList>> ListTalentPool(ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
+        TypedResults.Ok(await TalentPoolReads.ReadAsync(db, tenant.UserId, cancellationToken));
 
     // The note on a saved candidate, edited in place through the change tracker so History records it. The Activity entry
     // from when they were saved keeps the note as first written. A reader who cannot see the entry (job access) gets a 404.

@@ -15,6 +15,15 @@ the old words (`KeptInMind`, `/v1/talent-pool`). Because nothing expires a saved
 details without an end date is an owner action ([status](status.md#owner-actions)), and record retention matters more
 ([saved candidates](architecture/talent-pool.md)). Earlier entries below keep their old words.
 
+**Verification read, an API key scope only an Owner can give** ([ADR-0021](adr/0021-verification-read-scope-for-api-keys.md)).
+This is the owner's decision that the MCP server sees verification results. An Owner can add a third scope,
+Verification read, when creating a key (a new Owner-only permission, so no Admin or custom role can). A key with it
+reads an application's verification and lists applications by level, over HTTP and as two MCP tools; every read adds
+a "Read through the API key" line to the application's review log; a key without it sees exactly what it did. A level
+is still never a reason to reject: the tools and the server instructions say so, and nothing here dismisses, notes or
+moves anyone. The MCP server also gains read tools for the hiring report and the saved candidates (today's talent
+pool; the rename and rating work for saved candidates is its own task).
+
 ## 2026-10-31
 
 **The test gate runs on GitHub Actions** ([ADR-0020](adr/0020-test-gate-on-github-actions.md)). Agents run
