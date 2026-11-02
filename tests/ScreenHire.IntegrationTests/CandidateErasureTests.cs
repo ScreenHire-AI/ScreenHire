@@ -325,13 +325,98 @@ public sealed class CandidateErasureTests(AppHostFixture fixture)
             owner, kept, "EvidenceChanged", count: 2, alsoHolds: v => !AuthenticityCodes(v).Contains(SignalCatalogue.DuplicateInOrganization));
         after.Text("authenticity.level").Should().Be(before.Text("authenticity.level"));
         AuthenticityCodes(after).Should().BeEquivalentTo(AuthenticityCodes(before));
-        ReviewEntries(after, "EvidenceChanged").Last().GetProperty("note").GetString()
+        ReviewEntries(after, "EvidenceChanged")[^1].GetProperty("note").GetString()
             .Should().Be("A detail this application shared with another application no longer applies.");
     }
 
     // A person with two applications on two jobs and a row in every kind of table the cascade has to reach: the careers
     // application (with its resume, answers, observation, documents and verification), a recruiter-added one on another
     // job, a note, a tag, a task, a scorecard, a verification note, a sent email, a talent pool entry and a saved draft.
+    [Fact]
+    public async Task A_reply_goes_with_the_candidate_and_so_does_its_attachments_blob()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var name = $"Reply Writer {Guid.NewGuid():N}";
+        var text = $"My CV is attached {Guid.NewGuid():N}";
+        var sent = await fixture.SendToNewCandidateAsync(owner, fullName: name);
+        await fixture.DevReplyAsync(sent.ReplyAddress, sent.Address, text, attachments: [("cv.pdf", ReplySupport.Pdf())]);
+        var replyId = (await owner.MessagesAsync(sent.CandidateId)).Received().Single().GetProperty("id").GetGuid();
+        var attachmentId = (await owner.GetAsync($"/v1/replies/{replyId}")).Expect(HttpStatusCode.OK).At("attachments.0.id").GetGuid();
+        await WolverineStore.WaitUntilAsync(
+            async () => (await owner.GetAsync($"/v1/replies/{replyId}")).Expect(HttpStatusCode.OK).Text("attachments.0.scanStatus") != "Pending",
+            "the attachment's malware scan",
+            Ct);
+        using var download = await owner.Session.Client.GetAsync($"/v1/replies/{replyId}/attachments/{attachmentId}", Ct);
+        download.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        var link = download.Headers.Location!;
+        using (var storage = new HttpClient())
+        {
+            (await storage.GetAsync(link, Ct)).StatusCode.Should().Be(HttpStatusCode.OK, "the attachment's blob exists before the erasure");
+        }
+
+        (await TablesHoldingAsync(fixture, text)).Should().Contain($"inbound_emails holds {text}");
+
+        (await owner.PostAsync($"/v1/candidates/{sent.CandidateId}/erase", new JsonObject { ["confirmation"] = name })).Expect(HttpStatusCode.NoContent);
+
+        await WolverineStore.WaitUntilAsync(
+            async () =>
+            {
+                using var storage = new HttpClient();
+                using var response = await storage.GetAsync(link, Ct);
+                return response.StatusCode == HttpStatusCode.NotFound;
+            },
+            "the worker to delete the erased candidate's reply attachment",
+            Ct);
+        (await TablesHoldingAsync(fixture, text)).Should().BeEmpty("a reply's text goes with the candidate");
+    }
+
+    [Fact]
+    public async Task Erasing_a_saved_candidate_removes_their_note_history_even_from_an_entry_that_left_the_list_and_keeps_another_candidates()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var slug = await SlugAsync(owner);
+        var job = await OpenJobTitledAsync(owner, "Platform Engineer");
+        var erasedPerson = SyntheticApplicants.GenuineHuman.AsNewPerson();
+        var keptPerson = SyntheticApplicants.GenuineHuman.AsNewPerson();
+        var erased = await fixture.ApplyAsync(slug, job, erasedPerson, Ct, keepForFutureRoles: true);
+        var kept = await fixture.ApplyAsync(slug, job, keptPerson, Ct, keepForFutureRoles: true);
+        var erasedCandidate = await CandidateOfAsync(owner, erased);
+        var keptCandidate = await CandidateOfAsync(owner, kept);
+        var (noteThatLeft, lastNote, keptNote) = ($"left {Guid.NewGuid():N}", $"last {Guid.NewGuid():N}", $"kept {Guid.NewGuid():N}");
+
+        await SaveWithNoteAsync(owner, erased, erasedCandidate, noteThatLeft);
+        (await owner.PostAsync($"/v1/talent-pool/{erasedCandidate}/remove", new JsonObject())).Expect(HttpStatusCode.NoContent);
+        // An application stays Saved once it leaves the list, so being saved again takes a new one, and a new entry.
+        var later = await fixture.ApplyAsync(slug, await OpenJobTitledAsync(owner, "Data Analyst"), erasedPerson, Ct, keepForFutureRoles: true);
+        await SaveWithNoteAsync(owner, later, erasedCandidate, lastNote);
+        await SaveWithNoteAsync(owner, kept, keptCandidate, keptNote);
+        // In another organization, the kind of row the erasure purges in its own: a note whose entry left the list.
+        using var other = await fixture.SignedInWithOrganizationAsync();
+        var otherPerson = SyntheticApplicants.GenuineHuman.AsNewPerson();
+        var otherApplication = await fixture.ApplyAsync(await SlugAsync(other), await OpenJobTitledAsync(other, "Platform Engineer"), otherPerson, Ct, keepForFutureRoles: true);
+        var otherCandidate = await CandidateOfAsync(other, otherApplication);
+        var otherNote = $"other {Guid.NewGuid():N}";
+        await SaveWithNoteAsync(other, otherApplication, otherCandidate, otherNote);
+        (await other.PostAsync($"/v1/talent-pool/{otherCandidate}/remove", new JsonObject())).Expect(HttpStatusCode.NoContent);
+        (await TablesHoldingAsync(fixture, noteThatLeft, lastNote, keptNote, otherNote)).Should().Contain(
+            [$"change_records holds {noteThatLeft}", $"change_records holds {lastNote}", $"change_records holds {keptNote}", $"change_records holds {otherNote}"]);
+
+        (await owner.PostAsync($"/v1/candidates/{otherCandidate}/erase", new JsonObject { ["confirmation"] = otherPerson.FullName }))
+            .Expect(HttpStatusCode.NotFound);
+        (await owner.PostAsync($"/v1/candidates/{erasedCandidate}/erase", new JsonObject { ["confirmation"] = erasedPerson.FullName }))
+            .Expect(HttpStatusCode.NoContent);
+
+        (await TablesHoldingAsync(fixture, noteThatLeft, lastNote)).Should().BeEmpty("the free text of a saved note may name the person");
+        (await TablesHoldingAsync(fixture, keptNote)).Should().Contain($"change_records holds {keptNote}", "another candidate's history stays");
+        (await TablesHoldingAsync(fixture, otherNote)).Should().Contain($"change_records holds {otherNote}", "another organization's history is out of reach");
+    }
+
+    private static async Task SaveWithNoteAsync(Tenant owner, Guid application, Guid candidate, string note)
+    {
+        (await owner.PostAsync("/v1/talent-pool", new JsonObject { ["applicationIds"] = new JsonArray(JsonValue.Create(application)) })).Expect(HttpStatusCode.OK);
+        (await owner.PutAsync($"/v1/talent-pool/{candidate}/note", new JsonObject { ["note"] = note })).Expect(HttpStatusCode.NoContent);
+    }
+
     private async Task<World> PersonWithEverythingAsync(Tenant owner)
     {
         // The first job is the engineering template, which asks the typical answers: their fingerprints and the job's

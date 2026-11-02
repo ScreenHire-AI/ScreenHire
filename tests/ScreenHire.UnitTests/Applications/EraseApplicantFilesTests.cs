@@ -32,6 +32,19 @@ public sealed class EraseApplicantFilesTests
     }
 
     [Fact]
+    public async Task A_replys_attachments_are_deleted_from_their_own_container_once_each()
+    {
+        var store = new RecordingStore();
+
+        await EraseApplicantFilesHandler.Handle(
+            new EraseApplicantFiles(Guid.CreateVersion7(), ["org/cv.pdf"], ["reply/1/cv.pdf", "reply/1/cv.pdf"]),
+            store, NullLogger<EraseApplicantFiles>.Instance, Ct);
+
+        store.Deleted.Should().Equal("org/cv.pdf");
+        store.DeletedReplyAttachments.Should().Equal("reply/1/cv.pdf");
+    }
+
+    [Fact]
     public async Task No_files_means_no_deletes()
     {
         var store = new RecordingStore();
@@ -39,6 +52,7 @@ public sealed class EraseApplicantFilesTests
         await EraseApplicantFilesHandler.Handle(new EraseApplicantFiles(Guid.CreateVersion7(), []), store, NullLogger<EraseApplicantFiles>.Instance, Ct);
 
         store.Deleted.Should().BeEmpty();
+        store.DeletedReplyAttachments.Should().BeEmpty();
     }
 
     [Fact]
@@ -65,6 +79,8 @@ public sealed class EraseApplicantFilesTests
     {
         public List<string> Deleted { get; } = [];
 
+        public List<string> DeletedReplyAttachments { get; } = [];
+
         public List<CancellationToken> Tokens { get; } = [];
 
         public Task<StoredFile> ReadAsync(string blobName, long maxBytes, CancellationToken cancellationToken) =>
@@ -74,6 +90,12 @@ public sealed class EraseApplicantFilesTests
         {
             Deleted.Add(blobName);
             Tokens.Add(cancellationToken);
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteReplyAttachmentAsync(string blobName, CancellationToken cancellationToken)
+        {
+            DeletedReplyAttachments.Add(blobName);
             return Task.CompletedTask;
         }
     }

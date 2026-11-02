@@ -132,10 +132,10 @@ describe('progressOf', () => {
     expect(progressOf(hired, undefined).reached).toBeUndefined();
   });
 
-  it('reports a candidate kept in mind as Kept in mind, at the stage they kept, ended when they were kept', () => {
+  it('reports a saved candidate as Saved, at the stage they kept, ended when they were kept', () => {
     const kept = application('k', '2026-10-01T12:00:00Z', { name: 'Interview', kind: 'Interview' }, { keptInMindAt: '2026-10-12T12:00:00Z' });
 
-    expect(progressOf(kept, [])).toEqual({ reached: 'Interview', outcome: 'Kept in mind', endedAt: '2026-10-12T12:00:00Z' });
+    expect(progressOf(kept, [])).toEqual({ reached: 'Interview', outcome: 'Saved', endedAt: '2026-10-12T12:00:00Z' });
   });
 });
 

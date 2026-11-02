@@ -27,6 +27,9 @@ function logEntry(overrides: Partial<VerificationReviewEntry>): VerificationRevi
     signalId: null,
     signalTitle: null,
     explainReason: null,
+    apiKeyId: null,
+    apiKeyName: null,
+    keyCreatedByName: null,
     ...overrides,
   };
 }

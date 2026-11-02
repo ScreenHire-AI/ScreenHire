@@ -158,7 +158,7 @@ describe('candidate profile page', () => {
       'Support Engineer Rejected Applied Sep 1, 2026 Got as far as Screening Ended Sep 10, 2026',
       'Data Analyst Withdrawn Applied Sep 15, 2026 Ended Sep 16, 2026',
       'Senior .NET Engineer Hired Applied Oct 2, 2026 Got as far as Offer Ended Oct 10, 2026',
-      'Account Manager Kept in mind Applied Oct 5, 2026 Got as far as Screening Ended Oct 12, 2026',
+      'Account Manager Saved Applied Oct 5, 2026 Got as far as Screening Ended Oct 12, 2026',
       'Product Designer Interview Applied Oct 20, 2026',
     ]);
     expect(within(list).getByRole('link', { name: 'Support Engineer' })).toHaveAttribute('href', '/applications/a-support');
@@ -239,7 +239,7 @@ describe('candidate profile page', () => {
       await fireEvent.pointerDown(screen.getByRole('button', { name: 'More actions' }), { button: 0, pointerType: 'mouse' });
 
       expect(await screen.findByRole('menuitem', { name: 'Erase candidate' })).toBeInTheDocument();
-      await waitFor(() => expect(screen.getByText(/They asked to be taken out of the talent pool on Oct 12, 2026\. To erase their data as well, use Erase candidate in the More menu\./)).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText(/They asked to be removed from Saved candidates on Oct 12, 2026\. To erase their data as well, use Erase candidate in the More menu\./)).toBeInTheDocument());
     });
 
     it('has no notice when they did not ask, though the person may erase', async () => {

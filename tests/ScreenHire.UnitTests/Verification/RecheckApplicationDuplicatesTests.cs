@@ -16,7 +16,7 @@ public sealed class RecheckApplicationDuplicatesTests
         var second = new RecheckApplicationDuplicates(organizationId, application, cause);
 
         first.IdempotencyKey.Should().Be(second.IdempotencyKey);
-        first.IdempotencyKey.Should().Be($"recheck-duplicates:{application}:{cause}");
+        first.IdempotencyKey.Should().Be($"recheck-duplicates:{application}:{cause}:matched");
     }
 
     [Fact]
@@ -30,5 +30,16 @@ public sealed class RecheckApplicationDuplicatesTests
         new RecheckApplicationDuplicates(organizationId, application, Guid.CreateVersion7()).IdempotencyKey.Should().NotBe(key);
         new RecheckApplicationDuplicates(organizationId, Guid.CreateVersion7(), cause).IdempotencyKey.Should().NotBe(key);
         new RecheckApplicationDuplicates(organizationId, cause, application).IdempotencyKey.Should().NotBe(key, "the two directions are separate rechecks");
+    }
+
+    [Fact]
+    public void An_erasure_is_not_a_repeat_of_the_match_by_the_same_application()
+    {
+        var organizationId = Guid.CreateVersion7();
+        var application = Guid.CreateVersion7();
+        var cause = Guid.CreateVersion7();
+
+        new RecheckApplicationDuplicates(organizationId, application, cause, CauseErased: true).IdempotencyKey
+            .Should().NotBe(new RecheckApplicationDuplicates(organizationId, application, cause).IdempotencyKey, "the later application matched, then was erased");
     }
 }
