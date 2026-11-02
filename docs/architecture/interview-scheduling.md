@@ -43,6 +43,7 @@ sources:
   - resource: apps/dashboard/src/lib/schedule-interview.ts
   - resource: apps/dashboard/src/lib/components/schedule-interview-sheet.svelte
   - resource: apps/dashboard/src/lib/components/candidate/interview-panel.svelte
+  - resource: apps/dashboard/src/lib/components/candidate/interview-details.svelte
   - resource: apps/dashboard/src/lib/activity.ts
   - resource: tests/ScreenHire.IntegrationTests/Calendar/CalendarConnectionTests.cs
   - resource: tests/ScreenHire.IntegrationTests/Calendar/CalendarSandboxTests.cs

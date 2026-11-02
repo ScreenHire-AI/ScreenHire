@@ -1,18 +1,13 @@
 <script lang="ts">
   import CalendarXIcon from '~icons/lucide/calendar-x';
-  import VideoIcon from '~icons/lucide/video';
-  import type { ApplicationInterview } from '@screenhire/api-client';
   import { createCancelInterview, createListApplicationInterviews } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
-  import FailureText from '#lib/components/failure-text.svelte';
+  import InterviewDetails from '#lib/components/candidate/interview-details.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
-  import StatusBadge from '#lib/components/status-badge.svelte';
-  import { Badge } from '#lib/components/ui/badge/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
-  import { formatDateIn, formatDateTime } from '#lib/dates.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { applicationsPath } from '#lib/realtime.js';
 
@@ -38,17 +33,6 @@
   // Cancel was chosen in the menu: its dialog opens once the menu has closed and focus is back on the menu's button.
   let cancelChosen = false;
 
-  const firstName = (name: string) => name.split(' ')[0] ?? name;
-  // A window's last day: its end is the start of the day after.
-  const lastDay = (interview: ApplicationInterview) => formatDateIn(new Date(Date.parse(interview.windowEnd) - 1).toISOString(), interview.timeZone);
-
-  /** How a cancelled or expired interview ended, in one line. */
-  function ended(interview: ApplicationInterview): string {
-    if (interview.status === 'Expired') return `The candidate did not pick a time before ${lastDay(interview)}.`;
-    const by = interview.cancelledByCandidate ? ' by the candidate' : '';
-    return interview.startsAt ? `The interview on ${formatDateTime(interview.startsAt)} was cancelled${by}.` : `The invitation was cancelled${by}.`;
-  }
-
   async function confirmCancel() {
     if (!live) return;
     await cancel.mutateAsync({ interviewId: live.id });
@@ -67,46 +51,7 @@
   <Panel title="Interview"><QueryError message={describeError(interviews.error, 'Could not load the interview')} onretry={() => interviews.refetch()} inset /></Panel>
 {:else if shown}
   <Panel title="Interview" actions={live && mayCancel ? menu : undefined}>
-    {#if shown.status === 'Open'}
-      <div class="flex flex-col items-start gap-1.5">
-        <StatusBadge status="waiting" label="Waiting for the candidate" />
-        <p class="text-muted-foreground">Times from {formatDateIn(shown.windowStart, shown.timeZone)} to {lastDay(shown)}.</p>
-      </div>
-    {:else if shown.status === 'Booked'}
-      <div class="flex flex-col items-start gap-4">
-        <StatusBadge status="booked" label="Booked" />
-        <ul aria-label="Interviewers" class="flex flex-col gap-3">
-          {#each shown.interviewers as person (person.userId)}
-            <li class="flex min-w-0 flex-col gap-0.5">
-              <span class="flex min-w-0 flex-wrap items-center gap-x-2 font-semibold">
-                <span class="min-w-0 break-words">{person.displayName}</span>
-                {#if person.isOrganizer && shown.interviewers.length > 1}<Badge variant="muted">Organizer</Badge>{/if}
-              </span>
-              {#if person.syncStatus === 'Failed'}
-                <FailureText role="status" message={person.syncProblem ?? `Could not put this on ${firstName(person.displayName)}'s calendar.`} />
-              {:else if person.syncStatus === 'Pending'}
-                <p class="text-muted-foreground">Not on {firstName(person.displayName)}'s calendar yet.</p>
-              {/if}
-            </li>
-          {/each}
-        </ul>
-        {#if shown.meetingUrl}
-          <a
-            href={shown.meetingUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="inline-flex min-h-6 w-fit items-center gap-1.5 font-semibold text-primary underline underline-offset-2 pointer-coarse:min-h-11"
-          >
-            <VideoIcon aria-hidden="true" class="size-4" />Join the meeting<span class="sr-only"> (opens in a new tab)</span>
-          </a>
-        {/if}
-      </div>
-    {:else}
-      <div class="flex flex-col items-start gap-1.5">
-        <StatusBadge status="notInEffect" label={shown.status === 'Expired' ? 'Expired' : 'Cancelled'} />
-        <p class="text-muted-foreground">{ended(shown)}</p>
-      </div>
-    {/if}
+    <InterviewDetails interview={shown} />
   </Panel>
 {/if}
 
