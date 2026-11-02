@@ -1,11 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScreenHire.Application.Applications;
+using ScreenHire.Application.Scheduling;
 using ScreenHire.Application.Slack;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.Scheduling;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
 using Wolverine;
@@ -36,6 +39,8 @@ public static partial class ExecuteAutomationActionHandler
         IWebhookSender webhooks,
         QuestionnaireLinks links,
         SlackAccess slack,
+        InterviewLinks interviewLinks,
+        CalendarAccess calendar,
         TimeProvider time,
         ILogger<ExecuteAutomationAction> logger,
         CancellationToken cancellationToken)
@@ -51,7 +56,7 @@ public static partial class ExecuteAutomationActionHandler
 
         var application = await db.Applications.SingleAsync(a => a.Id == run.ApplicationId, cancellationToken);
         var job = await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == run.JobId, cancellationToken);
-        var context = new ActionContext(db, email, templates, webhooks, links, slack, run, action, application, job, time.GetUtcNow(), outgoing);
+        var context = new ActionContext(db, email, templates, webhooks, links, slack, interviewLinks, calendar, run, action, application, job, time.GetUtcNow(), outgoing);
 
         var (status, detail) = await ExecuteAsync(context, cancellationToken);
         var now = context.Now;
@@ -107,6 +112,7 @@ public static partial class ExecuteAutomationActionHandler
                 AddTask(context, ApplicationTaskKind.RejectionReview, action.Reason!, null, "Queued for a person to decide.")),
             ActionType.Reject => RejectAsync(context, action, cancellationToken),
             ActionType.CallWebhook => CallWebhookAsync(context, new Uri(action.Url!), cancellationToken),
+            ActionType.ScheduleInterview => ScheduleInterviewAsync(context, action, cancellationToken),
             _ => Task.FromResult(Skipped($"{action.Type} is not available yet, so nothing happened.")),
         };
     }
@@ -207,6 +213,104 @@ public static partial class ExecuteAutomationActionHandler
         return Completed(request.TimesSent == 1
             ? $"Sent the \"{questionnaire.Name}\" questionnaire."
             : $"Sent the \"{questionnaire.Name}\" questionnaire again, with a fresh link.");
+    }
+
+    /// <summary>
+    /// Offers the candidate an interview (docs/architecture/interview-scheduling.md): the request with the action's
+    /// interviewers, the window from now for the action's days, the timeline entry linked to this run, and the invitation
+    /// email, queued in this action's transaction so it leaves only if the action commits. Nothing is on a calendar until the
+    /// candidate picks a time. Skipped, not failed, when nothing can or should be sent: email or the careers address is not
+    /// set up, the application has ended, or the candidate has an interview open or booked. Failed when the action cannot be
+    /// carried out as saved: an interviewer who left, lost sight of the job or has no working calendar. The request carries
+    /// this action's key (<see cref="AutomationRun.ActionKey"/>), so running the action again finds it and sends nothing more.
+    /// </summary>
+    private static async Task<(AutomationActionStatus, string)> ScheduleInterviewAsync(
+        ActionContext context, AutomationAction action, CancellationToken cancellationToken)
+    {
+        var (template, refusal) = await TemplateToSendAsync(context, EmailTemplateIds.InterviewInvitation, cancellationToken);
+        if (template is null)
+        {
+            return refusal;
+        }
+
+        if (!context.Interviews.IsConfigured)
+        {
+            return Skipped("The careers site address is not set up, so no interview link could be sent.");
+        }
+
+        var application = context.Application;
+        if (application.HasEnded(CurrentStage(context)))
+        {
+            return Skipped("The application has ended, so no interview was offered.");
+        }
+
+        var sourceKey = context.Run.ActionKey(context.Action.Index);
+        if (await context.Db.InterviewRequests.AsNoTracking().AnyAsync(r => r.ApplicationId == application.Id && r.SourceKey == sourceKey, cancellationToken))
+        {
+            return Skipped("The interview was offered already.");
+        }
+
+        // An Open request past its window is stored as Expired first: the partial unique index sees the stored status.
+        var open = await context.Db.InterviewRequests.Where(r => r.ApplicationId == application.Id && r.Status == InterviewStatus.Open).ToListAsync(cancellationToken);
+        if (open.Aggregate(false, (changed, stale) => stale.MarkExpired(context.Now) | changed))
+        {
+            await context.Db.SaveChangesAsync(cancellationToken);
+        }
+
+        if (await context.Db.InterviewRequests.AnyAsync(
+                r => r.ApplicationId == application.Id && (r.Status == InterviewStatus.Open || r.Status == InterviewStatus.Booked), cancellationToken))
+        {
+            return Skipped("The candidate already has an interview that is open or booked, so none was offered.");
+        }
+
+        var chosen = action.InterviewerUserIds ?? [];
+        var members = await (
+            from member in context.Db.OrganizationMembers.AsNoTracking()
+            where member.OrganizationId == context.Run.OrganizationId && chosen.Contains(member.UserId)
+            join user in context.Db.Users on member.UserId equals user.Id
+            select new { member.Id, member.UserId, member.Role, member.JobAccess, Name = user.DisplayName ?? "An interviewer" })
+            .ToListAsync(cancellationToken);
+        var byUser = members.ToDictionary(m => m.UserId);
+        if (chosen.Any(id => !byUser.ContainsKey(id)))
+        {
+            return Failed("An interviewer is not a member of the organization any more.");
+        }
+
+        var cannotSee = chosen.Select(id => byUser[id])
+            .Where(m => !(JobAccessRules.SeesAllJobs(m.Role, m.JobAccess) || context.Job.HiringTeam.Contains(m.Id)))
+            .Select(m => m.Name).ToList();
+        if (cannotSee.Count > 0)
+        {
+            return Failed($"These interviewers cannot see this job any more: {string.Join(", ", cannotSee)}.");
+        }
+
+        var connections = await context.Db.CalendarConnections.AsNoTracking().Where(c => chosen.Contains(c.UserId)).ToListAsync(cancellationToken);
+        var usable = connections.Where(c => c.Problem is null && context.Calendar.Options.IsAvailable(c.Provider)).ToDictionary(c => c.UserId, c => c.Provider);
+        var noCalendar = chosen.Where(id => !usable.ContainsKey(id)).Select(id => byUser[id].Name).ToList();
+        if (noCalendar.Count > 0)
+        {
+            return Failed($"These interviewers have no working calendar connected: {string.Join(", ", noCalendar)}. Ask them to connect one from the account menu.");
+        }
+
+        // The settings validated when the workflow was saved; the host may no longer know the zone, for one.
+        var windowEnd = context.Now.AddDays(action.InterviewWindowDays ?? 0);
+        if (InterviewRequest.Problem(
+                action.InterviewMinutes ?? 0, context.Now, windowEnd, action.InterviewTimeZone,
+                InterviewRequest.DefaultDayStart, InterviewRequest.DefaultDayEnd, context.Now) is { } problem)
+        {
+            return Failed($"The interview settings no longer work: {problem}");
+        }
+
+        var interview = InterviewRequest.Create(
+            application, action.InterviewMinutes!.Value, context.Now, windowEnd, action.InterviewTimeZone!,
+            createdByUserId: null, context.Now, sourceKey: sourceKey);
+        context.Db.InterviewRequests.Add(interview);
+        context.Db.InterviewAttendees.AddRange(
+            chosen.Select((userId, index) => InterviewAttendee.Create(interview, userId, isOrganizer: index == 0, usable[userId])));
+        context.Db.ApplicationEvents.Add(application.InterviewInvited(interview, context.Now, actorUserId: null, context.Run.Id));
+        context.Outgoing.Add(new SendInterviewInvitation(application.OrganizationId, application.Id, interview.Id, Guid.CreateVersion7(), ActorUserId: null));
+        context.Outgoing.Add(new InterviewChanged(application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString()));
+        return Completed($"Offered an interview with {(chosen.Count == 1 ? "1 interviewer" : $"{chosen.Count} interviewers")}; the candidate has {action.InterviewWindowDays} days to pick a time.");
     }
 
     private static (AutomationActionStatus, string) MoveToStage(ActionContext context, string stageId)
@@ -380,6 +484,8 @@ public static partial class ExecuteAutomationActionHandler
         IWebhookSender Webhooks,
         QuestionnaireLinks Links,
         SlackAccess Slack,
+        InterviewLinks Interviews,
+        CalendarAccess Calendar,
         AutomationRun Run,
         AutomationActionRun Action,
         JobApplication Application,

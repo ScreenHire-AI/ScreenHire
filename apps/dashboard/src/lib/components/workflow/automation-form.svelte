@@ -18,6 +18,8 @@
     factsFor,
     followUpsOf,
     hasTimeLimit,
+    interviewFieldLabels,
+    maxInterviewWindowDays,
     newAction,
     newRule,
     operatorLabels,
@@ -31,6 +33,7 @@
     triggerTypes,
   } from '#lib/workflow.js';
   import { sendableTemplates } from '#lib/email.js';
+  import { durationLabel, durations, maxInterviewers, timeZoneOptions, toggleInterviewer } from '#lib/schedule-interview.js';
   import { membersWith } from '#lib/team.js';
   import { checkboxClass, insetClass, kickerClass, labelClass, selectClass } from './controls.js';
   import FieldErrors from './field-errors.svelte';
@@ -364,6 +367,7 @@
                 <Input bind:value={() => action[field] ?? '', (value) => (action[field] = value)} maxlength={field === 'url' ? 2000 : 500} />
               </label>
             {:else}
+              <!-- ScheduleInterview draws its four fields below. -->
               <span></span>
             {/if}
             <div class="flex shrink-0 items-center gap-0.5">
@@ -371,6 +375,89 @@
               <IconButton label={`Remove action ${actionIndex + 1}`} onclick={() => (automation.actions = removeAt(automation.actions, actionIndex))}><Trash2Icon /></IconButton>
             </div>
           </div>
+          {#if action.type === 'ScheduleInterview'}
+            {@const chosen = action.interviewerUserIds ?? []}
+            {@const people = team.data?.data ?? []}
+            {@const gone = chosen.filter((id) => !people.some((member) => member.userId === id))}
+            {@const zoneId = action.interviewTimeZone ?? ''}
+            {@const zones = timeZoneOptions(zoneId)}
+            <div class="mt-3 flex flex-col gap-3">
+              <fieldset
+                class="flex min-w-0 flex-col gap-1"
+                aria-describedby={`${uid}-action-${actionIndex}-interviewers-hint`}
+              >
+                <legend class={labelClass}>{interviewFieldLabels.interviewerUserIds}</legend>
+                {#each people as member (member.userId)}
+                  <label class="flex min-w-0 items-center gap-2 py-0.5 pointer-coarse:min-h-11">
+                    <input
+                      type="checkbox"
+                      class={checkboxClass}
+                      checked={chosen.includes(member.userId)}
+                      disabled={!chosen.includes(member.userId) && chosen.length >= maxInterviewers}
+                      onchange={(event) => (action.interviewerUserIds = toggleInterviewer(chosen, member.userId, event.currentTarget.checked))}
+                    />
+                    <span class="min-w-0 break-words">{member.displayName}</span>
+                  </label>
+                {/each}
+                <!-- Someone who left the team stays ticked until the person unticks them, so the form shows what is saved. -->
+                {#each gone as userId (userId)}
+                  <label class="flex min-w-0 items-center gap-2 py-0.5 pointer-coarse:min-h-11">
+                    <input
+                      type="checkbox"
+                      class={checkboxClass}
+                      checked
+                      onchange={(event) => (action.interviewerUserIds = toggleInterviewer(chosen, userId, event.currentTarget.checked))}
+                    />
+                    <span class="min-w-0 break-words text-muted-foreground">{team.isSuccess ? 'No longer on the team' : 'Loading the team…'}</span>
+                  </label>
+                {/each}
+                <p id={`${uid}-action-${actionIndex}-interviewers-hint`} class="text-muted-foreground">
+                  Choose one to {maxInterviewers}. The first person you choose is the organizer: their calendar sends the invitation, and each
+                  interviewer needs a connected calendar when it runs.
+                </p>
+              </fieldset>
+              <div class="grid gap-2 @xl:grid-cols-3">
+                <label class={labelClass}>
+                  {interviewFieldLabels.interviewMinutes}
+                  <select
+                    class={selectClass}
+                    aria-invalid={errorsAt(errors, `${actionPath}.interviewMinutes`).length > 0 || undefined}
+                    bind:value={action.interviewMinutes}
+                  >
+                    {#each durations as minutes (minutes)}<option value={minutes}>{durationLabel(minutes)}</option>{/each}
+                    {#if action.interviewMinutes && !(durations as readonly number[]).includes(action.interviewMinutes)}
+                      <option value={action.interviewMinutes}>{action.interviewMinutes} minutes</option>
+                    {/if}
+                  </select>
+                </label>
+                <label class={labelClass}>
+                  {interviewFieldLabels.interviewWindowDays}
+                  <Input
+                    type="number"
+                    min={1}
+                    max={maxInterviewWindowDays}
+                    aria-invalid={errorsAt(errors, `${actionPath}.interviewWindowDays`).length > 0 || undefined}
+                    bind:value={action.interviewWindowDays}
+                  />
+                </label>
+                <label class={labelClass}>
+                  {interviewFieldLabels.interviewTimeZone}
+                  <select
+                    class={selectClass}
+                    aria-invalid={errorsAt(errors, `${actionPath}.interviewTimeZone`).length > 0 || undefined}
+                    bind:value={action.interviewTimeZone}
+                  >
+                    {#each zones as zone (zone.value)}<option value={zone.value}>{zone.label}</option>{/each}
+                    {#if zoneId && !zones.some((zone) => zone.value === zoneId)}<option value={zoneId}>{zoneId}</option>{/if}
+                  </select>
+                </label>
+              </div>
+              <p class="text-muted-foreground">
+                The window starts when the automation runs. The candidate picks a weekday time between 09:00 and 17:00 in the chosen time zone.
+              </p>
+            </div>
+          {/if}
+          <!-- Every message under the action, the interview fields' too. -->
           <FieldErrors id={`${uid}-action-${actionIndex}-errors`} messages={actionErrors} />
         </div>
       {/snippet}

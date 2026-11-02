@@ -12585,6 +12585,36 @@
               "null",
               "string"
             ]
+          },
+          "interviewerUserIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "interviewMinutes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "interviewWindowDays": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "interviewTimeZone": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "description": "One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else."

@@ -22,6 +22,7 @@ import type {
   TriggerType,
   WorkflowStage,
 } from '@screenhire/api-client';
+import { zoneName } from '#lib/report-range.js';
 
 export const stageKindLabels: Record<StageKind, string> = {
   Applied: 'Applied',
@@ -40,7 +41,7 @@ export const stageKinds = Object.keys(stageKindLabels) as StageKind[];
 
 export const isTerminal = (kind: StageKind): boolean => kind === 'Hired' || kind === 'Rejected' || kind === 'Withdrawn';
 
-/** Triggers v1 runs. VerificationCompleted, CandidateReplied and InterviewScheduled are refused at save, so not offered. */
+/** Triggers v1 runs. VerificationCompleted and CandidateReplied are refused at save, so not offered. */
 export const triggerLabels: Partial<Record<TriggerType, string>> = {
   ApplicationSubmitted: 'An application arrives',
   StageEntered: 'A candidate enters a stage',
@@ -50,6 +51,7 @@ export const triggerLabels: Partial<Record<TriggerType, string>> = {
   VerificationAssessed: 'The verification checks finish',
   ReviewerDecision: 'A reviewer records a decision',
   SlaBreached: "A stage's time limit passes",
+  InterviewScheduled: 'An interview is booked',
   Manual: 'Someone runs it by hand',
 };
 
@@ -124,7 +126,7 @@ export const recommendationLabels: Record<Recommendation, string> = {
 
 export const recommendations = Object.keys(recommendationLabels) as Recommendation[];
 
-/** Actions v1 runs. RequestVerification and ScheduleInterview are refused at save, so not offered. */
+/** Actions v1 runs. RequestVerification is refused at save, so not offered. */
 export const actionLabels: Partial<Record<ActionType, string>> = {
   SendEmail: 'Send an email',
   SendQuestionnaire: 'Send a questionnaire',
@@ -134,13 +136,18 @@ export const actionLabels: Partial<Record<ActionType, string>> = {
   NotifyTeam: 'Notify the team',
   CreateTask: 'Create a task',
   CallWebhook: 'Call a webhook',
+  ScheduleInterview: 'Schedule an interview',
   QueueForRejectionReview: 'Queue for rejection review',
   Reject: 'Reject',
 };
 
 export const actionTypes = Object.keys(actionLabels) as ActionType[];
 
-/** The one field each action needs, as DefinitionValidator requires it. Reject may also name an email template. */
+/**
+ * The one field each action needs, as DefinitionValidator requires it. Reject may also name an email template.
+ * ScheduleInterview and AssignReviewer are not here: the first takes four fields (`interviewFieldLabels`), the second an
+ * optional reviewer, and the form draws both itself.
+ */
 export type ActionField = 'emailTemplate' | 'stageId' | 'tag' | 'note' | 'url' | 'reason' | 'questionnaireId';
 
 export const actionField: Partial<Record<ActionType, ActionField>> = {
@@ -164,6 +171,17 @@ export const actionFieldLabels: Record<ActionField, string> = {
   reason: 'Reason',
   questionnaireId: 'Questionnaire',
 };
+
+/** The four fields of a ScheduleInterview action, as the form words them. */
+export const interviewFieldLabels = {
+  interviewerUserIds: 'Interviewers',
+  interviewMinutes: 'Length',
+  interviewWindowDays: 'Days to pick a time',
+  interviewTimeZone: 'Time zone',
+} as const;
+
+/** The longest window an interview action gives the candidate, in days: DefinitionValidator's limit. */
+export const maxInterviewWindowDays = 60;
 
 /**
  * The built-in emails a SendEmail automation may send (EmailTemplateIds.cs), with their names until the organization's
@@ -189,6 +207,8 @@ export const newAction = (
   stages: readonly WorkflowStage[] = [],
   followUps: readonly FollowUpQuestionnaire[] = [],
 ): AutomationAction => {
+  // The organization has no time zone of its own, so a new interview action starts with the editor's.
+  if (type === 'ScheduleInterview') return { type, interviewerUserIds: [], interviewMinutes: 30, interviewWindowDays: 14, interviewTimeZone: zoneName() };
   const field = actionField[type];
   if (!field) return { type };
   if (field === 'emailTemplate') return { type, emailTemplate: builtInEmailTemplates[0]!.id };
@@ -523,6 +543,10 @@ export function describeAction(
   if (action.type === 'AssignReviewer') {
     if (!action.assigneeUserId) return 'Ask the team to review';
     return `Ask ${members?.find((member) => member.userId === action.assigneeUserId)?.displayName ?? 'a teammate'} to review`;
+  }
+  if (action.type === 'ScheduleInterview') {
+    const names = (action.interviewerUserIds ?? []).map((id) => members?.find((member) => member.userId === id)?.displayName ?? 'a teammate');
+    return names.length > 0 ? `Schedule an interview with ${names.join(', ')}` : label;
   }
   if (action.type === 'MoveToStage') return `Move to ${workflow.stages.find((stage) => stage.id === action.stageId)?.name ?? action.stageId}`;
   if (action.type === 'AddTag') return `Add the tag "${action.tag ?? ''}"`;

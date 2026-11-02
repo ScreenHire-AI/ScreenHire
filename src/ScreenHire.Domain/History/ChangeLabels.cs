@@ -77,7 +77,7 @@ public static class ChangeLabels
         ActionType.QueueForRejectionReview => "Queue for rejection review",
         ActionType.Reject => "Reject",
         ActionType.RequestVerification => "Request a verification",
-        ActionType.ScheduleInterview => "Book an interview",
+        ActionType.ScheduleInterview => "Schedule an interview",
         _ => type.ToString(),
     };
 

@@ -63,13 +63,10 @@ public sealed class WorkflowEngineValidationTests
         DefinitionValidator.Validate(Workflow([WorkAuthorization], [Knockout(ActionType.Reject, optIn: true)])).Should().BeEmpty();
     }
 
-    [Theory]
-    [InlineData(ActionType.RequestVerification)]
-    [InlineData(ActionType.ScheduleInterview)]
-    public void Actions_the_engine_does_not_run_yet_are_refused(ActionType type)
+    [Fact]
+    public void Requesting_a_verification_is_refused_until_phase_2()
     {
-        var action = type == ActionType.ScheduleInterview ? new AutomationAction(type, Url: "https://example.com/book") : new AutomationAction(type);
-        var workflow = Workflow(automations: [new("a", "A", new AutomationTrigger(TriggerType.ApplicationSubmitted), null, [action])]);
+        var workflow = Workflow(automations: [new("a", "A", new AutomationTrigger(TriggerType.ApplicationSubmitted), null, [new AutomationAction(ActionType.RequestVerification)])]);
 
         DefinitionValidator.Validate(workflow).Should().ContainSingle(e => e.Path == "automations[0].actions[0].type")
             .Which.Message.Should().Contain("cannot be used yet");
@@ -78,12 +75,164 @@ public sealed class WorkflowEngineValidationTests
     [Theory]
     [InlineData(TriggerType.VerificationCompleted)]
     [InlineData(TriggerType.CandidateReplied)]
-    [InlineData(TriggerType.InterviewScheduled)]
     public void Triggers_nothing_raises_yet_are_refused(TriggerType type)
     {
         var workflow = Workflow(automations: [new("a", "A", new AutomationTrigger(type), null, [new AutomationAction(ActionType.AddTag, Tag: "x")])]);
 
         DefinitionValidator.Validate(workflow).Select(e => e.Path).Should().Contain("automations[0].trigger.type");
+    }
+
+    // Booking an interview raises it (PublicInterviewEndpoints), so an automation may wait for it.
+    [Fact]
+    public void The_interview_booked_trigger_is_accepted()
+    {
+        var workflow = Workflow(automations:
+        [
+            new("booked", "Booked", new AutomationTrigger(TriggerType.InterviewScheduled), null, [new AutomationAction(ActionType.AddTag, Tag: "interview-booked")]),
+        ]);
+
+        DefinitionValidator.Validate(workflow).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void A_schedule_interview_action_with_all_four_fields_is_accepted()
+    {
+        DefinitionValidator.Validate(WorkflowWith(Interview())).Should().BeEmpty();
+        DefinitionValidator.Validate(WorkflowWith(Interview() with { InterviewerUserIds = [Avery, Robin, Sam, Kim, Lee], InterviewWindowDays = 60, InterviewMinutes = 120 }))
+            .Should().BeEmpty();
+        DefinitionValidator.Validate(WorkflowWith(Interview() with { InterviewWindowDays = 1, InterviewMinutes = 15, InterviewTimeZone = "UTC" })).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void A_schedule_interview_action_needs_each_of_its_four_fields()
+    {
+        var action = new AutomationAction(ActionType.ScheduleInterview);
+
+        DefinitionValidator.Validate(WorkflowWith(action)).Select(e => e.Path).Should().BeEquivalentTo(
+            "automations[0].actions[0].interviewerUserIds",
+            "automations[0].actions[0].interviewMinutes",
+            "automations[0].actions[0].interviewWindowDays",
+            "automations[0].actions[0].interviewTimeZone");
+    }
+
+    [Fact]
+    public void A_schedule_interview_action_takes_one_to_five_different_interviewers()
+    {
+        Guid[][] refused = [[], [Avery, Robin, Sam, Kim, Lee, Guid.NewGuid()], [Avery, Avery], [Guid.Empty]];
+        foreach (var interviewers in refused)
+        {
+            DefinitionValidator.Validate(WorkflowWith(Interview() with { InterviewerUserIds = interviewers })).Should()
+                .ContainSingle(e => e.Path == "automations[0].actions[0].interviewerUserIds")
+                .Which.Message.Should().Contain("one to 5");
+        }
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(20)]
+    [InlineData(61)]
+    [InlineData(-30)]
+    public void A_schedule_interview_action_takes_an_interview_length_a_request_allows(int minutes)
+    {
+        DefinitionValidator.Validate(WorkflowWith(Interview() with { InterviewMinutes = minutes })).Should()
+            .ContainSingle(e => e.Path == "automations[0].actions[0].interviewMinutes");
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(61)]
+    [InlineData(365)]
+    public void A_schedule_interview_action_gives_the_candidate_one_to_sixty_days(int days)
+    {
+        DefinitionValidator.Validate(WorkflowWith(Interview() with { InterviewWindowDays = days })).Should()
+            .ContainSingle(e => e.Path == "automations[0].actions[0].interviewWindowDays")
+            .Which.Message.Should().Contain("between 1 and 60");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("Not/AZone")]
+    [InlineData("a-name-of-more-than-sixty-four-characters-is-never-a-zone-id-on-any-host-at-all")]
+    public void A_schedule_interview_action_takes_a_time_zone_this_host_knows(string zone)
+    {
+        DefinitionValidator.Validate(WorkflowWith(Interview() with { InterviewTimeZone = zone })).Should()
+            .ContainSingle(e => e.Path == "automations[0].actions[0].interviewTimeZone");
+    }
+
+    [Fact]
+    public void A_schedule_interview_action_no_longer_takes_a_url()
+    {
+        DefinitionValidator.Validate(WorkflowWith(Interview() with { Url = "https://example.com/book" })).Should()
+            .ContainSingle(e => e.Path == "automations[0].actions[0].url")
+            .Which.Message.Should().Contain("does not take url");
+    }
+
+    [Fact]
+    public void The_interview_fields_are_refused_on_every_other_action_type()
+    {
+        foreach (var type in Enum.GetValues<ActionType>().Where(t => t is not (ActionType.ScheduleInterview or ActionType.RequestVerification)))
+        {
+            var action = new AutomationAction(
+                type, StageId: "screening", EmailTemplate: "application-received", Tag: "x", Reason: "r", Url: "https://example.com/hook", Note: "n",
+                InterviewerUserIds: [Avery], InterviewMinutes: 30, InterviewWindowDays: 7, InterviewTimeZone: "UTC");
+
+            DefinitionValidator.Validate(WorkflowWith(action)).Where(e => e.Message.StartsWith($"{type} does not take interview", StringComparison.Ordinal))
+                .Select(e => e.Path).Should().BeEquivalentTo(
+                    "automations[0].actions[0].interviewerUserIds",
+                    "automations[0].actions[0].interviewMinutes",
+                    "automations[0].actions[0].interviewWindowDays",
+                    "automations[0].actions[0].interviewTimeZone");
+        }
+    }
+
+    // Offering a candidate an interview is a candidate-facing outcome, so a verification signal never drives it
+    // (CLAUDE.md non-negotiable 2), directly or through a tag or stage a signal-driven automation sets.
+    [Fact]
+    public void Scheduling_an_interview_is_refused_for_an_automation_a_verification_signal_drives()
+    {
+        var onTrigger = Workflow(automations: [new("a", "A", new AutomationTrigger(TriggerType.VerificationAssessed), null, [Interview()])]);
+        var onFact = Workflow(automations:
+        [
+            new("b", "B", new AutomationTrigger(TriggerType.ApplicationSubmitted),
+                Rules(new AutomationCondition("verification.authenticity", ConditionOperator.EqualTo, "ReviewSuggested")), [Interview()]),
+        ]);
+        var onTaggedByASignal = Workflow(automations:
+        [
+            new("tagger", "Tagger", new AutomationTrigger(TriggerType.VerificationAssessed), null, [new AutomationAction(ActionType.AddTag, Tag: "look")]),
+            new("c", "C", new AutomationTrigger(TriggerType.ApplicationSubmitted),
+                Rules(new AutomationCondition("application.tags", ConditionOperator.Contains, "look")), [Interview()]),
+        ]);
+
+        DefinitionValidator.Validate(onTrigger).Should().ContainSingle(e => e.Path == "automations[0].actions[0]")
+            .Which.Message.Should().Contain("Verification signals never drive rejection");
+        DefinitionValidator.Validate(onFact).Should().ContainSingle(e => e.Path == "automations[0].actions[0]")
+            .Which.Message.Should().Contain("Verification signals never drive rejection");
+        DefinitionValidator.Validate(onTaggedByASignal).Should().ContainSingle(e => e.Path == "automations[1].actions[0]")
+            .Which.Message.Should().Contain("Verification signals never drive rejection");
+    }
+
+    // A passed time limit measures the team's delay; nothing it does may reach the candidate.
+    [Fact]
+    public void Scheduling_an_interview_is_refused_for_a_passed_time_limit()
+    {
+        var workflow = Workflow(automations: [new("a", "A", new AutomationTrigger(TriggerType.SlaBreached), null, [Interview()])]);
+
+        DefinitionValidator.Validate(workflow).Should().ContainSingle(e => e.Path == "automations[0].actions[0]")
+            .Which.Message.Should().Contain("may only notify the team");
+    }
+
+    [Theory]
+    [InlineData(TriggerType.ApplicationSubmitted)]
+    [InlineData(TriggerType.QuestionnaireCompleted)]
+    [InlineData(TriggerType.ReviewerDecision)]
+    [InlineData(TriggerType.InterviewScheduled)]
+    [InlineData(TriggerType.Manual)]
+    public void Scheduling_an_interview_is_allowed_on_the_other_triggers(TriggerType type)
+    {
+        var workflow = Workflow(automations: [new("a", "A", new AutomationTrigger(type), null, [Interview()])]);
+
+        DefinitionValidator.Validate(workflow).Should().BeEmpty();
     }
 
     [Theory]
@@ -219,6 +368,18 @@ public sealed class WorkflowEngineValidationTests
 
         DefinitionValidator.Validate(workflow).Should().BeEmpty();
     }
+
+    private static readonly Guid Avery = Guid.Parse("00000000-0000-0000-0000-0000000000a1");
+    private static readonly Guid Robin = Guid.Parse("00000000-0000-0000-0000-0000000000a2");
+    private static readonly Guid Sam = Guid.Parse("00000000-0000-0000-0000-0000000000a3");
+    private static readonly Guid Kim = Guid.Parse("00000000-0000-0000-0000-0000000000a4");
+    private static readonly Guid Lee = Guid.Parse("00000000-0000-0000-0000-0000000000a5");
+
+    private static AutomationAction Interview() =>
+        new(ActionType.ScheduleInterview, InterviewerUserIds: [Avery, Robin], InterviewMinutes: 45, InterviewWindowDays: 14, InterviewTimeZone: "America/New_York");
+
+    private static HiringWorkflow WorkflowWith(AutomationAction action) =>
+        Workflow(automations: [new("a", "A", new AutomationTrigger(TriggerType.ApplicationSubmitted), null, [action])]);
 
     private static AutomationConditions Rules(params AutomationCondition[] rules) => new(ConditionMatch.All, rules);
 

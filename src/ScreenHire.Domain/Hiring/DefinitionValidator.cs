@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using ScreenHire.Domain.Automations;
+using ScreenHire.Domain.Scheduling;
 
 namespace ScreenHire.Domain.Hiring;
 
@@ -24,24 +25,23 @@ public static partial class DefinitionValidator
     private const string AnswersPrefix = FactSchema.AnswersPrefix;
 
     // Kinds the definition model names but the engine does not run yet. Refused at save, so no definition carries one
-    // the engine would silently ignore. Verification is phase 2 (CLAUDE.md non-negotiable 3); the others need features
-    // that do not exist yet (scheduling, candidate replies).
+    // the engine would silently ignore. Verification is phase 2 (CLAUDE.md non-negotiable 3); candidate replies are not
+    // tracked yet.
     private static readonly Dictionary<ActionType, string> UnavailableActions = new()
     {
         [ActionType.RequestVerification] = "Verification requests arrive in phase 2 and cannot be used yet.",
-        [ActionType.ScheduleInterview] = "Interview scheduling cannot be used yet.",
     };
 
     private static readonly Dictionary<TriggerType, string> UnavailableTriggers = new()
     {
         [TriggerType.VerificationCompleted] = "Verification arrives in phase 2; this trigger cannot be used yet.",
         [TriggerType.CandidateReplied] = "Candidate replies are not tracked yet; this trigger cannot be used yet.",
-        [TriggerType.InterviewScheduled] = "Interview scheduling is not available yet; this trigger cannot be used yet.",
     };
 
     // What an automation that uses a verification signal may do: route and step up, never reject
     // (workflow-engine.md §2, guardrail 1). MoveToStage is further limited to SignalSafeStages. SendQuestionnaire is
-    // not here: asking a candidate for more because a signal fired would act on the signal as a finding about them.
+    // not here: asking a candidate for more because a signal fired would act on the signal as a finding about them, and
+    // neither is ScheduleInterview, which offers the candidate an interview.
     private static readonly HashSet<ActionType> SignalSafeActions =
         [ActionType.RequestVerification, ActionType.AssignReviewer, ActionType.AddTag, ActionType.MoveToStage];
 
@@ -64,6 +64,8 @@ public static partial class DefinitionValidator
     public const int MaxScorecardQuestions = 20;
     public const int MaxFollowUpQuestionnaires = 10;
     public const int MaxSections = 20;
+    public const int MaxInterviewers = 5;
+    public const int MaxInterviewWindowDays = 60;
 
     // Question ids the apply form gives meaning to (ApplicationForm): its resume question is there even when the apply
     // questionnaire has none, so a follow-up question with one of these ids would make answers.{id} name two questions.
@@ -888,7 +890,7 @@ public static partial class DefinitionValidator
             ActionType.AddTag => (ActionField.Tag, ActionField.None),
             ActionType.AssignReviewer => (ActionField.None, ActionField.AssigneeUserId),
             ActionType.NotifyTeam => (ActionField.Note, ActionField.None),
-            ActionType.ScheduleInterview => (ActionField.Url, ActionField.None),
+            ActionType.ScheduleInterview => (ActionField.InterviewerUserIds | ActionField.InterviewMinutes | ActionField.InterviewWindowDays | ActionField.InterviewTimeZone, ActionField.None),
             ActionType.CreateTask => (ActionField.Note, ActionField.None),
             ActionType.CallWebhook => (ActionField.Url, ActionField.None),
             ActionType.QueueForRejectionReview => (ActionField.Reason, ActionField.None),
@@ -906,6 +908,10 @@ public static partial class DefinitionValidator
         present |= action.AssigneeUserId is not null ? ActionField.AssigneeUserId : ActionField.None;
         present |= action.VerificationProvider is not null ? ActionField.VerificationProvider : ActionField.None;
         present |= action.QuestionnaireId is not null ? ActionField.QuestionnaireId : ActionField.None;
+        present |= action.InterviewerUserIds is not null ? ActionField.InterviewerUserIds : ActionField.None;
+        present |= action.InterviewMinutes is not null ? ActionField.InterviewMinutes : ActionField.None;
+        present |= action.InterviewWindowDays is not null ? ActionField.InterviewWindowDays : ActionField.None;
+        present |= action.InterviewTimeZone is not null ? ActionField.InterviewTimeZone : ActionField.None;
 
         foreach (var field in Enum.GetValues<ActionField>().Where(f => f != ActionField.None))
         {
@@ -965,9 +971,40 @@ public static partial class DefinitionValidator
         ValidateText(action.Reason, Join(path, "reason"), 500, required: false, errors);
         ValidateText(action.Note, Join(path, "note"), 1000, required: false, errors);
         ValidateText(action.VerificationProvider, Join(path, "verificationProvider"), 50, required: false, errors);
+        if (action.Type == ActionType.ScheduleInterview)
+        {
+            ValidateInterviewFields(action, path, errors);
+        }
+
         if (action.Url is not null && !(Uri.TryCreate(action.Url, UriKind.Absolute, out var url) && url.Scheme == Uri.UriSchemeHttps && action.Url.Length <= 2000))
         {
             errors.Add(new(Join(path, "url"), "The URL must be an absolute https URL."));
+        }
+    }
+
+    // The shape of a ScheduleInterview action. That each interviewer is a member is checked where there is a database
+    // (the API at save, the worker at run time); this class has none.
+    private static void ValidateInterviewFields(AutomationAction action, string path, List<DefinitionError> errors)
+    {
+        if (action.InterviewerUserIds is { } interviewers
+            && (interviewers.Count is < 1 or > MaxInterviewers || interviewers.Distinct().Count() != interviewers.Count || interviewers.Contains(Guid.Empty)))
+        {
+            errors.Add(new(Join(path, "interviewerUserIds"), $"Choose one to {MaxInterviewers} different interviewers."));
+        }
+
+        if (action.InterviewMinutes is { } minutes && !InterviewRequest.AllowedDurations.Contains(minutes))
+        {
+            errors.Add(new(Join(path, "interviewMinutes"), $"An interview lasts {string.Join(", ", InterviewRequest.AllowedDurations)} minutes."));
+        }
+
+        if (action.InterviewWindowDays is { } days && (days < 1 || days > MaxInterviewWindowDays))
+        {
+            errors.Add(new(Join(path, "interviewWindowDays"), $"The candidate gets between 1 and {MaxInterviewWindowDays} days to pick a time."));
+        }
+
+        if (action.InterviewTimeZone is not null && !InterviewRequest.TryFindZone(action.InterviewTimeZone, out _))
+        {
+            errors.Add(new(Join(path, "interviewTimeZone"), "Choose a time zone."));
         }
     }
 
@@ -1212,6 +1249,10 @@ public static partial class DefinitionValidator
         ActionField.AssigneeUserId => "assigneeUserId",
         ActionField.VerificationProvider => "verificationProvider",
         ActionField.QuestionnaireId => "questionnaireId",
+        ActionField.InterviewerUserIds => "interviewerUserIds",
+        ActionField.InterviewMinutes => "interviewMinutes",
+        ActionField.InterviewWindowDays => "interviewWindowDays",
+        ActionField.InterviewTimeZone => "interviewTimeZone",
         _ => field.ToString(),
     };
 
@@ -1228,6 +1269,10 @@ public static partial class DefinitionValidator
         AssigneeUserId = 64,
         VerificationProvider = 128,
         QuestionnaireId = 256,
+        InterviewerUserIds = 512,
+        InterviewMinutes = 1024,
+        InterviewWindowDays = 2048,
+        InterviewTimeZone = 4096,
     }
 
     /// <summary>What the automations of one workflow may refer to: its stages, every question by id, and its follow-ups.</summary>

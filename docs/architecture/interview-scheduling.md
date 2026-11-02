@@ -22,6 +22,8 @@ sources:
   - resource: src/ScreenHire.Application/Scheduling/InterviewLinks.cs
   - resource: src/ScreenHire.Application/Scheduling/InterviewMessages.cs
   - resource: apps/api/Endpoints/InterviewEndpoints.cs
+  - resource: apps/api/Hiring/InterviewerReferences.cs
+  - resource: tests/ScreenHire.IntegrationTests/Scheduling/InterviewWorkflowActionTests.cs
   - resource: apps/api/Contracts/InterviewContracts.cs
   - resource: apps/api/Endpoints/PublicInterviewEndpoints.cs
   - resource: src/ScreenHire.Application/Scheduling/InterviewHandlers.cs
@@ -48,7 +50,7 @@ ScreenHire schedules interviews on the calendars the team already uses, through 
 Graph APIs. This page describes the parts that exist so far: a member connecting and disconnecting their own calendar, the interview
 request with its slot finder and booking transaction, the routes that offer, book, move and cancel an interview, the
 worker that writes the events and emails the candidate, the careers page the candidate books on, and the recruiter's side
-in the dashboard. The workflow action builds on them and is described here as it lands.
+in the dashboard, and the workflow action that offers an interview without a person.
 
 ## Connecting a calendar
 
@@ -172,6 +174,30 @@ cancellation and a booking at the same moment cannot both win.
 
 `status` is the effective status: an Open request past its window reads `Expired`. Removing a member also marks their
 attendee rows on booked interviews that have not started `Failed` with a plain problem, and they stay visible.
+
+## The workflow action
+
+A `ScheduleInterview` automation action offers the same interview a person would, from a workflow
+([workflow-engine.md](workflow-engine.md) section 3 has its row in the action table). The action holds
+`interviewerUserIds` (one to five members, the first is the organizer), `interviewMinutes`, `interviewWindowDays` (1 to 60)
+and `interviewTimeZone`. The organization has no time zone, so the automation form fills the zone from the editor's browser
+and shows it in a select. The window runs from the moment the action executes to that many days later, with the default
+working hours.
+
+The handler (`ExecuteAutomationActionHandler`) does what the staff route does, without a person. It stores an Open request
+that is past its window as Expired first, then creates the request with `SourceKey` set to the action key, the attendees
+with each interviewer's calendar provider, an `InterviewInvited` timeline entry linked to the run, and queues
+`SendInterviewInvitation` and `InterviewChanged` through the handler's outgoing messages, so they leave only if the action
+commits. It skips when email or the careers site address is not set up, when the application has ended, when the request
+for this action key exists already, or when the candidate has an Open or Booked interview. It fails, writing nothing, when
+an interviewer is no longer a member, cannot see the job, or has no working calendar (the connection has a problem or its
+provider is not configured here). The failure says who, in the interviewers' display names, and what to do. The booking
+side is unchanged: a candidate's first booking raises the `InterviewScheduled` trigger once per interview, so an
+automation can tag or notify when a time is picked.
+
+Saving a workflow checks that each interviewer is a member of the organization. A `ScheduleInterview` automation is
+refused when a verification signal or a passed time limit drives it, because offering an interview is a candidate-facing
+outcome.
 
 ## The candidate's routes
 

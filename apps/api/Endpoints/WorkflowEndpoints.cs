@@ -31,7 +31,7 @@ internal static class WorkflowEndpoints
     private static async Task<Ok<WorkflowValidationResult>> ValidateWorkflow(
         ValidateWorkflowRequest request, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
-        var errors = await EmailTemplateReferences.ValidateAsync(db, request.Workflow, cancellationToken);
+        var errors = await TemplateReferences.ValidateAsync(db, request.Workflow, cancellationToken);
         return TypedResults.Ok(new WorkflowValidationResult(errors.Count == 0, errors));
     }
 

@@ -1108,7 +1108,11 @@ export const CreateJobResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(createJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(createJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -1301,7 +1305,11 @@ export const GetJobResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(getJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(getJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -1516,7 +1524,11 @@ export const UpdateJobResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -1747,7 +1759,11 @@ export const PublishJobResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(publishJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(publishJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -1940,7 +1956,11 @@ export const CloseJobResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(closeJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(closeJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -2176,7 +2196,11 @@ export const UpdateJobWorkflowBody = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateJobWorkflowBodyWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateJobWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -2324,7 +2348,11 @@ export const UpdateJobWorkflowResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateJobWorkflowResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateJobWorkflowResponseWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -2522,7 +2550,11 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(applyJobTemplateUpdateResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(applyJobTemplateUpdateResponseWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -2715,7 +2747,11 @@ export const CreateHiringTemplateBody = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(createHiringTemplateBodyDefinitionTwoWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(createHiringTemplateBodyDefinitionTwoWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -2986,7 +3022,11 @@ export const CreateHiringTemplateVersionBody = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(createHiringTemplateVersionBodyDefinitionTwoWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(createHiringTemplateVersionBodyDefinitionTwoWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -3125,7 +3165,11 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(createHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(createHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -3273,7 +3317,11 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(getHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(getHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -3417,7 +3465,11 @@ export const UpdateHiringTemplateVersionBody = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateHiringTemplateVersionBodyDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateHiringTemplateVersionBodyDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -3556,7 +3608,11 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -3704,7 +3760,11 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(publishHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(publishHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -7027,7 +7087,11 @@ export const ValidateWorkflowBody = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(validateWorkflowBodyWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(validateWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -7161,7 +7225,11 @@ export const SimulateWorkflowBody = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(simulateWorkflowBodyWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(simulateWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -7238,7 +7306,11 @@ export const SimulateWorkflowResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "reason": zod.string().nullable()
 }).describe('What one automation would do. Only automations the trigger fires are listed, in definition order.'))
@@ -7294,7 +7366,11 @@ export const ListAutomationRunsResponseItem = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.'),
   "status": zod.enum(['Pending', 'Completed', 'Skipped', 'Failed']),
   "detail": zod.string().nullable(),
