@@ -18,13 +18,14 @@
   // email as the first person receives it, and send. The email is the organization's "Invitation to apply" template as
   // it stands (edited on Templates): it has the job's careers link and the candidate's own link to stop being saved, which
   // the worker makes as it sends. A job someone already applied to skips them.
+  // `people` need only these three fields, so a candidate's own page can invite them without a saved-candidates row.
   let {
     open = $bindable(false),
     people,
     ondone,
   }: {
     open?: boolean;
-    people: readonly TalentPoolMember[];
+    people: readonly Pick<TalentPoolMember, 'candidateId' | 'candidateName' | 'appliedJobIds'>[];
     ondone?: (message: string) => void;
   } = $props();
 

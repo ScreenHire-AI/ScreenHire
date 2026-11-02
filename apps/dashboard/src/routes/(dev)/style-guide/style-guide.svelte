@@ -41,6 +41,7 @@
   import DateRangeFilter from '#lib/components/date-range-filter.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import EmailPreview from '#lib/components/email-preview.svelte';
+  import CopyButton from '#lib/components/copy-button.svelte';
   import Fact from '#lib/components/fact.svelte';
   import FilterMenu from '#lib/components/filter-menu.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
@@ -48,6 +49,7 @@
   import HeaderBand from '#lib/components/header-band.svelte';
   import HistorySheet from '#lib/components/history-sheet.svelte';
   import IconButton from '#lib/components/icon-button.svelte';
+  import MiniCard from '#lib/components/mini-card.svelte';
   import VerificationChip from '#lib/components/verification-chip.svelte';
   import LastUpdated from '#lib/components/last-updated.svelte';
   import ListItem from '#lib/components/list-item.svelte';
@@ -79,6 +81,7 @@
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import SignalEvidence from '#lib/components/signal-evidence.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
+  import PipelineTracker from '#lib/components/pipeline-tracker.svelte';
   import StepLine from '#lib/components/step-line.svelte';
   import StepMarkers, { type Step } from '#lib/components/step-markers.svelte';
   import SummaryBand from '#lib/components/summary-band.svelte';
@@ -105,6 +108,7 @@
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { formatDate, hour, day, minute } from '#lib/dates.js';
+  import type { Tracker, TrackerStep } from '#lib/pipeline-tracker.js';
   import { applyFormKinds, scorecardKinds } from '#lib/form-builder.js';
   import { aiAssistanceLevels, aiAssistanceOrder, authenticityLevels, authenticityOrder } from '#lib/verification.js';
   import { mentionToken, type PickedMention } from '#lib/mentions.js';
@@ -287,6 +291,32 @@
     { name: 'Interview', limit: '5-day limit' },
   ];
 
+  // A candidate's pipeline tracker, as `trackerFor` builds it from the job's stages and the application's history.
+  const trackerStep = (name: string, state: TrackerStep['state'], note?: string): TrackerStep => ({ id: name, name, state, note });
+  const trackerInPipeline: Tracker = {
+    steps: [
+      trackerStep('Applied', 'passed', 'Oct 20'),
+      trackerStep('Screening', 'current', 'Here 3 days'),
+      trackerStep('Interview', 'upcoming'),
+      trackerStep('Offer', 'upcoming'),
+      trackerStep('Hired', 'upcoming'),
+    ],
+    position: 2,
+    total: 5,
+  };
+  const trackerSaved: Tracker = {
+    steps: [
+      trackerStep('Applied', 'passed', 'Oct 20'),
+      trackerStep('Screening', 'passed', 'Oct 22'),
+      trackerStep('Interview', 'left', 'Saved Oct 31'),
+      trackerStep('Offer', 'upcoming'),
+      trackerStep('Hired', 'upcoming'),
+    ],
+    position: 3,
+    total: 5,
+    outcome: 'Saved',
+  };
+
   const people = [
     { id: '1', name: 'Jordan Ellis', status: 'review', label: 'Review suggested', stage: 'Screening', source: 'Careers page', at: ago(2 * hour) },
     { id: '2', name: 'Priya Natarajan', status: 'done', label: 'No concerns', stage: 'Interview', source: 'Referral', at: ago(3 * day) },
@@ -460,6 +490,32 @@
   <title>Style guide · ScreenHire</title>
 </svelte:head>
 
+<!-- A candidate header's three mini cards: Contact, Application, then Also applied to (or Rating once someone scored them). -->
+{#snippet candidateCards()}
+  <div class="@container">
+    <div class="grid min-w-0 gap-3 @3xl:grid-cols-3">
+      <MiniCard title="Contact">
+        <div class="flex min-w-0 items-center gap-1">
+          <TruncatedText text="samuel.okonkwo@example.com" href="mailto:samuel.okonkwo@example.com" icon={MailIcon} underlined />
+          <CopyButton value="samuel.okonkwo@example.com" label="Copy email address" />
+        </div>
+        <div class="flex min-w-0 items-center gap-1">
+          <TruncatedText text="+1 555 0142" href="tel:+15550142" icon={PhoneIcon} underlined />
+          <CopyButton value="+1 555 0142" label="Copy phone number" />
+        </div>
+      </MiniCard>
+      <MiniCard title="Application">
+        <TruncatedText text="Senior product designer" href="#mini-card" underlined />
+        <p class="text-muted-foreground">Applied <RelativeTime at={ago(6 * day)} class="inline" /> via the careers page</p>
+      </MiniCard>
+      <MiniCard title="Also applied to">
+        <p class="text-muted-foreground">2 other jobs</p>
+        <a href="#mini-card" class="inline-flex min-h-6 w-fit items-center underline underline-offset-2 pointer-coarse:min-h-11">Candidate profile</a>
+      </MiniCard>
+    </div>
+  </div>
+{/snippet}
+
 <ShortcutsDialog bind:open={shortcutsOpen} />
 <SecretDialog bind:open={secretOpen} title="Your new API key" label="API key" value="shk_example_7Qm2vR8kLx4pN9wZ3cT6yB1dF5gH0jS" />
 
@@ -513,20 +569,28 @@
       <Panel title="Header band">
         <div class="flex flex-col gap-4">
           <figure class="flex flex-col gap-2">
-            <figcaption class="text-caption text-muted-foreground">Detail: status, details, actions and facts</figcaption>
+            <figcaption class="text-caption text-muted-foreground">Candidate: the name and one status, actions, the pipeline tracker and mini cards</figcaption>
             <div class="overflow-hidden rounded-lg bg-secondary">
               <HeaderBand level={3} title="Samuel Okonkwo-Hartley">
-                {#snippet status()}<StatusBadge status="review" label="Review suggested" />{/snippet}
-                {#snippet details()}
-                  <TruncatedText text="samuel.okonkwo@example.com" href="mailto:samuel.okonkwo@example.com" icon={MailIcon} underlined class="text-muted-foreground" />
-                  <TruncatedText text="+1 555 0142" href="tel:+15550142" icon={PhoneIcon} underlined class="text-muted-foreground" />
-                {/snippet}
+                {#snippet status()}<StatusBadge status="verification" label="Verification suggested" />{/snippet}
                 {#snippet actions()}
-                  <Button variant="outline" size="lg"><ArrowRightIcon aria-hidden="true" />Move to stage</Button>
+                  <Button variant="outline" size="lg"><MailIcon aria-hidden="true" />Email</Button>
+                  <Button size="lg"><ArrowRightIcon aria-hidden="true" />Move to stage</Button>
                 {/snippet}
+                {#snippet summary()}
+                  <PipelineTracker tracker={trackerInPipeline} />
+                  {@render candidateCards()}
+                {/snippet}
+              </HeaderBand>
+            </div>
+          </figure>
+          <figure class="flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">Facts row, for a record without a pipeline</figcaption>
+            <div class="overflow-hidden rounded-lg bg-secondary">
+              <HeaderBand level={3} title="Q3 hiring report">
+                {#snippet status()}<StatusBadge status="done" label="Ready" />{/snippet}
                 {#snippet facts()}
                   <Fact label="Job">Senior product designer</Fact>
-                  <Fact label="Stage">Screening</Fact>
                   <Fact label="Applied"><RelativeTime at={ago(2 * hour)} /></Fact>
                   <Fact label="Source">Careers page</Fact>
                 {/snippet}
@@ -726,11 +790,37 @@
         </div>
       </Panel>
 
+      <Panel title="Pipeline tracker">
+        <div class="flex flex-col gap-5">
+          <figure class="flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">In the pipeline: passed with the date, current ringed with how long, later empty</figcaption>
+            <PipelineTracker tracker={trackerInPipeline} />
+          </figure>
+          <figure class="flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">Overdue stays beside the current stage</figcaption>
+            <PipelineTracker tracker={trackerInPipeline} overdueAt={ago(day)} />
+          </figure>
+          <figure class="flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">Left: the stage they left from is dark, with how and when</figcaption>
+            <PipelineTracker tracker={trackerSaved} />
+          </figure>
+          <figure class="flex max-w-80 flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">Narrow: the current stage and its place</figcaption>
+            <PipelineTracker tracker={trackerInPipeline} />
+          </figure>
+        </div>
+      </Panel>
+
+      <Panel title="Mini card">
+        {@render candidateCards()}
+      </Panel>
+
       <Panel title="Icon button">
         <div class="flex flex-wrap items-center gap-1">
           <IconButton label="More actions"><EllipsisIcon /></IconButton>
           <IconButton label="Edit"><PencilIcon /></IconButton>
           <IconButton label="Remove"><Trash2Icon /></IconButton>
+          <CopyButton value="samuel.okonkwo@example.com" label="Copy email address" />
         </div>
       </Panel>
 

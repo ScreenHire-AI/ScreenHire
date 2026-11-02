@@ -2,6 +2,12 @@
 
 ## 2026-11-02
 
+**A candidate's header is the name, a pipeline tracker and three mini cards.** The meta line is gone. The first line is the
+name and one status badge (Verification suggested while they are in the pipeline, Saved, Rejected, Withdrawn or Hired once
+they left), with Email and Move to stage on the right, or Message and Invite to another job for a saved candidate. A
+tracker of dots replaces the stage pill, and Contact, Application and Also applied to (or Rating) are mini cards. The
+tracker's dots are the one exception to square steps. See ADR-0023 and design system sections 7, 11 and 21.
+
 **The talent pool is now Saved candidates, with no expiry.** The owner renamed it: Keep in mind is Save candidate, the
 status is Saved, and the page is Saved candidates at `/saved` (G then S; `/talent-pool` redirects). A saved candidate has
 no end date. They stay until the team removes them or they use the stop link in an invitation, so the permission period,

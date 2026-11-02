@@ -28,6 +28,11 @@ sources:
   - resource: apps/dashboard/src/lib/components/report-stat.svelte
   - resource: apps/dashboard/src/lib/components/date-range-filter.svelte
   - resource: apps/dashboard/src/lib/report-range.ts
+  - resource: apps/dashboard/src/lib/pipeline-tracker.ts
+  - resource: apps/dashboard/src/lib/components/pipeline-tracker.svelte
+  - resource: apps/dashboard/src/lib/components/mini-card.svelte
+  - resource: apps/dashboard/src/lib/components/copy-button.svelte
+  - resource: apps/dashboard/src/lib/components/candidate/header-cards.svelte
 ---
 # ScreenHire design system
 
@@ -172,7 +177,8 @@ Authors check their screens against this list, and the `design-review` agent rep
 - **T4** Design for the count, not the example: wherever a list can grow, show how many (2 hiring templates). In a
   header the count is a button that opens a sheet listing each item as a link, with search past 10. On a control (a
   tab, a filter chip, a button, a sidebar item) the count sits in the grey count badge after its label; in a table it
-  is plain text. Steps are square markers on a line. Counts and steps never share a shape.
+  is plain text. Steps are square markers on a line. Counts and steps never share a shape. The one exception is the
+  pipeline tracker, whose dots mark a person's place in a workflow, not progress through a form.
 - **T5** Times follow section 13: time ago in text, dates in tables, the browser's locale, the exact time on hover.
 - **T6** Anything people edit says who updated it last and how long ago: the last fact in its header ("2 hours ago by
   Avery Quinn") with History beside it, and a Last updated column in its list. ScreenHire's own templates and roles
@@ -266,11 +272,11 @@ Each status has its own Lucide icon. The icon alone tells statuses apart, so col
 
 | Colour | Statuses and their icons | Tokens (`status-*`, `-soft`, `-mark`) | Text | Soft bg | Icon colour |
 |---|---|---|---|---|---|
-| Clear | No concerns, No problems found, Delivering, Done; Delivered, a webhook delivery; Active, an API key; Live, the live updates connection; Connected, a Slack workspace; Verified, a sending domain, and Found, one of its DNS records; Explained, a Verification reason a person marked explained (`circle-check`). Open, a job taking applications; Live, a job showing on a board (`door-open`) | `status-clear` | `#0B5D4F` | `#E3F1EC` | `#0F766E` |
+| Clear | No concerns, No problems found, Delivering, Done; Hired, a candidate who got the job; Delivered, a webhook delivery; Active, an API key; Live, the live updates connection; Connected, a Slack workspace; Verified, a sending domain, and Found, one of its DNS records; Explained, a Verification reason a person marked explained (`circle-check`). Open, a job taking applications; Live, a job showing on a board (`door-open`) | `status-clear` | `#0B5D4F` | `#E3F1EC` | `#0F766E` |
 | Review | Review suggested (`eye`); Overdue by 2 days (`clock-alert`) | `status-review` | `#7A4205` | `#FBEFD3` | `#C77700` |
 | Verify | Verification suggested (`id-card`). Needs fixes, for a refused posting or a workflow with problems, and for a posting a board did not answer (Error), a webhook Turned off after failures, a delivery that Failed, a Slack workspace that is Not posting or Disconnected, a sending domain with Records to add and a record that is Not found or has a Different value, and a candidate whose address Email bounced or was Marked as spam (`wrench`). Unsafe file, flagged by the malware scan (`shield-x`) | `status-verify` | `#9A2F17` | `#F9E0D6` | `#B4461F` |
 | AI (information) | No signs, Some signs or Strong signs of AI help (`sparkles`) | `status-ai` | `#2B2788` | `#ECEBFA` | `#2B2788` |
-| Grey: waiting or not started | Sent, Queued, Submitted, Removing and Removal requested, waiting on a board; Pending, a webhook delivery waiting for its next try (`clock-4`). Scanning and Checks pending, ScreenHire at work; Connecting, the live updates connection (`loader-circle`). Closed (`door-closed`). Draft (`file-pen-line`). Archived, a template out of the pickers until someone restores it (`archive`). Saved, a candidate who left the job without a rejection, kept for future roles (`bookmark`). Not in effect: Not posted, a board the job is not on; Removed, a board that took the job down; Off, a webhook someone turned off; Skipped, a delivery not sent; Revoked, an API key; Offline, the live updates connection (`circle-minus`) | `muted-foreground` on `secondary` | `#5F5A52` | `#F4F1EB` | `#5F5A52` |
+| Grey: waiting or not started | Sent, Queued, Submitted, Removing and Removal requested, waiting on a board; Pending, a webhook delivery waiting for its next try (`clock-4`). Scanning and Checks pending, ScreenHire at work; Connecting, the live updates connection (`loader-circle`). Closed (`door-closed`). Draft (`file-pen-line`). Archived, a template out of the pickers until someone restores it (`archive`). Saved, a candidate who left the job without a rejection, kept for future roles (`bookmark`). Not in effect: Not posted, a board the job is not on; Removed, a board that took the job down; Off, a webhook someone turned off; Skipped, a delivery not sent; Revoked, an API key; Rejected and Withdrawn, how a candidate left a job; Offline, the live updates connection (`circle-minus`) | `muted-foreground` on `secondary` | `#5F5A52` | `#F4F1EB` | `#5F5A52` |
 
 Status colours are never used for brand, decoration or facts. No status uses the warning triangle: it marks only the
 verification cards that fed a level (section 16). Counts use tabular figures.
@@ -431,6 +437,7 @@ takes the focus.
 
 - **Header band:** a white strip under the top bar. Title first, status badges beside it, actions on the right, then
   a labelled facts row (a short label 12px above each value 14px, a divider between them) or tabs on its bottom edge.
+  A record with a pipeline (a candidate) puts the pipeline tracker and its mini cards between the title and the tabs.
   On anything people edit, Last updated is the last fact, with History (T6). A description under the title is one
   plain sentence. An explanation goes where it applies: a tooltip on the fact, a hint by the control, the reason on a
   disabled item, or a notice for the people it affects, never a paragraph of loosely joined facts. One muted line
@@ -495,18 +502,20 @@ in a development build, shows every component in each state, and its test fails 
 
 | Component | Built on | Rules |
 |---|---|---|
-| Header band, Panel | Our components (`HeaderBand` with `MetaItem` for a record's meta line or `Fact` for a labelled facts row, `Panel`) | Section 7. A record's header (a candidate) has a meta line: each fact an icon and a value that reads on its own, the label only for screen readers (W9), and the stage a muted pill. Pages whose values need their labels (a job's salary, a template's version) keep the facts row |
+| Header band, Panel | Our components (`HeaderBand` with `MetaItem` for a meta line, `Fact` for a labelled facts row, or its `summary` slot for a pipeline tracker and mini cards; `Panel`) | Section 7. A candidate's header is the name and one status badge, the actions on the right, the pipeline tracker, then three mini cards. A meta line, where a page still has one, is icons and values that read on their own, the label only for screen readers (W9). Pages whose values need their labels (a job's salary, a template's version) keep the facts row |
 | Status badge | `StatusBadge` on shadcn `Badge` (`clear`, `review`, `verify`, `ai`, `neutral`; `quiet` for calm states in lists) | Icon, colour, label (T1, T3): 24px high, the 14px icon in its icon colour, then the label in 12px semibold. It takes a status name from `#lib/status.ts`; each status's icon is in section 3.2 |
-| Overdue badge | `OverdueBadge` on `StatusBadge` and `Hint` | Section 3.2: the review badge, "Overdue by" and how long, the due time in a tooltip that opens on hover, focus or tap. First in the stage cell of a candidate table and list item, first in a board card's status row, and beside the title on an application's page (S2, T2). Never on a hired, rejected or withdrawn stage |
-| Fact pill | `Badge` muted variant | `secondary` fill, `input` edge, 12px; only on white surfaces. For tags, for facts in a list item or a sheet, and for the stage in a record's meta line and a policy beside a verification level; never in a labelled facts row or a table cell (W3, L1) |
+| Overdue badge | `OverdueBadge` on `StatusBadge` and `Hint` | Section 3.2: the review badge, "Overdue by" and how long, the due time in a tooltip that opens on hover, focus or tap. First in the stage cell of a candidate table and list item, first in a board card's status row, and beside "Here 3 days" in an application's pipeline tracker (S2, T2). Never on a hired, rejected or withdrawn stage |
+| Fact pill | `Badge` muted variant | `secondary` fill, `input` edge, 12px; only on white surfaces. For tags, for facts in a list item or a sheet, and a policy beside a verification level; never in a labelled facts row or a table cell (W3, L1) |
 | Count | `Badge` count variant | The grey count badge (min 28px) after its label on a control (T4); plain text in a table |
 | Toggle | shadcn `Toggle`, in a labelled `role="group"`, or the rich text editor's `role="toolbar"` | Filters with a few choices and peer views (Table, Board; the apply form and each follow-up questionnaire in the workflow builder), and the formatting toggles of the rich text editor. The pressed one takes `accent`; its count follows the label in the count badge, white on the pressed one (T4). One line that scrolls inside its panel, never wraps (F5). In a narrow container a few short toggles whose every choice matters at a glance (a job's authenticity levels) stack one per line instead |
 | More menu | `MoreMenu` on shadcn `DropdownMenu` | An icon button with its label in a tooltip (A4). Holds extra actions, folded ones on phones and destructive items (A2, section 10) |
 | Step marker | `StepMarkers` (across), `StepLine` (down) | 28px square, radius 7, white with an edge, joined by a line: across for progress, down for a workflow's stages |
+| Pipeline tracker | `PipelineTracker`, from `trackerFor` (`#lib/pipeline-tracker.ts`) | A candidate's place in the job's workflow, left to right, under the first line of their header. Each stage is a 12px dot and its name; Rejected and Withdrawn are ways out, not steps, so they are not drawn. Passed stages are filled, with the date they reached them ("Oct 20"). The current stage is ringed, with "Here 3 days" and the Overdue badge once its time limit passed. Later stages are empty. Once the candidate left, the stage they left from is a dark dot with how and when ("Saved Oct 31", "Rejected Oct 31", "Hired Nov 1"). It replaces the stage pill; the dots are the one exception to T4's square steps, because they say where a person is, not how far a form has got. Screen readers hear "Screening, step 2 of 6" and the current step is `aria-current="step"`. In a narrow container only the current (or left-from) stage shows, with "2 of 6" (F2); the rest stay in the page for screen readers. It reads stages, dates and the stage kind only, never verification output (G1) |
+| Mini card | `MiniCard`; a candidate's header has Contact, Application and a third card in `candidate/header-cards.svelte` | A small bordered card: a caption title and two lines, a `role="group"` named by its title. It is not a panel (S3), is never a link as a whole (A5), and sits in a record's header. Contact: the email and the phone, each a link with a Copy button (`CopyButton`, an `IconButton` that shows a check and says "Copied"), the email-issue badge on the email, and "Last contacted 3 days ago" for a saved candidate. Application: the job as a link, then "Applied 6 days ago via the careers page". The third is Also applied to, from the one-candidate profile, or Rating once someone scored them; it never says "Not rated yet". The cards sit three across from a wide container and stack when narrow |
 | Summary list | `<dl>` | Labels and values for read-only data; one Edit per section when you can edit |
 | Key cap | shadcn `Kbd` | In tooltips, menus and the `?` dialog |
 | Tooltip | shadcn `Tooltip` | Labels for icon buttons, full values of truncated text, shortcuts |
-| Icon button | `IconButton`: ghost `Button` and `Tooltip` | A quiet row action; its label is both the `aria-label` and the tooltip (A4) |
+| Icon button | `IconButton`: ghost `Button` and `Tooltip`; `CopyButton` copies one value | A quiet row action; its label is both the `aria-label` and the tooltip (A4). `CopyButton` swaps its icon for a check for two seconds and says "Copied" to screen readers |
 | Empty state | shadcn `Empty` | One line saying why, and the one action |
 | Shortcuts dialog | shadcn `Dialog` | Opens on `?`; lists every shortcut; holds the single-key toggle |
 | Sidebar | shadcn `Sidebar` | Section 8. The sections (Jobs, Candidates, Saved candidates, Templates, My tasks), the Views (built in and saved, each with a menu on hover and focus: Rename, Share with the team or Make private, Delete view, and Hide for a built-in one; a Show hidden views button ends the list while any are hidden), then one Settings item for anyone whose role has a settings permission, which opens the first Settings page they may use; nobody else sees it. The person's menu at the foot holds the keyboard shortcuts, the single-key switch, Slack account (while the organization's Slack workspace is connected, opening `SlackAccountSheet`, where each person links their own account and picks their direct messages) and Sign out |
@@ -761,14 +770,19 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   it ended and the end date; and History, every application's activity newest first, each line saying which job. When the candidate used the
   stop link in an invitation from Saved candidates, a notice says so and names Erase candidate, which sits in the More
   menu as a destructive item and shows only to people with Erase candidates who see every job (A2, A3). An application's
-  header links here as Also applied to, in its meta line.
+  header links here as Also applied to, in its third mini card.
 - **Candidate:** the same tabs in the same order for everyone: Overview (what needs you now, the last five things
   anyone did with a box for a note, and the answers), Application, Messages (every email with the candidate, both
   ways, and the reply box), Scorecards, Verification, Activity. Activity lists everything newest first, saying who and
   how long ago, and filters by kind. Only a note's author edits it; the author, or a role with Delete anyone's notes
-  (Owners and Admins), deletes it, after a confirm. The header holds who they are and where they stand: the
-  authenticity level as a status badge beside the name when it needs a look, contact on the line under it, then a meta
-  line: the stage as a muted pill, the job, "Applied 2 hours ago via the careers page" and the rating. Overview
+  (Owners and Admins), deletes it, after a confirm. The header holds who they are and where they stand. The
+  first line is the name and one status badge, with the actions on the right: Email and Move to stage, or Message and
+  Invite to another job for a saved candidate. The badge is Verification suggested (or another level that needs a look)
+  while they are in the pipeline, and Saved, Rejected, Withdrawn or Hired once they left. Under it the pipeline tracker
+  shows every stage of the job's workflow, then three mini cards: Contact, Application, and Also applied to or Rating
+  (section 11). The source is part of the Application card's "via the careers page", and the only meta item left is the
+  link to Saved candidates while they are on that list. On a phone the cards stack and the tracker shows the current
+  stage with "2 of 6". Overview
   is a grid of panels: Next steps and Activity on the left, Files, Tags and Answers on the right. Next steps is one row
   per step: a round to-do tick or the level's icon, the step, its facts, and its link on the right. A review or a
   requested scorecard has no tick; its link is Fill in, to the Scorecards tab.

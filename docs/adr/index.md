@@ -24,12 +24,13 @@ Architecture decision records, oldest first. A changed decision is a new or amen
 * [ADR-0020: The test gate runs on GitHub Actions, and agents run only fast checks and their own tests locally](0020-test-gate-on-github-actions.md) - The board's test gate moves from the local pnpm verify to CI's Gate check on a public AGPL-3.0 repository closed to contributions: verify:fast plus a branch's own tests by class or file locally, one push per Testing run, Merge on a green Gate without a re-run when main moved, a red main fixed by the next task, Lighthouse report-only, and why private hosted runners, a rented self-hosted runner and a machine-wide stack limit were rejected.
 * [ADR-0021: Verification read, an API key scope only an Owner can give](0021-verification-read-scope-for-api-keys.md) - A third API key scope, VerificationRead, that only an Owner can grant: it opens an application's verification and a list of applications by level to the key, over HTTP and the MCP server, records every read in the review log under the key, and changes nothing for a key without it; reports and saved candidates become MCP read tools; a level is still never a reason to reject.
 * [ADR-0022: Email goes through SendGrid bought on the Azure Marketplace, and candidates can reply](0022-sendgrid-through-azure-marketplace.md) - SendGrid, bought through the Azure Marketplace, sends candidate email, receives replies with Inbound Parse and reports bounces; a reply address that names the send and is signed; the company's own sending domain verified by the provider; ACS Email stays a possible sender behind IEmailSender; amends the Email row of ADR-0007.
+* [ADR-0023: A candidate's header is the name, a pipeline tracker and three mini cards](0023-candidate-header-tracker-and-mini-cards.md) - A candidate's header drops the meta line: the first line is the name and one status badge, a pipeline tracker of dots replaces the stage pill, and Contact, Application and Also applied to (or Rating) become mini cards; Rejected, Withdrawn and Hired get a status of their own, and the tracker's dots are the one exception to square steps.
 
 ## Status
 
 | ADR | Status |
 |---|---|
-| 0001, 0002, 0006, 0008, 0012, 0014 to 0016, 0018 to 0022 | Accepted |
+| 0001, 0002, 0006, 0008, 0012, 0014 to 0016, 0018 to 0023 | Accepted |
 | 0007 | Accepted, the Email row amended by 0022 (SendGrid through the Azure Marketplace; ACS Email stays a possible sender) |
 | 0003 | Accepted, Lighthouse enforcement amended by 0020 (report-only in CI until calibrated on the runners) |
 | 0004 | Accepted, terminology amended by 0019 (integrity is called verification) |
@@ -38,4 +39,4 @@ Architecture decision records, oldest first. A changed decision is a new or amen
 | 0009 | Accepted, amended by 0010 and 0018 |
 | 0010 | Accepted, amended by 0013 |
 | 0013 | Accepted, amended by 0016 and 0017 |
-| 0017 | Accepted, decision 16 amended by 0019 |
+| 0017 | Accepted, decision 13 amended by 0023 for a candidate's header, decision 16 amended by 0019 |
