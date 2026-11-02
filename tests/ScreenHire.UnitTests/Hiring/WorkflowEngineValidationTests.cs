@@ -123,7 +123,7 @@ public sealed class WorkflowEngineValidationTests
         {
             DefinitionValidator.Validate(WorkflowWith(Interview() with { InterviewerUserIds = interviewers })).Should()
                 .ContainSingle(e => e.Path == "automations[0].actions[0].interviewerUserIds")
-                .Which.Message.Should().Contain("one to 5");
+                .Which.Message.Should().Contain("1 to 5");
         }
     }
 
@@ -209,6 +209,19 @@ public sealed class WorkflowEngineValidationTests
         DefinitionValidator.Validate(onFact).Should().ContainSingle(e => e.Path == "automations[0].actions[0]")
             .Which.Message.Should().Contain("Verification signals never drive rejection");
         DefinitionValidator.Validate(onTaggedByASignal).Should().ContainSingle(e => e.Path == "automations[1].actions[0]")
+            .Which.Message.Should().Contain("Verification signals never drive rejection");
+    }
+
+    [Fact]
+    public void Scheduling_an_interview_is_refused_on_a_stage_a_verification_signal_moves_candidates_to()
+    {
+        var workflow = Workflow(automations:
+        [
+            new("mover", "Mover", new AutomationTrigger(TriggerType.VerificationAssessed), null, [new AutomationAction(ActionType.MoveToStage, StageId: "screening")]),
+            new("scheduler", "Scheduler", new AutomationTrigger(TriggerType.StageEntered, "screening"), null, [Interview()]),
+        ]);
+
+        DefinitionValidator.Validate(workflow).Should().ContainSingle(e => e.Path == "automations[1].actions[0]")
             .Which.Message.Should().Contain("Verification signals never drive rejection");
     }
 

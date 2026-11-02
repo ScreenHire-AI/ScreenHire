@@ -209,6 +209,13 @@ internal sealed partial class InterviewWorld : IDisposable
         await db.Database.ExecuteSqlAsync($"UPDATE interview_requests SET starts_at = {start}, ends_at = {end} WHERE id = {interviewId}", Ct);
     }
 
+    /// <summary>Clears the attendees' saved event ids, as if the transaction that saved them had rolled back.</summary>
+    public async Task ForgetEventIdsAsync(Guid interviewId)
+    {
+        await using var db = await fixture.ContextAsync(OrganizationId, Ct);
+        await db.Database.ExecuteSqlAsync($"UPDATE interview_attendees SET provider_event_id = NULL WHERE interview_id = {interviewId}", Ct);
+    }
+
     /// <summary>Moves the window into the past, as if the candidate never picked a time in it.</summary>
     public async Task PassWindowAsync(Guid interviewId)
     {

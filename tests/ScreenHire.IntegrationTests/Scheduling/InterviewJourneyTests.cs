@@ -173,6 +173,27 @@ public sealed class InterviewJourneyTests(AppHostFixture fixture)
         (await world.RescheduleAsync(openToken, next)).Expect(HttpStatusCode.Conflict).Text("type").Should().Be("not_booked");
     }
 
+    // A create can roll back after the provider answered, which leaves an event on the calendar and no id for it in the row.
+    [Fact]
+    public async Task A_move_finds_an_event_whose_id_was_never_saved_and_moves_it()
+    {
+        using var world = await InterviewWorld.CreateAsync(fixture);
+        var (interviewId, token) = await world.ScheduledAsync();
+        var first = FarSlot(InterviewWorld.SlotsOf((await world.PublicGetAsync(token)).Expect(HttpStatusCode.OK)));
+        (await world.BookAsync(token, first)).Expect(HttpStatusCode.NoContent);
+        await world.WaitForSyncAsync(interviewId, "Synced");
+        await world.ForgetEventIdsAsync(interviewId);
+
+        var next = InterviewWorld.NextDayAfter(InterviewWorld.SlotsOf((await world.PublicGetAsync(token)).Expect(HttpStatusCode.OK)), first);
+        (await world.RescheduleAsync(token, next)).Expect(HttpStatusCode.NoContent);
+
+        await world.WaitForSyncAsync(interviewId, "Synced");
+        foreach (var user in new[] { world.Owner.UserId, world.Second.UserId })
+        {
+            (await world.EventsOfAsync(user)).Should().ContainSingle("the event moved, it was not made again").Which.StartsAt.Should().Be(next);
+        }
+    }
+
     [Fact]
     public async Task The_candidate_cancels_and_the_events_go_the_candidate_is_told_and_the_link_closes()
     {

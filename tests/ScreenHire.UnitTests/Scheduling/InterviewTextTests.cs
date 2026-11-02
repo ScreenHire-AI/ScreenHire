@@ -23,8 +23,8 @@ public sealed class InterviewTextTests
         // 15:00 UTC on Tuesday 3 November 2026 is 15:00 in London (GMT again since 25 October) and 10:00 in New York (EST since 1 November).
         var start = new DateTimeOffset(2026, 11, 3, 15, 0, 0, TimeSpan.Zero);
 
-        InterviewText.Time(start, start.AddMinutes(30), "Europe/London").Should().Be("Tuesday 3 November 2026, 15:00 to 15:30 (Europe/London)");
-        InterviewText.Time(start, start.AddMinutes(30), "America/New_York").Should().Be("Tuesday 3 November 2026, 10:00 to 10:30 (America/New_York)");
+        InterviewText.Time(start, start.AddMinutes(30), "Europe/London").Should().Be("Tuesday, November 3, 2026, 3:00 PM to 3:30 PM (Europe/London)");
+        InterviewText.Time(start, start.AddMinutes(30), "America/New_York").Should().Be("Tuesday, November 3, 2026, 10:00 AM to 10:30 AM (America/New_York)");
     }
 
     [Fact]
@@ -32,7 +32,7 @@ public sealed class InterviewTextTests
     {
         var summer = new DateTimeOffset(2026, 7, 14, 13, 0, 0, TimeSpan.Zero);
 
-        InterviewText.Time(summer, summer.AddHours(1), "Europe/London").Should().Be("Tuesday 14 July 2026, 14:00 to 15:00 (Europe/London)", "BST is one hour ahead");
+        InterviewText.Time(summer, summer.AddHours(1), "Europe/London").Should().Be("Tuesday, July 14, 2026, 2:00 PM to 3:00 PM (Europe/London)", "BST is one hour ahead");
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public sealed class InterviewTextTests
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("de-DE");
             var start = new DateTimeOffset(2026, 11, 3, 10, 0, 0, TimeSpan.Zero);
 
-            InterviewText.Time(start, start.AddMinutes(30), "UTC").Should().StartWith("Tuesday 3 November 2026");
+            InterviewText.Time(start, start.AddMinutes(30), "UTC").Should().StartWith("Tuesday, November 3, 2026");
         }
         finally
         {
@@ -57,7 +57,7 @@ public sealed class InterviewTextTests
     {
         var start = new DateTimeOffset(2026, 11, 3, 10, 0, 0, TimeSpan.Zero);
 
-        InterviewText.Time(start, start.AddMinutes(30), "Not/AZone").Should().Be("Tuesday 3 November 2026, 10:00 to 10:30 (UTC)");
+        InterviewText.Time(start, start.AddMinutes(30), "Not/AZone").Should().Be("Tuesday, November 3, 2026, 10:00 AM to 10:30 AM (UTC)");
     }
 
     [Theory]
@@ -187,12 +187,12 @@ public sealed class InterviewTextTests
         var model = new EmailTemplateModel(
             "Grace Adeyemi", "Support engineer", "Brightwater", FirstName: "Grace", LastName: "Adeyemi",
             ManageLink: "https://brightwater.careers.example.com/interviews/token", MeetingLink: "https://meet.example.org/abc",
-            InterviewTime: "Tuesday 3 November 2026, 10:00 to 10:30 (Europe/London)", InterviewLength: "30 minutes");
+            InterviewTime: "Tuesday, November 3, 2026, 10:00 AM to 10:30 AM (Europe/London)", InterviewLength: "30 minutes");
 
         var with = templates.Render(EmailTemplateIds.InterviewConfirmation, "grace@example.com", model);
         var without = templates.Render(EmailTemplateIds.InterviewConfirmation, "grace@example.com", model with { MeetingLink = null });
 
-        with.TextBody.Should().Contain("Tuesday 3 November 2026, 10:00 to 10:30 (Europe/London)")
+        with.TextBody.Should().Contain("Tuesday, November 3, 2026, 10:00 AM to 10:30 AM (Europe/London)")
             .And.Contain("https://meet.example.org/abc").And.Contain("https://brightwater.careers.example.com/interviews/token");
         with.HtmlBody.Should().Contain("<a href=\"https://brightwater.careers.example.com/interviews/token\"").And.Contain("<a href=\"https://meet.example.org/abc\"");
         without.TextBody.Should().NotContain("Join here").And.Contain("https://brightwater.careers.example.com/interviews/token");
@@ -204,14 +204,14 @@ public sealed class InterviewTextTests
         var templates = new EmailTemplates();
         var model = new EmailTemplateModel(
             "Grace Adeyemi", "Support engineer", "Brightwater", FirstName: "Grace", BookingLink: "https://brightwater.careers.example.com/interviews/token",
-            InterviewLength: "45 minutes", InterviewTime: "Tuesday 3 November 2026, 10:00 to 10:45 (UTC)");
+            InterviewLength: "45 minutes", InterviewTime: "Tuesday, November 3, 2026, 10:00 AM to 10:45 AM (UTC)");
 
         var invitation = templates.Render(EmailTemplateIds.InterviewInvitation, "grace@example.com", model);
         var cancelled = templates.Render(EmailTemplateIds.InterviewCancelled, "grace@example.com", model);
         var offerWithdrawn = templates.Render(EmailTemplateIds.InterviewCancelled, "grace@example.com", model with { InterviewTime = null });
 
         invitation.TextBody.Should().Contain("45 minutes").And.Contain("https://brightwater.careers.example.com/interviews/token");
-        cancelled.TextBody.Should().Contain("Tuesday 3 November 2026, 10:00 to 10:45 (UTC)");
+        cancelled.TextBody.Should().Contain("Tuesday, November 3, 2026, 10:00 AM to 10:45 AM (UTC)");
         offerWithdrawn.TextBody.Should().NotContain("Tuesday").And.Contain("cancelled");
     }
 

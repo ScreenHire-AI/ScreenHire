@@ -42,13 +42,13 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
         await Expect(Page).ToHaveURLAsync(new Regex("tz=Asia%2FKolkata"));
         await Expect(Page.Locator("#tz")).ToHaveValueAsync("Asia/Kolkata");
         await Expect(Page.GetByText("All times are in India Standard Time.")).ToBeVisibleAsync();
-        var morning = Page.GetByLabel("14:30 to 15:00").First; // 09:00 UTC, the first hour of the working day
+        var morning = Page.GetByLabel("2:30 PM").First; // 09:00 UTC, the first hour of the working day
         await Expect(morning).ToBeVisibleAsync();
         var firstDay = await DayOfAsync(morning);
         await ExpectNoAccessibilityViolationsAsync();
         await ShotsAsync(scene.Link + "?tz=Asia%2FKolkata", "interview-open");
 
-        morning = Page.GetByLabel("14:30 to 15:00").First; // the shots reopened the page in a new browser context
+        morning = Page.GetByLabel("2:30 PM").First; // the shots reopened the page in a new browser context
         await morning.CheckAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Book this time" }).ClickAsync();
 
@@ -57,7 +57,7 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
         Page.Url.Should().Contain("tz=Asia%2FKolkata").And.Contain("outcome=booked").And.NotContain("start=").And.NotContain("14%3A30");
         ILocator Booked() => Page.GetByRole(AriaRole.Region, new() { Name = "Your time" });
         await Expect(Booked()).ToContainTextAsync(firstDay);
-        await Expect(Booked()).ToContainTextAsync("14:30 to 15:00, India Standard Time");
+        await Expect(Booked()).ToContainTextAsync("2:30 PM to 3:00 PM, India Standard Time");
         await Expect(Booked()).ToContainTextAsync("The video link is in your calendar invitation.");
         await Expect(Page.GetByRole(AriaRole.Status)).ToContainTextAsync("We are sending a confirmation to your email.");
         (await Page.Locator("script:not([type='application/ld+json'])").CountAsync()).Should().Be(0);
@@ -84,7 +84,7 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Your interview is booked");
         await Expect(Booked()).ToContainTextAsync(lastDay);
         await Expect(Booked()).ToContainTextAsync(lastRange);
-        await Expect(Booked()).Not.ToContainTextAsync("14:30 to 15:00");
+        await Expect(Booked()).Not.ToContainTextAsync("2:30 PM to 3:00 PM");
         await Expect(Page.GetByRole(AriaRole.Status)).ToContainTextAsync("Moved to the new time.");
         Page.Url.Should().NotContain("change=1");
         await ExpectNoAccessibilityViolationsAsync();
