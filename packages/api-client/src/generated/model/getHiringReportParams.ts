@@ -8,5 +8,8 @@
 export type GetHiringReportParams = {
 from?: string;
 to?: string;
+previousFrom?: string;
+previousTo?: string;
+timeZone?: string;
 jobId?: string[];
 };

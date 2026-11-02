@@ -7,7 +7,7 @@ using ScreenHire.Infrastructure.Persistence;
 namespace ScreenHire.Application.Applications;
 
 /// <summary>
-/// Decides how an email to a candidate is addressed (ADR-0021): the reply address that brings the candidate's answer
+/// Decides how an email to a candidate is addressed (ADR-0022): the reply address that brings the candidate's answer
 /// back to the application, the organization's own From address once its sending domain is verified, and the ids the
 /// provider echoes in its event webhook. Used for every email ScreenHire sends about an application; the sign-in link,
 /// the invitation and the saved-application link are not candidate correspondence and keep ScreenHire's address.

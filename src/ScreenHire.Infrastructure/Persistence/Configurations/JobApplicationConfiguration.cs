@@ -17,6 +17,7 @@ internal sealed class JobApplicationConfiguration : IEntityTypeConfiguration<Job
         builder.Property(a => a.AiUseDetails).HasMaxLength(2000);
         builder.Property(a => a.Source).HasConversion<string>().HasMaxLength(20);
         builder.Property(a => a.SourceSite).HasMaxLength(EmbedOrigins.MaxLength);
+        builder.Property(a => a.SourceBoard).HasMaxLength(40);
         builder.Property(a => a.Answers).HasJsonColumn();
         builder.Property(a => a.PrivacyNoticeVersion).HasMaxLength(40);
         builder.Property(a => a.BotCheck).HasConversion<string>().HasMaxLength(20);

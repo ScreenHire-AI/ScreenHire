@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ScreenHire.Infrastructure.Persistence.Migrations
 {
     /// <summary>
-    /// Candidate replies (roadmap item 1, ADR-0021), bounce and complaint flags on candidates, and an organization's
+    /// Candidate replies (roadmap item 1, ADR-0022), bounce and complaint flags on candidates, and an organization's
     /// sending domain. A reply and its attachments belong to an application, so they get the job-access policy as
     /// <c>application_emails</c> does (ADR-0015); the sending domain is the organization's alone.
     /// </summary>

@@ -38,6 +38,12 @@ internal static class ApiKeyAuthentication
     /// <summary>The authorization policy of the routes keys may call: jobs, applications, candidates and templates.</summary>
     public const string HiringApiPolicy = "hiring-api";
 
+    /// <summary>
+    /// The session, or an API key with the Verification read scope (ADR-0021): the policy of the routes that read an
+    /// application's verification. A key without the scope is refused, so verification stays out of every other key.
+    /// </summary>
+    public const string VerificationApiPolicy = "verification-api";
+
     /// <summary>The per-key rate limit. Sessions pass unlimited.</summary>
     public const string RateLimitPolicy = "api-key";
 
@@ -65,6 +71,11 @@ internal static class ApiKeyAuthentication
             .RequireAuthenticatedUser()
             .RequireAssertion(context => !context.User.IsApiKey() || context.User.HasApiKeyScope(ApiKeyScope.Read)));
 
+        services.AddAuthorizationBuilder().AddPolicy(VerificationApiPolicy, policy => policy
+            .AddAuthenticationSchemes(SessionOrApiKeyScheme)
+            .RequireAuthenticatedUser()
+            .RequireAssertion(context => !context.User.IsApiKey() || context.User.HasApiKeyScope(ApiKeyScope.VerificationRead)));
+
         services.AddRateLimiter(limiter => limiter.AddPolicy(RateLimitPolicy, context =>
             context.User.IsApiKey()
                 ? RateLimitPartition.GetFixedWindowLimiter(
@@ -88,6 +99,15 @@ internal static class ApiKeyAuthentication
     public static RouteGroupBuilder AllowApiKeys(this RouteGroupBuilder group) =>
         group.RequireAuthorization(HiringApiPolicy).RequireRateLimiting(RateLimitPolicy)
             .WithMetadata(new ProducesResponseTypeMetadata(StatusCodes.Status429TooManyRequests, typeof(void))); // Produces() is for one route only
+
+    /// <summary>
+    /// Opens a route group to an API key that has the Verification read scope, and to the session: the
+    /// <see cref="VerificationApiPolicy"/> and the per-key rate limit. Its routes only read; every read through a key is
+    /// recorded in the verification review log (ADR-0021).
+    /// </summary>
+    public static RouteGroupBuilder AllowVerificationApiKeys(this RouteGroupBuilder group) =>
+        group.RequireAuthorization(VerificationApiPolicy).RequireRateLimiting(RateLimitPolicy)
+            .WithMetadata(new ProducesResponseTypeMetadata(StatusCodes.Status429TooManyRequests, typeof(void)));
 
     /// <summary>
     /// Whether <paramref name="user"/> was authenticated by an API key. Decided by the identity's authentication type,

@@ -14,7 +14,7 @@ public sealed class EmailSendException(string message, int? statusCode = null) :
 
 /// <summary>
 /// Sends through SendGrid's v3 Mail Send API (https://www.twilio.com/docs/sendgrid/api-reference/mail-send), bought
-/// through the Azure Marketplace so email is billed on the Azure subscription (ADR-0021). Click and open tracking are
+/// through the Azure Marketplace so email is billed on the Azure subscription (ADR-0022). Click and open tracking are
 /// off: ScreenHire adds no tracking to a candidate's email (docs/architecture/email.md).
 /// </summary>
 /// <remarks>

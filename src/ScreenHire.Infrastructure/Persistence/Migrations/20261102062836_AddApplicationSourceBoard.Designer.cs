@@ -13,8 +13,8 @@ using ScreenHire.Infrastructure.Persistence;
 namespace ScreenHire.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ScreenHireDbContext))]
-    [Migration("20261102064742_AddRepliesBouncesAndSendingDomains")]
-    partial class AddRepliesBouncesAndSendingDomains
+    [Migration("20261102062836_AddApplicationSourceBoard")]
+    partial class AddApplicationSourceBoard
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -576,154 +576,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.ToTable("application_scorecards", (string)null);
                 });
 
-            modelBuilder.Entity("ScreenHire.Domain.Applications.InboundEmail", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("ApplicationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("application_id");
-
-                    b.Property<bool>("AutoReply")
-                        .HasColumnType("boolean")
-                        .HasColumnName("auto_reply");
-
-                    b.Property<string>("FromAddress")
-                        .IsRequired()
-                        .HasMaxLength(320)
-                        .HasColumnType("character varying(320)")
-                        .HasColumnName("from_address");
-
-                    b.Property<string>("FromName")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("from_name");
-
-                    b.Property<string>("HtmlBody")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("html_body");
-
-                    b.Property<string>("MessageId")
-                        .HasMaxLength(998)
-                        .HasColumnType("character varying(998)")
-                        .HasColumnName("message_id");
-
-                    b.Property<DateTimeOffset?>("NotifiedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("notified_at");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("organization_id");
-
-                    b.Property<DateTimeOffset>("ReceivedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("received_at");
-
-                    b.Property<Guid>("SendId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("send_id");
-
-                    b.Property<string>("Subject")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
-                        .HasColumnName("subject");
-
-                    b.Property<string>("TextBody")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("text_body");
-
-                    b.HasKey("Id")
-                        .HasName("pk_inbound_emails");
-
-                    b.HasAlternateKey("OrganizationId", "Id")
-                        .HasName("ak_inbound_emails_organization_id_id");
-
-                    b.HasIndex("OrganizationId", "ApplicationId")
-                        .HasDatabaseName("ix_inbound_emails_organization_id_application_id");
-
-                    b.HasIndex("OrganizationId", "MessageId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_inbound_emails_organization_id_message_id");
-
-                    b.ToTable("inbound_emails", (string)null);
-                });
-
-            modelBuilder.Entity("ScreenHire.Domain.Applications.InboundEmailAttachment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("ApplicationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("application_id");
-
-                    b.Property<string>("BlobName")
-                        .IsRequired()
-                        .HasMaxLength(400)
-                        .HasColumnType("character varying(400)")
-                        .HasColumnName("blob_name");
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("content_type");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("file_name");
-
-                    b.Property<Guid>("InboundEmailId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("inbound_email_id");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("organization_id");
-
-                    b.Property<string>("ScanStatus")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("scan_status");
-
-                    b.Property<DateTimeOffset?>("ScannedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("scanned_at");
-
-                    b.Property<string>("Sha256")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("sha256");
-
-                    b.Property<long>("SizeBytes")
-                        .HasColumnType("bigint")
-                        .HasColumnName("size_bytes");
-
-                    b.HasKey("Id")
-                        .HasName("pk_inbound_email_attachments");
-
-                    b.HasIndex("OrganizationId", "ApplicationId")
-                        .HasDatabaseName("ix_inbound_email_attachments_organization_id_application_id");
-
-                    b.HasIndex("OrganizationId", "InboundEmailId")
-                        .HasDatabaseName("ix_inbound_email_attachments_organization_id_inbound_email_id");
-
-                    b.ToTable("inbound_email_attachments", (string)null);
-                });
-
             modelBuilder.Entity("ScreenHire.Domain.Applications.JobApplication", b =>
                 {
                     b.Property<Guid>("Id")
@@ -805,6 +657,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("source");
+
+                    b.Property<string>("SourceBoard")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("source_board");
 
                     b.Property<string>("SourceSite")
                         .HasMaxLength(200)
@@ -1218,23 +1075,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasMaxLength(320)
                         .HasColumnType("character varying(320)")
                         .HasColumnName("email");
-
-                    b.Property<string>("EmailIssue")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasDefaultValue("None")
-                        .HasColumnName("email_issue");
-
-                    b.Property<DateTimeOffset?>("EmailIssueAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("email_issue_at");
-
-                    b.Property<string>("EmailIssueReason")
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)")
-                        .HasColumnName("email_issue_reason");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
@@ -2539,70 +2379,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_organization_members_job_access", "job_access IN ('All', 'HiringTeamOnly')");
                         });
-                });
-
-            modelBuilder.Entity("ScreenHire.Domain.Organizations.SendingDomain", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("Domain")
-                        .IsRequired()
-                        .HasMaxLength(253)
-                        .HasColumnType("character varying(253)")
-                        .HasColumnName("domain");
-
-                    b.Property<DateTimeOffset?>("LastCheckedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_checked_at");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("organization_id");
-
-                    b.Property<string>("ProviderDomainId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("provider_domain_id");
-
-                    b.Property<string>("ProviderMessage")
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)")
-                        .HasColumnName("provider_message");
-
-                    b.Property<string>("Records")
-                        .IsRequired()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("records");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("status");
-
-                    b.Property<DateTimeOffset?>("VerifiedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("verified_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_sending_domains");
-
-                    b.HasIndex("Domain")
-                        .IsUnique()
-                        .HasDatabaseName("ix_sending_domains_domain");
-
-                    b.HasIndex("OrganizationId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_sending_domains_organization_id");
-
-                    b.ToTable("sending_domains", (string)null);
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Slack.SlackAccountLink", b =>
@@ -4089,36 +3865,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_application_scorecards_jobs_organization_id_job_id");
                 });
 
-            modelBuilder.Entity("ScreenHire.Domain.Applications.InboundEmail", b =>
-                {
-                    b.HasOne("ScreenHire.Domain.Applications.JobApplication", null)
-                        .WithMany()
-                        .HasForeignKey("OrganizationId", "ApplicationId")
-                        .HasPrincipalKey("OrganizationId", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_inbound_emails_applications_organization_id_application_id");
-                });
-
-            modelBuilder.Entity("ScreenHire.Domain.Applications.InboundEmailAttachment", b =>
-                {
-                    b.HasOne("ScreenHire.Domain.Applications.JobApplication", null)
-                        .WithMany()
-                        .HasForeignKey("OrganizationId", "ApplicationId")
-                        .HasPrincipalKey("OrganizationId", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_inbound_email_attachments_applications_organization_id_appl");
-
-                    b.HasOne("ScreenHire.Domain.Applications.InboundEmail", null)
-                        .WithMany()
-                        .HasForeignKey("OrganizationId", "InboundEmailId")
-                        .HasPrincipalKey("OrganizationId", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_inbound_email_attachments_inbound_emails_organization_id_in");
-                });
-
             modelBuilder.Entity("ScreenHire.Domain.Applications.JobApplication", b =>
                 {
                     b.HasOne("ScreenHire.Domain.Candidates.Candidate", null)
@@ -4413,16 +4159,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasPrincipalKey("OrganizationId", "Id")
                         .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("fk_organization_members_custom_roles_organization_id_custom_ro");
-                });
-
-            modelBuilder.Entity("ScreenHire.Domain.Organizations.SendingDomain", b =>
-                {
-                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
-                        .WithMany()
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_sending_domains_organizations_organization_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Slack.SlackAccountLink", b =>

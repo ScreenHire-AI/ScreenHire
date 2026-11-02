@@ -64,7 +64,7 @@ describe('role page', () => {
     expect(screen.getByRole('checkbox', { name: /Move candidates/ })).not.toBeChecked();
     expect(screen.queryByRole('checkbox', { name: /See jobs and candidates/ })).not.toBeInTheDocument();
     expect(screen.getByText('Every role has it.')).toBeInTheDocument();
-    expect(screen.getByText('Owner only. A custom role cannot have it.')).toBeInTheDocument();
+    expect(screen.getAllByText('Owner only. A custom role cannot have it.')).toHaveLength(2);
     expect(screen.getByText('2 of 4')).toBeInTheDocument();
     expect(screen.getByText('Viewer')).toBeInTheDocument();
     expect(screen.getAllByText('Robin Hale').length).toBeGreaterThan(0);

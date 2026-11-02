@@ -27,7 +27,7 @@ public sealed class SendingDomainProviderException(string message) : Exception(m
 
 /// <summary>
 /// The email provider's domain authentication: it returns the DNS records a domain needs, and says when they are in
-/// place. Behind an interface so Azure Communication Services Email could take over (ADR-0021), with a local sandbox
+/// place. Behind an interface so Azure Communication Services Email could take over (ADR-0022), with a local sandbox
 /// that needs no provider and no DNS.
 /// </summary>
 public interface ISendingDomainProvider

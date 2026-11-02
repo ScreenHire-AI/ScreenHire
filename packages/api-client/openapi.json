@@ -4207,6 +4207,9 @@
           }
         ],
         "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
           "200": {
             "description": "OK",
             "content": {
@@ -4222,11 +4225,103 @@
           },
           "401": {
             "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           }
         },
         "security": [
           {
             "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/verification/applications": {
+      "get": {
+        "tags": [
+          "Verification"
+        ],
+        "operationId": "ListVerificationApplications",
+        "parameters": [
+          {
+            "name": "authenticity",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticityLevel"
+            }
+          },
+          {
+            "name": "aiAssistance",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AiAssistanceLevel"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "includeDismissed",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationMatches"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
           }
         ]
       }
@@ -7679,6 +7774,30 @@
             }
           },
           {
+            "name": "previousFrom",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "previousTo",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "timeZone",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "UTC"
+            }
+          },
+          {
             "name": "jobId",
             "in": "query",
             "schema": {
@@ -7700,6 +7819,88 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/reports/hiring/funnel/{kind}/applications": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "operationId": "GetFunnelApplications",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/StageKind"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "400": {
             "description": "Bad Request",
@@ -11026,7 +11227,8 @@
       "ApiKeyScope": {
         "enum": [
           "Read",
-          "Write"
+          "Write",
+          "VerificationRead"
         ],
         "description": "What an API key may do on the hiring API."
       },
@@ -12661,6 +12863,7 @@
           "width",
           "height",
           "sizeBytes",
+          "fileName",
           "url"
         ],
         "type": "object",
@@ -12690,6 +12893,9 @@
             "type": "integer",
             "format": "int64"
           },
+          "fileName": {
+            "type": "string"
+          },
           "url": {
             "type": [
               "null",
@@ -12697,7 +12903,7 @@
             ]
           }
         },
-        "description": "An uploaded brand image. `scanStatus` is the malware scan's: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served."
+        "description": "An uploaded brand image. `scanStatus` is the malware scan's: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served. `fileName` is the\nname it was uploaded with."
       },
       "CandidateDetail": {
         "required": [
@@ -13250,7 +13456,7 @@
             "format": "int32"
           }
         },
-        "description": "Creates a key. `scopes` is `[\"Read\"]` or `[\"Read\", \"Write\"]`. `permitsPerMinute` lowers the\nkey's rate limit below the deployment's; null uses the deployment's."
+        "description": "Creates a key. `scopes` is `[\"Read\"]` or `[\"Read\", \"Write\"]`, with `\"VerificationRead\"` added to\nlet the key read verification results. Only an owner can add `VerificationRead`; every read through such a key is\nrecorded in the verification review log (ADR-0021). `permitsPerMinute` lowers the key's rate limit below the\ndeployment's; null uses the deployment's."
       },
       "CreateApplicationRequest": {
         "required": [
@@ -14114,9 +14320,13 @@
         "required": [
           "from",
           "to",
+          "headline",
+          "previous",
+          "weekly",
           "funnel",
           "timeToHire",
-          "sources"
+          "sources",
+          "openJobs"
         ],
         "type": "object",
         "properties": {
@@ -14127,6 +14337,25 @@
           "to": {
             "type": "string",
             "format": "date-time"
+          },
+          "headline": {
+            "$ref": "#/components/schemas/ReportHeadline"
+          },
+          "previous": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ReportHeadline"
+              }
+            ]
+          },
+          "weekly": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportWeek"
+            }
           },
           "funnel": {
             "type": "array",
@@ -14142,9 +14371,15 @@
             "items": {
               "$ref": "#/components/schemas/SourceCount"
             }
+          },
+          "openJobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportOpenJob"
+            }
           }
         },
-        "description": "The Reports page (docs/architecture/reports.md): the funnel, time to hire and sources for the jobs the person can see,\nbetween two instants. All three come from one snapshot, so their numbers agree. Nothing here reads verification\n(verification) results."
+        "description": "The Reports page (docs/architecture/reports.md): headline numbers, applications and hires by week, the funnel, time to\nhire, sources and open jobs for the jobs the person can see, between two instants. All of it comes from one snapshot,\nso the numbers agree. Nothing here reads verification (verification) results."
       },
       "HiringTeamMember": {
         "required": [
@@ -16438,7 +16673,8 @@
           "ManageOwners",
           "DeleteAnyNote",
           "CreateTasks",
-          "ManageIntegrations"
+          "ManageIntegrations",
+          "GrantVerificationAccess"
         ],
         "description": "Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions."
       },
@@ -16887,6 +17123,12 @@
             "default": false
           },
           "embedOrigin": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "source": {
             "type": [
               "null",
               "string"
@@ -17739,6 +17981,102 @@
           }
         },
         "description": "Takes the candidate out of the talent pool. `candidateAsked`: they asked to be removed, so their permission for\nfuture roles is withdrawn too, and they cannot be kept again until they give it on a new application."
+      },
+      "ReportHeadline": {
+        "required": [
+          "applications",
+          "reachedInterview",
+          "offers",
+          "hires",
+          "medianDaysToHire"
+        ],
+        "type": "object",
+        "properties": {
+          "applications": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reachedInterview": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "offers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hires": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "medianDaysToHire": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        },
+        "description": "The headline numbers of one range."
+      },
+      "ReportOpenJob": {
+        "required": [
+          "jobId",
+          "title",
+          "applications",
+          "inInterview",
+          "daysOpen",
+          "hires"
+        ],
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "applications": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "inInterview": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "daysOpen": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hires": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "An open job: applications in the range, applications in an Interview stage now, days open and hires in the range."
+      },
+      "ReportWeek": {
+        "required": [
+          "weekStart",
+          "applications",
+          "hires"
+        ],
+        "type": "object",
+        "properties": {
+          "weekStart": {
+            "type": "string",
+            "format": "date"
+          },
+          "applications": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hires": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "One Monday-start week: applications submitted in it and hires made in it, both inside the range."
       },
       "RequestScorecardRequest": {
         "required": [
@@ -19000,14 +19338,18 @@
       },
       "SourceCount": {
         "required": [
-          "source",
+          "key",
+          "name",
           "applications",
           "hires"
         ],
         "type": "object",
         "properties": {
-          "source": {
-            "$ref": "#/components/schemas/ApplicationSource"
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
           },
           "applications": {
             "type": "integer",
@@ -19019,6 +19361,28 @@
           }
         },
         "description": "Applications submitted in the range from one source, and how many of them are hired now."
+      },
+      "StageDays": {
+        "required": [
+          "kind",
+          "medianDays",
+          "hires"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/StageKind"
+          },
+          "medianDays": {
+            "type": "number",
+            "format": "double"
+          },
+          "hires": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "The median days the hires made in the range spent in one stage kind, and how many of them were in it."
       },
       "StageKind": {
         "enum": [
@@ -19501,22 +19865,16 @@
       },
       "TimeToHire": {
         "required": [
-          "medianDays",
-          "hires",
+          "stages",
           "jobs"
         ],
         "type": "object",
         "properties": {
-          "medianDays": {
-            "type": [
-              "null",
-              "number"
-            ],
-            "format": "double"
-          },
-          "hires": {
-            "type": "integer",
-            "format": "int32"
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StageDays"
+            }
           },
           "jobs": {
             "type": "array",
@@ -20149,6 +20507,65 @@
         },
         "description": "A reviewer set an assessment aside. `actorName` is the reviewer's display name, when they have one."
       },
+      "VerificationMatch": {
+        "required": [
+          "applicationId",
+          "jobId",
+          "jobTitle",
+          "candidateId",
+          "candidateName",
+          "appliedAt",
+          "verification"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "candidateName": {
+            "type": "string"
+          },
+          "appliedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "verification": {
+            "$ref": "#/components/schemas/VerificationSummary"
+          }
+        },
+        "description": "One application in VerificationMatches."
+      },
+      "VerificationMatches": {
+        "required": [
+          "items",
+          "hasMore"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VerificationMatch"
+            }
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "description": "Applications whose current verification matches a level filter, for a key with the Verification read scope. Each is a\npointer to read in full (`GET /v1/applications/{id}/verification`), not a ranking: the order is newest first and a\nlevel is evidence for a person to review, never a reason to reject on its own (ADR-0004)."
+      },
       "VerificationPolicy": {
         "required": [
           "aiUse"
@@ -20207,7 +20624,8 @@
           "Dismissed",
           "NoteAdded",
           "ReasonExplained",
-          "ExplanationUndone"
+          "ExplanationUndone",
+          "ReadByKey"
         ]
       },
       "VerificationReviewEntry": {
@@ -20223,7 +20641,10 @@
           "occurredAt",
           "signalId",
           "signalTitle",
-          "explainReason"
+          "explainReason",
+          "apiKeyId",
+          "apiKeyName",
+          "keyCreatedByName"
         ],
         "type": "object",
         "properties": {
@@ -20268,7 +20689,10 @@
             ]
           },
           "actorUserId": {
-            "type": "string",
+            "type": [
+              "null",
+              "string"
+            ],
             "format": "uuid"
           },
           "actorName": {
@@ -20302,6 +20726,25 @@
               {
                 "$ref": "#/components/schemas/ExplainReason"
               }
+            ]
+          },
+          "apiKeyId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "apiKeyName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "keyCreatedByName": {
+            "type": [
+              "null",
+              "string"
             ]
           }
         },
@@ -20765,7 +21208,7 @@
       },
       "apiKey": {
         "type": "http",
-        "description": "An organization API key, created by an owner or admin. Works on jobs, applications, candidates and templates.",
+        "description": "An organization API key, created by an owner or admin. Works on jobs, applications, candidates and templates, and, with the VerificationRead scope an owner gives it, on verification results.",
         "scheme": "bearer",
         "bearerFormat": "shk_..."
       }

@@ -41,7 +41,7 @@ public sealed class EmailOptions
     public string DefaultReplyHost => string.IsNullOrWhiteSpace(ReplyDomain) ? "reply.localhost" : ReplyDomain.Trim().ToLowerInvariant();
 }
 
-/// <summary>SendGrid, bought through the Azure Marketplace (ADR-0021).</summary>
+/// <summary>SendGrid, bought through the Azure Marketplace (ADR-0022).</summary>
 public sealed class SendGridOptions
 {
     /// <summary>The API key, from the <c>sendgrid-api-key</c> parameter. Never committed. Setting it turns SendGrid on.</summary>

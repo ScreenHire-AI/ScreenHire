@@ -56,6 +56,7 @@ import type {
   ExplainVerificationReasonRequest,
   GetApiKeysHistoryParams,
   GetEmailTemplateHistoryParams,
+  GetFunnelApplicationsParams,
   GetHiringReportParams,
   GetHiringTemplateHistoryParams,
   GetJobHistoryParams,
@@ -94,6 +95,7 @@ import type {
   LastUpdate,
   ListJobBoardJobsParams,
   ListTasksParams,
+  ListVerificationApplicationsParams,
   ListWebhookDeliveriesParams,
   MagicLinkRequest,
   MagicLinkVerification,
@@ -146,6 +148,7 @@ import type {
   SlackChannelOption,
   SlackStatus,
   SlackTestResult,
+  StageKind,
   StartSlackLinkRequest,
   SubmitScorecardRequest,
   SwitchOrganizationRequest,
@@ -175,6 +178,7 @@ import type {
   UploadTicket,
   UploadedFile,
   ValidateWorkflowRequest,
+  VerificationMatches,
   WebhookDeliveryEntry,
   WebhookEndpointEntry,
   WebhookEndpointWithSecret,
@@ -4382,15 +4386,25 @@ export type getApplicationVerificationResponse401 = {
   status: 401
 }
 
+export type getApplicationVerificationResponse403 = {
+  data: void
+  status: 403
+}
+
 export type getApplicationVerificationResponse404 = {
   data: void
   status: 404
 }
 
+export type getApplicationVerificationResponse429 = {
+  data: void
+  status: 429
+}
+
 export type getApplicationVerificationResponseSuccess = (getApplicationVerificationResponse200) & {
   headers: Headers;
 };
-export type getApplicationVerificationResponseError = (getApplicationVerificationResponse401 | getApplicationVerificationResponse404) & {
+export type getApplicationVerificationResponseError = (getApplicationVerificationResponse401 | getApplicationVerificationResponse403 | getApplicationVerificationResponse404 | getApplicationVerificationResponse429) & {
   headers: Headers;
 };
 
@@ -4407,6 +4421,68 @@ export const getGetApplicationVerificationUrl = (applicationId: string,) => {
 export const getApplicationVerification = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getApplicationVerificationResponse> => {
 
   return apiFetch<getApplicationVerificationResponse>(getGetApplicationVerificationUrl(applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type listVerificationApplicationsResponse200 = {
+  data: VerificationMatches
+  status: 200
+}
+
+export type listVerificationApplicationsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type listVerificationApplicationsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listVerificationApplicationsResponse403 = {
+  data: void
+  status: 403
+}
+
+export type listVerificationApplicationsResponse429 = {
+  data: void
+  status: 429
+}
+
+export type listVerificationApplicationsResponseSuccess = (listVerificationApplicationsResponse200) & {
+  headers: Headers;
+};
+export type listVerificationApplicationsResponseError = (listVerificationApplicationsResponse400 | listVerificationApplicationsResponse401 | listVerificationApplicationsResponse403 | listVerificationApplicationsResponse429) & {
+  headers: Headers;
+};
+
+export type listVerificationApplicationsResponse = (listVerificationApplicationsResponseSuccess | listVerificationApplicationsResponseError)
+
+export const getListVerificationApplicationsUrl = (params?: ListVerificationApplicationsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/verification/applications?${stringifiedParams}` : `/v1/verification/applications`
+}
+
+export const listVerificationApplications = async (params?: ListVerificationApplicationsParams, options?: Parameters<typeof apiFetch>[1]): Promise<listVerificationApplicationsResponse> => {
+
+  return apiFetch<listVerificationApplicationsResponse>(getListVerificationApplicationsUrl(params),
   {
     ...options,
     method: 'GET'
@@ -7993,6 +8069,73 @@ export const getGetHiringReportUrl = (params?: GetHiringReportParams,) => {
 export const getHiringReport = async (params?: GetHiringReportParams, options?: Parameters<typeof apiFetch>[1]): Promise<getHiringReportResponse> => {
 
   return apiFetch<getHiringReportResponse>(getGetHiringReportUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getFunnelApplicationsResponse200 = {
+  data: string[]
+  status: 200
+}
+
+export type getFunnelApplicationsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getFunnelApplicationsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getFunnelApplicationsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getFunnelApplicationsResponseSuccess = (getFunnelApplicationsResponse200) & {
+  headers: Headers;
+};
+export type getFunnelApplicationsResponseError = (getFunnelApplicationsResponse400 | getFunnelApplicationsResponse401 | getFunnelApplicationsResponse404) & {
+  headers: Headers;
+};
+
+export type getFunnelApplicationsResponse = (getFunnelApplicationsResponseSuccess | getFunnelApplicationsResponseError)
+
+export const getGetFunnelApplicationsUrl = (kind: StageKind,
+    params?: GetFunnelApplicationsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["jobId"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/reports/hiring/funnel/${kind}/applications?${stringifiedParams}` : `/v1/reports/hiring/funnel/${kind}/applications`
+}
+
+export const getFunnelApplications = async (kind: StageKind,
+    params?: GetFunnelApplicationsParams, options?: Parameters<typeof apiFetch>[1]): Promise<getFunnelApplicationsResponse> => {
+
+  return apiFetch<getFunnelApplicationsResponse>(getGetFunnelApplicationsUrl(kind,params),
   {
     ...options,
     method: 'GET'

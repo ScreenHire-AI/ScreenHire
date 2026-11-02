@@ -6,7 +6,7 @@ using ScreenHire.IntegrationTests.Realtime;
 namespace ScreenHire.IntegrationTests;
 
 /// <summary>
-/// The email provider's two webhooks through the running API (docs/architecture/email.md, ADR-0021): SendGrid Inbound Parse
+/// The email provider's two webhooks through the running API (docs/architecture/email.md, ADR-0022): SendGrid Inbound Parse
 /// posts a candidate's reply (HTTP Basic credentials, the recipient read from the envelope), and SendGrid's signed event
 /// webhook reports bounces and spam complaints that stop email to an address. Each test uses its own organization.
 /// </summary>

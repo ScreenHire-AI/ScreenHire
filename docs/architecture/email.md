@@ -211,7 +211,7 @@ in one organization. With no `IEmailSender`, saving is hidden on the careers pag
 
 ## Sending provider
 
-[ADR-0021](../adr/0021-sendgrid-through-azure-marketplace.md): ScreenHire sends through SendGrid, bought on the Azure
+[ADR-0022](../adr/0022-sendgrid-through-azure-marketplace.md): ScreenHire sends through SendGrid, bought on the Azure
 Marketplace, so email is billed with the rest of the hosting. Everything above talks to `IEmailSender`; which adapter is
 registered depends on configuration (`ScreenHire:Email:*`, `EmailOptions`), the same in the API and the worker:
 

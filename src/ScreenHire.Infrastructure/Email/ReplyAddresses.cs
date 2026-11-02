@@ -13,7 +13,7 @@ public readonly record struct ReplyTarget(Guid OrganizationId, Guid SendId);
 /// reply finds its tenant before any read and a malformed or edited address is dropped without one. It is lowercase
 /// base32 because mail systems may change the case of a local part. The send's id is the real capability: a version 7
 /// Guid, so about 74 random bits behind a timestamp. The 4-byte MAC only rejects damage cheaply, so nothing should rely
-/// on it as a secret (ADR-0021).
+/// on it as a secret (ADR-0022).
 /// </summary>
 /// <remarks>
 /// The budget is the RFC 5321 local-part limit of 64 characters: 36 bytes (16 + 16 + 4) are 58 base32 characters, and

@@ -4,7 +4,7 @@ using ScreenHire.Infrastructure.Email;
 namespace ScreenHire.UnitTests.Email;
 
 /// <summary>
-/// The address a candidate's answer goes to (docs/architecture/email.md, ADR-0021): <c>reply+&lt;58 base32 characters&gt;@host</c>
+/// The address a candidate's answer goes to (docs/architecture/email.md, ADR-0022): <c>reply+&lt;58 base32 characters&gt;@host</c>
 /// carrying the organization, the send and a short MAC under the reply key. A damaged or foreign address finds nothing.
 /// </summary>
 public sealed class ReplyAddressesTests

@@ -22,7 +22,7 @@ using Wolverine.EntityFrameworkCore;
 namespace ScreenHire.Api.Endpoints;
 
 /// <summary>
-/// The email provider's webhooks (docs/architecture/email.md, ADR-0021): SendGrid Inbound Parse posts a candidate's
+/// The email provider's webhooks (docs/architecture/email.md, ADR-0022): SendGrid Inbound Parse posts a candidate's
 /// reply, and SendGrid's event webhook reports bounces and spam complaints. Both are anonymous routes with their own
 /// check, and neither is in the generated client. Inbound Parse cannot sign its posts, so the check is HTTP Basic
 /// credentials in the URL SendGrid is given (they travel in a header, never in a logged path) and, behind it, the signed

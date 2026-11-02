@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 namespace ScreenHire.Domain.Organizations;
 
 /// <summary>
-/// The company's own domain that its candidate email is sent from (docs/architecture/email.md, ADR-0021). One per
+/// The company's own domain that its candidate email is sent from (docs/architecture/email.md, ADR-0022). One per
 /// organization. The provider returns the DNS records the domain needs; ScreenHire checks each one itself to say which
 /// is missing, and the domain becomes <see cref="SendingDomainStatus.Verified"/>, and mail switches to
 /// <see cref="FromAddress"/>, only when the provider confirms it too. Until then mail keeps ScreenHire's address, so

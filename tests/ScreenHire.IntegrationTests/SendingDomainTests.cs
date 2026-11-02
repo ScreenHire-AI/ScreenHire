@@ -4,7 +4,7 @@ namespace ScreenHire.IntegrationTests;
 
 /// <summary>
 /// The organization's own sending domain through the running API with the email sandbox (docs/architecture/email.md,
-/// ADR-0021): the DNS records to add, a check that stays pending until they are in place, and mail that switches to the
+/// ADR-0022): the DNS records to add, a check that stays pending until they are in place, and mail that switches to the
 /// company's From and reply host only once verified. Owners and admins change it; everyone reads it. Each test uses its own
 /// organization and its own made-up domain, because the sandbox's DNS is shared by the stack.
 /// </summary>

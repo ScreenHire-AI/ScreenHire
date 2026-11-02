@@ -2,7 +2,7 @@ namespace ScreenHire.Infrastructure.Email;
 
 /// <summary>
 /// Sends one email. The local adapter is <see cref="SmtpEmailSender"/> against Mailpit; the production adapter is
-/// <see cref="SendGridEmailSender"/> (ADR-0021), and another provider (Azure Communication Services Email) would
+/// <see cref="SendGridEmailSender"/> (ADR-0022), and another provider (Azure Communication Services Email) would
 /// implement this same interface. Callers never log the recipient or the body.
 /// </summary>
 public interface IEmailSender

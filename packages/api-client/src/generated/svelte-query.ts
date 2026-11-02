@@ -72,6 +72,7 @@ import type {
   ExplainVerificationReasonRequest,
   GetApiKeysHistoryParams,
   GetEmailTemplateHistoryParams,
+  GetFunnelApplicationsParams,
   GetHiringReportParams,
   GetHiringTemplateHistoryParams,
   GetJobHistoryParams,
@@ -110,6 +111,7 @@ import type {
   LastUpdate,
   ListJobBoardJobsParams,
   ListTasksParams,
+  ListVerificationApplicationsParams,
   ListWebhookDeliveriesParams,
   MagicLinkRequest,
   MagicLinkVerification,
@@ -162,6 +164,7 @@ import type {
   SlackChannelOption,
   SlackStatus,
   SlackTestResult,
+  StageKind,
   StartSlackLinkRequest,
   SubmitScorecardRequest,
   SwitchOrganizationRequest,
@@ -191,6 +194,7 @@ import type {
   UploadTicket,
   UploadedFile,
   ValidateWorkflowRequest,
+  VerificationMatches,
   WebhookDeliveryEntry,
   WebhookEndpointEntry,
   WebhookEndpointWithSecret,
@@ -7752,15 +7756,25 @@ export type getApplicationVerificationResponse401 = {
   status: 401
 }
 
+export type getApplicationVerificationResponse403 = {
+  data: void
+  status: 403
+}
+
 export type getApplicationVerificationResponse404 = {
   data: void
   status: 404
 }
 
+export type getApplicationVerificationResponse429 = {
+  data: void
+  status: 429
+}
+
 export type getApplicationVerificationResponseSuccess = (getApplicationVerificationResponse200) & {
   headers: Headers;
 };
-export type getApplicationVerificationResponseError = (getApplicationVerificationResponse401 | getApplicationVerificationResponse404) & {
+export type getApplicationVerificationResponseError = (getApplicationVerificationResponse401 | getApplicationVerificationResponse403 | getApplicationVerificationResponse404 | getApplicationVerificationResponse429) & {
   headers: Headers;
 };
 
@@ -7825,6 +7839,116 @@ export function createGetApplicationVerification<TData = Awaited<ReturnType<type
 
 
   const query = createQuery(() => getGetApplicationVerificationQueryOptions(applicationId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type listVerificationApplicationsResponse200 = {
+  data: VerificationMatches
+  status: 200
+}
+
+export type listVerificationApplicationsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type listVerificationApplicationsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listVerificationApplicationsResponse403 = {
+  data: void
+  status: 403
+}
+
+export type listVerificationApplicationsResponse429 = {
+  data: void
+  status: 429
+}
+
+export type listVerificationApplicationsResponseSuccess = (listVerificationApplicationsResponse200) & {
+  headers: Headers;
+};
+export type listVerificationApplicationsResponseError = (listVerificationApplicationsResponse400 | listVerificationApplicationsResponse401 | listVerificationApplicationsResponse403 | listVerificationApplicationsResponse429) & {
+  headers: Headers;
+};
+
+export const getListVerificationApplicationsUrl = (params?: ListVerificationApplicationsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/verification/applications?${stringifiedParams}` : `/v1/verification/applications`
+}
+
+export const listVerificationApplications = async (params?: ListVerificationApplicationsParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<listVerificationApplicationsResponseSuccess> => {
+
+  return apiQueryFetch<listVerificationApplicationsResponseSuccess>(getListVerificationApplicationsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListVerificationApplicationsQueryKey = (params?: ListVerificationApplicationsParams,) => {
+    return [
+    'v1','verification','applications', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListVerificationApplicationsQueryOptions = <TData = Awaited<ReturnType<typeof listVerificationApplications>>, TError = ErrorType<HttpValidationProblemDetails | void>>(params?: ListVerificationApplicationsParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listVerificationApplications>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListVerificationApplicationsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listVerificationApplications>>> = ({ signal }) => listVerificationApplications(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listVerificationApplications>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListVerificationApplicationsQueryResult = NonNullable<Awaited<ReturnType<typeof listVerificationApplications>>>
+export type ListVerificationApplicationsQueryError = ErrorType<HttpValidationProblemDetails | void>
+
+
+
+export function createListVerificationApplications<TData = Awaited<ReturnType<typeof listVerificationApplications>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
+ params?: () =>  ListVerificationApplicationsParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listVerificationApplications>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListVerificationApplicationsQueryOptions(params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return query
 }
@@ -14452,6 +14576,125 @@ export function createGetHiringReport<TData = Awaited<ReturnType<typeof getHirin
 
 
   const query = createQuery(() => getGetHiringReportQueryOptions(params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type getFunnelApplicationsResponse200 = {
+  data: string[]
+  status: 200
+}
+
+export type getFunnelApplicationsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getFunnelApplicationsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getFunnelApplicationsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getFunnelApplicationsResponseSuccess = (getFunnelApplicationsResponse200) & {
+  headers: Headers;
+};
+export type getFunnelApplicationsResponseError = (getFunnelApplicationsResponse400 | getFunnelApplicationsResponse401 | getFunnelApplicationsResponse404) & {
+  headers: Headers;
+};
+
+export const getGetFunnelApplicationsUrl = (kind: StageKind,
+    params?: GetFunnelApplicationsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["jobId"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/reports/hiring/funnel/${kind}/applications?${stringifiedParams}` : `/v1/reports/hiring/funnel/${kind}/applications`
+}
+
+export const getFunnelApplications = async (kind: StageKind,
+    params?: GetFunnelApplicationsParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getFunnelApplicationsResponseSuccess> => {
+
+  return apiQueryFetch<getFunnelApplicationsResponseSuccess>(getGetFunnelApplicationsUrl(kind,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFunnelApplicationsQueryKey = (kind: StageKind,
+    params?: GetFunnelApplicationsParams,) => {
+    return [
+    'v1','reports','hiring','funnel',kind,'applications', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetFunnelApplicationsQueryOptions = <TData = Awaited<ReturnType<typeof getFunnelApplications>>, TError = ErrorType<HttpValidationProblemDetails | void>>(kind: StageKind,
+    params?: GetFunnelApplicationsParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getFunnelApplications>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFunnelApplicationsQueryKey(kind,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFunnelApplications>>> = ({ signal }) => getFunnelApplications(kind,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: kind !== null && kind !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getFunnelApplications>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetFunnelApplicationsQueryResult = NonNullable<Awaited<ReturnType<typeof getFunnelApplications>>>
+export type GetFunnelApplicationsQueryError = ErrorType<HttpValidationProblemDetails | void>
+
+
+
+export function createGetFunnelApplications<TData = Awaited<ReturnType<typeof getFunnelApplications>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
+ kind: () =>  StageKind,
+    params?: () =>  GetFunnelApplicationsParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getFunnelApplications>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetFunnelApplicationsQueryOptions(kind(),
+    params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return query
 }

@@ -1,10 +1,10 @@
 ---
 type: Decision
-title: "ADR-0021: Email goes through SendGrid bought on the Azure Marketplace, and candidates can reply"
+title: "ADR-0022: Email goes through SendGrid bought on the Azure Marketplace, and candidates can reply"
 description: "SendGrid, bought through the Azure Marketplace, sends candidate email, receives replies with Inbound Parse and reports bounces; a reply address that names the send and is signed; the company's own sending domain verified by the provider; ACS Email stays a possible sender behind IEmailSender; amends the Email row of ADR-0007."
 tags: [adr, email, sendgrid, azure]
 ---
-# ADR-0021: Email goes through SendGrid bought on the Azure Marketplace, and candidates can reply
+# ADR-0022: Email goes through SendGrid bought on the Azure Marketplace, and candidates can reply
 
 - **Status:** Accepted (2026-11-02)
 - **Deciders:** Owner, through task #96 on the board

@@ -15,7 +15,7 @@ using ScreenHire.Infrastructure.Tenancy;
 namespace ScreenHire.Api.Endpoints;
 
 /// <summary>
-/// The organization's own sending domain (Settings, Sending domain; docs/architecture/email.md, ADR-0021). Every member
+/// The organization's own sending domain (Settings, Sending domain; docs/architecture/email.md, ADR-0022). Every member
 /// reads it; owners and admins add, check and remove it. Adding sets the domain up with the email provider and lists the DNS
 /// records to add; checking looks each one up and asks the provider to confirm. Mail comes from the domain only once the
 /// provider has confirmed it. With no provider on this deployment the page is hidden (<c>available</c> is false).

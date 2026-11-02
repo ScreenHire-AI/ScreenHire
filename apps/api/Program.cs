@@ -77,7 +77,7 @@ builder.Services.AddOptions<CareersEmbeddingOptions>().BindConfiguration(Careers
 // Slack (docs/architecture/slack.md): connecting a workspace and linking accounts happen here; the worker posts.
 builder.Services.AddScreenHireSlack();
 
-// Replies, bounces and the organization's sending domain (docs/architecture/email.md, ADR-0021): SendGrid's webhooks, the
+// Replies, bounces and the organization's sending domain (docs/architecture/email.md, ADR-0022): SendGrid's webhooks, the
 // reply store, and the sending-domain provider, each hidden until configured, with a local sandbox for each.
 builder.Services.AddScreenHireEmailWebhooks();
 builder.Services.AddScreenHireSendingDomains();

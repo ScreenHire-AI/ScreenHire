@@ -193,7 +193,7 @@ internal sealed partial class DevelopmentDemo(
             candidates += await TryAsync(
                 () => ApplyAsync(
                     candidate.JobSlug, candidate.Applicant, candidate.Moves, candidate.Source, candidate.AppliedDaysAgo, candidate.KeepForFutureRoles,
-                    stoppingToken),
+                    stoppingToken, candidate.SourceSite, candidate.SourceBoard),
                 stoppingToken) ? 1 : 0;
         }
 
@@ -941,7 +941,7 @@ internal sealed partial class DevelopmentDemo(
     // applied or the job is not open.
     private async Task<bool> ApplyAsync(
         string jobSlug, SyntheticApplicant applicant, IReadOnlyList<DemoMove> moves, ApplicationSource source, int daysAgo, bool keepForFutureRoles,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, string? sourceSite = null, string? sourceBoard = null)
     {
         await using var scope = scopes.CreateAsyncScope();
         if (await BeginAsync(scope, cancellationToken) is not { } step)
@@ -967,7 +967,9 @@ internal sealed partial class DevelopmentDemo(
             PrivacyNoticeVersion,
             applicant.HoneypotFilled,
             BotCheckResult.NotChecked,
-            keepForFutureRoles ? new FutureRolesConsent(submittedAt, await TalentPoolMembership.MonthsAsync(db, cancellationToken)) : null);
+            keepForFutureRoles ? new FutureRolesConsent(submittedAt, await TalentPoolMembership.MonthsAsync(db, cancellationToken)) : null,
+            sourceSite,
+            sourceBoard);
         var created = await ApplicationSubmission.SubmitAsync(
             step.Outbox, job, new ApplicationSubmission.CandidateDetails(applicant.FirstName, applicant.LastName, applicant.Email, applicant.Phone),
             new ApplicationDeclarations(false, applicant.AiUseDeclaration, applicant.AiUseDetails),

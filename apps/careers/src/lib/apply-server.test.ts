@@ -153,3 +153,35 @@ describe('the site the careers page is embedded in', () => {
     expect(sent(fetch).embedOrigin).toBeNull();
   });
 });
+
+describe('the job board that sent the candidate', () => {
+  const listed = { ...applicationForm, organization: { embedOrigins: [] } } as unknown as PublicApplicationForm;
+  const send = () =>
+    form({
+      organization: 'acme',
+      job: 'barista',
+      step: 'review',
+      state: JSON.stringify({ firstName: 'Sam', email: 'sam@example.com' }),
+    });
+  const sent = (fetch: ReturnType<typeof vi.fn>) => JSON.parse((fetch.mock.calls[1]![1] as RequestInit).body as string);
+
+  it('goes with the application as its source', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(json(200, listed)).mockResolvedValueOnce(json(201, { applicationId: 'x' }));
+    vi.stubGlobal('fetch', fetch);
+
+    const result = await applyStep(send(), undefined, null, new Date(), null, 'talent');
+
+    expect(result.outcome).toBe('submitted');
+    expect(sent(fetch).source).toBe('talent');
+  });
+
+  it('is left out when the address names no board or something that is not a board id', async () => {
+    const fetch = vi.fn().mockResolvedValue(json(200, listed));
+    vi.stubGlobal('fetch', fetch);
+    fetch.mockResolvedValueOnce(json(200, listed)).mockResolvedValueOnce(json(201, { applicationId: 'x' }));
+
+    await applyStep(send(), undefined, null, new Date(), null, 'Not A Board!');
+
+    expect(sent(fetch).source).toBeNull();
+  });
+});

@@ -113,8 +113,16 @@ public static class ChangeLabels
     /// <summary>A member's job access as the Team page says it (<c>accessWords</c> in <c>apps/dashboard/src/lib/hiring-team.ts</c>).</summary>
     public static string JobAccess(JobAccess access) => access == Organizations.JobAccess.All ? "All jobs" : "Only jobs they're on";
 
-    /// <summary>An API key's scopes as the API keys page says them (its <c>access</c> function).</summary>
-    public static string ApiKeyAccess(IEnumerable<ApiKeyScope> scopes) => scopes.Contains(ApiKeyScope.Write) ? "Read and write" : "Read only";
+    /// <summary>
+    /// An API key's scopes in one phrase for its history: the API keys page's <c>access</c> words, with the Verification
+    /// read scope added, which the page shows on a line of its own.
+    /// </summary>
+    public static string ApiKeyAccess(IEnumerable<ApiKeyScope> scopes)
+    {
+        var list = scopes.ToList();
+        var access = list.Contains(ApiKeyScope.Write) ? "Read and write" : "Read only";
+        return list.Contains(ApiKeyScope.VerificationRead) ? access + " with verification" : access;
+    }
 
     public static string Days(int days) => days == 1 ? "1 day" : $"{days.ToString(CultureInfo.InvariantCulture)} days";
 

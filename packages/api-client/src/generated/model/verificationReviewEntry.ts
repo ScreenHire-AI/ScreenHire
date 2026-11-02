@@ -21,7 +21,8 @@ export interface VerificationReviewEntry {
   dismissReason: null | DismissReason;
   /** @nullable */
   note: string | null;
-  actorUserId: string;
+  /** @nullable */
+  actorUserId: string | null;
   /** @nullable */
   actorName: string | null;
   occurredAt: string;
@@ -30,4 +31,10 @@ export interface VerificationReviewEntry {
   /** @nullable */
   signalTitle: string | null;
   explainReason: null | ExplainReason;
+  /** @nullable */
+  apiKeyId: string | null;
+  /** @nullable */
+  apiKeyName: string | null;
+  /** @nullable */
+  keyCreatedByName: string | null;
 }
