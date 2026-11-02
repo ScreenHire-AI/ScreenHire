@@ -255,7 +255,7 @@ nothing and still answers 200, so SendGrid does not retry it. In one transaction
   10 MB each and ten in all. Anything else is dropped, and the text says how many. Each goes to the private
   `email-attachments` container, then a `ScanEmailAttachment` message runs the same `IMalwareScanner` as an applicant's
   upload. A reviewer downloads one through a short-lived read link, and the route answers 409 while the scan is pending
-  and for an infected file;
+  and for an infected file. Erasing the candidate deletes the replies and these files ([candidates](candidates.md#erasure));
 - an `EmailReceived` timeline entry with the reply's id, no actor, in Activity under Emails. It counts as the candidate's
   activity;
 - a `CandidateReplied` event. Open dashboards refetch Messages and Activity. The person who sent the original gets a card
