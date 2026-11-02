@@ -153,6 +153,29 @@ public sealed class DefinitionChangesTests
     }
 
     [Fact]
+    public void Scheduling_an_interview_is_described_by_counts_and_zone_never_by_who()
+    {
+        var avery = Guid.Parse("00000000-0000-0000-0000-0000000000a1");
+        var robin = Guid.Parse("00000000-0000-0000-0000-0000000000a2");
+        var sam = Guid.Parse("00000000-0000-0000-0000-0000000000a3");
+        var interview = new Automation("interview", "Offer an interview", new AutomationTrigger(TriggerType.ApplicationSubmitted), null,
+            [new AutomationAction(ActionType.ScheduleInterview, InterviewerUserIds: [avery, robin], InterviewMinutes: 45, InterviewWindowDays: 14, InterviewTimeZone: "Europe/London")]);
+        var before = HiringWorkflow.Default with { Automations = [interview] };
+        var longer = interview with { Actions = [interview.Actions[0] with { InterviewMinutes = 60, InterviewWindowDays = 1 }] };
+        var swapped = interview with { Actions = [interview.Actions[0] with { InterviewerUserIds = [avery, sam] }] };
+
+        var added = DefinitionChanges.Describe(HiringWorkflow.Default, before);
+        var changed = DefinitionChanges.Describe(before, before with { Automations = [longer] });
+        var other = DefinitionChanges.Describe(before, before with { Automations = [swapped] });
+
+        added[0].Details.Should().Contain(new ChangeDetail("Then", null, "Schedule an interview: 2 interviewers, 45 minutes, 14 days to pick, Europe/London"));
+        changed[0].Details.Should().Equal(new ChangeDetail(
+            "Then", "Schedule an interview: 2 interviewers, 45 minutes, 14 days to pick, Europe/London", "Schedule an interview: 2 interviewers, 60 minutes, 1 day to pick, Europe/London"));
+        Sentences(other).Should().Equal("changed the interviewers of Offer an interview");
+        System.Text.Json.JsonSerializer.Serialize(added.Concat(changed).Concat(other)).Should().NotContain(avery.ToString());
+    }
+
+    [Fact]
     public void A_follow_up_questionnaire_added_whole_is_one_line_listing_its_questions()
     {
         var followUp = new FollowUpQuestionnaire("availability", "Availability", [new Question("start", QuestionType.ShortText, "When could you start?")]);

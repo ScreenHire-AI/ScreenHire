@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Careers apply flow"
-description: "The candidate apply page: the notice before any collection, steps that work without JavaScript with one section of questions a page, direct-to-storage resume uploads, the public submission endpoint, per-tenant branding stylesheets under the content security policy, tenant careers hosts, saving the form to finish later through an emailed link, and the follow-up questionnaire page a signed link opens."
+description: "The candidate apply page: the notice before any collection, steps that work without JavaScript with one section of questions a page, direct-to-storage resume uploads, the public submission endpoint, per-tenant branding stylesheets under the content security policy, tenant careers hosts, saving the form to finish later through an emailed link, the follow-up questionnaire page a signed link opens, and the interview page where a candidate picks, moves or cancels a time."
 tags: [careers, apply, astro]
 sources:
   - resource: apps/careers/src/pages/[organization]/jobs/[job]/apply.astro
@@ -16,6 +16,9 @@ sources:
   - resource: apps/careers/src/pages/[organization]/questionnaires/[token].astro
   - resource: apps/careers/src/pages/[organization]/questionnaires/sent.astro
   - resource: apps/careers/src/lib/questionnaire.ts
+  - resource: apps/careers/src/pages/[organization]/interviews/[token].astro
+  - resource: apps/careers/src/lib/interview.ts
+  - resource: apps/careers/src/components/Notice.astro
   - resource: apps/api/Endpoints/PublicApplicationEndpoints.cs
   - resource: apps/api/Applications/ApplicantUploads.cs
   - resource: src/ScreenHire.Domain/Organizations/BrandPalette.cs
@@ -53,6 +56,8 @@ never calls the API.
 | `/telemetry?job={id}` | Relay for the telemetry module's beacons to the API (verification-engine.md §10.2, "Form telemetry"). |
 | `/questionnaires/{token}` | A follow-up questionnaire, opened from the signed link a SendQuestionnaire automation emailed (section 8). |
 | `/questionnaires/sent` | Where answered follow-up questions land, after a POST-redirect-GET, with no token in the address. |
+| `/interviews/{token}` | A candidate's interview, opened from the signed link an interview invitation or confirmation emailed: pick a time, then see it, move it or cancel it (section 8.1). |
+| `/talent-pool/{token}` | Where a candidate stops the employer keeping their details for future roles, from the signed link in a talent pool invitation ([talent pool](talent-pool.md)). One native form, no JavaScript, `no-store`, `noindex` and `no-referrer`. |
 | `/talent-pool/{token}` | Where a candidate stops the employer keeping their details for future roles, from the signed link in an invitation to apply ([saved candidates](talent-pool.md)). One native form, no JavaScript, `no-store`, `noindex` and `no-referrer`. |
 | `/talent-pool/stopped` | Where stopping lands, after a POST-redirect-GET, with no token in the address. |
 
@@ -311,6 +316,35 @@ answers" on the last page.
   expired" with what to do (410), one whose questionnaire, job or application has ended "These questions are no longer
   open" (410), and an unknown or forged one "We could not find these questions" (404). A problem with an answer comes
   back on the same page with what was typed, as on the apply form.
+
+### 8.1 Interviews
+
+An interview the team offered ([interview scheduling](interview-scheduling.md)) has one link, `/interviews/{token}`, for its
+whole life. The page asks the API for the interview (`GET .../interviews/{token}?tz=`) and shows what state it is in:
+
+- **Open.** The heading names the job and the length, then a time zone `<select>` in a plain GET form (the interview's own
+  zone first, then a short list of common ones and the zone being shown; "Show times in this zone" reloads with `?tz=`),
+  then the offered times. The careers server writes every time with `Intl.DateTimeFormat` in that zone, so no script is
+  needed: a fieldset per local day, a radio per start time ("10:00 AM"), and "Book this time", posted to the
+  `interviewBook` action. One screen shows at most five days that have times; "Show later times" and "Back to the first
+  times" are plain links (`?from=` a local day), so a 90-day window never becomes a thousand radios. No times, or a
+  calendar that cannot be read, gets a calm notice that says to try again later or reply to the email.
+- **Booked.** The time with its day, year, range and the zone's name, and "The video link is in your calendar invitation"
+  (the page never shows a link of its own). While the candidate can still change it, "Pick another time" opens the
+  picker (`?change=1`, posting to `interviewReschedule`). "Cancel this interview" is a `details` element that opens one line
+  on what happens and a "Yes, cancel it" button posting to `interviewCancel`, so a stray tap ends nothing and no script is
+  needed. Inside the minimum notice the page says changes close that many hours before the start and to reply to the email.
+- **Cancelled or expired.** "This interview is cancelled" or "This link has expired" (410), the employer's name and a
+  sentence that says to reply to the email or contact the team. No contact details are invented. An unknown or forged
+  link says "We could not find this interview" (404); an unknown employer has no page, as on the questionnaire page.
+  A rate-limited call says to wait a minute (429), not that the link is unknown.
+
+Each action redirects (303) to the page's own address with one outcome word (`?outcome=booked`, `rescheduled`, `cancelled`,
+`slot-taken`, `too-late` and so on), the zone and the picker, so a refresh never posts twice and the address never carries
+the posted time. The page shows a notice for the outcomes it knows, always an icon and words. The 409 and 410 problems map
+by their `type` code (`src/lib/interview.ts`). Like the questionnaire page it sends `Cache-Control: no-store`, `noindex`
+and `no-referrer`, ships no script, and collects the choice and nothing else: no telemetry, no device check, and nothing
+about verification.
 
 ## 9. Owner actions before production
 

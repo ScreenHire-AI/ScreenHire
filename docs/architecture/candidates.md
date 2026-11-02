@@ -92,6 +92,10 @@ cascade while its files are missing from the list below:
 - `EraseApplicantFiles` carries the blob names to the worker, which deletes the uploads and the attachments of the
   candidate's replies, each from its own container. The names can hold a file name, so the message lives only until the
   worker has handled it;
+- `RemoveInterviewEvents` carries the ids and times of the interview events on interviewers' calendars, because an event
+  holds the candidate's name and address and the rows that say where it is go with the candidate. The route reads them
+  under the interviewers' locks, and the worker deletes each event without notifying guests where the provider allows it
+  ([interview scheduling](interview-scheduling.md#when-an-interview-is-cut-short));
 - `RecheckApplicationDuplicates` is sent for every application that shared details with the erased ones, so no level
   keeps resting on someone who is gone; and `CandidateErased` tells open dashboards to drop them.
 

@@ -13,6 +13,7 @@ using ScreenHire.Domain.History;
 using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.Scheduling;
 using ScreenHire.Domain.Slack;
 using ScreenHire.Domain.Views;
 using ScreenHire.Domain.TalentPool;
@@ -40,9 +41,12 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     /// </summary>
     public const string JobScopeFilter = "JobScope";
 
+    private readonly DbContextOptions<ScreenHireDbContext> options;
+
     public ScreenHireDbContext(DbContextOptions<ScreenHireDbContext> options, ITenantContext tenant)
         : base(options)
     {
+        this.options = options;
         Tenant = tenant;
         // Even a one-row SaveChanges runs in a transaction, so TenantSessionInterceptor can set the row-level security
         // settings as a separate command ahead of the batch.
@@ -50,6 +54,12 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     }
 
     public ITenantContext Tenant { get; }
+
+    /// <summary>
+    /// A new context for the same tenant on a connection of its own, for a write that must outlive this context's
+    /// transaction (a rotated calendar token). The caller disposes it.
+    /// </summary>
+    public ScreenHireDbContext CreateIndependent() => new(options, Tenant);
 
     public DbSet<Organization> Organizations => Set<Organization>();
 
@@ -156,6 +166,21 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     /// <summary>What the local sandbox workspace received (see <see cref="SlackSandboxMessage"/>).</summary>
     public DbSet<SlackSandboxMessage> SlackSandboxMessages => Set<SlackSandboxMessage>();
+
+    /// <summary>A member's connected calendar, one each (docs/architecture/interview-scheduling.md).</summary>
+    public DbSet<CalendarConnection> CalendarConnections => Set<CalendarConnection>();
+
+    /// <summary>Busy time in the local sandbox calendar (see <see cref="CalendarSandboxBusy"/>).</summary>
+    public DbSet<CalendarSandboxBusy> CalendarSandboxBusy => Set<CalendarSandboxBusy>();
+
+    /// <summary>What the local sandbox calendar received (see <see cref="CalendarSandboxEvent"/>).</summary>
+    public DbSet<CalendarSandboxEvent> CalendarSandboxEvents => Set<CalendarSandboxEvent>();
+
+    /// <summary>An interview offered to a candidate, and booked once they pick a time (see <see cref="InterviewRequest"/>).</summary>
+    public DbSet<InterviewRequest> InterviewRequests => Set<InterviewRequest>();
+
+    /// <summary>The interviewers of an interview, one calendar event each (see <see cref="InterviewAttendee"/>).</summary>
+    public DbSet<InterviewAttendee> InterviewAttendees => Set<InterviewAttendee>();
 
     /// <summary>
     /// The cross-employer Signal Network (ADR-0005). Not tenant-owned; the application role has no access to the table,

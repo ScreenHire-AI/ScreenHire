@@ -41,6 +41,14 @@
 //                               slack-client-secret parameter has the app's secret; Sandbox:Enabled=true is the local
 //                               sandbox workspace instead (Development only; the test stacks turn it on). The secret
 //                               comes from that parameter, never from these keys.
+//   Calendar:*                  member calendars for interview scheduling (ScreenHire.Application CalendarOptions,
+//                               docs/architecture/interview-scheduling.md), forwarded to the API and the worker. A
+//                               provider is on only when both its client id (Google:ClientId, Microsoft:ClientId) and
+//                               its secret are set; the secrets come from the google-calendar-client-secret and
+//                               microsoft-calendar-client-secret parameters, never from these keys. Sandbox:Enabled=true
+//                               is the local sandbox calendar (Development only; appsettings.Development.json and the
+//                               test stacks turn it on). Interviews:MinNoticeHours and Interviews:StepMinutes tune
+//                               the slots offered.
 //   Email:*                     email settings (ScreenHire.Infrastructure EmailOptions, docs/architecture/email.md),
 //                               forwarded to the API and the worker. Mailpit sends unless SendGrid:Enabled=true, which
 //                               makes the secret parameter sendgrid-api-key required (never from these keys) and sends
@@ -262,6 +270,31 @@ if (!string.IsNullOrWhiteSpace(settings["Slack:ClientId"]))
     var slackSecret = builder.AddParameter("slack-client-secret", secret: true);
     api.WithEnvironment("ScreenHire__Slack__ClientSecret", slackSecret);
     worker.WithEnvironment("ScreenHire__Slack__ClientSecret", slackSecret);
+}
+
+foreach (var (key, value) in settings.GetSection("Calendar").AsEnumerable(makePathsRelative: true))
+{
+    // The client secrets are secrets: they go through the parameters below, never as plain configuration.
+    if (value is not null && !key.EndsWith("ClientSecret", StringComparison.OrdinalIgnoreCase))
+    {
+        var name = $"ScreenHire__Calendar__{key.Replace(":", "__", StringComparison.Ordinal)}";
+        api.WithEnvironment(name, value);
+        worker.WithEnvironment(name, value);
+    }
+}
+
+// The calendar apps' client secrets (docs/architecture/interview-scheduling.md), each only once its client id is set: a
+// secret parameter, set with `dotnet user-secrets set Parameters:google-calendar-client-secret "<secret>"` (or
+// microsoft-calendar-client-secret) in apps/apphost or by the deployment's secret store. Both hosts get it, so both work
+// out the same providers from the same settings. With no client id nothing asks for a secret.
+foreach (var (provider, parameter) in new[] { ("Google", "google-calendar-client-secret"), ("Microsoft", "microsoft-calendar-client-secret") })
+{
+    if (!string.IsNullOrWhiteSpace(settings[$"Calendar:{provider}:ClientId"]))
+    {
+        var calendarSecret = builder.AddParameter(parameter, secret: true);
+        api.WithEnvironment($"ScreenHire__Calendar__{provider}__ClientSecret", calendarSecret);
+        worker.WithEnvironment($"ScreenHire__Calendar__{provider}__ClientSecret", calendarSecret);
+    }
 }
 
 // The real Indexing API's service account key (job-distribution.md section 5), only in Google mode: a secret parameter,

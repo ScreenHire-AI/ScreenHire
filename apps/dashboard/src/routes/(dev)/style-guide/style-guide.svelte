@@ -23,7 +23,7 @@
   import UserPlusIcon from '~icons/lucide/user-plus';
   import UserRoundIcon from '~icons/lucide/user-round';
   import UsersIcon from '~icons/lucide/users';
-  import type { ApplicationFileSummary, HistoryEntry, ScorecardEntry, SignalEvidence as Evidence, WorkflowStage } from '@screenhire/api-client';
+  import type { ApplicationFileSummary, ApplicationInterview, HistoryEntry, ScorecardEntry, SignalEvidence as Evidence, WorkflowStage } from '@screenhire/api-client';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
@@ -49,6 +49,7 @@
   import HeaderBand from '#lib/components/header-band.svelte';
   import HistorySheet from '#lib/components/history-sheet.svelte';
   import IconButton from '#lib/components/icon-button.svelte';
+  import InterviewDetails from '#lib/components/candidate/interview-details.svelte';
   import MiniCard from '#lib/components/mini-card.svelte';
   import VerificationChip from '#lib/components/verification-chip.svelte';
   import LastUpdated from '#lib/components/last-updated.svelte';
@@ -172,6 +173,35 @@
   const now = Date.now();
   const ago = (milliseconds: number) => new Date(now - milliseconds).toISOString();
 
+  // An interview in each state the Interview panel draws (all times are made-up instants).
+  const interviewSample = (status: ApplicationInterview['status'], overrides: Partial<ApplicationInterview> = {}): ApplicationInterview => ({
+    id: `interview-${status}`,
+    status,
+    startsAt: null,
+    endsAt: null,
+    windowStart: '2026-11-03T05:00:00Z',
+    windowEnd: '2026-11-17T05:00:00Z',
+    timeZone: 'America/New_York',
+    durationMinutes: 30,
+    dayStart: '09:00',
+    dayEnd: '17:00',
+    meetingUrl: null,
+    interviewers: [
+      { userId: 'u1', displayName: 'Avery Quinn', isOrganizer: true, syncStatus: 'Synced', syncProblem: null },
+      { userId: 'u2', displayName: 'Robin Ashby', isOrganizer: false, syncStatus: 'Pending', syncProblem: null },
+    ],
+    createdAt: '2026-10-20T12:00:00Z',
+    createdByUserId: 'u1',
+    cancelledByCandidate: false,
+    ...overrides,
+  });
+  const interviewStates = [
+    interviewSample('Open'),
+    interviewSample('Booked', { startsAt: '2026-11-05T15:00:00Z', endsAt: '2026-11-05T15:30:00Z', meetingUrl: 'https://meet.example.org/abc-defg' }),
+    interviewSample('Cancelled', { startsAt: '2026-11-05T15:00:00Z', endsAt: '2026-11-05T15:30:00Z', cancelledByCandidate: true }),
+    interviewSample('Expired'),
+  ];
+
   // A record's tabs (section 11): counts in the count badge, and a state in the count where one fits (7/8).
   const candidateTabs: RecordTab[] = [
     { value: 'overview', label: 'Overview' },
@@ -266,6 +296,7 @@
     { status: 'unsafeFile', label: 'Unsafe file' },
     { status: 'ai', label: 'Some signs of AI help' },
     { status: 'waiting', label: 'Sent' },
+    { status: 'booked', label: 'Booked' },
     { status: 'working', label: 'Scanning' },
     { status: 'closed', label: 'Closed' },
     { status: 'draft', label: 'Draft' },
@@ -823,6 +854,14 @@
 
       <Panel title="Mini card">
         {@render candidateCards()}
+      </Panel>
+
+      <Panel title="Interview panel">
+        <div class="grid gap-6 @2xl:grid-cols-2 @5xl:grid-cols-4">
+          {#each interviewStates as interview (interview.id)}
+            <InterviewDetails {interview} />
+          {/each}
+        </div>
       </Panel>
 
       <Panel title="Icon button">

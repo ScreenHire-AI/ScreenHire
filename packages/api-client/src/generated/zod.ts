@@ -798,6 +798,101 @@ export const SavePublicQuestionnaireDraftBody = zod.object({
 export const SavePublicQuestionnaireDraftResponse = zod.void()
 
 
+export const GetPublicInterviewParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string()
+})
+
+export const GetPublicInterviewQueryParams = zod.object({
+  "tz": zod.string().optional()
+})
+
+export const GetPublicInterviewResponse = zod.object({
+  "organization": zod.object({
+  "name": zod.string(),
+  "slug": zod.string(),
+  "branding": zod.object({
+  "colors": zod.union([zod.null(),zod.object({
+  "brand": zod.string(),
+  "onBrand": zod.string(),
+  "brandText": zod.string(),
+  "brandUi": zod.string()
+}).describe('The careers-page colours from the brand colour (docs/design/design-system.md section 18): `brand` fills,\n`onBrand` is text on it, `brandText` is links on the page and `brandUi` is borders and focus rings.\nA colour saved since the contrast check passes as it is, so all three are the colour itself; an older one is darkened\nuntil it passes. All `#rrggbb`.')]),
+  "header": zod.union([zod.null(),zod.object({
+  "background": zod.string(),
+  "foreground": zod.string()
+}).describe('The header band: its fill, the second colour, and the white or ink text on it. Both `#rrggbb`.')]),
+  "headingFont": zod.union([zod.null(),zod.union([zod.literal('Inter'),zod.literal('Montserrat'),zod.literal('Nunito'),zod.literal('Fraunces'),zod.literal('PlayfairDisplay'),zod.literal(null)])]),
+  "logo": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "contentType": zod.string(),
+  "width": zod.int(),
+  "height": zod.int(),
+  "url": zod.string()
+}).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')]),
+  "favicon": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "contentType": zod.string(),
+  "width": zod.int(),
+  "height": zod.int(),
+  "url": zod.string()
+}).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')]),
+  "sharingImage": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "contentType": zod.string(),
+  "width": zod.int(),
+  "height": zod.int(),
+  "url": zod.string()
+}).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')])
+}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.'),
+  "embedOrigins": zod.array(zod.string())
+}).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s) and\n`embedOrigins`, the sites allowed to show the careers pages in a frame, which the pages send in their\n`frame-ancestors` header (empty: none but the careers pages themselves).'),
+  "jobTitle": zod.string(),
+  "state": zod.enum(['Open', 'Booked', 'Cancelled', 'Expired']).describe('Where a candidate\'s interview stands on the careers page.'),
+  "startsAt": zod.iso.datetime({"offset":true}).nullable(),
+  "endsAt": zod.iso.datetime({"offset":true}).nullable(),
+  "timeZone": zod.string(),
+  "defaultTimeZone": zod.string(),
+  "durationMinutes": zod.int(),
+  "slots": zod.array(zod.iso.datetime({"offset":true})),
+  "slotsUnavailable": zod.boolean(),
+  "canChange": zod.boolean(),
+  "minNoticeHours": zod.int()
+}).describe('The interview as the candidate\'s page shows it. `slots` are the start times offered, as UTC instants in order, each\n`durationMinutes` long: for an Open interview, and for a Booked one the candidate may still change. The page writes\nthem in `timeZone` (the `tz` asked for when it is a zone the server knows, otherwise `defaultTimeZone`,\nthe zone the team chose). `slotsUnavailable` is true when the team\'s calendars could not be read just now, so no\ntimes are offered; trying again later may work. `minNoticeHours` is how long before the start the candidate can\nstill move or cancel. Nothing about the interviewers, and nothing from verification.')
+
+
+export const BookPublicInterviewParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string()
+})
+
+export const BookPublicInterviewBody = zod.object({
+  "start": zod.iso.datetime({"offset":true})
+}).describe('The start time the candidate picked, one of the offered `slots`.')
+
+export const BookPublicInterviewResponse = zod.void()
+
+
+export const ReschedulePublicInterviewParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string()
+})
+
+export const ReschedulePublicInterviewBody = zod.object({
+  "start": zod.iso.datetime({"offset":true})
+}).describe('The start time the candidate picked, one of the offered `slots`.')
+
+export const ReschedulePublicInterviewResponse = zod.void()
+
+
+export const CancelPublicInterviewParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string()
+})
+
+export const CancelPublicInterviewResponse = zod.void()
+
+
 export const GetPublicTalentPoolStatusParams = zod.object({
   "organizationSlug": zod.string(),
   "token": zod.string()
@@ -1014,7 +1109,11 @@ export const CreateJobResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(createJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(createJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -1207,7 +1306,11 @@ export const GetJobResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(getJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(getJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -1422,7 +1525,11 @@ export const UpdateJobResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -1653,7 +1760,11 @@ export const PublishJobResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(publishJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(publishJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -1846,7 +1957,11 @@ export const CloseJobResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(closeJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(closeJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -2082,7 +2197,11 @@ export const UpdateJobWorkflowBody = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateJobWorkflowBodyWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateJobWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -2230,7 +2349,11 @@ export const UpdateJobWorkflowResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateJobWorkflowResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateJobWorkflowResponseWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -2428,7 +2551,11 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(applyJobTemplateUpdateResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(applyJobTemplateUpdateResponseWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -2621,7 +2748,11 @@ export const CreateHiringTemplateBody = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(createHiringTemplateBodyDefinitionTwoWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(createHiringTemplateBodyDefinitionTwoWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -2892,7 +3023,11 @@ export const CreateHiringTemplateVersionBody = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(createHiringTemplateVersionBodyDefinitionTwoWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(createHiringTemplateVersionBodyDefinitionTwoWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -3031,7 +3166,11 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(createHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(createHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -3179,7 +3318,11 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(getHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(getHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -3323,7 +3466,11 @@ export const UpdateHiringTemplateVersionBody = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateHiringTemplateVersionBodyDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateHiringTemplateVersionBodyDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -3462,7 +3609,11 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -3610,7 +3761,11 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(publishHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(publishHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -4164,7 +4319,7 @@ export const GetApplicationTimelineParams = zod.object({
 
 export const GetApplicationTimelineResponseItem = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'EmailReceived']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'EmailReceived']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -4187,7 +4342,10 @@ export const GetApplicationTimelineResponseItem = zod.object({
   "taskId": zod.uuid().nullish(),
   "poolExit": zod.union([zod.null(),zod.union([zod.literal('Expired'),zod.literal('Removed'),zod.literal('CandidateAsked'),zod.literal('AddedToJob'),zod.literal('AppliedAgain'),zod.literal('BackInJob'),zod.literal('KeptFromAnotherJob'),zod.literal(null)])]).optional(),
   "otherJobId": zod.uuid().nullish(),
-  "otherApplicationId": zod.uuid().nullish()
+  "otherApplicationId": zod.uuid().nullish(),
+  "interviewId": zod.uuid().nullish(),
+  "startsAt": zod.iso.datetime({"offset":true}).nullish(),
+  "endsAt": zod.iso.datetime({"offset":true}).nullish()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 export const GetApplicationTimelineResponse = zod.array(GetApplicationTimelineResponseItem)
 
@@ -4202,7 +4360,7 @@ export const AddApplicationNoteBody = zod.object({
 
 export const AddApplicationNoteResponse = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'EmailReceived']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'EmailReceived']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -4225,7 +4383,10 @@ export const AddApplicationNoteResponse = zod.object({
   "taskId": zod.uuid().nullish(),
   "poolExit": zod.union([zod.null(),zod.union([zod.literal('Expired'),zod.literal('Removed'),zod.literal('CandidateAsked'),zod.literal('AddedToJob'),zod.literal('AppliedAgain'),zod.literal('BackInJob'),zod.literal('KeptFromAnotherJob'),zod.literal(null)])]).optional(),
   "otherJobId": zod.uuid().nullish(),
-  "otherApplicationId": zod.uuid().nullish()
+  "otherApplicationId": zod.uuid().nullish(),
+  "interviewId": zod.uuid().nullish(),
+  "startsAt": zod.iso.datetime({"offset":true}).nullish(),
+  "endsAt": zod.iso.datetime({"offset":true}).nullish()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 
 
@@ -4600,7 +4761,7 @@ export const GetCandidateHistoryResponseItem = zod.object({
   "jobTitle": zod.string(),
   "entry": zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'EmailReceived']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'EmailReceived']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -4623,7 +4784,10 @@ export const GetCandidateHistoryResponseItem = zod.object({
   "taskId": zod.uuid().nullish(),
   "poolExit": zod.union([zod.null(),zod.union([zod.literal('Expired'),zod.literal('Removed'),zod.literal('CandidateAsked'),zod.literal('AddedToJob'),zod.literal('AppliedAgain'),zod.literal('BackInJob'),zod.literal('KeptFromAnotherJob'),zod.literal(null)])]).optional(),
   "otherJobId": zod.uuid().nullish(),
-  "otherApplicationId": zod.uuid().nullish()
+  "otherApplicationId": zod.uuid().nullish(),
+  "interviewId": zod.uuid().nullish(),
+  "startsAt": zod.iso.datetime({"offset":true}).nullish(),
+  "endsAt": zod.iso.datetime({"offset":true}).nullish()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.'),
   "fromStageName": zod.string().nullish(),
   "toStageName": zod.string().nullish(),
@@ -7148,7 +7312,11 @@ export const ValidateWorkflowBody = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(validateWorkflowBodyWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(validateWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -7282,7 +7450,11 @@ export const SimulateWorkflowBody = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(simulateWorkflowBodyWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(simulateWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -7359,7 +7531,11 @@ export const SimulateWorkflowResponse = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "reason": zod.string().nullable()
 }).describe('What one automation would do. Only automations the trigger fires are listed, in definition order.'))
@@ -7415,7 +7591,11 @@ export const ListAutomationRunsResponseItem = zod.object({
   "note": zod.string().nullish(),
   "assigneeUserId": zod.uuid().nullish(),
   "verificationProvider": zod.string().nullish(),
-  "questionnaireId": zod.string().nullish()
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.'),
   "status": zod.enum(['Pending', 'Completed', 'Skipped', 'Failed']),
   "detail": zod.string().nullable(),
@@ -8225,6 +8405,146 @@ export const UpdateSlackAccountResponse = zod.object({
 export const UnlinkSlackAccountResponse = zod.void()
 
 
+export const GetCalendarResponse = zod.object({
+  "sandbox": zod.boolean(),
+  "providers": zod.array(zod.object({
+  "id": zod.enum(['Google', 'Microsoft', 'Sandbox']).describe('Whose calendar a member connected. CalendarProvider.Sandbox is the local stand-in (Development and tests only).'),
+  "name": zod.string()
+}).describe('A calendar the member can connect: its id, and the name the sheet shows.')),
+  "connection": zod.union([zod.null(),zod.object({
+  "provider": zod.enum(['Google', 'Microsoft', 'Sandbox']).describe('Whose calendar a member connected. CalendarProvider.Sandbox is the local stand-in (Development and tests only).'),
+  "providerName": zod.string(),
+  "accountEmail": zod.string().nullable(),
+  "connectedAt": zod.iso.datetime({"offset":true}),
+  "problem": zod.union([zod.null(),zod.union([zod.literal('NeedsReconnect'),zod.literal(null)])])
+}).describe('The member\'s connected calendar. `accountEmail` is the calendar owner\'s address when the provider says it.\n`problem` is `NeedsReconnect` once the provider stopped accepting the connection.')])
+}).describe('The signed-in member\'s calendar (docs/architecture/interview-scheduling.md). `providers` are the calendars they\ncan connect here, empty when this ScreenHire has none configured. `connection` is their own, null until they\nconnect one. No token is ever in an answer.')
+
+
+export const DisconnectCalendarResponse = zod.void()
+
+
+export const StartCalendarConnectBody = zod.object({
+  "provider": zod.enum(['Google', 'Microsoft', 'Sandbox']).describe('Whose calendar a member connected. CalendarProvider.Sandbox is the local stand-in (Development and tests only).'),
+  "returnUrl": zod.string().nullable()
+}).describe('Connects the member\'s calendar. `returnUrl`: the dashboard path to come back to, a local path only.')
+
+export const StartCalendarConnectResponse = zod.object({
+  "authorizeUrl": zod.string()
+}).describe('Where to send the browser next: the provider\'s consent page (or the sandbox\'s).')
+
+
+export const ListInterviewersQueryParams = zod.object({
+  "jobId": zod.uuid()
+})
+
+export const ListInterviewersResponseItem = zod.object({
+  "userId": zod.uuid(),
+  "displayName": zod.string(),
+  "calendarConnected": zod.boolean(),
+  "calendarProvider": zod.union([zod.null(),zod.enum(['Google', 'Microsoft', 'Sandbox']).describe('Whose calendar a member connected. CalendarProvider.Sandbox is the local stand-in (Development and tests only).')])
+}).describe('A member who can interview for a job: one who sees it (everyone who sees all jobs, and the members on its hiring team).\n`calendarConnected` is true when their calendar is connected and works here, so ScreenHire can read when they are\nbusy and put the interview in it; an interview cannot be offered with someone who has none. `calendarProvider`\nsays which calendar it is, and is null when `calendarConnected` is false.')
+export const ListInterviewersResponse = zod.array(ListInterviewersResponseItem)
+
+
+export const ScheduleInterviewParams = zod.object({
+  "applicationId": zod.uuid()
+})
+
+export const ScheduleInterviewBody = zod.object({
+  "interviewerUserIds": zod.array(zod.uuid()).nullable(),
+  "durationMinutes": zod.int(),
+  "windowStart": zod.iso.datetime({"offset":true}),
+  "windowEnd": zod.iso.datetime({"offset":true}),
+  "timeZone": zod.string().nullable(),
+  "dayStart": zod.string().nullish(),
+  "dayEnd": zod.string().nullish()
+}).describe('Offers an application\'s candidate an interview. `interviewerUserIds` are one to five members who see the job; the\nfirst is the organizer, whose calendar event invites the candidate and makes the meeting link. `durationMinutes`\nis 15, 30, 45, 60, 90 or 120. The candidate picks a start that fits inside `windowStart` and `windowEnd`\n(at most 90 days) within the working hours `dayStart` and `dayEnd` (`HH:mm`, default 09:00 and 17:00,\nweekdays only) in `timeZone` (an IANA id such as `Europe/London`), which is also the zone the candidate\'s page\nfirst shows.')
+
+export const ScheduleInterviewResponse = zod.object({
+  "id": zod.uuid(),
+  "status": zod.enum(['Open', 'Booked', 'Cancelled', 'Expired']),
+  "startsAt": zod.iso.datetime({"offset":true}).nullable(),
+  "endsAt": zod.iso.datetime({"offset":true}).nullable(),
+  "windowStart": zod.iso.datetime({"offset":true}),
+  "windowEnd": zod.iso.datetime({"offset":true}),
+  "timeZone": zod.string(),
+  "durationMinutes": zod.int(),
+  "dayStart": zod.string(),
+  "dayEnd": zod.string(),
+  "meetingUrl": zod.string().nullable(),
+  "interviewers": zod.array(zod.object({
+  "userId": zod.uuid(),
+  "displayName": zod.string(),
+  "isOrganizer": zod.boolean(),
+  "syncStatus": zod.enum(['Pending', 'Synced', 'Failed']).describe('Where one interviewer\'s calendar event stands.'),
+  "syncProblem": zod.string().nullable()
+}).describe('One interviewer on an interview and the state of their calendar event. `syncStatus` is `Pending` (not on the\ncalendar yet, or being changed), `Synced` or `Failed`; `syncProblem` says why in plain words when it\nfailed. `displayName` is "Former member" for someone who left the organization.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "createdByUserId": zod.uuid().nullable(),
+  "cancelledByCandidate": zod.boolean()
+}).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.')
+
+
+export const ListApplicationInterviewsParams = zod.object({
+  "applicationId": zod.uuid()
+})
+
+export const ListApplicationInterviewsResponseItem = zod.object({
+  "id": zod.uuid(),
+  "status": zod.enum(['Open', 'Booked', 'Cancelled', 'Expired']),
+  "startsAt": zod.iso.datetime({"offset":true}).nullable(),
+  "endsAt": zod.iso.datetime({"offset":true}).nullable(),
+  "windowStart": zod.iso.datetime({"offset":true}),
+  "windowEnd": zod.iso.datetime({"offset":true}),
+  "timeZone": zod.string(),
+  "durationMinutes": zod.int(),
+  "dayStart": zod.string(),
+  "dayEnd": zod.string(),
+  "meetingUrl": zod.string().nullable(),
+  "interviewers": zod.array(zod.object({
+  "userId": zod.uuid(),
+  "displayName": zod.string(),
+  "isOrganizer": zod.boolean(),
+  "syncStatus": zod.enum(['Pending', 'Synced', 'Failed']).describe('Where one interviewer\'s calendar event stands.'),
+  "syncProblem": zod.string().nullable()
+}).describe('One interviewer on an interview and the state of their calendar event. `syncStatus` is `Pending` (not on the\ncalendar yet, or being changed), `Synced` or `Failed`; `syncProblem` says why in plain words when it\nfailed. `displayName` is "Former member" for someone who left the organization.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "createdByUserId": zod.uuid().nullable(),
+  "cancelledByCandidate": zod.boolean()
+}).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.')
+export const ListApplicationInterviewsResponse = zod.array(ListApplicationInterviewsResponseItem)
+
+
+export const CancelInterviewParams = zod.object({
+  "interviewId": zod.uuid()
+})
+
+export const CancelInterviewResponse = zod.object({
+  "id": zod.uuid(),
+  "status": zod.enum(['Open', 'Booked', 'Cancelled', 'Expired']),
+  "startsAt": zod.iso.datetime({"offset":true}).nullable(),
+  "endsAt": zod.iso.datetime({"offset":true}).nullable(),
+  "windowStart": zod.iso.datetime({"offset":true}),
+  "windowEnd": zod.iso.datetime({"offset":true}),
+  "timeZone": zod.string(),
+  "durationMinutes": zod.int(),
+  "dayStart": zod.string(),
+  "dayEnd": zod.string(),
+  "meetingUrl": zod.string().nullable(),
+  "interviewers": zod.array(zod.object({
+  "userId": zod.uuid(),
+  "displayName": zod.string(),
+  "isOrganizer": zod.boolean(),
+  "syncStatus": zod.enum(['Pending', 'Synced', 'Failed']).describe('Where one interviewer\'s calendar event stands.'),
+  "syncProblem": zod.string().nullable()
+}).describe('One interviewer on an interview and the state of their calendar event. `syncStatus` is `Pending` (not on the\ncalendar yet, or being changed), `Synced` or `Failed`; `syncProblem` says why in plain words when it\nfailed. `displayName` is "Former member" for someone who left the organization.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "createdByUserId": zod.uuid().nullable(),
+  "cancelledByCandidate": zod.boolean()
+}).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.')
+
+
 export const listEmailTemplatesResponseTemplatesItemLastUpdatedCreatedDefault = false;
 export const listEmailTemplatesResponseTemplatesItemInvitationOnlyDefault = false;
 export const listEmailTemplatesResponseVariablesItemQuestionnaireOnlyDefault = false;
@@ -8258,7 +8578,7 @@ export const ListEmailTemplatesResponse = zod.object({
   "rejectOnly": zod.boolean(),
   "questionnaireOnly": zod.boolean().default(listEmailTemplatesResponseVariablesItemQuestionnaireOnlyDefault),
   "invitationOnly": zod.boolean().default(listEmailTemplatesResponseVariablesItemInvitationOnlyDefault)
-}).describe('A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.\n`questionnaireOnly`: only the follow-up questions email has it. `invitationOnly`: only saved candidates\ninvitation has it.'))
+}).describe('A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.\n`questionnaireOnly`: only the follow-up questions email has it. `invitationOnly`: only the saved candidates\ninvitation or an interview email has it.'))
 }).describe('The organization\'s email templates and the variables they may use. `sendingEnabled` is false when this\ndeployment has no email sender: templates can still be edited, but nothing can be sent or tested.')
 
 

@@ -112,6 +112,8 @@ public class AppHostFixture : IAsyncLifetime
                 "--ScreenHire:CareersEmbedding:AllowLoopback=true",
                 // Slack: the local sandbox workspace (docs/architecture/slack.md), so connecting and posting run with no Slack.
                 "--ScreenHire:Slack:Sandbox:Enabled=true",
+                // Calendars: the local sandbox calendar (docs/architecture/interview-scheduling.md), so members connect one with no Google or Microsoft.
+                "--ScreenHire:Calendar:Sandbox:Enabled=true",
                 // Email: the local fake for replies and sending domains (docs/architecture/email.md), and the public key the
                 // tests sign SendGrid event webhooks with (EmailEvents), so bounces run with no SendGrid.
                 "--ScreenHire:Email:Sandbox:Enabled=true",

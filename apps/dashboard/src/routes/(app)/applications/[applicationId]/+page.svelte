@@ -1,5 +1,6 @@
 <script lang="ts">
   import ArrowLeftIcon from '~icons/lucide/arrow-left';
+  import CalendarPlusIcon from '~icons/lucide/calendar-plus';
   import MailCheckIcon from '~icons/lucide/mail-check';
   import MailIcon from '~icons/lucide/mail';
   import SendIcon from '~icons/lucide/send';
@@ -13,6 +14,7 @@
     createListApplicationScorecards,
     createListCandidateEmails,
     createClearCandidateEmailIssue,
+    createListApplicationInterviews,
     createListEmailTemplates,
     createGetJobHiringTeam,
     createListJobs,
@@ -43,6 +45,7 @@
   import MoveNoteSheet from '#lib/components/move-note-sheet.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
   import Notice from '#lib/components/notice.svelte';
+  import ScheduleInterviewSheet from '#lib/components/schedule-interview-sheet.svelte';
   import Panel from '#lib/components/panel.svelte';
   import PipelineTracker from '#lib/components/pipeline-tracker.svelte';
   import QueryError from '#lib/components/query-error.svelte';
@@ -66,6 +69,7 @@
   import { endedStatus, trackerFor } from '#lib/pipeline-tracker.js';
   import { canKeepInMind } from '#lib/talent-pool.js';
   import { membersWhoSee } from '#lib/hiring-team.js';
+  import { isTerminal } from '#lib/workflow.js';
   import { can } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { applicationsPath } from '#lib/realtime.js';
@@ -158,6 +162,24 @@
   // The sheet opens once the More menu has closed, so focus can go back to the menu's button.
   let emailChosen = false;
   let emailed = $state('');
+  // The Overview's Interview panel reads the same query. A booked time is a fact in the header; InterviewChanged refetches it live.
+  const interviews = createListApplicationInterviews(() => params.applicationId);
+  // Schedule interview (docs/architecture/interview-scheduling.md) goes where Email goes: it emails the candidate a link, so
+  // it takes the same permission and a deployment that can send. It is hidden once the application has ended (rejected,
+  // hired, withdrawn or kept in mind) and while an interview is open or booked, because the API refuses both and a button
+  // that can only fail is not offered (A3). It waits for the interviews to load, so it never appears and then goes.
+  const canSchedule = $derived(
+    canEmail &&
+      Boolean(detail) &&
+      !isTerminal(detail!.stage.kind) &&
+      !detail!.keptInMindAt &&
+      interviews.isSuccess &&
+      !interviews.data.data.some((interview) => interview.status === 'Open' || interview.status === 'Booked'),
+  );
+  let scheduleOpen = $state(false);
+  let scheduleChosen = false;
+  let scheduled = $state('');
+  const booked = $derived(interviews.data?.data.find((interview) => interview.status === 'Booked' && interview.startsAt));
 
   // Messages: every email to the candidate, about any of their applications. ApplicationEmailed refetches it live.
   const candidateEmails = createListCandidateEmails(
@@ -322,11 +344,23 @@
   <FailureText message={moves.failure ? moves.announcement : ''} />
   {#if canEmail && sidebar.isMobile}
     <!-- A phone keeps the bottom bar for the primary action; the rest fold into More (design system section 8). -->
-    <MoreMenu label="More actions" onclosed={() => emailChosen && ((emailChosen = false), (emailOpen = true))}>
+    <MoreMenu
+      label="More actions"
+      onclosed={() => {
+        if (emailChosen) ((emailChosen = false), (emailOpen = true));
+        else if (scheduleChosen) ((scheduleChosen = false), (scheduleOpen = true));
+      }}
+    >
       <DropdownMenu.Item onSelect={() => (emailChosen = true)}><MailIcon aria-hidden="true" />{saved ? 'Message' : 'Email'}</DropdownMenu.Item>
+      {#if canSchedule}
+        <DropdownMenu.Item onSelect={() => (scheduleChosen = true)}><CalendarPlusIcon aria-hidden="true" />Schedule interview</DropdownMenu.Item>
+      {/if}
     </MoreMenu>
   {:else if canEmail}
     <Button variant="outline" size="lg" onclick={() => (emailOpen = true)}><MailIcon aria-hidden="true" />{saved ? 'Message' : 'Email'}</Button>
+    {#if canSchedule}
+      <Button variant="outline" size="lg" onclick={() => (scheduleOpen = true)}><CalendarPlusIcon aria-hidden="true" />Schedule interview</Button>
+    {/if}
   {/if}
   {#if !sidebar.isMobile}{#if saved}{@render invite()}{:else}{@render moveToStage()}{/if}{/if}
 {/snippet}
@@ -391,6 +425,7 @@
             stageName={(id) => stageName(id)}
             {members}
             {currentUserId}
+            interview={booked}
           />
         {/snippet}
       </HeaderBand>
@@ -400,6 +435,7 @@
              shows in the header band, beside Move to stage. -->
         <p role="status" class="sr-only">{moves.failure ? '' : moves.announcement}</p>
         <p role="status" class="sr-only">{emailed}</p>
+        <p role="status" class="sr-only">{scheduled}</p>
         <p role="status" class="sr-only">{keptMessage}</p>
 
         <!-- The address was flagged by the email provider (E2): what it means for the team, and the way back. The badge on
@@ -507,6 +543,17 @@
     {/if}
     {#if saved && canEmail}
       <InviteToApplySheet bind:open={inviteOpen} people={invitee} ondone={(message) => (emailed = message)} />
+    {/if}
+
+    {#if canSchedule}
+      <ScheduleInterviewSheet
+        bind:open={scheduleOpen}
+        applicationId={detail.id}
+        jobId={detail.jobId}
+        candidateName={detail.candidate.fullName}
+        {currentUserId}
+        ondone={(message) => (scheduled = message)}
+      />
     {/if}
 
     {#if mayScore}

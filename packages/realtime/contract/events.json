@@ -175,6 +175,16 @@
     }
   },
   {
+    "type": "InterviewChanged",
+    "data": {
+      "organizationId": "0199f0c4-0000-7000-8000-000000000001",
+      "applicationId": "0199f0c4-0000-7000-8000-000000000002",
+      "jobId": "0199f0c4-0000-7000-8000-000000000003",
+      "interviewId": "0199f0c4-0000-7000-8000-000000000004",
+      "status": "sample-5"
+    }
+  },
+  {
     "type": "JobClosed",
     "data": {
       "organizationId": "0199f0c4-0000-7000-8000-000000000001",

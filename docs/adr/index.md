@@ -25,12 +25,13 @@ Architecture decision records, oldest first. A changed decision is a new or amen
 * [ADR-0021: Verification read, an API key scope only an Owner can give](0021-verification-read-scope-for-api-keys.md) - A third API key scope, VerificationRead, that only an Owner can grant: it opens an application's verification and a list of applications by level to the key, over HTTP and the MCP server, records every read in the review log under the key, and changes nothing for a key without it; reports and saved candidates become MCP read tools; a level is still never a reason to reject.
 * [ADR-0022: Email goes through SendGrid bought on the Azure Marketplace, and candidates can reply](0022-sendgrid-through-azure-marketplace.md) - SendGrid, bought through the Azure Marketplace, sends candidate email, receives replies with Inbound Parse and reports bounces; a reply address that names the send and is signed; the company's own sending domain verified by the provider; ACS Email stays a possible sender behind IEmailSender; amends the Email row of ADR-0007.
 * [ADR-0023: A candidate's header is the name, a pipeline tracker and three mini cards](0023-candidate-header-tracker-and-mini-cards.md) - A candidate's header drops the meta line: the first line is the name and one status badge, a pipeline tracker of dots replaces the stage pill, and Contact, Application and Also applied to (or Rating) become mini cards; Rejected, Withdrawn and Hired get a status of their own, and the tracker's dots are the one exception to square steps.
+* [ADR-0024: Interview scheduling runs on the Google Calendar and Microsoft Graph APIs](0024-interview-scheduling-on-calendar-apis.md) - Interviews are scheduled on members' own calendars through the free Google Calendar and Microsoft Graph APIs behind one provider interface and a Postgres-backed sandbox: calendar OAuth kept apart from sign-in with free/busy and event scopes only, encrypted per-member tokens, a no-account booking link on the careers site, one event per interviewer, double-booking prevented by advisory locks, lazy expiry, and why Cal.com, Nylas, Cronofy and a calendar of our own were rejected.
 
 ## Status
 
 | ADR | Status |
 |---|---|
-| 0001, 0002, 0006, 0008, 0012, 0014 to 0016, 0018 to 0023 | Accepted |
+| 0001, 0002, 0006, 0008, 0012, 0014 to 0016, 0018 to 0024 | Accepted |
 | 0007 | Accepted, the Email row amended by 0022 (SendGrid through the Azure Marketplace; ACS Email stays a possible sender) |
 | 0003 | Accepted, Lighthouse enforcement amended by 0020 (report-only in CI until calibrated on the runners) |
 | 0004 | Accepted, terminology amended by 0019 (integrity is called verification) |

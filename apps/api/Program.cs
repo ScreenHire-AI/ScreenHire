@@ -15,6 +15,7 @@ using ScreenHire.Api.Realtime;
 using ScreenHire.Application.Automations;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Messaging;
+using ScreenHire.Application.Scheduling;
 using ScreenHire.Application.SendingDomains;
 using ScreenHire.Application.Slack;
 using ScreenHire.Infrastructure.Email;
@@ -87,6 +88,8 @@ builder.Services.AddScreenHireSlack();
 // reply store, and the sending-domain provider, each hidden until configured, with a local sandbox for each.
 builder.Services.AddScreenHireEmailWebhooks();
 builder.Services.AddScreenHireSendingDomains();
+// Calendars (docs/architecture/interview-scheduling.md): members connect theirs here; the worker puts interviews in them.
+builder.Services.AddScreenHireCalendar();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     // Strict numbers keep OpenAPI integer/number types clean for the generated TypeScript client.
@@ -118,6 +121,7 @@ app.MapPublicJobEndpoints();
 app.MapPublicApplicationEndpoints();
 app.MapPublicApplicationDraftEndpoints();
 app.MapPublicQuestionnaireEndpoints();
+app.MapPublicInterviewEndpoints();
 app.MapPublicTalentPoolEndpoints();
 app.MapPublicTelemetryEndpoints();
 app.MapJobEndpoints();
@@ -143,6 +147,8 @@ app.MapScorecardTemplateEndpoints();
 app.MapTemplateUsageEndpoints();
 app.MapWebhookEndpoints();
 app.MapSlackEndpoints();
+app.MapCalendarEndpoints();
+app.MapInterviewEndpoints();
 app.MapEmailEndpoints();
 app.MapEmailWebhookEndpoints();
 app.MapSendingDomainEndpoints();

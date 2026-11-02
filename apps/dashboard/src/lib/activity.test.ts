@@ -1,6 +1,7 @@
 import type { ApplicationTimelineEntry } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
-import { actorText, describeEvent, kindCounts, visibleEntries } from '#lib/activity.js';
+import { actorText, describeEvent, eventIcons, kindCounts, visibleEntries } from '#lib/activity.js';
+import { formatDateTime } from '#lib/dates.js';
 
 const base: ApplicationTimelineEntry = {
   id: 'e0',
@@ -37,7 +38,7 @@ describe('activity', () => {
   });
 
   it('counts each kind, and the checks only under All', () => {
-    expect(kindCounts(visibleEntries(entries))).toEqual({ all: 6, notes: 2, emails: 2, scorecards: 0, stage: 1 });
+    expect(kindCounts(visibleEntries(entries))).toEqual({ all: 6, notes: 2, emails: 2, scorecards: 0, interviews: 0, stage: 1 });
   });
 
   it('says a note was deleted and by whom, never what it said', () => {
@@ -64,7 +65,7 @@ describe('activity', () => {
     const task = entry('t', { type: 'TaskCreated', note: 'Check the references', taskId: 't1', actorApiKeyId: 'k1', actorApiKeyName: 'Assistant' });
     expect(describeEvent(task, names)).toBe('Created a task');
     expect(actorText(task, [], undefined)).toBe('by Assistant');
-    expect(kindCounts([task])).toEqual({ all: 1, notes: 0, emails: 0, scorecards: 0, stage: 0 });
+    expect(kindCounts([task])).toEqual({ all: 1, notes: 0, emails: 0, scorecards: 0, interviews: 0, stage: 0 });
   });
 
   describe('saved candidate entries', () => {
@@ -96,6 +97,32 @@ describe('activity', () => {
       expect(describeEvent(entry('l', { type: 'LeftTalentPool', poolExit: 'AddedToJob', otherJobId: 'j2' }), names)).toBe(
         'Added them to another job from saved candidates',
       );
+    });
+
+    it('says what happened to an interview, with the time it was about when the entry has one', () => {
+      const startsAt = '2026-11-03T14:30:00Z';
+      const endsAt = '2026-11-03T15:00:00Z';
+      expect(describeEvent(entry('a', { type: 'InterviewInvited' }), names)).toBe('Invited to pick an interview time');
+      expect(describeEvent(entry('b', { type: 'InterviewBooked', startsAt, endsAt }), names)).toBe(`Interview booked for ${formatDateTime(startsAt)}`);
+      expect(describeEvent(entry('c', { type: 'InterviewRescheduled', startsAt, endsAt }), names)).toBe(`Interview moved to ${formatDateTime(startsAt)}`);
+      expect(describeEvent(entry('d', { type: 'InterviewCancelled', startsAt, endsAt }), names)).toBe(`Interview on ${formatDateTime(startsAt)} cancelled`);
+    });
+
+    it('words an interview entry with no time, as an offer that was withdrawn before a time was picked', () => {
+      expect(describeEvent(entry('b', { type: 'InterviewBooked' }), names)).toBe('Interview booked');
+      expect(describeEvent(entry('c', { type: 'InterviewRescheduled' }), names)).toBe('Interview moved to another time');
+      expect(describeEvent(entry('d', { type: 'InterviewCancelled' }), names)).toBe('Interview cancelled');
+    });
+
+    it('lists the four interview entries under Interviews, with an icon each, and names the team member who cancelled', () => {
+      const types = ['InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled'] as const;
+      const interviews = types.map((type) => entry(type, { type }));
+      expect(kindCounts(interviews)).toEqual({ all: 4, notes: 0, emails: 0, scorecards: 0, interviews: 4, stage: 0 });
+      expect(new Set(types.map((type) => eventIcons[type])).size).toBe(4);
+      const cancelled = entry('x', { type: 'InterviewCancelled', actorUserId: 'u1' });
+      expect(actorText(cancelled, [{ id: 'm', userId: 'u1', email: 'a@example.com', displayName: 'Avery Quinn', role: 'Admin', customRoleId: null, roleName: 'Admin', joinedAt: base.occurredAt, jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 }], 'me')).toBe('by Avery Quinn');
+      // The candidate booking or cancelling has no actor: Activity says nothing about who.
+      expect(actorText(entry('y', { type: 'InterviewBooked' }), [], 'me')).toBeUndefined();
     });
 
     it('names the job an invitation was for, and lists it under Emails', () => {

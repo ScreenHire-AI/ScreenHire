@@ -1,7 +1,7 @@
 <script lang="ts">
   import MailIcon from '~icons/lucide/mail';
   import PhoneIcon from '~icons/lucide/phone';
-  import type { ApplicationDetail, CandidateEmailEntry, ScorecardEntry, TeamMember } from '@screenhire/api-client';
+  import type { ApplicationDetail, ApplicationInterview, CandidateEmailEntry, ScorecardEntry, TeamMember } from '@screenhire/api-client';
   import { createGetCandidate } from '@screenhire/api-client/svelte-query';
   import CopyButton from '#lib/components/copy-button.svelte';
   import MiniCard from '#lib/components/mini-card.svelte';
@@ -9,6 +9,7 @@
   import RelativeTime from '#lib/components/relative-time.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
+  import { formatDateTime } from '#lib/dates.js';
   import { emailIssueStatus } from '#lib/email-issue.js';
   import { siteName } from '#lib/format.js';
 
@@ -23,6 +24,7 @@
     stageName,
     members,
     currentUserId,
+    interview,
   }: {
     detail: ApplicationDetail;
     /** Every email to or from the candidate, once loaded: the newest is when they were last contacted. */
@@ -31,6 +33,8 @@
     stageName?: (stageId: string) => string;
     members?: readonly TeamMember[];
     currentUserId?: string;
+    /** The booked interview, if there is one: the one fact about it the header shows, in the reader's own zone. */
+    interview?: ApplicationInterview;
   } = $props();
 
   const candidate = createGetCandidate(() => detail.candidate.id);
@@ -102,6 +106,14 @@
     <MiniCard title="Also applied to">
       <p class="min-h-6 text-muted-foreground">{othersText}</p>
       {@render profileLink()}
+    </MiniCard>
+  {/if}
+
+  {#if interview?.startsAt}
+    <!-- A booked interview is a fact here and not said again in the Interview panel (W7). -->
+    <MiniCard title="Interview">
+      <p class="min-h-6"><time datetime={interview.startsAt}>{formatDateTime(interview.startsAt)}</time></p>
+      <p class="min-h-6 text-muted-foreground">{interview.durationMinutes} minutes with {interview.interviewers.length === 1 ? '1 interviewer' : `${interview.interviewers.length} interviewers`}</p>
     </MiniCard>
   {/if}
 </div>

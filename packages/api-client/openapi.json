@@ -1413,6 +1413,268 @@
         }
       }
     },
+    "/v1/public/organizations/{organizationSlug}/interviews/{token}": {
+      "get": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "GetPublicInterview",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicInterview"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/interviews/{token}/book": {
+      "post": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "BookPublicInterview",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicInterviewChoice"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/interviews/{token}/reschedule": {
+      "post": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "ReschedulePublicInterview",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicInterviewChoice"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/interviews/{token}/cancel": {
+      "post": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "CancelPublicInterview",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
     "/v1/public/organizations/{organizationSlug}/talent-pool/{token}": {
       "get": {
         "tags": [
@@ -9732,6 +9994,346 @@
         ]
       }
     },
+    "/v1/calendar": {
+      "get": {
+        "tags": [
+          "Calendar"
+        ],
+        "operationId": "GetCalendar",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Calendar"
+        ],
+        "operationId": "DisconnectCalendar",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/calendar/connect": {
+      "post": {
+        "tags": [
+          "Calendar"
+        ],
+        "operationId": "StartCalendarConnect",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartCalendarConnectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarAuthorization"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/interviewers": {
+      "get": {
+        "tags": [
+          "Interviews"
+        ],
+        "operationId": "ListInterviewers",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Interviewer"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/applications/{applicationId}/interviews": {
+      "post": {
+        "tags": [
+          "Interviews"
+        ],
+        "operationId": "ScheduleInterview",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleInterviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationInterview"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Interviews"
+        ],
+        "operationId": "ListApplicationInterviews",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApplicationInterview"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/interviews/{interviewId}/cancel": {
+      "post": {
+        "tags": [
+          "Interviews"
+        ],
+        "operationId": "CancelInterview",
+        "parameters": [
+          {
+            "name": "interviewId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationInterview"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/email-templates": {
       "get": {
         "tags": [
@@ -11946,6 +12548,10 @@
           "KeptInMind",
           "LeftTalentPool",
           "InvitedToApply",
+          "InterviewInvited",
+          "InterviewBooked",
+          "InterviewRescheduled",
+          "InterviewCancelled",
           "EmailReceived"
         ]
       },
@@ -12055,6 +12661,97 @@
           }
         },
         "description": "A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\nworkflow changes."
+      },
+      "ApplicationInterview": {
+        "required": [
+          "id",
+          "status",
+          "startsAt",
+          "endsAt",
+          "windowStart",
+          "windowEnd",
+          "timeZone",
+          "durationMinutes",
+          "dayStart",
+          "dayEnd",
+          "meetingUrl",
+          "interviewers",
+          "createdAt",
+          "createdByUserId",
+          "cancelledByCandidate"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/InterviewStatus"
+          },
+          "startsAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "windowStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "windowEnd": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dayStart": {
+            "type": "string"
+          },
+          "dayEnd": {
+            "type": "string"
+          },
+          "meetingUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "interviewers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InterviewParticipant"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdByUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "cancelledByCandidate": {
+            "type": "boolean"
+          }
+        },
+        "description": "An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer's Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it."
       },
       "ApplicationNoteDetail": {
         "required": [
@@ -12515,6 +13212,27 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "interviewId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "startsAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         },
         "description": "One entry of an application's timeline, oldest first. Members that do not apply to the type are null."
@@ -12770,6 +13488,36 @@
             ]
           },
           "questionnaireId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "interviewerUserIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "interviewMinutes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "interviewWindowDays": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "interviewTimeZone": {
             "type": [
               "null",
               "string"
@@ -13320,6 +14068,117 @@
           }
         },
         "description": "An uploaded brand image. `scanStatus` is the malware scan's: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served. `fileName` is the\nname it was uploaded with."
+      },
+      "CalendarAccount": {
+        "required": [
+          "provider",
+          "providerName",
+          "accountEmail",
+          "connectedAt",
+          "problem"
+        ],
+        "type": "object",
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/CalendarProvider"
+          },
+          "providerName": {
+            "type": "string"
+          },
+          "accountEmail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "connectedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "problem": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CalendarProblem"
+              }
+            ]
+          }
+        },
+        "description": "The member's connected calendar. `accountEmail` is the calendar owner's address when the provider says it.\n`problem` is `NeedsReconnect` once the provider stopped accepting the connection."
+      },
+      "CalendarAuthorization": {
+        "required": [
+          "authorizeUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "authorizeUrl": {
+            "type": "string"
+          }
+        },
+        "description": "Where to send the browser next: the provider's consent page (or the sandbox's)."
+      },
+      "CalendarProblem": {
+        "enum": [
+          "NeedsReconnect",
+          null
+        ]
+      },
+      "CalendarProvider": {
+        "enum": [
+          "Google",
+          "Microsoft",
+          "Sandbox"
+        ],
+        "description": "Whose calendar a member connected. CalendarProvider.Sandbox is the local stand-in (Development and tests only)."
+      },
+      "CalendarProviderOption": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/CalendarProvider"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "description": "A calendar the member can connect: its id, and the name the sheet shows."
+      },
+      "CalendarStatus": {
+        "required": [
+          "sandbox",
+          "providers",
+          "connection"
+        ],
+        "type": "object",
+        "properties": {
+          "sandbox": {
+            "type": "boolean"
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CalendarProviderOption"
+            }
+          },
+          "connection": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CalendarAccount"
+              }
+            ]
+          }
+        },
+        "description": "The signed-in member's calendar (docs/architecture/interview-scheduling.md). `providers` are the calendars they\ncan connect here, empty when this ScreenHire has none configured. `connection` is their own, null until they\nconnect one. No token is ever in an answer."
       },
       "CandidateDetail": {
         "required": [
@@ -14660,7 +15519,7 @@
             "default": false
           }
         },
-        "description": "A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.\n`questionnaireOnly`: only the follow-up questions email has it. `invitationOnly`: only saved candidates\ninvitation has it."
+        "description": "A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.\n`questionnaireOnly`: only the follow-up questions email has it. `invitationOnly`: only the saved candidates\ninvitation or an interview email has it."
       },
       "EmploymentType": {
         "enum": [
@@ -15436,6 +16295,86 @@
             }
           }
         }
+      },
+      "Interviewer": {
+        "required": [
+          "userId",
+          "displayName",
+          "calendarConnected",
+          "calendarProvider"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "calendarConnected": {
+            "type": "boolean"
+          },
+          "calendarProvider": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CalendarProvider"
+              }
+            ]
+          }
+        },
+        "description": "A member who can interview for a job: one who sees it (everyone who sees all jobs, and the members on its hiring team).\n`calendarConnected` is true when their calendar is connected and works here, so ScreenHire can read when they are\nbusy and put the interview in it; an interview cannot be offered with someone who has none. `calendarProvider`\nsays which calendar it is, and is null when `calendarConnected` is false."
+      },
+      "InterviewParticipant": {
+        "required": [
+          "userId",
+          "displayName",
+          "isOrganizer",
+          "syncStatus",
+          "syncProblem"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "isOrganizer": {
+            "type": "boolean"
+          },
+          "syncStatus": {
+            "$ref": "#/components/schemas/InterviewSyncStatus"
+          },
+          "syncProblem": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One interviewer on an interview and the state of their calendar event. `syncStatus` is `Pending` (not on the\ncalendar yet, or being changed), `Synced` or `Failed`; `syncProblem` says why in plain words when it\nfailed. `displayName` is \"Former member\" for someone who left the organization."
+      },
+      "InterviewStatus": {
+        "enum": [
+          "Open",
+          "Booked",
+          "Cancelled",
+          "Expired"
+        ]
+      },
+      "InterviewSyncStatus": {
+        "enum": [
+          "Pending",
+          "Synced",
+          "Failed"
+        ],
+        "description": "Where one interviewer's calendar event stands."
       },
       "InvitationAcceptance": {
         "required": [
@@ -17789,6 +18728,98 @@
         },
         "description": "The header band: its fill, the second colour, and the white or ink text on it. Both `#rrggbb`."
       },
+      "PublicInterview": {
+        "required": [
+          "organization",
+          "jobTitle",
+          "state",
+          "startsAt",
+          "endsAt",
+          "timeZone",
+          "defaultTimeZone",
+          "durationMinutes",
+          "slots",
+          "slotsUnavailable",
+          "canChange",
+          "minNoticeHours"
+        ],
+        "type": "object",
+        "properties": {
+          "organization": {
+            "$ref": "#/components/schemas/PublicOrganization"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/PublicInterviewState"
+          },
+          "startsAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "defaultTimeZone": {
+            "type": "string"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "slotsUnavailable": {
+            "type": "boolean"
+          },
+          "canChange": {
+            "type": "boolean"
+          },
+          "minNoticeHours": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "The interview as the candidate's page shows it. `slots` are the start times offered, as UTC instants in order, each\n`durationMinutes` long: for an Open interview, and for a Booked one the candidate may still change. The page writes\nthem in `timeZone` (the `tz` asked for when it is a zone the server knows, otherwise `defaultTimeZone`,\nthe zone the team chose). `slotsUnavailable` is true when the team's calendars could not be read just now, so no\ntimes are offered; trying again later may work. `minNoticeHours` is how long before the start the candidate can\nstill move or cancel. Nothing about the interviewers, and nothing from verification."
+      },
+      "PublicInterviewChoice": {
+        "required": [
+          "start"
+        ],
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "The start time the candidate picked, one of the offered `slots`."
+      },
+      "PublicInterviewState": {
+        "enum": [
+          "Open",
+          "Booked",
+          "Cancelled",
+          "Expired"
+        ],
+        "description": "Where a candidate's interview stands on the careers page."
+      },
       "PublicJob": {
         "required": [
           "id",
@@ -18825,6 +19856,59 @@
           }
         },
         "description": "A saved view as the signed-in member sees it: their own, and the team's shared ones. `mine` is whether they saved\nit; `canEdit` whether they may rename, share or delete it (its owner, or a role that edits anyone's views)."
+      },
+      "ScheduleInterviewRequest": {
+        "required": [
+          "interviewerUserIds",
+          "durationMinutes",
+          "windowStart",
+          "windowEnd",
+          "timeZone"
+        ],
+        "type": "object",
+        "properties": {
+          "interviewerUserIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "windowStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "windowEnd": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "timeZone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "dayStart": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "dayEnd": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Offers an application's candidate an interview. `interviewerUserIds` are one to five members who see the job; the\nfirst is the organizer, whose calendar event invites the candidate and makes the meeting link. `durationMinutes`\nis 15, 30, 45, 60, 90 or 120. The candidate picks a start that fits inside `windowStart` and `windowEnd`\n(at most 90 days) within the working hours `dayStart` and `dayEnd` (`HH:mm`, default 09:00 and 17:00,\nweekdays only) in `timeZone` (an IANA id such as `Europe/London`), which is also the zone the candidate's page\nfirst shows."
       },
       "Scorecard": {
         "required": [
@@ -19950,6 +21034,25 @@
           "Withdrawn",
           "Custom"
         ]
+      },
+      "StartCalendarConnectRequest": {
+        "required": [
+          "provider",
+          "returnUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/CalendarProvider"
+          },
+          "returnUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Connects the member's calendar. `returnUrl`: the dashboard path to come back to, a local path only."
       },
       "StartSlackLinkRequest": {
         "required": [
@@ -21971,6 +23074,12 @@
     },
     {
       "name": "Slack"
+    },
+    {
+      "name": "Calendar"
+    },
+    {
+      "name": "Interviews"
     },
     {
       "name": "Email"

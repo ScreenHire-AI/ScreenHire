@@ -60,6 +60,9 @@ export const invalidations: InvalidationMap = {
   ApplicationEmailed: [jobsPath, applicationsPath, candidatesPath, talentPoolPath],
   CandidateReplied: [jobsPath, applicationsPath, candidatesPath, talentPoolPath],
   CandidateEmailStatusChanged: [applicationsPath, candidatesPath],
+  // An interview offered, booked, moved or cancelled: the application's interviews (`/v1/applications/{id}/interviews`),
+  // its Activity and every list's last activity.
+  InterviewChanged: [jobsPath, applicationsPath, candidatesPath],
   ApplicationNoteAdded: [jobsPath, applicationsPath, candidatesPath],
   ApplicationNoteEdited: [jobsPath, applicationsPath, candidatesPath],
   ApplicationNoteDeleted: [jobsPath, applicationsPath, candidatesPath],

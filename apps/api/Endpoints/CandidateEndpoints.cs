@@ -4,9 +4,11 @@ using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.Candidates;
+using ScreenHire.Application.Scheduling;
 using ScreenHire.Application.Verification;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.Scheduling;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
@@ -122,6 +124,20 @@ internal static class CandidateEndpoints
         var observations = await db.SubmissionObservations.AsNoTracking()
             .Where(o => applicationIds.Contains(o.ApplicationId)).ToDictionaryAsync(o => o.ApplicationId, cancellationToken);
 
+        // The events on interviewers' calendars hold the candidate's name and address, and the rows that say where they are
+        // go with the candidate. So their places are read now, under the interviewers' locks (a calendar write in flight
+        // finishes and saves its event ids first), and a message deletes them quietly once this commits.
+        var interviewers = await db.InterviewAttendees.AsNoTracking().Where(a => applicationIds.Contains(a.ApplicationId)).Select(a => a.UserId).ToListAsync(cancellationToken);
+        await InterviewLocks.TakeAsync(db, organizationId, interviewers, cancellationToken);
+        var interviews = await db.InterviewRequests.AsNoTracking().Where(r => applicationIds.Contains(r.ApplicationId)).ToDictionaryAsync(r => r.Id, cancellationToken);
+        var eventsToRemove = (await db.InterviewAttendees.AsNoTracking().Where(a => applicationIds.Contains(a.ApplicationId)).ToListAsync(cancellationToken))
+            .Where(a => interviews[a.InterviewId] is { } i
+                && (i.Status == InterviewStatus.Booked
+                    || (i.Status == InterviewStatus.Cancelled && a.ProviderEventId is not null && a.SyncStatus != InterviewSyncStatus.Synced)))
+            .Select(a => new InterviewEventToRemove(
+                a.InterviewId, a.UserId, a.ProviderEventId, interviews[a.InterviewId].WindowStart, interviews[a.InterviewId].WindowEnd))
+            .ToList();
+
         // Who shared a detail with these applications, read before the rows go. A person has a handful of applications, so
         // this asks the directory once for each, the same question the duplicate check asks.
         var rechecks = new List<RecheckApplicationDuplicates>();
@@ -156,6 +172,11 @@ internal static class CandidateEndpoints
         foreach (var recheck in rechecks.DistinctBy(r => (r.ApplicationId, r.CauseApplicationId)))
         {
             await outbox.PublishAsync(recheck);
+        }
+
+        if (eventsToRemove.Count > 0)
+        {
+            await outbox.PublishAsync(new RemoveInterviewEvents(organizationId, candidateId, eventsToRemove));
         }
 
         await outbox.PublishAsync(new CandidateErased(organizationId, candidateId, now));

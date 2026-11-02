@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { CurrentUser, SavedViewSummary, SlackStatus } from '@screenhire/api-client';
+  import type { CalendarStatus, CurrentUser, SavedViewSummary, SlackStatus } from '@screenhire/api-client';
   import ChevronDownIcon from '~icons/lucide/chevron-down';
   import ChevronsUpDownIcon from '~icons/lucide/chevrons-up-down';
   import EllipsisIcon from '~icons/lucide/ellipsis';
@@ -16,6 +16,7 @@
   import { page } from '$app/state';
   import FailureText from '#lib/components/failure-text.svelte';
   import LogoMark from '#lib/components/logo-mark.svelte';
+  import CalendarAccountSheet from '#lib/components/calendar-account-sheet.svelte';
   import RenameViewDialog from '#lib/components/rename-view-dialog.svelte';
   import SlackAccountSheet from '#lib/components/slack-account-sheet.svelte';
   import StatusIcon from '#lib/components/status-icon.svelte';
@@ -29,6 +30,7 @@
   import type { SidebarView } from '#lib/sidebar-views.js';
   import { signOutAndRedirect } from '#lib/session.js';
   import { visibleSettingsSections } from '#lib/settings.js';
+  import { calendarFailure, isCalendarOutcome } from '#lib/calendar.js';
   import { slackFailure } from '#lib/slack.js';
   import { getShell, sections } from '#lib/shell.js';
   import type { ViewActions } from '#lib/views.svelte.js';
@@ -40,6 +42,8 @@
     views,
     viewActions,
     slack,
+    calendar,
+    calendarOpen = $bindable(false),
   }: {
     user: CurrentUser | null;
     /**
@@ -51,6 +55,10 @@
     viewActions?: ViewActions;
     /** Slack for this person (`GET /v1/slack`), for the Slack account item in their menu; missing while it loads. */
     slack?: SlackStatus;
+    /** The person's calendar (`GET /v1/calendar`), for the Calendar item in their menu; missing while it loads. */
+    calendar?: CalendarStatus;
+    /** The Calendar sheet is open. The shell opens it for a page that needs the person's calendar connected. */
+    calendarOpen?: boolean;
   } = $props();
 
   const sidebar = Sidebar.useSidebar();
@@ -83,6 +91,25 @@
     slackOpen = true;
     const url = new URL(page.url.href);
     url.searchParams.delete('slack-account');
+    void goto(url, { replace: true, reset: false });
+  });
+
+  // Each person's own calendar, in their menu once this ScreenHire has a calendar to connect (docs/architecture/interview-scheduling.md).
+  const calendarAvailable = $derived(Boolean(calendar && calendar.providers.length > 0));
+  let calendarOutcome = $state('');
+  // An outcome belongs to the visit it came back with, so the sheet opens clean when a page opens it through the shell.
+  $effect(() => {
+    if (!calendarOpen) calendarOutcome = '';
+  });
+  // Connecting comes back to the page it started on with ?calendar=: the sheet opens to show how it went, and the
+  // parameter leaves the address so a reload does not repeat it.
+  $effect(() => {
+    const outcome = page.url.searchParams.get('calendar');
+    if (!isCalendarOutcome(outcome)) return;
+    calendarOutcome = calendarFailure(outcome) ?? '';
+    calendarOpen = true;
+    const url = new URL(page.url.href);
+    url.searchParams.delete('calendar');
     void goto(url, { replace: true, reset: false });
   });
 
@@ -284,6 +311,10 @@
                 checked={preferences.shortcutsEnabled}
                 onCheckedChange={(checked) => preferences.setShortcutsEnabled(checked)}>Single-key shortcuts</DropdownMenu.CheckboxItem
               >
+              {#if calendarAvailable}
+                <DropdownMenu.Separator />
+                <DropdownMenu.Item onSelect={() => ((calendarOutcome = ''), (calendarOpen = true))}>Calendar</DropdownMenu.Item>
+              {/if}
               {#if slackConnected}
                 <DropdownMenu.Separator />
                 <DropdownMenu.Item onSelect={() => ((slackOutcome = ''), (slackOpen = true))}>Slack account</DropdownMenu.Item>
@@ -298,6 +329,9 @@
   </Sidebar.Footer>
 </Sidebar.Root>
 
+{#if calendar && calendarAvailable}
+  <CalendarAccountSheet bind:open={calendarOpen} status={calendar} outcome={calendarOutcome} />
+{/if}
 {#if slack?.available}
   <SlackAccountSheet bind:open={slackOpen} status={slack} outcome={slackOutcome} />
 {/if}

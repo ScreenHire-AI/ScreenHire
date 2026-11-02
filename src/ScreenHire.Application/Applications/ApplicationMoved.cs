@@ -2,10 +2,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScreenHire.Application.Automations;
 using ScreenHire.Application.Messaging;
+using ScreenHire.Application.Scheduling;
 using ScreenHire.Application.Slack;
 using ScreenHire.Application.Webhooks;
 using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Domain.Scheduling;
 using ScreenHire.Infrastructure.Persistence;
 using Wolverine;
 
@@ -53,6 +55,14 @@ public static partial class ApplicationMovedHandler
             onlyAutomationId: null,
             cancellationToken);
         outgoing.Add(WebhookEvents.From(message));
+        // An interview offered or booked on an application that has now ended is cancelled. The handler checks the stage, so
+        // a move that did not end it, or a move back, cancels nothing; this only asks for the check when there is an interview.
+        if (await db.InterviewRequests.AsNoTracking().AnyAsync(
+                r => r.ApplicationId == message.ApplicationId && (r.Status == InterviewStatus.Open || r.Status == InterviewStatus.Booked), cancellationToken))
+        {
+            outgoing.Add(new EndApplicationInterviews(message.OrganizationId, message.ApplicationId, message.EventId));
+        }
+
         if (SlackEvents.From(message, slack) is { } post)
         {
             outgoing.Add(post);

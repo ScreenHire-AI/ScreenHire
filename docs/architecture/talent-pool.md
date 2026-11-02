@@ -28,6 +28,7 @@ sources:
 A runner-up is often the next hire (roadmap item 7). Before this, the only ways out of a job were Hired, Rejected,
 Withdrawn, or sitting in a closed job. **Save candidate** is a fourth: the candidate leaves the job without a rejection,
 and everything on the application stays with it (answers, files, scorecards, notes, Verification results and Activity).
+An interview offered or booked on it is cancelled ([interview scheduling](interview-scheduling.md#when-an-interview-is-cut-short)).
 They join the organization's **saved candidates**, where the team can write to them, invite them to apply for another
 job or add them to one.
 

@@ -1,6 +1,10 @@
 import ArrowRightIcon from '~icons/lucide/arrow-right';
 import BookmarkIcon from '~icons/lucide/bookmark';
 import BookmarkXIcon from '~icons/lucide/bookmark-x';
+import CalendarCheckIcon from '~icons/lucide/calendar-check';
+import CalendarClockIcon from '~icons/lucide/calendar-clock';
+import CalendarPlusIcon from '~icons/lucide/calendar-plus';
+import CalendarXIcon from '~icons/lucide/calendar-x';
 import ClipboardCheckIcon from '~icons/lucide/clipboard-check';
 import ClipboardListIcon from '~icons/lucide/clipboard-list';
 import InboxIcon from '~icons/lucide/inbox';
@@ -17,6 +21,7 @@ import TagsIcon from '~icons/lucide/tags';
 import Trash2Icon from '~icons/lucide/trash-2';
 import type { ApplicationEventType, ApplicationTimelineEntry, TalentPoolExit, TeamMember } from '@screenhire/api-client';
 import type { Component } from 'svelte';
+import { formatDateTime } from '#lib/dates.js';
 import { personName } from '#lib/team.js';
 
 /**
@@ -30,6 +35,7 @@ export const activityKinds = [
   { value: 'notes', label: 'Notes' },
   { value: 'emails', label: 'Emails' },
   { value: 'scorecards', label: 'Scorecards' },
+  { value: 'interviews', label: 'Interviews' },
   { value: 'stage', label: 'Stage and tags' },
 ] as const;
 
@@ -48,6 +54,10 @@ const kinds: Partial<Record<ApplicationEventType, ActivityKind>> = {
   KeptInMind: 'stage',
   LeftTalentPool: 'stage',
   InvitedToApply: 'emails',
+  InterviewInvited: 'interviews',
+  InterviewBooked: 'interviews',
+  InterviewRescheduled: 'interviews',
+  InterviewCancelled: 'interviews',
 };
 
 export const activityKind = (entry: Pick<ApplicationTimelineEntry, 'type'>): ActivityKind | undefined => kinds[entry.type];
@@ -59,7 +69,7 @@ export function visibleEntries(entries: readonly ApplicationTimelineEntry[]): Ap
 
 /** How many entries each kind holds, and all of them. */
 export function kindCounts(entries: readonly ApplicationTimelineEntry[]): Record<ActivityKind | 'all', number> {
-  const counts = { all: entries.length, notes: 0, emails: 0, scorecards: 0, stage: 0 };
+  const counts = { all: entries.length, notes: 0, emails: 0, scorecards: 0, interviews: 0, stage: 0 };
   for (const entry of entries) {
     const kind = activityKind(entry);
     if (kind) counts[kind] += 1;
@@ -85,6 +95,10 @@ export const eventIcons: Record<ApplicationEventType, Component> = {
   KeptInMind: BookmarkIcon,
   LeftTalentPool: BookmarkXIcon,
   InvitedToApply: MailPlusIcon,
+  InterviewInvited: CalendarPlusIcon,
+  InterviewBooked: CalendarCheckIcon,
+  InterviewRescheduled: CalendarClockIcon,
+  InterviewCancelled: CalendarXIcon,
 };
 
 /** What the screen knows that an entry names by id: stage names, follow-up questionnaire names and job titles. */
@@ -151,6 +165,16 @@ export function describeEvent(entry: ApplicationTimelineEntry, names: ActivityNa
       return poolExits[entry.poolExit ?? 'Removed'](names.jobName?.(entry.otherJobId) ?? 'another job');
     case 'InvitedToApply':
       return `Invited to apply for ${names.jobName?.(entry.otherJobId) ?? 'another job'}`;
+    // The interview's current time is the header's one fact; an entry says which time it was about, in the reader's zone,
+    // because a move or a cancellation is history that the header no longer shows. No actor means the candidate did it.
+    case 'InterviewInvited':
+      return 'Invited to pick an interview time';
+    case 'InterviewBooked':
+      return entry.startsAt ? `Interview booked for ${formatDateTime(entry.startsAt)}` : 'Interview booked';
+    case 'InterviewRescheduled':
+      return entry.startsAt ? `Interview moved to ${formatDateTime(entry.startsAt)}` : 'Interview moved to another time';
+    case 'InterviewCancelled':
+      return entry.startsAt ? `Interview on ${formatDateTime(entry.startsAt)} cancelled` : 'Interview cancelled';
   }
 }
 

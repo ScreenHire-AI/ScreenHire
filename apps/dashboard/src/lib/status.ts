@@ -1,5 +1,6 @@
 import ArchiveIcon from '~icons/lucide/archive';
 import BookmarkIcon from '~icons/lucide/bookmark';
+import CalendarCheckIcon from '~icons/lucide/calendar-check';
 import CircleCheckIcon from '~icons/lucide/circle-check';
 import CircleMinusIcon from '~icons/lucide/circle-minus';
 import ClockAlertIcon from '~icons/lucide/clock-alert';
@@ -38,6 +39,8 @@ const view = (tone: StatusTone, iconName: string, icon: LucideIcon): StatusView 
 export const statuses = {
   /** No concerns, No problems found, Delivering, Delivered, Done, Active. */
   done: view('clear', 'circle-check', CircleCheckIcon),
+  /** Booked, an interview the candidate picked a time for. */
+  booked: view('clear', 'calendar-check', CalendarCheckIcon),
   /** Open, a job taking applications; Live, a job showing on a board. */
   open: view('clear', 'door-open', DoorOpenIcon),
   /** Review suggested. */
@@ -52,7 +55,7 @@ export const statuses = {
   unsafeFile: view('verify', 'shield-x', ShieldXIcon),
   /** No signs, Some signs or Strong signs of AI help: information, never a warning. */
   ai: view('ai', 'sparkles', SparklesIcon),
-  /** Sent, Queued, Removing: waiting on someone else. */
+  /** Sent, Queued, Removing, Waiting for the candidate (an interview offered): waiting on someone else. */
   waiting: view('neutral', 'clock-4', Clock4Icon),
   /** Scanning, Checks pending: ScreenHire at work. */
   working: view('neutral', 'loader-circle', LoaderCircleIcon),
@@ -64,7 +67,7 @@ export const statuses = {
   archived: view('neutral', 'archive', ArchiveIcon),
   /** Saved, a candidate who left the job without a rejection, kept for future roles. */
   saved: view('neutral', 'bookmark', BookmarkIcon),
-  /** Not posted, Removed, Off, Skipped, Revoked: not in effect. */
+  /** Not posted, Removed, Off, Skipped, Revoked, Cancelled and Expired (an interview that ended): not in effect. */
   notInEffect: view('neutral', 'circle-minus', CircleMinusIcon),
 } as const satisfies Record<string, StatusView>;
 

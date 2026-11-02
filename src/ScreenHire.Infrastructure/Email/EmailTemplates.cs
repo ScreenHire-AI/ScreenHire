@@ -35,13 +35,20 @@ public sealed record EmailTemplateModel(
     string? FirstName = null,
     string? LastName = null,
     string? JobLink = null,
-    string? RemoveLink = null)
+    string? RemoveLink = null,
+    string? BookingLink = null,
+    string? ManageLink = null,
+    string? MeetingLink = null,
+    string? InterviewTime = null,
+    string? InterviewLength = null)
 {
     /// <summary>The made-up candidate a template's preview and test send use.</summary>
     public static EmailTemplateModel Sample(string organizationName) =>
         new("Jordan Lee", "Product designer", organizationName, "Interview", "This role needs a driving licence.",
             "https://careers.example.com/questionnaires/sample", "Jordan", "Lee",
-            "https://careers.example.com/jobs/product-designer", "https://careers.example.com/talent-pool/sample");
+            "https://careers.example.com/jobs/product-designer", "https://careers.example.com/talent-pool/sample",
+            "https://careers.example.com/interviews/sample", "https://careers.example.com/interviews/sample", "https://meet.example.org/sample",
+            "Tuesday, November 3, 2026, 10:00 AM to 10:30 AM (Europe/London)", "30 minutes");
 }
 
 /// <summary>
@@ -92,12 +99,30 @@ public sealed partial class EmailTemplates
     /// <summary>The link to stop being kept as a saved candidate: only the invitation may use it, and must.</summary>
     public static EmailTemplateVariable RemoveLink { get; } = new("removeLink", "Stop link");
 
+    /// <summary>The link to pick an interview time: only the interview invitation may use it, and must.</summary>
+    public static EmailTemplateVariable BookingLink { get; } = new("bookingLink", "Booking link");
+
+    /// <summary>The link to move or cancel a booked interview: only the confirmation may use it, and must.</summary>
+    public static EmailTemplateVariable ManageLink { get; } = new("manageLink", "Change link");
+
+    /// <summary>The video meeting link, when the interviewer's calendar made one: only the confirmation has it.</summary>
+    public static EmailTemplateVariable MeetingLink { get; } = new("meetingLink", "Meeting link");
+
+    /// <summary>The interview's time with its day, range and time zone, written out.</summary>
+    public static EmailTemplateVariable InterviewTime { get; } = new("interviewTime", "Interview time");
+
+    /// <summary>The interview's length in words, such as "30 minutes".</summary>
+    public static EmailTemplateVariable InterviewLength { get; } = new("interviewLength", "Interview length");
+
     /// <summary>The variables <paramref name="templateId"/> may use: every template's, plus its own required ones.</summary>
     public static IReadOnlyList<EmailTemplateVariable> VariablesFor(string? templateId) => templateId switch
     {
         EmailTemplateIds.ApplicationRejected => [.. Variables, Reason],
         EmailTemplateIds.QuestionnaireRequest => [.. Variables, QuestionnaireLink],
         EmailTemplateIds.TalentPoolInvitation => [.. Variables, JobLink, RemoveLink],
+        EmailTemplateIds.InterviewInvitation => [.. Variables, BookingLink, InterviewLength],
+        EmailTemplateIds.InterviewConfirmation => [.. Variables, InterviewTime, InterviewLength, ManageLink, MeetingLink],
+        EmailTemplateIds.InterviewCancelled => [.. Variables, InterviewTime],
         _ => Variables,
     };
 
@@ -185,6 +210,26 @@ public sealed partial class EmailTemplates
             }
         }
 
+        if (templateId == EmailTemplateIds.InterviewInvitation && problems.Count == 0 && !used.Contains(BookingLink.Name))
+        {
+            // The email exists to carry the link: without it the candidate cannot pick a time.
+            problems.Add(new("body", "The interview invitation must give the link to pick a time: add {{ bookingLink }}."));
+        }
+
+        if (templateId == EmailTemplateIds.InterviewConfirmation && problems.Count == 0)
+        {
+            // The candidate needs the time, and the way to move or cancel it.
+            if (!used.Contains(InterviewTime.Name))
+            {
+                problems.Add(new("body", "The confirmation must give the time: add {{ interviewTime }}."));
+            }
+
+            if (!used.Contains(ManageLink.Name))
+            {
+                problems.Add(new("body", "The confirmation must say how to change the time: add {{ manageLink }}."));
+            }
+        }
+
         if (problems.Count == 0)
         {
             // A template that parses can still fail as it runs, such as a loop past the step limit.
@@ -228,6 +273,11 @@ public sealed partial class EmailTemplates
         context.SetValue("questionnaireLink", model.QuestionnaireLink ?? "");
         context.SetValue("jobLink", model.JobLink ?? "");
         context.SetValue("removeLink", model.RemoveLink ?? "");
+        context.SetValue("bookingLink", model.BookingLink ?? "");
+        context.SetValue("manageLink", model.ManageLink ?? "");
+        context.SetValue("meetingLink", model.MeetingLink ?? "");
+        context.SetValue("interviewTime", model.InterviewTime ?? "");
+        context.SetValue("interviewLength", model.InterviewLength ?? "");
 
         // A subject is one line of plain text: no line breaks a header could carry. Variables can make it far longer than
         // its wording, so it is cut to what a kept copy holds, and the candidate gets the same subject the copy keeps.
@@ -247,10 +297,10 @@ public sealed partial class EmailTemplates
         }
 
         // Only the addresses the template's author wrote, and the links ScreenHire makes (the questionnaire's, and the
-        // invitation to apply's job and stop links), become links: a value a candidate typed (a name that is a web
+        // invitation to apply's job and stop links, and the interview emails' links), become links: a value a candidate typed (a name that is a web
         // address) stays text.
         var linkable = TextAddresses(body).Where(address => !HoldsLiquid(address)).ToHashSet(StringComparer.Ordinal);
-        foreach (var link in new[] { model.QuestionnaireLink, model.JobLink, model.RemoveLink })
+        foreach (var link in new[] { model.QuestionnaireLink, model.JobLink, model.RemoveLink, model.BookingLink, model.ManageLink, model.MeetingLink })
         {
             if (!string.IsNullOrEmpty(link))
             {

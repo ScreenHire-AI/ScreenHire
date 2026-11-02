@@ -24,6 +24,9 @@ export const realtimeEventSchemas = {
     movedAt: instant,
     actorUserId: actor,
   }),
+  // An interview was offered, booked, moved or cancelled, or its calendar events were written. status is the request's
+  // status name (Open, Booked, Cancelled), or null when only the events changed.
+  InterviewChanged: z.object({ organizationId: id, applicationId: id, jobId: id, interviewId: id, status: z.string().nullable() }),
   // An email went to an application's candidate and is on its timeline.
   ApplicationEmailed: z.object({ organizationId: id, applicationId: id, jobId: id, eventId: id, sentAt: instant, actorUserId: actor }),
   // A candidate answered an email. senderUserId is who sent that email (null when an automation did): their dashboard, or for an

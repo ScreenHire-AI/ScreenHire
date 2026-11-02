@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.Messaging;
+using ScreenHire.Application.Scheduling;
 using ScreenHire.Application.Slack;
 using ScreenHire.Domain.Automations;
 using ScreenHire.Infrastructure.Email;
@@ -35,7 +36,7 @@ public static class AutomationFailures
 
     /// <summary>
     /// Services the automation handlers take: the clock, transactional email (hidden when no sender is registered) and
-    /// the CallWebhook adapter, Slack (hidden when not set up), and the dashboard's address for links in emails to the team. <see cref="ScreenHireMessaging.ConfigureHandler"/> registers them, so every host that runs
+    /// the CallWebhook adapter, Slack and the calendar providers (hidden when not set up), and the dashboard's address for links in emails to the team. <see cref="ScreenHireMessaging.ConfigureHandler"/> registers them, so every host that runs
     /// the handlers has them.
     /// </summary>
     public static IServiceCollection AddScreenHireAutomations(this IServiceCollection services)
@@ -54,6 +55,7 @@ public static class AutomationFailures
         services.AddQuestionnaireLinks();
         services.AddDashboardLinks();
         services.AddScreenHireSlack();
+        services.AddScreenHireCalendar();
         return services;
     }
 }

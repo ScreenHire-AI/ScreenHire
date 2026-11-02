@@ -2,6 +2,12 @@
 
 ## 2026-11-02
 
+**Interview scheduling runs on the Google Calendar and Microsoft Graph APIs** ([ADR-0024](adr/0024-interview-scheduling-on-calendar-apis.md)).
+The owner's decision recorded on 2026-10-31 is built. Members connect their own calendar from the account menu, a
+candidate books from an emailed link with no account, and each interviewer gets the event in their own calendar. The
+workflow engine now accepts the `ScheduleInterview` action and the `InterviewScheduled` trigger, never from a
+verification signal or a passed time limit. [Interview scheduling](architecture/interview-scheduling.md) describes it;
+the roadmap's item 4 moved to done, and [local demo](operations/local-demo.md) shows how to try the sandbox calendar.
 **A candidate's header is the name, a pipeline tracker and three mini cards.** The meta line is gone. The first line is the
 name and one status badge (Verification suggested while they are in the pipeline, Saved, Rejected, Withdrawn or Hired once
 they left), with Email and Move to stage on the right, or Message and Invite to another job for a saved candidate. A

@@ -116,6 +116,11 @@ internal static class EmailEndpoints
                 new(EmailTemplates.QuestionnaireLink.Name, EmailTemplates.QuestionnaireLink.Label, false, QuestionnaireOnly: true),
                 new(EmailTemplates.JobLink.Name, EmailTemplates.JobLink.Label, false, InvitationOnly: true),
                 new(EmailTemplates.RemoveLink.Name, EmailTemplates.RemoveLink.Label, false, InvitationOnly: true),
+                new(EmailTemplates.BookingLink.Name, EmailTemplates.BookingLink.Label, false, InvitationOnly: true),
+                new(EmailTemplates.ManageLink.Name, EmailTemplates.ManageLink.Label, false, InvitationOnly: true),
+                new(EmailTemplates.MeetingLink.Name, EmailTemplates.MeetingLink.Label, false, InvitationOnly: true),
+                new(EmailTemplates.InterviewTime.Name, EmailTemplates.InterviewTime.Label, false, InvitationOnly: true),
+                new(EmailTemplates.InterviewLength.Name, EmailTemplates.InterviewLength.Label, false, InvitationOnly: true),
             ]));
     }
 

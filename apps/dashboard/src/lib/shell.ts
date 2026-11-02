@@ -16,6 +16,8 @@ export interface Shell {
   openShortcuts(): void;
   /** Opens the Notifications sheet: which teammates' changes show as toasts. */
   openNotifications(): void;
+  /** Opens the Calendar sheet from the account menu, for a page that needs the person's calendar connected. */
+  openCalendar(): void;
   /** The hub connection's state, for the top bar's Live indicator. */
   live(): ConnectionStatus;
   /** Which optional features this installation has (Slack today); a feature not heard from yet is missing, and counts as off. */

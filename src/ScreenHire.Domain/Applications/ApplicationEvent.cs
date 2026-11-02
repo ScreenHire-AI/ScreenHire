@@ -71,6 +71,18 @@ public enum ApplicationEventType
     /// <summary>A person invited the candidate, saved from this application, to apply for another job.</summary>
     InvitedToApply,
 
+    /// <summary>A person or an automation offered the candidate an interview: the link to pick a time was emailed.</summary>
+    InterviewInvited,
+
+    /// <summary>The candidate picked a time; the interview is on the interviewers' calendars.</summary>
+    InterviewBooked,
+
+    /// <summary>The candidate moved a booked interview to another time.</summary>
+    InterviewRescheduled,
+
+    /// <summary>A person or the candidate cancelled the interview.</summary>
+    InterviewCancelled,
+
     /// <summary>The candidate answered an email: their reply, kept as an <see cref="InboundEmail"/>.</summary>
     EmailReceived,
 }
@@ -105,6 +117,9 @@ public enum ApplicationEventType
 /// candidate was invited to; for <see cref="ApplicationEventType.LeftTalentPool"/>, the job and application they were
 /// added to, or applied with. A <see cref="ApplicationEventType.KeptInMind"/> entry's <c>note</c> says why the team kept
 /// them, and is the first copy of it (the saved candidate's own note can be edited).
+/// <c>interviewId</c>, <c>startsAt</c>, <c>endsAt</c>: For the four Interview types, the interview request
+/// (<see cref="Scheduling.InterviewRequest"/>) and its time as UTC instants: the new time for a booking or a reschedule,
+/// the time it had for a cancellation of a booked interview, and none for an invitation.
 /// </remarks>
 public sealed record ApplicationEventData(
     string? FromStageId = null,
@@ -128,4 +143,7 @@ public sealed record ApplicationEventData(
     Guid? TaskId = null,
     string? PoolExit = null,
     Guid? OtherJobId = null,
-    Guid? OtherApplicationId = null);
+    Guid? OtherApplicationId = null,
+    Guid? InterviewId = null,
+    DateTimeOffset? StartsAt = null,
+    DateTimeOffset? EndsAt = null);

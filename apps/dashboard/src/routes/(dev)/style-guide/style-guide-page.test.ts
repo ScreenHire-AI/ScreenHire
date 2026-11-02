@@ -47,6 +47,7 @@ const panels: Record<string, string[]> = {
   'Step marker': ['Step marker'],
   'Pipeline tracker': ['Pipeline tracker'],
   'Mini card': ['Mini card'],
+  'Interview panel': ['Interview panel'],
   'Icon button': ['Icon button'],
   'Summary list': ['Summary list'],
   'Key cap': ['Key cap and tooltip'],

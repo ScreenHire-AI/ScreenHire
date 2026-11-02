@@ -278,6 +278,16 @@ Settings is one item at the bottom of the sidebar; its pages share the Settings 
   sidebar, then has **Slack account**, which links Avery's own account. Submit an application on the careers page, or
   mention Avery in a note, and open http://localhost:5080/v1/slack/sandbox/messages in the signed-in browser to read
   what the sandbox received ([Slack](../architecture/slack.md)).
+- **Interview scheduling.** The sandbox calendar is on in `pnpm dev`, so Avery's account menu has **Calendar**. Open it,
+  press **Connect Sandbox calendar** and the browser comes straight back connected. Open a candidate who is still in the
+  hiring process, such as Robin Ashby, and press **Schedule interview** beside Email: Avery is ticked as the interviewer
+  (Jordan and Robin show "No calendar connected" until they connect theirs, which the same menu does when you sign in as
+  them), choose a length and the days, and **Send invitation**. Mailpit and the candidate's Messages tab hold "Pick a time to talk with Brightwater Studio
+  about ..." with a link to http://localhost:4322/brightwater/interviews/... Open it in a private window: the page needs no script,
+  lists the free times by day in a time zone you can change, and books one with a radio and a button. Back in the
+  dashboard the header has an Interview card, the Overview's Interview panel lists the interviewer and the meeting link on
+  `meet.example.org`, and Mailpit holds "Your interview with Brightwater Studio is set", whose link moves or cancels the time. To have a workflow offer the interview, add a **Schedule an interview** action on a stage
+  ([interview scheduling](../architecture/interview-scheduling.md)).
 
 ## What is faked locally
 
@@ -292,6 +302,7 @@ Settings is one item at the bottom of the sidebar; its pages share the Settings 
 | Bot challenge (Turnstile) | Not configured, so recorded as "not checked"; the honeypot still works | `ScreenHire:Turnstile` |
 | Malware scanning | `NoMalwareScanner`, which records every file as "not scanned" | `IMalwareScanner` |
 | Email provider | Mailpit sends; no SendGrid. Replies come through the sandbox route `/v1/dev/inbound-email`, and a sending domain verifies once `/v1/dev/sending-domains/publish` publishes it | `ScreenHire:Email` |
+| Google and Outlook calendars | The sandbox calendar, on in `pnpm dev`, whose provider buttons are hidden unless the real client ids and secrets are set; busy time lives in Postgres and the meeting link is on `meet.example.org` | `ScreenHire:Calendar` |
 | Slack | Off, so Settings > Slack says it is not set up; the sandbox workspace when turned on, whose messages `/v1/slack/sandbox/messages` lists | `ScreenHire:Slack` |
 
 The [MVP status](../status.md#owner-actions) lists what each of these needs before real use.

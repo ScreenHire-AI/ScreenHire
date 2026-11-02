@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getApplication, listAutomationRuns, listTeamMembers } from '@screenhire/api-client';
   import {
+    createGetCalendar,
     createGetSlack,
     createListApplications,
     createListJobs,
@@ -137,6 +138,8 @@
   let paletteOpen = $state(false);
   let shortcutsOpen = $state(false);
   let notificationsOpen = $state(false);
+  // The Calendar sheet lives in the account menu (AppSidebar); a page that needs a calendar opens it through the shell.
+  let calendarOpen = $state(false);
   let announcement = $state('');
   setShell({
     openPalette: () => (paletteOpen = true),
@@ -146,6 +149,7 @@
       announcement = '';
       notificationsOpen = true;
     },
+    openCalendar: () => (calendarOpen = true),
     live: () => live.connection.status,
     features: () => ({ slack: slackFeature(slack.data?.data, slack.isError) }),
   });
@@ -183,6 +187,8 @@
 
   // Slack, for the Slack account item in each person's menu (docs/architecture/slack.md); it changes rarely.
   const slack = createGetSlack(() => ({ query: { enabled: Boolean(data.user?.organization), staleTime: 60_000 } }));
+  // The person's calendar, for the Calendar item in their menu (docs/architecture/interview-scheduling.md); it changes rarely.
+  const calendar = createGetCalendar(() => ({ query: { enabled: Boolean(data.user?.organization), staleTime: 60_000 } }));
 
   // Tailwind's lg: from there up the sidebar is full; below it, the rail (md) or the phone sheet.
   const laptop = new MediaQuery('min-width: 1024px');
@@ -193,7 +199,7 @@
 
 <!-- The full sidebar from lg, the icon rail at md, and a sheet behind the menu button on phones (design system section 8). -->
 <Sidebar.Provider open={laptop.current}>
-  <AppSidebar user={data.user} {views} {viewActions} slack={slack.data?.data} />
+  <AppSidebar user={data.user} {views} {viewActions} slack={slack.data?.data} calendar={calendar.data?.data} bind:calendarOpen />
   <Sidebar.Inset class="min-w-0">
     {@render children()}
   </Sidebar.Inset>

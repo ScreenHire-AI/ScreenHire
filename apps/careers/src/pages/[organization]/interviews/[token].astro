@@ -1,0 +1,251 @@
+---
+// A candidate's interview (docs/architecture/interview-scheduling.md), opened from the signed link the invitation or
+// confirmation email carries. Open: pick a time. Booked: see it, move it or cancel it. Cancelled or expired: a calm
+// page that says the link is closed. Native forms posted to the `interview*` actions, so it works with JavaScript off;
+// every time is written here on the server in the zone the candidate chose (a plain GET form changes it). The page
+// collects the choice and nothing else: no device check, no form telemetry (CLAUDE.md non-negotiable 4).
+import { actions } from 'astro:actions';
+import Notice from '../../../components/Notice.astro';
+import CareersLayout from '../../../layouts/CareersLayout.astro';
+import { getPublicInterview, getPublicOrganization } from '../../../lib/api';
+import { forwardedFor } from '../../../lib/apply-server';
+import { basePath } from '../../../lib/host';
+import {
+  describeBooked,
+  displayZone,
+  durationText,
+  groupByDay,
+  hoursText,
+  interviewPath,
+  isToken,
+  noticeFor,
+  screenOf,
+  shownOutcome,
+  validZone,
+  zoneName,
+  zoneOptions,
+} from '../../../lib/interview';
+
+const { organization, token } = Astro.params;
+const base = basePath(Astro.request, organization!);
+
+// A post answers with where to look next, and the page redirects to its own address with it, so a refresh never posts
+// twice. The address carries the zone, the picker and one outcome word; never the posted time.
+const posted = Astro.getActionResult(actions.interviewBook) ?? Astro.getActionResult(actions.interviewReschedule) ?? Astro.getActionResult(actions.interviewCancel);
+if (posted && isToken(token)) {
+  const view = posted.data ?? { outcome: 'error' as const };
+  const keepPicking = view.change && (view.outcome === 'slot-taken' || view.outcome === 'no-choice' || view.outcome === 'unavailable');
+  return Astro.redirect(interviewPath(base, token, { tz: view.tz, change: keepPicking, outcome: shownOutcome(view.outcome) }), 303);
+}
+
+// The link is the candidate's alone: never cached, never indexed, never sent on as a referrer.
+Astro.response.headers.set('Cache-Control', 'no-store');
+
+const query = Astro.url.searchParams;
+const asked = validZone(query.get('tz'));
+const response = isToken(token)
+  ? await getPublicInterview(organization!, token, asked ? { tz: asked } : undefined, forwardedFor(Astro.clientAddress))
+  : null;
+const interview = response?.status === 200 ? response.data : null;
+const employer = interview?.organization ?? (await getPublicOrganization(organization!).then((r) => (r.status === 200 ? r.data : null)));
+if (!employer) {
+  return new Response(null, { status: 404 });
+}
+
+const state = response?.status === 429 ? 'busy' : !interview ? 'not-found' : interview.state;
+Astro.response.status = { busy: 429, 'not-found': 404, Cancelled: 410, Expired: 410, Open: 200, Booked: 200 }[state];
+
+const outcome = shownOutcome(query.get('outcome'));
+const notice = noticeFor(outcome);
+const zone = displayZone(interview?.timeZone);
+const minutes = interview?.durationMinutes ?? 30;
+const booked = state === 'Booked' && interview?.startsAt ? describeBooked(interview.startsAt, minutes, zone) : null;
+const changing = state === 'Booked' && !!interview?.canChange && query.get('change') === '1';
+const picking = state === 'Open' || changing;
+const days = interview ? groupByDay(interview.slots, zone) : [];
+const screen = screenOf(days, query.get('from'));
+const reference = new Date(interview?.slots[0] ?? interview?.startsAt ?? Date.now());
+const zones = interview ? zoneOptions(displayZone(interview.defaultTimeZone), zone, reference) : [];
+const here = { tz: asked ? zone : null, change: changing };
+const noTimes = picking && !!interview && (interview.slotsUnavailable || days.length === 0);
+
+const heading = {
+  busy: 'Too many tries',
+  'not-found': 'We could not find this interview',
+  Cancelled: 'This interview is cancelled',
+  Expired: 'This link has expired',
+  Open: 'Pick a time for your interview',
+  Booked: changing ? 'Pick another time' : 'Your interview is booked',
+}[state];
+const message = {
+  busy: 'Wait a minute, then open the link again.',
+  'not-found': 'The link may be incomplete. Open it again from the email you received.',
+  Cancelled: `This link is closed. If you would like another time, reply to the email you received or contact the hiring team at ${employer.name}.`,
+  Expired: `The time to pick an interview has passed. To ask for another time, reply to the email you received or contact the hiring team at ${employer.name}.`,
+  Open: '',
+  Booked: '',
+}[state];
+const closed = !interview || state === 'Cancelled' || state === 'Expired';
+---
+
+<CareersLayout
+  title={`${heading} | ${employer.name}`}
+  description={interview ? `Your interview with ${employer.name} for ${interview.jobTitle}.` : `Your interview with ${employer.name}.`}
+  organizationName={employer.name}
+  organizationSlug={employer.slug}
+  branding={employer.branding}
+  noindex
+>
+  <meta slot="head" name="referrer" content="no-referrer" />
+
+  <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{heading}</h1>
+
+  {
+    closed && (
+      <>
+        <p class="mt-3 text-candidate-body text-candidate-muted-foreground">{message}</p>
+      </>
+    )
+  }
+  {state === 'busy' && <p class="mt-3 text-candidate-body text-candidate-muted-foreground">{message}</p>}
+
+  {
+    interview && !closed && (
+      <>
+        <p class="mt-3 text-candidate-body text-candidate-muted-foreground">
+          {state === 'Open' && `${employer.name} would like to talk with you about ${interview.jobTitle}. The interview takes ${durationText(minutes)}.`}
+          {state === 'Booked' && !changing && `Interview for ${interview.jobTitle} at ${employer.name}.`}
+          {changing && booked && `Your interview is on ${booked.day} at ${booked.range}. Choose a new time and we will move it.`}
+        </p>
+
+        {notice && <div class="mt-5"><Notice kind={notice.kind} message={notice.message} /></div>}
+
+        {
+          booked && !changing && (
+            <section aria-labelledby="booked-time" class="mt-5 rounded-2xl border border-candidate-border bg-candidate-surface px-5 py-4">
+              <h2 id="booked-time" class="sr-only">Your time</h2>
+              <p class="font-display text-xl leading-tight font-bold">
+                <time datetime={interview.startsAt!}>{booked.day}</time>
+              </p>
+              <p class="mt-1 text-candidate-body">{booked.range}, {booked.zone}</p>
+              <p class="mt-1 text-candidate-hint text-candidate-muted-foreground">{durationText(minutes)}. The video link is in your calendar invitation.</p>
+            </section>
+          )
+        }
+
+        {
+          (picking || booked) && (
+            <form method="GET" class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end">
+              {changing && <input type="hidden" name="change" value="1" />}
+              <div class="flex-1">
+                <label for="tz" class="mb-1.5 block text-candidate-body font-bold">Time zone</label>
+                <select id="tz" name="tz" class="field-input">
+                  {zones.map((option) => <option value={option.value} selected={option.selected}>{option.label}</option>)}
+                </select>
+              </div>
+              <button type="submit" class="button-secondary">Show times in this zone</button>
+            </form>
+          )
+        }
+
+        {
+          picking && noTimes && (
+            <div class="mt-6">
+              <Notice
+                kind="info"
+                message={
+                  interview.slotsUnavailable
+                    ? 'We could not check the calendar just now. Try again in a few minutes, or reply to the email you received.'
+                    : 'No times are free right now. Reply to the email you received, or come back later to see new times.'
+                }
+              />
+            </div>
+          )
+        }
+
+        {
+          picking && !noTimes && (
+            <>
+              <form method="POST" action={changing ? actions.interviewReschedule : actions.interviewBook} aria-labelledby="times-heading" class="mt-8 flex flex-col gap-6">
+                <input type="hidden" name="organization" value={employer.slug} />
+                <input type="hidden" name="token" value={token} />
+                <input type="hidden" name="tz" value={zone} />
+                {changing && <input type="hidden" name="change" value="1" />}
+                <div>
+                  <h2 id="times-heading" class="font-display text-xl leading-tight font-bold">Available times</h2>
+                  <p class="mt-1 text-candidate-hint text-candidate-muted-foreground">All times are in {zoneName(reference, zone)}.</p>
+                </div>
+
+                {screen.days.map((day) => (
+                  <fieldset class="flex flex-col gap-2">
+                    <legend class="mb-2 text-candidate-body font-bold">{day.heading}</legend>
+                    <div class="grid grid-cols-[repeat(auto-fill,minmax(10.5rem,1fr))] gap-2">
+                      {day.slots.map((slot) => (
+                        <label class="choice min-h-12 has-checked:bg-candidate-chip has-checked:text-candidate-chip-foreground has-checked:ring-2 has-checked:ring-candidate-cta">
+                          <input type="radio" name="start" value={slot.value} required />
+                          <span>{slot.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                ))}
+
+                <div class="flex flex-col gap-3 sm:flex-row">
+                  <button type="submit" class="button-primary">{changing ? 'Move to this time' : 'Book this time'}</button>
+                  {changing && <a href={interviewPath(base, token!, { tz: here.tz })} class="button-secondary">Keep my current time</a>}
+                </div>
+              </form>
+
+              {(screen.later || screen.next) && (
+                <nav aria-label="More times" class="mt-5 flex flex-col gap-3 sm:flex-row">
+                  {screen.later && <a href={interviewPath(base, token!, { ...here })} class="button-secondary">Back to the first times</a>}
+                  {screen.next && <a href={interviewPath(base, token!, { ...here, from: screen.next })} class="button-secondary">Show later times</a>}
+                </nav>
+              )}
+            </>
+          )
+        }
+
+        {
+          picking && noTimes && changing && (
+            <p class="mt-5">
+              <a href={interviewPath(base, token!, { tz: here.tz })} class="button-secondary">Keep my current time</a>
+            </p>
+          )
+        }
+
+        {
+          booked && !changing && interview.canChange && (
+            <>
+              <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+                <a href={interviewPath(base, token!, { tz: here.tz, change: true })} class="button-primary">Pick another time</a>
+              </div>
+              <section aria-labelledby="cancel-heading" class="mt-10 border-t border-candidate-border pt-6">
+                <h2 id="cancel-heading" class="text-candidate-body font-bold">Cannot make it?</h2>
+                <details class="mt-3">
+                  <summary class="button-secondary w-fit cursor-pointer">Cancel this interview</summary>
+                  <form method="POST" action={actions.interviewCancel} class="mt-4 flex flex-col items-start gap-3">
+                    <input type="hidden" name="organization" value={employer.slug} />
+                    <input type="hidden" name="token" value={token} />
+                    <input type="hidden" name="tz" value={zone} />
+                    <p class="text-candidate-body">This closes your link, and the team will need to offer a new time.</p>
+                    <button type="submit" class="button-secondary">Yes, cancel it</button>
+                  </form>
+                </details>
+              </section>
+            </>
+          )
+        }
+
+        {
+          booked && !changing && !interview.canChange && (
+            <p class="mt-6 text-candidate-body text-candidate-muted-foreground">
+              Changes close {hoursText(interview.minNoticeHours)} before the start. To change or cancel it now, reply to the email you received.
+            </p>
+          )
+        }
+      </>
+    )
+  }
+
+</CareersLayout>

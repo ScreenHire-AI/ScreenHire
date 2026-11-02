@@ -1,6 +1,8 @@
 import type { HiringWorkflow } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import {
+  actionLabels,
+  actionTypes,
   actionsFor,
   describeAction,
   describePath,
@@ -17,9 +19,12 @@ import {
   problemErrors,
   ruleOperand,
   summarize,
+  triggerLabels,
+  triggerTypes,
   withQuestionType,
   workflowPath,
 } from './workflow.js';
+import { zoneName } from './report-range.js';
 
 const workflow: HiringWorkflow = {
   stages: [
@@ -88,6 +93,48 @@ describe('facts', () => {
     expect(newRule(level)).toEqual({ fact: 'verification.authenticity', operator: 'EqualTo', value: 'NoConcerns' });
     expect(ruleOperand('In', level)).toEqual({ values: ['NoConcerns'] });
     expect(ruleOperand('Exists', level)).toEqual({});
+  });
+});
+
+describe('scheduling an interview', () => {
+  it('offers the action and the interview booked trigger, but not what the engine still refuses', () => {
+    expect(actionLabels.ScheduleInterview).toBe('Schedule an interview');
+    expect(actionTypes).toContain('ScheduleInterview');
+    expect(actionTypes).not.toContain('RequestVerification');
+    expect(triggerLabels.InterviewScheduled).toBe('An interview is booked');
+    expect(triggerTypes).toContain('InterviewScheduled');
+    expect(triggerTypes).not.toContain('VerificationCompleted');
+    expect(triggerTypes).not.toContain('CandidateReplied');
+  });
+
+  it('starts a new interview action with the editor browser zone and the four fields the validator needs', () => {
+    expect(newAction('ScheduleInterview')).toEqual({
+      type: 'ScheduleInterview',
+      interviewerUserIds: [],
+      interviewMinutes: 30,
+      interviewWindowDays: 14,
+      interviewTimeZone: zoneName(),
+    });
+    expect(newAction('ScheduleInterview').interviewTimeZone).toBeTruthy();
+  });
+
+  it('keeps it out of the actions a passed time limit offers', () => {
+    expect(actionsFor('SlaBreached')).not.toContain('ScheduleInterview');
+    expect(actionsFor('StageEntered')).toContain('ScheduleInterview');
+  });
+
+  it('names the interviewers, and says when an automation waits for a booking', () => {
+    const members = [
+      { userId: 'u1', displayName: 'Avery Quinn' },
+      { userId: 'u2', displayName: 'Robin Ashby' },
+    ];
+    const action = { type: 'ScheduleInterview' as const, interviewerUserIds: ['u1', 'u2', 'gone'], interviewMinutes: 30, interviewWindowDays: 14, interviewTimeZone: 'UTC' };
+
+    expect(describeAction(action, workflow, members)).toBe('Schedule an interview with Avery Quinn, Robin Ashby, a teammate');
+    expect(describeAction({ type: 'ScheduleInterview' }, workflow, members)).toBe('Schedule an interview');
+    expect(summarize({ id: 'booked', name: 'Booked', trigger: { type: 'InterviewScheduled' }, conditions: null, actions: [{ type: 'AddTag', tag: 'booked' }] }, workflow)).toBe(
+      'When an interview is booked: add the tag "booked".',
+    );
   });
 });
 

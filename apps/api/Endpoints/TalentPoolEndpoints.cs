@@ -9,6 +9,7 @@ using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Applications;
+using ScreenHire.Application.Scheduling;
 using ScreenHire.Application.TalentPool;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
@@ -170,6 +171,8 @@ internal static class TalentPoolEndpoints
             var entry = application.KeepInMind(stage, now, tenant.UserId, request.Note);
             db.ApplicationEvents.Add(entry);
             kept++;
+            // Saved for later is an end of the application: an interview offered or booked on it is cancelled.
+            await outbox.PublishAsync(new EndApplicationInterviews(application.OrganizationId, application.Id, entry.Id));
             if (!joined.Add(application.CandidateId))
             {
                 continue; // two of one candidate's applications in one selection: the first stands for them in the pool

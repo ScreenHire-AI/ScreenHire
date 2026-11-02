@@ -14,6 +14,7 @@ import type {
   ApiMeta,
   ApplicationDetail,
   ApplicationEmailDraft,
+  ApplicationInterview,
   ApplicationNoteDetail,
   ApplicationSummary,
   ApplicationTaskEntry,
@@ -26,6 +27,8 @@ import type {
   BrandImageUploadRequest,
   BrandingContrast,
   BrandingImage,
+  CalendarAuthorization,
+  CalendarStatus,
   CandidateDetail,
   CandidateEmailEntry,
   CandidateHistoryEntry,
@@ -68,6 +71,7 @@ import type {
   GetOrganizationHistoryParams,
   GetOrganizationSendingDomainHistoryParams,
   GetOrganizationVerificationSettingsHistoryParams,
+  GetPublicInterviewParams,
   GetRoleHistoryParams,
   GetSavedNoteHistoryParams,
   GetScorecardTemplateHistoryParams,
@@ -80,6 +84,7 @@ import type {
   HiringTemplateVersionDetail,
   HistoryPage,
   HttpValidationProblemDetails,
+  Interviewer,
   InvitationAcceptance,
   InvitationPreviewRequest,
   InvitationRequest,
@@ -97,6 +102,7 @@ import type {
   KeepInMindRequest,
   KeptInMind,
   LastUpdate,
+  ListInterviewersParams,
   ListJobBoardJobsParams,
   ListTasksParams,
   ListVerificationApplicationsParams,
@@ -122,6 +128,8 @@ import type {
   PublicApplicationForm,
   PublicApplicationReceipt,
   PublicApplicationRequest,
+  PublicInterview,
+  PublicInterviewChoice,
   PublicJob,
   PublicJobBoard,
   PublicOrganization,
@@ -136,6 +144,7 @@ import type {
   RoleCatalogue,
   SandboxBoardListing,
   SavedViewSummary,
+  ScheduleInterviewRequest,
   ScorecardEntry,
   ScorecardTemplateDetail,
   ScorecardTemplateSummary,
@@ -153,6 +162,7 @@ import type {
   SlackStatus,
   SlackTestResult,
   StageKind,
+  StartCalendarConnectRequest,
   StartSlackLinkRequest,
   SubmitScorecardRequest,
   SwitchOrganizationRequest,
@@ -1741,6 +1751,273 @@ return apiFetch<savePublicQuestionnaireDraftResponse>(getSavePublicQuestionnaire
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(publicQuestionnaireAnswers)
+  }
+);}
+
+
+
+export type getPublicInterviewResponse200 = {
+  data: PublicInterview
+  status: 200
+}
+
+export type getPublicInterviewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicInterviewResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getPublicInterviewResponseSuccess = (getPublicInterviewResponse200) & {
+  headers: Headers;
+};
+export type getPublicInterviewResponseError = (getPublicInterviewResponse404 | getPublicInterviewResponse429) & {
+  headers: Headers;
+};
+
+export type getPublicInterviewResponse = (getPublicInterviewResponseSuccess | getPublicInterviewResponseError)
+
+export const getGetPublicInterviewUrl = (organizationSlug: string,
+    token: string,
+    params?: GetPublicInterviewParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/public/organizations/${organizationSlug}/interviews/${token}?${stringifiedParams}` : `/v1/public/organizations/${organizationSlug}/interviews/${token}`
+}
+
+export const getPublicInterview = async (organizationSlug: string,
+    token: string,
+    params?: GetPublicInterviewParams, options?: Parameters<typeof apiFetch>[1]): Promise<getPublicInterviewResponse> => {
+
+  return apiFetch<getPublicInterviewResponse>(getGetPublicInterviewUrl(organizationSlug,token,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type bookPublicInterviewResponse204 = {
+  data: void
+  status: 204
+}
+
+export type bookPublicInterviewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type bookPublicInterviewResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type bookPublicInterviewResponse410 = {
+  data: ProblemDetails
+  status: 410
+}
+
+export type bookPublicInterviewResponse429 = {
+  data: void
+  status: 429
+}
+
+export type bookPublicInterviewResponse503 = {
+  data: ProblemDetails
+  status: 503
+}
+
+export type bookPublicInterviewResponseSuccess = (bookPublicInterviewResponse204) & {
+  headers: Headers;
+};
+export type bookPublicInterviewResponseError = (bookPublicInterviewResponse404 | bookPublicInterviewResponse409 | bookPublicInterviewResponse410 | bookPublicInterviewResponse429 | bookPublicInterviewResponse503) & {
+  headers: Headers;
+};
+
+export type bookPublicInterviewResponse = (bookPublicInterviewResponseSuccess | bookPublicInterviewResponseError)
+
+export const getBookPublicInterviewUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/interviews/${token}/book`
+}
+
+export const bookPublicInterview = async (organizationSlug: string,
+    token: string,
+    publicInterviewChoice: PublicInterviewChoice, options?: Parameters<typeof apiFetch>[1]): Promise<bookPublicInterviewResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<bookPublicInterviewResponse>(getBookPublicInterviewUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicInterviewChoice)
+  }
+);}
+
+
+
+export type reschedulePublicInterviewResponse204 = {
+  data: void
+  status: 204
+}
+
+export type reschedulePublicInterviewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type reschedulePublicInterviewResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type reschedulePublicInterviewResponse410 = {
+  data: ProblemDetails
+  status: 410
+}
+
+export type reschedulePublicInterviewResponse429 = {
+  data: void
+  status: 429
+}
+
+export type reschedulePublicInterviewResponse503 = {
+  data: ProblemDetails
+  status: 503
+}
+
+export type reschedulePublicInterviewResponseSuccess = (reschedulePublicInterviewResponse204) & {
+  headers: Headers;
+};
+export type reschedulePublicInterviewResponseError = (reschedulePublicInterviewResponse404 | reschedulePublicInterviewResponse409 | reschedulePublicInterviewResponse410 | reschedulePublicInterviewResponse429 | reschedulePublicInterviewResponse503) & {
+  headers: Headers;
+};
+
+export type reschedulePublicInterviewResponse = (reschedulePublicInterviewResponseSuccess | reschedulePublicInterviewResponseError)
+
+export const getReschedulePublicInterviewUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/interviews/${token}/reschedule`
+}
+
+export const reschedulePublicInterview = async (organizationSlug: string,
+    token: string,
+    publicInterviewChoice: PublicInterviewChoice, options?: Parameters<typeof apiFetch>[1]): Promise<reschedulePublicInterviewResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<reschedulePublicInterviewResponse>(getReschedulePublicInterviewUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicInterviewChoice)
+  }
+);}
+
+
+
+export type cancelPublicInterviewResponse204 = {
+  data: void
+  status: 204
+}
+
+export type cancelPublicInterviewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type cancelPublicInterviewResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type cancelPublicInterviewResponse410 = {
+  data: ProblemDetails
+  status: 410
+}
+
+export type cancelPublicInterviewResponse429 = {
+  data: void
+  status: 429
+}
+
+export type cancelPublicInterviewResponseSuccess = (cancelPublicInterviewResponse204) & {
+  headers: Headers;
+};
+export type cancelPublicInterviewResponseError = (cancelPublicInterviewResponse404 | cancelPublicInterviewResponse409 | cancelPublicInterviewResponse410 | cancelPublicInterviewResponse429) & {
+  headers: Headers;
+};
+
+export type cancelPublicInterviewResponse = (cancelPublicInterviewResponseSuccess | cancelPublicInterviewResponseError)
+
+export const getCancelPublicInterviewUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/interviews/${token}/cancel`
+}
+
+export const cancelPublicInterview = async (organizationSlug: string,
+    token: string, options?: Parameters<typeof apiFetch>[1]): Promise<cancelPublicInterviewResponse> => {
+
+  return apiFetch<cancelPublicInterviewResponse>(getCancelPublicInterviewUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'POST'
+
+
   }
 );}
 
@@ -10052,6 +10329,382 @@ export const unlinkSlackAccount = async ( options?: Parameters<typeof apiFetch>[
   {
     ...options,
     method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type getCalendarResponse200 = {
+  data: CalendarStatus
+  status: 200
+}
+
+export type getCalendarResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getCalendarResponseSuccess = (getCalendarResponse200) & {
+  headers: Headers;
+};
+export type getCalendarResponseError = (getCalendarResponse401) & {
+  headers: Headers;
+};
+
+export type getCalendarResponse = (getCalendarResponseSuccess | getCalendarResponseError)
+
+export const getGetCalendarUrl = () => {
+
+
+
+
+  return `/v1/calendar`
+}
+
+export const getCalendar = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getCalendarResponse> => {
+
+  return apiFetch<getCalendarResponse>(getGetCalendarUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type disconnectCalendarResponse204 = {
+  data: void
+  status: 204
+}
+
+export type disconnectCalendarResponse401 = {
+  data: void
+  status: 401
+}
+
+export type disconnectCalendarResponseSuccess = (disconnectCalendarResponse204) & {
+  headers: Headers;
+};
+export type disconnectCalendarResponseError = (disconnectCalendarResponse401) & {
+  headers: Headers;
+};
+
+export type disconnectCalendarResponse = (disconnectCalendarResponseSuccess | disconnectCalendarResponseError)
+
+export const getDisconnectCalendarUrl = () => {
+
+
+
+
+  return `/v1/calendar`
+}
+
+export const disconnectCalendar = async ( options?: Parameters<typeof apiFetch>[1]): Promise<disconnectCalendarResponse> => {
+
+  return apiFetch<disconnectCalendarResponse>(getDisconnectCalendarUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type startCalendarConnectResponse200 = {
+  data: CalendarAuthorization
+  status: 200
+}
+
+export type startCalendarConnectResponse401 = {
+  data: void
+  status: 401
+}
+
+export type startCalendarConnectResponse404 = {
+  data: void
+  status: 404
+}
+
+export type startCalendarConnectResponseSuccess = (startCalendarConnectResponse200) & {
+  headers: Headers;
+};
+export type startCalendarConnectResponseError = (startCalendarConnectResponse401 | startCalendarConnectResponse404) & {
+  headers: Headers;
+};
+
+export type startCalendarConnectResponse = (startCalendarConnectResponseSuccess | startCalendarConnectResponseError)
+
+export const getStartCalendarConnectUrl = () => {
+
+
+
+
+  return `/v1/calendar/connect`
+}
+
+export const startCalendarConnect = async (startCalendarConnectRequest: StartCalendarConnectRequest, options?: Parameters<typeof apiFetch>[1]): Promise<startCalendarConnectResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<startCalendarConnectResponse>(getStartCalendarConnectUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(startCalendarConnectRequest)
+  }
+);}
+
+
+
+export type listInterviewersResponse200 = {
+  data: Interviewer[]
+  status: 200
+}
+
+export type listInterviewersResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listInterviewersResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listInterviewersResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listInterviewersResponseSuccess = (listInterviewersResponse200) & {
+  headers: Headers;
+};
+export type listInterviewersResponseError = (listInterviewersResponse401 | listInterviewersResponse403 | listInterviewersResponse404) & {
+  headers: Headers;
+};
+
+export type listInterviewersResponse = (listInterviewersResponseSuccess | listInterviewersResponseError)
+
+export const getListInterviewersUrl = (params: ListInterviewersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/interviewers?${stringifiedParams}` : `/v1/interviewers`
+}
+
+export const listInterviewers = async (params: ListInterviewersParams, options?: Parameters<typeof apiFetch>[1]): Promise<listInterviewersResponse> => {
+
+  return apiFetch<listInterviewersResponse>(getListInterviewersUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type scheduleInterviewResponse201 = {
+  data: ApplicationInterview
+  status: 201
+}
+
+export type scheduleInterviewResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type scheduleInterviewResponse401 = {
+  data: void
+  status: 401
+}
+
+export type scheduleInterviewResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type scheduleInterviewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type scheduleInterviewResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type scheduleInterviewResponse422 = {
+  data: ProblemDetails
+  status: 422
+}
+
+export type scheduleInterviewResponseSuccess = (scheduleInterviewResponse201) & {
+  headers: Headers;
+};
+export type scheduleInterviewResponseError = (scheduleInterviewResponse400 | scheduleInterviewResponse401 | scheduleInterviewResponse403 | scheduleInterviewResponse404 | scheduleInterviewResponse409 | scheduleInterviewResponse422) & {
+  headers: Headers;
+};
+
+export type scheduleInterviewResponse = (scheduleInterviewResponseSuccess | scheduleInterviewResponseError)
+
+export const getScheduleInterviewUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/interviews`
+}
+
+export const scheduleInterview = async (applicationId: string,
+    scheduleInterviewRequest: ScheduleInterviewRequest, options?: Parameters<typeof apiFetch>[1]): Promise<scheduleInterviewResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<scheduleInterviewResponse>(getScheduleInterviewUrl(applicationId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(scheduleInterviewRequest)
+  }
+);}
+
+
+
+export type listApplicationInterviewsResponse200 = {
+  data: ApplicationInterview[]
+  status: 200
+}
+
+export type listApplicationInterviewsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listApplicationInterviewsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listApplicationInterviewsResponseSuccess = (listApplicationInterviewsResponse200) & {
+  headers: Headers;
+};
+export type listApplicationInterviewsResponseError = (listApplicationInterviewsResponse401 | listApplicationInterviewsResponse404) & {
+  headers: Headers;
+};
+
+export type listApplicationInterviewsResponse = (listApplicationInterviewsResponseSuccess | listApplicationInterviewsResponseError)
+
+export const getListApplicationInterviewsUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/interviews`
+}
+
+export const listApplicationInterviews = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<listApplicationInterviewsResponse> => {
+
+  return apiFetch<listApplicationInterviewsResponse>(getListApplicationInterviewsUrl(applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type cancelInterviewResponse200 = {
+  data: ApplicationInterview
+  status: 200
+}
+
+export type cancelInterviewResponse401 = {
+  data: void
+  status: 401
+}
+
+export type cancelInterviewResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type cancelInterviewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type cancelInterviewResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type cancelInterviewResponseSuccess = (cancelInterviewResponse200) & {
+  headers: Headers;
+};
+export type cancelInterviewResponseError = (cancelInterviewResponse401 | cancelInterviewResponse403 | cancelInterviewResponse404 | cancelInterviewResponse409) & {
+  headers: Headers;
+};
+
+export type cancelInterviewResponse = (cancelInterviewResponseSuccess | cancelInterviewResponseError)
+
+export const getCancelInterviewUrl = (interviewId: string,) => {
+
+
+
+
+  return `/v1/interviews/${interviewId}/cancel`
+}
+
+export const cancelInterview = async (interviewId: string, options?: Parameters<typeof apiFetch>[1]): Promise<cancelInterviewResponse> => {
+
+  return apiFetch<cancelInterviewResponse>(getCancelInterviewUrl(interviewId),
+  {
+    ...options,
+    method: 'POST'
 
 
   }

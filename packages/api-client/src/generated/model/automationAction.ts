@@ -30,4 +30,12 @@ export interface AutomationAction {
   verificationProvider?: string | null;
   /** @nullable */
   questionnaireId?: string | null;
+  /** @nullable */
+  interviewerUserIds?: string[] | null;
+  /** @nullable */
+  interviewMinutes?: number | null;
+  /** @nullable */
+  interviewWindowDays?: number | null;
+  /** @nullable */
+  interviewTimeZone?: string | null;
 }
