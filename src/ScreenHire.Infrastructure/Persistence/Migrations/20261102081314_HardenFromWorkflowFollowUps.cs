@@ -93,7 +93,8 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                           SELECT 1 FROM verification_signals s
                           WHERE s.organization_id = a.organization_id AND s.id = a.signal_id);
                     IF orphans > 0 THEN
-                        RAISE EXCEPTION '% verification review actions name a signal that does not exist', orphans;
+                        RAISE EXCEPTION '% verification review actions name a signal that does not exist', orphans
+                            USING HINT = 'List them with: SELECT a.id, a.organization_id, a.signal_id FROM verification_review_actions a WHERE a.signal_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM verification_signals s WHERE s.organization_id = a.organization_id AND s.id = a.signal_id). The audit log is not rewritten by this migration: restore the signals or decide with the owner what to do with those rows.';
                     END IF;
                 END $$;
                 ALTER TABLE verification_signals FORCE ROW LEVEL SECURITY;
