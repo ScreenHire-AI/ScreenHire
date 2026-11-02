@@ -87,13 +87,13 @@
       {#if kind === 'logo'}
         <!-- The checkerboard is the careers pages' own light surfaces, so it stays light in the dark theme too. -->
         <div
-          class="grid min-h-20 place-items-center rounded-md border border-border bg-candidate-background bg-[conic-gradient(var(--color-candidate-surface)_25%,var(--color-candidate-background)_0_50%,var(--color-candidate-surface)_0_75%,var(--color-candidate-background)_0)] bg-size-[16px_16px] p-3"
+          class="grid min-h-20 place-items-center rounded-md border border-border bg-candidate-background bg-[conic-gradient(var(--color-candidate-border)_25%,var(--color-candidate-background)_0_50%,var(--color-candidate-border)_0_75%,var(--color-candidate-background)_0)] bg-size-[16px_16px] p-3"
         >
           <img src={image.url} alt={`The ${noun}`} width={image.width} height={image.height} class="h-10 w-auto max-w-60 object-contain" />
         </div>
       {:else if kind === 'favicon'}
         <div class="flex items-end rounded-md bg-secondary px-3 pt-3">
-          <div class="flex w-48 min-w-0 items-center gap-2 rounded-t-lg border border-b-0 border-border bg-card px-3 py-2">
+          <div class="flex w-60 min-w-0 items-center gap-2 rounded-t-lg border border-b-0 border-border bg-card px-3 py-2">
             <img src={image.url} alt={`The ${noun}`} width="32" height="32" class="size-8 shrink-0 rounded-xs" />
             <span class="min-w-0 truncate text-caption">{title}</span>
           </div>
