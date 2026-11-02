@@ -5,13 +5,12 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { JobTimeToHire } from './jobTimeToHire.ts';
+import type { StageDays } from './stageDays.ts';
 
 /**
  * Days from applying to being hired, for the hires made in the range.
  */
 export interface TimeToHire {
-  /** @nullable */
-  medianDays: number | null;
-  hires: number;
+  stages: StageDays[];
   jobs: JobTimeToHire[];
 }

@@ -1,3 +1,4 @@
+using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Verification;
 using ScreenHire.Domain.Applications;
 
@@ -85,14 +86,16 @@ internal static class DemoCandidates
                 "owen-price", "Owen", "Price", "owen.price@example.org", "+44 141 496 0399", "192.0.2.39", 13,
                 "Owen Price\nIT support analyst, two years, moving into software support.",
                 EngineerAnswers("less_than_3", "https://owen-price.example.org/helpdesk-scripts", "One week")),
-            AppliedDaysAgo: 38),
+            AppliedDaysAgo: 38,
+            SourceBoard: Boards.TalentCom),
         new(SupportEngineer,
             [new("screening", DaysAgo: 34), new("technical", DaysAgo: 31), new("withdrawn", "Withdrew: accepted another offer.", 28)],
             Person(
                 "lena-fischer", "Lena", "Fischer", "lena.fischer@example.com", "+44 20 7946 0400", "192.0.2.40", 10,
                 "Lena Fischer\nTechnical support lead, eight years in SaaS for hospitality.",
                 EngineerAnswers("six_to_nine", "https://lena-fischer.example.org/support-playbook", "Three months")),
-            AppliedDaysAgo: 36),
+            AppliedDaysAgo: 36,
+            SourceSite: "https://www.brightwater.example.org"),
         new(SupportEngineer,
             [
                 new("screening", DaysAgo: 72), new("technical", DaysAgo: 68), new("interview", DaysAgo: 60),
@@ -102,7 +105,8 @@ internal static class DemoCandidates
                 "sam-brennan", "Sam", "Brennan", "sam.brennan@example.org", "+44 20 7946 0433", "192.0.2.43", 15,
                 "Sam Brennan\nSupport engineer, five years on a point-of-sale help desk.\nI wrote our guide to diagnosing card reader faults.",
                 EngineerAnswers("three_to_five", "https://sam-brennan.example.org/card-reader-guide", "One month")),
-            AppliedDaysAgo: 75),
+            AppliedDaysAgo: 75,
+            SourceBoard: Boards.Adzuna),
         // Added by a recruiter, who met them at a meetup, so Reports shows a second source.
         new(SupportEngineer,
             [new("screening", DaysAgo: 29), new("interview", DaysAgo: 24), new("offer", DaysAgo: 20), new("hired", DaysAgo: 16)],
@@ -181,6 +185,8 @@ internal static class DemoCandidates
 /// <remarks>
 /// <c>KeepForFutureRoles</c>: they ticked "Keep my details for future roles" when they applied. <c>KeptInMindNote</c>:
 /// after the moves, the team kept them in mind with this note, so the talent pool has someone in it.
+/// <c>SourceSite</c>: the organization's own site the careers page was embedded in. <c>SourceBoard</c>: the job board whose
+/// apply link they followed. Either gives Reports' sources panel more than the careers page to count.
 /// </remarks>
 internal sealed record DemoCandidate(
     string JobSlug,
@@ -189,7 +195,9 @@ internal sealed record DemoCandidate(
     int AppliedDaysAgo = 0,
     ApplicationSource Source = ApplicationSource.CareersSite,
     bool KeepForFutureRoles = false,
-    string? KeptInMindNote = null)
+    string? KeptInMindNote = null,
+    string? SourceSite = null,
+    string? SourceBoard = null)
 {
     /// <summary>The stage the candidate ends in: the last move's, or "applied" when nobody moved them.</summary>
     public string StageId => Moves.Count == 0 ? "applied" : Moves[^1].StageId;

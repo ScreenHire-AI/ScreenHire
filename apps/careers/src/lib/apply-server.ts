@@ -36,6 +36,7 @@ import {
 } from './apply';
 import { fileProblem, type UploadRef } from '@screenhire/ui/questions/files';
 import { embedOrigin } from './embed';
+import { sourceBoard } from './source';
 import { parseFingerprint, parseMarkers, parseSnapshot } from './telemetry';
 
 /** The honeypot: a field people never see or reach, so only a bot fills it in. Its name avoids anything autofill knows. */
@@ -72,6 +73,8 @@ export const forwardedFor = (address: string | undefined): RequestInit | undefin
  * sent to the API, with the candidate's browser (`userAgent`), the time on each page and what the telemetry module left
  * in the form for the verification engine. `embed` is the site the careers page is embedded in, from the step form's
  * address; it goes with the application only while it is on the organization's list (docs/architecture/careers-widget.md).
+ * `source` is the job board whose link brought the candidate (`src=` on the address); only its shape is checked here, and
+ * the API keeps it when it is a board that tags its links.
  */
 export async function applyStep(
   form: FormData,
@@ -79,6 +82,7 @@ export async function applyStep(
   userAgent?: string | null,
   now: Date = new Date(),
   embed: string | null = null,
+  source: string | null = null,
 ): Promise<ApplyResult> {
   const organization = text(form, 'organization');
   const jobSlug = text(form, 'job');
@@ -144,6 +148,7 @@ export async function applyStep(
     deviceFingerprint: parseFingerprint(form.get('deviceFingerprint')),
     automationMarkers: parseMarkers(form.get('automationMarkers')),
     embedOrigin: embedOrigin(embed, definition.organization.embedOrigins),
+    source: sourceBoard(source),
   });
   const submitted = await submitPublicApplication(organization, definition.job.id, request, forwarded);
   switch (submitted.status) {

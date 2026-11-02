@@ -7,6 +7,7 @@ sources:
   - resource: src/ScreenHire.Application/Distribution/Adapters/OwnChannelAdapters.cs
   - resource: src/ScreenHire.Application/Distribution/Adapters/SandboxBoardAdapter.cs
   - resource: src/ScreenHire.Application/Distribution/BoardRegistry.cs
+  - resource: src/ScreenHire.Application/Distribution/BoardUrls.cs
   - resource: src/ScreenHire.Application/Distribution/Boards.cs
   - resource: src/ScreenHire.Application/Distribution/DistributionOptions.cs
   - resource: src/ScreenHire.Application/Distribution/DistributionPlanner.cs
@@ -252,7 +253,12 @@ read it. Ids are our UUIDs, and `content` is sanitized HTML ([rich text](rich-te
 - Every URL (canonical, sitemap, feeds, job-board API, Google notifications) is `DomainOptions.CareersJobUrl`, built
   from `ScreenHire:Domains:CareersHostPattern` and `CareersDomain`. The AppHost points `CareersDomain` at the careers
   app's real endpoint and the host pattern at `{tenant}.{CareersDomain}`, so locally a job's URL is
-  `http://acme.localhost:<port>/jobs/x`. The careers app reads the same `ScreenHire:Domains:*` keys, and on a tenant
+  `http://acme.localhost:<port>/jobs/x`. The feed boards (`xml-feed`, `careerjet`, `talent`, `adzuna`, `jooble`) and the sandbox
+  board write that URL with `?src={boardId}` added (`BoardUrls.Tag`, at the moment each format renders it, so postings that are
+  already live are covered and the stored `JobPosting.Url` stays canonical). The careers app carries `src` through the apply
+  flow and the application records it as its source board ([apply flow](apply-flow.md)). Google for Jobs, the public
+  job-board API and the careers page itself stay untagged: their URLs are the canonical address that the page's JSON-LD,
+  the sitemap and the indexing notifications name, so their applications count as the careers page. The careers app reads the same `ScreenHire:Domains:*` keys, and on a tenant
   host its middleware maps the host onto the path routes (`apps/careers/src/lib/tenancy.ts`); the path routes
   (`/acme/jobs/x`) keep working.
 - **Google Indexing API:** `ScreenHire:Distribution:GoogleIndexing:Mode` is `Off` (default, board hidden), `Local`

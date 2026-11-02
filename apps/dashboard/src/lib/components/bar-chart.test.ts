@@ -34,6 +34,38 @@ describe('bar chart', () => {
     await expectNoAxeViolations();
   });
 
+  it('links a row\'s name outside the image, so the link stays reachable', async () => {
+    const list = renderChart({
+      series: [{ label: 'Applications', tone: 'chart-1' }],
+      rows: [{ ...row('Interview', [5], '80% moved on'), href: '/candidates?reached=Interview', share: '42%' }, row('Offer', [4], null)],
+    });
+
+    const link = within(list).getByRole('link', { name: 'Interview' });
+    expect(link).toHaveAttribute('href', '/candidates?reached=Interview');
+    expect(link.closest('[role="img"]')).toBeNull();
+    // The second row has no link, so its name is not announced twice: the image carries it.
+    expect(within(list).getAllByRole('link')).toHaveLength(1);
+    expect(within(list).getAllByRole('img')[0]).toHaveTextContent(/5\s*42%\s*80% moved on/);
+    await expectNoAxeViolations();
+  });
+
+  it('marks the biggest drop in its own row', () => {
+    const list = renderChart({
+      series: [{ label: 'Applications', tone: 'chart-1' }],
+      rows: [
+        { ...row('Applied', [10], '90% moved on'), summary: 'Applied: 10 applications, 90% moved on' },
+        { ...row('Screening', [9], '40% moved on'), drop: true, summary: 'Screening: 9 applications, 40% moved on, the biggest drop' },
+      ],
+    });
+
+    const [applied, screening] = within(list).getAllByRole('img');
+    expect(screening).toHaveAccessibleName('Screening: 9 applications, 40% moved on, the biggest drop');
+    expect(applied).toHaveAccessibleName('Applied: 10 applications, 90% moved on');
+    expect(screening.querySelector('svg')).not.toBeNull();
+    expect(screening.querySelector('.font-semibold')).toHaveTextContent('40% moved on');
+    expect(applied.querySelector('svg')).toBeNull();
+  });
+
   it('pairs two series with a legend, each in its own colour', async () => {
     const list = renderChart({
       series: [

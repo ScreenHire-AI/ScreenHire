@@ -20,9 +20,17 @@ export const server = {
   apply: defineAction({
     accept: 'form',
     // `embed` is the site the careers page is embedded in, which the step form's address keeps
-    // (docs/architecture/careers-widget.md); applyStep checks it against the organization's list.
+    // (docs/architecture/careers-widget.md); applyStep checks it against the organization's list. `src` is the job board
+    // whose link brought the candidate (docs/architecture/apply-flow.md), kept the same way.
     handler: async (form: FormData, context) =>
-      applyStep(form, addressOf(context), context.request.headers.get('user-agent'), new Date(), context.url.searchParams.get('embed')),
+      applyStep(
+        form,
+        addressOf(context),
+        context.request.headers.get('user-agent'),
+        new Date(),
+        context.url.searchParams.get('embed'),
+        context.url.searchParams.get('src'),
+      ),
   }),
 
   /**

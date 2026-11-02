@@ -24,6 +24,8 @@ sources:
   - resource: apps/dashboard/src/lib/components/branding-preview.svelte
   - resource: apps/dashboard/src/lib/components/bar-chart.svelte
   - resource: apps/dashboard/src/lib/components/chart-panel.svelte
+  - resource: apps/dashboard/src/lib/components/week-chart.svelte
+  - resource: apps/dashboard/src/lib/components/report-stat.svelte
   - resource: apps/dashboard/src/lib/components/date-range-filter.svelte
   - resource: apps/dashboard/src/lib/report-range.ts
 ---
@@ -330,11 +332,13 @@ red-orange, indigo).
 | `chart-2` | `#6AA7F4` | `#2E64A6` | The whole that part belongs to (Applications) |
 
 - A chart with one series uses `chart-1` for every bar, and the panel's title names it, so it has no legend. A funnel is
-  one series: the bars' order already says the order of the stages. Two series have a legend above the bars.
+  one series: the bars' order already says the order of the stages. Two series have a legend above the bars. The weekly
+  chart's two series are Applications in `chart-2`, the whole, and Hires in `chart-1`, the part in focus.
 - Text never takes a chart colour: names, values and legends are text tokens, and a swatch beside them carries the
   colour.
 - `chart-2` is under 3:1 against the card, so every bar has its value written at its tip and every chart has its table
-  view. The pair passes the dataviz palette validator's checks (lightness band, chroma, colour-blind and normal-vision
+  view. The one exception is the weekly chart, where fifty columns leave no room for a value at each tip: the week
+  pointed at, tapped or reached with the arrow keys is read out above the columns, and the table view holds every number. The pair passes the dataviz palette validator's checks (lightness band, chroma, colour-blind and normal-vision
   separation) on `card` in both themes; check it again after changing either value.
 - A third series needs a third token checked the same way. Never a generated or status colour.
 
@@ -418,7 +422,7 @@ Atlassian's surfaces.
 | Detail | A candidate, a job, a webhook endpoint | Header band (identity, status badges, a contact line for a person, actions, the facts row); tabs in a fixed order under it; the content in panels below, in a grid of two columns on a wide page and one on a narrow one (S7) |
 | Read-only view | A ScreenHire template, anything you cannot edit | As detail; data as labels and values, never disabled inputs; it says why it is read only and what to do (E3); Copy or Edit as the primary action |
 | Form | Creating or editing a record; a settings page such as Organization, Branding or Verification | One column, 688px wide, labels above fields, actions at the end |
-| Report | Reports | Header band (title, then one row of filters on its bottom edge: the date range first, then Job), then the report's panels in a grid of two columns from 1024px of content and one below, the main chart across both. Each chart is a Chart panel (section 11). Filters scope every panel, never one panel alone |
+| Report | Reports | Header band (title, the report's one action such as Export CSV, then one row of filters on its bottom edge: the date range first, then Job, then Compare), a row of headline numbers, then the report's panels in a grid of two columns from 1024px of content and one below, the main chart across both. Each chart is a Chart panel (section 11). Filters scope every panel, never one panel alone |
 | Builder | The workflow graph; the questionnaire, scorecard and email template editors | Header band, then a full-width work area, with the Edit / Preview switch when someone else sees the result (A8). The graph's nodes edit through the same sheets and forms as the list view beside it, never a second editor, and nothing in it needs dragging: a node's buttons do every edit. A validation message shows on the node it is about, as it does under its form control (W7) |
 
 Sign-in, onboarding and error pages sit outside the app shell. They have no sidebar: the brand bar takes the top
@@ -537,10 +541,12 @@ in a development build, shows every component in each state, and its test fails 
 | Notice | `Notice` | A problem to fix: the verify status's soft colour, full width, the problem icon (section 14), what is wrong in words and a link to the fix (E2) |
 | Expandable row | `ExpandableRow` | A list's row that opens in place to show more, such as an email on Messages: the whole row is the button, with `aria-expanded` and `chevron-down`, which turns up when it is open; what it shows follows the row. Its words wrap rather than truncate, since a tooltip has no place inside a button. The rows share one surface and its dividers (S4) |
 | Summary card | shadcn `Card` as it is (`SummaryCard`), on a summary band (`SummaryBand`, section 6) | An icon in a neutral 32px chip and `Card.Title` (16/24 semibold); the count as a badge in `Card.Action`, saying what it counts (2 signals); `Card.Description` (14/20 muted, two lines at most, the rest in a tooltip). A link when it opens what it counts |
-| Bar chart | `BarChart` | A horizontal bar chart in HTML (section 3.5): each row's name, then its bars from one baseline, at most 24px thick, square at the baseline and rounded 4px at the end, with the value written at each tip in text colours, then an optional muted note (62% moved on). A zero draws nothing. Two series sit in pairs with a 2px gap and a legend above. Each row reads out its summary on hover, focus and tap (F4) and is one image with that summary for screen readers. In a narrow container the name goes above the bars |
-| Chart panel | `ChartPanel` on `Panel`, `Toggle` and the sorted table (L2) | A report's chart: the title, Chart and Table toggles on the header's right, one muted line saying what the numbers count, then the chart or the same numbers as a table, whose first column is the row's name. The table opens on the chart's own order unless a default sort says otherwise. While new numbers load it keeps the old ones, dimmed, rather than a skeleton. An empty state replaces both views |
+| Bar chart | `BarChart` | A horizontal bar chart in HTML (section 3.5): each row's name, then its bars from one baseline, at most 24px thick, square at the baseline and rounded 4px at the end, with the value written at each tip in text colours, then an optional muted share (62%) after the first value and an optional muted note (84% moved on); the one row with the biggest drop has its note in semibold with a small down-right arrow, and its summary says "the biggest drop". A zero draws nothing. Two series sit in pairs with a 2px gap and a legend above. The bars and note are one image that reads out the row's summary on hover, focus and tap (F4); the row's name beside it is a link when the row opens something (a funnel stage opens its candidates), so the link stays outside the image. In a narrow container the name goes above the bars |
+| Chart panel | `ChartPanel` on `Panel`, `Toggle` and the sorted table (L2) | A report's chart: the title, Chart and Table toggles on the header's right, then the chart or the same numbers as a table, whose first column is the row's name (a link when the row opens something). No sentence sits under the title (W9): what the numbers count is for screen readers only. A panel with no chart is its table alone, without the toggles. The table opens on the chart's own order unless a default sort says otherwise. While new numbers load it keeps the old ones, dimmed, rather than a skeleton. An empty state replaces both views |
 | Date range filter | `DateRangeFilter` on shadcn `Popover`; `#lib/report-range.ts` | A filter menu's outline button for dates (Dates: Last 30 days), `primary` once it is not the default. It opens the presets as ticked rows (Last 30, 90 and 365 days), which apply at once, then a custom range of two date fields under a rule, which applies with Apply and says what is wrong in words. Dates are the person's own days (W8); the API gets the local midnights |
 | Metric card | shadcn `Card` (`MetricCard`) | The value in the UI typeface (`metric`), a signed change against a named period (+7 vs last week), a 12-point line and a readout on hover, tap and focus; no description. The change is green when good and amber when it needs a look, decided per metric (fewer days to hire is good). It opens its report |
+| Report stat | shadcn `Card` (`ReportStat`) | A headline number on Reports: an icon chip and title, the value in the UI typeface (`metric`), an optional muted share after it (62% of applications), and the change from the previous period in words with an arrow (18 more than before, 3 days faster). The change is muted text, never a status colour: a report says how far a number moved and leaves the judgement to the person. The title is the card's label, so it wraps rather than cuts: a narrow card keeps room for two lines so values in a row line up, and the narrowest drops the chip. No line, no link, no description |
+| Week chart | `WeekChart` | Applications and hires by week as paired columns from one baseline, Applications in `chart-2` and Hires in `chart-1`, with a legend above and a readout line of its own above the columns, so reading a week never moves them. One tab stop: pointing at or tapping a week, or the arrow, Home and End keys, reads that week out (politely, to screen readers). Past about a year the columns keep a minimum width and the chart scrolls sideways inside its card. Its panel has the table view |
 | File row and file viewer | `FileRow`; `FileViewer` on shadcn `Dialog`; `FileFrame` | A page shows a file row: type icon, name, size, View and Download, or the scan status when a file is withheld. View opens the file in a full-window dialog with Close and Download, never a new tab. Untrusted files render isolated in a sandboxed frame; it draws PDFs, and other types keep Download only |
 | Edit / Preview switch | `EditPreviewLayout` (the editor and its preview side by side where both fit, else `EditPreviewSwitch`: a `Toggle` group and an icon button); `PreviewFrame`; `#lib/preview-window.svelte.ts` | A8: a pencil and an eye; the window icon (`app-window`, "Open in a new window") pops the preview out, and the window follows each edit over a same-origin `BroadcastChannel`. A candidate page previews in a phone, tablet or desktop frame at its real size. A read-only view of what an editor makes (a closed job's questionnaire) keeps the same switch, so content and preview never share the screen there either |
 | Count button | `CountButton`: outline `Button` and `Sheet` | A count in a header ("2 hiring templates") that opens a sheet listing each item as a link, with search past 10 (T4). With nothing to list it is plain text, worded as its list column words it ("None") |
@@ -819,13 +825,16 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   task the candidate's Overview, where Next steps ticks a to-do or a rejection review. A review and a requested
   scorecard are done when the scorecard is submitted.
 - **Reports:** a sidebar item after My tasks (G R) for every member, since every role sees jobs and candidates; job
-  access narrows the numbers to the jobs a person sees. The Report template (section 7): Dates and Job in the header
-  band, then Hiring funnel across the top, Time to hire and Sources below it. The funnel counts the applications that
-  arrived in the dates at every stage kind up to the furthest one each reached, Applied to Hired, with the share that
-  moved on; time to hire is the median days from applying to being hired for hires made in the dates, overall in the
-  metric size and per job; sources are applications and the hires among them by where they came from. Each panel's
-  first line says what it counts. No verification data: no levels, signals or counts by level, and no row for a
-  verification stage (ADR-0004, `docs/architecture/reports.md`).
+  access narrows the numbers to the jobs a person sees. The Report template (section 7): Dates, Job and the Compare
+  periods switch in the header band (on by default), and Export CSV as the band's action. Then a row of
+  five headline cards (Applications, Reached interview with its share, Offers, Hires, Median time to hire), each with its
+  change from the previous period in words and an arrow; Applications and hires by week across the page; Hiring funnel
+  across, each row with its count, its share of applicants and the share that moved on, the stage name linking to the
+  candidates behind it and the biggest drop marked in its own row (no callout under the funnel); Time to hire (median days
+  in each stage, then by job) beside Sources (applications, hires and the hire rate; the careers widget is Your website
+  and a job board's apply link is that board); and Open jobs as a table. The overall median shows only in the headline
+  (W7), and no panel has a sentence under its title (W9). No verification data: no levels, signals or counts by level, and
+  no row for a verification stage (ADR-0004, `docs/architecture/reports.md`).
 - **Saved views:** each shows its status icon and a short name (To verify), so nothing is cut off.
   Built: To review, To verify and Overdue show their status's icon; New today, Not screened and Interviewing an
   ordinary one. The short name is also the candidates page's title for the view.
