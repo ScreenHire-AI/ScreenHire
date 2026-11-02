@@ -102,6 +102,18 @@ describe('the Views list in the sidebar', () => {
     expect(within(main()).queryByRole('button', { name: 'Actions for Referrals in screening' })).toBeNull();
   });
 
+  it('gives a tablet a button that opens the full sidebar, where the Views menus are', async () => {
+    stubViewport(800);
+    render(ShellHarness, { props: { user, viewActions: actions() } });
+
+    const expand = screen.getByRole('button', { name: 'Expand sidebar' });
+    expect(expand).toHaveClass('lg:hidden');
+
+    await fireEvent.click(expand);
+
+    expect(await screen.findByRole('button', { name: 'Collapse sidebar' })).toBeInTheDocument();
+  });
+
   it('hides a built-in view from its menu, and lists the hidden ones behind "Show hidden views"', async () => {
     stubViewport(1280);
     const viewActions = actions();

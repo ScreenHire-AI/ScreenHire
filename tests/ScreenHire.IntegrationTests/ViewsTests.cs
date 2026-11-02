@@ -145,6 +145,43 @@ public sealed class ViewsTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_shared_candidates_view_shows_only_to_members_who_see_every_job_it_picks()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var job = await owner.CreateJobAsync(Samples.RemoteJob("Platform Engineer"));
+        using var recruiter = await fixture.InviteAndJoinAsync(owner, "Recruiter", jobAccess: "HiringTeamOnly");
+        using var colleague = await fixture.InviteAndJoinAsync(owner, "Recruiter");
+        var picking = Candidates("Platform hires", shared: true);
+        picking["filters"]!["jobIds"] = new JsonArray(JsonValue.Create(job.Id().ToString()));
+        var shared = (await owner.PostAsync(Path, picking)).Expect(HttpStatusCode.Created);
+        (await owner.PostAsync(Path, Candidates("Everyone's queue", shared: true))).Expect(HttpStatusCode.Created);
+
+        Names((await colleague.GetAsync(Path)).Expect(HttpStatusCode.OK)).Should().Equal("Platform hires", "Everyone's queue");
+        var seen = (await recruiter.GetAsync(Path)).Expect(HttpStatusCode.OK);
+        Names(seen).Should().Equal(["Everyone's queue"], "the view carries the id of a job they cannot see");
+        seen.Body.ToString().Should().NotContain(job.Id().ToString());
+        (await recruiter.PatchAsync($"{Path}/{shared.Id()}", new JsonObject { ["name"] = "Mine now", ["shared"] = null })).Expect(HttpStatusCode.NotFound);
+        (await recruiter.DeleteAsync($"{Path}/{shared.Id()}")).Expect(HttpStatusCode.NotFound);
+        (await recruiter.PostAsync($"{Path}/{shared.Id()}/restore")).Expect(HttpStatusCode.NotFound);
+
+        await owner.SetHiringTeamAsync(job.Id(), await owner.MemberIdAsync(recruiter.UserId));
+
+        Names((await recruiter.GetAsync(Path)).Expect(HttpStatusCode.OK)).Should().Equal("Platform hires", "Everyone's queue");
+    }
+
+    [Fact]
+    public async Task Two_saves_of_one_name_at_the_same_moment_leave_one_view()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+
+        var saves = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => owner.PostAsync(Path, Candidates("Same name"))));
+
+        saves.Count(save => save.Status == HttpStatusCode.Created).Should().Be(1);
+        saves.Where(save => save.Status != HttpStatusCode.Created).Should().OnlyContain(save => save.Status == HttpStatusCode.BadRequest);
+        Names((await owner.GetAsync(Path)).Expect(HttpStatusCode.OK)).Should().Equal("Same name");
+    }
+
+    [Fact]
     public async Task Another_organization_sees_and_changes_nothing_of_ours()
     {
         using var ours = await fixture.SignedInWithOrganizationAsync();
@@ -175,6 +212,12 @@ public sealed class ViewsTests(AppHostFixture fixture)
         var jobWithoutJob = ForJob(job.Id(), "Job without a job");
         jobWithoutJob["jobId"] = null;
         (await owner.PostAsync(Path, jobWithoutJob)).Expect(HttpStatusCode.BadRequest);
+        var jobWithBase = ForJob(job.Id(), "Job on a built-in view");
+        jobWithBase["filters"] = Filters("needs-review");
+        (await owner.PostAsync(Path, jobWithBase)).Expect(HttpStatusCode.BadRequest);
+        var jobWithJobs = ForJob(job.Id(), "Job with other jobs");
+        jobWithJobs["filters"]!["jobIds"] = new JsonArray(JsonValue.Create(job.Id().ToString()));
+        (await owner.PostAsync(Path, jobWithJobs)).Expect(HttpStatusCode.BadRequest);
 
         (await owner.PostAsync(Path, Candidates("Unknown base", filters: Filters("no-such-view")))).Expect(HttpStatusCode.BadRequest);
         var unknownJob = Candidates("Unknown job");

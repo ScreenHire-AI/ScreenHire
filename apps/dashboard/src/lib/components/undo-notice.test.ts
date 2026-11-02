@@ -28,6 +28,73 @@ describe('undo notice', () => {
     await vi.waitFor(() => expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull());
   });
 
+  describe('the clock', () => {
+    const shortOffer = () => new UndoOffer(250);
+    const undoButton = () => screen.findByRole('button', { name: 'Undo' });
+
+    it('runs while Undo holds the focus it was given, so the card goes for someone who does nothing', async () => {
+      const offer = shortOffer();
+      render(UndoNotice, { props: { offer } });
+      offer.offer('Deleted "Weekly".', async () => null);
+
+      const button = await undoButton();
+      await vi.waitFor(() => expect(button).toHaveFocus());
+      await vi.waitFor(() => expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull(), { timeout: 1000 });
+    });
+
+    it('moves focus to the page title when the focused Undo leaves with the card', async () => {
+      const title = document.createElement('h1');
+      title.tabIndex = -1;
+      document.body.append(title);
+      const offer = shortOffer();
+      render(UndoNotice, { props: { offer } });
+      offer.offer('Deleted "Weekly".', async () => null);
+
+      const button = await undoButton();
+      await vi.waitFor(() => expect(button).toHaveFocus());
+      await vi.waitFor(() => expect(title).toHaveFocus(), { timeout: 1000 });
+      title.remove();
+    });
+
+    it('waits while the pointer is on the card, and starts again when it leaves', async () => {
+      const offer = shortOffer();
+      render(UndoNotice, { props: { offer } });
+      offer.offer('Deleted "Weekly".', async () => null);
+      const button = await undoButton();
+
+      await fireEvent.pointerEnter(button.closest('[data-undo-notice]')!);
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
+
+      await fireEvent.pointerLeave(button.closest('[data-undo-notice]')!);
+      await vi.waitFor(() => expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull(), { timeout: 1000 });
+    });
+
+    it('waits once the person moves focus to the card themselves', async () => {
+      const offer = shortOffer();
+      render(UndoNotice, { props: { offer } });
+      offer.offer('Deleted "Weekly".', async () => null);
+      const button = await undoButton();
+      await vi.waitFor(() => expect(button).toHaveFocus());
+
+      button.blur();
+      button.focus();
+      await new Promise((resolve) => setTimeout(resolve, 400));
+
+      expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
+    });
+
+    it('closes on Escape', async () => {
+      const offer = new UndoOffer();
+      render(UndoNotice, { props: { offer } });
+      offer.offer('Deleted "Weekly".', async () => null);
+
+      await fireEvent.keyDown(await undoButton(), { key: 'Escape' });
+
+      await vi.waitFor(() => expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull());
+    });
+  });
+
   it('says why Undo failed', async () => {
     const offer = new UndoOffer();
     render(UndoNotice, { props: { offer } });

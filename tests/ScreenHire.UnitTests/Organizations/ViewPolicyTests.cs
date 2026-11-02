@@ -45,10 +45,25 @@ public sealed partial class ViewPolicyTests
     [Fact]
     public void A_private_view_is_seen_by_its_owner_only_and_a_shared_one_by_everyone()
     {
-        ViewPolicy.MaySee(View(), Owner).Should().BeTrue();
-        ViewPolicy.MaySee(View(), Someone).Should().BeFalse();
-        ViewPolicy.MaySee(View(), userId: null).Should().BeFalse();
-        ViewPolicy.MaySee(View(shared: true), Someone).Should().BeTrue();
+        var none = new HashSet<Guid>();
+
+        ViewPolicy.MaySee(View(), Owner, none).Should().BeTrue();
+        ViewPolicy.MaySee(View(), Someone, none).Should().BeFalse();
+        ViewPolicy.MaySee(View(), userId: null, none).Should().BeFalse();
+        ViewPolicy.MaySee(View(shared: true), Someone, none).Should().BeTrue();
+    }
+
+    [Fact]
+    public void A_shared_view_that_picks_jobs_shows_only_to_someone_who_sees_every_one_of_them()
+    {
+        var seen = Guid.CreateVersion7();
+        var unseen = Guid.CreateVersion7();
+        var view = SavedFilterView.Create(
+            Organization, Owner, "Two jobs", ViewScope.Candidates, jobId: null, shared: true, new ViewDefinition { JobIds = [seen, unseen] }, Now);
+
+        ViewPolicy.MaySee(view, Someone, new HashSet<Guid> { seen }).Should().BeFalse("the view carries the id of a job they cannot see");
+        ViewPolicy.MaySee(view, Someone, new HashSet<Guid> { seen, unseen }).Should().BeTrue();
+        ViewPolicy.MaySee(view, Owner, new HashSet<Guid>()).Should().BeTrue("a person keeps their own view after leaving a job's team");
     }
 
     [Fact]
@@ -79,8 +94,21 @@ public sealed partial class ViewPolicyTests
         view.Delete(later);
         view.Delete(later.AddMinutes(1));
         view.DeletedAt.Should().Be(later, "a second delete keeps the first time");
-        view.Restore(later.AddMinutes(2));
+        view.Restore(later.AddMinutes(2)).Should().BeTrue();
         view.DeletedAt.Should().BeNull();
+        view.Restore(later.AddMinutes(3)).Should().BeFalse("a view that is not deleted has nothing to restore");
+    }
+
+    [Fact]
+    public void Undo_has_a_minute()
+    {
+        var view = View();
+        view.IsPastUndo(Now.AddDays(1)).Should().BeFalse("a view that is not deleted has no Undo to run out");
+
+        view.Delete(Now);
+
+        view.IsPastUndo(Now + SavedFilterView.RestoreWindow).Should().BeFalse();
+        view.IsPastUndo(Now + SavedFilterView.RestoreWindow + TimeSpan.FromSeconds(1)).Should().BeTrue();
     }
 
     [Fact]

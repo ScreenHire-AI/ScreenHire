@@ -332,6 +332,25 @@ describe('job pipeline views', () => {
     expect(goto).toHaveBeenCalledWith(`/jobs/job-1?tab=candidates&view=${created.id}`);
   });
 
+  it('keeps the guardrails in a saved view that holds a verification level: no ending stage, Email or Save (ADR-0004)', async () => {
+    const pending = savedView({ scope: 'Job', jobId: 'job-1', filters: { ...savedView().filters, authenticity: 'Pending' } });
+    appPage.data = { user };
+    appPage.url = new URL(`http://dashboard.test/jobs/job-1?tab=candidates&view=${pending.id}`);
+    stubViews([pending], { 'GET /v1/email-templates': () => Response.json({ sendingEnabled: true, templates: [], variables: [] }) });
+    renderPipeline({
+      stages: [...stages, { id: 'rejected', name: 'Rejected', kind: 'Rejected' }, { id: 'withdrawn', name: 'Withdrawn', kind: 'Withdrawn' }],
+    });
+    await waitFor(() => expect(within(filters()).getByRole('button', { name: /^Checks pending/ })).toHaveAttribute('aria-pressed', 'true'));
+
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(within(selectionBar()).queryByRole('button', { name: /^Email/ })).toBeNull();
+    expect(within(selectionBar()).queryByRole('button', { name: /Save candidate/ })).toBeNull();
+
+    await fireEvent.pointerDown(within(selectionBar()).getByRole('button', { name: 'Move 1 selected…' }), { button: 0, pointerType: 'mouse' });
+    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent?.trim())).toEqual(stages.map((stage) => stage.name));
+  });
+
   it('opens a saved view of this job with its stage and sort on the table, and offers Save view only when they change', async () => {
     appPage.url = new URL(`http://dashboard.test/jobs/job-1?tab=candidates&view=${view.id}`);
     stubViews([view]);

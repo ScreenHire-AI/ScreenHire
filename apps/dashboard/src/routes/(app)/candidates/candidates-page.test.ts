@@ -245,6 +245,47 @@ describe('candidates page views', () => {
     expect(buttons.at(-1)).toHaveAttribute('aria-haspopup', 'dialog');
   });
 
+  describe('what a saved view keeps of the verification guardrails (ADR-0004)', () => {
+    const flagged = applications.map((application) => ({
+      ...application,
+      verification: {
+        authenticity: 'ReviewSuggested' as const,
+        authenticityReasons: ['RESUME_TEMPLATE_MATCH'],
+        authenticityDismissed: false,
+        aiAssistance: 'NotIndicated' as const,
+        aiAssistanceReasons: [],
+        aiAssistanceDismissed: false,
+      },
+    }));
+    const open = async (filters: Partial<SavedViewSummary['filters']>) => {
+      const opened = savedView({ filters: { ...savedView().filters, ...filters } });
+      appPage.data = { user };
+      appPage.url = new URL(`http://dashboard.test/candidates?view=${opened.id}`);
+      stubViews([opened], { 'GET /v1/applications': () => Response.json(flagged) });
+      render(WithQueryClient, { props: { component: Page, props: {} } });
+      await screen.findByRole('heading', { level: 1, name: opened.name });
+      await fireEvent.click(await screen.findByRole('checkbox', { name: `Select ${applications[0]!.candidateName}` }));
+      await waitFor(() => expect(document.querySelector('[data-selected-count]')).toHaveTextContent('Selected 1'));
+    };
+
+    it('offers Email in a view verification did not pick', async () => {
+      await open({ sortColumn: 'candidate', sortDescending: false });
+
+      expect(await screen.findByRole('button', { name: 'Email 1 selected' })).toBeInTheDocument();
+    });
+
+    it.each([
+      ['an authenticity level', { authenticity: 'ReviewSuggested' }],
+      ['an AI assistance level', { aiAssistance: 'NotIndicated' }],
+      ['a built-in verification view', { baseView: 'needs-review' }],
+    ])('offers no Email in a view that holds %s', async (_, filters) => {
+      await open(filters);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(screen.queryByRole('button', { name: /^Email/ })).toBeNull();
+    });
+  });
+
   it('saves the filters and sort under a name, not shared unless the switch is on, and opens the new view', async () => {
     const created = savedView({ id: '01a157d4-0000-7000-8000-0000000003bb', name: 'Warm referrals', shared: true });
     const fetchStub = stubViews([], { 'POST /v1/views': () => Response.json(created, { status: 201 }) });

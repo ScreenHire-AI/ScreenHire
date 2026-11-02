@@ -55,6 +55,48 @@ describe('the offer to undo', () => {
     expect(offer.open).toBe(false);
   });
 
+  it('keeps waiting when a new offer arrives while the person holds the notice', () => {
+    const offer = new UndoOffer();
+    offer.offer('Deleted "One".', async () => null);
+    offer.hold();
+
+    offer.offer('Deleted "Two".', async () => null);
+    vi.advanceTimersByTime(60_000);
+    expect(offer.message).toBe('Deleted "Two".');
+
+    offer.release();
+    vi.advanceTimersByTime(10_000);
+    expect(offer.open).toBe(false);
+  });
+
+  it('starts the clock on the next offer after a held one ended', () => {
+    const offer = new UndoOffer();
+    offer.offer('Deleted "One".', async () => null);
+    offer.hold();
+    offer.dismiss();
+
+    offer.offer('Deleted "Two".', async () => null);
+    vi.advanceTimersByTime(10_000);
+
+    expect(offer.open).toBe(false);
+  });
+
+  it('leaves a newer offer alone when an earlier Undo finishes', async () => {
+    const offer = new UndoOffer();
+    let finish: (failure: string | null) => void = () => {};
+    offer.offer('Deleted "One".', () => new Promise((resolve) => (finish = resolve)));
+    const running = offer.run();
+
+    const second = vi.fn(async () => null);
+    offer.offer('Deleted "Two".', second);
+    finish(null);
+    await running;
+
+    expect(offer.message).toBe('Deleted "Two".');
+    await offer.run();
+    expect(second).toHaveBeenCalledOnce();
+  });
+
   it('lets a second offer replace the first', () => {
     const offer = new UndoOffer();
     const first = vi.fn(async () => null);
