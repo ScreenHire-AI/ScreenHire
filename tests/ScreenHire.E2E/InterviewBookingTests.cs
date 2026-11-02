@@ -90,7 +90,8 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
         await ExpectNoAccessibilityViolationsAsync();
 
         // Cancelling closes the link: the page says so, and so does the next visit.
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Cancel this interview" }).ClickAsync();
+        await Page.Locator("summary", new() { HasText = "Cancel this interview" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Yes, cancel it" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("This interview is cancelled");
         await Expect(Page.Locator("main")).ToContainTextAsync("reply to the email you received");
         await ExpectNoAccessibilityViolationsAsync();

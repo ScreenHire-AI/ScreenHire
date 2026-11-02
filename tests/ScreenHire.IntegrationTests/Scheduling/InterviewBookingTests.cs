@@ -112,6 +112,36 @@ public sealed class InterviewBookingTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_refreshed_token_outlives_the_transaction_of_a_booking_that_failed()
+    {
+        // The public route holds a transaction around the booking. A provider that rotates refresh tokens has spent the old
+        // one by the time the booking loses, so the new one must survive the rollback.
+        var organization = await fixture.CreateOrganizationAsync(cancellationToken: Ct);
+        var interviewer = Guid.CreateVersion7();
+        await fixture.ConnectCalendarAsync(organization.Id, interviewer, problem: false, Ct);
+        var interview = await fixture.AddInterviewAsync(await fixture.AddApplicationAsync(organization.Id, Ct), [interviewer], Ct);
+        var expired = SchedulingTestSupport.Now().AddMinutes(-1);
+        await using (var arrange = await fixture.ContextAsync(organization.Id, Ct))
+        {
+            await arrange.Database.ExecuteSqlAsync($"UPDATE calendar_connections SET access_token_expires_at = {expired} WHERE user_id = {interviewer}", Ct);
+        }
+
+        var tenant = SchedulingTestSupport.TenantOf(organization.Id);
+        await using var db = await fixture.CreateDbContextAsync(tenant, Ct);
+        await using (var transaction = await db.Database.BeginTransactionAsync(Ct))
+        {
+            var refused = await SchedulingTestSupport.Services(db, tenant).Booking.BookAsync(interview, DateTimeOffset.UtcNow.AddHours(1), Ct);
+            refused.Outcome.Should().Be(InterviewBookingOutcome.SlotTaken);
+            await transaction.RollbackAsync(Ct);
+        }
+
+        await using var check = await fixture.ContextAsync(organization.Id, Ct);
+        var stored = await check.CalendarConnections.AsNoTracking().SingleAsync(c => c.UserId == interviewer, Ct);
+        stored.AccessTokenExpiresAt.Should().BeAfter(DateTimeOffset.UtcNow.AddMinutes(5), "the refresh committed on its own connection");
+        stored.Problem.Should().BeNull();
+    }
+
+    [Fact]
     public async Task A_slot_the_interviewer_got_busy_in_since_it_was_offered_is_taken()
     {
         var organization = await fixture.CreateOrganizationAsync(cancellationToken: Ct);

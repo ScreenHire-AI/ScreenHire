@@ -60,7 +60,8 @@ describe('Calendar account sheet', () => {
       { 'DELETE /v1/calendar': disconnected },
     );
 
-    expect(await screen.findByText('avery@example.com')).toBeInTheDocument();
+    const account = await screen.findByText('avery@example.com');
+    expect(account.parentElement).toHaveTextContent('Connected to Sandbox calendar as avery@example.com.');
     expect(screen.queryByRole('button', { name: /^Connect/ })).not.toBeInTheDocument();
     await fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }));
 

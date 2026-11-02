@@ -204,6 +204,24 @@ public sealed class InterviewJourneyTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task An_offer_closes_for_the_candidate_once_their_application_has_ended()
+    {
+        using var world = await InterviewWorld.CreateAsync(fixture);
+        var (_, token) = await world.ScheduledAsync();
+        var chosen = FarSlot(InterviewWorld.SlotsOf((await world.PublicGetAsync(token)).Expect(HttpStatusCode.OK)));
+
+        (await world.Owner.PostAsync($"/v1/applications/{world.ApplicationId}/move", new JsonObject { ["toStageId"] = "rejected" })).Expect(HttpStatusCode.OK);
+
+        var page = (await world.PublicGetAsync(token)).Expect(HttpStatusCode.OK);
+        page.Text("state").Should().Be("Cancelled");
+        InterviewWorld.SlotsOf(page).Should().BeEmpty();
+        page.At("canChange").GetBoolean().Should().BeFalse();
+        (await world.BookAsync(token, chosen)).Expect(HttpStatusCode.Gone).Text("type").Should().Be("cancelled");
+        (await world.CandidateCancelAsync(token)).Expect(HttpStatusCode.Gone);
+        (await world.EventsOfAsync(world.Owner.UserId)).Should().BeEmpty("nothing reached a calendar");
+    }
+
+    [Fact]
     public async Task Within_the_minimum_notice_the_candidate_can_neither_move_nor_cancel_a_booked_interview()
     {
         using var world = await InterviewWorld.CreateAsync(fixture);

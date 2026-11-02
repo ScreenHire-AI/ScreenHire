@@ -76,6 +76,18 @@ public sealed class InterviewTextTests
     }
 
     [Fact]
+    public void A_name_or_title_cannot_put_markup_or_a_new_line_in_an_event()
+    {
+        const string name = "<a href=\"https://attacker.example\">Reschedule here</a>\nGrace";
+
+        var title = InterviewText.EventTitle(name, "Support <b>engineer</b>");
+        var body = InterviewText.EventDescription(name, "Support <b>engineer</b>", applicationLink: null, meetingUrl: null);
+
+        (title + body).Should().NotContain("<").And.NotContain(">");
+        body.Split('\n').Should().HaveCount(2, "a name holds no line of its own");
+    }
+
+    [Fact]
     public void An_events_body_holds_the_job_the_candidate_and_a_link_to_the_application_only()
     {
         var link = new Uri("https://app.example.com/applications/00000000-0000-0000-0000-000000000001");

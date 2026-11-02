@@ -88,6 +88,13 @@ describe('Interview panel', () => {
     await expectNoAxeViolations();
   });
 
+  it('marks no organizer when one person interviews', async () => {
+    const { panel } = renderPanel([booked({ interviewers: [{ userId: 'u1', displayName: 'Avery Quinn', isOrganizer: true, syncStatus: 'Synced', syncProblem: null }] })]);
+
+    const people = within(await panel()).getByRole('list', { name: 'Interviewers' });
+    expect(within(people).getByRole('listitem')).toHaveTextContent(/^Avery Quinn$/);
+  });
+
   it('shows who interviews with the organizer marked in words and the meeting link, and never the time', async () => {
     const { panel } = renderPanel([booked()]);
 

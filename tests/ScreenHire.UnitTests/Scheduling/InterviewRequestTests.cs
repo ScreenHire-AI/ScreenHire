@@ -273,6 +273,34 @@ public sealed class InterviewRequestTests
         new[] { invited, booked, rescheduled, cancelled }.Should().OnlyContain(e => e.ApplicationId == application.Id && e.OrganizationId == application.OrganizationId);
     }
 
+    [Theory]
+    [InlineData("https://meet.google.com/abc-defg-hij", "https://meet.google.com/abc-defg-hij")]
+    [InlineData("  https://teams.microsoft.com/l/meetup-join/abc  ", "https://teams.microsoft.com/l/meetup-join/abc")]
+    [InlineData("javascript:alert(1)", null)]
+    [InlineData("http://meet.example.org/abc", null)]
+    [InlineData("data:text/html,hello", null)]
+    [InlineData("/relative/path", null)]
+    [InlineData("", null)]
+    [InlineData(null, null)]
+    public void Only_an_absolute_https_meeting_link_is_kept(string? given, string? kept)
+    {
+        var (_, request) = Requested();
+
+        request.SetMeetingUrl(given);
+
+        request.MeetingUrl.Should().Be(kept);
+    }
+
+    [Fact]
+    public void An_overlong_meeting_link_is_dropped()
+    {
+        var (_, request) = Requested();
+
+        request.SetMeetingUrl("https://meet.example.org/" + new string('a', InterviewRequest.MaxMeetingUrlLength));
+
+        request.MeetingUrl.Should().BeNull();
+    }
+
     private static bool CandidateMayChange(InterviewRequest request, DateTimeOffset now) => request.CanBeChangedByCandidate(now, TimeSpan.FromHours(24));
 
     private static (JobApplication Application, InterviewRequest Request) Requested()

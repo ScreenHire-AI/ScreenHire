@@ -73,7 +73,7 @@ public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : Browser
         // Schedule interview sits beside Email. The sheet lists the people who see the job: the recruiter is ticked
         // and is the organizer, the teammate can be ticked, and the member with no calendar is shown, in words, as unavailable.
         var header = Page.Locator("[data-slot=header-band]");
-        await Expect(header.GetByRole(AriaRole.Button, new() { Name = "Email" })).ToBeVisibleAsync();
+        await Expect(header.GetByRole(AriaRole.Button, new() { Name = "Email", Exact = true })).ToBeVisibleAsync();
         await header.GetByRole(AriaRole.Button, new() { Name = "Schedule interview" }).ClickAsync();
         var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Schedule interview" });
         var interviewers = sheet.GetByRole(AriaRole.Group, new() { Name = "Interviewers" });
@@ -99,7 +99,8 @@ public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : Browser
         // The Overview says it is waiting for the candidate, and nothing is in the header yet.
         var panel = Page.GetByRole(AriaRole.Region, new() { Name = "Interview", Exact = true });
         await Expect(panel).ToContainTextAsync("Waiting for the candidate to pick a time");
-        await Expect(header).Not.ToContainTextAsync("Booked for");
+        var length = header.GetByText("30 minutes with 2 interviewers");
+        await Expect(length).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
         await ShotsAsync("schedule-interview-open");
 
@@ -120,11 +121,10 @@ public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : Browser
             await Expect(candidatePage.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Your interview is booked");
         }
 
-        // The page that was open learns of it live: the time is a fact in the header, said once, and the panel lists
-        // the interviewers, with a link to the meeting once the organizer's calendar made it.
-        var fact = header.GetByRole(AriaRole.Term).Filter(new() { HasText = "Interview" }).Locator("xpath=following-sibling::dd[1]");
-        await Expect(fact).ToContainTextAsync("Booked for", new() { Timeout = 30_000 });
-        var time = (await fact.InnerTextAsync()).Replace("Booked for", string.Empty, StringComparison.Ordinal).Trim();
+        // The page that was open learns of it live: the time is in the header's Interview card, said once, and the panel
+        // lists the interviewers, with a link to the meeting once the organizer's calendar made it.
+        await Expect(length).ToBeVisibleAsync(new() { Timeout = 30_000 });
+        var time = await length.Locator("xpath=preceding-sibling::p[1]").InnerTextAsync();
         var people = panel.GetByRole(AriaRole.List, new() { Name = "Interviewers" });
         await Expect(people).ToContainTextAsync(new Regex($"{Regex.Escape(ownerName)}\\s*Organizer"));
         await Expect(people).ToContainTextAsync(teammateName);
@@ -151,7 +151,7 @@ public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : Browser
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Cancel interview" }).ClickAsync();
         await Expect(dialog).ToHaveCountAsync(0);
         await Expect(panel).ToContainTextAsync("was cancelled");
-        await Expect(header).Not.ToContainTextAsync("Booked for");
+        await Expect(length).ToHaveCountAsync(0);
         await Expect(panel.GetByRole(AriaRole.Button, new() { Name = "Interview actions" })).ToHaveCountAsync(0);
         await Expect(header.GetByRole(AriaRole.Button, new() { Name = "Schedule interview" })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
