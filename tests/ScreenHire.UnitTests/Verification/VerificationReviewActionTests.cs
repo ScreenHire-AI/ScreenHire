@@ -16,6 +16,32 @@ public sealed class VerificationReviewActionTests
     private static readonly Guid Teammate = Guid.CreateVersion7();
 
     [Fact]
+    public void A_read_through_a_key_names_the_key_and_no_person()
+    {
+        var organizationId = Guid.CreateVersion7();
+        var applicationId = Guid.CreateVersion7();
+        var keyId = Guid.CreateVersion7();
+
+        var action = VerificationReviewAction.ReadByKey(organizationId, applicationId, keyId, Now);
+
+        action.Type.Should().Be(VerificationReviewActionType.ReadByKey);
+        action.ApiKeyId.Should().Be(keyId);
+        action.ActorUserId.Should().BeNull("a key has no acting user");
+        action.OrganizationId.Should().Be(organizationId);
+        action.ApplicationId.Should().Be(applicationId);
+        action.AssessmentId.Should().BeNull();
+        action.OccurredAt.Should().Be(Now);
+    }
+
+    [Fact]
+    public void A_read_through_a_key_is_not_an_explanation_and_decides_nothing()
+    {
+        var read = VerificationReviewAction.ReadByKey(Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), Now);
+
+        VerificationReviewAction.CurrentExplanations([read]).Should().BeEmpty();
+    }
+
+    [Fact]
     public void A_reason_of_a_raised_assessment_is_explained_with_its_reason_and_note()
     {
         var assessment = Assessment(nameof(AuthenticityLevel.ReviewSuggested), out var signalId);

@@ -4,6 +4,7 @@ import PrivacyNotice from '../../../components/PrivacyNotice.astro';
 import CareersLayout from '../../../layouts/CareersLayout.astro';
 import { formatSalary, getPublicJob, getPublicOrganization, jsonLdScript, label } from '../../../lib/api';
 import { newTabLinks, useEmbedding, withEmbed } from '../../../lib/embed';
+import { withSource } from '../../../lib/source';
 import { basePath } from '../../../lib/host';
 import { buildJobPosting } from '../../../lib/job-posting';
 
@@ -84,7 +85,7 @@ const salary = job ? formatSalary(job.salaryMin, job.salaryMax, job.salaryCurren
         <PrivacyNotice base={base} />
       </div>
 
-      <a href={withEmbed(`${base}/jobs/${job.slug}/apply`, embed)} class="button-primary mt-6 w-full sm:w-auto">
+      <a href={withSource(withEmbed(`${base}/jobs/${job.slug}/apply`, embed), Astro.url.searchParams.get('src'))} class="button-primary mt-6 w-full sm:w-auto">
         Apply for this role
       </a>
     </CareersLayout>

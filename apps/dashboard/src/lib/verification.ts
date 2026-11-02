@@ -10,6 +10,7 @@ import type {
   VerificationSignalView,
   VerificationSummary,
   SignalCategory,
+  VerificationReviewEntry,
   StageKind,
 } from '@screenhire/api-client';
 import type { QueryClient } from '@tanstack/svelte-query';
@@ -239,7 +240,32 @@ export function refetchAfterReview(queryClient: QueryClient): Promise<unknown> {
 }
 
 /** Who took a review action, as the verification panel and the review log name them: "you", or their name. */
-export function reviewerName(userId: string, name: string | null, currentUserId: string | undefined): string {
-  if (userId === currentUserId) return 'you';
+export function reviewerName(userId: string | null, name: string | null, currentUserId: string | undefined): string {
+  if (userId !== null && userId === currentUserId) return 'you';
   return name ?? 'a teammate';
+}
+
+/** One line of the review log: an entry, and with `reads` above 1, the run of reads by one key it stands for. */
+export interface ReviewLogRow {
+  entry: VerificationReviewEntry;
+  reads: number;
+}
+
+/**
+ * The review log's entries (oldest first) as rows: consecutive reads through the same API key become one row at the latest
+ * read, with how many there were, so an assistant that reads a hundred applications does not bury the people's actions
+ * (ADR-0021). Every read stays in the log and in the API; only the list folds them.
+ */
+export function groupKeyReads(entries: readonly VerificationReviewEntry[]): ReviewLogRow[] {
+  const rows: ReviewLogRow[] = [];
+  for (const entry of entries) {
+    const last = rows.at(-1);
+    if (entry.type === 'ReadByKey' && last?.entry.type === 'ReadByKey' && last.entry.apiKeyId === entry.apiKeyId) {
+      last.entry = entry;
+      last.reads += 1;
+    } else {
+      rows.push({ entry, reads: 1 });
+    }
+  }
+  return rows;
 }

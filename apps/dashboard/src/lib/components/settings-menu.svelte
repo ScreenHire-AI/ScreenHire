@@ -2,6 +2,7 @@
   import type { Snippet } from 'svelte';
   import { page } from '$app/state';
   import { visibleSettingsSections } from '#lib/settings.js';
+  import { getShell } from '#lib/shell.js';
 
   // The Settings menu (design system section 11): Settings is one sidebar item, and its pages share this menu. From `lg`
   // the menu is a 200px column on the left of the page's content, under the header band; below `lg` it is one row above
@@ -19,7 +20,8 @@
     current?: string;
   } = $props();
 
-  const sections = $derived(visibleSettingsSections(page.data?.user));
+  const shell = getShell();
+  const sections = $derived(visibleSettingsSections(page.data?.user, shell?.features()));
   const groups = $derived(
     [...new Set(sections.map((section) => section.group))].map((group) => ({ group, sections: sections.filter((section) => section.group === group) })),
   );

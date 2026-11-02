@@ -39,8 +39,14 @@ public sealed class VerificationReviewAction : IApplicationScoped
     /// </summary>
     public string? Note { get; init; }
 
-    /// <summary>The reviewer. Null for <see cref="VerificationReviewActionType.EvidenceChanged"/>, which the system writes.</summary>
+    /// <summary>
+    /// The person who acted. Null for a <see cref="VerificationReviewActionType.ReadByKey"/> row, where <see cref="ApiKeyId"/>
+    /// is set instead, and for a <see cref="VerificationReviewActionType.EvidenceChanged"/> row, which the system writes.
+    /// </summary>
     public Guid? ActorUserId { get; init; }
+
+    /// <summary>The API key that read the verification (ADR-0021). Null for every action a person took.</summary>
+    public Guid? ApiKeyId { get; init; }
 
     public DateTimeOffset OccurredAt { get; init; }
 
@@ -170,6 +176,19 @@ public sealed class VerificationReviewAction : IApplicationScoped
             .ToDictionary(a => (a.AssessmentId!.Value, a.SignalId!.Value));
     }
 
+    /// <summary>
+    /// Records that an API key with the Verification read scope read an application's verification. The log says which
+    /// key and when; reading decides nothing and changes no level (ADR-0021).
+    /// </summary>
+    public static VerificationReviewAction ReadByKey(Guid organizationId, Guid applicationId, Guid apiKeyId, DateTimeOffset now) => new()
+    {
+        OrganizationId = organizationId,
+        ApplicationId = applicationId,
+        Type = VerificationReviewActionType.ReadByKey,
+        ApiKeyId = apiKeyId,
+        OccurredAt = now,
+    };
+
     public static VerificationReviewAction AddNote(
         Guid organizationId, Guid applicationId, Guid? assessmentId, string note, Guid actorUserId, DateTimeOffset now)
     {
@@ -199,6 +218,9 @@ public enum VerificationReviewActionType
 
     /// <summary>The author of an explanation took it back.</summary>
     ExplanationUndone,
+
+    /// <summary>An API key with the Verification read scope read the verification. It decides nothing.</summary>
+    ReadByKey,
 
     /// <summary>A re-check found evidence to add or take away; the system wrote it, with the reason in its note.</summary>
     EvidenceChanged,

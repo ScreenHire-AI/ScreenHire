@@ -1,6 +1,7 @@
 <script lang="ts">
   import CircleSlashIcon from '~icons/lucide/circle-slash';
   import ClipboardPenIcon from '~icons/lucide/clipboard-pen';
+  import KeyRoundIcon from '~icons/lucide/key-round';
   import MessageSquareCheckIcon from '~icons/lucide/message-square-check';
   import ScanSearchIcon from '~icons/lucide/scan-search';
   import Undo2Icon from '~icons/lucide/undo-2';
@@ -13,13 +14,14 @@
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
-  import { dismissReasonLabels, explainReasonLabels, refetchAfterReview, reviewerName } from '#lib/verification.js';
+  import { dismissReasonLabels, explainReasonLabels, groupKeyReads, refetchAfterReview, reviewerName, type ReviewLogRow } from '#lib/verification.js';
   import { can } from '#lib/permissions.js';
   import { describeError } from '#lib/query.js';
 
   // The people's side of an application's verification: every dismissal, explained reason, undo and note, newest first,
-  // with who and when, and the evidence a re-check added or took away (written by ScreenHire, with its reason, so a level
-  // never moves without one; a person's note is never mixed up with it). It reads the verification panel's query, so the two share one request and update together.
+  // with who and when, each read through an API key that has the Verification read scope (ADR-0021), by key, and the evidence
+  // a re-check added or took away (written by ScreenHire, with its reason, so a level never moves without one; a person's
+  // note is never mixed up with it). It reads the verification panel's query, so the two share one request and update together.
   let { applicationId }: { applicationId: string } = $props();
 
   const queryClient = useQueryClient();
@@ -32,6 +34,16 @@
   async function done(message: string) {
     announcement = message;
     await refetchAfterReview(queryClient);
+  }
+
+  function describeRow({ entry, reads }: ReviewLogRow): string {
+    if (entry.type === 'ReadByKey') return `Read through the API key ${entry.apiKeyName ?? 'an unknown key'}${reads > 1 ? `, ${reads} times` : ''}`;
+    return describeEntry(entry);
+  }
+
+  function actorOf({ entry }: ReviewLogRow): string {
+    if (entry.type === 'ReadByKey') return entry.keyCreatedByName ? `key made by ${entry.keyCreatedByName}` : 'key made by someone who has left';
+    return entry.actorUserId ? `by ${reviewerName(entry.actorUserId, entry.actorName, page.data.user?.id)}` : 'by ScreenHire';
   }
 
   function describeEntry(entry: VerificationReviewEntry): string {
@@ -50,23 +62,26 @@
     NoteAdded: ClipboardPenIcon,
     ReasonExplained: MessageSquareCheckIcon,
     ExplanationUndone: Undo2Icon,
+    ReadByKey: KeyRoundIcon,
     EvidenceChanged: ScanSearchIcon,
   };
 
   const items = $derived<Activity[]>(
-    (entries ?? []).toReversed().map((entry) => ({
-      id: entry.id,
-      icon: icons[entry.type],
-      event: describeEntry(entry),
-      actor: entry.actorUserId ? `by ${reviewerName(entry.actorUserId, entry.actorName, page.data.user?.id)}` : 'by ScreenHire',
-      // The system's reason is the event line itself; a reviewer's words are quoted under theirs.
-      note: entry.type === 'EvidenceChanged' ? undefined : (entry.note ?? undefined),
-      at: entry.occurredAt,
-    })),
+    groupKeyReads(entries ?? [])
+      .toReversed()
+      .map((row) => ({
+        id: row.entry.id,
+        icon: icons[row.entry.type],
+        event: describeRow(row),
+        actor: actorOf(row),
+        // The system's reason is the event line itself; a reviewer's words are quoted under theirs.
+        note: row.entry.type === 'EvidenceChanged' ? undefined : (row.entry.note ?? undefined),
+        at: row.entry.occurredAt,
+      })),
   );
 </script>
 
-<Panel title="Review log" count={entries?.length}>
+<Panel title="Review log" count={entries && items.length}>
   {#snippet actions()}
     {#if entries && can(page.data.user, 'ReviewVerification')}<Button variant="outline" onclick={() => (noteOpen = true)}><ClipboardPenIcon aria-hidden="true" />Add review note</Button>{/if}
   {/snippet}

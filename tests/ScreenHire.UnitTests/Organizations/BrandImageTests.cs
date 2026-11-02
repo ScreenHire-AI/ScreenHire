@@ -68,6 +68,16 @@ public sealed class BrandImageTests
     }
 
     [Fact]
+    public void It_keeps_the_name_it_was_uploaded_with_as_the_last_part_of_its_blob_name()
+    {
+        var image = new BrandImage { Id = Guid.NewGuid(), BlobName = $"{Guid.NewGuid()}/{Guid.NewGuid()}/Logo/acme-logo.png", ContentType = "image/png" };
+        var bare = new BrandImage { Id = Guid.NewGuid(), BlobName = "x", ContentType = "image/png" };
+
+        image.FileName.Should().Be("acme-logo.png");
+        bare.FileName.Should().Be("x");
+    }
+
+    [Fact]
     public void Its_address_is_the_same_for_everyone_and_names_nobody()
     {
         var image = new BrandImage { Id = Guid.Parse("0f8b3a52-6a4e-4a9b-9c1e-2d7f3e4b5a6c"), BlobName = "x", ContentType = "image/jpeg" };

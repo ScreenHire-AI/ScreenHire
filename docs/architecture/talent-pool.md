@@ -75,7 +75,7 @@ skips an ended application uses it:
 - `slaDueAt` is null, so it is never overdue.
 
 The dashboard reads `keptInMindAt` through `#lib/talent-pool.ts`. A kept application shows "Kept in mind" where its stage
-was, counts in a job board's Closed column, and drops out of the stage views and filters.
+was, counts in a job board's Closed column, in a row of its own that opens in place to list those candidates, and drops out of the stage views and filters.
 
 **Moving it back is the undo.** `MoveTo` on a kept application clears `KeptInMindAt` and records a `StageChanged`, even
 to the stage it was in, and the API takes the candidate out of the pool. That is how a rejection is undone too.
@@ -178,5 +178,7 @@ organization's normal retention.
   customers" in the [roadmap](../roadmap.md)).
   Until then, a person removes them with "They asked to be removed", which also withdraws the permission.
 - **Record retention.** Nothing deletes an ended application after a period; that is the same roadmap item.
-- **API keys, MCP and webhooks.** The pool's routes take no API key, the MCP server has no pool tool, and there is no
-  webhook event for it.
+- **API keys, MCP and webhooks.** The pool's routes take no API key and there is no webhook event for it. The MCP
+  server's `list_saved_candidates` tool reads the list, for any key with the Read scope, through `TalentPoolReads` (the
+  same read the list route uses, ADR-0021 decision 6). It keeps, removes and invites no one, and nothing else about the
+  pool reaches a key.

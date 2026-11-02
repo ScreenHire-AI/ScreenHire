@@ -4,13 +4,13 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
-import type { ApplicationSource } from './applicationSource.ts';
 
 /**
  * Applications submitted in the range from one source, and how many of them are hired now.
  */
 export interface SourceCount {
-  source: ApplicationSource;
+  key: string;
+  name: string;
   applications: number;
   hires: number;
 }

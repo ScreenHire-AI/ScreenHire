@@ -13,8 +13,8 @@ using ScreenHire.Infrastructure.Persistence;
 namespace ScreenHire.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ScreenHireDbContext))]
-    [Migration("20261102065139_AddVerificationRunRevision")]
-    partial class AddVerificationRunRevision
+    [Migration("20261102062836_AddApplicationSourceBoard")]
+    partial class AddApplicationSourceBoard
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -657,6 +657,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("source");
+
+                    b.Property<string>("SourceBoard")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("source_board");
 
                     b.Property<string>("SourceSite")
                         .HasMaxLength(200)
@@ -3124,12 +3129,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("organization_id");
 
-                    b.Property<int>("Revision")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(1)
-                        .HasColumnName("revision");
-
                     b.Property<int>("SignalCount")
                         .HasColumnType("integer")
                         .HasColumnName("signal_count");
@@ -3140,7 +3139,7 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.HasAlternateKey("OrganizationId", "Id")
                         .HasName("ak_verification_analyzer_runs_organization_id_id");
 
-                    b.HasIndex("OrganizationId", "ApplicationId", "Analyzer", "AnalyzerVersion", "Revision")
+                    b.HasIndex("OrganizationId", "ApplicationId", "Analyzer", "AnalyzerVersion")
                         .IsUnique()
                         .HasDatabaseName("ix_verification_analyzer_runs_organization_id_application_id_a");
 
@@ -3260,7 +3259,7 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid?>("ActorUserId")
+                    b.Property<Guid>("ActorUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("actor_user_id");
 
@@ -3430,12 +3429,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)")
                         .HasColumnName("source");
-
-                    b.Property<int>("SourceRevision")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(1)
-                        .HasColumnName("source_revision");
 
                     b.Property<int>("SourceVersion")
                         .HasColumnType("integer")

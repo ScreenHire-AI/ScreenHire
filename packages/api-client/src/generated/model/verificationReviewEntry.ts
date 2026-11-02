@@ -31,4 +31,10 @@ export interface VerificationReviewEntry {
   /** @nullable */
   signalTitle: string | null;
   explainReason: null | ExplainReason;
+  /** @nullable */
+  apiKeyId: string | null;
+  /** @nullable */
+  apiKeyName: string | null;
+  /** @nullable */
+  keyCreatedByName: string | null;
 }

@@ -6,7 +6,8 @@ tags: [adr, api-keys, auth]
 ---
 # ADR-0011: Organization API keys now, OAuth client credentials later
 
-- **Status:** Accepted (2026-10-22)
+- **Status:** Accepted (2026-10-22). Decisions 3 and 4 are amended by ADR-0021: a third scope, Verification read, that
+  only an Owner can give, opens verification to the key that has it.
 - **Deciders:** Owner
 - **Builds on:** ADR-0001 (public API from day one), ADR-0008 (Identity and cookie auth; OpenIddict "when standard OIDC
   tokens are needed")

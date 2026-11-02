@@ -28,9 +28,9 @@ What comes next, in order, is the [roadmap](roadmap.md).
 | Sign-in and tenancy | Email links, Google, Microsoft and generic OIDC, onboarding, organizations, Postgres row-level security under an app role | #7 |
 | Team | Members with roles, email invitations that expire and work once, role changes and removal with the last Owner protected, a membership log, switching between organizations | #38 |
 | Roles and permissions | The server checks permissions, not role names, on every route; custom roles copied from a built-in or custom role, edited on their own page with History, deleted only when nobody has them; nobody gives more access than their own role has; Owner-only permissions stay with Owners; API keys capped by their creator ([ADR-0014](adr/0014-permissions-and-custom-roles.md)) | the custom roles task |
-| API access | Organization API keys on the hiring API (jobs, applications, candidates, templates): read or read and write, shown once, a per-key rate limit, revocable ([ADR-0011](adr/0011-api-keys-for-integrators.md)) | #37 |
+| API access | Organization API keys on the hiring API (jobs, applications, candidates, templates): read or read and write, shown once, a per-key rate limit, revocable ([ADR-0011](adr/0011-api-keys-for-integrators.md)); a Verification read scope that only an Owner can give opens an application's verification to the key, with every read in the review log ([ADR-0021](adr/0021-verification-read-scope-for-api-keys.md)) | #37 |
 | Slack | An Owner or Admin connects the workspace from Settings > Slack and picks a channel and the events posted there (a new application, a candidate moved, an automation that failed, a job published); each person links their own account from their menu for their mentions and tasks as direct messages; messages name the candidate and the job and link to them, and never carry verification output ([Slack](architecture/slack.md)) | the Slack task |
-| MCP server | A team's AI assistant at `/v1/mcp`, signed in with an API key: find jobs and candidates, read an application with the candidate's words marked, add notes, tags and tasks, move a candidate to a stage; Read keys see only the reads; no verification output ([MCP server](architecture/mcp-server.md)) | the MCP server task |
+| MCP server | A team's AI assistant at `/v1/mcp`, signed in with an API key: find jobs and candidates, read an application with the candidate's words marked, add notes, tags and tasks, move a candidate to a stage, read a hiring report and the saved candidates; Read keys see only the reads; verification tools only for a key an Owner gave the Verification read scope, each read logged and a level never a reason to reject ([MCP server](architecture/mcp-server.md)) | the MCP server task |
 | Hiring | Jobs with versions, hiring templates (system and your own), candidates, applications, the pipeline | #9 |
 | Reports | A Reports page for every member, over a date range and chosen jobs: the hiring funnel by stage kind with the share that moved on, median time to hire per job and overall, applications and hires by source; each chart has a table view; job access narrows the numbers; no verification data ([Reports](architecture/reports.md)) | the reports task |
 | Workflows | Automations with guardrails (no verification-driven rejection), simulate and validate, transactional email, signed webhooks | #10 |
@@ -128,16 +128,13 @@ brackets.
 
 - Reports know two sources, the careers page and a recruiter, because nothing records which job board sent a careers
   applicant, and they count an application through the careers widget under the careers page although it records its
-  site; the MCP server and API keys have no report yet; and stage kinds come from each job's current workflow, so a
+  site; only the MCP server reads reports for a key, not the HTTP API; and stage kinds come from each job's current workflow, so a
   removed stage's history drops out of the funnel (`architecture/reports.md` section 6).
 - Erasure requests: an Owner or Admin erases a candidate from their profile, with the name typed to confirm
   ([candidates](architecture/candidates.md)). There is no form for a candidate to ask for their data or its erasure: the
   privacy page tells them to write to the employer. A candidate who uses the link in a talent pool invitation is only
   taken out of the pool ([talent pool](architecture/talent-pool.md)); the profile then offers Erase candidate.
 
-- The MCP server gives an assistant no verification output, as ADR-0011 refuses it to every API key, although roadmap item 6
-  asked for levels, reasons and evidence. Opening it to `/v1/mcp` is an owner decision: an amendment to ADR-0011, then
-  one `VerificationReads.LoadAsync` call in `get_application` and a view that marks quoted evidence as candidate-written.
 - MCP clients that sign in only with OAuth, such as claude.ai custom connectors, cannot connect until OAuth comes
   (ADR-0011 decision 6).
 - With the demo seeding on, a live update can arrive late while the worker works through the demo's backlog just after
