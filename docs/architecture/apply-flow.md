@@ -254,7 +254,8 @@ busy moment never mails a second link. The API (`PublicApplicationDraftEndpoints
   because no keys are configured or Cloudflare was unreachable, goes on, as it does on a submission. The widget shows on
   every step that offers Save and finish later, not only on the review step. Saving a draft again sends no email and
   needs no token, and sending the application never needs one, so a candidate who cannot pass the check (JavaScript off,
-  a strict privacy tool) applies as before; the 403's message says so. This is a limit on mail the form can trigger,
+  a strict privacy tool) applies as before; the 403's message says so. The notice that the checks never reject anyone shows
+  wherever the check runs, on the review step and on any step that offers Save. This is a limit on mail the form can trigger,
   not a verdict on the candidate: no signal is written, and nothing about a draft reaches verification.
 - Accepted limits. The check, the per-address cap and the per-network rate limit bound what anyone can make the API
   email, and the email says to ignore it if you did not start the application. The sixth save's 429 tells the caller

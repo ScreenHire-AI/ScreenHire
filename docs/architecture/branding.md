@@ -109,7 +109,9 @@ deletes blobs under `{organization}/` older than the cutoff that have no row, wh
 is the worker's only write to storage: `IBrandImageStore` (a blob implementation in the worker, a no-op where no
 storage is configured) lists and deletes in the brand images container and never reads or writes an image. Every image
 uploaded before `SavedAt` existed was marked saved by its migration, because nothing recorded which old uploads had
-been in use. Azurite has no lifecycle rules, which is why a Wolverine schedule does this and not a storage rule.
+been in use. Azurite has no lifecycle rules, which is why a Wolverine schedule does this and not a storage rule. A branding save
+that names an upload the sweep removed a moment earlier is refused like any missing image, with a validation problem on
+that slot (not a 500).
 
 ## 5. Serving
 
