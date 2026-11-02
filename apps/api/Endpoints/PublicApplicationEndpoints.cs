@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Applications;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
-using ScreenHire.Application.TalentPool;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
@@ -232,10 +231,8 @@ internal static class PublicApplicationEndpoints
 
         var remoteAddress = http.Connection.RemoteIpAddress?.ToString();
         var now = time.GetUtcNow();
-        // The candidate's own permission for future roles, for the period in force now, which the form showed them.
-        var futureRoles = request.KeepForFutureRoles
-            ? new FutureRolesConsent(now, await TalentPoolMembership.MonthsAsync(outbox.DbContext, cancellationToken))
-            : null;
+        // The candidate's own permission for future roles. It has no end date: the form said it lasts until they ask.
+        var futureRoles = request.KeepForFutureRoles ? new FutureRolesConsent(now) : null;
         var intake = new ApplicationIntake(
             ApplicationSource.CareersSite,
             answers,

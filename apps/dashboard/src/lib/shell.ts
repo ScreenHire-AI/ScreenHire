@@ -44,8 +44,8 @@ export const sections: readonly {
     icon: UsersIcon,
     matches: (path) => path.startsWith('/candidates') || path.startsWith('/applications/'),
   },
-  // The candidates the team kept in mind for future roles (docs/architecture/talent-pool.md).
-  { label: 'Talent pool', href: '/talent-pool', key: 'p', icon: BookmarkIcon, matches: (path) => path.startsWith('/talent-pool') },
+  // The candidates the team saved, until they remove them or the candidate asks to stop (docs/architecture/talent-pool.md).
+  { label: 'Saved candidates', href: '/saved', key: 's', icon: BookmarkIcon, matches: (path) => path.startsWith('/saved') },
   { label: 'Templates', href: '/templates', key: 't', icon: LayoutTemplateIcon, matches: (path) => path.startsWith('/templates') },
   { label: 'My tasks', href: '/tasks', key: 'm', icon: ListTodoIcon, matches: (path) => path.startsWith('/tasks') },
   { label: 'Reports', href: '/reports', key: 'r', icon: ChartBarIcon, matches: (path) => path.startsWith('/reports') },

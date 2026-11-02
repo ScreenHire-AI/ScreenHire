@@ -22,7 +22,7 @@ public sealed record EmailTemplateList(bool SendingEnabled, IReadOnlyList<EmailT
 /// belongs to one request), with the same limits. <c>updatedAt</c> is null for a built-in in ScreenHire's wording, and
 /// <c>lastUpdated</c> says who changed it last, or ScreenHire for a built-in nobody has. <c>archived</c>: the
 /// organization took its own template out of the pickers; automations that name it keep sending it.
-/// <c>invitationOnly</c>: only a person's Invite to apply from the talent pool sends it, with the job's link and the
+/// <c>invitationOnly</c>: only a person's Invite to apply from saved candidates sends it, with the job's link and the
 /// candidate's own link to stop being kept; it is never sent as an ordinary email, and no automation names it.
 /// </remarks>
 public sealed record EmailTemplateEntry(
@@ -31,7 +31,7 @@ public sealed record EmailTemplateEntry(
 
 /// <summary>
 /// A variable a template may use as <c>{{ name }}</c>. <c>rejectOnly</c>: only the rejection email has it.
-/// <c>questionnaireOnly</c>: only the follow-up questions email has it. <c>invitationOnly</c>: only the talent pool
+/// <c>questionnaireOnly</c>: only the follow-up questions email has it. <c>invitationOnly</c>: only saved candidates
 /// invitation has it.
 /// </summary>
 public sealed record EmailTemplateVariableEntry(string Name, string Label, bool RejectOnly, bool QuestionnaireOnly = false, bool InvitationOnly = false);
@@ -187,7 +187,7 @@ internal sealed class SendEmailsRequestValidator : AbstractValidator<SendEmailsR
             .Must(id => id != EmailTemplateIds.QuestionnaireRequest)
             .WithMessage("The follow-up questions email goes only with a SendQuestionnaire action, which makes its link.")
             .Must(id => id != EmailTemplateIds.TalentPoolInvitation)
-            .WithMessage("The invitation to apply goes only with Invite to apply, from the talent pool.")
+            .WithMessage("The invitation to apply goes only with Invite to apply, from saved candidates.")
             .When(r => r.TemplateId is not null);
     }
 }

@@ -16,10 +16,10 @@ describe('MoveToStage', () => {
     expect(screen.getByRole('button', { name: 'Move Robin Ashby to another stage' })).toBeInTheDocument();
   });
 
-  describe('Keep in mind', () => {
+  describe('Save candidate', () => {
     const open = () => fireEvent.pointerDown(screen.getByRole('button', { name: 'Move to stage, Robin Ashby' }), { button: 0, pointerType: 'mouse' });
 
-    it('offers Keep in mind after the stages only when the page passes onkeep', async () => {
+    it('offers Save candidate after the stages only when the page passes onkeep', async () => {
       render(MoveToStage, { props: { candidateName: 'Robin Ashby', currentStageId: stages[0]!.id, stages, onmove: vi.fn(), onkeep: vi.fn() } });
       await open();
 
@@ -28,7 +28,7 @@ describe('MoveToStage', () => {
         'Screening',
         'Interview',
         'Offer',
-        'Keep in mind…',
+        'Save candidate…',
       ]);
     });
 
@@ -38,7 +38,7 @@ describe('MoveToStage', () => {
       render(MoveToStage, { props: { candidateName: 'Robin Ashby', currentStageId: stages[0]!.id, stages, onmove, onkeep } });
       await open();
 
-      await fireEvent.click(await screen.findByRole('menuitem', { name: 'Keep in mind…' }));
+      await fireEvent.click(await screen.findByRole('menuitem', { name: 'Save candidate…' }));
 
       expect(onkeep).toHaveBeenCalledTimes(1);
       expect(onmove).not.toHaveBeenCalled();
@@ -49,7 +49,7 @@ describe('MoveToStage', () => {
       await open();
 
       await screen.findAllByRole('menuitem');
-      expect(screen.queryByRole('menuitem', { name: /Keep in mind/ })).toBeNull();
+      expect(screen.queryByRole('menuitem', { name: /Save candidate/ })).toBeNull();
     });
   });
 });

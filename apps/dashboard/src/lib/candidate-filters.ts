@@ -24,7 +24,7 @@ export function stageOptions(applications: readonly ApplicationSummary[], jobIds
   const stages = new Map<string, FilterOption & { rank: number }>();
   for (const application of applications) {
     if (jobIds.length > 0 && !jobIds.includes(application.jobId)) continue;
-    // A candidate kept in mind is under "Kept in mind", after the endings, never under the stage they left from.
+    // A saved candidate is under "Saved", after the endings, never under the stage they left from.
     const name = stageLabel(application);
     const kind = application.keptInMindAt ? 'KeptInMind' : application.stage.kind;
     const stage = stages.get(name) ?? { value: name, label: name, count: 0, rank: kindOrder.indexOf(kind) };

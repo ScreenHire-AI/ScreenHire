@@ -52,7 +52,7 @@ never calls the API.
 | `/telemetry?job={id}` | Relay for the telemetry module's beacons to the API (verification-engine.md §10.2, "Form telemetry"). |
 | `/questionnaires/{token}` | A follow-up questionnaire, opened from the signed link a SendQuestionnaire automation emailed (section 8). |
 | `/questionnaires/sent` | Where answered follow-up questions land, after a POST-redirect-GET, with no token in the address. |
-| `/talent-pool/{token}` | Where a candidate stops the employer keeping their details for future roles, from the signed link in a talent pool invitation ([talent pool](talent-pool.md)). One native form, no JavaScript, `no-store`, `noindex` and `no-referrer`. |
+| `/talent-pool/{token}` | Where a candidate stops the employer keeping their details for future roles, from the signed link in an invitation to apply ([saved candidates](talent-pool.md)). One native form, no JavaScript, `no-store`, `noindex` and `no-referrer`. |
 | `/talent-pool/stopped` | Where stopping lands, after a POST-redirect-GET, with no token in the address. |
 
 Each step is a native `<form method="POST" enctype="multipart/form-data">` posted to the `apply` Astro Action
@@ -104,14 +104,14 @@ organization and never stores it as sent, and keeps it only on the job's device-
 fingerprint is kept only when it is ticked. The observation and the telemetry are deleted after 30 days. The notice and
 the privacy page say all of this, and that the employer may email a follow-up questionnaire whose page keeps the
 answers only, that a saved draft keeps the details and answers only, for 30 days, and that an application through
-the form on the employer's own website notes which website (`NOTICE_VERSION` `2026-10-31.2`).
+the form on the employer's own website notes which website (`NOTICE_VERSION` `2026-11-02.1`).
 
 The review step also asks, optionally and unticked, "Keep my details for future roles", with one line saying the
-employer keeps the application for its talent pool period (`talentPoolMonths` on the application form, 12 months by
-default) and may invite them to apply for other roles, and that every invitation has a link to stop. The careers server
-sends `keepForFutureRoles`; the API records the permission, with that period, on the application only, never on the
-candidate ([talent pool](talent-pool.md)). The privacy page's "Future roles" section says the same
-(notice version `2026-10-30.1`).
+employer keeps their details until they ask, or the employer removes them, and may invite them to apply for other
+roles, and that every invitation has a link to stop. There is no period: the application form carries no number of
+months. The careers server sends `keepForFutureRoles`; the API records the permission on the application only, never on
+the candidate ([saved candidates](talent-pool.md)). The privacy page's "Future roles" section says the same (notice
+version `2026-11-02.1`, bumped when the period was removed).
 
 ## 3. Uploads
 

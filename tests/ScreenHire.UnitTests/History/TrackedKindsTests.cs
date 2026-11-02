@@ -19,7 +19,7 @@ public sealed partial class TrackedKindsTests
         TrackedKinds.All.Select(k => k.EntityType).Should().BeEquivalentTo(
         [
             typeof(HiringTemplate), typeof(HiringTemplateVersion), typeof(EmailTemplate), typeof(Job), typeof(ScorecardTemplate), typeof(CustomRole),
-            typeof(Organization), typeof(Organization), typeof(VerificationSettings), typeof(TalentPoolSettings),
+            typeof(Organization), typeof(Organization), typeof(VerificationSettings), typeof(TalentPoolEntry),
             typeof(OrganizationMember), typeof(OrganizationInvitation), typeof(ApiKey),
         ]);
         TrackedKinds.FindAll(typeof(WebhookEndpoint)).Should().BeEmpty("its row holds the signing secret (ADR-0016)");

@@ -14,9 +14,9 @@
 
   // Confirms "Close & remove everywhere", the destructive menu item on the jobs list and the job page (design system A2).
   // A closed job is never reopened, so this is the one place that says what closing does to the boards. While the job
-  // still has candidates who allowed it, a choice goes with the close (section 11, Confirm dialog): also keep them in
-  // mind, so they leave the job without a rejection and join the talent pool (docs/architecture/talent-pool.md). It
-  // never reads Verification output (ADR-0004); keeping only some of them is the job's selection bar, before closing.
+  // still has candidates who allowed it, a choice goes with the close (section 11, Confirm dialog): also save them,
+  // so they leave the job without a rejection and join Saved candidates (docs/architecture/talent-pool.md). It never
+  // reads Verification output (ADR-0004); saving only some of them is the job's selection bar, before closing.
   let { jobId, open = $bindable(false) }: { jobId: string | null; open?: boolean } = $props();
 
   const queryClient = useQueryClient();
@@ -47,7 +47,7 @@
     failure = '';
     try {
       // In batches, so a job with more candidates than one request takes still closes. A batch that fails stops the
-      // close; the ones kept stay kept, and closing again keeps the rest.
+      // close; the ones saved stay saved, and closing again saves the rest.
       const ids = alsoKeep ? keepable.map((application) => application.id) : [];
       for (let start = 0; start < ids.length; start += keepBatchSize) {
         await keep.mutateAsync({ data: { applicationIds: ids.slice(start, start + keepBatchSize) } });
@@ -69,7 +69,7 @@
     {#if mayKeep && keepable.length > 0}
       <label class="flex items-center gap-2 pointer-coarse:min-h-11">
         <input type="checkbox" bind:checked={alsoKeep} class="size-4 shrink-0 accent-primary" />
-        Also keep in mind the {keepable.length === 1 ? 'candidate' : `${keepable.length} candidates`} who allowed it
+        Also save the {keepable.length === 1 ? 'candidate' : `${keepable.length} candidates`} who allowed it
       </label>
     {/if}
     <FailureText message={failure} />

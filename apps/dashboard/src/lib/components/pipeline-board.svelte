@@ -41,7 +41,7 @@
   const terminalKinds = new Set<StageKind>(['Hired', 'Rejected', 'Withdrawn']);
   const openStages = $derived(stages.filter((stage) => !terminalKinds.has(stage.kind)));
   const closedStages = $derived(stages.filter((stage) => terminalKinds.has(stage.kind)));
-  // A candidate kept in mind has left the job (docs/architecture/talent-pool.md): their stage is where they stood, so
+  // A saved candidate has left the job (docs/architecture/talent-pool.md): their stage is where they stood, so
   // they count in Closed, never in that stage's column.
   const stillIn = $derived(applications.filter((application) => !application.keptInMindAt));
   const countIn = (stageId: string) => stillIn.filter((application) => application.stage.id === stageId).length;
@@ -212,11 +212,11 @@
               </ul>
             </div>
           {/each}
-          <!-- Kept in mind is a way out of the job too (talent-pool.md), so Closed's rows add up to its count. It takes no
-               drop: keeping someone in mind needs their permission and a note, which the candidate's menu asks for. -->
+          <!-- Saved is a way out of the job too (talent-pool.md), so Closed's rows add up to its count. It takes no
+               drop: saving someone needs their permission and a note, which the candidate's menu asks for. -->
           {#if applications.length > stillIn.length}
-            <span data-kept-in-mind class="flex min-w-0 items-center justify-between gap-2 px-2 py-1.5 text-body text-muted-foreground">
-              Kept in mind<span class="tabular-nums">{applications.length - stillIn.length}</span>
+            <span data-saved class="flex min-w-0 items-center justify-between gap-2 px-2 py-1.5 text-body text-muted-foreground">
+              Saved<span class="tabular-nums">{applications.length - stillIn.length}</span>
             </span>
           {/if}
         </div>

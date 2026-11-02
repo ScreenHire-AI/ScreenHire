@@ -19,8 +19,6 @@ import type { QuestionSection } from './questionSection.ts';
  * `sections` are the questionnaire's named pages, or null to split it into pages of `questionsPerPage`
  * (apply-flow.md §7). `saveDraftEnabled` says whether the candidate can save the form to finish later: false when
  * this deployment sends no email or has no careers host to link to.
- * `talentPoolMonths` is how long the organization keeps a candidate's details for future roles if they say so,
- * which the form's "Keep my details for future roles" box tells them.
  */
 export interface PublicApplicationForm {
   organization: PublicOrganization;
@@ -35,5 +33,4 @@ export interface PublicApplicationForm {
   sections: QuestionSection[] | null;
   questionsPerPage: number;
   saveDraftEnabled: boolean;
-  talentPoolMonths: number;
 }

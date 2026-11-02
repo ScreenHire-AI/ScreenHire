@@ -7,7 +7,7 @@
   import { stageLabel } from '#lib/talent-pool.js';
 
   // The candidate's other applications to the organization, each a link to its page (docs/architecture/talent-pool.md):
-  // an application added from the talent pool links back to the one the candidate was kept in mind from, and that one
+  // an application added from saved candidates links back to the one the candidate was saved from, and that one
   // forward to it. Only the jobs the reader sees (ADR-0015). Hidden when there are none, which is most candidates.
   let { candidateId, applicationId }: { candidateId: string; applicationId: string } = $props();
 

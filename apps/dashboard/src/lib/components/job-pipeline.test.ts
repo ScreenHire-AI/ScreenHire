@@ -169,30 +169,30 @@ describe('job pipeline', () => {
     expect(within(selectionBar()).queryByRole('button', { name: /^Email/ })).toBeNull();
   });
 
-  it('offers Keep in mind for the ticked rows, and none while a verification filter picked them (ADR-0004)', async () => {
+  it('offers Save candidate for the ticked rows, and none while a verification filter picked them (ADR-0004)', async () => {
     const { unmount } = renderPipeline();
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
-    expect(within(selectionBar()).getByRole('button', { name: 'Keep in mind, 1 selected' })).toBeInTheDocument();
+    expect(within(selectionBar()).getByRole('button', { name: 'Save candidate, 1 selected' })).toBeInTheDocument();
     unmount();
 
     // The fixtures have no assessment yet, so the Pending filter shows every row.
     renderPipeline({ verificationFilter: { authenticity: 'Pending', aiAssistance: null } });
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
     expect(within(selectionBar()).getByRole('button', { name: 'Move 1 selected…' })).toBeInTheDocument();
-    expect(within(selectionBar()).queryByRole('button', { name: /in mind/ })).toBeNull();
+    expect(within(selectionBar()).queryByRole('button', { name: /Save candidate/ })).toBeNull();
   });
 
-  it('keeps the ticked applications in mind from the sheet, with one note for all of them', async () => {
+  it('saves the ticked applications from the sheet, with one note for all of them', async () => {
     const post = vi.fn((init: RequestInit | undefined) => Response.json({ kept: 2, notAllowed: 0, alreadyEnded: 0 }));
     vi.stubGlobal('fetch', vi.fn(apiStub({ 'POST /v1/talent-pool': post })));
     renderPipeline();
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Sam Taylor' }));
 
-    await fireEvent.click(within(selectionBar()).getByRole('button', { name: 'Keep in mind, 2 selected' }));
-    const sheet = await screen.findByRole('dialog', { name: 'Keep 2 in mind' });
-    await fireEvent.input(within(sheet).getByLabelText('Why'), { target: { value: 'Both strong.' } });
-    await fireEvent.click(within(sheet).getByRole('button', { name: 'Keep in mind' }));
+    await fireEvent.click(within(selectionBar()).getByRole('button', { name: 'Save candidate, 2 selected' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Save 2 candidates' });
+    await fireEvent.input(within(sheet).getByLabelText('Note'), { target: { value: 'Both strong.' } });
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Save candidate' }));
 
     await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
     expect(JSON.parse(String(post.mock.calls[0]![0]!.body))).toEqual({
@@ -201,11 +201,11 @@ describe('job pipeline', () => {
     });
     // The selection clears and the page announces the result.
     await waitFor(() => expect(screen.queryByRole('region', { name: 'Selected candidates' })).toBeNull());
-    expect(screen.getByText('Kept 2 in mind.', { selector: '[role="status"]' })).toBeInTheDocument();
+    expect(screen.getByText('Saved 2.', { selector: '[role="status"]' })).toBeInTheDocument();
   });
 
-  it('leaves a candidate kept in mind out of their stage in the Stage menu and its filter', async () => {
-    // Jordan Lee was in Screening when kept in mind, so Screening has nobody left.
+  it('leaves a saved candidate out of their stage in the Stage menu and its filter', async () => {
+    // Jordan Lee was in Screening when saved, so Screening has nobody left.
     render(WithQueryClient, {
       props: {
         component: JobPipelineHarness,

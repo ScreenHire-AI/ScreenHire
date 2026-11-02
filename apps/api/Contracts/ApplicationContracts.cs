@@ -44,9 +44,9 @@ public sealed record ApplicationStage(string Id, string Name, StageKind Kind);
 /// (moved, noted, tagged, emailed, scored, gave or finished a task); never earlier than <c>submittedAt</c>. The verification
 /// checks do not move it.
 /// <c>keptInMindAt</c>: when the team kept the candidate in mind, which ended the application without a rejection; the
-/// stage is where they were. <c>futureRolesUntil</c>: when the candidate's permission to keep their details for future
-/// roles, given on this application's form, runs out; null without one, or once withdrawn. Only an application with one
-/// can be kept in mind (docs/architecture/talent-pool.md). <c>sourceSite</c>: the organization's own site the careers
+/// stage is where they were. <c>allowsFutureRoles</c>: the candidate gave permission to keep their details for future
+/// roles on this application's form and has not taken it back; it has no end date. Only an application with one
+/// can be saved (docs/architecture/talent-pool.md). <c>sourceSite</c>: the organization's own site the careers
 /// page was embedded in when the candidate applied (an origin such as <c>https://www.example.com</c>), or null.
 /// </remarks>
 public sealed record ApplicationSummary(
@@ -65,7 +65,7 @@ public sealed record ApplicationSummary(
     DateTimeOffset? SlaDueAt = null,
     ApplicationRating? Rating = null,
     DateTimeOffset? KeptInMindAt = null,
-    DateTimeOffset? FutureRolesUntil = null,
+    bool AllowsFutureRoles = false,
     string? SourceSite = null);
 
 /// <summary>
@@ -112,9 +112,9 @@ public enum RatingState
 /// upload id of one of <c>files</c>. <c>followUps</c> are the follow-up questionnaires automations sent, oldest first,
 /// with their answers once the candidate gave them. <c>slaDueAt</c> is when the application passes its stage's time
 /// limit, as on <c>ApplicationSummary</c>. <c>rating</c> is the candidate's rating as the reader may see it.
-/// <c>keptInMindAt</c>, <c>futureRolesUntil</c>: as on <c>ApplicationSummary</c>. <c>futureRolesGivenAt</c>: when the
+/// <c>keptInMindAt</c>, <c>allowsFutureRoles</c>: as on <c>ApplicationSummary</c>. <c>futureRolesGivenAt</c>: when the
 /// candidate said "Keep my details for future roles" on this application's form (or the application it came from);
-/// null when they did not. <c>inTalentPool</c>: the candidate is in the talent pool, kept in mind from this application.
+/// null when they did not. <c>inTalentPool</c>: the candidate is a saved candidate, saved from this application.
 /// </remarks>
 public sealed record ApplicationDetail(
     Guid Id,
@@ -136,7 +136,7 @@ public sealed record ApplicationDetail(
     DateTimeOffset? SlaDueAt = null,
     ApplicationRating? Rating = null,
     DateTimeOffset? KeptInMindAt = null,
-    DateTimeOffset? FutureRolesUntil = null,
+    bool AllowsFutureRoles = false,
     DateTimeOffset? FutureRolesGivenAt = null,
     bool InTalentPool = false,
     string? SourceSite = null);
@@ -179,9 +179,9 @@ public sealed record ApplicationFileSummary(
 /// <c>noteEditedAt</c>: For <c>NoteAdded</c>, when the note's text last changed; null if it never did.
 /// <c>taskId</c>: For <c>TaskCreated</c>, the task, as the application's tasks list it.
 /// <c>actorApiKeyName</c>: The name of the API key in <c>actorApiKeyId</c>, so a key's notes show who wrote them.
-/// <c>poolExit</c>: For <c>LeftTalentPool</c>, why the candidate left the talent pool. <c>otherJobId</c>,
+/// <c>poolExit</c>: For <c>LeftTalentPool</c>, why the candidate left saved candidates. <c>otherJobId</c>,
 /// <c>otherApplicationId</c>: For <c>InvitedToApply</c>, the job they were invited to; for <c>LeftTalentPool</c>, the job
-/// and application they were added to or applied with. For <c>KeptInMind</c>, <c>note</c> says why the team kept them.
+/// and application they were added to or applied with. For <c>KeptInMind</c>, <c>note</c> says why the team saved them.
 /// </remarks>
 public sealed record ApplicationTimelineEntry(
     Guid Id,
@@ -280,33 +280,33 @@ internal static class ApplicationMappings
     /// <summary>
     /// When the application passes the time limit of its stage in <paramref name="job"/>'s current workflow, or null.
     /// The screens compare it with their own clock, so an application turns overdue on screen without an event. Null for
-    /// an application the team kept in mind: it has left the job, so nothing is overdue.
+    /// an application the team saved: it has left the job, so nothing is overdue.
     /// </summary>
     public static DateTimeOffset? SlaDueAt(this JobApplication application, Job job) =>
         application.KeptInMindAt is null ? job.Workflow.FindStage(application.CurrentStageId)?.SlaDueAt(application.StageEnteredAt) : null;
 
-    /// <summary>The application in a list; <paramref name="poolMonths"/> is the organization's talent pool permission period.</summary>
+    /// <summary>The application in a list.</summary>
     public static ApplicationSummary ToSummary(
-        this JobApplication application, Job job, Candidate candidate, DateTimeOffset lastActivityAt, int poolMonths,
+        this JobApplication application, Job job, Candidate candidate, DateTimeOffset lastActivityAt,
         VerificationSummary? verification = null, ApplicationRating? rating = null) =>
         new(application.Id, application.JobId, application.CandidateId, candidate.FullName, application.StageIn(job),
             application.SubmittedAt, application.StageEnteredAt, lastActivityAt, job.Title, application.Source, application.Tags, verification,
             application.SlaDueAt(job), rating ?? ApplicationRating.NotRated, application.KeptInMindAt,
-            application.FutureRolesUntil(poolMonths), application.SourceSite);
+            application.AllowsFutureRoles, application.SourceSite);
 
     /// <summary>
-    /// The application on its own; <paramref name="poolMonths"/> is the organization's talent pool permission period, and
-    /// <paramref name="inTalentPool"/> says whether the candidate is in the pool, kept in mind from this application.
+    /// The application on its own; <paramref name="inTalentPool"/> says whether the candidate is a saved candidate, saved
+    /// from this application.
     /// </summary>
     public static ApplicationDetail ToDetail(
         this JobApplication application, Job job, Candidate candidate, IReadOnlyList<ApplicationFile> files,
-        IReadOnlyList<QuestionnaireRequest> followUps, int poolMonths, bool inTalentPool, ApplicationRating? rating = null) =>
+        IReadOnlyList<QuestionnaireRequest> followUps, bool inTalentPool, ApplicationRating? rating = null) =>
         new(application.Id, application.JobId, job.Title, candidate.ToSummary(), application.StageIn(job),
             application.WorkflowVersion, application.AccommodationRequested, application.AiUseDeclaration,
             application.AiUseDetails, application.SubmittedAt, application.StageEnteredAt, application.Tags,
             application.Source,
             application.Answers, [.. files.Select(f => f.ToSummary())], [.. followUps.Select(f => f.ToFollowUp())], application.SlaDueAt(job),
-            rating ?? ApplicationRating.NotRated, application.KeptInMindAt, application.FutureRolesUntil(poolMonths),
+            rating ?? ApplicationRating.NotRated, application.KeptInMindAt, application.AllowsFutureRoles,
             application.FutureRolesConsentGivenAt, inTalentPool, application.SourceSite);
 
     public static ApplicationFollowUp ToFollowUp(this QuestionnaireRequest request) =>

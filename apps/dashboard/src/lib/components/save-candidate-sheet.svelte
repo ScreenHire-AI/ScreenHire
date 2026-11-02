@@ -8,29 +8,25 @@
   import * as Field from '#lib/components/ui/field/index.js';
   import * as Sheet from '#lib/components/ui/sheet/index.js';
   import { Textarea } from '#lib/components/ui/textarea/index.js';
-  import { formatDate } from '#lib/dates.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { applicationsPath, candidatesPath, jobsPath, talentPoolPath } from '#lib/realtime.js';
   import { describeKept } from '#lib/talent-pool.js';
   import { cn } from '#lib/utils.js';
 
-  // Keep in mind (docs/architecture/talent-pool.md), in a sheet (design system section 9): for one candidate from Move
+  // Save candidate (docs/architecture/talent-pool.md), in a sheet (design system section 9): for one candidate from Move
   // to stage on their page, or for a selection from a job's selection bar. They leave the job without a rejection and
-  // join the talent pool until their permission runs out. The note says why, once for all of them; it stays on the Kept
-  // in mind entry in Activity and the pool shows it. Never reads Verification output (ADR-0004).
+  // stay saved until the team removes them or they ask to stop. The note says why, once for all of them; it stays on the
+  // Saved entry in Activity and Saved candidates shows it. Never reads Verification output (ADR-0004).
   let {
     open = $bindable(false),
     applicationIds,
     candidateName,
-    until,
     ondone,
   }: {
     open?: boolean;
     applicationIds: readonly string[];
-    /** The one candidate's name, for a single keep. */
+    /** The one candidate's name, for a single save. */
     candidateName?: string;
-    /** When the one candidate's permission runs out. */
-    until?: string | null;
     /** What happened, for the page's live region. */
     ondone?: (message: string) => void;
   } = $props();
@@ -54,11 +50,13 @@
     });
   });
 
-  const title = $derived(candidateName ? `Keep ${candidateName} in mind` : `Keep ${applicationIds.length} in mind`);
+  const title = $derived(
+    candidateName ? `Save ${candidateName}` : `Save ${applicationIds.length} ${applicationIds.length === 1 ? 'candidate' : 'candidates'}`,
+  );
   const description = $derived(
-    candidateName && until
-      ? `They leave this job without a rejection and stay in the talent pool until ${formatDate(until)}.`
-      : 'They leave the job without a rejection. Only candidates who allowed it join the talent pool.',
+    candidateName
+      ? 'They leave this job without a rejection and stay saved until you remove them or they ask to stop.'
+      : 'They leave the job without a rejection. Only candidates who allowed it are saved.',
   );
 
   async function onsubmit(event: SubmitEvent) {
@@ -69,7 +67,7 @@
       ondone?.(describeKept(response.data, candidateName));
       open = false;
     } catch (error) {
-      failure = describeError(error, 'Could not keep them in mind');
+      failure = describeError(error, 'Could not save them');
     }
   }
 </script>
@@ -82,14 +80,14 @@
     </Sheet.Header>
     <form novalidate class="flex flex-col gap-4 px-4 pb-4" {onsubmit}>
       <Field.Field>
-        <Field.Label for="keep-in-mind-note">Why</Field.Label>
-        <Textarea id="keep-in-mind-note" rows={4} maxlength={maxNoteLength} bind:value={note} />
-        <Field.Description>The talent pool shows it beside them.</Field.Description>
+        <Field.Label for="save-candidate-note">Note</Field.Label>
+        <Textarea id="save-candidate-note" rows={4} maxlength={maxNoteLength} bind:value={note} />
+        <Field.Description>Saved candidates shows it beside them. You can edit it there.</Field.Description>
       </Field.Field>
       <FailureText message={failure} />
       <div class="flex justify-end gap-2">
         <Sheet.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Sheet.Close>
-        <Button type="submit" size="lg" disabled={keep.isPending}><BookmarkIcon aria-hidden="true" />Keep in mind</Button>
+        <Button type="submit" size="lg" disabled={keep.isPending}><BookmarkIcon aria-hidden="true" />Save candidate</Button>
       </div>
     </form>
   </Sheet.Content>

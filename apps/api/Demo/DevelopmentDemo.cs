@@ -967,7 +967,7 @@ internal sealed partial class DevelopmentDemo(
             PrivacyNoticeVersion,
             applicant.HoneypotFilled,
             BotCheckResult.NotChecked,
-            keepForFutureRoles ? new FutureRolesConsent(submittedAt, await TalentPoolMembership.MonthsAsync(db, cancellationToken)) : null);
+            keepForFutureRoles ? new FutureRolesConsent(submittedAt) : null);
         var created = await ApplicationSubmission.SubmitAsync(
             step.Outbox, job, new ApplicationSubmission.CandidateDetails(applicant.FirstName, applicant.LastName, applicant.Email, applicant.Phone),
             new ApplicationDeclarations(false, applicant.AiUseDeclaration, applicant.AiUseDetails),
@@ -990,8 +990,8 @@ internal sealed partial class DevelopmentDemo(
         return true;
     }
 
-    // The demo candidates the team kept in mind (DemoCandidates.KeptInMindNote), through the same domain methods as the
-    // talent pool's keep, so the pool has someone in it. One already kept, or no longer open, is left alone.
+    // The demo candidates the team saved (DemoCandidates.KeptInMindNote), through the same domain methods as saving a
+    // candidate, so the saved candidates have someone in them. One already kept, or no longer open, is left alone.
     private async Task SeedTalentPoolAsync(CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
@@ -1001,7 +1001,6 @@ internal sealed partial class DevelopmentDemo(
         }
 
         var db = step.Outbox.DbContext;
-        var months = await TalentPoolMembership.MonthsAsync(db, cancellationToken);
         foreach (var candidate in DemoCandidates.All.Where(c => c.KeptInMindNote is not null))
         {
             var email = Domain.Candidates.Candidate.Normalize(candidate.Applicant.Email);
@@ -1012,12 +1011,12 @@ internal sealed partial class DevelopmentDemo(
                 select a).SingleOrDefaultAsync(cancellationToken);
             var job = application is null ? null : await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == application.JobId, cancellationToken);
             var stage = job?.Workflow.FindStage(application!.CurrentStageId);
-            if (application is null || application.HasEnded(stage) || !application.AllowsFutureRoles(months, step.Now))
+            if (application is null || application.HasEnded(stage) || !application.AllowsFutureRoles)
             {
                 continue;
             }
 
-            var kept = application.KeepInMind(stage, months, step.Now, avery, candidate.KeptInMindNote);
+            var kept = application.KeepInMind(stage, step.Now, avery, candidate.KeptInMindNote);
             var entry = TalentPoolEntry.For(application, kept);
             db.ApplicationEvents.Add(kept);
             db.TalentPoolEntries.Add(entry);

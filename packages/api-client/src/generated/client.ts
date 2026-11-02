@@ -48,6 +48,7 @@ import type {
   CustomRoleDetail,
   DismissVerificationAssessmentRequest,
   EditApplicationNoteRequest,
+  EditSavedNoteRequest,
   EmailPreview,
   EmailTemplateDraft,
   EmailTemplateEntry,
@@ -61,9 +62,9 @@ import type {
   GetJobHistoryParams,
   GetOrganizationBrandingHistoryParams,
   GetOrganizationHistoryParams,
-  GetOrganizationTalentPoolSettingsHistoryParams,
   GetOrganizationVerificationSettingsHistoryParams,
   GetRoleHistoryParams,
+  GetSavedNoteHistoryParams,
   GetScorecardTemplateHistoryParams,
   GetTeamHistoryParams,
   HiringReport,
@@ -105,7 +106,6 @@ import type {
   OnboardingRequest,
   OrganizationBranding,
   OrganizationProfile,
-  OrganizationTalentPoolSettings,
   OrganizationVerificationSettings,
   PendingInvitation,
   ProblemDetails,
@@ -163,7 +163,6 @@ import type {
   UpdateScorecardTemplateRequest,
   UpdateSlackAccountRequest,
   UpdateSlackChannelRequest,
-  UpdateTalentPoolSettingsRequest,
   UpdateVerificationSettingsRequest,
   UpdateWebhookEndpointRequest,
   UploadRequest,
@@ -5801,167 +5800,6 @@ return apiFetch<updateOrganizationVerificationSettingsResponse>(getUpdateOrganiz
 
 
 
-export type getOrganizationTalentPoolSettingsResponse200 = {
-  data: OrganizationTalentPoolSettings
-  status: 200
-}
-
-export type getOrganizationTalentPoolSettingsResponse401 = {
-  data: void
-  status: 401
-}
-
-export type getOrganizationTalentPoolSettingsResponseSuccess = (getOrganizationTalentPoolSettingsResponse200) & {
-  headers: Headers;
-};
-export type getOrganizationTalentPoolSettingsResponseError = (getOrganizationTalentPoolSettingsResponse401) & {
-  headers: Headers;
-};
-
-export type getOrganizationTalentPoolSettingsResponse = (getOrganizationTalentPoolSettingsResponseSuccess | getOrganizationTalentPoolSettingsResponseError)
-
-export const getGetOrganizationTalentPoolSettingsUrl = () => {
-
-
-
-
-  return `/v1/organization/talent-pool-settings`
-}
-
-export const getOrganizationTalentPoolSettings = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationTalentPoolSettingsResponse> => {
-
-  return apiFetch<getOrganizationTalentPoolSettingsResponse>(getGetOrganizationTalentPoolSettingsUrl(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-export type updateOrganizationTalentPoolSettingsResponse200 = {
-  data: OrganizationTalentPoolSettings
-  status: 200
-}
-
-export type updateOrganizationTalentPoolSettingsResponse400 = {
-  data: HttpValidationProblemDetails
-  status: 400
-}
-
-export type updateOrganizationTalentPoolSettingsResponse401 = {
-  data: void
-  status: 401
-}
-
-export type updateOrganizationTalentPoolSettingsResponse403 = {
-  data: ProblemDetails
-  status: 403
-}
-
-export type updateOrganizationTalentPoolSettingsResponseSuccess = (updateOrganizationTalentPoolSettingsResponse200) & {
-  headers: Headers;
-};
-export type updateOrganizationTalentPoolSettingsResponseError = (updateOrganizationTalentPoolSettingsResponse400 | updateOrganizationTalentPoolSettingsResponse401 | updateOrganizationTalentPoolSettingsResponse403) & {
-  headers: Headers;
-};
-
-export type updateOrganizationTalentPoolSettingsResponse = (updateOrganizationTalentPoolSettingsResponseSuccess | updateOrganizationTalentPoolSettingsResponseError)
-
-export const getUpdateOrganizationTalentPoolSettingsUrl = () => {
-
-
-
-
-  return `/v1/organization/talent-pool-settings`
-}
-
-export const updateOrganizationTalentPoolSettings = async (updateTalentPoolSettingsRequest: UpdateTalentPoolSettingsRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateOrganizationTalentPoolSettingsResponse> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return apiFetch<updateOrganizationTalentPoolSettingsResponse>(getUpdateOrganizationTalentPoolSettingsUrl(),
-  {
-    ...options,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(updateTalentPoolSettingsRequest)
-  }
-);}
-
-
-
-export type getOrganizationTalentPoolSettingsHistoryResponse200 = {
-  data: HistoryPage
-  status: 200
-}
-
-export type getOrganizationTalentPoolSettingsHistoryResponse400 = {
-  data: HttpValidationProblemDetails
-  status: 400
-}
-
-export type getOrganizationTalentPoolSettingsHistoryResponse401 = {
-  data: void
-  status: 401
-}
-
-export type getOrganizationTalentPoolSettingsHistoryResponse404 = {
-  data: void
-  status: 404
-}
-
-export type getOrganizationTalentPoolSettingsHistoryResponseSuccess = (getOrganizationTalentPoolSettingsHistoryResponse200) & {
-  headers: Headers;
-};
-export type getOrganizationTalentPoolSettingsHistoryResponseError = (getOrganizationTalentPoolSettingsHistoryResponse400 | getOrganizationTalentPoolSettingsHistoryResponse401 | getOrganizationTalentPoolSettingsHistoryResponse404) & {
-  headers: Headers;
-};
-
-export type getOrganizationTalentPoolSettingsHistoryResponse = (getOrganizationTalentPoolSettingsHistoryResponseSuccess | getOrganizationTalentPoolSettingsHistoryResponseError)
-
-export const getGetOrganizationTalentPoolSettingsHistoryUrl = (params?: GetOrganizationTalentPoolSettingsHistoryParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/v1/organization/talent-pool-settings/history?${stringifiedParams}` : `/v1/organization/talent-pool-settings/history`
-}
-
-export const getOrganizationTalentPoolSettingsHistory = async (params?: GetOrganizationTalentPoolSettingsHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationTalentPoolSettingsHistoryResponse> => {
-
-  return apiFetch<getOrganizationTalentPoolSettingsHistoryResponse>(getGetOrganizationTalentPoolSettingsHistoryUrl(params),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
 export type listTeamMembersResponse200 = {
   data: TeamMember[]
   status: 200
@@ -10501,6 +10339,135 @@ return apiFetch<keepInMindResponse>(getKeepInMindUrl(),
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(keepInMindRequest)
+  }
+);}
+
+
+
+export type editSavedNoteResponse204 = {
+  data: void
+  status: 204
+}
+
+export type editSavedNoteResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type editSavedNoteResponse401 = {
+  data: void
+  status: 401
+}
+
+export type editSavedNoteResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type editSavedNoteResponse404 = {
+  data: void
+  status: 404
+}
+
+export type editSavedNoteResponseSuccess = (editSavedNoteResponse204) & {
+  headers: Headers;
+};
+export type editSavedNoteResponseError = (editSavedNoteResponse400 | editSavedNoteResponse401 | editSavedNoteResponse403 | editSavedNoteResponse404) & {
+  headers: Headers;
+};
+
+export type editSavedNoteResponse = (editSavedNoteResponseSuccess | editSavedNoteResponseError)
+
+export const getEditSavedNoteUrl = (candidateId: string,) => {
+
+
+
+
+  return `/v1/talent-pool/${candidateId}/note`
+}
+
+export const editSavedNote = async (candidateId: string,
+    editSavedNoteRequest: EditSavedNoteRequest, options?: Parameters<typeof apiFetch>[1]): Promise<editSavedNoteResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<editSavedNoteResponse>(getEditSavedNoteUrl(candidateId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(editSavedNoteRequest)
+  }
+);}
+
+
+
+export type getSavedNoteHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getSavedNoteHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getSavedNoteHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getSavedNoteHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getSavedNoteHistoryResponseSuccess = (getSavedNoteHistoryResponse200) & {
+  headers: Headers;
+};
+export type getSavedNoteHistoryResponseError = (getSavedNoteHistoryResponse400 | getSavedNoteHistoryResponse401 | getSavedNoteHistoryResponse404) & {
+  headers: Headers;
+};
+
+export type getSavedNoteHistoryResponse = (getSavedNoteHistoryResponseSuccess | getSavedNoteHistoryResponseError)
+
+export const getGetSavedNoteHistoryUrl = (candidateId: string,
+    params?: GetSavedNoteHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/talent-pool/${candidateId}/history?${stringifiedParams}` : `/v1/talent-pool/${candidateId}/history`
+}
+
+export const getSavedNoteHistory = async (candidateId: string,
+    params?: GetSavedNoteHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getSavedNoteHistoryResponse> => {
+
+  return apiFetch<getSavedNoteHistoryResponse>(getGetSavedNoteHistoryUrl(candidateId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
   }
 );}
 

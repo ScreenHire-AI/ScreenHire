@@ -1,5 +1,19 @@
 # Log
 
+## 2026-11-02
+
+**The talent pool is now Saved candidates, with no expiry.** The owner renamed it: Keep in mind is Save candidate, the
+status is Saved, and the page is Saved candidates at `/saved` (G then S; `/talent-pool` redirects). A saved candidate has
+no end date. They stay until the team removes them or they use the stop link in an invitation, so the permission period,
+its setting (`/v1/organization/talent-pool-settings`), the daily expiry sweep and the `future_roles_consent_months`
+column are gone. The apply form's "Keep my details for future roles" box stays, with new wording and a new notice
+version, `2026-11-02.1`; application reads carry `allowsFutureRoles` in place of `futureRolesUntil`. The list gained
+Rating (with the reviewer gate), Last contacted (the newest email to the candidate over the applications the reader
+sees; replies are not read yet), a Message button, and a note the team can edit, with History. Code and wire names keep
+the old words (`KeptInMind`, `/v1/talent-pool`). Because nothing expires a saved candidate, a legal review of keeping
+details without an end date is an owner action ([status](status.md#owner-actions)), and record retention matters more
+([saved candidates](architecture/talent-pool.md)). Earlier entries below keep their old words.
+
 ## 2026-10-31
 
 **The test gate runs on GitHub Actions** ([ADR-0020](adr/0020-test-gate-on-github-actions.md)). Agents run

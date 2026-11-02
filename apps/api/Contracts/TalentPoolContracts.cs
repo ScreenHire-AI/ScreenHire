@@ -4,20 +4,23 @@ using ScreenHire.Domain.Applications;
 namespace ScreenHire.Api.Contracts;
 
 /// <summary>
-/// The organization's talent pool (docs/architecture/talent-pool.md): the candidates the team kept in mind, whose
-/// permission for future roles still holds. <c>permissionMonths</c> is the organization's period now.
+/// The organization's saved candidates (docs/architecture/talent-pool.md): the candidates the team saved, whose permission
+/// for future roles still holds. They stay until the team removes them or the candidate asks to stop.
 /// </summary>
-public sealed record TalentPoolList(int PermissionMonths, IReadOnlyList<TalentPoolMember> People);
+public sealed record TalentPoolList(IReadOnlyList<TalentPoolMember> People);
 
-/// <summary>One candidate in the talent pool.</summary>
+/// <summary>One saved candidate.</summary>
 /// <remarks>
-/// <c>applicationId</c>, <c>jobId</c>, <c>jobTitle</c>: the application they were kept in mind from, which keeps
-/// everything about them (answers, files, scorecards, notes, Verification results and Activity). <c>note</c>: why the team
-/// kept them, from that application's Kept in mind entry; null when nobody wrote one. <c>tags</c>: that application's
-/// tags. <c>keptByUserId</c>: who kept them. <c>permissionEndsAt</c>: when their permission runs out and they leave the
-/// pool. <c>lastInvitedJobId</c>, <c>lastInvitedJobTitle</c>, <c>lastInvitedAt</c>: their last invitation to apply.
+/// <c>applicationId</c>, <c>jobId</c>, <c>jobTitle</c>: the application they were saved from, which keeps everything about
+/// them (answers, files, scorecards, notes, Verification results and Activity). <c>note</c>: the team's note on the saved
+/// candidate, which starts as the one written when they were saved and can be edited; null when there is none.
+/// <c>noteUpdated</c>: the last edit of the note, null until someone edits it. <c>tags</c>: that application's tags.
+/// <c>keptByUserId</c>: who saved them. <c>rating</c>: that application's rating, read as the candidate page reads it, so a
+/// reviewer with a scorecard to give sees "after your scorecard" instead of the number. <c>lastContactedAt</c>: the newest
+/// email sent to the candidate for any job the reader can see; null when none was sent. Replies are not read yet.
+/// <c>lastInvitedJobId</c>, <c>lastInvitedJobTitle</c>, <c>lastInvitedAt</c>: their last invitation to apply.
 /// <c>appliedJobIds</c>: every job the candidate has an application for, as the reader sees them, so an invitation or an
-/// add skips them. No Verification output: keeping and inviting never read it (ADR-0004).
+/// add skips them. No Verification output: saving and inviting never read it (ADR-0004).
 /// </remarks>
 public sealed record TalentPoolMember(
     Guid CandidateId,
@@ -27,35 +30,40 @@ public sealed record TalentPoolMember(
     Guid JobId,
     string JobTitle,
     string? Note,
+    LastUpdate? NoteUpdated,
     IReadOnlyList<string> Tags,
     DateTimeOffset KeptAt,
     Guid? KeptByUserId,
-    DateTimeOffset PermissionEndsAt,
+    ApplicationRating Rating,
+    DateTimeOffset? LastContactedAt,
     Guid? LastInvitedJobId,
     string? LastInvitedJobTitle,
     DateTimeOffset? LastInvitedAt,
     IReadOnlyList<Guid> AppliedJobIds);
 
+/// <summary>Replaces a saved candidate's note. Blank clears it. The Activity entry from when they were saved keeps the first note.</summary>
+public sealed record EditSavedNoteRequest(string? Note);
+
 /// <summary>
-/// Keeps the candidates of these applications in mind: each leaves its job without a rejection and joins the talent pool.
+/// Saves the candidates of these applications: each leaves its job without a rejection and joins the saved candidates.
 /// <c>note</c> says why, once for all of them. Only an open application whose candidate gave permission for future roles
-/// on its form can be kept.
+/// on its form can be saved.
 /// </summary>
 public sealed record KeepInMindRequest(IReadOnlyList<Guid> ApplicationIds, string? Note = null);
 
 /// <summary>
-/// What happened: <c>kept</c> joined the pool; <c>notAllowed</c> have no permission for future roles (they never gave it,
-/// it ran out or they took it back); <c>alreadyEnded</c> were hired, rejected, withdrawn or kept in mind already.
+/// What happened: <c>kept</c> were saved; <c>notAllowed</c> have no permission for future roles (they never gave it or
+/// they took it back); <c>alreadyEnded</c> were hired, rejected, withdrawn or saved already.
 /// </summary>
 public sealed record KeptInMind(int Kept, int NotAllowed, int AlreadyEnded);
 
 /// <summary>
-/// Takes the candidate out of the talent pool. <c>candidateAsked</c>: they asked to be removed, so their permission for
-/// future roles is withdrawn too, and they cannot be kept again until they give it on a new application.
+/// Takes the candidate out of the saved candidates. <c>candidateAsked</c>: they asked to be removed, so their permission for
+/// future roles is withdrawn too, and they cannot be saved again until they give it on a new application.
 /// </summary>
 public sealed record RemoveFromTalentPoolRequest(bool CandidateAsked = false);
 
-/// <summary>Invites these candidates from the talent pool to apply for <c>jobId</c>, an open job.</summary>
+/// <summary>Invites these saved candidates to apply for <c>jobId</c>, an open job.</summary>
 public sealed record InviteToApplyRequest(IReadOnlyList<Guid> CandidateIds, Guid JobId);
 
 /// <summary>The invitation as <c>candidateId</c> would receive it, for <c>jobId</c>.</summary>
@@ -67,7 +75,7 @@ public sealed record InvitationPreviewRequest(Guid CandidateId, Guid JobId);
 /// </summary>
 public sealed record InvitationsQueued(int Queued, int Skipped);
 
-/// <summary>Adds these candidates from the talent pool to <c>jobId</c>, which must not be closed.</summary>
+/// <summary>Adds these saved candidates to <c>jobId</c>, which must not be closed.</summary>
 public sealed record AddFromTalentPoolRequest(IReadOnlyList<Guid> CandidateIds, Guid JobId);
 
 /// <summary>
@@ -78,7 +86,7 @@ public sealed record AddedFromTalentPool(IReadOnlyList<Guid> ApplicationIds, int
 
 /// <summary>
 /// The page a candidate opens from the link in an invitation to stop being kept. <c>kept</c>: the organization still
-/// keeps their details for future roles; false once they stopped it, or it ran out.
+/// keeps their details for future roles; false once they stopped it.
 /// </summary>
 public sealed record PublicTalentPoolStatus(PublicOrganization Organization, bool Kept);
 
@@ -90,9 +98,14 @@ internal sealed class KeepInMindRequestValidator : AbstractValidator<KeepInMindR
     public KeepInMindRequestValidator()
     {
         RuleFor(r => r.ApplicationIds).NotEmpty().WithMessage("Choose at least one candidate.")
-            .Must(ids => ids is null || ids.Count <= MaxApplications).WithMessage($"Keep at most {MaxApplications} candidates in mind at once.");
+            .Must(ids => ids is null || ids.Count <= MaxApplications).WithMessage($"Save at most {MaxApplications} candidates at once.");
         RuleFor(r => r.Note).MaximumLength(JobApplication.MaxNoteLength);
     }
+}
+
+internal sealed class EditSavedNoteRequestValidator : AbstractValidator<EditSavedNoteRequest>
+{
+    public EditSavedNoteRequestValidator() => RuleFor(r => r.Note).MaximumLength(JobApplication.MaxNoteLength);
 }
 
 internal sealed class InviteToApplyRequestValidator : AbstractValidator<InviteToApplyRequest>

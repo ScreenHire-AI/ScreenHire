@@ -7,9 +7,9 @@ using System.Text.RegularExpressions;
 namespace ScreenHire.E2E;
 
 /// <summary>
-/// The talent pool end to end (docs/architecture/talent-pool.md, roadmap item 7): a candidate allows the employer to keep
-/// their details for future roles on the apply form with JavaScript off, the owner keeps them in mind from their page,
-/// finds them in the pool and invites them to another job, and the candidate applies from the email's link. A second test
+/// The saved candidates end to end (docs/architecture/talent-pool.md, roadmap item 7): a candidate allows the employer to
+/// keep their details for future roles on the apply form with JavaScript off, the owner saves them from their page, finds
+/// them in Saved candidates, edits the note and invites them to another job, and the candidate applies from the email's link. A second test
 /// has the candidate stop it from the link in the email, again with JavaScript off. Each test signs in as a new person
 /// with a new organization and sets the jobs up through the API as that person.
 /// </summary>
@@ -17,10 +17,14 @@ public sealed partial class TalentPoolTests(E2EFixture fixture) : BrowserTest(fi
 {
     private static readonly string[] Britain = ["GB"];
 
+    // The cells of a Saved candidates row: select, Candidate, Rating, Note, Tags, Saved from, Saved, Last contacted, Actions.
+    private const int SavedColumn = 6;
+    private const int LastContactedColumn = 7;
+
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task A_candidate_who_allows_it_is_kept_in_mind_invited_to_another_job_and_leaves_the_pool_by_applying()
+    public async Task A_candidate_who_allows_it_is_saved_invited_to_another_job_and_leaves_the_saved_candidates_by_applying()
     {
         using var scene = await SceneAsync();
         var candidate = ApiSession.NewEmail("candidate");
@@ -35,27 +39,39 @@ public sealed partial class TalentPoolTests(E2EFixture fixture) : BrowserTest(fi
         await Page.GotoAsync(DashboardUrl($"/applications/{await ApplicationIdAsync(scene, scene.First.Id)}"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Casey Morgan");
 
-        // Keep in mind sits in Move to stage, and keeps them out of a rejection: their stage pill says so afterwards.
+        // Save candidate sits in Move to stage, and keeps them out of a rejection: their status says so afterwards.
         await Page.GetByRole(AriaRole.Button, new() { Name = "Move to stage, Casey Morgan" }).ClickAsync();
-        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Keep in mind…" }).ClickAsync();
-        var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Keep Casey Morgan in mind" });
-        await Expect(sheet).ToContainTextAsync("They leave this job without a rejection and stay in the talent pool until");
-        await Page.GetByLabel("Why").FillAsync("Strong systems thinking, wrong timing.");
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Save candidate…" }).ClickAsync();
+        var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Save Casey Morgan" });
+        await Expect(sheet).ToContainTextAsync("stay saved until you remove them or they ask to stop");
+        await sheet.GetByLabel("Note").FillAsync("Strong systems thinking, wrong timing.");
         await ExpectNoAccessibilityViolationsAsync();
-        await sheet.GetByRole(AriaRole.Button, new() { Name = "Keep in mind" }).ClickAsync();
+        await sheet.GetByRole(AriaRole.Button, new() { Name = "Save candidate" }).ClickAsync();
         await Expect(sheet).ToBeHiddenAsync();
-        await Expect(Page.GetByText("Kept Casey Morgan in mind.")).ToBeAttachedAsync();
-        await Expect(Page.GetByText("Kept in mind", new() { Exact = true })).ToBeVisibleAsync();
-        await Expect(Page.GetByText("In the talent pool until", new() { Exact = false })).ToBeVisibleAsync();
+        await Expect(Page.GetByText("Saved Casey Morgan.")).ToBeAttachedAsync();
+        await Expect(Page.GetByText("Saved", new() { Exact = true }).First).ToBeVisibleAsync();
+        await Expect(Page.Locator("main").GetByText("Saved candidate", new() { Exact = true })).ToBeVisibleAsync();
 
-        // The pool lists them with the note and when the permission ends.
-        await Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Talent pool" }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(new Regex("^Talent pool"));
+        // Saved candidates lists them with the note, the job they were saved from and the day they were saved. Nobody has
+        // emailed them yet, so Last contacted says so.
+        await Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Saved candidates" }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex("/saved$"));
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(new Regex("^Saved candidates"));
         var row = Page.GetByRole(AriaRole.Row).Filter(new() { HasText = "Casey Morgan" });
         await Expect(row).ToContainTextAsync("Strong systems thinking, wrong timing.");
         await Expect(row).ToContainTextAsync(scene.First.Title);
-        await Expect(row.Locator("time[datetime]").Last).ToHaveTextAsync(DatePattern());
+        await Expect(row.GetByRole(AriaRole.Cell).Nth(SavedColumn)).ToHaveTextAsync(DatePattern());
+        await Expect(row.GetByRole(AriaRole.Cell).Nth(LastContactedColumn)).ToContainTextAsync("Never");
         await ExpectNoAccessibilityViolationsAsync();
+
+        // Edit note: the row's menu opens a sheet, and the row shows the new note once it is saved.
+        await row.GetByRole(AriaRole.Button, new() { Name = "Actions for Casey Morgan" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Edit note" }).ClickAsync();
+        var noteSheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Edit note for Casey Morgan" });
+        await noteSheet.GetByLabel("Note").FillAsync("Strong systems thinking, ask again in spring.");
+        await noteSheet.GetByRole(AriaRole.Button, new() { Name = "Save note" }).ClickAsync();
+        await Expect(noteSheet).ToBeHiddenAsync();
+        await Expect(row).ToContainTextAsync("Strong systems thinking, ask again in spring.");
 
         // Invite to apply for the second job: the email goes out and names it.
         await row.GetByRole(AriaRole.Button, new() { Name = "Actions for Casey Morgan" }).ClickAsync();
@@ -76,6 +92,9 @@ public sealed partial class TalentPoolTests(E2EFixture fixture) : BrowserTest(fi
         jobLink.Success.Should().BeTrue($"the email carries the job's careers link: {text}");
         jobLink.Groups["slug"].Value.Should().Be(scene.Second.Slug);
 
+        // The invitation is an email to them, so Last contacted turns from Never into a date (the page refreshes live).
+        await Expect(row.GetByRole(AriaRole.Cell).Nth(LastContactedColumn)).ToContainTextAsync(DateInText());
+
         // The link opens the job; applying with the same email takes them out of the pool.
         await WithoutJavaScriptAsync();
         var jobPage = await Page.GotoAsync(jobLink.Value);
@@ -86,7 +105,8 @@ public sealed partial class TalentPoolTests(E2EFixture fixture) : BrowserTest(fi
         await WithJavaScriptAsync();
         await SignInAsync(scene.Owner);
         await Page.GotoAsync(DashboardUrl("/talent-pool"));
-        await Expect(Page.GetByText("Nobody has been kept in mind yet.")).ToBeVisibleAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex("/saved$")); // the old address lands on the new page
+        await Expect(Page.GetByText("Nobody has been saved yet.")).ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Casey Morgan" })).ToHaveCountAsync(0);
 
         // The new application's Overview links back to the one they were kept from.
@@ -96,12 +116,12 @@ public sealed partial class TalentPoolTests(E2EFixture fixture) : BrowserTest(fi
         await Expect(others).ToBeVisibleAsync();
         await Expect(others.GetByRole(AriaRole.Link, new() { Name = scene.First.Title })).ToHaveAttributeAsync(
             "href", $"/applications/{await ApplicationIdAsync(scene, scene.First.Id)}");
-        await Expect(others).ToContainTextAsync("Kept in mind");
+        await Expect(others).ToContainTextAsync("Saved");
         await ExpectNoAccessibilityViolationsAsync();
     }
 
     [Fact]
-    public async Task A_candidate_stops_being_kept_from_the_link_in_the_invitation_without_javascript()
+    public async Task A_candidate_stops_being_saved_from_the_link_in_the_invitation_without_javascript()
     {
         using var scene = await SceneAsync();
         var candidate = ApiSession.NewEmail("candidate");
@@ -140,7 +160,7 @@ public sealed partial class TalentPoolTests(E2EFixture fixture) : BrowserTest(fi
         Page.Url.Should().NotContain(stopLink.Groups["token"].Value, "the confirmation's address carries no token");
         await ExpectNoAccessibilityViolationsAsync();
 
-        // The link now says they are no longer kept, and the team's pool no longer lists them.
+        // The link now says they are no longer kept, and the team's saved candidates no longer lists them.
         await Page.GotoAsync(stopLink.Value);
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToContainTextAsync("no longer keeps your details");
         using var pool = await scene.Session.Client.GetAsync("/v1/talent-pool", Ct);
@@ -273,4 +293,8 @@ public sealed partial class TalentPoolTests(E2EFixture fixture) : BrowserTest(fi
     // "Mar 15, 2027": the date a table shows (design system section 13).
     [GeneratedRegex(@"^[A-Z][a-z]{2} \d{1,2}, \d{4}$")]
     private static partial Regex DatePattern();
+
+    // The same date inside a longer cell, such as Last contacted with its Message button.
+    [GeneratedRegex(@"[A-Z][a-z]{2} \d{1,2}, \d{4}")]
+    private static partial Regex DateInText();
 }

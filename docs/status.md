@@ -45,7 +45,7 @@ What comes next, in order, is the [roadmap](roadmap.md).
 | Workflow graph | The builder's graph edits the same draft as the Pipeline view: add an automation to a stage or the whole workflow, open its form at any node, remove it, and draw a "move to a stage" link; every node is a tab stop, the arrow keys move between nodes, and a validation problem shows on its node. On a phone the graph is for reading ([workflow engine](architecture/workflow-engine.md#4-builder-ux-dashboard)) | the editable graph task |
 | Templates | One page with a tab each for hiring templates, scorecards and email templates: where each is used and when it was last used, filters for In use, Not used in 6 months and Archived, Duplicate, Archive and Restore, Reset to original for an edited built-in email, and an editor for each with the Edit / Preview switch; email templates moved here from Settings | the Templates page task |
 | Settings | One sidebar item with its own menu: Organization, Team, Roles (what each role can do, from the API's permission catalogue), Branding, Verification, API keys and Webhooks (each saying how to call it and linking the API reference, public in production), each for a role with its permission | #39, #42, the Settings menu task |
-| Talent pool | Keep in mind beside Rejected, on a job's selection and when a job closes: the candidate leaves the job without a rejection and joins the pool, only with their own "Keep my details for future roles" from the apply form, until the organization's period (12 months by default, 6 to 24) runs out; a Talent pool page with search, tags and the note; invitations to apply with a link to stop being kept; adding someone to a job, linked to their earlier applications ([talent pool](architecture/talent-pool.md)) | the talent pool task |
+| Saved candidates | Save candidate beside Rejected, on a job's selection and when a job closes: the candidate leaves the job without a rejection and joins the saved candidates, only with their own "Keep my details for future roles" from the apply form, with no end date (they stay until the team removes them or they use the stop link); a Saved candidates page with search, tags, Rating, Last contacted, a Message button and a note the team can edit, with History; invitations to apply with a link to stop being kept; adding someone to a job, linked to their earlier applications ([saved candidates](architecture/talent-pool.md)) | the talent pool task, the saved candidates task |
 | Careers site | Tenant boards and hosts, the apply flow with the notice first, steps that work without JavaScript with one questionnaire section a page and "Step 2 of 4", saving the form to finish later through an emailed link, direct-to-storage resume upload | #11 |
 | Careers widget | The job list and the apply flow in a frame on a company's own site from one line of embed code; the sites allowed to frame the careers pages set `frame-ancestors`, the frame sizes itself over postMessage from the careers origin only, the flow stays cookie-free, and the application records the site ([careers widget](architecture/careers-widget.md)) | the careers widget task |
 | Distribution | One-click publish and teardown, Google for Jobs JSON-LD and sitemaps, five XML feeds, a public job-board API, the Indexing API queue | #12 |
@@ -117,10 +117,10 @@ brackets.
   `ScreenHire:Domains:AppHost` as well as the API, or mention emails are skipped with a warning (#55).
 - **Legal and policy.** A legal review of the law tracker before publishing (#6); the analytics decision, with a privacy
   page and the ePrivacy position per market (#6); a legal review before any typing-rhythm signal (#18); a check of the
-  device-check defaults per jurisdiction (notice outside the EU and EEA, consent inside) (#18). A legal review of the
-  talent pool: the 12-month default permission period, the 6 to 24 month range an organization may set, the apply
-  form's "Keep my details for future roles" wording and the privacy page's "Future roles" section, per market (the
-  talent pool task).
+  device-check defaults per jurisdiction (notice outside the EU and EEA, consent inside) (#18). A legal review of saved candidates:
+  keeping their details until the candidate asks or the team removes them, with no expiry; the apply form's "Keep my
+  details for future roles" wording and the privacy page's "Future roles" section, per market (the saved candidates
+  task).
 - **Product.** Set prices and job limits in `apps/marketing/src/lib/pricing.ts` (#6). Move jobs still on "Software
   engineer" version 1 to version 2 (#13).
 
@@ -130,9 +130,10 @@ brackets.
   applicant, and they count an application through the careers widget under the careers page although it records its
   site; the MCP server and API keys have no report yet; and stage kinds come from each job's current workflow, so a
   removed stage's history drops out of the funnel (`architecture/reports.md` section 6).
-- Erasure requests: nothing deletes a candidate yet. A talent pool entry goes with its candidate when one is deleted,
-  and until erasure exists a person removes someone from the pool with "They asked to be removed", which withdraws their
-  permission for future roles ([talent pool](architecture/talent-pool.md)).
+- Erasure requests: nothing deletes a candidate yet. A saved candidate goes with their candidate record when one is
+  deleted, and until erasure exists a person removes someone from the saved candidates with "They asked to be removed",
+  which withdraws their permission for future roles. Nothing expires a saved candidate and nothing deletes an ended
+  application, so record retention matters more than before ([saved candidates](architecture/talent-pool.md)).
 
 - The MCP server gives an assistant no verification output, as ADR-0011 refuses it to every API key, although roadmap item 6
   asked for levels, reasons and evidence. Opening it to `/v1/mcp` is an owner decision: an amendment to ADR-0011, then

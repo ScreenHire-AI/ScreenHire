@@ -12,21 +12,22 @@ using ScreenHire.Infrastructure.Email;
 
 namespace ScreenHire.UnitTests.Applications;
 
-// The talent pool's rules (docs/architecture/talent-pool.md): keeping a candidate in mind ends the application without a
-// rejection, only with the candidate's own permission, which runs out at the shorter of the period then and now.
+// The saved candidates' rules (docs/architecture/talent-pool.md): saving a candidate ends the application without a
+// rejection, only with the candidate's own permission, which has no end date. The note on a saved candidate is the entry's
+// own, and an edit of it is described for History.
 public sealed class TalentPoolTests
 {
     private static readonly DateTimeOffset Monday = new(2026, 10, 19, 9, 0, 0, TimeSpan.Zero);
     private static readonly Guid Recruiter = Guid.CreateVersion7();
 
     [Fact]
-    public void Keeping_a_candidate_in_mind_ends_the_application_without_moving_it_and_keeps_the_note()
+    public void Saving_a_candidate_ends_the_application_without_moving_it_and_keeps_the_note()
     {
-        var (application, job) = Applied(new FutureRolesConsent(Monday, 12));
+        var (application, job) = Applied(new FutureRolesConsent(Monday));
         var interview = job.Workflow.FindStage("interview")!;
         application.MoveTo(interview, Monday, Recruiter, note: null);
 
-        var kept = application.KeepInMind(interview, 12, Monday.AddDays(3), Recruiter, "  Strong runner-up  ");
+        var kept = application.KeepInMind(interview, Monday.AddDays(3), Recruiter, "  Strong runner-up  ");
 
         application.KeptInMindAt.Should().Be(Monday.AddDays(3));
         application.CurrentStageId.Should().Be("interview", "the candidate leaves the job where they stood, not through Rejected");
@@ -37,60 +38,61 @@ public sealed class TalentPoolTests
     }
 
     [Fact]
-    public void Only_an_open_application_with_a_permission_that_holds_can_be_kept()
+    public void Only_an_open_application_with_a_permission_that_holds_can_be_saved()
     {
         var (withoutConsent, job) = Applied(consent: null);
         var applied = job.Workflow.FindStage("applied");
-        FluentActions.Invoking(() => withoutConsent.KeepInMind(applied, 12, Monday, Recruiter, null))
+        FluentActions.Invoking(() => withoutConsent.KeepInMind(applied, Monday, Recruiter, null))
             .Should().Throw<InvalidOperationException>().WithMessage("*permission*");
 
-        var (expired, _) = Applied(new FutureRolesConsent(Monday, 6));
-        FluentActions.Invoking(() => expired.KeepInMind(applied, 12, Monday.AddMonths(6), Recruiter, null))
-            .Should().Throw<InvalidOperationException>("permission runs out at the end of the period");
+        var (withdrawn, _) = Applied(new FutureRolesConsent(Monday));
+        withdrawn.WithdrawFutureRoles(Monday.AddDays(1));
+        FluentActions.Invoking(() => withdrawn.KeepInMind(applied, Monday.AddDays(2), Recruiter, null))
+            .Should().Throw<InvalidOperationException>("a withdrawn permission blocks saving").WithMessage("*permission*");
 
-        var (rejected, _) = Applied(new FutureRolesConsent(Monday, 12));
+        var (rejected, _) = Applied(new FutureRolesConsent(Monday));
         var rejectedStage = job.Workflow.Stages.First(s => s.Kind == StageKind.Rejected);
         rejected.MoveTo(rejectedStage, Monday, Recruiter, "Not a fit");
-        FluentActions.Invoking(() => rejected.KeepInMind(rejectedStage, 12, Monday, Recruiter, null))
+        FluentActions.Invoking(() => rejected.KeepInMind(rejectedStage, Monday, Recruiter, null))
             .Should().Throw<InvalidOperationException>().WithMessage("*ended*");
 
-        var (twice, _) = Applied(new FutureRolesConsent(Monday, 12));
-        twice.KeepInMind(applied, 12, Monday, Recruiter, null);
-        FluentActions.Invoking(() => twice.KeepInMind(applied, 12, Monday, Recruiter, null)).Should().Throw<InvalidOperationException>();
+        var (twice, _) = Applied(new FutureRolesConsent(Monday));
+        twice.KeepInMind(applied, Monday, Recruiter, null);
+        FluentActions.Invoking(() => twice.KeepInMind(applied, Monday, Recruiter, null)).Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
-    public void Permission_runs_out_at_the_shorter_of_the_period_it_was_given_for_and_the_period_now()
+    public void A_permission_has_no_end_date_so_one_given_years_ago_still_allows_saving()
     {
-        var (application, _) = Applied(new FutureRolesConsent(Monday, 12));
+        var (application, job) = Applied(new FutureRolesConsent(Monday.AddYears(-5)));
 
-        application.FutureRolesUntil(12).Should().Be(Monday.AddMonths(12));
-        application.FutureRolesUntil(24).Should().Be(Monday.AddMonths(12), "a longer setting never extends a permission already given");
-        application.FutureRolesUntil(6).Should().Be(Monday.AddMonths(6), "a shorter setting shortens it");
-        application.AllowsFutureRoles(12, Monday.AddMonths(12).AddTicks(-1)).Should().BeTrue();
-        application.AllowsFutureRoles(12, Monday.AddMonths(12)).Should().BeFalse();
+        application.AllowsFutureRoles.Should().BeTrue("the permission lasts until the candidate asks or the team removes them");
+        FluentActions.Invoking(() => application.KeepInMind(job.Workflow.FindStage("applied"), Monday, Recruiter, null))
+            .Should().NotThrow();
+        Applied(consent: null).Application.AllowsFutureRoles.Should().BeFalse("no tick, no permission");
     }
 
     [Fact]
     public void A_withdrawn_permission_ends_at_once_and_is_not_carried_to_a_new_application()
     {
-        var (application, _) = Applied(new FutureRolesConsent(Monday, 12));
-        application.CarriedFutureRoles().Should().Be(new FutureRolesConsent(Monday, 12), "adding them to a job keeps the clock");
+        var (application, _) = Applied(new FutureRolesConsent(Monday));
+        application.AllowsFutureRoles.Should().BeTrue();
+        application.CarriedFutureRoles().Should().Be(new FutureRolesConsent(Monday), "adding them to a job keeps the date it was given");
 
         application.WithdrawFutureRoles(Monday.AddDays(2));
         application.WithdrawFutureRoles(Monday.AddDays(5));
 
         application.FutureRolesWithdrawnAt.Should().Be(Monday.AddDays(2), "withdrawing twice keeps the first time");
-        application.FutureRolesUntil(12).Should().BeNull();
+        application.AllowsFutureRoles.Should().BeFalse();
         application.CarriedFutureRoles().Should().BeNull();
     }
 
     [Fact]
-    public void Moving_a_kept_application_brings_it_back_even_to_the_stage_it_was_in()
+    public void Moving_a_saved_application_brings_it_back_even_to_the_stage_it_was_in()
     {
-        var (application, job) = Applied(new FutureRolesConsent(Monday, 12));
+        var (application, job) = Applied(new FutureRolesConsent(Monday));
         var applied = job.Workflow.FindStage("applied")!;
-        application.KeepInMind(applied, 12, Monday, Recruiter, null);
+        application.KeepInMind(applied, Monday, Recruiter, null);
 
         var moved = application.MoveTo(applied, Monday.AddDays(1), Recruiter, note: null);
 
@@ -102,11 +104,11 @@ public sealed class TalentPoolTests
     }
 
     [Fact]
-    public void A_pool_entry_needs_the_applications_own_kept_in_mind_entry()
+    public void A_saved_entry_needs_the_applications_own_saved_event_and_starts_with_its_note()
     {
-        var (application, job) = Applied(new FutureRolesConsent(Monday, 12));
-        var (other, _) = Applied(new FutureRolesConsent(Monday, 12));
-        var kept = application.KeepInMind(job.Workflow.FindStage("applied"), 12, Monday, Recruiter, "why");
+        var (application, job) = Applied(new FutureRolesConsent(Monday));
+        var (other, _) = Applied(new FutureRolesConsent(Monday));
+        var kept = application.KeepInMind(job.Workflow.FindStage("applied"), Monday, Recruiter, "  why  ");
 
         var entry = TalentPoolEntry.For(application, kept);
 
@@ -114,6 +116,7 @@ public sealed class TalentPoolTests
         entry.CandidateId.Should().Be(application.CandidateId);
         entry.KeptEventId.Should().Be(kept.Id);
         entry.KeptByUserId.Should().Be(Recruiter);
+        entry.Note.Should().Be("why", "the entry's note starts as the saved event's note");
         FluentActions.Invoking(() => TalentPoolEntry.For(other, kept)).Should().Throw<InvalidOperationException>();
 
         entry.Invited(job.Id, Monday.AddDays(2));
@@ -122,25 +125,78 @@ public sealed class TalentPoolTests
     }
 
     [Fact]
-    public void The_period_is_six_to_twentyfour_months_and_twelve_by_default()
+    public void Saving_without_a_note_gives_an_entry_without_one()
     {
-        TalentPoolSettings.MonthsOf(null).Should().Be(12);
-        TalentPoolSettings.IsAllowed(5).Should().BeFalse();
-        TalentPoolSettings.IsAllowed(6).Should().BeTrue();
-        TalentPoolSettings.IsAllowed(24).Should().BeTrue();
-        TalentPoolSettings.IsAllowed(25).Should().BeFalse();
+        var (application, kept) = SavedWithNote("   ");
+
+        TalentPoolEntry.For(application, kept).Note.Should().BeNull();
     }
 
     [Fact]
-    public void Changing_the_period_says_so_in_the_history_and_a_first_save_of_the_default_says_nothing()
+    public void Editing_the_note_trims_it_and_blank_text_clears_it_while_the_saved_event_keeps_the_first_note()
     {
-        var organization = Guid.CreateVersion7();
+        var (application, kept) = SavedWithNote("First note");
+        var entry = TalentPoolEntry.For(application, kept);
 
-        SettingsChanges.TalentPool(null, new TalentPoolSettings { OrganizationId = organization, PermissionMonths = 12 }).Should().BeEmpty();
-        var line = SettingsChanges.TalentPool(
-            new TalentPoolSettings { OrganizationId = organization, PermissionMonths = 12 },
-            new TalentPoolSettings { OrganizationId = organization, PermissionMonths = 18 }).Should().ContainSingle().Subject;
-        line.Should().BeEquivalentTo(ChangeLine.Of("changed how long permission for future roles lasts from 12 months to ", "18 months"));
+        entry.EditNote("  Second note \n");
+        entry.Note.Should().Be("Second note");
+
+        entry.EditNote("   ");
+        entry.Note.Should().BeNull();
+
+        entry.EditNote("Third note");
+        entry.EditNote(null);
+        entry.Note.Should().BeNull();
+        kept.Data.Note.Should().Be("First note", "the Activity entry keeps the note as first written");
+    }
+
+    [Fact]
+    public void Adding_or_removing_the_entry_or_leaving_its_note_alone_is_not_a_History_line()
+    {
+        var (application, kept) = SavedWithNote("First note");
+        var entry = TalentPoolEntry.For(application, kept);
+
+        SettingsChanges.SavedNote(null, entry).Should().BeEmpty("saving someone is on the candidate's Activity");
+        SettingsChanges.SavedNote(entry, null).Should().BeEmpty("so is taking them out");
+        SettingsChanges.SavedNote(entry, TalentPoolEntry.For(application, kept)).Should().BeEmpty("an unchanged note is not a change");
+    }
+
+    [Fact]
+    public void Editing_a_note_says_so_in_the_History_with_the_note_before_and_after()
+    {
+        var (application, kept) = SavedWithNote("First note");
+        var before = TalentPoolEntry.For(application, kept);
+        var after = TalentPoolEntry.For(application, kept);
+        after.EditNote("Second note");
+
+        var line = SettingsChanges.SavedNote(before, after).Should().ContainSingle().Subject;
+
+        line.Sentence().Should().Be("edited the note");
+        line.Details.Should().Equal(new ChangeDetail("Note", "First note", "Second note", ChangeValueKind.Paragraphs));
+    }
+
+    [Fact]
+    public void Writing_a_first_note_says_added_a_note_and_clearing_it_says_removed_the_note()
+    {
+        var (bare, bareEvent) = SavedWithNote(null);
+        var empty = TalentPoolEntry.For(bare, bareEvent);
+        var written = TalentPoolEntry.For(bare, bareEvent);
+        written.EditNote("A note");
+
+        var added = SettingsChanges.SavedNote(empty, written).Should().ContainSingle().Subject;
+
+        added.Sentence().Should().Be("added a note");
+        added.Details.Should().Equal(new ChangeDetail("Note", null, "A note", ChangeValueKind.Paragraphs));
+
+        var (application, kept) = SavedWithNote("First note");
+        var before = TalentPoolEntry.For(application, kept);
+        var cleared = TalentPoolEntry.For(application, kept);
+        cleared.EditNote("");
+
+        var removed = SettingsChanges.SavedNote(before, cleared).Should().ContainSingle().Subject;
+
+        removed.Sentence().Should().Be("removed the note");
+        removed.Details.Should().Equal(new ChangeDetail("Note", "First note", null, ChangeValueKind.Paragraphs));
     }
 
     [Fact]
@@ -194,6 +250,12 @@ public sealed class TalentPoolTests
         links.Read(null).Should().BeNull();
         var questionnaire = provider.CreateProtector("ScreenHire.Questionnaire.Link.v1").Protect($"{organization:N}.{candidate:N}");
         links.Read(questionnaire).Should().BeNull("each link has its own purpose");
+    }
+
+    private static (JobApplication Application, ApplicationEvent Kept) SavedWithNote(string? note)
+    {
+        var (application, job) = Applied(new FutureRolesConsent(Monday));
+        return (application, application.KeepInMind(job.Workflow.FindStage("applied"), Monday, Recruiter, note));
     }
 
     private static (JobApplication Application, Job Job) Applied(FutureRolesConsent? consent)

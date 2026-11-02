@@ -1,5 +1,7 @@
 <script lang="ts">
   import BookmarkXIcon from '~icons/lucide/bookmark-x';
+  import MailIcon from '~icons/lucide/mail';
+  import PencilIcon from '~icons/lucide/pencil';
   import SendIcon from '~icons/lucide/send';
   import UserPlusIcon from '~icons/lucide/user-plus';
   import type { TalentPoolMember } from '@screenhire/api-client';
@@ -10,6 +12,8 @@
   import AddToJobSheet from '#lib/components/add-to-job-sheet.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import DateText from '#lib/components/date-text.svelte';
+  import EditSavedNoteSheet from '#lib/components/edit-saved-note-sheet.svelte';
+  import EmailComposerSheet from '#lib/components/email-composer-sheet.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import InviteToApplySheet from '#lib/components/invite-to-apply-sheet.svelte';
   import ListItem from '#lib/components/list-item.svelte';
@@ -17,6 +21,7 @@
   import MultiFilterMenu from '#lib/components/multi-filter-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import Rating from '#lib/components/rating.svelte';
   import SearchField from '#lib/components/search-field.svelte';
   import SortHeader from '#lib/components/sort-header.svelte';
   import SortMenu from '#lib/components/sort-menu.svelte';
@@ -36,18 +41,22 @@
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import { tagsOf } from '#lib/tags.js';
 
-  // The talent pool (docs/architecture/talent-pool.md) on the list template: the candidates the team kept in mind, with
-  // the note saying why, their tags, the job they were kept from and when their permission runs out. From here the team
-  // invites someone to apply for another job or adds them to one. No Verification column or filter: the pool never
-  // becomes a list picked by level (ADR-0004). TalentPoolChanged refetches it live.
+  // Saved candidates (docs/architecture/talent-pool.md) on the list template: the people the team saved, with their
+  // rating (the reviewer gate shows "After yours" until you give your scorecard), the note saying why, their tags, the job
+  // they were saved from, when, and when the team last emailed them. Message emails one from the Last contacted cell, and
+  // the note opens a sheet to edit it, with its History. From here the team invites someone to apply for another job or
+  // adds them to one. No Verification column or filter: saved candidates never become a list picked by level (ADR-0004).
+  // TalentPoolChanged, ApplicationEmailed and ScorecardSubmitted refetch it live.
   const queryClient = useQueryClient();
   const sidebar = Sidebar.useSidebar();
-  const pool = createListTalentPool();
-  const people = $derived<TalentPoolMember[]>(pool.data?.data.people ?? []);
+  const saved = createListTalentPool();
+  const people = $derived<TalentPoolMember[]>(saved.data?.data.people ?? []);
   const emailTemplates = createListEmailTemplates();
   const mayInvite = $derived(Boolean(emailTemplates.data?.data.sendingEnabled) && can(page.data.user, 'EmailCandidates'));
   const mayAdd = $derived(can(page.data.user, 'AddCandidates'));
+  // Removing someone and editing their note are the same permission as saving them.
   const mayRemove = $derived(can(page.data.user, 'MoveCandidates'));
+  const mayEditNote = $derived(mayRemove);
   const remove = createRemoveFromTalentPool(() => ({
     mutation: { onSettled: () => Promise.all([talentPoolPath, applicationsPath].map((path) => invalidatePath(queryClient, path))) },
   }));
@@ -78,18 +87,28 @@
   );
   const filtering = $derived(Boolean(search.trim()) || tagFilter.length > 0 || jobFilter.length > 0);
 
-  // The table sorts (L2) and opens on people by name; Permission ends shows who leaves the pool soonest.
+  // The table sorts (L2) and opens on people by name. Rating sorts by its number, highest first; people with no number
+  // ("Not rated yet", "After yours") stay last either way (as #lib/rating-column.ts, typed for this list). Last contacted
+  // puts the newest first, and people nobody has emailed last.
   const features = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: { basic: sortFn_basic, alphanumeric: sortFn_alphanumeric } });
   // `any`: one list mixes columns of different value types.
   const columns: ColumnDef<typeof features, TalentPoolMember, any>[] = [
     { id: 'candidate', header: 'Candidate', accessorFn: (person) => person.candidateName, sortFn: 'alphanumeric' },
-    { id: 'why', header: 'Why', accessorFn: (person) => person.note ?? '', sortFn: 'alphanumeric' },
+    {
+      id: 'rating',
+      header: 'Rating',
+      accessorFn: (person) => (person.rating.state === 'Rated' ? (person.rating.value ?? undefined) : undefined),
+      sortFn: 'basic',
+      sortDescFirst: true,
+      sortUndefined: 'last',
+    },
+    { id: 'note', header: 'Note', accessorFn: (person) => person.note ?? '', sortFn: 'alphanumeric' },
     { id: 'tags', header: 'Tags', accessorFn: (person) => person.tags.join(', '), sortFn: 'alphanumeric' },
-    { id: 'job', header: 'Kept from', accessorFn: (person) => person.jobTitle, sortFn: 'alphanumeric' },
-    { id: 'kept', header: 'Kept', accessorFn: (person) => person.keptAt, sortFn: 'basic', sortDescFirst: true },
-    { id: 'ends', header: 'Permission ends', accessorFn: (person) => person.permissionEndsAt, sortFn: 'basic' },
+    { id: 'job', header: 'Saved from', accessorFn: (person) => person.jobTitle, sortFn: 'alphanumeric' },
+    { id: 'saved', header: 'Saved', accessorFn: (person) => person.keptAt, sortFn: 'basic', sortDescFirst: true },
+    { id: 'last', header: 'Last contacted', accessorFn: (person) => person.lastContactedAt ?? undefined, sortFn: 'basic', sortDescFirst: true, sortUndefined: 'last' },
   ];
-  const sort = createTableSort('talent-pool', { id: 'candidate', desc: false }, ['candidate', 'why', 'tags', 'job', 'kept', 'ends']);
+  const sort = createTableSort('saved-candidates', { id: 'candidate', desc: false }, ['candidate', 'rating', 'note', 'tags', 'job', 'saved', 'last']);
   const table = createTable({
     ...tableSortOptions(() => sort),
     features,
@@ -136,23 +155,34 @@
   const toggleAll = () => (selectedIds = allSelected ? [] : shown.map((person) => person.candidateId));
 
   // A row's menu opens its sheet or dialog once the menu has closed, so focus can go back to the menu.
-  let chosen = $state<{ person: TalentPoolMember; action: 'invite' | 'add' | 'remove' } | null>(null);
+  type Action = 'invite' | 'add' | 'message' | 'note' | 'remove';
+  let chosen = $state<{ person: TalentPoolMember; action: Action } | null>(null);
   let acting = $state<TalentPoolMember[]>([]);
   let inviteOpen = $state(false);
   let addOpen = $state(false);
   let removeOpen = $state(false);
   let removing = $state<TalentPoolMember | null>(null);
+  let messageOpen = $state(false);
+  let messaging = $state<{ id: string; candidateName: string }[]>([]);
+  let noteOpen = $state(false);
+  let noting = $state<TalentPoolMember | null>(null);
   let candidateAsked = $state(false);
   let announcement = $state('');
   function onMenuClosed() {
     if (chosen) open(chosen.action, [chosen.person]);
     chosen = null;
   }
-  function open(action: 'invite' | 'add' | 'remove', who: TalentPoolMember[]) {
+  function open(action: Action, who: TalentPoolMember[]) {
     acting = who;
     if (action === 'invite') inviteOpen = true;
     else if (action === 'add') addOpen = true;
-    else {
+    else if (action === 'message') {
+      messaging = who.map((person) => ({ id: person.applicationId, candidateName: person.candidateName }));
+      messageOpen = true;
+    } else if (action === 'note') {
+      noting = who[0] ?? null;
+      noteOpen = true;
+    } else {
       removing = who[0] ?? null;
       candidateAsked = false;
       removeOpen = true;
@@ -166,28 +196,28 @@
   async function removePerson() {
     if (!removing) return;
     await remove.mutateAsync({ candidateId: removing.candidateId, data: { candidateAsked } });
-    announcement = `${removing.candidateName} left the talent pool.`;
+    announcement = `${removing.candidateName} was removed from saved candidates.`;
   }
 </script>
 
 <svelte:head>
-  <title>Talent pool · ScreenHire</title>
+  <title>Saved candidates · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Talent pool' }]} />
+<TopBar crumbs={[{ label: 'Saved candidates' }]} />
 
 <main class="flex min-w-0 flex-col">
-  <HeaderBand title="Talent pool" count={pool.isSuccess ? shown.length : undefined} countLabel={shown.length === 1 ? 'person' : 'people'} />
+  <HeaderBand title="Saved candidates" count={saved.isSuccess ? shown.length : undefined} countLabel={shown.length === 1 ? 'person' : 'people'} />
 
   <div class="@container w-full px-4 py-6 md:px-6">
     <p role="status" class="sr-only">{announcement}</p>
     <Panel title="People" flush>
       {#snippet tools()}
-        <SearchField bind:value={search} label="Search the talent pool" placeholder="Search" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
+        <SearchField bind:value={search} label="Search saved candidates" placeholder="Search" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
       {/snippet}
       {#if jobOptions.length > 0}
         <div data-filters class="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">
-          <MultiFilterMenu label="Kept from" options={jobOptions} bind:values={jobFilter} />
+          <MultiFilterMenu label="Saved from" options={jobOptions} bind:values={jobFilter} />
           {#if tagOptions.length > 0}<MultiFilterMenu label="Tag" options={tagOptions} bind:values={tagFilter} />{/if}
         </div>
       {/if}
@@ -208,19 +238,19 @@
         </div>
       {/if}
 
-      {#if pool.isError}
-        <div class="p-4"><QueryError message={describeError(pool.error, 'Could not load the talent pool')} onretry={() => pool.refetch()} inset /></div>
-      {:else if pool.isPending}
+      {#if saved.isError}
+        <div class="p-4"><QueryError message={describeError(saved.error, 'Could not load saved candidates')} onretry={() => saved.refetch()} inset /></div>
+      {:else if saved.isPending}
         <div aria-hidden="true" class="flex flex-col gap-1 p-3">
           {#each [0, 1, 2, 3] as row (row)}<Skeleton class="h-12 w-full max-md:h-24" />{/each}
         </div>
-        <p class="sr-only" role="status">Loading the talent pool…</p>
+        <p class="sr-only" role="status">Loading saved candidates…</p>
       {:else if shown.length === 0}
         <Empty.Root class="gap-3 p-6">
           <Empty.Description>
             {filtering
-              ? 'Nobody in the talent pool matches these filters.'
-              : 'Nobody has been kept in mind yet.'}
+              ? 'Nobody in saved candidates matches these filters.'
+              : 'Nobody has been saved yet.'}
           </Empty.Description>
           {#if filtering}
             <Button variant="outline" size="lg" onclick={() => ((search = ''), (tagFilter = []), (jobFilter = []))}>Clear filters</Button>
@@ -233,19 +263,20 @@
             <!-- The row's menu is the phone's only way to invite, add or remove: the record page has none of them. -->
             <ListItem href={href(person)} title={person.candidateName}>
               {#snippet actions()}
-                {#if mayInvite || mayAdd || mayRemove}{@render personMenu(person)}{/if}
+                {#if mayInvite || mayAdd || mayRemove}{@render personMenu(person, true)}{/if}
               {/snippet}
               {#snippet facts()}
                 <Badge variant="muted">{person.jobTitle}</Badge>
+                {#if person.rating.state === 'Rated'}<span class="inline-flex items-center"><Rating rating={person.rating} /></span>{/if}
                 {#each person.tags as tag (tag)}<Badge variant="muted">{tag}</Badge>{/each}
               {/snippet}
-              {#snippet meta()}Until {formatDate(person.permissionEndsAt)}{/snippet}
+              {#snippet meta()}{person.lastContactedAt ? `Last contacted ${formatDate(person.lastContactedAt)}` : 'Not contacted yet'}{/snippet}
             </ListItem>
           {/each}
         </ul>
       {:else}
         <div class="overflow-x-auto">
-          <Table.Root aria-label="Talent pool" bind:ref={tableElement}>
+          <Table.Root aria-label="Saved candidates" bind:ref={tableElement}>
             <Table.Header>
               {#each table.getHeaderGroups() as group (group.id)}
                 <Table.Row class="bg-muted hover:bg-muted">
@@ -261,7 +292,7 @@
             </Table.Header>
             <Table.Body>
               {#each sorted as person (person.candidateId)}
-                <!-- The whole row is the link to the application they were kept from (design system section 9). -->
+                <!-- The whole row is the link to the application they were saved from (design system section 9). -->
                 <!-- A stuck cell covers what scrolls under it, so it carries the row's hover tint itself. -->
                 <Table.Row class="group relative h-12 hover:bg-muted">
                   <Table.Cell class={[selectColumn, stuckSelect, overflowing && 'bg-card group-hover:bg-muted']}>
@@ -280,9 +311,27 @@
                       <TruncatedText text={person.candidateName} href={href(person)} class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline" />
                     </span>
                   </Table.Cell>
+                  <Table.Cell class="whitespace-nowrap"><span class="relative"><Rating rating={person.rating} /></span></Table.Cell>
                   <Table.Cell class="w-full max-w-0 min-w-48">
-                    <span class="flex min-w-0"><TruncatedText text={person.note ?? ''} /></span>
-                    {#if !person.note}<span class="sr-only">No note</span>{/if}
+                    {#if mayEditNote}
+                      <!-- A real button, above the row's link, that fills the cell and opens the note's sheet. -->
+                      <button
+                        type="button"
+                        class="relative flex w-full min-w-0 cursor-pointer rounded-md text-left hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                        onclick={() => open('note', [person])}
+                      >
+                        {#if person.note}
+                          <span class="block min-w-0 truncate">{person.note}</span>
+                        {:else}
+                          <span class="text-muted-foreground">Add a note</span>
+                        {/if}
+                        <!-- The visible text stays inside the button's name (WCAG 2.5.3); this says whose note it is. -->
+                        <span class="sr-only">. Edit note for {person.candidateName}</span>
+                      </button>
+                    {:else}
+                      <span class="flex min-w-0"><TruncatedText text={person.note ?? ''} /></span>
+                      {#if !person.note}<span class="sr-only">No note</span>{/if}
+                    {/if}
                   </Table.Cell>
                   <Table.Cell class="max-w-40">
                     <span class="flex min-w-0"><TruncatedText text={person.tags.join(', ')} /></span>
@@ -290,7 +339,21 @@
                   </Table.Cell>
                   <Table.Cell class="max-w-48"><span class="flex min-w-0"><TruncatedText text={person.jobTitle} /></span></Table.Cell>
                   <Table.Cell class="whitespace-nowrap text-muted-foreground"><span class="relative"><DateText at={person.keptAt} /></span></Table.Cell>
-                  <Table.Cell class="whitespace-nowrap"><span class="relative"><DateText at={person.permissionEndsAt} /></span></Table.Cell>
+                  <Table.Cell class="whitespace-nowrap">
+                    <span class="relative flex items-center gap-2">
+                      {#if person.lastContactedAt}
+                        <DateText at={person.lastContactedAt} />
+                      {:else}
+                        <span class="text-muted-foreground" aria-hidden="true">Never</span>
+                        <span class="sr-only">Never contacted</span>
+                      {/if}
+                      {#if mayInvite}
+                        <Button variant="outline" size="sm" aria-label={`Message ${person.candidateName}`} onclick={() => open('message', [person])}>
+                          <MailIcon aria-hidden="true" />Message
+                        </Button>
+                      {/if}
+                    </span>
+                  </Table.Cell>
                   <Table.Cell class="pr-4.5 text-right">
                     {#if mayInvite || mayAdd || mayRemove}<span class="relative">{@render personMenu(person)}</span>{/if}
                   </Table.Cell>
@@ -304,7 +367,7 @@
   </div>
 </main>
 
-{#snippet personMenu(person: TalentPoolMember)}
+{#snippet personMenu(person: TalentPoolMember, phone = false)}
   <MoreMenu label={`Actions for ${person.candidateName}`} size="icon" quiet onclosed={onMenuClosed}>
     {#if mayInvite}
       <DropdownMenu.Item onSelect={() => (chosen = { person, action: 'invite' })}><SendIcon aria-hidden="true" />Invite to apply</DropdownMenu.Item>
@@ -312,9 +375,16 @@
     {#if mayAdd}
       <DropdownMenu.Item onSelect={() => (chosen = { person, action: 'add' })}><UserPlusIcon aria-hidden="true" />Add to a job</DropdownMenu.Item>
     {/if}
+    <!-- The table has Message beside Last contacted; a phone's list item has only its menu. -->
+    {#if phone && mayInvite}
+      <DropdownMenu.Item onSelect={() => (chosen = { person, action: 'message' })}><MailIcon aria-hidden="true" />Message</DropdownMenu.Item>
+    {/if}
+    {#if mayEditNote}
+      <DropdownMenu.Item onSelect={() => (chosen = { person, action: 'note' })}><PencilIcon aria-hidden="true" />Edit note</DropdownMenu.Item>
+    {/if}
     {#if mayRemove}
       <DropdownMenu.Item variant="destructive" onSelect={() => (chosen = { person, action: 'remove' })}>
-        <BookmarkXIcon aria-hidden="true" />Remove from talent pool
+        <BookmarkXIcon aria-hidden="true" />Remove from saved candidates
       </DropdownMenu.Item>
     {/if}
   </MoreMenu>
@@ -322,11 +392,13 @@
 
 {#if mayInvite}<InviteToApplySheet bind:open={inviteOpen} people={acting} ondone={done} />{/if}
 {#if mayAdd}<AddToJobSheet bind:open={addOpen} people={acting} ondone={done} />{/if}
+{#if mayInvite}<EmailComposerSheet bind:open={messageOpen} recipients={messaging} onsent={(text) => (announcement = text)} />{/if}
+{#if mayEditNote}<EditSavedNoteSheet bind:open={noteOpen} person={noting} ondone={(text) => (announcement = text)} />{/if}
 
 <ConfirmDialog
   bind:open={removeOpen}
-  title={`Remove ${removing?.candidateName ?? ''} from the talent pool?`}
-  description="Their application stays as it is. You cannot keep them in mind again on it unless they still allow it."
+  title={`Remove ${removing?.candidateName ?? ''} from saved candidates?`}
+  description="Their application stays as it is. You cannot save them again on it unless they still allow it."
   cancelLabel="Keep them"
   confirmLabel="Remove"
   failure="Could not remove them"

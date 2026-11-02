@@ -47,13 +47,13 @@ export const invalidations: InvalidationMap = {
   ApplicationSubmitted: [jobsPath, applicationsPath, candidatesPath, reportsPath],
   ApplicationMoved: [jobsPath, applicationsPath, candidatesPath, reportsPath],
   // The application's Activity, the candidate's Messages (every email to them) and every list's last activity.
-  ApplicationEmailed: [jobsPath, applicationsPath, candidatesPath],
+  ApplicationEmailed: [jobsPath, applicationsPath, candidatesPath, talentPoolPath],
   ApplicationNoteAdded: [jobsPath, applicationsPath, candidatesPath],
   ApplicationNoteEdited: [jobsPath, applicationsPath, candidatesPath],
   ApplicationNoteDeleted: [jobsPath, applicationsPath, candidatesPath],
   ApplicationTagsChanged: [jobsPath, applicationsPath, candidatesPath],
   // A scorecard changes the candidate's rating in the lists; a finished review task can show it to its reviewer.
-  ScorecardSubmitted: [jobsPath, applicationsPath, candidatesPath],
+  ScorecardSubmitted: [jobsPath, applicationsPath, candidatesPath, talentPoolPath],
   QuestionnaireAnswered: [jobsPath, applicationsPath, candidatesPath],
   ApplicationTaskCreated: [jobsPath, applicationsPath, candidatesPath, tasksPath],
   ApplicationTaskCompleted: [jobsPath, applicationsPath, candidatesPath, tasksPath],

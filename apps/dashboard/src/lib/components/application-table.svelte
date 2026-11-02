@@ -117,7 +117,7 @@
   // Overdue rows rank below every stage position, ordered by when they fell due; the rest rank by pipeline position.
   function attentionRank(application: ApplicationSummary): number {
     if (isOverdue(application, Date.now())) return Date.parse(application.slaDueAt!) - 1e15;
-    // A candidate kept in mind has left the job, so they sort after every stage, with the endings.
+    // A saved candidate has left the job, so they sort after every stage, with the endings.
     const position = application.keptInMindAt ? -1 : (stages?.findIndex((stage) => stage.id === application.stage.id) ?? -1);
     return position < 0 ? Number.MAX_SAFE_INTEGER : position;
   }

@@ -160,8 +160,6 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<TalentPoolEntry> TalentPoolEntries => Set<TalentPoolEntry>();
 
-    public DbSet<TalentPoolSettings> TalentPoolSettings => Set<TalentPoolSettings>();
-
     /// <summary>
     /// The ASP.NET Core Data Protection key ring the API and the worker share (<see cref="DataProtectionRegistration"/>).
     /// Not tenant-owned: the keys protect every organization's cookies and links alike.
