@@ -77,14 +77,17 @@ funnel row shows. The candidates page uses it for a funnel link (section 5). A k
   that stage.
 - **Median over every hire**, not a median of the jobs' medians (`percentile_cont(0.5)`).
 - **Weeks** start on Monday in the person's zone. Weeks with nothing in them are still listed, and the first and last
-  are partial: only what falls inside the range counts.
+  are partial: only what falls inside the range counts. The table and the readout name a week with its year, because a
+  range can span years; only the chart's axis drops it.
 - **Days in each stage.** For each hire made in the range, the time between entering a stage and entering the next (the
   last stay ends when the hire entered its Hired stage), summed per kind when the hire passed through it twice, then
   the median over the hires that were in that kind. A stay in a Verification or Custom stage separates the stays around
   it but is not counted (section 4).
 - **Source** is one key per application: `recruiter`, else `website` when the careers page was embedded in the
   organization's own site (`SourceSite`, careers-widget.md), else `board:{id}` when the candidate followed a job
-  board's apply link (`SourceBoard`, the `src` tag in apply-flow.md and job-distribution.md), else `careers`.
+  board's apply link (`SourceBoard`, the `src` tag in apply-flow.md and job-distribution.md), else `careers`. The board
+  tag is self-reported: anyone can open a link with `src=talent`, so it can move an organization's own Sources numbers,
+  never another's.
 - **Open jobs** are the jobs with status Open that the person sees, narrowed by the job filter. Days open is whole days
   since the job was first published, by the API's clock. In interview is now, not in the range.
 - **The biggest drop** and the share of applicants are computed in the browser from the funnel rows
@@ -136,7 +139,8 @@ repeated, `?compare=off`), so a link or the trip back keeps them. Export CSV is 
 ## 6. Known limits
 
 - **Kinds come from each job's current workflow.** Only the current workflow is kept, so a timeline entry pointing at
-  a stage removed since adds nothing, and a stage whose kind changed is read as it is now.
+  a stage removed since adds nothing (the time in that stage counts for no row), and a stage whose kind changed is read
+  as it is now.
 - **Job board sources cover feed boards.** The `src` tag goes on the apply link of the XML feed, Careerjet, Talent.com,
   Adzuna, Jooble and the sandbox board. Google for Jobs and the public job-board API must keep their canonical URLs, so
   their applicants count as Careers page, as do applications finished from a saved draft link, which drops the tag.
