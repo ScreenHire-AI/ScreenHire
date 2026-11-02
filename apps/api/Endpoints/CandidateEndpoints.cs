@@ -135,7 +135,7 @@ internal static class CandidateEndpoints
                 && (i.Status == InterviewStatus.Booked
                     || (i.Status == InterviewStatus.Cancelled && a.ProviderEventId is not null && a.SyncStatus != InterviewSyncStatus.Synced)))
             .Select(a => new InterviewEventToRemove(
-                a.InterviewId, a.UserId, a.ProviderEventId, interviews[a.InterviewId].StartsAt, interviews[a.InterviewId].StartsAt + interviews[a.InterviewId].Duration))
+                a.InterviewId, a.UserId, a.ProviderEventId, interviews[a.InterviewId].WindowStart, interviews[a.InterviewId].WindowEnd))
             .ToList();
 
         // Who shared a detail with these applications, read before the rows go. A person has a handful of applications, so

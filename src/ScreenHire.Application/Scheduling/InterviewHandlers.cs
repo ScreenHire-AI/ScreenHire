@@ -207,8 +207,17 @@ internal static partial class InterviewCalendarSync
                     end,
                     attendee.IsOrganizer ? [candidate.Email] : [],
                     CreateMeetingLink: attendee.IsOrganizer);
-                var result = move && attendee.ProviderEventId is { } existing
-                    ? await MoveOrCreateAsync(session, existing, spec, start, end, cancellationToken)
+
+                // A create that rolled back after the provider answered left an event with no saved id, at the old time.
+                // Creating again would only find that event there, so a move looks for it first, across the whole window.
+                var eventId = attendee.ProviderEventId;
+                if (move)
+                {
+                    eventId ??= await session.Provider.FindEventIdAsync(session.AccessToken, spec.IdempotencyId, interview.WindowStart, interview.WindowEnd, cancellationToken);
+                }
+
+                var result = move && eventId is not null
+                    ? await MoveOrCreateAsync(session, eventId, spec, start, end, cancellationToken)
                     : await session.Provider.CreateEventAsync(session.AccessToken, spec, cancellationToken);
                 attendee.MarkSynced(session.Connection.Provider, result.EventId);
                 if (attendee.IsOrganizer && result.MeetingUrl is not null)
@@ -273,9 +282,10 @@ internal static partial class InterviewCalendarSync
 
         var (interview, application, job, candidate, organization) = context;
         var attendees = await LoadAttendeesAsync(db, interviewId, cancellationToken);
-        // An event may exist with no saved id only when the interview was booked, so only then is there a window to look in.
-        var hasWindow = interview.StartsAt is not null;
-        foreach (var attendee in attendees.Where(a => a.SyncStatus != InterviewSyncStatus.Synced && (a.ProviderEventId is not null || hasWindow)))
+        // An event may exist with no saved id only when the interview was booked. It can sit at any time the interview had,
+        // so the look-up covers the whole window.
+        var wasBooked = interview.StartsAt is not null;
+        foreach (var attendee in attendees.Where(a => a.SyncStatus != InterviewSyncStatus.Synced && (a.ProviderEventId is not null || wasBooked)))
         {
             if (await calendar.GetSessionAsync(attendee.UserId, cancellationToken) is not { } session)
             {
@@ -290,7 +300,7 @@ internal static partial class InterviewCalendarSync
             try
             {
                 var eventId = attendee.ProviderEventId ?? await session.Provider.FindEventIdAsync(
-                    session.AccessToken, InterviewText.EventIdempotencyId(interviewId, attendee.UserId), interview.StartsAt!.Value, interview.StartsAt.Value + interview.Duration, cancellationToken);
+                    session.AccessToken, InterviewText.EventIdempotencyId(interviewId, attendee.UserId), interview.WindowStart, interview.WindowEnd, cancellationToken);
                 if (eventId is null)
                 {
                     continue;

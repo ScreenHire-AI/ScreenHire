@@ -24,7 +24,7 @@ namespace ScreenHire.Application.Scheduling;
 /// </remarks>
 public sealed partial class GoogleCalendarProvider : ICalendarProvider, IDisposable
 {
-    /// <summary>The scopes asked for, and the only ones (Decision 12 of the interview scheduling plan).</summary>
+    /// <summary>The scopes asked for, and the only ones (ADR-0024, decision 2).</summary>
     public static readonly IReadOnlyList<string> Scopes =
     [
         "https://www.googleapis.com/auth/calendar.freebusy",
@@ -269,7 +269,7 @@ public sealed partial class GoogleCalendarProvider : ICalendarProvider, IDisposa
     }
 
     // The id is the one the create asked for, so there is nothing to look up: a delete of an id that was never made is a 404.
-    public Task<string?> FindEventIdAsync(string accessToken, string idempotencyId, DateTimeOffset start, DateTimeOffset end, CancellationToken cancellationToken) =>
+    public Task<string?> FindEventIdAsync(string accessToken, string idempotencyId, DateTimeOffset windowStart, DateTimeOffset windowEnd, CancellationToken cancellationToken) =>
         Task.FromResult<string?>(EventId(idempotencyId));
 
     public void Dispose() => http.Dispose();

@@ -27,7 +27,7 @@ namespace ScreenHire.Application.Scheduling;
 /// </remarks>
 public sealed class MicrosoftCalendarProvider : ICalendarProvider, IDisposable
 {
-    /// <summary>The scopes asked for, and the only ones (Decision 12 of the interview scheduling plan).</summary>
+    /// <summary>The scopes asked for, and the only ones (ADR-0024, decision 2).</summary>
     public static readonly IReadOnlyList<string> Scopes = ["https://graph.microsoft.com/Calendars.ReadWrite", "offline_access"];
 
     // Graph returns at most this many events per page of calendarView, and nextLink continues; the cap keeps a calendar
@@ -239,9 +239,9 @@ public sealed class MicrosoftCalendarProvider : ICalendarProvider, IDisposable
         }
     }
 
-    public async Task<string?> FindEventIdAsync(string accessToken, string idempotencyId, DateTimeOffset start, DateTimeOffset end, CancellationToken cancellationToken)
+    public async Task<string?> FindEventIdAsync(string accessToken, string idempotencyId, DateTimeOffset windowStart, DateTimeOffset windowEnd, CancellationToken cancellationToken)
     {
-        var spec = new EventSpec(idempotencyId, "", "", start, end, [], CreateMeetingLink: false);
+        var spec = new EventSpec(idempotencyId, "", "", windowStart, windowEnd, [], CreateMeetingLink: false);
         return (await FindByTransactionAsync(accessToken, spec, cancellationToken))?.EventId;
     }
 

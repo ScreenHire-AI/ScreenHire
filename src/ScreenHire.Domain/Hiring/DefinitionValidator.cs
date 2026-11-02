@@ -989,7 +989,7 @@ public static partial class DefinitionValidator
         if (action.InterviewerUserIds is { } interviewers
             && (interviewers.Count is < 1 or > MaxInterviewers || interviewers.Distinct().Count() != interviewers.Count || interviewers.Contains(Guid.Empty)))
         {
-            errors.Add(new(Join(path, "interviewerUserIds"), $"Choose one to {MaxInterviewers} different interviewers."));
+            errors.Add(new(Join(path, "interviewerUserIds"), $"Choose 1 to {MaxInterviewers} interviewers."));
         }
 
         if (action.InterviewMinutes is { } minutes && !InterviewRequest.AllowedDurations.Contains(minutes))

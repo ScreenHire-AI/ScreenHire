@@ -165,7 +165,7 @@ export const scheduleSchema = z
     interviewerUserIds: z
       .array(z.string())
       .min(1, 'Choose who will interview.')
-      .max(maxInterviewers, `Choose ${maxInterviewers} interviewers at most.`),
+      .max(maxInterviewers, `Choose 1 to ${maxInterviewers} interviewers.`),
     durationMinutes: z.number().refine((minutes) => (durations as readonly number[]).includes(minutes), 'Choose how long it lasts.'),
     windowStart: z.string(),
     windowEnd: z.string(),

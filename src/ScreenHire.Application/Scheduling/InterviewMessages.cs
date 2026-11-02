@@ -60,7 +60,7 @@ public sealed record RemoveInterviewerFromInterviews(Guid OrganizationId, Guid U
 }
 
 /// <summary>One event to delete from an interviewer's calendar: where it is, and what to look for if its id was never saved.</summary>
-public sealed record InterviewEventToRemove(Guid InterviewId, Guid UserId, string? ProviderEventId, DateTimeOffset? StartsAt, DateTimeOffset? EndsAt);
+public sealed record InterviewEventToRemove(Guid InterviewId, Guid UserId, string? ProviderEventId, DateTimeOffset WindowStart, DateTimeOffset WindowEnd);
 
 /// <summary>
 /// Deletes events from interviewers' calendars without telling their guests, for a candidate who was erased: an event

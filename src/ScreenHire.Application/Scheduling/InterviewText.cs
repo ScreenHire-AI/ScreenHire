@@ -17,8 +17,9 @@ namespace ScreenHire.Application.Scheduling;
 public static class InterviewText
 {
     /// <summary>
-    /// The interview's time for a reader, in <paramref name="timeZoneId"/>: <c>Tuesday 3 November 2026, 10:00 to 10:30
-    /// (Europe/London)</c>. English names whatever the host's culture; a zone this host does not know reads as UTC.
+    /// The interview's time for a reader, in <paramref name="timeZoneId"/>: <c>Tuesday, November 3, 2026, 10:00 AM to 10:30 AM
+    /// (Europe/London)</c>. US English whatever the host's culture, as the careers page writes it (design system section 13);
+    /// a zone this host does not know reads as UTC.
     /// </summary>
     public static string Time(DateTimeOffset start, DateTimeOffset end, string timeZoneId)
     {
@@ -26,11 +27,11 @@ public static class InterviewText
         var label = known ? timeZoneId : "UTC";
         var from = TimeZoneInfo.ConvertTime(start, zone);
         var to = TimeZoneInfo.ConvertTime(end, zone);
-        var culture = CultureInfo.GetCultureInfo("en-GB");
-        var day = from.ToString("dddd d MMMM yyyy", culture);
+        var culture = CultureInfo.GetCultureInfo("en-US");
+        var day = from.ToString("dddd, MMMM d, yyyy", culture);
         var range = from.Date == to.Date
-            ? $"{from.ToString("HH:mm", culture)} to {to.ToString("HH:mm", culture)}"
-            : $"{from.ToString("HH:mm", culture)} to {to.ToString("dddd d MMMM HH:mm", culture)}";
+            ? $"{from.ToString("h:mm tt", culture)} to {to.ToString("h:mm tt", culture)}"
+            : $"{from.ToString("h:mm tt", culture)} to {to.ToString("dddd, MMMM d, h:mm tt", culture)}";
         return $"{day}, {range} ({label})";
     }
 

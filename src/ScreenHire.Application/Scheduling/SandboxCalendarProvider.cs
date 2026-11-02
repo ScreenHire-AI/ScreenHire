@@ -136,7 +136,7 @@ public sealed class SandboxCalendarProvider(ScreenHireDbContext db, TenantContex
     }
 
     // The sandbox's event id is the idempotency id.
-    public async Task<string?> FindEventIdAsync(string accessToken, string idempotencyId, DateTimeOffset start, DateTimeOffset end, CancellationToken cancellationToken)
+    public async Task<string?> FindEventIdAsync(string accessToken, string idempotencyId, DateTimeOffset windowStart, DateTimeOffset windowEnd, CancellationToken cancellationToken)
     {
         var (_, userId) = Check(accessToken, AccessPrefix);
         return await FindAsync(userId, idempotencyId, cancellationToken) is { } found ? found.ProviderEventId : null;

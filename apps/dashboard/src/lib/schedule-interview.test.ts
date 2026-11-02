@@ -121,7 +121,7 @@ describe('the choices', () => {
     const result = (patch: Partial<typeof valid>) => scheduleSchema.safeParse({ ...valid, ...patch });
     expect(result({ interviewerUserIds: [] }).error?.issues[0]?.message).toBe('Choose who will interview.');
     expect(result({ interviewerUserIds: ['a', 'b', 'c', 'd', 'e'] }).success).toBe(true);
-    expect(result({ interviewerUserIds: ['a', 'b', 'c', 'd', 'e', 'f'] }).error?.issues[0]?.message).toBe('Choose 5 interviewers at most.');
+    expect(result({ interviewerUserIds: ['a', 'b', 'c', 'd', 'e', 'f'] }).error?.issues[0]?.message).toBe('Choose 1 to 5 interviewers.');
     expect(result({ durationMinutes: 40 }).error?.issues[0]?.message).toBe('Choose how long it lasts.');
   });
 });

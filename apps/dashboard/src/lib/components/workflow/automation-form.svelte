@@ -417,7 +417,7 @@
                   <p class="text-muted-foreground">{team.isPending ? 'Loading the team…' : 'No teammates to choose from.'}</p>
                 {/if}
                 <p id={`${uid}-action-${actionIndex}-interviewers-hint`} class="text-muted-foreground">
-                  The first person you choose sends the invitation from their calendar. Everyone needs a connected calendar when it runs. {maxInterviewers} at most.
+                  The first person you choose sends the invitation. Everyone needs a connected calendar when it runs.
                 </p>
                 <FieldErrors id={`${uid}-action-${actionIndex}-interviewers-errors`} messages={at('interviewerUserIds')} />
               </fieldset>
@@ -470,7 +470,7 @@
                 </div>
               </div>
               <p class="text-muted-foreground">
-                The window starts when the automation runs. The candidate picks a weekday time during working hours in the chosen time zone.
+                The window opens when the automation runs.
               </p>
             </div>
           {/if}

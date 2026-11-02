@@ -269,7 +269,7 @@ internal static class InterviewEndpoints
         var problems = new Dictionary<string, string[]>();
         if (request.InterviewerUserIds is not { Count: >= 1 and <= MaxInterviewers } chosen || chosen.Distinct().Count() != chosen.Count)
         {
-            problems["interviewerUserIds"] = [$"Choose one to {MaxInterviewers} different interviewers."];
+            problems["interviewerUserIds"] = [$"Choose 1 to {MaxInterviewers} interviewers."];
         }
 
         var dayStart = ParseTime(request.DayStart, InterviewRequest.DefaultDayStart, "dayStart", problems);

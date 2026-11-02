@@ -266,6 +266,7 @@
     { status: 'unsafeFile', label: 'Unsafe file' },
     { status: 'ai', label: 'Some signs of AI help' },
     { status: 'waiting', label: 'Sent' },
+    { status: 'booked', label: 'Booked' },
     { status: 'working', label: 'Scanning' },
     { status: 'closed', label: 'Closed' },
     { status: 'draft', label: 'Draft' },

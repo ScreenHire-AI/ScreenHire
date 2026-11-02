@@ -52,9 +52,9 @@ public interface ICalendarProvider
     /// <summary>
     /// The provider's id for the event made with <paramref name="idempotencyId"/> in the window, or null when there is none.
     /// For an event a create made before its id was saved (the transaction rolled back after the provider answered), which
-    /// would otherwise stay on the calendar after a cancellation or an erasure.
+    /// would otherwise stay on the calendar after a cancellation or an erasure, or at the old time after a move.
     /// </summary>
-    Task<string?> FindEventIdAsync(string accessToken, string idempotencyId, DateTimeOffset start, DateTimeOffset end, CancellationToken cancellationToken);
+    Task<string?> FindEventIdAsync(string accessToken, string idempotencyId, DateTimeOffset windowStart, DateTimeOffset windowEnd, CancellationToken cancellationToken);
 }
 
 /// <summary>What a code or refresh token exchange gave back. Times are UTC instants.</summary>

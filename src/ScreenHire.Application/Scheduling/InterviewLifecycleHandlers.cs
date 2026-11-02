@@ -83,9 +83,14 @@ public static partial class RemoveInterviewerFromInterviewsHandler
             .Where(x => x.Status == InterviewStatus.Open || x.Status == InterviewStatus.Booked)
             .Select(x => x.Id)
             .ToListAsync(cancellationToken);
+
+        // All the locks in one sorted pass, not interview by interview: a booking takes its locks in sorted order too, so
+        // this transaction cannot hold one of them while waiting for another in a circle with it.
+        var interviewers = await db.InterviewAttendees.AsNoTracking().Where(a => live.Contains(a.InterviewId)).Select(a => a.UserId).ToListAsync(cancellationToken);
+        await InterviewLocks.TakeAsync(db, message.OrganizationId, interviewers, cancellationToken);
         foreach (var interviewId in live)
         {
-            var context = await InterviewContexts.LockAndLoadAsync(db, message.OrganizationId, interviewId, cancellationToken);
+            var context = await InterviewContexts.LoadAsync(db, interviewId, cancellationToken);
             if (context is null || context.Interview.Status is not (InterviewStatus.Open or InterviewStatus.Booked))
             {
                 continue;
@@ -155,9 +160,8 @@ public static partial class RemoveInterviewEventsHandler
                 try
                 {
                     var eventId = remove.ProviderEventId
-                        ?? (remove.StartsAt is { } start && remove.EndsAt is { } end
-                            ? await session.Provider.FindEventIdAsync(session.AccessToken, InterviewText.EventIdempotencyId(remove.InterviewId, remove.UserId), start, end, cancellationToken)
-                            : null);
+                        ?? await session.Provider.FindEventIdAsync(
+                            session.AccessToken, InterviewText.EventIdempotencyId(remove.InterviewId, remove.UserId), remove.WindowStart, remove.WindowEnd, cancellationToken);
                     if (eventId is not null)
                     {
                         await session.Provider.RemoveEventAsync(session.AccessToken, eventId, cancellationToken);

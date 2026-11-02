@@ -118,6 +118,8 @@ public sealed class InterviewBooking(ScreenHireDbContext db, InterviewAvailabili
             return new InterviewBookingResult(changed, interview, attendees);
         }
 
+        // An interviewer may have left while this waited, and writing to their removed row would fail the booking.
+        attendees = await LoadAttendeesAsync(interviewId, cancellationToken);
         var end = start + interview.Duration;
         var taken = await availability.ConfirmedBusyAsync(userIds, start, end, interview.Id, cancellationToken);
         if (taken.Count > 0)

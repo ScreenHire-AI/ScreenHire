@@ -62,7 +62,7 @@ const minutes = interview?.durationMinutes ?? 30;
 const booked = state === 'Booked' && interview?.startsAt ? describeBooked(interview.startsAt, minutes, zone) : null;
 const changing = state === 'Booked' && !!interview?.canChange && query.get('change') === '1';
 const picking = state === 'Open' || changing;
-const days = interview ? groupByDay(interview.slots, zone, minutes) : [];
+const days = interview ? groupByDay(interview.slots, zone) : [];
 const screen = screenOf(days, query.get('from'));
 const reference = new Date(interview?.slots[0] ?? interview?.startsAt ?? Date.now());
 const zones = interview ? zoneOptions(displayZone(interview.defaultTimeZone), zone, reference) : [];
@@ -150,7 +150,7 @@ const closed = !interview || state === 'Cancelled' || state === 'Expired';
 
         {
           picking && noTimes && (
-            <div class="mt-6">
+            <div class="mt-6 flex flex-col gap-3 sm:flex-row">
               <Notice
                 kind="info"
                 message={
@@ -217,7 +217,7 @@ const closed = !interview || state === 'Cancelled' || state === 'Expired';
         {
           booked && !changing && interview.canChange && (
             <>
-              <div class="mt-6">
+              <div class="mt-6 flex flex-col gap-3 sm:flex-row">
                 <a href={interviewPath(base, token!, { tz: here.tz, change: true })} class="button-primary">Pick another time</a>
               </div>
               <section aria-labelledby="cancel-heading" class="mt-10 border-t border-candidate-border pt-6">

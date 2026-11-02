@@ -114,15 +114,15 @@ export function dayKey(instant: Date, zone: string): string {
   return `${day['year']}-${day['month']}-${day['day']}`;
 }
 
-// 24-hour with h23, because `hour12: false` writes midnight as 24:00; no AM/PM, so no narrow no-break space either.
+// Built from the parts, because Intl writes a narrow no-break space before AM or PM.
 const clock = (instant: Date, zone: string): string => {
-  const time = parts(instant, zone, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
-  return `${time['hour']}:${time['minute']}`;
+  const time = parts(instant, zone, { hour: 'numeric', minute: '2-digit', hourCycle: 'h12' });
+  return `${time['hour']}:${time['minute']} ${time['dayPeriod']}`;
 };
 
 const MINUTE = 60_000;
 
-/** "10:00 to 10:30": the start and the end in the zone. Written out, because the range formatter uses an en dash. */
+/** "10:00 AM to 10:30 AM": the start and the end in the zone. Written out, because the range formatter uses an en dash. */
 export const timeRange = (start: Date, minutes: number, zone: string): string =>
   `${clock(start, zone)} to ${clock(new Date(start.getTime() + minutes * MINUTE), zone)}`;
 
@@ -164,7 +164,7 @@ export function zoneOptions(defaultZone: string, current: string, at: Date): Zon
 export interface SlotChoice {
   /** The ISO instant that is posted. */
   value: string;
-  /** "10:00 to 10:30". */
+  /** "10:00 AM": the start. The page says how long the interview takes, and a whole range does not fit a choice. */
   label: string;
 }
 
@@ -176,7 +176,7 @@ export interface SlotDay {
 }
 
 /** The offered times grouped by the local day they fall on in the zone, earliest first. A late slot can land on the next day. */
-export function groupByDay(slots: readonly string[], zone: string, minutes: number): SlotDay[] {
+export function groupByDay(slots: readonly string[], zone: string): SlotDay[] {
   const instants = [...new Set(slots)]
     .map((value) => ({ value, at: new Date(value) }))
     .filter((slot) => !Number.isNaN(slot.at.getTime()))
@@ -193,7 +193,7 @@ export function groupByDay(slots: readonly string[], zone: string, minutes: numb
       days.push(day);
     }
 
-    day.slots.push({ value, label: timeRange(at, minutes, zone) });
+    day.slots.push({ value, label: clock(at, zone) });
   }
 
   return days;
