@@ -38,6 +38,7 @@ What comes next, in order, is the [roadmap](roadmap.md).
 | Collaboration | Notes on an application and on a stage move, tags with a tag filter, My tasks for the tasks automations and people make (Mine, For the team and Everyone's, each row a link to where the task is done; a to-do or a rejection review is ticked on the candidate's Next steps with Undo for 10 seconds, and a review or a requested scorecard is done when the scorecard is submitted), a real reviewer in AssignReviewer, a Run button for manual automations, a notification tray, and teammates' changes as toasts that each person picks in a Notifications sheet | #40, the remaining screens, roadmap item 10 |
 | Scorecards | A scorecard library (built-ins and your own, with history) whose questions take answer kinds, a stage picking one and each job keeping its copy, a required recommendation; submitting one raises the "reviewer decision" trigger. Fill in takes a reached stage's scorecard or any library scorecard, and Ask for one gives a teammate who sees the job a Scorecard task, done when they submit it. Rating questions make the candidate's one-to-five-star rating, shown after a reviewer gives their own and never read by an automation ([workflow engine](architecture/workflow-engine.md#8-the-engine-v1), ADR-0013) | #41, the scorecards v0.3 task, the scorecard requests task |
 | Email | Organization email templates (Liquid subject, rich-text message with variables as chips, live preview, a test send), email to one candidate or a selection, the rejection email only with Reject ([email](architecture/email.md)) | #42, the rich text task |
+| Replies and SendGrid | SendGrid sends candidate email (Mailpit locally); every email carries a signed reply address, so the candidate's answer lands in Messages and Activity with its attachments scanned and the sender told; bounces and spam complaints flag the address; an Owner or Admin can add the company's own sending domain, verified by SendGrid ([email](architecture/email.md), ADR-0022) | the replies task |
 | Rich text | A small editor with a toolbar (bold, italic, headings, lists, links) for a job's description and email messages, stored as sanitized HTML limited to the toolbar's elements and rendered on careers pages, in Google for Jobs, in feeds and in email ([rich text](architecture/rich-text.md)) | the rich text task |
 | Change history | Who changed a hiring template, an email template, a scorecard, a job, a custom role or an organization setting (its name, brand colour or verification settings), when and what: Last updated as the last header fact and a History sheet of every change in plain words, newest first by day, with before and after on request; the paged history on the API ([change history](architecture/change-history.md)) | the change history task |
 | Follow-up questionnaires | Answers and the application's source as automation facts, so a knockout can match; follow-up questionnaires in a workflow, sent by a SendQuestionnaire automation through a signed, time-limited link to a careers page that works without JavaScript; answering one fires the "questionnaire answered" trigger ([workflow engine](architecture/workflow-engine.md#8-the-engine-v1)) | #45 |
@@ -45,7 +46,7 @@ What comes next, in order, is the [roadmap](roadmap.md).
 | Workflow graph | The builder's graph edits the same draft as the Pipeline view: add an automation to a stage or the whole workflow, open its form at any node, remove it, and draw a "move to a stage" link; every node is a tab stop, the arrow keys move between nodes, and a validation problem shows on its node. On a phone the graph is for reading ([workflow engine](architecture/workflow-engine.md#4-builder-ux-dashboard)) | the editable graph task |
 | Templates | One page with a tab each for hiring templates, scorecards and email templates: where each is used and when it was last used, filters for In use, Not used in 6 months and Archived, Duplicate, Archive and Restore, Reset to original for an edited built-in email, and an editor for each with the Edit / Preview switch; email templates moved here from Settings | the Templates page task |
 | Settings | One sidebar item with its own menu: Organization, Team, Roles (what each role can do, from the API's permission catalogue), Branding, Verification, API keys and Webhooks (each saying how to call it and linking the API reference, public in production), each for a role with its permission | #39, #42, the Settings menu task |
-| Talent pool | Keep in mind beside Rejected, on a job's selection and when a job closes: the candidate leaves the job without a rejection and joins the pool, only with their own "Keep my details for future roles" from the apply form, until the organization's period (12 months by default, 6 to 24) runs out; a Talent pool page with search, tags and the note; invitations to apply with a link to stop being kept; adding someone to a job, linked to their earlier applications ([talent pool](architecture/talent-pool.md)) | the talent pool task |
+| Saved candidates | Save candidate beside Rejected, on a job's selection and when a job closes: the candidate leaves the job without a rejection and joins the saved candidates, only with their own "Keep my details for future roles" from the apply form, with no end date (they stay until the team removes them or they use the stop link); a Saved candidates page with search, tags, Rating, Last contacted, a Message button and a note the team can edit, with History; invitations to apply with a link to stop being kept; adding someone to a job, linked to their earlier applications ([saved candidates](architecture/talent-pool.md)) | the talent pool task, the saved candidates task |
 | Careers site | Tenant boards and hosts, the apply flow with the notice first, steps that work without JavaScript with one questionnaire section a page and "Step 2 of 4", saving the form to finish later through an emailed link, direct-to-storage resume upload | #11 |
 | Careers widget | The job list and the apply flow in a frame on a company's own site from one line of embed code; the sites allowed to frame the careers pages set `frame-ancestors`, the frame sizes itself over postMessage from the careers origin only, the flow stays cookie-free, and the application records the site ([careers widget](architecture/careers-widget.md)) | the careers widget task |
 | Distribution | One-click publish and teardown, Google for Jobs JSON-LD and sitemaps, five XML feeds, a public job-board API, the Indexing API queue | #12 |
@@ -62,7 +63,7 @@ hidden rather than an error.
 | Integration | Local stand-in |
 |---|---|
 | Identity providers | Dev SSO (navikt/mock-oauth2-server) with seeded users; Google, Microsoft and generic OIDC appear only with a client id and secret |
-| Email | Mailpit, through the SMTP adapter behind `IEmailSender`; invitations, sign-in links and candidate email all land there |
+| Email | Mailpit, through the SMTP adapter behind `IEmailSender`; invitations, sign-in links and candidate email all land there. SendGrid is used only with its API key. Replies are delivered by the sandbox route `/v1/dev/inbound-email` and sending domains verify in the sandbox with no DNS (`ScreenHire:Email:Sandbox`, Development only) |
 | LLM | A deterministic fake model for the consistency check; with no provider the check records "unavailable"; off per organization by default |
 | Job boards | A sandbox push board (Development only) and the feeds; Google Indexing has a local fake and is off unless set; Indeed is flags only |
 | Webhook receivers | `WebhookReceiver` in `tests/ScreenHire.Testing`, a local server, so no test needs the internet |
@@ -83,9 +84,13 @@ brackets.
   and shared by the API and the worker; protect its keys at rest with a key vault or certificate
   (`ProtectKeysWith...`) in production (#7, #18). List the reverse proxies and the careers
   servers in `ScreenHire:Auth:TrustedProxies` (#7, #11).
-- **Email.** Choose the production provider behind `IEmailSender`, and set `ScreenHire:Email:From` and the worker's
-  SMTP connection; without them automations skip email, and invitations and candidate email cannot go out (#7, #10,
-  #38, #42). Candidate replies and an inbox need that provider to route inbound mail (#42). Set a production
+- **Email.** Subscribe to SendGrid in the Azure Marketplace (ADR-0022) and set `Parameters:sendgrid-api-key` and
+  `Email:SendGrid:Enabled=true` in the AppHost, `ScreenHire:Email:From`, `ReplyDomain` (the host replies arrive on, with an MX
+  record to SendGrid) and a production `sendgrid-inbound-secret` and `email-reply-key`. In SendGrid, add an Inbound Parse
+  setting for that host that posts to `https://<api host>/v1/webhooks/email/inbound` with the secret as Basic credentials
+  (user `sendgrid`), and turn on the signed Event Webhook to `/v1/webhooks/email/events` with its public key in
+  `ScreenHire:Email:SendGrid:EventWebhookPublicKey`. Each customer's own domain is verified from Settings, Sending domain.
+  Without a provider automations skip email, and invitations and candidate email cannot go out (#7, #10, #38, #42). Set a production
   `ScreenHire:Webhooks:SigningKey` for the API and the worker; without it creating or rotating a webhook endpoint
   returns 503 and deliveries are skipped (#10, #36).
 - **Slack.** Create the Slack app at api.slack.com: bot scopes `chat:write`, `chat:write.public`, `channels:read`,
@@ -108,7 +113,16 @@ brackets.
   embedded disposable-domain list from time to time (#13).
 - **Storage and scanning.** Create the uploads container with a CORS rule for PUT from the careers hosts and GET from the
   dashboard host (the file viewer, #25), and a one-day lifecycle rule for unclaimed uploads (#11). Wire a real
-  malware scanner behind `IMalwareScanner` (#11, #15). Optionally, Turnstile keys in `ScreenHire:Turnstile` (#11).
+  malware scanner behind `IMalwareScanner` (#11, #15). Optionally, Turnstile keys in `ScreenHire:Turnstile` (#11); with them, saving a draft application also needs the check
+  to pass. Create the private `brand-images` container, and give the worker's identity permission to list and delete
+  blobs in it: the daily clean-up of brand images nobody saved fails without it (branding.md §4).
+- **Database.** On Azure Database for PostgreSQL, add `pg_trgm` to the server's `azure.extensions` list before the
+  migrations run, or `CREATE EXTENSION` fails. The trigram indexes on candidate names and emails and job titles do not
+  serve the search as `screenhire_app` yet, because `ILIKE` is not leakproof under row-level security; marking a
+  function leakproof needs a superuser, so decide whether to provision one before anyone expects a faster search (see
+  [sign-in and tenancy](architecture/sign-in-and-tenancy.md), Row-level security and indexes). The follow-ups migration
+  takes heavy locks while it runs (it lifts FORCE on four tables and builds the indexes in one transaction), so run it
+  in a quiet window.
 - **Deploy.** Run the EF migrations and `ScreenHireMessaging.ProvisionStorageAsync` as the owner, give `screenhire_app`
   its login, and give the API and worker only that connection (#7). Wolverine's static code generation is deferred
   until hosting (#5). Set `SITE_URL` for marketing builds and redirect URLs without a trailing slash (#6); set Astro's
@@ -117,10 +131,12 @@ brackets.
   `ScreenHire:Domains:AppHost` as well as the API, or mention emails are skipped with a warning (#55).
 - **Legal and policy.** A legal review of the law tracker before publishing (#6); the analytics decision, with a privacy
   page and the ePrivacy position per market (#6); a legal review before any typing-rhythm signal (#18); a check of the
-  device-check defaults per jurisdiction (notice outside the EU and EEA, consent inside) (#18). A legal review of the
-  talent pool: the 12-month default permission period, the 6 to 24 month range an organization may set, the apply
-  form's "Keep my details for future roles" wording and the privacy page's "Future roles" section, per market (the
-  talent pool task).
+  device-check defaults per jurisdiction (notice outside the EU and EEA, consent inside) (#18). A legal review of saved candidates:
+  keeping their details until the candidate asks or the team removes them, with no expiry, including permissions given
+  before this under a form that promised 6 to 24 months and still running when it shipped; the apply form's "Keep my
+  details for future roles" wording and the privacy page's "Future roles" section, per market; and the note's History,
+  whose free text outlives a saved entry in append-only `change_records` with no link back to the candidate (the saved
+  candidates task).
 - **Product.** Set prices and job limits in `apps/marketing/src/lib/pricing.ts` (#6). Move jobs still on "Software
   engineer" version 1 to version 2 (#13).
 
@@ -132,8 +148,9 @@ brackets.
   removed stage's history drops out of the funnel (`architecture/reports.md` section 6).
 - Erasure requests: an Owner or Admin erases a candidate from their profile, with the name typed to confirm
   ([candidates](architecture/candidates.md)). There is no form for a candidate to ask for their data or its erasure: the
-  privacy page tells them to write to the employer. A candidate who uses the link in a talent pool invitation is only
-  taken out of the pool ([talent pool](architecture/talent-pool.md)); the profile then offers Erase candidate.
+  privacy page tells them to write to the employer. A candidate who uses the stop link in a saved candidate's invitation is
+  only taken off the list ([saved candidates](architecture/talent-pool.md)); the profile then offers Erase candidate.
+  Nothing expires a saved candidate and nothing deletes an ended application, so record retention matters more than before.
 
 - MCP clients that sign in only with OAuth, such as claude.ai custom connectors, cannot connect until OAuth comes
   (ADR-0011 decision 6).

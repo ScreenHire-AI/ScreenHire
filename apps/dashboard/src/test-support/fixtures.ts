@@ -7,6 +7,8 @@ import type {
   OrganizationRole,
   Permission,
   RoleCatalogue,
+  SavedViewSummary,
+  ViewList,
   WorkflowStage,
 } from '@screenhire/api-client';
 
@@ -19,7 +21,7 @@ const recruiterPermissions: Permission[] = [
 ];
 
 export const ownerPermissions: Permission[] = [
-  'ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'DeleteAnyNote', 'CreateTasks', 'CompleteTasks',
+  'ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'DeleteAnyNote', 'EditAnyView', 'CreateTasks', 'CompleteTasks',
   'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates',
   'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageIntegrations', 'ManageTeam', 'ManageOwners', 'GrantVerificationAccess',
 ];
@@ -163,6 +165,35 @@ export const applications: ApplicationSummary[] = [
   application(1, 'Jordan Lee', stages[1]!, '2026-10-19T12:00:00Z'),
   application(2, 'Sam Taylor', stages[0]!, '2026-10-17T12:00:00Z'),
 ];
+
+/** A view someone saved on the Candidates page: private to the signed-in user, who can change it. */
+export function savedView({ filters, ...overrides }: Partial<SavedViewSummary> = {}): SavedViewSummary {
+  return {
+    id: '01a157d4-0000-7000-8000-0000000003aa',
+    name: 'Referrals in screening',
+    scope: 'Candidates',
+    jobId: null,
+    shared: false,
+    mine: true,
+    canEdit: true,
+    filters: {
+      baseView: null,
+      jobIds: [],
+      stages: [],
+      authenticity: null,
+      aiAssistance: null,
+      tag: null,
+      sortColumn: 'applied',
+      sortDescending: true,
+      ...filters,
+    },
+    updatedAt: '2026-10-20T11:00:00Z',
+    ...overrides,
+  };
+}
+
+/** The views list `GET /v1/views` returns. */
+export const viewList = (views: SavedViewSummary[] = [], hiddenBuiltIns: string[] = []): ViewList => ({ views, hiddenBuiltIns });
 
 export function board(id: string, name: string, overrides: Partial<BoardSummary> = {}): BoardSummary {
   return {

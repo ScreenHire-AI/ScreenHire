@@ -62,14 +62,17 @@ public enum ApplicationEventType
     /// <summary>A person or an API key gave the hiring team a task about the application. Automations' tasks show as their runs.</summary>
     TaskCreated,
 
-    /// <summary>A person kept the candidate in mind: they left the job without a rejection and joined the talent pool.</summary>
+    /// <summary>A person saved the candidate: they left the job without a rejection and joined the saved candidates.</summary>
     KeptInMind,
 
-    /// <summary>The candidate, kept in mind from this application, left the talent pool; <c>poolExit</c> says why.</summary>
+    /// <summary>The candidate, saved from this application, left the saved candidates; <c>poolExit</c> says why.</summary>
     LeftTalentPool,
 
-    /// <summary>A person invited the candidate, kept in mind from this application, to apply for another job.</summary>
+    /// <summary>A person invited the candidate, saved from this application, to apply for another job.</summary>
     InvitedToApply,
+
+    /// <summary>The candidate answered an email: their reply, kept as an <see cref="InboundEmail"/>.</summary>
+    EmailReceived,
 }
 
 /// <summary>
@@ -88,6 +91,8 @@ public enum ApplicationEventType
 /// template it started from (null for a blank email), the subject as the candidate received it, and the copy of the email
 /// as it went (<see cref="ApplicationEmail"/>), which holds the body. Emails sent before copies were kept have no
 /// <c>emailId</c>; the body is never kept here.
+/// <c>emailSubject</c>, <c>emailId</c> also describe an <see cref="ApplicationEventType.EmailReceived"/> entry: the
+/// reply's subject and its row (<see cref="InboundEmail"/>), which holds the body; the entry has no actor.
 /// <c>questionnaireId</c>, <c>questionnaireRequestId</c>: For <see cref="ApplicationEventType.QuestionnaireSent"/> and
 /// <see cref="ApplicationEventType.QuestionnaireCompleted"/>, the follow-up questionnaire and the request that carries
 /// its link and, once completed, its answers. The answers are never kept here.
@@ -99,7 +104,7 @@ public enum ApplicationEventType
 /// <c>otherJobId</c>, <c>otherApplicationId</c>: For <see cref="ApplicationEventType.InvitedToApply"/>, the job the
 /// candidate was invited to; for <see cref="ApplicationEventType.LeftTalentPool"/>, the job and application they were
 /// added to, or applied with. A <see cref="ApplicationEventType.KeptInMind"/> entry's <c>note</c> says why the team kept
-/// them, and is the talent pool's only copy of it.
+/// them, and is the first copy of it (the saved candidate's own note can be edited).
 /// </remarks>
 public sealed record ApplicationEventData(
     string? FromStageId = null,

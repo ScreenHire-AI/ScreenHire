@@ -112,6 +112,11 @@ public class AppHostFixture : IAsyncLifetime
                 "--ScreenHire:CareersEmbedding:AllowLoopback=true",
                 // Slack: the local sandbox workspace (docs/architecture/slack.md), so connecting and posting run with no Slack.
                 "--ScreenHire:Slack:Sandbox:Enabled=true",
+                // Email: the local fake for replies and sending domains (docs/architecture/email.md), and the public key the
+                // tests sign SendGrid event webhooks with (EmailEvents), so bounces run with no SendGrid.
+                "--ScreenHire:Email:Sandbox:Enabled=true",
+                $"--ScreenHire:Email:SendGrid:EventWebhookPublicKey={EmailEvents.PublicKey}",
+                $"--Parameters:sendgrid-inbound-secret={EmailEvents.InboundSecret}",
                 .. ExtraArguments,
             ],
             startup.Token);

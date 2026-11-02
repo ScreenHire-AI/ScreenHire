@@ -9,8 +9,8 @@ export interface Notification {
   /** The automation's note, or what it did. */
   detail: string;
   href: string;
-  /** What raised it, for the card's icon: an automation that notified the team, or a note that mentioned you. */
-  kind?: 'team' | 'mention';
+  /** What raised it, for the card's icon: an automation that notified the team, a note that mentioned you, or a candidate's reply. */
+  kind?: 'team' | 'mention' | 'reply';
 }
 
 /** The most the tray shows at once, cards and toasts together; an older one leaves when a new one arrives. */
@@ -141,6 +141,30 @@ export function teamNotification(
     title: `${application.candidate.fullName}, ${application.jobTitle}`,
     detail: note || (run ? `The automation "${run.automationName}" notified the team.` : 'An automation notified the team.'),
     href: `/applications/${application.id}`,
+  };
+}
+
+/** The tray id of a reply's card: one per reply, so a redelivered event adds no second card. */
+export function replyNotificationId(inboundEmailId: string): string {
+  return `reply:${inboundEmailId}`;
+}
+
+/**
+ * The words for a candidate's reply (CandidateReplied carries ids only, so the shell reads the application first): the
+ * candidate and job as the title, whose email it answers, and a link to Messages. The reply's text is never in the card,
+ * as it is never in the email.
+ */
+export function replyNotification(
+  inboundEmailId: string,
+  application: { id: string; candidate: { fullName: string }; jobTitle: string },
+  answersYou: boolean,
+): Notification {
+  return {
+    id: replyNotificationId(inboundEmailId),
+    kind: 'reply',
+    title: `${application.candidate.fullName}, ${application.jobTitle}`,
+    detail: answersYou ? 'Replied to your email.' : 'Replied to an automated email.',
+    href: `/applications/${application.id}?tab=messages`,
   };
 }
 

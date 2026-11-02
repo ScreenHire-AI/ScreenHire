@@ -26,6 +26,8 @@ public static class ApplicationActivity
         ApplicationEventType.NoteDeleted,
         ApplicationEventType.ScorecardSubmitted,
         ApplicationEventType.EmailSent,
+        // The candidate's reply is the candidate acting, like applying or answering a questionnaire.
+        ApplicationEventType.EmailReceived,
         // A follow-up questionnaire's link is an email to the candidate.
         ApplicationEventType.QuestionnaireSent,
         ApplicationEventType.QuestionnaireCompleted,
@@ -36,9 +38,9 @@ public static class ApplicationActivity
     ];
 
     /// <summary>
-    /// The timeline entries that leave it as it is: the verification engine's, and the candidate leaving the talent pool,
-    /// which the daily expiry sweep writes with nobody involved, and whose other causes (a move back, a new application)
-    /// come with an entry that counts.
+    /// The timeline entries that leave it as it is: the verification engine's, and the candidate leaving the saved candidates,
+    /// whose causes (a person removing them, a move back, a new application) come with an entry that counts, or are
+    /// the candidate's own stop link.
     /// </summary>
     public static readonly ApplicationEventType[] NotCounted = [ApplicationEventType.VerificationAssessed, ApplicationEventType.LeftTalentPool];
 

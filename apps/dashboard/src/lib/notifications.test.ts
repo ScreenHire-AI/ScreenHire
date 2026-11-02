@@ -4,6 +4,8 @@ import {
   mentionNotification,
   mentionNotificationId,
   Notifications,
+  replyNotification,
+  replyNotificationId,
   teamNotification,
   toastLifetime,
 } from './notifications.svelte.js';
@@ -50,6 +52,32 @@ describe('notifications', () => {
     tray.dismiss(mentionNotificationId('note-1'));
 
     expect(tray.items.map((item) => item.id)).toEqual(['run-1']);
+  });
+});
+
+describe('reply notifications', () => {
+  it('words a reply to your email, linking to Messages, and never carries the reply itself', () => {
+    const card = replyNotification('reply-1', application, true);
+
+    expect(card).toEqual({
+      id: replyNotificationId('reply-1'),
+      kind: 'reply',
+      title: 'Casey Morgan, Senior .NET Engineer',
+      detail: 'Replied to your email.',
+      href: '/applications/app-1?tab=messages',
+    });
+  });
+
+  it("says an automation's email was answered when nobody in particular sent it", () => {
+    expect(replyNotification('reply-1', application, false).detail).toBe('Replied to an automated email.');
+  });
+
+  it('keys the card by the reply, so the same event shows one card', () => {
+    const tray = new Notifications();
+    tray.add(replyNotification('reply-1', application, true));
+    tray.add(replyNotification('reply-1', application, true));
+
+    expect(tray.items.map((item) => item.id)).toEqual(['reply:reply-1']);
   });
 });
 

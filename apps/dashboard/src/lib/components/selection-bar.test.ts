@@ -40,22 +40,22 @@ describe('selection bar', () => {
     expect(screen.queryByRole('button', { name: /^Email/ })).toBeNull();
   });
 
-  it('offers Keep in mind for the selection when the page passes onkeep, named with the count for screen readers', async () => {
+  it('offers Save candidate for the selection when the page passes onkeep, named with the count for screen readers', async () => {
     const onkeep = vi.fn();
     const { container } = renderBar({ onkeep });
     const bar = screen.getByRole('region', { name: 'Selected candidates' });
 
-    const keep = within(bar).getByRole('button', { name: 'Keep in mind, 2 selected' });
-    expect(keep).toHaveTextContent('Keep in mind');
+    const keep = within(bar).getByRole('button', { name: 'Save candidate, 2 selected' });
+    expect(keep).toHaveTextContent('Save candidate');
     await expectNoAxeViolations(container);
     await fireEvent.click(keep);
 
     expect(onkeep).toHaveBeenCalledTimes(1);
   });
 
-  it('offers no Keep in mind when the page leaves it out, as it does under a verification filter or without Move candidates (ADR-0004)', () => {
+  it('offers no Save candidate when the page leaves it out, as it does under a verification filter or without Move candidates (ADR-0004)', () => {
     renderBar();
 
-    expect(screen.queryByRole('button', { name: /in mind/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Save candidate/ })).toBeNull();
   });
 });

@@ -50,6 +50,8 @@ internal sealed class VerificationSignalConfiguration : IEntityTypeConfiguration
             .HasForeignKey(s => new { s.OrganizationId, s.AnalyzerRunId })
             .HasPrincipalKey(r => new { r.OrganizationId, r.Id })
             .OnDelete(DeleteBehavior.Cascade);
+        // Target of the review actions' composite tenant foreign key (a reason explained or undone points at a signal).
+        builder.HasAlternateKey(s => new { s.OrganizationId, s.Id });
         builder.HasIndex(s => new { s.OrganizationId, s.ApplicationId });
         builder.HasIndex(s => new { s.OrganizationId, s.AnalyzerRunId });
     }
@@ -92,8 +94,8 @@ internal sealed class VerificationReviewActionConfiguration : IEntityTypeConfigu
         builder.Property(a => a.Type).HasConversion<string>().HasMaxLength(20);
         builder.Property(a => a.DismissReason).HasConversion<string>().HasMaxLength(30);
         builder.Property(a => a.ExplainReason).HasConversion<string>().HasMaxLength(30);
-        // SignalId has no foreign key: signals have no (organization_id, id) key to point at. The endpoint checks the
-        // signal is one of the assessment's, and the assessment's key cascades.
+        // SignalId is null for a dismissal or a note, which the foreign key then skips. The endpoint also checks the
+        // signal is one of the assessment's.
         builder.Property(a => a.Note).HasMaxLength(VerificationReviewAction.MaxNoteLength);
 
         builder.HasOne<JobApplication>().WithMany()
@@ -103,6 +105,10 @@ internal sealed class VerificationReviewActionConfiguration : IEntityTypeConfigu
         builder.HasOne<VerificationAssessment>().WithMany()
             .HasForeignKey(a => new { a.OrganizationId, a.AssessmentId })
             .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<VerificationSignal>().WithMany()
+            .HasForeignKey(a => new { a.OrganizationId, a.SignalId })
+            .HasPrincipalKey(s => new { s.OrganizationId, s.Id })
             .OnDelete(DeleteBehavior.Cascade);
         // A read through an API key (ADR-0021) names the key instead of a person. Cascade like the other keys here: the app
         // role cannot delete a key (revoking keeps the row, so the log stays append-only), and only an organization's own

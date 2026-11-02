@@ -13,7 +13,6 @@ using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.History;
 using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Organizations;
-using ScreenHire.Domain.TalentPool;
 using ScreenHire.Infrastructure.Verification.Llm;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Persistence.History;
@@ -23,11 +22,10 @@ using Wolverine.EntityFrameworkCore;
 namespace ScreenHire.Api.Endpoints;
 
 /// <summary>
-/// The signed-in user's organization: its name, the sites allowed to embed its careers pages, its branding, its verification settings and its talent pool settings (how
-/// long a candidate's permission for future roles lasts). Branding colours are checked against WCAG 2.2 AA before they
+/// The signed-in user's organization: its name, the sites allowed to embed its careers pages, its branding, its verification settings. Branding colours are checked against WCAG 2.2 AA before they
 /// save, and a colour that fails is refused with the nearest passing shade (ADR-0018); brand images upload straight to
 /// storage and are checked, then scanned, before a save may use them (docs/architecture/branding.md). Each settings page
-/// has its history (design system T6): the name, the branding, the verification settings and the talent pool settings,
+/// has its history (design system T6): the name, the branding and the verification settings,
 /// readable by every member like the settings themselves.
 /// </summary>
 internal static class OrganizationEndpoints
@@ -66,14 +64,6 @@ internal static class OrganizationEndpoints
         group.MapGet("/verification-settings", GetVerificationSettings).WithName("GetOrganizationVerificationSettings")
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPut("/verification-settings", UpdateVerificationSettings).WithName("UpdateOrganizationVerificationSettings")
-            .RequireAntiforgeryToken()
-            .RequirePermission(Permission.EditSettings)
-            .Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/talent-pool-settings", GetTalentPoolSettings).WithName("GetOrganizationTalentPoolSettings")
-            .Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/talent-pool-settings/history", GetTalentPoolSettingsHistory).WithName("GetOrganizationTalentPoolSettingsHistory")
-            .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPut("/talent-pool-settings", UpdateTalentPoolSettings).WithName("UpdateOrganizationTalentPoolSettings")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditSettings)
             .Produces(StatusCodes.Status401Unauthorized);
@@ -175,66 +165,6 @@ internal static class OrganizationEndpoints
         Guid? before, int? limit, ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
         HistoryAsync(ChangeSubjectKind.VerificationSettings, before, limit, db, tenant, cancellationToken);
 
-    private static Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> GetTalentPoolSettingsHistory(
-        Guid? before, int? limit, ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
-        HistoryAsync(ChangeSubjectKind.TalentPoolSettings, before, limit, db, tenant, cancellationToken);
-
-    private static async Task<Ok<OrganizationTalentPoolSettings>> GetTalentPoolSettings(ScreenHireDbContext db, CancellationToken cancellationToken)
-    {
-        var settings = await db.TalentPoolSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        return TypedResults.Ok(await ToTalentPoolSettingsAsync(db, settings, cancellationToken));
-    }
-
-    // Upserts the organization's row, as the verification settings do. A shorter period applies to every permission at once
-    // (the daily sweep takes out whoever it ends for); a longer one never extends a permission already given.
-    private static async Task<Results<Ok<OrganizationTalentPoolSettings>, ValidationProblem>> UpdateTalentPoolSettings(
-        UpdateTalentPoolSettingsRequest request, ScreenHireDbContext db, ITenantContext tenant, TimeProvider time, CancellationToken cancellationToken)
-    {
-        if (!TalentPoolSettings.IsAllowed(request.PermissionMonths))
-        {
-            return TypedResults.ValidationProblem(ValidationExtensions.Problem(
-                "permissionMonths", $"Permission lasts from {TalentPoolSettings.MinMonths} to {TalentPoolSettings.MaxMonths} months."));
-        }
-
-        var now = time.GetUtcNow();
-        var settings = await db.TalentPoolSettings.SingleOrDefaultAsync(cancellationToken);
-        if (settings is null)
-        {
-            settings = new TalentPoolSettings { OrganizationId = tenant.OrganizationId!.Value };
-            db.TalentPoolSettings.Add(settings);
-        }
-
-        settings.PermissionMonths = request.PermissionMonths;
-        settings.UpdatedAt = now;
-        try
-        {
-            await db.SaveChangesAsync(cancellationToken);
-        }
-        catch (DbUpdateException exception) when (exception.IsUniqueViolation())
-        {
-            // Two first saves at once: the other created the row, and this one is applied on top of it (last write wins).
-            db.Entry(settings).State = EntityState.Detached;
-            settings = await db.TalentPoolSettings.SingleAsync(cancellationToken);
-            settings.PermissionMonths = request.PermissionMonths;
-            settings.UpdatedAt = now;
-            await db.SaveChangesAsync(cancellationToken);
-        }
-
-        return TypedResults.Ok(await ToTalentPoolSettingsAsync(db, settings, cancellationToken));
-    }
-
-    private static async Task<OrganizationTalentPoolSettings> ToTalentPoolSettingsAsync(
-        ScreenHireDbContext db, TalentPoolSettings? settings, CancellationToken cancellationToken)
-    {
-        var last = settings is null
-            ? null
-            : await ChangeHistoryQueries.LastAsync(db, ChangeSubjectKind.TalentPoolSettings, SubjectId(settings.OrganizationId), cancellationToken);
-        // No row is ScreenHire's default, which nobody in the organization has changed.
-        var lastUpdated = settings is null ? LastUpdate.ByScreenHire(null) : LastUpdate.FromChange(last, settings.UpdatedAt);
-        return new OrganizationTalentPoolSettings(
-            TalentPoolSettings.MonthsOf(settings), TalentPoolSettings.MinMonths, TalentPoolSettings.MaxMonths, lastUpdated);
-    }
-
     private static Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> HistoryAsync(
         ChangeSubjectKind kind, Guid? before, int? limit, ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
         ChangeHistoryRoutes.OrganizationPageAsync(kind, before, limit, db, tenant, cancellationToken);
@@ -316,7 +246,7 @@ internal static class OrganizationEndpoints
     // tenant filter scopes the lookup), of its slot's kind, and past its scan.
     private static async Task<Results<Ok<OrganizationBranding>, NotFound, ValidationProblem>> UpdateBranding(
         UpdateBrandingRequest request, ScreenHireDbContext db, ITenantContext tenant, IOptions<DomainOptions> domains,
-        CancellationToken cancellationToken)
+        TimeProvider time, CancellationToken cancellationToken)
     {
         var problems = new Dictionary<string, string[]>();
         CheckColor(problems, "brandColor", request.BrandColor, "A brand colour", BrandColorCheck.CheckBrand);
@@ -333,7 +263,7 @@ internal static class OrganizationEndpoints
             ("sharingImageId", request.SharingImageId, BrandImageKind.SharingImage),
         ];
         var ids = slots.Select(s => s.Id).OfType<Guid>().ToList();
-        var images = ids.Count == 0 ? [] : await db.BrandImages.AsNoTracking().Where(i => ids.Contains(i.Id)).ToListAsync(cancellationToken);
+        var images = ids.Count == 0 ? [] : await db.BrandImages.Where(i => ids.Contains(i.Id)).ToListAsync(cancellationToken);
         foreach (var (field, id, kind) in slots)
         {
             if (id is { } imageId && ImageProblem(images.SingleOrDefault(i => i.Id == imageId), kind) is { } problem)
@@ -355,7 +285,25 @@ internal static class OrganizationEndpoints
 
         organization.SetBranding(
             request.BrandColor, request.SecondColor, request.HeadingFont, request.LogoId, request.FaviconId, request.SharingImageId);
-        await db.SaveChangesAsync(cancellationToken);
+        // An image stays out of the daily clean-up of abandoned uploads once it has been saved (PurgeExpiredBrandImageUploads).
+        foreach (var image in images)
+        {
+            image.MarkSaved(time.GetUtcNow());
+        }
+
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        // The daily clean-up removed an upload that had waited a day, between the checks above and this save.
+        catch (DbUpdateConcurrencyException exception) when (exception.Entries.Any(e => e.Entity is BrandImage))
+        {
+            var removed = exception.Entries.Select(e => e.Entity).OfType<BrandImage>().Select(i => i.Id).ToHashSet();
+            return TypedResults.ValidationProblem(slots
+                .Where(s => s.Id is { } id && removed.Contains(id))
+                .ToDictionary(s => s.Field, s => new[] { ImageProblem(null, s.Kind)! }));
+        }
+
         return TypedResults.Ok(await ToBrandingAsync(db, organization, domains.Value, cancellationToken));
     }
 

@@ -7,23 +7,26 @@ using ScreenHire.Api.Auth;
 using ScreenHire.Api.Branding;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.TalentPool;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Domain.History;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Domain.TalentPool;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
+using ScreenHire.Infrastructure.Persistence.History;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
 
 namespace ScreenHire.Api.Endpoints;
 
 /// <summary>
-/// The talent pool (docs/architecture/talent-pool.md): keeping a candidate in mind, the pool's list, taking someone out,
-/// inviting them to apply for another job and adding them to one. People only, like the email routes: no API key, so no
+/// The saved candidates (docs/architecture/talent-pool.md): saving a candidate, the list, editing the note on someone,
+/// taking someone out, inviting them to apply for another job and adding them to one. People only, like the email routes: no API key, so no
 /// integration acts on it. The MCP server's list_saved_candidates tool reads the list through <see cref="TalentPoolReads"/>
 /// and acts on nothing (ADR-0021). The tenant and job-scope filters apply as everywhere, so a member on Only jobs
 /// they're on sees and acts on the people kept from their own jobs. Nothing here reads verification output (ADR-0004).
@@ -32,12 +35,18 @@ internal static class TalentPoolEndpoints
 {
     public static IEndpointRouteBuilder MapTalentPoolEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/v1/talent-pool").WithTags("Talent pool").RequireAuthorization();
+        var group = app.MapGroup("/v1/talent-pool").WithTags("Saved candidates").RequireAuthorization();
         group.MapGet("", ListTalentPool).WithName("ListTalentPool").Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("", KeepInMind).WithName("KeepInMind")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.MoveCandidates)
             .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapPut("/{candidateId:guid}/note", EditSavedNote).WithName("EditSavedNote")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.MoveCandidates)
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/{candidateId:guid}/history", GetSavedNoteHistory).WithName("GetSavedNoteHistory")
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/{candidateId:guid}/remove", RemoveFromTalentPool).WithName("RemoveFromTalentPool")
             .RequireAntiforgeryToken()
@@ -59,11 +68,57 @@ internal static class TalentPoolEndpoints
         return app;
     }
 
-    // The pool's list (TalentPoolReads).
-    private static async Task<Ok<TalentPoolList>> ListTalentPool(ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken) =>
-        TypedResults.Ok(await TalentPoolReads.ReadAsync(db, time.GetUtcNow(), cancellationToken));
+    // The list (TalentPoolReads), which the MCP server's list_saved_candidates tool reads too.
+    private static async Task<Ok<TalentPoolList>> ListTalentPool(ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
+        TypedResults.Ok(await TalentPoolReads.ReadAsync(db, tenant.UserId, cancellationToken));
 
-    // One transaction for the selection: each kept application, its Kept in mind entry and the pool entry, or nothing. An
+    // The note on a saved candidate, edited in place through the change tracker so History records it. The Activity entry
+    // from when they were saved keeps the note as first written. A reader who cannot see the entry (job access) gets a 404.
+    private static async Task<Results<NoContent, NotFound, ValidationProblem>> EditSavedNote(
+        Guid candidateId,
+        EditSavedNoteRequest request,
+        IValidator<EditSavedNoteRequest> validator,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
+        {
+            return TypedResults.ValidationProblem(problems);
+        }
+
+        var db = outbox.DbContext;
+        if (await db.TalentPoolEntries.SingleOrDefaultAsync(e => e.CandidateId == candidateId, cancellationToken) is not { } entry)
+        {
+            return TypedResults.NotFound();
+        }
+
+        entry.EditNote(request.Note);
+        await outbox.PublishAsync(TalentPoolMembership.Changed(entry, time.GetUtcNow()));
+        await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+        return TypedResults.NoContent();
+    }
+
+    // The note's edits, newest first. Another organization's candidate, or one the reader cannot see saved, is a 404.
+    private static async Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> GetSavedNoteHistory(
+        Guid candidateId, Guid? before, int? limit, ScreenHireDbContext db, CancellationToken cancellationToken)
+    {
+        if (ChangeHistoryRoutes.LimitProblem(limit) is { } problem)
+        {
+            return problem;
+        }
+
+        if (await db.TalentPoolEntries.AsNoTracking().SingleOrDefaultAsync(e => e.CandidateId == candidateId, cancellationToken) is not { } entry)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return await ChangeHistoryRoutes.PageAsync(db, ChangeSubjectKind.TalentPoolEntry, entry.Id.ToString("D"), before, limit, cancellationToken) is { } page
+            ? TypedResults.Ok(page)
+            : ChangeHistoryRoutes.CursorProblem();
+    }
+
+    // One transaction for the selection: each saved application, its Saved entry (the KeptInMind event) and the pool entry, or nothing. An
     // application that has ended, or whose candidate gave no permission, is counted and left as it is.
     private static async Task<Results<Ok<KeptInMind>, ValidationProblem, ProblemHttpResult>> KeepInMind(
         KeepInMindRequest request,
@@ -94,7 +149,6 @@ internal static class TalentPoolEndpoints
         var keptFromIds = entries.Values.Select(e => e.ApplicationId).ToList();
         var keptFrom = await db.Applications.AsNoTracking().Where(a => keptFromIds.Contains(a.Id)).ToDictionaryAsync(a => a.Id, cancellationToken);
 
-        var months = await TalentPoolMembership.MonthsAsync(db, cancellationToken);
         var now = time.GetUtcNow();
         var (kept, notAllowed, ended) = (0, 0, 0);
         var joined = new HashSet<Guid>();
@@ -107,13 +161,13 @@ internal static class TalentPoolEndpoints
                 continue;
             }
 
-            if (!application.AllowsFutureRoles(months, now))
+            if (!application.AllowsFutureRoles)
             {
                 notAllowed++;
                 continue;
             }
 
-            var entry = application.KeepInMind(stage, months, now, tenant.UserId, request.Note);
+            var entry = application.KeepInMind(stage, now, tenant.UserId, request.Note);
             db.ApplicationEvents.Add(entry);
             kept++;
             if (!joined.Add(application.CandidateId))
@@ -146,7 +200,7 @@ internal static class TalentPoolEndpoints
             // The candidate is in the pool from a job this member does not see (ADR-0015), or someone kept them in mind
             // at the same moment.
             return TypedResults.Problem(
-                "One of these candidates is already in the talent pool from a job you don't see, or was kept in mind just now.",
+                "One of these candidates is already saved from a job you don't see, or was saved just now.",
                 statusCode: StatusCodes.Status409Conflict);
         }
 
@@ -194,15 +248,13 @@ internal static class TalentPoolEndpoints
         EmailTemplateStore store,
         Application.Branding.EmailHeaders headers,
         IOptions<DomainOptions> domains,
-        TimeProvider time,
         CancellationToken cancellationToken)
     {
-        var months = await TalentPoolMembership.MonthsAsync(db, cancellationToken);
         var keptFrom = await db.TalentPoolEntries.AsNoTracking()
             .Where(e => e.CandidateId == request.CandidateId)
             .Join(db.Applications, e => e.ApplicationId, a => a.Id, (e, a) => a)
             .SingleOrDefaultAsync(cancellationToken);
-        if (keptFrom is null || !keptFrom.AllowsFutureRoles(months, time.GetUtcNow()))
+        if (keptFrom is null || !keptFrom.AllowsFutureRoles)
         {
             return TypedResults.NotFound();
         }
@@ -232,7 +284,6 @@ internal static class TalentPoolEndpoints
         IValidator<InviteToApplyRequest> validator,
         IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
-        TimeProvider time,
         IServiceProvider services,
         CancellationToken cancellationToken)
     {
@@ -258,7 +309,7 @@ internal static class TalentPoolEndpoints
             return TypedResults.Problem("Only an open job takes applications, so invite people to one that is posted.", statusCode: StatusCodes.Status409Conflict);
         }
 
-        var (members, skipped) = await MembersAsync(db, request.CandidateIds, job.Id, time.GetUtcNow(), cancellationToken);
+        var (members, skipped) = await MembersAsync(db, request.CandidateIds, job.Id, cancellationToken);
         foreach (var member in members)
         {
             await outbox.PublishAsync(new SendTalentPoolInvitation(
@@ -270,7 +321,7 @@ internal static class TalentPoolEndpoints
     }
 
     // Each candidate gets an application on the job, as a recruiter adding them by hand does, carrying the permission they
-    // gave on the application they were kept from, so its clock does not restart. Adding them takes them out of the pool
+    // gave on the application they were kept from, so stopping withdraws it with the rest. Adding them takes them out of the pool
     // (ApplicationSubmission), and the kept application's Activity names the new one. One commit for the selection: a
     // candidate who applied to the job at the same moment fails the whole add with a 409, and nothing is half done.
     private static async Task<Results<Ok<AddedFromTalentPool>, ValidationProblem, ProblemHttpResult>> AddFromTalentPool(
@@ -299,7 +350,7 @@ internal static class TalentPoolEndpoints
         }
 
         var now = time.GetUtcNow();
-        var (members, skipped) = await MembersAsync(db, request.CandidateIds, job.Id, now, cancellationToken);
+        var (members, skipped) = await MembersAsync(db, request.CandidateIds, job.Id, cancellationToken);
         var keptFromIds = members.Select(m => m.ApplicationId).ToList();
         var keptFromById = await db.Applications.AsNoTracking().Where(a => keptFromIds.Contains(a.Id)).ToDictionaryAsync(a => a.Id, cancellationToken);
         var memberCandidateIds = members.Select(m => m.CandidateId).ToList();
@@ -339,10 +390,9 @@ internal static class TalentPoolEndpoints
     // The pool entries of these candidates whose permission still holds and who have no application for the job yet, and
     // how many of the candidates that leaves out.
     private static async Task<(List<TalentPoolEntry> Members, int Skipped)> MembersAsync(
-        ScreenHireDbContext db, IReadOnlyList<Guid> candidateIds, Guid jobId, DateTimeOffset now, CancellationToken cancellationToken)
+        ScreenHireDbContext db, IReadOnlyList<Guid> candidateIds, Guid jobId, CancellationToken cancellationToken)
     {
         var ids = candidateIds.Distinct().ToList();
-        var months = await TalentPoolMembership.MonthsAsync(db, cancellationToken);
         var rows = await db.TalentPoolEntries.AsNoTracking()
             .Where(e => ids.Contains(e.CandidateId))
             .Join(db.Applications, e => e.ApplicationId, a => a.Id, (e, a) => new { Entry = e, Application = a })
@@ -352,7 +402,7 @@ internal static class TalentPoolEndpoints
             .Select(a => a.CandidateId)
             .ToListAsync(cancellationToken);
         var members = rows
-            .Where(r => r.Application.AllowsFutureRoles(months, now) && !applied.Contains(r.Entry.CandidateId))
+            .Where(r => r.Application.AllowsFutureRoles && !applied.Contains(r.Entry.CandidateId))
             .Select(r => r.Entry)
             .ToList();
         return (members, ids.Count - members.Count);
@@ -360,7 +410,7 @@ internal static class TalentPoolEndpoints
 }
 
 /// <summary>
-/// The careers page a candidate opens from the link in a talent pool invitation, to stop the organization keeping their
+/// The careers page a candidate opens from the link in an invitation to apply, to stop the organization keeping their
 /// details for future roles (docs/architecture/talent-pool.md). The token in the path is the signed link the worker put in
 /// the invitation (<see cref="TalentPoolLinks"/>). Anonymous, rate limited per address like the apply flow, and called by
 /// the careers server. A token for another organization, or one that is forged or damaged, is a 404.
@@ -387,7 +437,6 @@ internal static class PublicTalentPoolEndpoints
         TenantContext tenant,
         TalentPoolLinks links,
         IOptions<DomainOptions> domains,
-        TimeProvider time,
         CancellationToken cancellationToken)
     {
         if (await FindAsync(organizationSlug, token, db, tenant, links, cancellationToken) is not { } found)
@@ -395,11 +444,9 @@ internal static class PublicTalentPoolEndpoints
             return TypedResults.NotFound();
         }
 
-        var months = await TalentPoolMembership.MonthsAsync(db, cancellationToken);
-        var now = time.GetUtcNow();
         var kept = await db.TalentPoolEntries.AnyAsync(e => e.CandidateId == found.CandidateId, cancellationToken)
             || (await db.Applications.AsNoTracking().Where(a => a.CandidateId == found.CandidateId).ToListAsync(cancellationToken))
-                .Any(a => a.AllowsFutureRoles(months, now));
+                .Any(a => a.AllowsFutureRoles);
         return TypedResults.Ok(new PublicTalentPoolStatus(await found.Organization.ToPublicAsync(db, domains.Value, cancellationToken), kept));
     }
 

@@ -949,7 +949,7 @@ public static partial class DefinitionValidator
         else if (action.EmailTemplate == EmailTemplateIds.TalentPoolInvitation)
         {
             // Its links are for one candidate and one job, which only a person's Invite to apply chooses.
-            errors.Add(new(Join(path, "emailTemplate"), "The invitation to apply is sent only from the talent pool, by a person."));
+            errors.Add(new(Join(path, "emailTemplate"), "The invitation to apply is sent only from saved candidates, by a person."));
         }
         else if (action.Type == ActionType.Reject && action.EmailTemplate is not null && action.EmailTemplate != EmailTemplateIds.ApplicationRejected)
         {

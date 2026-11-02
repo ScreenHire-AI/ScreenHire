@@ -28,21 +28,30 @@ describe('activity', () => {
     entry('e4', { type: 'NoteEdited', noteId: 'n1' }),
     entry('e5', { type: 'NoteDeleted', noteId: 'n2', actorUserId: 'u1' }),
     entry('e6', { type: 'EmailSent', emailSubject: 'Application received' }),
+    entry('e6b', { type: 'EmailReceived', emailSubject: 'Re: Application received' }),
     entry('e7', { type: 'VerificationAssessed' }),
   ];
 
   it('lists entries newest first without edit lines or deleted notes', () => {
-    expect(visibleEntries(entries).map((item) => item.id)).toEqual(['e7', 'e6', 'e5', 'e2', 'e1']);
+    expect(visibleEntries(entries).map((item) => item.id)).toEqual(['e7', 'e6b', 'e6', 'e5', 'e2', 'e1']);
   });
 
   it('counts each kind, and the checks only under All', () => {
-    expect(kindCounts(visibleEntries(entries))).toEqual({ all: 5, notes: 2, emails: 1, scorecards: 0, stage: 1 });
+    expect(kindCounts(visibleEntries(entries))).toEqual({ all: 6, notes: 2, emails: 2, scorecards: 0, stage: 1 });
   });
 
   it('says a note was deleted and by whom, never what it said', () => {
     const deleted = entries[4]!;
     expect(describeEvent(deleted, names)).toBe('Deleted a note');
     expect(actorText(deleted, [{ id: 'm', userId: 'u1', email: 'a@example.com', displayName: 'Avery Quinn', role: 'Admin', customRoleId: null, roleName: 'Admin', joinedAt: base.occurredAt, jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 }], 'me')).toBe('by Avery Quinn');
+  });
+
+  it('words a reply as the candidate writing, names nobody, and lists it under Emails', () => {
+    const reply = entries[6]!;
+
+    expect(describeEvent(reply, names)).toBe('Candidate replied "Re: Application received"');
+    expect(actorText(reply, [], undefined)).toBeUndefined();
+    expect(kindCounts([reply]).emails).toBe(1);
   });
 
   it("names an API key's changes by the key", () => {
@@ -58,34 +67,34 @@ describe('activity', () => {
     expect(kindCounts([task])).toEqual({ all: 1, notes: 0, emails: 0, scorecards: 0, stage: 0 });
   });
 
-  describe('talent pool entries', () => {
+  describe('saved candidate entries', () => {
     const jobNames = { ...names, jobName: (id: string | null | undefined) => (id === 'j2' ? 'Support Engineer' : 'another job') };
 
-    it('says a candidate was kept in mind without a rejection, and lists it under Stage', () => {
+    it('says a candidate was saved without a rejection, and lists it under Stage', () => {
       const kept = entry('k', { type: 'KeptInMind', note: 'Strong, wrong timing.' });
-      expect(describeEvent(kept, jobNames)).toBe('Kept in mind: left the job without a rejection');
+      expect(describeEvent(kept, jobNames)).toBe('Saved');
       expect(kindCounts([kept]).stage).toBe(1);
     });
 
     it.each([
-      ['Expired', 'Left the talent pool: their permission ran out'],
-      ['Removed', 'Took them out of the talent pool'],
-      ['CandidateAsked', 'Took them out of the talent pool at their request'],
-      ['AddedToJob', 'Added them to Support Engineer from the talent pool'],
-      ['AppliedAgain', 'Left the talent pool: applied for Support Engineer'],
-      ['BackInJob', 'Left the talent pool: back in this job'],
-      ['KeptFromAnotherJob', 'Left the talent pool here: kept in mind from Support Engineer instead'],
+      ['Expired', 'Left saved candidates: their permission ran out'],
+      ['Removed', 'Removed them from saved candidates'],
+      ['CandidateAsked', 'Removed them from saved candidates at their request'],
+      ['AddedToJob', 'Added them to Support Engineer from saved candidates'],
+      ['AppliedAgain', 'Left saved candidates: applied for Support Engineer'],
+      ['BackInJob', 'Left saved candidates: back in this job'],
+      ['KeptFromAnotherJob', 'Left saved candidates here: saved from Support Engineer instead'],
     ] as const)('words leaving the pool by %s', (poolExit, text) => {
       expect(describeEvent(entry('l', { type: 'LeftTalentPool', poolExit, otherJobId: 'j2' }), jobNames)).toBe(text);
     });
 
     it('words a leave with no recorded reason as a removal, and names no job the reader cannot see', () => {
-      expect(describeEvent(entry('l', { type: 'LeftTalentPool', poolExit: null }), jobNames)).toBe('Took them out of the talent pool');
+      expect(describeEvent(entry('l', { type: 'LeftTalentPool', poolExit: null }), jobNames)).toBe('Removed them from saved candidates');
       expect(describeEvent(entry('l', { type: 'LeftTalentPool', poolExit: 'AddedToJob', otherJobId: 'hidden' }), jobNames)).toBe(
-        'Added them to another job from the talent pool',
+        'Added them to another job from saved candidates',
       );
       expect(describeEvent(entry('l', { type: 'LeftTalentPool', poolExit: 'AddedToJob', otherJobId: 'j2' }), names)).toBe(
-        'Added them to another job from the talent pool',
+        'Added them to another job from saved candidates',
       );
     });
 

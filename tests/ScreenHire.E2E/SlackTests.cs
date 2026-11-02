@@ -1,5 +1,7 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.RegularExpressions;
+using ScreenHire.Domain.Hiring;
 
 namespace ScreenHire.E2E;
 
@@ -11,17 +13,18 @@ namespace ScreenHire.E2E;
 /// </summary>
 public sealed class SlackTests(E2EFixture fixture) : BrowserTest(fixture)
 {
+    private static readonly string[] Gb = ["GB"];
+
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
     public async Task An_owner_connects_Slack_picks_a_channel_links_their_account_and_disconnects()
     {
         var owner = ApiSession.NewEmail("e2e-slack-owner");
-        using (var session = new ApiSession(Fixture))
-        {
-            await session.SignInWithDevSsoAsync(owner, Ct);
-            await session.OnboardAsync(Ct);
-        }
+        // Kept open to the end: it reads what the sandbox workspace received and publishes a job as the same owner.
+        using var session = new ApiSession(Fixture);
+        await session.SignInWithDevSsoAsync(owner, Ct);
+        await session.OnboardAsync(Ct);
 
         await Page.SetViewportSizeAsync(1440, 1000);
         await SignInAsync(Page, owner);
@@ -45,6 +48,30 @@ public sealed class SlackTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Page.GetByText("Saved.")).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-settings-slack-connected-1440");
+
+        // Send test message posts to the saved channel at once, and the sandbox workspace holds it: the page's "sent" is
+        // not taken on its word.
+        await Page.Locator("[data-slot=header-band]").GetByRole(AriaRole.Button, new() { Name = "More actions" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Send test message" }).ClickAsync();
+        await SlackSandbox.WaitForMessageAsync(session, SlackSandbox.HiringChannel, "ScreenHire is connected", Ct);
+
+        // An event the owner picked reaches #hiring through the worker: publishing a job posts "is published".
+        var title = $"Slack check {Guid.NewGuid():N}"[..24];
+        using var created = await session.PostAsync("/v1/jobs", new
+        {
+            title,
+            description = "<p>Build and run the things people rely on.</p>",
+            employmentType = "FullTime",
+            workplaceType = "Remote",
+            applicantLocationRequirements = Gb,
+            templateVersionId = SystemTemplates.SoftwareEngineerVersion1,
+        }, Ct);
+        created.StatusCode.Should().Be(HttpStatusCode.Created, await created.Content.ReadAsStringAsync(Ct));
+        var jobId = (await created.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>(Ct)).GetProperty("id").GetGuid();
+        using var published = await session.PostAsync($"/v1/jobs/{jobId}/publish", new { }, Ct);
+        published.StatusCode.Should().Be(HttpStatusCode.OK, await published.Content.ReadAsStringAsync(Ct));
+        var posted = await SlackSandbox.WaitForMessageAsync(session, SlackSandbox.HiringChannel, title, Ct);
+        posted.Should().Contain("is published");
 
         // The Owner links their own account from their menu, and comes back to this page with the sheet open.
         await LinkFromMenuAsync(Page);

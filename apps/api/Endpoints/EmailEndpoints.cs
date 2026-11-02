@@ -3,10 +3,13 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Api.Email;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.Branding;
+using ScreenHire.Application.Templates;
 using ScreenHire.Domain.Applications;
+using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.History;
 using ScreenHire.Domain.Jobs;
@@ -80,10 +83,21 @@ internal static class EmailEndpoints
             .Produces(StatusCodes.Status401Unauthorized);
         emails.MapGet("/{emailId:guid}", GetSentEmail).WithName("GetSentEmail").Produces(StatusCodes.Status401Unauthorized);
 
+        // A candidate's reply, and the files that came with it (docs/architecture/email.md, "Replies"). Read like sent mail.
+        var replies = app.MapGroup("/v1/replies").WithTags("Email").RequireAuthorization();
+        replies.MapGet("/{replyId:guid}", GetReceivedEmail).WithName("GetReceivedEmail").Produces(StatusCodes.Status401Unauthorized);
+        replies.MapGet("/{replyId:guid}/attachments/{attachmentId:guid}", DownloadReplyAttachment).WithName("DownloadReplyAttachment")
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status401Unauthorized);
+
         // Under the candidate's path, for the dashboard's Messages tab, but in this people-only group: unlike the
         // candidates routes, it takes no API key.
         var candidates = app.MapGroup("/v1/candidates").WithTags("Email").RequireAuthorization();
         candidates.MapGet("/{candidateId:guid}/emails", ListCandidateEmails).WithName("ListCandidateEmails")
+            .Produces(StatusCodes.Status401Unauthorized);
+        candidates.MapPost("/{candidateId:guid}/email-issue/clear", ClearCandidateEmailIssue).WithName("ClearCandidateEmailIssue")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.EmailCandidates)
             .Produces(StatusCodes.Status401Unauthorized);
         return app;
     }
@@ -137,6 +151,7 @@ internal static class EmailEndpoints
         CreateEmailTemplateRequest request,
         IValidator<CreateEmailTemplateRequest> validator,
         ScreenHireDbContext db,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
         EmailTemplates renderer,
         EmailTemplateStore store,
         ITenantContext tenant,
@@ -163,7 +178,7 @@ internal static class EmailEndpoints
 
         var template = EmailTemplate.CreateCustom(tenant.OrganizationId!.Value, request.Name.Trim(), request.Subject, body, time.GetUtcNow());
         db.EmailTemplates.Add(template);
-        await db.SaveChangesAsync(cancellationToken);
+        await outbox.SaveTemplateChangeAsync(TemplateKind.EmailTemplate, template.Key, tenant, time, cancellationToken);
         var created = await store.FindAsync(db, template.Key, cancellationToken);
         return TypedResults.Created($"/v1/email-templates/{template.Key}", await EntryAsync(db, created!, cancellationToken));
     }
@@ -174,6 +189,7 @@ internal static class EmailEndpoints
         UpdateEmailTemplateRequest request,
         IValidator<UpdateEmailTemplateRequest> validator,
         ScreenHireDbContext db,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
         EmailTemplates renderer,
         EmailTemplateStore store,
         ITenantContext tenant,
@@ -234,7 +250,7 @@ internal static class EmailEndpoints
 
         try
         {
-            await db.SaveChangesAsync(cancellationToken);
+            await outbox.SaveTemplateChangeAsync(TemplateKind.EmailTemplate, templateId, tenant, time, cancellationToken);
         }
         // Another person's first edit of this built-in added its row between the read above and this insert. This edit
         // goes on top of theirs, as any later edit would.
@@ -245,7 +261,7 @@ internal static class EmailEndpoints
             added.Subject = request.Subject;
             added.Body = body;
             added.UpdatedAt = now;
-            await db.SaveChangesAsync(cancellationToken);
+            await outbox.SaveTemplateChangeAsync(TemplateKind.EmailTemplate, templateId, tenant, time, cancellationToken);
         }
 
         return TypedResults.Ok(await EntryAsync(db, (await store.FindAsync(db, templateId, cancellationToken))!, cancellationToken));
@@ -254,15 +270,18 @@ internal static class EmailEndpoints
     // Archiving takes an own template out of the pickers. Automations that name it keep sending it, so nothing running
     // changes. A built-in cannot be archived: Reset to original (DELETE) is how a team takes back its wording.
     private static Task<Results<Ok<EmailTemplateEntry>, NotFound, ProblemHttpResult>> ArchiveEmailTemplate(
-        string templateId, ScreenHireDbContext db, EmailTemplateStore store, TimeProvider time, CancellationToken cancellationToken) =>
-        SetArchivedAsync(templateId, archived: true, db, store, time, cancellationToken);
+        string templateId, ScreenHireDbContext db, IDbContextOutbox<ScreenHireDbContext> outbox, ITenantContext tenant, EmailTemplateStore store,
+        TimeProvider time, CancellationToken cancellationToken) =>
+        SetArchivedAsync(templateId, archived: true, db, outbox, tenant, store, time, cancellationToken);
 
     private static Task<Results<Ok<EmailTemplateEntry>, NotFound, ProblemHttpResult>> UnarchiveEmailTemplate(
-        string templateId, ScreenHireDbContext db, EmailTemplateStore store, TimeProvider time, CancellationToken cancellationToken) =>
-        SetArchivedAsync(templateId, archived: false, db, store, time, cancellationToken);
+        string templateId, ScreenHireDbContext db, IDbContextOutbox<ScreenHireDbContext> outbox, ITenantContext tenant, EmailTemplateStore store,
+        TimeProvider time, CancellationToken cancellationToken) =>
+        SetArchivedAsync(templateId, archived: false, db, outbox, tenant, store, time, cancellationToken);
 
     private static async Task<Results<Ok<EmailTemplateEntry>, NotFound, ProblemHttpResult>> SetArchivedAsync(
-        string templateId, bool archived, ScreenHireDbContext db, EmailTemplateStore store, TimeProvider time, CancellationToken cancellationToken)
+        string templateId, bool archived, ScreenHireDbContext db, IDbContextOutbox<ScreenHireDbContext> outbox, ITenantContext tenant,
+        EmailTemplateStore store, TimeProvider time, CancellationToken cancellationToken)
     {
         if (EmailTemplateIds.All.Contains(templateId))
         {
@@ -282,7 +301,7 @@ internal static class EmailEndpoints
             var now = time.GetUtcNow();
             row.ArchivedAt = archived ? now : null;
             row.UpdatedAt = now;
-            await db.SaveChangesAsync(cancellationToken);
+            await outbox.SaveTemplateChangeAsync(TemplateKind.EmailTemplate, templateId, tenant, time, cancellationToken);
         }
 
         return TypedResults.Ok(await EntryAsync(db, (await store.FindAsync(db, templateId, cancellationToken))!, cancellationToken));
@@ -291,14 +310,15 @@ internal static class EmailEndpoints
     // An organization template goes, unless an automation names it. A built-in goes back to ScreenHire's wording. Both
     // delete through the change tracker, not ExecuteDelete, so the change history records them.
     private static async Task<Results<NoContent, NotFound, ProblemHttpResult>> DeleteEmailTemplate(
-        string templateId, ScreenHireDbContext db, CancellationToken cancellationToken)
+        string templateId, ScreenHireDbContext db, IDbContextOutbox<ScreenHireDbContext> outbox, ITenantContext tenant, TimeProvider time,
+        CancellationToken cancellationToken)
     {
         if (EmailTemplateIds.All.Contains(templateId))
         {
             if (await db.EmailTemplates.SingleOrDefaultAsync(t => t.BuiltInId == templateId, cancellationToken) is { } reworded)
             {
                 db.EmailTemplates.Remove(reworded);
-                await SaveDeletionAsync(db, cancellationToken);
+                await SaveDeletionAsync(outbox, templateId, tenant, time, cancellationToken);
             }
 
             return TypedResults.NoContent();
@@ -321,20 +341,21 @@ internal static class EmailEndpoints
         }
 
         db.EmailTemplates.Remove(row);
-        await SaveDeletionAsync(db, cancellationToken);
+        await SaveDeletionAsync(outbox, templateId, tenant, time, cancellationToken);
         return TypedResults.NoContent();
     }
 
     // Someone else deleted the row at the same moment: the template is gone either way, and their deletion is recorded.
-    private static async Task SaveDeletionAsync(ScreenHireDbContext db, CancellationToken cancellationToken)
+    private static async Task SaveDeletionAsync(
+        IDbContextOutbox<ScreenHireDbContext> outbox, string templateId, ITenantContext tenant, TimeProvider time, CancellationToken cancellationToken)
     {
         try
         {
-            await db.SaveChangesAsync(cancellationToken);
+            await outbox.SaveTemplateChangeAsync(TemplateKind.EmailTemplate, templateId, tenant, time, cancellationToken);
         }
         catch (DbUpdateConcurrencyException)
         {
-            db.ChangeTracker.Clear();
+            outbox.DbContext.ChangeTracker.Clear();
         }
     }
 
@@ -481,7 +502,7 @@ internal static class EmailEndpoints
         foreach (var row in rows)
         {
             var stage = row.Job.Workflow.FindStage(row.Application.CurrentStageId);
-            if (ApplicationEmails.Skips(request.TemplateId, row.Application, stage))
+            if (ApplicationEmails.Skips(request.TemplateId, row.Application, stage) || !row.Candidate.CanReceiveEmail)
             {
                 skipped++;
                 continue;
@@ -527,23 +548,91 @@ internal static class EmailEndpoints
             from entry in db.ApplicationEvents.AsNoTracking()
             join application in db.Applications on entry.ApplicationId equals application.Id
             join job in db.Jobs on application.JobId equals job.Id
-            where application.CandidateId == candidateId && entry.Type == ApplicationEventType.EmailSent
+            where application.CandidateId == candidateId
+                && (entry.Type == ApplicationEventType.EmailSent || entry.Type == ApplicationEventType.EmailReceived)
             orderby entry.OccurredAt descending, entry.Id descending
             select new
             {
                 entry.Id,
                 entry.ApplicationId,
                 JobTitle = job.Title,
+                entry.Type,
                 entry.Data,
                 entry.ActorUserId,
                 entry.OccurredAt,
-                Kept = db.ApplicationEmails.Any(e => e.Id == entry.Id),
+                Kept = entry.Type == ApplicationEventType.EmailReceived || db.ApplicationEmails.Any(e => e.Id == entry.Id),
+                From = db.InboundEmails.Where(r => r.Id == entry.Id).Select(r => r.FromAddress).FirstOrDefault(),
+                Attachments = db.InboundEmailAttachments.Count(a => a.InboundEmailId == entry.Id),
             }).ToListAsync(cancellationToken);
         return TypedResults.Ok(entries
             .Select(e => new CandidateEmailEntry(
                 e.Id, e.ApplicationId, e.JobTitle, e.Data.EmailTemplateId, e.Data.EmailSubject ?? "", e.ActorUserId, e.Data.AutomationRunId,
-                e.OccurredAt, e.Kept))
+                e.OccurredAt, e.Kept,
+                e.Type == ApplicationEventType.EmailReceived ? EmailDirection.Received : EmailDirection.Sent, e.From, e.Attachments))
             .ToList());
+    }
+
+    // A candidate's reply as it arrived, with its files. Visible to everyone who sees the application's job (row-level
+    // security), like the emails ScreenHire sent.
+    private static async Task<Results<Ok<ReceivedEmail>, NotFound>> GetReceivedEmail(Guid replyId, ScreenHireDbContext db, CancellationToken cancellationToken)
+    {
+        var reply = await db.InboundEmails.AsNoTracking().SingleOrDefaultAsync(r => r.Id == replyId, cancellationToken);
+        if (reply is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var files = await db.InboundEmailAttachments.AsNoTracking()
+            .Where(a => a.InboundEmailId == replyId)
+            .OrderBy(a => a.FileName)
+            .Select(a => new ReceivedAttachment(a.Id, a.FileName, a.ContentType, a.SizeBytes, a.ScanStatus))
+            .ToListAsync(cancellationToken);
+        return TypedResults.Ok(new ReceivedEmail(
+            reply.Id, reply.ApplicationId, reply.FromAddress, reply.FromName, reply.Subject, reply.HtmlBody, reply.TextBody,
+            reply.ReceivedAt, reply.AutoReply, files));
+    }
+
+    // Sends a reviewer to a short-lived read link for one of a reply's files. A file the scanner found malware in is never
+    // offered, and neither is one still waiting for its scan, as with an applicant's upload.
+    private static async Task<Results<RedirectHttpResult, NotFound, ProblemHttpResult>> DownloadReplyAttachment(
+        Guid replyId, Guid attachmentId, ScreenHireDbContext db, EmailAttachmentStore store, CancellationToken cancellationToken)
+    {
+        var file = await db.InboundEmailAttachments.AsNoTracking()
+            .SingleOrDefaultAsync(a => a.Id == attachmentId && a.InboundEmailId == replyId, cancellationToken);
+        if (file is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return file.ScanStatus switch
+        {
+            MalwareScanStatus.Infected => TypedResults.Problem(
+                "The malware scan found a threat in this file, so it is not available.", statusCode: StatusCodes.Status409Conflict),
+            MalwareScanStatus.Pending => TypedResults.Problem(
+                "This file is still being scanned for malware. Try again in a minute.", statusCode: StatusCodes.Status409Conflict),
+            _ => TypedResults.Redirect((await store.IssueReadLinkAsync(file.BlobName, file.FileName, cancellationToken)).ToString()),
+        };
+    }
+
+    // A person says the address works after all, for example because the candidate wrote from it or the mailbox was full.
+    // The next email may bounce again, and the provider will say so.
+    private static async Task<Results<Ok<CandidateSummary>, NotFound>> ClearCandidateEmailIssue(
+        Guid candidateId, IDbContextOutbox<ScreenHireDbContext> outbox, ITenantContext tenant, TimeProvider time, CancellationToken cancellationToken)
+    {
+        var candidate = await outbox.DbContext.Candidates.SingleOrDefaultAsync(c => c.Id == candidateId, cancellationToken);
+        if (candidate is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (candidate.ClearEmailIssue())
+        {
+            await outbox.PublishAsync(new CandidateEmailStatusChanged(
+                tenant.OrganizationId!.Value, candidate.Id, nameof(CandidateEmailIssue.None), time.GetUtcNow()));
+            await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+        }
+
+        return TypedResults.Ok(candidate.ToSummary());
     }
 
     private static bool SendingEnabled(IServiceProvider services) => services.GetService<IEmailSender>() is not null;

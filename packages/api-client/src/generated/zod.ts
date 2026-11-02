@@ -28,7 +28,8 @@ export const CreatePublicApplicationDraftBody = zod.object({
 }).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')).nullish(),
   "accommodationRequested": zod.boolean().default(createPublicApplicationDraftBodyAccommodationRequestedDefault),
   "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(createPublicApplicationDraftBodyAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
-  "aiUseDetails": zod.string().nullish()
+  "aiUseDetails": zod.string().nullish(),
+  "botCheckToken": zod.string().nullish()
 }).describe('What a candidate saves of the apply form to finish later (ApplicationDraft): their details, their\nanswers to the non-file questions, the assistive-technology switch and the AI-use answer. Nothing is required yet\nbeyond the first name and the email the link goes to.')
 
 export const CreatePublicApplicationDraftResponse = zod.object({
@@ -161,7 +162,7 @@ export const GetCurrentUserResponse = zod.object({
   "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
 }).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
@@ -218,7 +219,7 @@ export const CompleteOnboardingResponse = zod.object({
   "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
 }).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
@@ -239,7 +240,7 @@ export const AcceptInvitationResponse = zod.object({
   "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
 }).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
@@ -260,7 +261,7 @@ export const SwitchOrganizationResponse = zod.object({
   "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
 }).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
@@ -515,9 +516,8 @@ export const GetPublicApplicationFormResponse = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullable(),
   "questionsPerPage": zod.int(),
-  "saveDraftEnabled": zod.boolean(),
-  "talentPoolMonths": zod.int()
-}).describe('Everything the careers apply page needs for one open job. The resume question comes first\n(ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured.\n`telemetry` is a new telemetry session for the form; the page keeps the first one it gets.\n`sections` are the questionnaire\'s named pages, or null to split it into pages of `questionsPerPage`\n(apply-flow.md §7). `saveDraftEnabled` says whether the candidate can save the form to finish later: false when\nthis deployment sends no email or has no careers host to link to.\n`talentPoolMonths` is how long the organization keeps a candidate\'s details for future roles if they say so,\nwhich the form\'s "Keep my details for future roles" box tells them.')
+  "saveDraftEnabled": zod.boolean()
+}).describe('Everything the careers apply page needs for one open job. The resume question comes first\n(ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured.\n`telemetry` is a new telemetry session for the form; the page keeps the first one it gets.\n`sections` are the questionnaire\'s named pages, or null to split it into pages of `questionsPerPage`\n(apply-flow.md §7). `saveDraftEnabled` says whether the candidate can save the form to finish later: false when\nthis deployment sends no email or has no careers host to link to.')
 
 
 export const GetPublicBrandImageParams = zod.object({
@@ -679,7 +679,8 @@ export const SavePublicApplicationDraftBody = zod.object({
 }).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')).nullish(),
   "accommodationRequested": zod.boolean().default(savePublicApplicationDraftBodyAccommodationRequestedDefault),
   "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(savePublicApplicationDraftBodyAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
-  "aiUseDetails": zod.string().nullish()
+  "aiUseDetails": zod.string().nullish(),
+  "botCheckToken": zod.string().nullish()
 }).describe('What a candidate saves of the apply form to finish later (ApplicationDraft): their details, their\nanswers to the non-file questions, the assistive-technology switch and the AI-use answer. Nothing is required yet\nbeyond the first name and the email the link goes to.')
 
 export const SavePublicApplicationDraftResponse = zod.object({
@@ -843,7 +844,7 @@ export const GetPublicTalentPoolStatusResponse = zod.object({
   "embedOrigins": zod.array(zod.string())
 }).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s) and\n`embedOrigins`, the sites allowed to show the careers pages in a frame, which the pages send in their\n`frame-ancestors` header (empty: none but the careers pages themselves).'),
   "kept": zod.boolean()
-}).describe('The page a candidate opens from the link in an invitation to stop being kept. `kept`: the organization still\nkeeps their details for future roles; false once they stopped it, or it ran out.')
+}).describe('The page a candidate opens from the link in an invitation to stop being kept. `kept`: the organization still\nkeeps their details for future roles; false once they stopped it.')
 
 
 export const StopKeepingDetailsParams = zod.object({
@@ -3728,6 +3729,7 @@ export const ListJobApplicationsParams = zod.object({
 })
 
 export const listJobApplicationsResponseRatingTwoScorecardsDefault = 0;
+export const listJobApplicationsResponseAllowsFutureRolesDefault = false;
 
 export const ListJobApplicationsResponseItem = zod.object({
   "id": zod.uuid(),
@@ -3760,7 +3762,7 @@ export const ListJobApplicationsResponseItem = zod.object({
   "scorecards": zod.int().default(listJobApplicationsResponseRatingTwoScorecardsDefault)
 }).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\nthey give it, so it cannot anchor them.')]).optional(),
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
-  "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
+  "allowsFutureRoles": zod.boolean().default(listJobApplicationsResponseAllowsFutureRolesDefault),
   "sourceSite": zod.string().nullish()
 }).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\napplication itself.')
 export const ListJobApplicationsResponse = zod.array(ListJobApplicationsResponseItem)
@@ -3787,9 +3789,11 @@ export const CreateApplicationBody = zod.object({
   "resumeUploadId": zod.uuid().nullish()
 }).describe('A recruiter adds an application by hand, for a candidate who applied another way. The candidate is matched by email\nwithin the organization and created if new. The public apply flow is the careers site\'s.')
 
+export const createApplicationResponseCandidateEmailIssueDefault = `None`;
 export const createApplicationResponseAiUseDeclarationDefault = `NotProvided`;
 export const createApplicationResponseFollowUpsItemQuestionsItemRequiredDefault = false;
 export const createApplicationResponseRatingTwoScorecardsDefault = 0;
+export const createApplicationResponseAllowsFutureRolesDefault = false;
 export const createApplicationResponseInTalentPoolDefault = false;
 
 export const CreateApplicationResponse = zod.object({
@@ -3803,7 +3807,10 @@ export const CreateApplicationResponse = zod.object({
   "phone": zod.string().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "firstName": zod.string(),
-  "lastName": zod.string().nullable()
+  "lastName": zod.string().nullable(),
+  "emailIssue": zod.enum(['None', 'Bounced', 'SpamComplaint']).default(createApplicationResponseCandidateEmailIssueDefault).describe('Why ScreenHire no longer emails a candidate\'s address (reported by the email provider).'),
+  "emailIssueAt": zod.iso.datetime({"offset":true}).nullish(),
+  "emailIssueReason": zod.string().nullish()
 }).describe('A candidate: one person per email address within the organization.'),
   "stage": zod.object({
   "id": zod.string(),
@@ -3874,7 +3881,7 @@ export const CreateApplicationResponse = zod.object({
   "scorecards": zod.int().default(createApplicationResponseRatingTwoScorecardsDefault)
 }).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\nthey give it, so it cannot anchor them.')]).optional(),
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
-  "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
+  "allowsFutureRoles": zod.boolean().default(createApplicationResponseAllowsFutureRolesDefault),
   "futureRolesGivenAt": zod.iso.datetime({"offset":true}).nullish(),
   "inTalentPool": zod.boolean().default(createApplicationResponseInTalentPoolDefault),
   "sourceSite": zod.string().nullish()
@@ -3901,6 +3908,7 @@ export const CreateResumeUploadResponse = zod.object({
 
 
 export const listApplicationsResponseRatingTwoScorecardsDefault = 0;
+export const listApplicationsResponseAllowsFutureRolesDefault = false;
 
 export const ListApplicationsResponseItem = zod.object({
   "id": zod.uuid(),
@@ -3933,7 +3941,7 @@ export const ListApplicationsResponseItem = zod.object({
   "scorecards": zod.int().default(listApplicationsResponseRatingTwoScorecardsDefault)
 }).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\nthey give it, so it cannot anchor them.')]).optional(),
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
-  "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
+  "allowsFutureRoles": zod.boolean().default(listApplicationsResponseAllowsFutureRolesDefault),
   "sourceSite": zod.string().nullish()
 }).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\napplication itself.')
 export const ListApplicationsResponse = zod.array(ListApplicationsResponseItem)
@@ -3943,9 +3951,11 @@ export const GetApplicationParams = zod.object({
   "applicationId": zod.uuid()
 })
 
+export const getApplicationResponseCandidateEmailIssueDefault = `None`;
 export const getApplicationResponseAiUseDeclarationDefault = `NotProvided`;
 export const getApplicationResponseFollowUpsItemQuestionsItemRequiredDefault = false;
 export const getApplicationResponseRatingTwoScorecardsDefault = 0;
+export const getApplicationResponseAllowsFutureRolesDefault = false;
 export const getApplicationResponseInTalentPoolDefault = false;
 
 export const GetApplicationResponse = zod.object({
@@ -3959,7 +3969,10 @@ export const GetApplicationResponse = zod.object({
   "phone": zod.string().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "firstName": zod.string(),
-  "lastName": zod.string().nullable()
+  "lastName": zod.string().nullable(),
+  "emailIssue": zod.enum(['None', 'Bounced', 'SpamComplaint']).default(getApplicationResponseCandidateEmailIssueDefault).describe('Why ScreenHire no longer emails a candidate\'s address (reported by the email provider).'),
+  "emailIssueAt": zod.iso.datetime({"offset":true}).nullish(),
+  "emailIssueReason": zod.string().nullish()
 }).describe('A candidate: one person per email address within the organization.'),
   "stage": zod.object({
   "id": zod.string(),
@@ -4030,7 +4043,7 @@ export const GetApplicationResponse = zod.object({
   "scorecards": zod.int().default(getApplicationResponseRatingTwoScorecardsDefault)
 }).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\nthey give it, so it cannot anchor them.')]).optional(),
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
-  "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
+  "allowsFutureRoles": zod.boolean().default(getApplicationResponseAllowsFutureRolesDefault),
   "futureRolesGivenAt": zod.iso.datetime({"offset":true}).nullish(),
   "inTalentPool": zod.boolean().default(getApplicationResponseInTalentPoolDefault),
   "sourceSite": zod.string().nullish()
@@ -4046,9 +4059,11 @@ export const MoveApplicationBody = zod.object({
   "note": zod.string().nullish()
 }).describe('Moves an application to another stage of its job\'s workflow. Only people move applications here. The optional\n`note` is kept on the move\'s timeline entry.')
 
+export const moveApplicationResponseCandidateEmailIssueDefault = `None`;
 export const moveApplicationResponseAiUseDeclarationDefault = `NotProvided`;
 export const moveApplicationResponseFollowUpsItemQuestionsItemRequiredDefault = false;
 export const moveApplicationResponseRatingTwoScorecardsDefault = 0;
+export const moveApplicationResponseAllowsFutureRolesDefault = false;
 export const moveApplicationResponseInTalentPoolDefault = false;
 
 export const MoveApplicationResponse = zod.object({
@@ -4062,7 +4077,10 @@ export const MoveApplicationResponse = zod.object({
   "phone": zod.string().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "firstName": zod.string(),
-  "lastName": zod.string().nullable()
+  "lastName": zod.string().nullable(),
+  "emailIssue": zod.enum(['None', 'Bounced', 'SpamComplaint']).default(moveApplicationResponseCandidateEmailIssueDefault).describe('Why ScreenHire no longer emails a candidate\'s address (reported by the email provider).'),
+  "emailIssueAt": zod.iso.datetime({"offset":true}).nullish(),
+  "emailIssueReason": zod.string().nullish()
 }).describe('A candidate: one person per email address within the organization.'),
   "stage": zod.object({
   "id": zod.string(),
@@ -4133,7 +4151,7 @@ export const MoveApplicationResponse = zod.object({
   "scorecards": zod.int().default(moveApplicationResponseRatingTwoScorecardsDefault)
 }).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\nthey give it, so it cannot anchor them.')]).optional(),
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
-  "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
+  "allowsFutureRoles": zod.boolean().default(moveApplicationResponseAllowsFutureRolesDefault),
   "futureRolesGivenAt": zod.iso.datetime({"offset":true}).nullish(),
   "inTalentPool": zod.boolean().default(moveApplicationResponseInTalentPoolDefault),
   "sourceSite": zod.string().nullish()
@@ -4146,7 +4164,7 @@ export const GetApplicationTimelineParams = zod.object({
 
 export const GetApplicationTimelineResponseItem = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'EmailReceived']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -4184,7 +4202,7 @@ export const AddApplicationNoteBody = zod.object({
 
 export const AddApplicationNoteResponse = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'EmailReceived']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -4247,9 +4265,11 @@ export const AddApplicationTagBody = zod.object({
   "tag": zod.string()
 }).describe('A tag to add to an application. Tags compare ignoring case; conditions read them as `application.tags`.')
 
+export const addApplicationTagResponseCandidateEmailIssueDefault = `None`;
 export const addApplicationTagResponseAiUseDeclarationDefault = `NotProvided`;
 export const addApplicationTagResponseFollowUpsItemQuestionsItemRequiredDefault = false;
 export const addApplicationTagResponseRatingTwoScorecardsDefault = 0;
+export const addApplicationTagResponseAllowsFutureRolesDefault = false;
 export const addApplicationTagResponseInTalentPoolDefault = false;
 
 export const AddApplicationTagResponse = zod.object({
@@ -4263,7 +4283,10 @@ export const AddApplicationTagResponse = zod.object({
   "phone": zod.string().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "firstName": zod.string(),
-  "lastName": zod.string().nullable()
+  "lastName": zod.string().nullable(),
+  "emailIssue": zod.enum(['None', 'Bounced', 'SpamComplaint']).default(addApplicationTagResponseCandidateEmailIssueDefault).describe('Why ScreenHire no longer emails a candidate\'s address (reported by the email provider).'),
+  "emailIssueAt": zod.iso.datetime({"offset":true}).nullish(),
+  "emailIssueReason": zod.string().nullish()
 }).describe('A candidate: one person per email address within the organization.'),
   "stage": zod.object({
   "id": zod.string(),
@@ -4334,7 +4357,7 @@ export const AddApplicationTagResponse = zod.object({
   "scorecards": zod.int().default(addApplicationTagResponseRatingTwoScorecardsDefault)
 }).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\nthey give it, so it cannot anchor them.')]).optional(),
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
-  "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
+  "allowsFutureRoles": zod.boolean().default(addApplicationTagResponseAllowsFutureRolesDefault),
   "futureRolesGivenAt": zod.iso.datetime({"offset":true}).nullish(),
   "inTalentPool": zod.boolean().default(addApplicationTagResponseInTalentPoolDefault),
   "sourceSite": zod.string().nullish()
@@ -4349,9 +4372,11 @@ export const RemoveApplicationTagQueryParams = zod.object({
   "tag": zod.string().optional()
 })
 
+export const removeApplicationTagResponseCandidateEmailIssueDefault = `None`;
 export const removeApplicationTagResponseAiUseDeclarationDefault = `NotProvided`;
 export const removeApplicationTagResponseFollowUpsItemQuestionsItemRequiredDefault = false;
 export const removeApplicationTagResponseRatingTwoScorecardsDefault = 0;
+export const removeApplicationTagResponseAllowsFutureRolesDefault = false;
 export const removeApplicationTagResponseInTalentPoolDefault = false;
 
 export const RemoveApplicationTagResponse = zod.object({
@@ -4365,7 +4390,10 @@ export const RemoveApplicationTagResponse = zod.object({
   "phone": zod.string().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "firstName": zod.string(),
-  "lastName": zod.string().nullable()
+  "lastName": zod.string().nullable(),
+  "emailIssue": zod.enum(['None', 'Bounced', 'SpamComplaint']).default(removeApplicationTagResponseCandidateEmailIssueDefault).describe('Why ScreenHire no longer emails a candidate\'s address (reported by the email provider).'),
+  "emailIssueAt": zod.iso.datetime({"offset":true}).nullish(),
+  "emailIssueReason": zod.string().nullish()
 }).describe('A candidate: one person per email address within the organization.'),
   "stage": zod.object({
   "id": zod.string(),
@@ -4436,7 +4464,7 @@ export const RemoveApplicationTagResponse = zod.object({
   "scorecards": zod.int().default(removeApplicationTagResponseRatingTwoScorecardsDefault)
 }).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\nthey give it, so it cannot anchor them.')]).optional(),
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
-  "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
+  "allowsFutureRoles": zod.boolean().default(removeApplicationTagResponseAllowsFutureRolesDefault),
   "futureRolesGivenAt": zod.iso.datetime({"offset":true}).nullish(),
   "inTalentPool": zod.boolean().default(removeApplicationTagResponseInTalentPoolDefault),
   "sourceSite": zod.string().nullish()
@@ -4493,6 +4521,8 @@ export const DownloadApplicationFileParams = zod.object({
 export const DownloadApplicationFileResponse = zod.void()
 
 
+export const listCandidatesResponseEmailIssueDefault = `None`;
+
 export const ListCandidatesResponseItem = zod.object({
   "id": zod.uuid(),
   "fullName": zod.string(),
@@ -4500,7 +4530,10 @@ export const ListCandidatesResponseItem = zod.object({
   "phone": zod.string().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "firstName": zod.string(),
-  "lastName": zod.string().nullable()
+  "lastName": zod.string().nullable(),
+  "emailIssue": zod.enum(['None', 'Bounced', 'SpamComplaint']).default(listCandidatesResponseEmailIssueDefault).describe('Why ScreenHire no longer emails a candidate\'s address (reported by the email provider).'),
+  "emailIssueAt": zod.iso.datetime({"offset":true}).nullish(),
+  "emailIssueReason": zod.string().nullish()
 }).describe('A candidate: one person per email address within the organization.')
 export const ListCandidatesResponse = zod.array(ListCandidatesResponseItem)
 
@@ -4510,6 +4543,7 @@ export const GetCandidateParams = zod.object({
 })
 
 export const getCandidateResponseApplicationsItemRatingTwoScorecardsDefault = 0;
+export const getCandidateResponseApplicationsItemAllowsFutureRolesDefault = false;
 
 export const GetCandidateResponse = zod.object({
   "id": zod.uuid(),
@@ -4548,7 +4582,7 @@ export const GetCandidateResponse = zod.object({
   "scorecards": zod.int().default(getCandidateResponseApplicationsItemRatingTwoScorecardsDefault)
 }).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\nthey give it, so it cannot anchor them.')]).optional(),
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
-  "futureRolesUntil": zod.iso.datetime({"offset":true}).nullish(),
+  "allowsFutureRoles": zod.boolean().default(getCandidateResponseApplicationsItemAllowsFutureRolesDefault),
   "sourceSite": zod.string().nullish()
 }).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\napplication itself.')),
   "firstName": zod.string(),
@@ -6280,72 +6314,6 @@ export const UpdateOrganizationVerificationSettingsResponse = zod.object({
 }).describe('The organization\'s verification settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the\nresume, answers and any LinkedIn export to the deployment\'s model provider; it is off until an admin turns it on.\n`monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment\'s default.\n`tokensUsedThisMonth` is what the check has used so far this month. `lastUpdated` is the settings\' last\nchange ("by ScreenHire" while they are the defaults); their history is `/verification-settings/history`.')
 
 
-export const getOrganizationTalentPoolSettingsResponseLastUpdatedCreatedDefault = false;
-
-export const GetOrganizationTalentPoolSettingsResponse = zod.object({
-  "permissionMonths": zod.int(),
-  "minMonths": zod.int(),
-  "maxMonths": zod.int(),
-  "lastUpdated": zod.object({
-  "at": zod.iso.datetime({"offset":true}).nullable(),
-  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
-  "userId": zod.uuid().nullish(),
-  "apiKeyId": zod.uuid().nullish(),
-  "created": zod.boolean().default(getOrganizationTalentPoolSettingsResponseLastUpdatedCreatedDefault)
-}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
-}).describe('The organization\'s talent pool settings (docs/architecture/talent-pool.md). `permissionMonths` is how long a\ncandidate\'s permission to keep their details for future roles lasts from when they gave it: 12 by default, from\n`minMonths` to `maxMonths`. A permission ends at the shorter of the period when it was given and this one.\n`lastUpdated` is the settings\' last change ("by ScreenHire" while they are the default); their history is\n`/talent-pool-settings/history`.')
-
-
-export const UpdateOrganizationTalentPoolSettingsBody = zod.object({
-  "permissionMonths": zod.int()
-}).describe('Sets how long a candidate\'s permission for future roles lasts, in whole months from 6 to 24.')
-
-export const updateOrganizationTalentPoolSettingsResponseLastUpdatedCreatedDefault = false;
-
-export const UpdateOrganizationTalentPoolSettingsResponse = zod.object({
-  "permissionMonths": zod.int(),
-  "minMonths": zod.int(),
-  "maxMonths": zod.int(),
-  "lastUpdated": zod.object({
-  "at": zod.iso.datetime({"offset":true}).nullable(),
-  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
-  "userId": zod.uuid().nullish(),
-  "apiKeyId": zod.uuid().nullish(),
-  "created": zod.boolean().default(updateOrganizationTalentPoolSettingsResponseLastUpdatedCreatedDefault)
-}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
-}).describe('The organization\'s talent pool settings (docs/architecture/talent-pool.md). `permissionMonths` is how long a\ncandidate\'s permission to keep their details for future roles lasts from when they gave it: 12 by default, from\n`minMonths` to `maxMonths`. A permission ends at the shorter of the period when it was given and this one.\n`lastUpdated` is the settings\' last change ("by ScreenHire" while they are the default); their history is\n`/talent-pool-settings/history`.')
-
-
-export const GetOrganizationTalentPoolSettingsHistoryQueryParams = zod.object({
-  "before": zod.uuid().optional(),
-  "limit": zod.int().optional()
-})
-
-export const GetOrganizationTalentPoolSettingsHistoryResponse = zod.object({
-  "entries": zod.array(zod.object({
-  "id": zod.uuid(),
-  "at": zod.iso.datetime({"offset":true}),
-  "by": zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)]),
-  "userId": zod.uuid().nullable(),
-  "apiKeyId": zod.uuid().nullable(),
-  "lines": zod.array(zod.object({
-  "text": zod.string(),
-  "parts": zod.array(zod.object({
-  "text": zod.string(),
-  "strong": zod.boolean()
-})),
-  "details": zod.array(zod.object({
-  "label": zod.string(),
-  "before": zod.string().nullable(),
-  "after": zod.string().nullable(),
-  "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
-}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
-}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
-}).describe('Everything one save changed in the object: who, when, and a line per change.')),
-  "nextBefore": zod.uuid().nullable()
-}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
-
-
 export const ListTeamMembersResponseItem = zod.object({
   "id": zod.uuid(),
   "userId": zod.uuid(),
@@ -6552,6 +6520,163 @@ export const UpdateNotificationSettingsResponse = zod.object({
 }).describe('The signed-in member\'s settings for teammates\' changes as toasts, in their current organization. `toasts` turns\nthem on or off; `closeToasts` closes each after a few seconds, and off keeps it until dismissed; `off` lists\nthe kinds of change that do not toast. Everything starts on.')
 
 
+export const ListViewsResponse = zod.object({
+  "views": zod.array(zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "scope": zod.enum(['Candidates', 'Job']).describe('Which table a view filters: the Candidates page, or one job\'s candidates.'),
+  "jobId": zod.uuid().nullable(),
+  "shared": zod.boolean(),
+  "mine": zod.boolean(),
+  "canEdit": zod.boolean(),
+  "filters": zod.object({
+  "baseView": zod.string().nullable(),
+  "jobIds": zod.array(zod.uuid()),
+  "stages": zod.array(zod.string()),
+  "authenticity": zod.string().nullable(),
+  "aiAssistance": zod.string().nullable(),
+  "tag": zod.string().nullable(),
+  "sortColumn": zod.string().nullable(),
+  "sortDescending": zod.boolean()
+}).describe('What a view filters and how it sorts. `baseView` is a built-in view this one narrows; `jobIds` and\n`stages` pick jobs and stages (stage names on the Candidates page, stage ids on a job\'s table); `authenticity`\nis an authenticity level name or `Pending`; `aiAssistance` an AI assistance level name; `sortColumn` the\nsorted column, or none for the table\'s own order. Search text is not saved.'),
+  "updatedAt": zod.iso.datetime({"offset":true})
+}).describe('A saved view as the signed-in member sees it: their own, and the team\'s shared ones. `mine` is whether they saved\nit; `canEdit` whether they may rename, share or delete it (its owner, or a role that edits anyone\'s views).')),
+  "hiddenBuiltIns": zod.array(zod.string())
+}).describe('The views the member sees, oldest first, and the ids of the built-in views they hid.')
+
+
+export const CreateViewBody = zod.object({
+  "name": zod.string(),
+  "scope": zod.enum(['Candidates', 'Job']).describe('Which table a view filters: the Candidates page, or one job\'s candidates.'),
+  "jobId": zod.uuid().nullable(),
+  "shared": zod.boolean(),
+  "filters": zod.object({
+  "baseView": zod.string().nullable(),
+  "jobIds": zod.array(zod.uuid()),
+  "stages": zod.array(zod.string()),
+  "authenticity": zod.string().nullable(),
+  "aiAssistance": zod.string().nullable(),
+  "tag": zod.string().nullable(),
+  "sortColumn": zod.string().nullable(),
+  "sortDescending": zod.boolean()
+}).describe('What a view filters and how it sorts. `baseView` is a built-in view this one narrows; `jobIds` and\n`stages` pick jobs and stages (stage names on the Candidates page, stage ids on a job\'s table); `authenticity`\nis an authenticity level name or `Pending`; `aiAssistance` an AI assistance level name; `sortColumn` the\nsorted column, or none for the table\'s own order. Search text is not saved.')
+}).describe('Saves the current filters and sort as a view; a job view names its job, a candidates view takes none.')
+
+export const CreateViewResponse = zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "scope": zod.enum(['Candidates', 'Job']).describe('Which table a view filters: the Candidates page, or one job\'s candidates.'),
+  "jobId": zod.uuid().nullable(),
+  "shared": zod.boolean(),
+  "mine": zod.boolean(),
+  "canEdit": zod.boolean(),
+  "filters": zod.object({
+  "baseView": zod.string().nullable(),
+  "jobIds": zod.array(zod.uuid()),
+  "stages": zod.array(zod.string()),
+  "authenticity": zod.string().nullable(),
+  "aiAssistance": zod.string().nullable(),
+  "tag": zod.string().nullable(),
+  "sortColumn": zod.string().nullable(),
+  "sortDescending": zod.boolean()
+}).describe('What a view filters and how it sorts. `baseView` is a built-in view this one narrows; `jobIds` and\n`stages` pick jobs and stages (stage names on the Candidates page, stage ids on a job\'s table); `authenticity`\nis an authenticity level name or `Pending`; `aiAssistance` an AI assistance level name; `sortColumn` the\nsorted column, or none for the table\'s own order. Search text is not saved.'),
+  "updatedAt": zod.iso.datetime({"offset":true})
+}).describe('A saved view as the signed-in member sees it: their own, and the team\'s shared ones. `mine` is whether they saved\nit; `canEdit` whether they may rename, share or delete it (its owner, or a role that edits anyone\'s views).')
+
+
+export const UpdateViewParams = zod.object({
+  "viewId": zod.uuid()
+})
+
+export const UpdateViewBody = zod.object({
+  "name": zod.string().nullable(),
+  "shared": zod.boolean().nullable()
+}).describe('Renames a view, shares it or makes it private; a member left out stays as it is.')
+
+export const UpdateViewResponse = zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "scope": zod.enum(['Candidates', 'Job']).describe('Which table a view filters: the Candidates page, or one job\'s candidates.'),
+  "jobId": zod.uuid().nullable(),
+  "shared": zod.boolean(),
+  "mine": zod.boolean(),
+  "canEdit": zod.boolean(),
+  "filters": zod.object({
+  "baseView": zod.string().nullable(),
+  "jobIds": zod.array(zod.uuid()),
+  "stages": zod.array(zod.string()),
+  "authenticity": zod.string().nullable(),
+  "aiAssistance": zod.string().nullable(),
+  "tag": zod.string().nullable(),
+  "sortColumn": zod.string().nullable(),
+  "sortDescending": zod.boolean()
+}).describe('What a view filters and how it sorts. `baseView` is a built-in view this one narrows; `jobIds` and\n`stages` pick jobs and stages (stage names on the Candidates page, stage ids on a job\'s table); `authenticity`\nis an authenticity level name or `Pending`; `aiAssistance` an AI assistance level name; `sortColumn` the\nsorted column, or none for the table\'s own order. Search text is not saved.'),
+  "updatedAt": zod.iso.datetime({"offset":true})
+}).describe('A saved view as the signed-in member sees it: their own, and the team\'s shared ones. `mine` is whether they saved\nit; `canEdit` whether they may rename, share or delete it (its owner, or a role that edits anyone\'s views).')
+
+
+export const DeleteViewParams = zod.object({
+  "viewId": zod.uuid()
+})
+
+export const DeleteViewResponse = zod.void()
+
+
+export const RestoreViewParams = zod.object({
+  "viewId": zod.uuid()
+})
+
+export const RestoreViewResponse = zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "scope": zod.enum(['Candidates', 'Job']).describe('Which table a view filters: the Candidates page, or one job\'s candidates.'),
+  "jobId": zod.uuid().nullable(),
+  "shared": zod.boolean(),
+  "mine": zod.boolean(),
+  "canEdit": zod.boolean(),
+  "filters": zod.object({
+  "baseView": zod.string().nullable(),
+  "jobIds": zod.array(zod.uuid()),
+  "stages": zod.array(zod.string()),
+  "authenticity": zod.string().nullable(),
+  "aiAssistance": zod.string().nullable(),
+  "tag": zod.string().nullable(),
+  "sortColumn": zod.string().nullable(),
+  "sortDescending": zod.boolean()
+}).describe('What a view filters and how it sorts. `baseView` is a built-in view this one narrows; `jobIds` and\n`stages` pick jobs and stages (stage names on the Candidates page, stage ids on a job\'s table); `authenticity`\nis an authenticity level name or `Pending`; `aiAssistance` an AI assistance level name; `sortColumn` the\nsorted column, or none for the table\'s own order. Search text is not saved.'),
+  "updatedAt": zod.iso.datetime({"offset":true})
+}).describe('A saved view as the signed-in member sees it: their own, and the team\'s shared ones. `mine` is whether they saved\nit; `canEdit` whether they may rename, share or delete it (its owner, or a role that edits anyone\'s views).')
+
+
+export const UpdateHiddenViewsBody = zod.object({
+  "hiddenBuiltIns": zod.array(zod.string())
+}).describe('Replaces the built-in views the member hides; each id once.')
+
+export const UpdateHiddenViewsResponse = zod.object({
+  "views": zod.array(zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "scope": zod.enum(['Candidates', 'Job']).describe('Which table a view filters: the Candidates page, or one job\'s candidates.'),
+  "jobId": zod.uuid().nullable(),
+  "shared": zod.boolean(),
+  "mine": zod.boolean(),
+  "canEdit": zod.boolean(),
+  "filters": zod.object({
+  "baseView": zod.string().nullable(),
+  "jobIds": zod.array(zod.uuid()),
+  "stages": zod.array(zod.string()),
+  "authenticity": zod.string().nullable(),
+  "aiAssistance": zod.string().nullable(),
+  "tag": zod.string().nullable(),
+  "sortColumn": zod.string().nullable(),
+  "sortDescending": zod.boolean()
+}).describe('What a view filters and how it sorts. `baseView` is a built-in view this one narrows; `jobIds` and\n`stages` pick jobs and stages (stage names on the Candidates page, stage ids on a job\'s table); `authenticity`\nis an authenticity level name or `Pending`; `aiAssistance` an AI assistance level name; `sortColumn` the\nsorted column, or none for the table\'s own order. Search text is not saved.'),
+  "updatedAt": zod.iso.datetime({"offset":true})
+}).describe('A saved view as the signed-in member sees it: their own, and the team\'s shared ones. `mine` is whether they saved\nit; `canEdit` whether they may rename, share or delete it (its owner, or a role that edits anyone\'s views).')),
+  "hiddenBuiltIns": zod.array(zod.string())
+}).describe('The views the member sees, oldest first, and the ids of the built-in views they hid.')
+
+
 export const GetJobHiringTeamParams = zod.object({
   "jobId": zod.uuid()
 })
@@ -6630,7 +6755,7 @@ export const ListRolesResponse = zod.object({
   "customRoleId": zod.uuid().nullable(),
   "name": zod.string(),
   "description": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "people": zod.int(),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
@@ -6641,7 +6766,7 @@ export const ListRolesResponse = zod.object({
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.')
 }).describe('A role: built-in (`customRoleId` null), or Custom with its id. `description` is one line on what it is\nfor, generated from its permissions for a custom role. `people` counts the members who have it. A built-in role\nis last updated by ScreenHire.')),
   "permissions": zod.array(zod.object({
-  "permission": zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.'),
+  "permission": zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.'),
   "group": zod.enum(['Hiring', 'Templates', 'Organization']).describe('The groups the Roles page shows permissions in.'),
   "name": zod.string(),
   "description": zod.string(),
@@ -6663,7 +6788,7 @@ export const CreateRoleResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "description": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "people": zod.int(),
   "copiedFrom": zod.string(),
   "createdAt": zod.iso.datetime({"offset":true}),
@@ -6687,7 +6812,7 @@ export const GetRoleResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "description": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "people": zod.int(),
   "copiedFrom": zod.string(),
   "createdAt": zod.iso.datetime({"offset":true}),
@@ -6707,7 +6832,7 @@ export const UpdateRoleParams = zod.object({
 
 export const UpdateRoleBody = zod.object({
   "name": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')).nullable()
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')).nullable()
 }).describe('Renames a custom role and sets what it can do.')
 
 export const updateRoleResponseLastUpdatedCreatedDefault = false;
@@ -6716,7 +6841,7 @@ export const UpdateRoleResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "description": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "people": zod.int(),
   "copiedFrom": zod.string(),
   "createdAt": zod.iso.datetime({"offset":true}),
@@ -8080,7 +8205,7 @@ export const ListEmailTemplatesResponse = zod.object({
   "rejectOnly": zod.boolean(),
   "questionnaireOnly": zod.boolean().default(listEmailTemplatesResponseVariablesItemQuestionnaireOnlyDefault),
   "invitationOnly": zod.boolean().default(listEmailTemplatesResponseVariablesItemInvitationOnlyDefault)
-}).describe('A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.\n`questionnaireOnly`: only the follow-up questions email has it. `invitationOnly`: only the talent pool\ninvitation has it.'))
+}).describe('A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.\n`questionnaireOnly`: only the follow-up questions email has it. `invitationOnly`: only saved candidates\ninvitation has it.'))
 }).describe('The organization\'s email templates and the variables they may use. `sendingEnabled` is false when this\ndeployment has no email sender: templates can still be edited, but nothing can be sent or tested.')
 
 
@@ -8325,7 +8450,7 @@ export const SendEmailsBody = zod.object({
 export const SendEmailsResponse = zod.object({
   "queued": zod.int(),
   "skipped": zod.int()
-}).describe('How many emails were queued. `skipped` counts applications the email does not fit: the stage-change email to a\ncandidate whose application has ended. Each sent email appears in its application\'s activity.')
+}).describe('How many emails were queued. `skipped` counts applications the email does not fit: the stage-change email to a\ncandidate whose application has ended, and a candidate whose address bounced or marked an email as spam. Each sent email appears in its application\'s activity.')
 
 
 export const GetSentEmailParams = zod.object({
@@ -8344,9 +8469,44 @@ export const GetSentEmailResponse = zod.object({
 }).describe('An email exactly as it went to the candidate: the address, the subject, the HTML part and the plain-text part.')
 
 
+export const GetReceivedEmailParams = zod.object({
+  "replyId": zod.uuid()
+})
+
+export const GetReceivedEmailResponse = zod.object({
+  "id": zod.uuid(),
+  "applicationId": zod.uuid(),
+  "fromAddress": zod.string(),
+  "fromName": zod.string().nullable(),
+  "subject": zod.string(),
+  "html": zod.string(),
+  "text": zod.string(),
+  "receivedAt": zod.iso.datetime({"offset":true}),
+  "autoReply": zod.boolean(),
+  "attachments": zod.array(zod.object({
+  "id": zod.uuid(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "sizeBytes": zod.int(),
+  "scanStatus": zod.enum(['Pending', 'Clean', 'Infected', 'NotScanned'])
+}).describe('A file that came with a reply. It can be downloaded once `scanStatus` is `Clean` or `NotScanned`; while it is\n`Pending` the download answers 409, and an `Infected` file is never offered.'))
+}).describe('A candidate\'s reply as it arrived: who it is from, the subject, the sanitized HTML part (may be empty) and the plain-text\npart, and the files that came with it. `autoReply` marks an out-of-office or other automatic answer.')
+
+
+export const DownloadReplyAttachmentParams = zod.object({
+  "replyId": zod.uuid(),
+  "attachmentId": zod.uuid()
+})
+
+export const DownloadReplyAttachmentResponse = zod.void()
+
+
 export const ListCandidateEmailsParams = zod.object({
   "candidateId": zod.uuid()
 })
+
+export const listCandidateEmailsResponseDirectionDefault = `Sent`;
+export const listCandidateEmailsResponseAttachmentCountDefault = 0;
 
 export const ListCandidateEmailsResponseItem = zod.object({
   "id": zod.uuid(),
@@ -8357,13 +8517,151 @@ export const ListCandidateEmailsResponseItem = zod.object({
   "actorUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
   "sentAt": zod.iso.datetime({"offset":true}),
-  "kept": zod.boolean()
+  "kept": zod.boolean(),
+  "direction": zod.enum(['Sent', 'Received']).default(listCandidateEmailsResponseDirectionDefault).describe('Which way an email in Messages went.'),
+  "fromAddress": zod.string().nullish(),
+  "attachmentCount": zod.int().default(listCandidateEmailsResponseAttachmentCountDefault)
 }).describe('One email to the candidate, for Messages: what went, when, and who or which automation sent it. `kept` is false\nfor an email sent before ScreenHire kept each email\'s copy: only its subject is known.')
 export const ListCandidateEmailsResponse = zod.array(ListCandidateEmailsResponseItem)
 
 
+export const ClearCandidateEmailIssueParams = zod.object({
+  "candidateId": zod.uuid()
+})
+
+export const clearCandidateEmailIssueResponseEmailIssueDefault = `None`;
+
+export const ClearCandidateEmailIssueResponse = zod.object({
+  "id": zod.uuid(),
+  "fullName": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullable(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "firstName": zod.string(),
+  "lastName": zod.string().nullable(),
+  "emailIssue": zod.enum(['None', 'Bounced', 'SpamComplaint']).default(clearCandidateEmailIssueResponseEmailIssueDefault).describe('Why ScreenHire no longer emails a candidate\'s address (reported by the email provider).'),
+  "emailIssueAt": zod.iso.datetime({"offset":true}).nullish(),
+  "emailIssueReason": zod.string().nullish()
+}).describe('A candidate: one person per email address within the organization.')
+
+
+export const getOrganizationSendingDomainResponseLastUpdatedTwoCreatedDefault = false;
+
+export const GetOrganizationSendingDomainResponse = zod.object({
+  "available": zod.boolean(),
+  "sandbox": zod.boolean(),
+  "domain": zod.union([zod.null(),zod.object({
+  "domain": zod.string(),
+  "status": zod.enum(['Pending', 'Verified']),
+  "fromAddress": zod.string(),
+  "replyHost": zod.string(),
+  "records": zod.array(zod.object({
+  "purpose": zod.enum(['Dkim', 'ReturnPath', 'Replies']).describe('Why a record is on the list.'),
+  "type": zod.string(),
+  "host": zod.string(),
+  "value": zod.string(),
+  "priority": zod.int().nullable(),
+  "state": zod.enum(['NotChecked', 'Matches', 'Differs', 'Missing']).describe('What the last DNS lookup found for a record.'),
+  "reason": zod.string()
+}).describe('One DNS record to add at the domain\'s DNS host, why it is needed, and what the last check found.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastCheckedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "verifiedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "providerMessage": zod.string().nullable()
+}).describe('A sending domain and what is left to do. `status` is Verified only once the email provider confirms the records,\nand only then does mail come from `fromAddress`; until then it keeps ScreenHire\'s address.')]),
+  "lastUpdated": zod.union([zod.null(),zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(getOrganizationSendingDomainResponseLastUpdatedTwoCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')]).optional()
+}).describe('The organization\'s sending domain (Settings, Sending domain). `available` is false when this deployment has no email\nprovider: the page says so and offers nothing. `sandbox` says the records are made up for a local run. `domain`\nis null until one is added. `lastUpdated` is the newest change to it (added, verified, no longer verified), null with\nno domain; its History is `GET /v1/organization/sending-domain/history`.')
+
+
+export const SetOrganizationSendingDomainBody = zod.object({
+  "domain": zod.string()
+}).describe('The domain to send from, such as `example.com`. Replaces the organization\'s current one.')
+
+export const SetOrganizationSendingDomainResponse = zod.object({
+  "domain": zod.string(),
+  "status": zod.enum(['Pending', 'Verified']),
+  "fromAddress": zod.string(),
+  "replyHost": zod.string(),
+  "records": zod.array(zod.object({
+  "purpose": zod.enum(['Dkim', 'ReturnPath', 'Replies']).describe('Why a record is on the list.'),
+  "type": zod.string(),
+  "host": zod.string(),
+  "value": zod.string(),
+  "priority": zod.int().nullable(),
+  "state": zod.enum(['NotChecked', 'Matches', 'Differs', 'Missing']).describe('What the last DNS lookup found for a record.'),
+  "reason": zod.string()
+}).describe('One DNS record to add at the domain\'s DNS host, why it is needed, and what the last check found.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastCheckedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "verifiedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "providerMessage": zod.string().nullable()
+}).describe('A sending domain and what is left to do. `status` is Verified only once the email provider confirms the records,\nand only then does mail come from `fromAddress`; until then it keeps ScreenHire\'s address.')
+
+
+export const DeleteOrganizationSendingDomainResponse = zod.void()
+
+
+export const GetOrganizationSendingDomainHistoryQueryParams = zod.object({
+  "before": zod.uuid().optional(),
+  "limit": zod.int().optional()
+})
+
+export const GetOrganizationSendingDomainHistoryResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "id": zod.uuid(),
+  "at": zod.iso.datetime({"offset":true}),
+  "by": zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)]),
+  "userId": zod.uuid().nullable(),
+  "apiKeyId": zod.uuid().nullable(),
+  "lines": zod.array(zod.object({
+  "text": zod.string(),
+  "parts": zod.array(zod.object({
+  "text": zod.string(),
+  "strong": zod.boolean()
+})),
+  "details": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string().nullable(),
+  "after": zod.string().nullable(),
+  "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
+}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
+}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
+}).describe('Everything one save changed in the object: who, when, and a line per change.')),
+  "nextBefore": zod.uuid().nullable()
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
+
+
+export const CheckOrganizationSendingDomainResponse = zod.object({
+  "domain": zod.string(),
+  "status": zod.enum(['Pending', 'Verified']),
+  "fromAddress": zod.string(),
+  "replyHost": zod.string(),
+  "records": zod.array(zod.object({
+  "purpose": zod.enum(['Dkim', 'ReturnPath', 'Replies']).describe('Why a record is on the list.'),
+  "type": zod.string(),
+  "host": zod.string(),
+  "value": zod.string(),
+  "priority": zod.int().nullable(),
+  "state": zod.enum(['NotChecked', 'Matches', 'Differs', 'Missing']).describe('What the last DNS lookup found for a record.'),
+  "reason": zod.string()
+}).describe('One DNS record to add at the domain\'s DNS host, why it is needed, and what the last check found.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastCheckedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "verifiedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "providerMessage": zod.string().nullable()
+}).describe('A sending domain and what is left to do. `status` is Verified only once the email provider confirms the records,\nand only then does mail come from `fromAddress`; until then it keeps ScreenHire\'s address.')
+
+
+export const listTalentPoolResponsePeopleItemNoteUpdatedTwoCreatedDefault = false;
+export const listTalentPoolResponsePeopleItemRatingScorecardsDefault = 0;
+
 export const ListTalentPoolResponse = zod.object({
-  "permissionMonths": zod.int(),
   "people": zod.array(zod.object({
   "candidateId": zod.uuid(),
   "candidateName": zod.string(),
@@ -8372,28 +8670,85 @@ export const ListTalentPoolResponse = zod.object({
   "jobId": zod.uuid(),
   "jobTitle": zod.string(),
   "note": zod.string().nullable(),
+  "noteUpdated": zod.union([zod.null(),zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(listTalentPoolResponsePeopleItemNoteUpdatedTwoCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')]),
   "tags": zod.array(zod.string()),
   "keptAt": zod.iso.datetime({"offset":true}),
   "keptByUserId": zod.uuid().nullable(),
-  "permissionEndsAt": zod.iso.datetime({"offset":true}),
+  "rating": zod.object({
+  "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\nreader has a review to give first.'),
+  "value": zod.number().nullish(),
+  "scorecards": zod.int().default(listTalentPoolResponsePeopleItemRatingScorecardsDefault)
+}).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\nthey give it, so it cannot anchor them.'),
+  "lastContactedAt": zod.iso.datetime({"offset":true}).nullable(),
   "lastInvitedJobId": zod.uuid().nullable(),
   "lastInvitedJobTitle": zod.string().nullable(),
   "lastInvitedAt": zod.iso.datetime({"offset":true}).nullable(),
   "appliedJobIds": zod.array(zod.uuid())
-}).describe('One candidate in the talent pool.'))
-}).describe('The organization\'s talent pool (docs/architecture/talent-pool.md): the candidates the team kept in mind, whose\npermission for future roles still holds. `permissionMonths` is the organization\'s period now.')
+}).describe('One saved candidate.'))
+}).describe('The organization\'s saved candidates (docs/architecture/talent-pool.md): the candidates the team saved, whose permission\nfor future roles still holds. They stay until the team removes them or the candidate asks to stop.')
 
 
 export const KeepInMindBody = zod.object({
   "applicationIds": zod.array(zod.uuid()),
   "note": zod.string().nullish()
-}).describe('Keeps the candidates of these applications in mind: each leaves its job without a rejection and joins the talent pool.\n`note` says why, once for all of them. Only an open application whose candidate gave permission for future roles\non its form can be kept.')
+}).describe('Saves the candidates of these applications: each leaves its job without a rejection and joins the saved candidates.\n`note` says why, once for all of them. Only an open application whose candidate gave permission for future roles\non its form can be saved.')
 
 export const KeepInMindResponse = zod.object({
   "kept": zod.int(),
   "notAllowed": zod.int(),
   "alreadyEnded": zod.int()
-}).describe('What happened: `kept` joined the pool; `notAllowed` have no permission for future roles (they never gave it,\nit ran out or they took it back); `alreadyEnded` were hired, rejected, withdrawn or kept in mind already.')
+}).describe('What happened: `kept` were saved; `notAllowed` have no permission for future roles (they never gave it or\nthey took it back); `alreadyEnded` were hired, rejected, withdrawn or saved already.')
+
+
+export const EditSavedNoteParams = zod.object({
+  "candidateId": zod.uuid()
+})
+
+export const EditSavedNoteBody = zod.object({
+  "note": zod.string().nullable()
+}).describe('Replaces a saved candidate\'s note. Blank clears it. The Activity entry from when they were saved keeps the first note.')
+
+export const EditSavedNoteResponse = zod.void()
+
+
+export const GetSavedNoteHistoryParams = zod.object({
+  "candidateId": zod.uuid()
+})
+
+export const GetSavedNoteHistoryQueryParams = zod.object({
+  "before": zod.uuid().optional(),
+  "limit": zod.int().optional()
+})
+
+export const GetSavedNoteHistoryResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "id": zod.uuid(),
+  "at": zod.iso.datetime({"offset":true}),
+  "by": zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)]),
+  "userId": zod.uuid().nullable(),
+  "apiKeyId": zod.uuid().nullable(),
+  "lines": zod.array(zod.object({
+  "text": zod.string(),
+  "parts": zod.array(zod.object({
+  "text": zod.string(),
+  "strong": zod.boolean()
+})),
+  "details": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string().nullable(),
+  "after": zod.string().nullable(),
+  "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
+}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
+}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
+}).describe('Everything one save changed in the object: who, when, and a line per change.')),
+  "nextBefore": zod.uuid().nullable()
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
 
 
 export const RemoveFromTalentPoolParams = zod.object({
@@ -8404,7 +8759,7 @@ export const removeFromTalentPoolBodyCandidateAskedDefault = false;
 
 export const RemoveFromTalentPoolBody = zod.object({
   "candidateAsked": zod.boolean().default(removeFromTalentPoolBodyCandidateAskedDefault)
-}).describe('Takes the candidate out of the talent pool. `candidateAsked`: they asked to be removed, so their permission for\nfuture roles is withdrawn too, and they cannot be kept again until they give it on a new application.')
+}).describe('Takes the candidate out of the saved candidates. `candidateAsked`: they asked to be removed, so their permission for\nfuture roles is withdrawn too, and they cannot be saved again until they give it on a new application.')
 
 export const RemoveFromTalentPoolResponse = zod.void()
 
@@ -8424,7 +8779,7 @@ export const PreviewTalentPoolInvitationResponse = zod.object({
 export const InviteToApplyBody = zod.object({
   "candidateIds": zod.array(zod.uuid()),
   "jobId": zod.uuid()
-}).describe('Invites these candidates from the talent pool to apply for `jobId`, an open job.')
+}).describe('Invites these saved candidates to apply for `jobId`, an open job.')
 
 export const InviteToApplyResponse = zod.object({
   "queued": zod.int(),
@@ -8435,7 +8790,7 @@ export const InviteToApplyResponse = zod.object({
 export const AddFromTalentPoolBody = zod.object({
   "candidateIds": zod.array(zod.uuid()),
   "jobId": zod.uuid()
-}).describe('Adds these candidates from the talent pool to `jobId`, which must not be closed.')
+}).describe('Adds these saved candidates to `jobId`, which must not be closed.')
 
 export const AddFromTalentPoolResponse = zod.object({
   "applicationIds": zod.array(zod.uuid()),
@@ -8468,7 +8823,8 @@ export const SearchResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
-}).describe('A stage of the job\'s workflow, as an application sees it.')
+}).describe('A stage of the job\'s workflow, as an application sees it.'),
+  "keptInMindAt": zod.iso.datetime({"offset":true}).nullish()
 }).describe('A candidate whose name or email matched, on one of their applications: the record to open.')),
   "jobs": zod.array(zod.object({
   "id": zod.uuid(),

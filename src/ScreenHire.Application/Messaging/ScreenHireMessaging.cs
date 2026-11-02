@@ -9,6 +9,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.Automations;
+using ScreenHire.Application.Branding;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Distribution.GoogleIndexing;
 using ScreenHire.Application.Verification;
@@ -195,6 +196,7 @@ public static class ScreenHireMessaging
 
         // Integrations the handlers use, each with a local adapter until a real one is registered first (CLAUDE.md).
         opts.Services.TryAddSingleton<IMalwareScanner, NoMalwareScanner>();
+        opts.Services.TryAddSingleton<IBrandImageStore, NoBrandImageStore>();
         opts.Services.AddScreenHireVerification();
 
         UsePostgres(opts, connectionString, settings);
@@ -279,10 +281,10 @@ public static class ScreenHireMessaging
         opts.Schedules.ScheduleRecurring<PurgeExpiredWebhookDeliveries>("37 3 * * *");
         // Answers saved to finish later, 30 days after their first save (docs/architecture/apply-flow.md section 7).
         opts.Schedules.ScheduleRecurring<PurgeExpiredApplicationDrafts>("7 4 * * *");
+        // Brand images nobody saved into the branding, a day after the upload (docs/architecture/branding.md section 4).
+        opts.Schedules.ScheduleRecurring<PurgeExpiredBrandImageUploads>("27 3 * * *");
         // Records that Slack messages went, and the sandbox's messages, past their retention, daily (docs/architecture/slack.md).
         opts.Schedules.ScheduleRecurring<PurgeExpiredSlackMessages>("57 3 * * *");
-        // People whose permission for future roles ran out leave the talent pool, daily (docs/architecture/talent-pool.md).
-        opts.Schedules.ScheduleRecurring<ExpireTalentPool>("47 3 * * *");
         // Job distribution (docs/architecture/job-distribution.md): the reconciliation sweep, and the Indexing API queue.
         opts.Schedules.ScheduleRecurring<ReconcileJobPostings>("*/5 * * * *");
         opts.Schedules.ScheduleRecurring<DispatchIndexingNotifications>("* * * * *");

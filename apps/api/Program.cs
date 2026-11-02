@@ -7,6 +7,7 @@ using ScreenHire.Api.Auth;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Demo;
+using ScreenHire.Api.Email;
 using ScreenHire.Api.Endpoints;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Api.Mcp;
@@ -14,6 +15,7 @@ using ScreenHire.Api.Realtime;
 using ScreenHire.Application.Automations;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Messaging;
+using ScreenHire.Application.SendingDomains;
 using ScreenHire.Application.Slack;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
@@ -43,11 +45,15 @@ builder.Services.AddScoped<ScreenHire.Application.Verification.IApplicantDirecto
 builder.Services.AddSingleton<EmailTemplates>();
 builder.Services.AddSingleton<EmailTemplateStore>();
 builder.Services.AddSingleton<IValidator<CreateEmailTemplateRequest>, CreateEmailTemplateRequestValidator>();
+builder.Services.AddSingleton<IValidator<CreateViewRequest>, CreateViewRequestValidator>();
+builder.Services.AddSingleton<IValidator<UpdateViewRequest>, UpdateViewRequestValidator>();
+builder.Services.AddSingleton<IValidator<UpdateHiddenViewsRequest>, UpdateHiddenViewsRequestValidator>();
 builder.Services.AddSingleton<IValidator<UpdateEmailTemplateRequest>, UpdateEmailTemplateRequestValidator>();
 builder.Services.AddSingleton<IValidator<EmailTemplateDraft>, EmailTemplateDraftValidator>();
 builder.Services.AddSingleton<IValidator<ApplicationEmailDraft>, ApplicationEmailDraftValidator>();
 builder.Services.AddSingleton<IValidator<SendEmailsRequest>, SendEmailsRequestValidator>();
 builder.Services.AddSingleton<IValidator<KeepInMindRequest>, KeepInMindRequestValidator>();
+builder.Services.AddSingleton<IValidator<EditSavedNoteRequest>, EditSavedNoteRequestValidator>();
 builder.Services.AddSingleton<IValidator<InviteToApplyRequest>, InviteToApplyRequestValidator>();
 builder.Services.AddSingleton<IValidator<AddFromTalentPoolRequest>, AddFromTalentPoolRequestValidator>();
 if (builder.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("ScreenHire:Demo:Enabled"))
@@ -76,6 +82,11 @@ builder.Services.AddOptions<WebhookOptions>().BindConfiguration(WebhookOptions.S
 builder.Services.AddOptions<CareersEmbeddingOptions>().BindConfiguration(CareersEmbeddingOptions.Section);
 // Slack (docs/architecture/slack.md): connecting a workspace and linking accounts happen here; the worker posts.
 builder.Services.AddScreenHireSlack();
+
+// Replies, bounces and the organization's sending domain (docs/architecture/email.md, ADR-0022): SendGrid's webhooks, the
+// reply store, and the sending-domain provider, each hidden until configured, with a local sandbox for each.
+builder.Services.AddScreenHireEmailWebhooks();
+builder.Services.AddScreenHireSendingDomains();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     // Strict numbers keep OpenAPI integer/number types clean for the generated TypeScript client.
@@ -119,6 +130,7 @@ app.MapPublicDistributionEndpoints();
 app.MapOrganizationEndpoints();
 app.MapTeamEndpoints();
 app.MapNotificationSettingsEndpoints();
+app.MapViewEndpoints();
 app.MapHiringTeamEndpoints();
 app.MapRoleEndpoints();
 app.MapApiKeyEndpoints();
@@ -132,6 +144,8 @@ app.MapTemplateUsageEndpoints();
 app.MapWebhookEndpoints();
 app.MapSlackEndpoints();
 app.MapEmailEndpoints();
+app.MapEmailWebhookEndpoints();
+app.MapSendingDomainEndpoints();
 app.MapTalentPoolEndpoints();
 app.MapSchemaEndpoints();
 app.MapSearchEndpoints();
@@ -150,6 +164,7 @@ if (app.Environment.IsDevelopment())
     await ScreenHireMessaging.ProvisionStorageAsync(ownerConnectionString);
     await app.Services.GetRequiredService<ApplicantUploads>().ProvisionDevelopmentStorageAsync();
     await app.Services.GetRequiredService<BrandImageUploads>().ProvisionDevelopmentStorageAsync();
+    await app.Services.GetRequiredService<EmailAttachmentStore>().ProvisionDevelopmentStorageAsync();
 }
 
 await app.RunAsync();

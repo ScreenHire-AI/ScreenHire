@@ -74,7 +74,18 @@ internal sealed class EventsConnection : IAsyncDisposable
     }
 
     /// <summary>Waits for an event of <paramref name="type"/> whose data has <paramref name="property"/> equal to <paramref name="value"/>.</summary>
-    public async Task<JsonElement> WaitForAsync(string type, string property, Guid value, CancellationToken cancellationToken)
+    public Task<JsonElement> WaitForAsync(string type, string property, Guid value, CancellationToken cancellationToken) =>
+        WaitForAsync(type, $"{property} {value}", data => data.TryGetProperty(property, out var actual) && actual.GetGuid() == value, cancellationToken);
+
+    /// <summary>Waits for an event of <paramref name="type"/> whose data has the text <paramref name="property"/> equal to <paramref name="value"/>.</summary>
+    public Task<JsonElement> WaitForAsync(string type, string property, string value, CancellationToken cancellationToken) =>
+        WaitForAsync(
+            type,
+            $"{property} {value}",
+            data => data.TryGetProperty(property, out var actual) && actual.ValueKind == JsonValueKind.String && actual.GetString() == value,
+            cancellationToken);
+
+    private async Task<JsonElement> WaitForAsync(string type, string described, Func<JsonElement, bool> matches, CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(Deadline);
@@ -82,9 +93,9 @@ internal sealed class EventsConnection : IAsyncDisposable
         {
             while (true)
             {
-                if (Find(type, property, value) is { } match)
+                if (received.FirstOrDefault(e => e.Type == type && matches(e.Data)) is { } match)
                 {
-                    return match;
+                    return match.Data;
                 }
 
                 await Task.Delay(TimeSpan.FromMilliseconds(100), deadline.Token);
@@ -93,7 +104,7 @@ internal sealed class EventsConnection : IAsyncDisposable
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             throw new TimeoutException(
-                $"No {type} with {property} {value} within {Deadline.TotalSeconds:0} seconds. Received: " +
+                $"No {type} with {described} within {Deadline.TotalSeconds:0} seconds. Received: " +
                 string.Join(", ", received.Select(e => $"{e.Type} {e.Data}")));
         }
     }
@@ -103,11 +114,6 @@ internal sealed class EventsConnection : IAsyncDisposable
         received.Any(e => e.Data.GetRawText().Contains(id.ToString(), StringComparison.OrdinalIgnoreCase));
 
     public async ValueTask DisposeAsync() => await Hub.DisposeAsync();
-
-    private JsonElement? Find(string type, string property, Guid value) =>
-        received.FirstOrDefault(e => e.Type == type
-            && e.Data.TryGetProperty(property, out var actual)
-            && actual.GetGuid() == value)?.Data;
 }
 
 internal sealed record ReceivedEvent(string Type, JsonElement Data);

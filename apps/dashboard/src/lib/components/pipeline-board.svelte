@@ -22,6 +22,8 @@
   import type { Moves } from '#lib/moves.svelte.js';
   import { hasModifier } from '#lib/shortcuts.js';
   import { isOverdue } from '#lib/sla.js';
+  import StatusIcon from '#lib/components/status-icon.svelte';
+  import type { StatusName } from '#lib/status.js';
   import { keptInMindLabel } from '#lib/talent-pool.js';
 
   // A job's candidates by stage (design system sections 5 and 21). A stage with candidates is a 296px column and an
@@ -45,13 +47,13 @@
   const terminalKinds = new Set<StageKind>(['Hired', 'Rejected', 'Withdrawn']);
   const openStages = $derived(stages.filter((stage) => !terminalKinds.has(stage.kind)));
   const closedStages = $derived(stages.filter((stage) => terminalKinds.has(stage.kind)));
-  // A candidate kept in mind has left the job (docs/architecture/talent-pool.md): their stage is where they stood, so
+  // A saved candidate has left the job (docs/architecture/talent-pool.md): their stage is where they stood, so
   // they count in Closed, never in that stage's column.
   const stillIn = $derived(applications.filter((application) => !application.keptInMindAt));
   const countIn = (stageId: string) => stillIn.filter((application) => application.stage.id === stageId).length;
   const closedCount = $derived(closedStages.reduce((sum, stage) => sum + countIn(stage.id), 0) + (applications.length - stillIn.length));
 
-  // Closed's rows start collapsed; the open ones are kept by key (a stage's id, or `kept` for Kept in mind), so a move
+  // Closed's rows start collapsed; the open ones are kept by key (a stage's id, or `kept` for Saved), so a move
   // that redraws the board leaves them as the person set them.
   const keptKey = 'kept';
   const expandedClosed = new SvelteSet<string>();
@@ -122,11 +124,12 @@
      A row with nobody in it has nothing to open, so it has no chevron and is not a button. Opening shows plain cards that
      link to the candidate, as the open columns' cards do; they are not draggable, because the menu on an open column's
      card is the way to move someone. -->
-{#snippet closedRow(key: string, name: string, cards: readonly ApplicationSummary[])}
+{#snippet closedRow(key: string, name: string, cards: readonly ApplicationSummary[], status?: StatusName)}
   {@const open = expandedClosed.has(key)}
   {#if cards.length === 0}
-    <span class="flex min-w-0 items-center justify-between gap-2 px-2 py-1.5 text-body text-muted-foreground">
-      <span class="min-w-0 break-words">{name}</span>
+    <span class="flex min-w-0 items-center gap-2 px-2 py-1.5 text-body text-muted-foreground">
+      {#if status}<StatusIcon {status} />{/if}
+      <span class="min-w-0 flex-1 break-words">{name}</span>
       <span class="tabular-nums">0</span>
     </span>
   {:else}
@@ -138,6 +141,7 @@
       class="flex min-h-9 w-full min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-left text-body text-muted-foreground hover:bg-card focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:min-h-11"
       onclick={() => toggleClosed(key)}
     >
+      {#if status}<StatusIcon {status} />{/if}
       <span class="min-w-0 flex-1 break-words">{name}</span>
       <span class="tabular-nums">{cards.length}</span>
       <ChevronDownIcon aria-hidden="true" class={['size-4 shrink-0 transition-transform', open && 'rotate-180']} />
@@ -270,11 +274,11 @@
               </ul>
             </div>
           {/each}
-          <!-- Kept in mind is a way out of the job too (talent-pool.md), so Closed's rows add up to its count. It takes no
-               drop: keeping someone in mind needs their permission and a note, which the candidate's menu asks for. -->
+          <!-- Saved is a way out of the job too (talent-pool.md), so Closed's rows add up to its count. It takes no
+               drop: saving someone needs their permission and a note, which the candidate's menu asks for. -->
           {#if applications.length > stillIn.length}
             <div data-kept-in-mind class="flex flex-col rounded-md">
-              {@render closedRow(keptKey, keptInMindLabel, applications.filter((application) => application.keptInMindAt))}
+              {@render closedRow(keptKey, keptInMindLabel, applications.filter((application) => application.keptInMindAt), 'saved')}
             </div>
           {/if}
         </div>

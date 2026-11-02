@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
@@ -308,6 +308,31 @@ public sealed class VerificationTests(AppHostFixture fixture)
         (await forged.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
     }
 
+    // The review log's reason (signal_id) points at a signal of the same organization: the composite foreign key refuses
+    // an invented id and another organization's signal, which the endpoint's own check would never be asked about.
+    [Fact]
+    public async Task A_review_action_can_only_name_a_signal_of_its_own_organization()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        using var other = await fixture.SignedInWithOrganizationAsync();
+        var (slug, jobId) = await OpenJobAsync(tenant);
+        var applicationId = await ApplyAsync(slug, jobId, SyntheticApplicants.Bot);
+        var verification = await AssessedAsync(tenant, applicationId);
+        var assessmentId = verification.Id("authenticity.id");
+        var ownSignal = verification.At("authenticity.signals").EnumerateArray().First().GetProperty("id").GetGuid();
+        var (otherSlug, otherJobId) = await OpenJobAsync(other);
+        var otherApplication = await ApplyAsync(otherSlug, otherJobId, SyntheticApplicants.Bot);
+        var othersSignal = (await AssessedAsync(other, otherApplication)).At("authenticity.signals").EnumerateArray().First().GetProperty("id").GetGuid();
+
+        (await InsertExplanationAsync(tenant.OrganizationId, applicationId, assessmentId, ownSignal)).Should().Be(1);
+        (await InsertExplanationAsync(tenant.OrganizationId, applicationId, assessmentId, null)).Should().Be(1, "a note or dismissal names no signal");
+        foreach (var signal in new[] { Guid.CreateVersion7(), othersSignal })
+        {
+            var invented = () => InsertExplanationAsync(tenant.OrganizationId, applicationId, assessmentId, signal);
+            (await invented.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.ForeignKeyViolation);
+        }
+    }
+
     [Fact]
     public async Task With_the_assistive_technology_switch_no_timing_is_stored_and_the_honeypot_does_not_count()
     {
@@ -508,6 +533,34 @@ public sealed class VerificationTests(AppHostFixture fixture)
 
     // Every analyzer has run, content forensics included, so row counts no longer change underneath a test.
     private Task<ApiResult> SettledAsync(Tenant tenant, Guid applicationId) => VerificationSupport.SettledAsync(fixture, tenant, applicationId);
+
+    // One review action as the application role with the organization as tenant, left in place when it fits.
+    private async Task<int> InsertExplanationAsync(Guid organizationId, Guid applicationId, Guid assessmentId, Guid? signalId)
+    {
+        await using var connection = new NpgsqlConnection(await fixture.GetAppConnectionStringAsync(Ct));
+        await connection.OpenAsync(Ct);
+        await using var transaction = await connection.BeginTransactionAsync(Ct);
+        await using (var setTenant = new NpgsqlCommand("SELECT set_config('app.tenant_id', @tenant, true), set_config('app.job_scope', 'all', true)", connection, transaction))
+        {
+            setTenant.Parameters.AddWithValue("tenant", organizationId.ToString());
+            await setTenant.ExecuteNonQueryAsync(Ct);
+        }
+
+        await using var command = new NpgsqlCommand(
+            "INSERT INTO verification_review_actions (id, organization_id, application_id, assessment_id, type, signal_id, explain_reason, note, actor_user_id, occurred_at) " +
+            "VALUES (gen_random_uuid(), @organization, @application, @assessment, @type, @signal, @reason, @note, gen_random_uuid(), now())",
+            connection, transaction);
+        command.Parameters.AddWithValue("organization", organizationId);
+        command.Parameters.AddWithValue("application", applicationId);
+        command.Parameters.AddWithValue("assessment", assessmentId);
+        command.Parameters.AddWithValue("type", signalId is null ? "NoteAdded" : "ReasonExplained");
+        command.Parameters.AddWithValue("signal", (object?)signalId ?? DBNull.Value);
+        command.Parameters.AddWithValue("reason", signalId is null ? DBNull.Value : "ExpectedForRole");
+        command.Parameters.AddWithValue("note", signalId is null ? "x" : DBNull.Value);
+        var affected = await command.ExecuteNonQueryAsync(Ct);
+        await transaction.RollbackAsync(Ct);
+        return affected;
+    }
 
     // One scalar statement as the application role with the organization as tenant, in a transaction like the API's.
     private async Task<long> CountAsync(Guid organizationId, string sql, Guid applicationId, Guid? organization = null)

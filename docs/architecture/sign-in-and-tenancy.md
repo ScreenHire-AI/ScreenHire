@@ -58,6 +58,7 @@ sources:
   - resource: apps/dashboard/src/routes/(app)/settings/roles/+page.svelte
   - resource: apps/dashboard/src/routes/(app)/settings/roles/[roleId]/+page.svelte
   - resource: apps/dashboard/src/routes/(app)/settings/roles/compare/+page.svelte
+  - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/CandidateConfiguration.cs
 ---
 # Sign-in, organizations and tenant isolation
 
@@ -248,6 +249,10 @@ someone else wrote; Owners and Admins have it. It comes with Add notes and tags,
 Erase candidates (`POST /v1/candidates/{id}/erase`) is held by Owners and Admins and can go in a custom role; the route also
 needs a person who sees every job, and refuses organization API keys ([candidates](candidates.md)).
 
+Edit anyone's views (`ViewPolicy`, `saved-views.md`) lets a role rename, share or delete a view someone else saved; Owners and
+Admins have it, and so can a custom role, with no other permission needed because a view is a screen preference, not
+hiring data.
+
 Create tasks came after custom roles, with the route that creates a task by hand. The built-in roles that write hiring
 data have it. It is a hiring write, and a Write key needs every hiring write in its creator's role, so the
 `GrantCreateTasksToCustomRoles` migration gave it to each custom role that already held all the other hiring writes;
@@ -266,7 +271,7 @@ permissions (`RolePermissions.Summarize`), so it always says what the role allow
 
 The dashboard follows the same permissions (`apps/dashboard/src/lib/permissions.ts`). **Settings** is one sidebar item
 for anyone whose role has a settings permission; it opens the Settings menu (Organization, Team, Roles, Branding,
-Verification, API keys and Webhooks, under `/settings/*`; email templates are on the Templates page, and their old
+Verification, Sending domain, API keys and Webhooks, under `/settings/*`; email templates are on the Templates page, and their old
 `/settings/email-templates` addresses redirect there), each page
 behind its permission (`settingsSections` in `apps/dashboard/src/lib/settings.ts`), and the command palette lists the
 same pages. Slack's page and entry are left out wherever `GET /v1/slack` says Slack is not `available` (a feature on its
@@ -348,7 +353,7 @@ also records the founding Owner, as "created the team". Hiring teams stay in the
 ADR-0015. Each job has a hiring team, `jobs.hiring_team`, the membership ids of the people who work on it. A member's
 job access is `All` or `HiringTeamOnly` (`organization_members.job_access`); Owners and Admins see all jobs whatever it
 says (`JobAccessRules.SeesAllJobs`). A member on Only jobs they're on sees a job, its applications and everything under
-them, only while they are on its team; another job is a 404 like another organization's, and lists, Tasks, saved views,
+them, only while they are on its team; another job is a 404 like another organization's, and lists, Tasks, views (`saved-views.md`),
 search (`GET /v1/search`, the dashboard's Ctrl K, signed-in people only, which starts from applications so a candidate
 shows only through a job the reader sees), reports (`reports.md`) and live updates leave it out. Existing members and new invitations start at All jobs.
 
@@ -428,7 +433,7 @@ Two layers, so one mistake is not a breach.
 
    Job access (migration `AddJobAccess`, ADR-0015) adds a `job_scope` policy, `AS RESTRICTIVE` and `TO screenhire_app`,
    to `jobs` and every table under a job or an application (since then, `talent_pool_entries` too, in `AddTalentPool`:
-   a member on Only jobs they're on sees the people kept in mind from their own jobs). Restrictive policies are ANDed with `tenant_isolation`, so
+   a member on Only jobs they're on sees the saved candidates from their own jobs). Restrictive policies are ANDed with `tenant_isolation`, so
    they only narrow it. `jobs` shows a row when `app.job_scope` is `all` or `app.member_id` is in `hiring_team`; the
    others ask `app_sees_job` or `app_sees_application`, or their parent row. `candidates` and `change_records` keep
    tenant-only policies: a candidate is one row across jobs and is found by email when they apply again, so the API
@@ -464,6 +469,19 @@ Who the tenant is:
 | Accepting an invitation | The organization the token names, for the lookup by hash and the join that follows |
 | Switching organization | The chosen one, after a check that the user is a member of it |
 | Worker handler | `TenantMessageMiddleware`: the `OrganizationId` of an `ITenantMessage`; none for system messages, which set each organization in turn. Every job. |
+
+### Row-level security and indexes
+
+A user's condition on a table with row-level security (the search box's `ILIKE '%text%'`) is applied after the policy, and
+Postgres lets a planner use an index for it only when its function is **leakproof**, which `texticlike` and `textlike`
+are not. So as `screenhire_app` the trigram indexes on `candidates.full_name`, `candidates.email` and `jobs.title`
+(migration `HardenFromWorkflowFollowUps`) do not serve the search today: `EXPLAIN` as that role reads the organization's
+rows through an `organization_id` index and applies the `ILIKE` to them as a filter, so a search costs one organization's
+rows, not the whole table, while the owner (a superuser, which skips the policy) uses the trigram index. The indexes are right for the query's shape (`SearchTests` proves it as the owner) and cost writes, and they
+help the day a leakproof wrapper exists. Marking a function leakproof needs a superuser, so it is an owner action
+before anything claims a faster search; check any new index for an RLS table with `EXPLAIN` as the application role,
+never the owner. `pg_trgm` is a trusted extension, and Azure Database for PostgreSQL also needs it in the server's
+`azure.extensions` list before `CREATE EXTENSION` runs.
 
 ### Adding a tenant-owned table
 

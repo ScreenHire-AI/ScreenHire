@@ -27,6 +27,22 @@ export type CandidateTableFeatures = typeof candidateTableFeatures;
 export type CandidateColumn = ColumnDef<CandidateTableFeatures, ApplicationSummary, any>;
 
 /**
+ * The columns a candidate table sorts by, for the sort it remembers (a stored sort on any other column falls back to
+ * the default). The table and a page that owns its sort (a saved view sets it) both ask here.
+ */
+export function sortableColumnIds(extraColumns: readonly CandidateColumn[], showJob: boolean): string[] {
+  return [
+    'candidate',
+    ...extraColumns.flatMap((column) => (column.id ? [column.id] : [])),
+    ...(showJob ? ['job'] : []),
+    'stage',
+    'source',
+    'applied',
+    'lastActivity',
+  ];
+}
+
+/**
  * Builds extra columns for the table's `extraColumns` slot, which sits right after Candidate (status first, T2). The
  * verification columns go there; `verificationColumns` in #lib/verification-columns.ts is the worked example of a sortable accessor column. A
  * column that only draws something is a display column:

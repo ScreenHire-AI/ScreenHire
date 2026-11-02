@@ -22,6 +22,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/slack-account-sheet.svelte
   - resource: apps/dashboard/src/lib/slack.ts
   - resource: tests/ScreenHire.E2E/SlackTests.cs
+  - resource: tests/ScreenHire.Testing/SlackSandbox.cs
 ---
 # Connecting to Slack
 
@@ -187,7 +188,7 @@ with the workspace), `slack_messages` and `slack_sandbox_messages`.
 | `Slack/*Tests` (unit) | the wording and escaping, error codes, the Web API client against a stub handler, the token and state protection, the modes and the sandbox gate |
 | `Slack/SlackTests` (integration) | the install and link round trips through the sandbox, the state and cookie checks, permissions, channel validation, a post for each event and none when it is off, one post for a replayed event, recorded problems, direct messages and when they are not sent, disconnecting, tenant isolation |
 | `DevelopmentDemoTests` (integration) | with Slack off, `available` is false and the routes are 404s |
-| `SlackTests` (end to end) | connecting the sandbox from the page, picking a channel, linking from the menu as an Owner and as a Recruiter, disconnecting through the dialog |
+| `SlackTests` (end to end) | connecting the sandbox from the page, picking a channel, linking from the menu as an Owner and as a Recruiter, disconnecting through the dialog; Send test message and a published job each reach #hiring, read back from the sandbox workspace through `SlackSandbox` (`GET /v1/slack/sandbox/messages`), not taken from the page's word |
 
 ## Not built
 
