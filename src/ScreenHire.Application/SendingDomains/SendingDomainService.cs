@@ -130,11 +130,7 @@ public sealed class SendingDomainService(
     public async Task RemoveAsync(ScreenHireDbContext db, SendingDomain domain, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(db);
-        await RemoveCoreAsync(db, domain, cancellationToken);
-    }
-
-    private async Task RemoveCoreAsync(ScreenHireDbContext db, SendingDomain domain, CancellationToken cancellationToken)
-    {
+        ArgumentNullException.ThrowIfNull(domain);
         if (domain.ProviderDomainId is { } id)
         {
             await Provider.DeleteAsync(id, domain.ReplyHost, cancellationToken);

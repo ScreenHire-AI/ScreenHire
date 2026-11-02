@@ -46,10 +46,10 @@ internal static partial class EmailWebhookEndpoints
         services.AddScreenHireEmailOptions();
         services.AddScoped<InboundEmailIngest>();
         services.AddSingleton<EmailAttachmentStore>();
-        // SendGrid posts from addresses we cannot tell from anyone else's, so the limit is shared by every caller; a flood
-        // of bad posts cannot starve the real ones because the credentials are checked before any work.
-        services.Configure<RateLimiterOptions>(options => options.AddPolicy(RateLimitPolicy, _ =>
-            RateLimitPartition.GetFixedWindowLimiter("email-webhook", _ => new FixedWindowRateLimiterOptions
+        // Per client address. The limiter runs before a handler checks its credentials, so one shared limit would let a
+        // flood of bad posts use up the permits SendGrid's real posts need.
+        services.Configure<RateLimiterOptions>(options => options.AddPolicy(RateLimitPolicy, context =>
+            RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 600,
                 Window = TimeSpan.FromMinutes(1),
@@ -196,9 +196,21 @@ internal static partial class EmailWebhookEndpoints
             return Results.NotFound();
         }
 
+        var attachments = new List<InboundAttachment>();
+        foreach (var attachment in request.Attachments ?? [])
+        {
+            var content = new byte[attachment.ContentBase64.Length];
+            if (!Convert.TryFromBase64String(attachment.ContentBase64, content, out var written))
+            {
+                return Results.BadRequest();
+            }
+
+            attachments.Add(new InboundAttachment(attachment.FileName, content[..written]));
+        }
+
         var mail = new ParsedInboundEmail(
             [request.To], request.From, request.FromName, request.Subject ?? "Re: your email", request.Text, request.Html, request.MessageId,
-            request.AutoReply, [.. (request.Attachments ?? []).Select(a => new InboundAttachment(a.FileName, Convert.FromBase64String(a.ContentBase64)))]);
+            request.AutoReply, attachments);
         var outcome = await ingest.IngestAsync(mail, outbox, cancellationToken);
         return Results.Ok(new SandboxReplyResult(outcome.ToString()));
     }

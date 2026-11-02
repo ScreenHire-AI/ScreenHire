@@ -8,6 +8,12 @@ export const recordPurposes: Record<SendingDomainRecordPurpose, string> = {
   Replies: 'Replies',
 };
 
+/** One record's heading. The provider's two DKIM records would read the same, so records of one purpose are numbered. */
+export function recordName(records: readonly SendingDomainDetail['records'][number][], record: SendingDomainDetail['records'][number]): string {
+  const same = records.filter((other) => other.purpose === record.purpose);
+  return same.length > 1 ? `${recordPurposes[record.purpose]} ${same.indexOf(record) + 1}` : recordPurposes[record.purpose];
+}
+
 /** What the last lookup found for one record: found is calm, a record to add or fix needs attention (T1, T3). */
 export function recordStatus(state: SendingDomainRecordState): { status: StatusName; label: string } {
   switch (state) {

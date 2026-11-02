@@ -15,6 +15,7 @@ describe('email issue', () => {
     expect(emailIssueNotice('Bounced', '550 mailbox not found')).toContain('(550 mailbox not found)');
     expect(emailIssueNotice('Bounced')).not.toContain('()');
     expect(emailIssueNotice('Bounced')).toContain('allow email again');
+    expect(emailIssueNotice('Bounced')).toContain('says nothing else about the candidate');
     expect(emailIssueNotice('SpamComplaint')).toContain('says nothing else about the candidate');
     expect(emailIssueNotice('None')).toBeUndefined();
   });

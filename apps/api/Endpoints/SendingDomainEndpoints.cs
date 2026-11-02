@@ -94,13 +94,6 @@ internal static class SendingDomainEndpoints
                 "domain", "Enter a domain your company owns. This one belongs to a mail provider or to ScreenHire."));
         }
 
-        if (await db.SendingDomains.AnyAsync(d => d.Domain == domain && d.OrganizationId != tenant.OrganizationId, cancellationToken))
-        {
-            // Another organization added it first. Say no more than that: who it is would be theirs to tell.
-            return TypedResults.ValidationProblem(ValidationExtensions.Problem(
-                "domain", "Another organization already uses this domain. Contact support if it is yours."));
-        }
-
         if (InboundUrl(service.Mode, domains.Value, email.Value) is not { } inbound)
         {
             return TypedResults.Problem(
@@ -118,7 +111,8 @@ internal static class SendingDomainEndpoints
         }
         catch (DbUpdateException exception) when (exception.IsUniqueViolation())
         {
-            // The check above cannot see another organization's row (row-level security); the unique index on the domain can.
+            // Only the unique index can see another organization's row (row-level security hides it from a query). Say no
+            // more than that: who it is would be theirs to tell.
             return TypedResults.ValidationProblem(ValidationExtensions.Problem(
                 "domain", "Another organization already uses this domain. Contact support if it is yours."));
         }

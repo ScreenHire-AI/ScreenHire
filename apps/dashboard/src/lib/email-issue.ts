@@ -14,7 +14,7 @@ export function emailIssueStatus(issue: CandidateEmailIssue | undefined): { stat
  */
 export function emailIssueNotice(issue: CandidateEmailIssue | undefined, reason?: string | null): string | undefined {
   if (issue === 'Bounced') {
-    return `ScreenHire does not email this address any more${reason ? ` (${reason})` : ''}. Ask the candidate for another address, or allow email again if you know this one works.`;
+    return `ScreenHire does not email this address any more${reason ? ` (${reason})` : ''}. This says nothing else about the candidate. Ask them for another address, or allow email again if you know this one works.`;
   }
 
   if (issue === 'SpamComplaint') {

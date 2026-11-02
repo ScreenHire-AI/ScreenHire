@@ -160,9 +160,11 @@ internal sealed partial class InboundEmailIngest(
         await outbox.PublishAsync(new CandidateReplied(
             application.OrganizationId, application.Id, application.JobId, stored.Id, now, sentBy.ActorUserId, stored.AutoReply));
 
-        // A candidate who writes from the address the provider flagged has a working address after all.
+        // A candidate who writes from the address the provider flagged has a working address after all. An automatic answer
+        // is not the candidate writing: an out-of-office must not turn email back on for someone who marked it as spam.
         var candidate = await db.Candidates.SingleOrDefaultAsync(c => c.Id == application.CandidateId, cancellationToken);
-        if (candidate is not null && !candidate.CanReceiveEmail && candidate.NormalizedEmail == Candidate.Normalize(mail.FromAddress) && candidate.ClearEmailIssue())
+        if (candidate is not null && !mail.AutoReply && !candidate.CanReceiveEmail
+            && candidate.NormalizedEmail == Candidate.Normalize(mail.FromAddress) && candidate.ClearEmailIssue())
         {
             await outbox.PublishAsync(new CandidateEmailStatusChanged(
                 application.OrganizationId, candidate.Id, nameof(CandidateEmailIssue.None), now));

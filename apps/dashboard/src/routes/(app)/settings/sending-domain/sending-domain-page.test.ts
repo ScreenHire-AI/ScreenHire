@@ -103,7 +103,19 @@ describe('sending domain page', () => {
     expect(screen.getByText('Different value')).toBeInTheDocument();
     expect(screen.getByText('Records to add')).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Replies host' })).toHaveTextContent('reply.example.com');
+    expect(screen.getAllByText('Host')).toHaveLength(records.length);
+    expect(screen.getAllByText('Value')).toHaveLength(records.length);
     await expectNoAxeViolations();
+  });
+
+  it('numbers the records that share a purpose, so two DKIM keys can be told apart', async () => {
+    const second = { ...records[0]!, host: 's2._domainkey.example.com', value: 's2.domainkey.mail.test' };
+    renderPage({ available: true, sandbox: false, domain: domain({ records: [records[0]!, second, ...records.slice(1)] }) });
+
+    expect(await screen.findByRole('heading', { name: 'DKIM key 1' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'DKIM key 2' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'DKIM key 2 host' })).toHaveTextContent('s2._domainkey.example.com');
+    expect(screen.getByRole('heading', { name: 'Return path' })).toBeInTheDocument();
   });
 
   it('shows who last changed the domain and opens its history beside the title', async () => {

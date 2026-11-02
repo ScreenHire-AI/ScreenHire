@@ -39,7 +39,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { applyValidationProblem } from '#lib/forms.js';
   import { describeError, invalidatePath } from '#lib/query.js';
-  import { domainStatus, recordPurposes, recordStatus } from '#lib/sending-domain.js';
+  import { domainStatus, recordName, recordStatus } from '#lib/sending-domain.js';
 
   // Settings > Sending domain (docs/architecture/email.md), on the settings template: the company's own domain that
   // candidate email comes from. ScreenHire lists the DNS records the email provider needs, looks each one up on request, and
@@ -200,16 +200,23 @@
             <ul class="flex flex-col divide-y divide-border">
               {#each domain.records as record (record.type + record.host)}
                 {@const found = recordStatus(record.state)}
+                {@const name = recordName(domain.records, record)}
                 <li class="flex flex-col gap-3 py-4 first:pt-0 last:pb-0">
                   <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <h3 class="text-body font-semibold">{recordPurposes[record.purpose]}</h3>
+                    <h3 class="text-body font-semibold">{name}</h3>
                     <StatusBadge {...found} />
                     <span class="font-mono text-code text-muted-foreground">{record.type}</span>
                     {#if record.priority != null}<span class="text-muted-foreground">priority {record.priority}</span>{/if}
                   </div>
                   <p class="max-w-measure text-muted-foreground">{record.reason}</p>
-                  <CodeBlock code={record.host} label={`${recordPurposes[record.purpose]} host`} />
-                  <CodeBlock code={record.value} label={`${recordPurposes[record.purpose]} value`} />
+                  <div class="flex flex-col gap-1">
+                    <span class="text-caption text-muted-foreground">Host</span>
+                    <CodeBlock code={record.host} label={`${name} host`} />
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <span class="text-caption text-muted-foreground">Value</span>
+                    <CodeBlock code={record.value} label={`${name} value`} />
+                  </div>
                 </li>
               {/each}
             </ul>
