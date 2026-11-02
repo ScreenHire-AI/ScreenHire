@@ -37,7 +37,7 @@ public sealed class BoardUrlsTests
     }
 
     [Fact]
-    public void Every_tagged_id_is_a_shape_the_careers_app_and_the_api_accept()
+    public void Every_tagged_id_is_a_shape_the_careers_app_keeps_and_the_column_holds()
     {
         BoardUrls.TaggedBoards.Should().OnlyContain(id => System.Text.RegularExpressions.Regex.IsMatch(id, "^[a-z0-9-]{1,40}$"));
     }

@@ -1,7 +1,9 @@
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Infrastructure.Tenancy;
 
 namespace ScreenHire.IntegrationTests;
 
@@ -146,10 +148,33 @@ public sealed class ReportsTests(AppHostFixture fixture)
 
         // Per hire, days in each kind: Applied 1, 45, 9.5, 1, 1; Screening 1, 1; Assessment 1; Interview 1, 20.5, 1, 1;
         // Offer 2, 2, 10. The ID check on Data is a verification step and has no row (ADR-0004).
-        var stages = report.At("timeToHire.stages").EnumerateArray()
-            .Select(s => (s.GetProperty("kind").GetString()!, Math.Round(s.GetProperty("medianDays").GetDouble(), 2), s.GetProperty("hires").GetInt32()))
-            .ToList();
-        stages.Should().Equal(("Applied", 1.0, 5), ("Screening", 1.0, 2), ("Assessment", 1.0, 1), ("Interview", 1.0, 4), ("Offer", 2.0, 3));
+        Stages(report).Should().Equal(("Applied", 1.0, 5), ("Screening", 1.0, 2), ("Assessment", 1.0, 1), ("Interview", 1.0, 4), ("Offer", 2.0, 3));
+    }
+
+    [Fact]
+    public async Task Time_in_a_stage_removed_since_counts_for_no_stage()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var job = TestData.NewJob(owner.OrganizationId, $"revised-{Guid.NewGuid():N}", "Revised Role");
+        job.ReviseWorkflow(Assessed, DaysAgo(200));
+        await fixture.AddJobsAsync(owner.OrganizationId, [job], Ct);
+        await fixture.AddApplicationHistoryAsync(
+            owner.OrganizationId, job.Id, DaysAgo(20), ApplicationSource.CareersSite,
+            [("screening", DaysAgo(19)), ("technical", DaysAgo(18)), ("interview", DaysAgo(8)), ("hired", DaysAgo(7))], cancellationToken: Ct);
+
+        // The hire spent ten days in the technical exercise, which then leaves the pipeline.
+        var tenant = new TenantContext();
+        tenant.SetOrganization(owner.OrganizationId);
+        await using (var db = await fixture.CreateDbContextAsync(tenant, Ct))
+        {
+            var saved = await db.Jobs.SingleAsync(j => j.Id == job.Id, Ct);
+            saved.ReviseWorkflow(Assessed with { Stages = [.. Assessed.Stages.Where(s => s.Id != "technical")] }, Now);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var report = (await owner.GetAsync($"/v1/reports/hiring?{Range}")).Expect(HttpStatusCode.OK);
+
+        Stages(report).Should().Equal([("Applied", 1.0, 1), ("Screening", 1.0, 1), ("Interview", 1.0, 1)], "those ten days never join the stage before them");
     }
 
     [Fact]
@@ -185,6 +210,8 @@ public sealed class ReportsTests(AppHostFixture fixture)
         var (platform, _) = await SeedAsync(owner.OrganizationId);
         using var viewer = await fixture.InviteAndJoinAsync(owner, "Viewer", jobAccess: "HiringTeamOnly");
         await owner.SetHiringTeamAsync(platform, await owner.MemberIdAsync(viewer.UserId));
+        using var other = await fixture.SignedInWithOrganizationAsync();
+        var (otherPlatform, _) = await SeedAsync(other.OrganizationId);
 
         var interview = (await owner.GetAsync($"/v1/reports/hiring/funnel/Interview/applications?{Range}")).Expect(HttpStatusCode.OK);
         var report = (await owner.GetAsync($"/v1/reports/hiring?{Range}")).Expect(HttpStatusCode.OK);
@@ -197,6 +224,9 @@ public sealed class ReportsTests(AppHostFixture fixture)
         (await viewer.GetAsync($"/v1/reports/hiring/funnel/Interview/applications?{Range}")).Expect(HttpStatusCode.OK).Count().Should().Be(3);
         (await owner.GetAsync($"/v1/reports/hiring/funnel/Verification/applications?{Range}")).Status.Should().Be(HttpStatusCode.NotFound, "a verification step has no row (ADR-0004)");
         (await owner.GetAsync($"/v1/reports/hiring/funnel/Interview/applications?{Range}&jobId={Guid.NewGuid()}")).Expect(HttpStatusCode.OK).Count().Should().Be(0);
+        (await owner.GetAsync($"/v1/reports/hiring/funnel/Interview/applications?{Range}&jobId={otherPlatform}")).Expect(HttpStatusCode.OK).Count().Should().Be(0, "another organization's job adds nothing");
+        var theirs = (await other.GetAsync($"/v1/reports/hiring/funnel/Interview/applications?{Range}")).Expect(HttpStatusCode.OK).Body.EnumerateArray().Select(id => id.GetGuid());
+        interview.Body.EnumerateArray().Select(id => id.GetGuid()).Should().NotIntersectWith(theirs);
         (await owner.GetAsync("/v1/reports/hiring/funnel/Interview/applications")).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().BeEquivalentTo("from", "to");
     }
 
@@ -342,6 +372,10 @@ public sealed class ReportsTests(AppHostFixture fixture)
     private static IEnumerable<(Guid, int, double)> Jobs(ApiResult report) =>
         report.At("timeToHire.jobs").EnumerateArray().Select(j => (
             j.GetProperty("jobId").GetGuid(), j.GetProperty("hires").GetInt32(), Math.Round(j.GetProperty("medianDays").GetDouble(), 2)));
+
+    private static IEnumerable<(string, double, int)> Stages(ApiResult report) =>
+        report.At("timeToHire.stages").EnumerateArray().Select(s => (
+            s.GetProperty("kind").GetString()!, Math.Round(s.GetProperty("medianDays").GetDouble(), 2), s.GetProperty("hires").GetInt32()));
 
     private static IEnumerable<(string, int, int)> Sources(ApiResult report) =>
         report.At("sources").EnumerateArray().Select(s => (

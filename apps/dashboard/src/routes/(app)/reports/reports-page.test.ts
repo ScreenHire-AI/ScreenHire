@@ -141,11 +141,11 @@ describe('reports page', () => {
     const weekly = await screen.findByRole('region', { name: 'Applications and hires by week' });
     expect(within(weekly).getByRole('list', { name: 'Legend' })).toHaveTextContent(/Applications\s*Hires/);
     const chart = within(weekly).getByRole('group', { name: 'Applications and hires by week' });
-    expect(weekly.querySelector('[data-week-readout]')).toHaveTextContent(/Week of (Oct 12|12 Oct): 5 applications, 2 hires/);
+    expect(weekly.querySelector('[data-week-readout]')).toHaveTextContent(/Week of (Oct 12, 2026|12 Oct 2026): 5 applications, 2 hires/);
 
     chart.focus();
     await fireEvent.keyDown(chart, { key: 'ArrowLeft' });
-    expect(weekly.querySelector('[data-week-readout]')).toHaveTextContent(/Week of (Oct 5|5 Oct): 3 applications, 0 hires/);
+    expect(weekly.querySelector('[data-week-readout]')).toHaveTextContent(/Week of (Oct 5, 2026|5 Oct 2026): 3 applications, 0 hires/);
   });
 
   it('shows time to hire by stage and by job, and the overall median only in the headline', async () => {
@@ -195,7 +195,7 @@ describe('reports page', () => {
     expect(asked[0]!.searchParams.get('timeZone')).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
     expect(asked[0]!.searchParams.getAll('jobId')).toEqual([]);
     expect(screen.getByRole('button', { name: 'Dates: Last 30 days' })).toBeInTheDocument();
-    expect(screen.getByRole('switch', { name: 'Compare with previous period' })).toBeChecked();
+    expect(screen.getByRole('switch', { name: 'Compare periods' })).toBeChecked();
   });
 
   it('compares off: asks for no previous period and shows no change', async () => {
@@ -206,7 +206,7 @@ describe('reports page', () => {
     expect(asked[0]!.searchParams.has('previousFrom')).toBe(false);
     expect(asked[0]!.searchParams.has('previousTo')).toBe(false);
     expect(stats.querySelectorAll('[data-report-change]')).toHaveLength(0);
-    expect(screen.getByRole('switch', { name: 'Compare with previous period' })).not.toBeChecked();
+    expect(screen.getByRole('switch', { name: 'Compare periods' })).not.toBeChecked();
 
     location.url = new URL('http://dashboard.test/reports');
   });
@@ -215,7 +215,7 @@ describe('reports page', () => {
     renderPage();
     await screen.findByRole('region', { name: 'Hiring funnel' });
 
-    await fireEvent.click(screen.getByRole('switch', { name: 'Compare with previous period' }));
+    await fireEvent.click(screen.getByRole('switch', { name: 'Compare periods' }));
 
     expect(goto).toHaveBeenCalledWith(new URL('http://dashboard.test/reports?compare=off'), { replace: true, reset: false });
   });

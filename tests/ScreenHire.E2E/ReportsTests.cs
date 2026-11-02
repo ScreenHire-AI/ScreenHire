@@ -41,7 +41,7 @@ public sealed class ReportsTests(E2EFixture fixture) : BrowserTest(fixture)
         await SaveScreenshotAsync(Page, "dashboard-reports-1440");
 
         // Compare is on by default and off on request.
-        var compare = Page.GetByRole(AriaRole.Switch, new() { Name = "Compare with previous period" });
+        var compare = Page.GetByRole(AriaRole.Switch, new() { Name = "Compare periods" });
         await Expect(compare).ToBeCheckedAsync();
         await compare.ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex("compare=off"));

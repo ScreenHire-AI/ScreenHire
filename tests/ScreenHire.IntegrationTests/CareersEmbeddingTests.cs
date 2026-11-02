@@ -117,6 +117,7 @@ public sealed class CareersEmbeddingTests(AppHostFixture fixture)
 
         var fromBoard = await fixture.ApplyAsync(slug, jobId, SyntheticApplicants.GenuineHuman, Ct, source: "talent");
         var unknown = await fixture.ApplyAsync(slug, jobId, SyntheticApplicants.Bot, Ct, source: "not-a-board");
+        var malformed = await fixture.ApplyAsync(slug, jobId, SyntheticApplicants.ApplicationFarm[1], Ct, source: "Not a Board!" + new string('x', 60));
         var google = await fixture.ApplyAsync(slug, jobId, SyntheticApplicants.HonestAiAssisted, Ct, source: "google");
         var direct = await fixture.ApplyAsync(slug, jobId, SyntheticApplicants.ApplicationFarm[0], Ct);
 
@@ -126,6 +127,7 @@ public sealed class CareersEmbeddingTests(AppHostFixture fixture)
         var boards = await db.Applications.AsNoTracking().Where(a => a.JobId == jobId).ToDictionaryAsync(a => a.Id, a => a.SourceBoard, Ct);
         boards[fromBoard].Should().Be("talent");
         boards[unknown].Should().BeNull("only a board that tags its links is recorded, and an unknown id never refuses the application");
+        boards[malformed].Should().BeNull("a value of any shape or length is dropped the same way");
         boards[google].Should().BeNull("Google for Jobs links stay canonical, so they count as the careers page");
         boards[direct].Should().BeNull();
     }

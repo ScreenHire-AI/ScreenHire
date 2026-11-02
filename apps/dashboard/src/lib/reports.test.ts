@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { biggestDrop, changeText, counted, daysText, hireRate, shareText, weekText } from '#lib/reports.js';
+import { biggestDrop, changeText, counted, daysText, hireRate, oneDecimal, shareText, weekDateText, weekText } from '#lib/reports.js';
 
 describe('report words', () => {
   it('gives a share in whole percents, and none of nothing', () => {
@@ -27,6 +27,17 @@ describe('report words', () => {
   it('names a week by its Monday', () => {
     expect(weekText('2026-11-02')).toMatch(/^(2 Nov|Nov 2)$/);
     expect(weekText('nonsense')).toBe('nonsense');
+  });
+
+  it('names a week in full for the table, so a year-long report tells its two Novembers apart', () => {
+    expect(weekDateText('2026-11-02')).toMatch(/^(2 Nov 2026|Nov 2, 2026)$/);
+    expect(weekDateText('2025-11-03')).toMatch(/^(3 Nov 2025|Nov 3, 2025)$/);
+    expect(weekDateText('nonsense')).toBe('nonsense');
+  });
+
+  it('keeps one decimal of a median for the export', () => {
+    expect(oneDecimal(17.25)).toBe(17.3);
+    expect(oneDecimal(9)).toBe(9);
   });
 });
 
