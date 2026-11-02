@@ -30,6 +30,8 @@ public sealed class CandidateRepliesTests(E2EFixture fixture) : BrowserTest(fixt
         var sent = (await Fixture.Mailpit.WaitForMessagesAsync(scene.CandidateEmail, 1, Ct)).Single();
         sent.ReplyTo.Should().NotBeNull("every email about an application carries its reply address");
         sent.ReplyTo!.Address.Should().StartWith("reply+");
+        // A reply is taken only for an email that is on the timeline, which the worker commits just after it sends.
+        await LatestEmailIdAsync(scene);
 
         // The candidate answers. With the page open, the tray gets a card for the person who sent the email.
         using (var session = scene.Session)

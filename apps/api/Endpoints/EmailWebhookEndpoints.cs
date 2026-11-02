@@ -160,7 +160,7 @@ internal static partial class EmailWebhookEndpoints
         var db = outbox.DbContext;
         foreach (var byOrganization in problems.GroupBy(p => p.OrganizationId))
         {
-            tenant.SetOrganization(byOrganization.Key);
+            tenant.SetPublicOrganization(byOrganization.Key);
             var now = time.GetUtcNow();
             foreach (var problem in byOrganization)
             {

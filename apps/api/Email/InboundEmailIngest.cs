@@ -70,7 +70,7 @@ internal sealed partial class InboundEmailIngest(
             return InboundOutcome.Ignored;
         }
 
-        tenant.SetOrganization(reply.OrganizationId);
+        tenant.SetPublicOrganization(reply.OrganizationId); // acts for the address's organization, never for whoever is signed in
         var db = outbox.DbContext;
         var send = await db.ApplicationEmails.AsNoTracking().SingleOrDefaultAsync(e => e.Id == reply.SendId, cancellationToken);
         if (send is null)
