@@ -94,7 +94,9 @@ public sealed record UploadedFile(Guid UploadId, string FileName, string Content
 /// page's snapshot, which travels with the form post rather than a beacon so it is stored before analysis starts; an
 /// invalid one is dropped, never a reason to refuse. <c>embedOrigin</c> is the organization's own site the careers page
 /// was embedded in (docs/architecture/careers-widget.md); it is kept as the application's <c>sourceSite</c> only when it
-/// is one of the organization's <c>embedOrigins</c>, and dropped otherwise, never a reason to refuse.
+/// is one of the organization's <c>embedOrigins</c>, and dropped otherwise, never a reason to refuse. <c>source</c> is the id of
+/// the job board whose link the candidate followed (the <c>src</c> parameter of the link a feed carries); it is kept as the
+/// application's <c>sourceBoard</c> only when it is a board that tags its links, and dropped otherwise.
 /// </remarks>
 public sealed record PublicApplicationRequest(
     PublicCandidateInput Candidate,
@@ -113,7 +115,8 @@ public sealed record PublicApplicationRequest(
     string? TelemetrySessionToken = null,
     TelemetrySnapshotInput? Telemetry = null,
     bool KeepForFutureRoles = false,
-    string? EmbedOrigin = null);
+    string? EmbedOrigin = null,
+    string? Source = null);
 
 /// <summary>The active seconds on one page of the apply form (<c>details</c>, <c>page-2</c>, <c>review</c>).</summary>
 public sealed record PageTimeInput(string Page, int Seconds);
@@ -201,6 +204,7 @@ internal sealed class PublicApplicationRequestValidator : AbstractValidator<Publ
         RuleFor(r => r.DeviceFingerprint).MaximumLength(256);
         RuleFor(r => r.TelemetrySessionToken).MaximumLength(1024);
         RuleFor(r => r.EmbedOrigin).MaximumLength(1024);
+        RuleFor(r => r.Source).MaximumLength(40).Matches("^[a-z0-9-]+$").When(r => !string.IsNullOrEmpty(r.Source));
     }
 }
 

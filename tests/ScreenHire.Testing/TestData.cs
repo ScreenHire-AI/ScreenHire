@@ -80,7 +80,9 @@ public static class TestData
         DateTimeOffset submittedAt,
         ApplicationSource source,
         IEnumerable<(string StageId, DateTimeOffset At)>? moves = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? sourceSite = null,
+        string? sourceBoard = null)
     {
         var tenant = new TenantContext();
         tenant.SetOrganization(organizationId);
@@ -89,7 +91,7 @@ public static class TestData
         var id = Guid.NewGuid().ToString("N")[..12];
         var candidate = Candidate.Create(organizationId, "Applicant", id, $"applicant-{id}@example.com", null, submittedAt);
         var (application, submitted) = JobApplication.Submit(
-            job, candidate, false, AiUseDeclaration.NotProvided, null, submittedAt, null, new ApplicationIntake(source, []));
+            job, candidate, false, AiUseDeclaration.NotProvided, null, submittedAt, null, new ApplicationIntake(source, [], SourceSite: sourceSite, SourceBoard: sourceBoard));
         db.Candidates.Add(candidate);
         db.Applications.Add(application);
         db.ApplicationEvents.Add(submitted);

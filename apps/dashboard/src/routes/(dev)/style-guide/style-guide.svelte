@@ -53,6 +53,8 @@
   import ListItem from '#lib/components/list-item.svelte';
   import LiveIndicator from '#lib/components/live-indicator.svelte';
   import MetricCard, { type MetricPoint } from '#lib/components/metric-card.svelte';
+  import ReportStat from '#lib/components/report-stat.svelte';
+  import WeekChart, { type WeekPoint } from '#lib/components/week-chart.svelte';
   import MultiFilterMenu from '#lib/components/multi-filter-menu.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
@@ -206,6 +208,22 @@
   ];
 
   // Twelve weeks of a metric, oldest first, for the metric cards.
+  const guideWeeks: WeekPoint[] = [
+    ['Sep 7', 6, 0],
+    ['Sep 14', 9, 1],
+    ['Sep 21', 7, 0],
+    ['Sep 28', 12, 2],
+    ['Oct 5', 10, 1],
+    ['Oct 12', 14, 3],
+    ['Oct 19', 8, 2],
+    ['Oct 26', 11, 1],
+  ].map(([label, applications, hires]) => ({
+    key: String(label),
+    label: String(label),
+    applications: Number(applications),
+    hires: Number(hires),
+    summary: `Week of ${label}: ${applications} applications, ${hires} hires`,
+  }));
   const weeks = (values: number[]): MetricPoint[] =>
     values.map((value, index) => ({ label: `Week of ${formatDate(ago((values.length - 1 - index) * 7 * day))}`, value }));
 
@@ -1082,6 +1100,18 @@
           />
         {/snippet}
       </ChartPanel>
+
+      <Panel title="Report stat" flush>
+        <SummaryBand>
+          <ReportStat icon={UsersIcon} title="Applications" value="40" change={{ text: '18 more than before', direction: 'up' }} />
+          <ReportStat icon={HourglassIcon} title="Reached interview" value="12" share="30% of applications" change={{ text: 'No change', direction: 'none' }} />
+          <ReportStat icon={TimerIcon} title="Median time to hire" value="21 days" change={{ text: '3 days faster', direction: 'down' }} />
+        </SummaryBand>
+      </Panel>
+
+      <Panel title="Week chart">
+        <WeekChart label="Week chart example" weeks={guideWeeks} />
+      </Panel>
 
 
       <div class="flex flex-wrap items-start gap-5">

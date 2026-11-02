@@ -21,6 +21,10 @@ public sealed class ReportsTests(AppHostFixture fixture)
     // The last 30 days, with a day to spare at the end.
     private static readonly string Range = $"from={Uri.EscapeDataString(DaysAgo(30).ToString("O"))}&to={Uri.EscapeDataString(Now.AddDays(1).ToString("O"))}";
 
+    // Days before now that the seeded applications arrived in the range, and that the five hires in it were made.
+    private static readonly int[] AppliedDaysAgo = [10, 12, 6, 20, 15, 14, 25];
+    private static readonly int[] HiredDaysAgo = [5, 15, 10, 9, 11];
+
     // A pipeline with an assessment and a verification step, beside the default one.
     private static readonly HiringWorkflow Assessed = HiringWorkflow.Default with
     {
@@ -54,11 +58,146 @@ public sealed class ReportsTests(AppHostFixture fixture)
             .Should().NotContain("Verification", "a verification step is never a row (ADR-0004)");
 
         // Hires made in the range, whenever they applied: 5, 30 and 45 days on Platform, 5 and 14 on Data.
-        report.At("timeToHire.hires").GetInt32().Should().Be(5);
-        report.At("timeToHire.medianDays").GetDouble().Should().BeApproximately(14, 0.01, "the median of every hire, not of the jobs' medians");
+        report.At("headline.hires").GetInt32().Should().Be(5);
+        report.At("headline.medianDaysToHire").GetDouble().Should().BeApproximately(14, 0.01, "the median of every hire, not of the jobs' medians");
         Jobs(report).Should().BeEquivalentTo([(platform, 3, 30.0), (data, 2, 9.5)]);
 
-        Sources(report).Should().Equal(("CareersSite", 5, 2), ("Recruiter", 2, 1));
+        // A recruiter's first, then the organization's own site, then a job board's apply link, else the careers page.
+        Sources(report).Should().Equal(("careers", 3, 0), ("recruiter", 2, 1), ("board:talent", 1, 1), ("website", 1, 1));
+    }
+
+    [Fact]
+    public async Task The_headline_agrees_with_the_funnel_the_weeks_and_the_jobs()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        await SeedAsync(owner.OrganizationId);
+
+        var report = (await owner.GetAsync($"/v1/reports/hiring?{Range}")).Expect(HttpStatusCode.OK);
+
+        var funnel = Funnel(report).ToDictionary(row => row.Item1, row => row.Item2);
+        report.At("headline.applications").GetInt32().Should().Be(funnel["Applied"]);
+        report.At("headline.reachedInterview").GetInt32().Should().Be(funnel["Interview"]);
+        report.At("headline.offers").GetInt32().Should().Be(funnel["Offer"]);
+
+        // Hires are the ones made in the range, however they are cut: the card, the weeks and the jobs say one number.
+        var hires = report.At("headline.hires").GetInt32();
+        hires.Should().Be(5);
+        report.At("weekly").EnumerateArray().Sum(w => w.GetProperty("hires").GetInt32()).Should().Be(hires);
+        report.At("weekly").EnumerateArray().Sum(w => w.GetProperty("applications").GetInt32()).Should().Be(funnel["Applied"]);
+        Jobs(report).Sum(job => job.Item2).Should().Be(hires);
+        report.At("previous").ValueKind.Should().Be(JsonValueKind.Null, "no previous range was asked for");
+    }
+
+    [Fact]
+    public async Task The_previous_range_gets_the_same_headline()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        await SeedAsync(owner.OrganizationId);
+        var previous = $"previousFrom={Uri.EscapeDataString(DaysAgo(65).ToString("O"))}&previousTo={Uri.EscapeDataString(DaysAgo(30).ToString("O"))}";
+
+        var report = (await owner.GetAsync($"/v1/reports/hiring?{Range}&{previous}")).Expect(HttpStatusCode.OK);
+
+        // Two applications arrived 60 and 40 days ago and were hired later, so both count at every row up to Hired, but
+        // no hire was made in that window.
+        report.At("previous.applications").GetInt32().Should().Be(2);
+        report.At("previous.reachedInterview").GetInt32().Should().Be(2);
+        report.At("previous.offers").GetInt32().Should().Be(2);
+        report.At("previous.hires").GetInt32().Should().Be(0);
+        report.At("previous.medianDaysToHire").ValueKind.Should().Be(JsonValueKind.Null);
+        report.At("headline.applications").GetInt32().Should().Be(7, "the range itself does not change");
+    }
+
+    [Fact]
+    public async Task Applications_and_hires_land_in_the_monday_weeks_of_the_persons_own_zone()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        await SeedAsync(owner.OrganizationId);
+
+        var report = (await owner.GetAsync($"/v1/reports/hiring?{Range}&timeZone=America/New_York")).Expect(HttpStatusCode.OK);
+
+        var weeks = report.At("weekly").EnumerateArray()
+            .Select(w => (Start: DateOnly.Parse(w.GetProperty("weekStart").GetString()!, System.Globalization.CultureInfo.InvariantCulture), Applications: w.GetProperty("applications").GetInt32(), Hires: w.GetProperty("hires").GetInt32()))
+            .ToList();
+        weeks.Should().OnlyContain(w => w.Start.DayOfWeek == DayOfWeek.Monday);
+        weeks.Select(w => w.Start).Should().BeInAscendingOrder().And.OnlyHaveUniqueItems();
+        weeks.Zip(weeks.Skip(1), (a, b) => b.Start.DayNumber - a.Start.DayNumber).Should().OnlyContain(gap => gap == 7, "weeks with nothing in them are still there");
+
+        // Each application and hire sits in the week it happened in, counted in New York.
+        var zone = TimeZoneInfo.FindSystemTimeZoneById("America/New_York");
+        static DateOnly Monday(DateTimeOffset at, TimeZoneInfo zone)
+        {
+            var local = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(at, zone).DateTime);
+            return local.AddDays(-(((int)local.DayOfWeek + 6) % 7));
+        }
+
+        var applied = AppliedDaysAgo.GroupBy(d => Monday(DaysAgo(d), zone)).ToDictionary(g => g.Key, g => g.Count());
+        var hired = HiredDaysAgo.GroupBy(d => Monday(DaysAgo(d), zone)).ToDictionary(g => g.Key, g => g.Count());
+        weeks.Where(w => w.Applications > 0).ToDictionary(w => w.Start, w => w.Applications).Should().BeEquivalentTo(applied);
+        weeks.Where(w => w.Hires > 0).ToDictionary(w => w.Start, w => w.Hires).Should().BeEquivalentTo(hired);
+    }
+
+    [Fact]
+    public async Task Median_days_in_each_stage_come_from_the_hires_made_in_the_range_and_skip_verification()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        await SeedAsync(owner.OrganizationId);
+
+        var report = (await owner.GetAsync($"/v1/reports/hiring?{Range}")).Expect(HttpStatusCode.OK);
+
+        // Per hire, days in each kind: Applied 1, 45, 9.5, 1, 1; Screening 1, 1; Assessment 1; Interview 1, 20.5, 1, 1;
+        // Offer 2, 2, 10. The ID check on Data is a verification step and has no row (ADR-0004).
+        var stages = report.At("timeToHire.stages").EnumerateArray()
+            .Select(s => (s.GetProperty("kind").GetString()!, Math.Round(s.GetProperty("medianDays").GetDouble(), 2), s.GetProperty("hires").GetInt32()))
+            .ToList();
+        stages.Should().Equal(("Applied", 1.0, 5), ("Screening", 1.0, 2), ("Assessment", 1.0, 1), ("Interview", 1.0, 4), ("Offer", 2.0, 3));
+    }
+
+    [Fact]
+    public async Task Open_jobs_list_applications_in_the_range_interviews_now_days_open_and_hires()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var open = TestData.NewJob(owner.OrganizationId, $"open-{Guid.NewGuid():N}", "Open Role");
+        open.Publish(DaysAgo(40.5));
+        var closed = TestData.NewJob(owner.OrganizationId, $"closed-{Guid.NewGuid():N}", "Closed Role");
+        closed.Publish(DaysAgo(60));
+        closed.Close(DaysAgo(10));
+        var draft = TestData.NewJob(owner.OrganizationId, $"draft-{Guid.NewGuid():N}", "Draft Role");
+        await fixture.AddJobsAsync(owner.OrganizationId, [open, closed, draft], Ct);
+        await fixture.AddApplicationHistoryAsync(owner.OrganizationId, open.Id, DaysAgo(5), ApplicationSource.CareersSite, [("screening", DaysAgo(4)), ("interview", DaysAgo(3))], Ct);
+        await fixture.AddApplicationHistoryAsync(owner.OrganizationId, open.Id, DaysAgo(4), ApplicationSource.CareersSite, null, Ct);
+        await fixture.AddApplicationHistoryAsync(owner.OrganizationId, open.Id, DaysAgo(10), ApplicationSource.CareersSite, [("hired", DaysAgo(2))], Ct);
+
+        var report = (await owner.GetAsync($"/v1/reports/hiring?{Range}")).Expect(HttpStatusCode.OK);
+
+        var row = report.At("openJobs").EnumerateArray().Should().ContainSingle("a closed or draft job is not open").Subject;
+        row.GetProperty("jobId").GetGuid().Should().Be(open.Id);
+        row.GetProperty("title").GetString().Should().Be("Open Role");
+        row.GetProperty("applications").GetInt32().Should().Be(3);
+        row.GetProperty("inInterview").GetInt32().Should().Be(1);
+        row.GetProperty("daysOpen").GetInt32().Should().Be(40);
+        row.GetProperty("hires").GetInt32().Should().Be(1);
+    }
+
+    [Fact]
+    public async Task The_funnel_link_lists_the_applications_that_reached_a_stage_and_only_those_the_person_can_see()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var (platform, _) = await SeedAsync(owner.OrganizationId);
+        using var viewer = await fixture.InviteAndJoinAsync(owner, "Viewer", jobAccess: "HiringTeamOnly");
+        await owner.SetHiringTeamAsync(platform, await owner.MemberIdAsync(viewer.UserId));
+
+        var interview = (await owner.GetAsync($"/v1/reports/hiring/funnel/Interview/applications?{Range}")).Expect(HttpStatusCode.OK);
+        var report = (await owner.GetAsync($"/v1/reports/hiring?{Range}")).Expect(HttpStatusCode.OK);
+        interview.Count().Should().Be(report.At("headline.reachedInterview").GetInt32(), "the list is the number the report shows");
+
+        // Every one of them is in the candidates list, whatever became of them since (rejected, withdrawn, hired).
+        var listed = (await owner.GetAsync("/v1/applications")).Expect(HttpStatusCode.OK).Body.EnumerateArray().Select(a => a.GetProperty("id").GetGuid()).ToHashSet();
+        interview.Body.EnumerateArray().Select(id => id.GetGuid()).Should().BeSubsetOf(listed);
+
+        (await viewer.GetAsync($"/v1/reports/hiring/funnel/Interview/applications?{Range}")).Expect(HttpStatusCode.OK).Count().Should().Be(3);
+        (await owner.GetAsync($"/v1/reports/hiring/funnel/Verification/applications?{Range}")).Status.Should().Be(HttpStatusCode.NotFound, "a verification step has no row (ADR-0004)");
+        (await owner.GetAsync($"/v1/reports/hiring/funnel/Interview/applications?{Range}&jobId={Guid.NewGuid()}")).Expect(HttpStatusCode.OK).Count().Should().Be(0);
+        (await owner.GetAsync("/v1/reports/hiring/funnel/Interview/applications")).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().BeEquivalentTo("from", "to");
     }
 
     [Fact]
@@ -71,12 +210,12 @@ public sealed class ReportsTests(AppHostFixture fixture)
 
         Funnel(report).Should().Equal(("Applied", 4, 3), ("Screening", 3, 3), ("Interview", 3, 2), ("Offer", 2, 1), ("Hired", 1, null));
         Jobs(report).Should().Equal((platform, 3, 30.0));
-        Sources(report).Should().Equal(("CareersSite", 3, 1), ("Recruiter", 1, 0));
+        Sources(report).Should().Equal(("careers", 2, 0), ("recruiter", 1, 0), ("board:talent", 1, 1));
 
         var unknown = (await owner.GetAsync($"/v1/reports/hiring?{Range}&jobId={Guid.NewGuid()}")).Expect(HttpStatusCode.OK);
         unknown.Count("funnel").Should().Be(0);
-        unknown.At("timeToHire.hires").GetInt32().Should().Be(0);
-        unknown.At("timeToHire.medianDays").ValueKind.Should().Be(JsonValueKind.Null);
+        unknown.At("headline.hires").GetInt32().Should().Be(0);
+        unknown.At("headline.medianDaysToHire").ValueKind.Should().Be(JsonValueKind.Null);
         unknown.Count("sources").Should().Be(0);
     }
 
@@ -92,11 +231,11 @@ public sealed class ReportsTests(AppHostFixture fixture)
 
         Funnel(report).Should().Equal(("Applied", 4, 3), ("Screening", 3, 3), ("Interview", 3, 2), ("Offer", 2, 1), ("Hired", 1, null));
         Jobs(report).Should().Equal((platform, 3, 30.0));
-        Sources(report).Should().Equal(("CareersSite", 3, 1), ("Recruiter", 1, 0));
+        Sources(report).Should().Equal(("careers", 2, 0), ("recruiter", 1, 0), ("board:talent", 1, 1));
 
         var hidden = (await viewer.GetAsync($"/v1/reports/hiring?{Range}&jobId={data}")).Expect(HttpStatusCode.OK);
         hidden.Count("funnel").Should().Be(0, "filtering by a job they cannot see shows nothing and says nothing about it");
-        hidden.At("timeToHire.hires").GetInt32().Should().Be(0);
+        hidden.At("headline.hires").GetInt32().Should().Be(0);
         hidden.Count("sources").Should().Be(0);
     }
 
@@ -110,7 +249,8 @@ public sealed class ReportsTests(AppHostFixture fixture)
         var empty = (await owner.GetAsync($"/v1/reports/hiring?{Range}")).Expect(HttpStatusCode.OK);
 
         empty.Count("funnel").Should().Be(0);
-        empty.At("timeToHire.hires").GetInt32().Should().Be(0);
+        empty.At("headline.hires").GetInt32().Should().Be(0);
+        empty.Count("openJobs").Should().Be(0);
         empty.Count("sources").Should().Be(0);
 
         // With a history of its own, the organization's numbers are exactly its own: the other's equal history adds
@@ -120,9 +260,9 @@ public sealed class ReportsTests(AppHostFixture fixture)
 
         Funnel(report).Should().Equal(
             ("Applied", 7, 6), ("Screening", 6, 6), ("Assessment", 6, 5), ("Interview", 5, 4), ("Offer", 4, 3), ("Hired", 3, null));
-        report.At("timeToHire.hires").GetInt32().Should().Be(5);
+        report.At("headline.hires").GetInt32().Should().Be(5);
         Jobs(report).Should().BeEquivalentTo([(platform, 3, 30.0), (data, 2, 9.5)]);
-        Sources(report).Should().Equal(("CareersSite", 5, 2), ("Recruiter", 2, 1));
+        Sources(report).Should().Equal(("careers", 3, 0), ("recruiter", 2, 1), ("board:talent", 1, 1), ("website", 1, 1));
     }
 
     [Fact]
@@ -134,6 +274,10 @@ public sealed class ReportsTests(AppHostFixture fixture)
         (await owner.GetAsync("/v1/reports/hiring")).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().BeEquivalentTo("from", "to");
         (await owner.GetAsync($"/v1/reports/hiring?from={At(Now)}&to={At(Now)}")).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("to");
         (await owner.GetAsync($"/v1/reports/hiring?from={At(Now.AddYears(-6))}&to={At(Now)}")).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("to");
+        (await owner.GetAsync($"/v1/reports/hiring?from={At(Now.AddDays(-30))}&to={At(Now)}&previousFrom={At(Now.AddDays(-60))}"))
+            .Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("previousTo");
+        (await owner.GetAsync($"/v1/reports/hiring?from={At(Now.AddDays(-30))}&to={At(Now)}&timeZone=Not/AZone"))
+            .Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("timeZone");
     }
 
     [Fact]
@@ -164,8 +308,14 @@ public sealed class ReportsTests(AppHostFixture fixture)
             fixture.AddApplicationHistoryAsync(
                 organizationId, job.Id, DaysAgo(appliedDaysAgo), source, moves.Select(m => (m.Stage, DaysAgo(m.DaysAgo))), Ct);
 
+        // Through a job board's apply link, and through the careers page embedded in the organization's own site.
+        Task<Guid> AddFrom(Job job, double appliedDaysAgo, string? board, string? site, params (string Stage, double DaysAgo)[] moves) =>
+            fixture.AddApplicationHistoryAsync(
+                organizationId, job.Id, DaysAgo(appliedDaysAgo), ApplicationSource.CareersSite, moves.Select(m => (m.Stage, DaysAgo(m.DaysAgo))), Ct,
+                sourceSite: site, sourceBoard: board);
+
         // Platform, in the range.
-        await Add(platform, 10, ApplicationSource.CareersSite, ("screening", 9), ("interview", 8), ("offer", 7), ("hired", 5));
+        await AddFrom(platform, 10, "talent", null, ("screening", 9), ("interview", 8), ("offer", 7), ("hired", 5));
         await Add(platform, 12, ApplicationSource.Recruiter, ("interview", 11), ("rejected", 10));
         await Add(platform, 6, ApplicationSource.CareersSite, ("screening", 5), ("interview", 4), ("offer", 3), ("hired", 2), ("offer", 1));
         await Add(platform, 20, ApplicationSource.CareersSite);
@@ -178,7 +328,7 @@ public sealed class ReportsTests(AppHostFixture fixture)
         // Data, in the range: rejected after the verification step, hired through it, and hired the usual way.
         await Add(data, 15, ApplicationSource.CareersSite, ("screening", 14), ("technical", 13), ("id-check", 12), ("rejected", 11));
         await Add(data, 14, ApplicationSource.Recruiter, ("id-check", 13), ("interview", 12), ("offer", 11), ("hired", 9));
-        await Add(data, 25, ApplicationSource.CareersSite, ("screening", 24), ("technical", 23), ("interview", 22), ("offer", 21), ("hired", 11));
+        await AddFrom(data, 25, null, "https://www.example.com", ("screening", 24), ("technical", 23), ("interview", 22), ("offer", 21), ("hired", 11));
 
         return (platform.Id, data.Id);
     }
@@ -195,5 +345,5 @@ public sealed class ReportsTests(AppHostFixture fixture)
 
     private static IEnumerable<(string, int, int)> Sources(ApiResult report) =>
         report.At("sources").EnumerateArray().Select(s => (
-            s.GetProperty("source").GetString()!, s.GetProperty("applications").GetInt32(), s.GetProperty("hires").GetInt32()));
+            s.GetProperty("key").GetString()!, s.GetProperty("applications").GetInt32(), s.GetProperty("hires").GetInt32()));
 }

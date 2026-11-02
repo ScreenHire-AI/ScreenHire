@@ -622,7 +622,8 @@ export const SubmitPublicApplicationBody = zod.object({
 }).describe('Page-level counts: times the page was hidden, and automation markers from a fixed list (`webdriver`,\n`headless`, ...).')
 }).describe('One cumulative snapshot of one page view\'s form telemetry: session aggregates only (CLAUDE.md non-negotiable 4), never\nkeystrokes, key values, timings per key or field content. Unknown members are refused, so nothing else can travel in\nit.')]).optional(),
   "keepForFutureRoles": zod.boolean().default(submitPublicApplicationBodyKeepForFutureRolesDefault),
-  "embedOrigin": zod.string().nullish()
+  "embedOrigin": zod.string().nullish(),
+  "source": zod.string().nullish()
 }).describe('A candidate\'s application from the careers page. The candidate is matched by email within the organization and\ncreated if new; an existing candidate\'s details are never changed by a public submission.')
 
 export const SubmitPublicApplicationResponse = zod.object({
@@ -7272,23 +7273,50 @@ export const ReopenTaskResponse = zod.object({
 }).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 
 
+export const getHiringReportQueryTimeZoneDefault = `UTC`;
+
 export const GetHiringReportQueryParams = zod.object({
   "from": zod.iso.datetime({"offset":true}).optional(),
   "to": zod.iso.datetime({"offset":true}).optional(),
+  "previousFrom": zod.iso.datetime({"offset":true}).optional(),
+  "previousTo": zod.iso.datetime({"offset":true}).optional(),
+  "timeZone": zod.string().default(getHiringReportQueryTimeZoneDefault),
   "jobId": zod.array(zod.uuid()).optional()
 })
 
 export const GetHiringReportResponse = zod.object({
   "from": zod.iso.datetime({"offset":true}),
   "to": zod.iso.datetime({"offset":true}),
+  "headline": zod.object({
+  "applications": zod.int(),
+  "reachedInterview": zod.int(),
+  "offers": zod.int(),
+  "hires": zod.int(),
+  "medianDaysToHire": zod.number().nullable()
+}).describe('The headline numbers of one range.'),
+  "previous": zod.union([zod.null(),zod.object({
+  "applications": zod.int(),
+  "reachedInterview": zod.int(),
+  "offers": zod.int(),
+  "hires": zod.int(),
+  "medianDaysToHire": zod.number().nullable()
+}).describe('The headline numbers of one range.')]),
+  "weekly": zod.array(zod.object({
+  "weekStart": zod.iso.date(),
+  "applications": zod.int(),
+  "hires": zod.int()
+}).describe('One Monday-start week: applications submitted in it and hires made in it, both inside the range.')),
   "funnel": zod.array(zod.object({
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
   "applications": zod.int(),
   "movedOn": zod.int().nullable()
 }).describe('One row of the funnel: a stage kind and the applications that reached it or a later one.')),
   "timeToHire": zod.object({
-  "medianDays": zod.number().nullable(),
-  "hires": zod.int(),
+  "stages": zod.array(zod.object({
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
+  "medianDays": zod.number(),
+  "hires": zod.int()
+}).describe('The median days the hires made in the range spent in one stage kind, and how many of them were in it.')),
   "jobs": zod.array(zod.object({
   "jobId": zod.uuid(),
   "jobTitle": zod.string(),
@@ -7297,11 +7325,34 @@ export const GetHiringReportResponse = zod.object({
 }).describe('One job\'s hires in the range and their median days from applying to being hired.'))
 }).describe('Days from applying to being hired, for the hires made in the range.'),
   "sources": zod.array(zod.object({
-  "source": zod.enum(['Recruiter', 'CareersSite']).describe('Where an application came from. Automation conditions read it as `application.source`.'),
+  "key": zod.string(),
+  "name": zod.string(),
   "applications": zod.int(),
   "hires": zod.int()
-}).describe('Applications submitted in the range from one source, and how many of them are hired now.'))
-}).describe('The Reports page (docs/architecture/reports.md): the funnel, time to hire and sources for the jobs the person can see,\nbetween two instants. All three come from one snapshot, so their numbers agree. Nothing here reads verification\n(verification) results.')
+}).describe('Applications submitted in the range from one source, and how many of them are hired now.')),
+  "openJobs": zod.array(zod.object({
+  "jobId": zod.uuid(),
+  "title": zod.string(),
+  "applications": zod.int(),
+  "inInterview": zod.int(),
+  "daysOpen": zod.int(),
+  "hires": zod.int()
+}).describe('An open job: applications in the range, applications in an Interview stage now, days open and hires in the range.'))
+}).describe('The Reports page (docs/architecture/reports.md): headline numbers, applications and hires by week, the funnel, time to\nhire, sources and open jobs for the jobs the person can see, between two instants. All of it comes from one snapshot,\nso the numbers agree. Nothing here reads verification (verification) results.')
+
+
+export const GetFunnelApplicationsParams = zod.object({
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
+})
+
+export const GetFunnelApplicationsQueryParams = zod.object({
+  "from": zod.iso.datetime({"offset":true}).optional(),
+  "to": zod.iso.datetime({"offset":true}).optional(),
+  "jobId": zod.array(zod.uuid()).optional()
+})
+
+export const GetFunnelApplicationsResponseItem = zod.uuid()
+export const GetFunnelApplicationsResponse = zod.array(GetFunnelApplicationsResponseItem)
 
 
 export const ListApplicationScorecardsParams = zod.object({

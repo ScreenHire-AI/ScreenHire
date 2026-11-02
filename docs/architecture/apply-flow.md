@@ -8,6 +8,7 @@ sources:
   - resource: apps/careers/src/pages/[organization]/uploads.ts
   - resource: apps/careers/src/lib/apply.ts
   - resource: apps/careers/src/lib/apply-server.ts
+  - resource: apps/careers/src/lib/source.ts
   - resource: apps/careers/src/lib/brand.ts
   - resource: apps/careers/src/lib/host.ts
   - resource: apps/careers/src/middleware.ts
@@ -84,12 +85,21 @@ until then (section 3).
 What this build records with an application (`JobApplication`): the answers, the files, the switch
 (`AccommodationRequested`, which later turns telemetry and typing signals off and is never a signal itself), the
 AI-use declaration and details, `PrivacyNoticeVersion`, `Source = CareersSite` (with `SourceSite`, the organization's
-own site, when the form was in the embeddable widget: [careers widget](careers-widget.md)), and two automation signals
-for the verification engine:
+own site, when the form was in the embeddable widget: [careers widget](careers-widget.md)), `SourceBoard`, the job board whose
+link brought the candidate (below), and two automation signals for the verification engine:
 
 - `HoneypotFilled` (`AUTO_HONEYPOT`): an off-screen field that only bots fill;
 - `BotCheck` (`AUTO_TURNSTILE_FAIL`): Cloudflare Turnstile's result when `ScreenHire:Turnstile:SiteKey` and `SecretKey`
   are set, otherwise `NotChecked`. Off locally and in tests.
+
+`SourceBoard` is a hint for the Reports page's Sources panel, not a signal. A feed or sandbox board links to a job as
+`/{slug}/jobs/{job}?src={boardId}` (`BoardUrls.Tag`); the job page's Apply link and the apply form's address keep `src`
+(`withSource` in `apps/careers/src/lib/source.ts`, which checks only its shape), and the apply action sends it as
+`source`. `SubmitPublicApplication` stores it as `JobApplication.SourceBoard` only when it is one of `BoardUrls.TaggedBoards`,
+and drops anything else without refusing the application. Nothing is read or stored at browsing time: the value is
+recorded with the application, after the notice. A saved draft's link does not carry `src`, so an application finished from
+a draft counts as the careers page. The automation fact `application.source` and the verification checks do not read it.
+
 
 Neither refuses a submission (CLAUDE.md non-negotiable 2), and knockout answers are stored like any other.
 

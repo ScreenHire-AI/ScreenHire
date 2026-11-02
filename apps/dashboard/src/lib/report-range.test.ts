@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { customRangeProblem, dayText, defaultRange, parseDay, rangeInstants, rangeLabel, readRange, sameRange, writeRange } from '#lib/report-range.js';
+import { customRangeProblem, dayText, defaultRange, parseDay, previousInstants, rangeInstants, rangeLabel, readRange, sameRange, writeRange } from '#lib/report-range.js';
 
 // Local times throughout: the range is the person's own days, whatever zone the test runs in.
 const now = new Date(2026, 9, 30, 15, 45);
@@ -9,6 +9,14 @@ describe('report ranges', () => {
   it('runs a preset from the local midnight that starts its first day to the one after today', () => {
     expect(rangeInstants({ kind: 'preset', days: 30 }, now)).toEqual({ from: midnight(2026, 10, 1), to: midnight(2026, 10, 31) });
     expect(rangeInstants({ kind: 'preset', days: 365 }, now)).toEqual({ from: midnight(2025, 10, 31), to: midnight(2026, 10, 31) });
+  });
+
+  it('runs the previous range over the same number of days, ending where the range starts', () => {
+    expect(previousInstants({ kind: 'preset', days: 30 }, now)).toEqual({ from: midnight(2026, 9, 1), to: midnight(2026, 10, 1) });
+    expect(previousInstants({ kind: 'custom', start: '2026-01-01', end: '2026-01-10' }, now)).toEqual({
+      from: midnight(2025, 12, 22),
+      to: midnight(2026, 1, 1),
+    });
   });
 
   it('includes both days of a custom range', () => {

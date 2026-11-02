@@ -90,6 +90,21 @@ export function rangeInstants(range: ReportRange, now: Date): { from: string; to
   return { from: midnight(now, 1 - range.days).toISOString(), to: midnight(now, 1).toISOString() };
 }
 
+/**
+ * The instants of the range just before `range`, the same number of local days, ending where `range` starts. Built from
+ * local midnights like `rangeInstants`, so a clock change inside either range keeps whole days.
+ */
+export function previousInstants(range: ReportRange, now: Date): { from: string; to: string } {
+  const current = rangeInstants(range, now);
+  const start = new Date(current.from);
+  const end = new Date(current.to);
+  const covered = daysCovered(start, new Date(end.getFullYear(), end.getMonth(), end.getDate() - 1));
+  return { from: midnight(start, -covered).toISOString(), to: current.from };
+}
+
+/** The person's time zone by its IANA name, which the API uses to cut weeks at the person's own midnights. */
+export const zoneName = () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
 const days = new Intl.DateTimeFormat(locales, { dateStyle: 'medium' });
 
 /** The range in words, for its button: "Last 30 days", or the two days as the browser's locale writes a range. */

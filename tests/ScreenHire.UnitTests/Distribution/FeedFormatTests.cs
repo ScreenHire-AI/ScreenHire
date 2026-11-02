@@ -49,6 +49,15 @@ public sealed class FeedFormatTests
         xml.Should().Contain("<![CDATA[");
     }
 
+    [Theory]
+    [MemberData(nameof(Boards))]
+    public void A_feed_links_to_the_job_with_its_own_board_as_the_source(string boardId)
+    {
+        var xml = Render(Adapter(boardId), [OnsiteJob()]);
+
+        xml.Should().Contain($"https://careers.example.com/harbour/jobs/platform-engineer?src={boardId}");
+    }
+
     [Fact]
     public void Careerjet_names_the_country_and_the_contract()
     {

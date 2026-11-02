@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Reports;
+using ScreenHire.Application.Distribution;
+using ScreenHire.Domain.Hiring;
 using ScreenHire.Infrastructure.Persistence;
 
 namespace ScreenHire.Api.Endpoints;
@@ -19,29 +21,79 @@ internal static class ReportEndpoints
     {
         var group = app.MapGroup("/v1/reports").WithTags("Reports").RequireAuthorization();
         group.MapGet("/hiring", GetHiringReport).WithName("GetHiringReport").Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/hiring/funnel/{kind}/applications", GetFunnelApplications).WithName("GetFunnelApplications")
+            .Produces(StatusCodes.Status401Unauthorized);
         return app;
     }
 
     // The browser turns "last 30 days" or a custom range into the person's own midnights, so the API never guesses a time
-    // zone: from inclusive, to exclusive. A job id the person cannot see, or that does not exist, adds nothing.
+    // zone: from inclusive, to exclusive. It names its own zone for the weeks, and the previous range it compares with.
+    // A job id the person cannot see, or that does not exist, adds nothing.
     private static async Task<Results<Ok<HiringReport>, ValidationProblem>> GetHiringReport(
+        ScreenHireDbContext db,
+        BoardRegistry boards,
+        TimeProvider time,
+        CancellationToken cancellationToken,
+        DateTimeOffset? from = null,
+        DateTimeOffset? to = null,
+        DateTimeOffset? previousFrom = null,
+        DateTimeOffset? previousTo = null,
+        string timeZone = "UTC",
+        Guid[]? jobId = null)
+    {
+        var problems = Problems(from, to, jobId, previousFrom, previousTo);
+        if (problems.Count == 0 && !await HiringReportReads.TimeZoneExistsAsync(db, timeZone, cancellationToken))
+        {
+            problems["timeZone"] = ["Say the time zone by its name, such as Europe/London."];
+        }
+
+        if (problems.Count > 0)
+        {
+            return TypedResults.ValidationProblem(problems);
+        }
+
+        (DateTimeOffset, DateTimeOffset)? previous = previousFrom is { } start && previousTo is { } end
+            ? (start.ToUniversalTime(), end.ToUniversalTime())
+            : null;
+        return TypedResults.Ok(await HiringReportReads.ReadAsync(
+            db,
+            from!.Value.ToUniversalTime(),
+            to!.Value.ToUniversalTime(),
+            previous,
+            jobId ?? [],
+            timeZone,
+            time.GetUtcNow(),
+            id => boards.Find(id)?.Name ?? id,
+            cancellationToken));
+    }
+
+    // The applications behind a funnel row: those submitted in the range that reached the kind or a later one, for the
+    // candidates page to show. A kind with no row (Verification, Custom, Rejected, Withdrawn) has none to show.
+    private static async Task<Results<Ok<IReadOnlyList<Guid>>, NotFound, ValidationProblem>> GetFunnelApplications(
+        StageKind kind,
         ScreenHireDbContext db,
         CancellationToken cancellationToken,
         DateTimeOffset? from = null,
         DateTimeOffset? to = null,
         Guid[]? jobId = null)
     {
+        if (!HiringReportReads.FunnelKinds.Contains(kind))
+        {
+            return TypedResults.NotFound();
+        }
+
         if (Problems(from, to, jobId) is { Count: > 0 } problems)
         {
             return TypedResults.ValidationProblem(problems);
         }
 
-        return TypedResults.Ok(await HiringReportReads.ReadAsync(
-            db, from!.Value.ToUniversalTime(), to!.Value.ToUniversalTime(), jobId ?? [], cancellationToken));
+        return TypedResults.Ok(await HiringReportReads.ReachedAsync(
+            db, from!.Value.ToUniversalTime(), to!.Value.ToUniversalTime(), jobId ?? [], kind, cancellationToken));
     }
 
-    /// <summary>What is wrong with a report's range and job filter, by parameter; empty when nothing is.</summary>
-    internal static Dictionary<string, string[]> Problems(DateTimeOffset? from, DateTimeOffset? to, Guid[]? jobId)
+    /// <summary>What is wrong with a report's range, previous range and job filter, by parameter; empty when nothing is.</summary>
+    internal static Dictionary<string, string[]> Problems(
+        DateTimeOffset? from, DateTimeOffset? to, Guid[]? jobId, DateTimeOffset? previousFrom = null, DateTimeOffset? previousTo = null)
     {
         var problems = new Dictionary<string, string[]>();
         if (from is null)
@@ -63,6 +115,22 @@ internal static class ReportEndpoints
             else if (end - start > HiringReportReads.MaxRange)
             {
                 problems["to"] = ["A report covers 5 years at most."];
+            }
+        }
+
+        if (previousFrom is null != previousTo is null)
+        {
+            problems[previousFrom is null ? "previousFrom" : "previousTo"] = ["Name both ends of the previous range, or neither."];
+        }
+        else if (previousFrom is { } before && previousTo is { } after)
+        {
+            if (before >= after)
+            {
+                problems["previousTo"] = ["The previous range has to end after it starts."];
+            }
+            else if (after - before > HiringReportReads.MaxRange)
+            {
+                problems["previousTo"] = ["A report covers 5 years at most."];
             }
         }
 

@@ -5,18 +5,25 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { FunnelStage } from './funnelStage.ts';
+import type { ReportHeadline } from './reportHeadline.ts';
+import type { ReportOpenJob } from './reportOpenJob.ts';
+import type { ReportWeek } from './reportWeek.ts';
 import type { SourceCount } from './sourceCount.ts';
 import type { TimeToHire } from './timeToHire.ts';
 
 /**
- * The Reports page (docs/architecture/reports.md): the funnel, time to hire and sources for the jobs the person can see,
- * between two instants. All three come from one snapshot, so their numbers agree. Nothing here reads verification
- * (verification) results.
+ * The Reports page (docs/architecture/reports.md): headline numbers, applications and hires by week, the funnel, time to
+ * hire, sources and open jobs for the jobs the person can see, between two instants. All of it comes from one snapshot,
+ * so the numbers agree. Nothing here reads verification (verification) results.
  */
 export interface HiringReport {
   from: string;
   to: string;
+  headline: ReportHeadline;
+  previous: null | ReportHeadline;
+  weekly: ReportWeek[];
   funnel: FunnelStage[];
   timeToHire: TimeToHire;
   sources: SourceCount[];
+  openJobs: ReportOpenJob[];
 }

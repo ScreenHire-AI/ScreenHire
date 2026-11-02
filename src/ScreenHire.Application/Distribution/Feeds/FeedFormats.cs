@@ -32,7 +32,7 @@ public sealed class GenericFeedAdapter(TimeProvider time) : FeedAdapter(time)
             Plain("version", content.Version.ToString(CultureInfo.InvariantCulture)),
             Data("title", job.Title),
             Data("company", content.OrganizationName),
-            Data("url", content.Url),
+            Data("url", BoardUrls.Tag(content.Url, BoardId)),
             Plain("dateposted", Iso(content.DatePosted)),
             Plain("updated", Iso(content.VersionPublishedAt)),
             job.ValidThrough is { } validThrough ? Plain("validthrough", Iso(validThrough)) : null,
@@ -86,7 +86,7 @@ public sealed class CareerjetFeedAdapter(TimeProvider time) : FeedAdapter(time)
         return new XElement("job",
             Data("id", content.JobId.ToString()),
             Data("title", job.Title),
-            Data("url", content.Url),
+            Data("url", BoardUrls.Tag(content.Url, BoardId)),
             new XElement("location",
                 Data("city", city),
                 Data("region", region),
@@ -107,7 +107,7 @@ public sealed class CareerjetFeedAdapter(TimeProvider time) : FeedAdapter(time)
                 _ => null,
             }),
             Data("salary", SalaryText(job.Salary)),
-            Data("apply_url", content.Url));
+            Data("apply_url", BoardUrls.Tag(content.Url, BoardId)));
     }
 
     protected override XElement Root(FeedHeader header, IEnumerable<XElement> jobs) => new("jobs", jobs);
@@ -155,7 +155,7 @@ public sealed class TalentFeedAdapter(TimeProvider time) : FeedAdapter(time)
             Required("state", region),
             Data("country", CountryName(country)),
             Data("dateposted", Iso(content.DatePosted)),
-            Data("url", content.Url),
+            Data("url", BoardUrls.Tag(content.Url, BoardId)),
             Data("description", job.Description),
             // The spec's suggested format for this one field is month first.
             job.ValidThrough is { } validThrough
@@ -216,7 +216,7 @@ public sealed class AdzunaFeedAdapter(TimeProvider time) : FeedAdapter(time)
             Data("title", job.Title),
             Plain("id", content.JobId.ToString()),
             Data("description", job.Description),
-            Data("url", content.Url),
+            Data("url", BoardUrls.Tag(content.Url, BoardId)),
             Data("location", city ?? region ?? (job.WorkplaceType == WorkplaceType.Remote ? "Remote" : CountryName(country))),
             // Adzuna's list of codes says UK, not GB.
             Plain("country", country == "GB" ? "UK" : country),
@@ -268,7 +268,7 @@ public sealed class JoobleFeedAdapter(TimeProvider time) : FeedAdapter(time)
         var job = content.Snapshot;
         return new XElement("job",
             new XAttribute("id", content.JobId.ToString()),
-            Data("link", content.Url),
+            Data("link", BoardUrls.Tag(content.Url, BoardId)),
             Data("name", job.Title),
             Data("region", PlaceText(job)),
             Data("salary", SalaryText(job.Salary)),
