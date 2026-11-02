@@ -1668,7 +1668,7 @@ describe('application page', () => {
       const band = await header();
 
       const region = await screen.findByRole('region', { name: 'Interview' });
-      expect(region).toHaveTextContent('Waiting for the candidate to pick a time');
+      expect(region).toHaveTextContent('Waiting for the candidate');
       expect(within(band).queryByRole('group', { name: 'Interview' })).toBeNull();
     });
 

@@ -259,6 +259,19 @@ public sealed partial class GoogleCalendarProvider : ICalendarProvider, IDisposa
         }
     }
 
+    public async Task RemoveEventAsync(string accessToken, string eventId, CancellationToken cancellationToken)
+    {
+        using var reply = await SendAsync(HttpMethod.Delete, $"{EventPath(eventId)}?sendUpdates=none", accessToken, null, cancellationToken);
+        if (!reply.IsSuccess && reply.Status is not (HttpStatusCode.NotFound or HttpStatusCode.Gone))
+        {
+            throw CalendarFailures.Failure(reply);
+        }
+    }
+
+    // The id is the one the create asked for, so there is nothing to look up: a delete of an id that was never made is a 404.
+    public Task<string?> FindEventIdAsync(string accessToken, string idempotencyId, DateTimeOffset start, DateTimeOffset end, CancellationToken cancellationToken) =>
+        Task.FromResult<string?>(EventId(idempotencyId));
+
     public void Dispose() => http.Dispose();
 
     /// <summary>

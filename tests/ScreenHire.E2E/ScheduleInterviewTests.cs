@@ -98,7 +98,7 @@ public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : Browser
 
         // The Overview says it is waiting for the candidate, and nothing is in the header yet.
         var panel = Page.GetByRole(AriaRole.Region, new() { Name = "Interview", Exact = true });
-        await Expect(panel).ToContainTextAsync("Waiting for the candidate to pick a time");
+        await Expect(panel).ToContainTextAsync("Waiting for the candidate");
         var length = header.GetByText("30 minutes with 2 interviewers");
         await Expect(length).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();

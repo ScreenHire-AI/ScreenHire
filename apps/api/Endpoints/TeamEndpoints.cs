@@ -7,12 +7,13 @@ using ScreenHire.Api.Auth;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Realtime;
+using ScreenHire.Application.Scheduling;
 using ScreenHire.Domain.History;
 using ScreenHire.Domain.Organizations;
-using ScreenHire.Domain.Scheduling;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
+using Wolverine.EntityFrameworkCore;
 
 namespace ScreenHire.Api.Endpoints;
 
@@ -318,9 +319,11 @@ internal static class TeamEndpoints
     // Removing a member ends their access on their next request (Memberships.ResolveTenantAsync reads the membership
     // every time) and closes their open live-update connections into this organization at once.
     private static async Task<Results<NoContent, NotFound, Conflict<ProblemDetails>, ProblemHttpResult>> RemoveMember(
-        Guid memberId, ScreenHireDbContext db, ITenantContext tenant, RealtimeConnections connections, TimeProvider time,
+        Guid memberId, IDbContextOutbox<ScreenHireDbContext> outbox, ITenantContext tenant, RealtimeConnections connections, TimeProvider time,
         CancellationToken cancellationToken)
     {
+        var db = outbox.DbContext;
+        // No CommitAsync here: SaveChangesAndFlushMessagesAsync commits this transaction with the outbox rows.
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await Invitations.LockMembersAsync(db, tenant.OrganizationId!.Value, cancellationToken);
         var members = await InOrganization(db, tenant).ToListAsync(cancellationToken);
@@ -347,15 +350,9 @@ internal static class TeamEndpoints
         await db.SlackAccountLinks.Where(l => l.UserId == member.UserId).ExecuteDeleteAsync(cancellationToken);
         // So does their calendar: its tokens are for their own use, and nothing is booked on a calendar of someone who left.
         await db.CalendarConnections.Where(c => c.UserId == member.UserId).ExecuteDeleteAsync(cancellationToken);
-        // Their place on interviews still to come stays visible, marked as not on a calendar, so the recruiter can see it.
-        var now = time.GetUtcNow();
-        var upcoming = await db.InterviewAttendees
-            .Where(a => a.UserId == member.UserId)
-            .Join(db.InterviewRequests, a => new { a.OrganizationId, a.InterviewId }, r => new { r.OrganizationId, InterviewId = r.Id }, (a, r) => new { Attendee = a, Interview = r })
-            .Where(x => x.Interview.Status == InterviewStatus.Booked && x.Interview.StartsAt > now)
-            .Select(x => x.Attendee)
-            .ToListAsync(cancellationToken);
-        upcoming.ForEach(a => a.MarkFailed("They left the organization, so this interview is not on their calendar."));
+        // And their place on interviews still to come: the worker takes them off, hands an Open interview to the next
+        // interviewer, and cancels one that has nobody left, or whose organizer they were (docs/architecture/interview-scheduling.md).
+        await outbox.PublishAsync(new RemoveInterviewerFromInterviews(member.OrganizationId, member.UserId, member.Id));
         // So do their private views, which nobody else can see. Views they shared stay with the team (docs/architecture/saved-views.md).
         await db.SavedFilterViews.Where(v => v.OwnerUserId == member.UserId && !v.IsShared).ExecuteDeleteAsync(cancellationToken);
         db.MembershipEvents.Add(new MembershipEvent
@@ -369,8 +366,7 @@ internal static class TeamEndpoints
             PreviousCustomRoleName = CustomName(held),
             OccurredAt = time.GetUtcNow(),
         });
-        await db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+        await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
         connections.Close(member.UserId, member.OrganizationId);
         return TypedResults.NoContent();
     }

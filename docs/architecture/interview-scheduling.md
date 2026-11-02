@@ -25,6 +25,7 @@ sources:
   - resource: src/ScreenHire.Application/Scheduling/InterviewBooking.cs
   - resource: src/ScreenHire.Application/Scheduling/InterviewLinks.cs
   - resource: src/ScreenHire.Application/Scheduling/InterviewMessages.cs
+  - resource: src/ScreenHire.Application/Scheduling/InterviewLifecycleHandlers.cs
   - resource: apps/api/Endpoints/InterviewEndpoints.cs
   - resource: apps/api/Hiring/InterviewerReferences.cs
   - resource: src/ScreenHire.Application/Automations/ExecuteAutomationActionHandler.cs
@@ -249,8 +250,33 @@ Open request past its window is stored as Expired and saved before the new row i
 index sees the stored status. A team cancellation takes the interviewers' advisory locks first, as a booking does, so a
 cancellation and a booking at the same moment cannot both win.
 
-`status` is the effective status: an Open request past its window reads `Expired`. Removing a member also marks their
-attendee rows on booked interviews that have not started `Failed` with a plain problem, and they stay visible.
+`status` is the effective status: an Open request past its window reads `Expired`.
+
+## When an interview is cut short
+
+Three changes outside the interview itself end or change it. Each is a worker message sent in the same transaction as the
+change, so a crash between the two cannot leave one without the other.
+
+- **The application ends.** A move to Hired, Rejected or Withdrawn (the move route, an automation, the MCP server) and
+  Save candidate (Keep in mind) send `EndApplicationInterviews`. The handler checks the application has ended when it runs,
+  so a move back in between cancels nothing, then cancels the Open or Booked interview, adds the `InterviewCancelled`
+  timeline entry, removes the events and tells open dashboards. The candidate gets no `interview-cancelled` email: a
+  rejection, or no message at all, is the team's word on the application, and a second notice beside it is noise. The
+  calendar provider's own cancellation notice for the organizer's event still reaches a candidate who was invited to it.
+- **A member leaves.** Removal deletes their connection and sends `RemoveInterviewerFromInterviews`. The handler takes them
+  off every Open or Booked interview. An Open interview whose organizer left makes the next interviewer the organizer, and
+  one with nobody left is cancelled. A Booked interview goes on without a leaver who was not the organizer, so it can still
+  be moved. If the organizer left, or nobody is left, it is cancelled and the candidate is told, because the candidate's
+  invitation is on an event ScreenHire can no longer reach, and it could not be moved later. That event stays on the
+  leaver's own calendar.
+- **The candidate is erased.** An event holds the candidate's name and address, and the rows that say where it is go with
+  the candidate. So the erase route takes the interviewers' locks, reads each Booked interview's attendees (user, saved
+  event id, time), and sends `RemoveInterviewEvents` with those ids and times only. The handler deletes each event without
+  notifying guests on Google; Microsoft Graph has no switch for that, and a meeting deleted by its organizer tells its
+  attendees. An event whose id was never saved (a create whose transaction rolled back after the provider answered) is
+  found by the id its create used: Google's event id is derived from it, and Graph is searched by `transactionId` in the
+  interview's window. A cancellation uses the same lookup, so a rolled-back create cannot leave an event behind. The
+  sandbox deletes the row for good.
 
 ## The workflow action
 
@@ -359,8 +385,9 @@ It opens `ScheduleInterviewSheet`, which lists the members who see the job from 
 length and how many interviewers. The time is said nowhere else on the screen except Activity, which records the time each
 entry was about.
 
-**The Interview panel** sits under Next steps on Overview and is not drawn while no interview was ever offered. An open
-interview says it is waiting for the candidate and gives the days they can choose from, in the interview's zone. A booked
+**The Interview panel** sits under Next steps on Overview and is not drawn while no interview was ever offered. Each
+state has a status badge (design system section 3.2): Waiting for the candidate (grey), Booked (clear), Cancelled and Expired
+(grey). An open interview gives the days the candidate can choose from, in the interview's zone. A booked
 one lists the interviewers with the organizer marked in words when there are two or more, the meeting link, and a note under an interviewer whose
 calendar event is still pending or failed (the failure's own words, such as "Their calendar refused the event"). A cancelled or expired
 one is one line saying how it ended. Cancel is a destructive item in the panel's menu behind a dialog, for people who may
@@ -375,4 +402,4 @@ move is history the header no longer shows.
 are tenant-owned with forced row-level security, like every other tenant table. The last two sit under an application,
 so they also carry the restrictive `job_scope` policy (ADR-0015). A connection is unique per organization and member. An attendee's foreign key to its interview includes the application,
 so an attendee cannot name another application than its interview's, which is the application its `job_scope` policy reads.
-Removing a member from the organization deletes their connection.
+Removing a member from the organization deletes their connection and takes them off the interviews still to come.

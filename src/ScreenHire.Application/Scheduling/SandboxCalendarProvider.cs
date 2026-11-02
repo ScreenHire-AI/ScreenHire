@@ -124,6 +124,24 @@ public sealed class SandboxCalendarProvider(ScreenHireDbContext db, TenantContex
         }
     }
 
+    // Gone for good, not marked deleted: the row holds the candidate's name, and an erasure leaves none of it.
+    public async Task RemoveEventAsync(string accessToken, string eventId, CancellationToken cancellationToken)
+    {
+        var (_, userId) = Check(accessToken, AccessPrefix);
+        if (await FindAsync(userId, eventId, cancellationToken) is { } found)
+        {
+            db.CalendarSandboxEvents.Remove(found);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+    }
+
+    // The sandbox's event id is the idempotency id.
+    public async Task<string?> FindEventIdAsync(string accessToken, string idempotencyId, DateTimeOffset start, DateTimeOffset end, CancellationToken cancellationToken)
+    {
+        var (_, userId) = Check(accessToken, AccessPrefix);
+        return await FindAsync(userId, idempotencyId, cancellationToken) is { } found ? found.ProviderEventId : null;
+    }
+
     /// <summary>The meeting link the sandbox gives an event: on a reserved host, so nothing real is ever opened.</summary>
     public static string MeetingUrl(string eventId) => $"https://{MeetingHost}/sandbox/{Uri.EscapeDataString(eventId)}";
 

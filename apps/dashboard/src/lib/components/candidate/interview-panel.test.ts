@@ -1,5 +1,5 @@
 import type { ApplicationInterview } from '@screenhire/api-client';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
 import { apiStub, user } from '../../../test-support/fixtures.js';
@@ -73,7 +73,7 @@ describe('Interview panel', () => {
     const { calls, panel } = renderPanel([interview({})], { [`POST ${cancelUrl}`]: () => Response.json(interview({ status: 'Cancelled' })) });
 
     const region = await panel();
-    expect(region).toHaveTextContent('Waiting for the candidate to pick a time');
+    expect(region).toHaveTextContent('Waiting for the candidate');
     // 2026-11-03 05:00Z is midnight in New York, and the window ends at the start of 2026-11-17: the last day is the 16th.
     expect(region).toHaveTextContent('Times from Nov 3, 2026 to Nov 16, 2026.');
     expect(within(region).queryByRole('link')).toBeNull();
@@ -86,6 +86,20 @@ describe('Interview panel', () => {
     await waitFor(() => expect(calls).toContain(`POST ${cancelUrl}`));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     await expectNoAxeViolations();
+  });
+
+  it('gives each state its status badge: waiting is grey, booked is clear, and a cancelled or expired one is grey (T1)', async () => {
+    for (const [list, label, tone] of [
+      [[interview({})], 'Waiting for the candidate', 'neutral'],
+      [[booked()], 'Booked', 'clear'],
+      [[interview({ status: 'Cancelled' })], 'Cancelled', 'neutral'],
+      [[interview({ status: 'Expired' })], 'Expired', 'neutral'],
+    ] as const) {
+      const view = renderPanel([...list]);
+      const badge = (await within(await view.panel()).findByText(label)).closest('[data-status]');
+      expect(badge).toHaveAttribute('data-status', tone);
+      cleanup();
+    }
   });
 
   it('marks no organizer when one person interviews', async () => {

@@ -333,7 +333,8 @@ public sealed class InterviewAttendee : IApplicationScoped
     /// <summary>The interviewer's user id (the calendar connection's owner).</summary>
     public Guid UserId { get; init; }
 
-    public bool IsOrganizer { get; init; }
+    /// <summary>The one whose event invites the candidate and makes the meeting link.</summary>
+    public bool IsOrganizer { get; private set; }
 
     /// <summary>The provider of the interviewer's calendar when the event was last written.</summary>
     public CalendarProvider Provider { get; private set; }
@@ -357,6 +358,9 @@ public sealed class InterviewAttendee : IApplicationScoped
             Provider = provider,
         };
     }
+
+    /// <summary>The organizer left before the interview was booked, so this interviewer's event will invite the candidate instead.</summary>
+    public void MakeOrganizer() => IsOrganizer = true;
 
     /// <summary>The booking changed: the event must be written again.</summary>
     public void MarkPending()

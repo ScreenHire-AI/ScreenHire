@@ -9,6 +9,7 @@ describe('status catalogue', () => {
 
     expect(map).toEqual({
       done: 'clear circle-check',
+      booked: 'clear calendar-check',
       open: 'clear door-open',
       review: 'review eye',
       overdue: 'review clock-alert',

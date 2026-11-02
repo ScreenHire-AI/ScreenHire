@@ -82,5 +82,10 @@ kept narrow.
 - A candidate can get two messages on booking: the provider's invitation and ScreenHire's confirmation. The confirmation is
   the only place the reschedule and cancel link lives, and the sandbox sends no provider mail.
 - No reminders yet, and no way for a recruiter to move a booked interview; a recruiter cancels and offers again.
+- An interview ends with its application: a rejection, withdrawal, hire or Save candidate cancels it, and the candidate
+  gets no separate cancellation email. A leaving interviewer is taken off their interviews, and a Booked interview whose
+  organizer left is cancelled and the candidate told. Erasing a candidate deletes their events from the calendars without
+  notifying guests where the provider allows it (Google); Graph tells attendees when an organizer deletes a meeting. The
+  alternative to all three was to leave the interview and let it fail at the next calendar call.
 - No free/busy cache. The public routes are rate limited. If provider quotas bite, a cache is the next step.
 - The production Data Protection key ring protection, already an owner item, now also guards calendar tokens.

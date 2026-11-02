@@ -229,6 +229,22 @@ public sealed class MicrosoftCalendarProvider : ICalendarProvider, IDisposable
         }
     }
 
+    // Graph has no switch to delete a meeting quietly: deleting it as the organizer tells its attendees.
+    public async Task RemoveEventAsync(string accessToken, string eventId, CancellationToken cancellationToken)
+    {
+        using var delete = await SendAsync(HttpMethod.Delete, EventPath(eventId), accessToken, null, cancellationToken);
+        if (!delete.IsSuccess && delete.Status is not (HttpStatusCode.NotFound or HttpStatusCode.Gone))
+        {
+            throw CalendarFailures.Failure(delete);
+        }
+    }
+
+    public async Task<string?> FindEventIdAsync(string accessToken, string idempotencyId, DateTimeOffset start, DateTimeOffset end, CancellationToken cancellationToken)
+    {
+        var spec = new EventSpec(idempotencyId, "", "", start, end, [], CreateMeetingLink: false);
+        return (await FindByTransactionAsync(accessToken, spec, cancellationToken))?.EventId;
+    }
+
     public void Dispose() => http.Dispose();
 
     private string ClientId => options.Microsoft.ClientId ?? throw new InvalidOperationException("No Microsoft client id is configured.");

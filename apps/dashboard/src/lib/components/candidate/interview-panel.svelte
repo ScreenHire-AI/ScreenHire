@@ -9,6 +9,7 @@
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import StatusBadge from '#lib/components/status-badge.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import { formatDateIn, formatDateTime } from '#lib/dates.js';
@@ -67,12 +68,13 @@
 {:else if shown}
   <Panel title="Interview" actions={live && mayCancel ? menu : undefined}>
     {#if shown.status === 'Open'}
-      <div class="flex flex-col gap-0.5">
-        <p class="font-semibold">Waiting for the candidate to pick a time</p>
+      <div class="flex flex-col items-start gap-1.5">
+        <StatusBadge status="waiting" label="Waiting for the candidate" />
         <p class="text-muted-foreground">Times from {formatDateIn(shown.windowStart, shown.timeZone)} to {lastDay(shown)}.</p>
       </div>
     {:else if shown.status === 'Booked'}
-      <div class="flex flex-col gap-4">
+      <div class="flex flex-col items-start gap-4">
+        <StatusBadge status="booked" label="Booked" />
         <ul aria-label="Interviewers" class="flex flex-col gap-3">
           {#each shown.interviewers as person (person.userId)}
             <li class="flex min-w-0 flex-col gap-0.5">
@@ -100,7 +102,10 @@
         {/if}
       </div>
     {:else}
-      <p class="text-muted-foreground">{ended(shown)}</p>
+      <div class="flex flex-col items-start gap-1.5">
+        <StatusBadge status="notInEffect" label={shown.status === 'Expired' ? 'Expired' : 'Cancelled'} />
+        <p class="text-muted-foreground">{ended(shown)}</p>
+      </div>
     {/if}
   </Panel>
 {/if}

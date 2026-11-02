@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ScreenHire.Domain.Scheduling;
+using ScreenHire.IntegrationTests.Messaging;
 using ScreenHire.IntegrationTests.Realtime;
 
 namespace ScreenHire.IntegrationTests.Scheduling;
@@ -341,7 +342,7 @@ public sealed class InterviewJourneyTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task Removing_an_interviewer_marks_their_place_on_booked_interviews_as_failed_and_keeps_it_visible()
+    public async Task Removing_an_interviewer_takes_them_off_a_booked_interview_which_stays_with_the_others()
     {
         using var world = await InterviewWorld.CreateAsync(fixture);
         var (interviewId, token) = await world.ScheduledAsync();
@@ -352,13 +353,13 @@ public sealed class InterviewJourneyTests(AppHostFixture fixture)
 
         (await world.Owner.DeleteAsync($"/v1/organization/members/{memberId}")).Expect(HttpStatusCode.NoContent);
 
+        await WolverineStore.WaitUntilAsync(
+            async () => (await world.InterviewsAsync()).Single().GetProperty("interviewers").GetArrayLength() == 1,
+            "the worker to take the leaver off the interview",
+            Ct);
         var interviewers = (await world.InterviewsAsync()).Single().GetProperty("interviewers").EnumerateArray().ToList();
-        interviewers.Should().HaveCount(2, "they stay visible");
-        var removed = interviewers.Single(i => i.GetProperty("userId").GetGuid() == world.Second.UserId);
-        removed.GetProperty("syncStatus").GetString().Should().Be("Failed");
-        removed.GetProperty("syncProblem").GetString().Should().NotBeNullOrWhiteSpace();
-        removed.GetProperty("displayName").GetString().Should().Be("Former member");
-        interviewers.Single(i => i.GetProperty("userId").GetGuid() == world.Owner.UserId).GetProperty("syncStatus").GetString().Should().Be("Synced");
+        interviewers.Single().GetProperty("userId").GetGuid().Should().Be(world.Owner.UserId);
+        interviewers.Single().GetProperty("syncStatus").GetString().Should().Be("Synced");
         (await world.StoredAsync(interviewId)).Status.Should().Be(InterviewStatus.Booked, "the interview stays");
     }
 

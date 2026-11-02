@@ -436,6 +436,36 @@ public sealed class GoogleCalendarProviderTests : IDisposable
         call.Query.Should().BeEquivalentTo(new Dictionary<string, string> { ["sendUpdates"] = "all" });
     }
 
+    [Fact]
+    public async Task Removing_deletes_the_event_and_sends_the_guests_nothing()
+    {
+        google.Answer(HttpStatusCode.NoContent);
+
+        await Provider().RemoveEventAsync(Token, "evt1", Ct);
+
+        var call = google.Calls.Should().ContainSingle().Which;
+        call.Method.Should().Be(HttpMethod.Delete);
+        call.Path.Should().Be("/calendar/v3/calendars/primary/events/evt1");
+        call.Query.Should().BeEquivalentTo(new Dictionary<string, string> { ["sendUpdates"] = "none" });
+    }
+
+    [Fact]
+    public async Task Removing_an_event_that_is_already_gone_is_not_an_error()
+    {
+        google.Answer(HttpStatusCode.NotFound);
+
+        await Provider().RemoveEventAsync(Token, "evt1", Ct);
+    }
+
+    [Fact]
+    public async Task An_event_with_no_saved_id_is_found_by_the_id_its_create_asked_for_with_no_call()
+    {
+        var id = await Provider().FindEventIdAsync(Token, "0123456789abcdef0123456789abcdef", Start, Start.AddHours(1), Ct);
+
+        id.Should().Be(GoogleCalendarProvider.EventId("0123456789abcdef0123456789abcdef"));
+        google.Calls.Should().BeEmpty();
+    }
+
     [Theory]
     [InlineData(404)]
     [InlineData(410)]

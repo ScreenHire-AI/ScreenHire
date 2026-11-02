@@ -351,6 +351,42 @@ public sealed class MicrosoftCalendarProviderTests : IDisposable
     }
 
     [Fact]
+    public async Task An_event_with_no_saved_id_is_found_by_its_transaction_id_in_the_interviews_window()
+    {
+        graph.Ok($$$$"""
+            {"value":[
+              {"id":"other","transactionId":"someone-else","isCancelled":false},
+              {"id":"{{{{EventId}}}}","transactionId":"0123456789abcdef0123456789abcdef","isCancelled":false}]}
+            """);
+
+        var id = await Provider().FindEventIdAsync(Token, "0123456789abcdef0123456789abcdef", Start, Start.AddHours(1), Ct);
+
+        id.Should().Be(EventId);
+        graph.Calls.Should().ContainSingle().Which.Path.Should().Be("/v1.0/me/calendarView");
+    }
+
+    [Fact]
+    public async Task An_event_that_was_never_made_is_not_found()
+    {
+        graph.Ok(View());
+
+        (await Provider().FindEventIdAsync(Token, "0123456789abcdef0123456789abcdef", Start, Start.AddHours(1), Ct)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Removing_deletes_the_event_and_an_event_already_gone_is_not_an_error()
+    {
+        graph.Answer(HttpStatusCode.NoContent);
+        graph.Answer(HttpStatusCode.NotFound);
+
+        await Provider().RemoveEventAsync(Token, EventId, Ct);
+        await Provider().RemoveEventAsync(Token, EventId, Ct);
+
+        graph.Calls.Should().HaveCount(2).And.OnlyContain(c => c.Method == HttpMethod.Delete);
+        graph.Calls[0].Url.AbsolutePath.Should().Be("/v1.0/me/events/AAMkAGI2fictional-event-id%3D");
+    }
+
+    [Fact]
     public async Task A_refused_repeat_whose_event_cannot_be_found_is_a_permanent_failure_not_a_second_event()
     {
         graph.Answer(HttpStatusCode.Conflict, """{"error":{"code":"ErrorItemExists"}}""");

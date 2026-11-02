@@ -41,6 +41,20 @@ public interface ICalendarProvider
 
     /// <summary>Removes an event. An event that is already gone is not an error.</summary>
     Task CancelEventAsync(string accessToken, string eventId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Deletes an event without telling its guests, so nothing of it is left on the calendar. For an erased candidate, whose
+    /// name and address the event holds. An event that is already gone is not an error. Google is told not to send updates;
+    /// Microsoft Graph has no such switch, and the organizer deleting a meeting there tells its attendees.
+    /// </summary>
+    Task RemoveEventAsync(string accessToken, string eventId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The provider's id for the event made with <paramref name="idempotencyId"/> in the window, or null when there is none.
+    /// For an event a create made before its id was saved (the transaction rolled back after the provider answered), which
+    /// would otherwise stay on the calendar after a cancellation or an erasure.
+    /// </summary>
+    Task<string?> FindEventIdAsync(string accessToken, string idempotencyId, DateTimeOffset start, DateTimeOffset end, CancellationToken cancellationToken);
 }
 
 /// <summary>What a code or refresh token exchange gave back. Times are UTC instants.</summary>

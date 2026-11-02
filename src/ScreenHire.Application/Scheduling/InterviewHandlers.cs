@@ -243,11 +243,16 @@ internal static partial class InterviewCalendarSync
         return outgoing;
     }
 
-    /// <summary>Removes each interviewer's event for a Cancelled interview and tells the candidate it is cancelled.</summary>
+    /// <summary>
+    /// Removes each interviewer's event for a Cancelled interview and, unless <paramref name="tellCandidate"/> is false,
+    /// tells the candidate it is cancelled. An interviewer whose event id was never saved (the booking's transaction rolled
+    /// back after the provider answered) is looked up by the id the create used, so no event stays behind.
+    /// </summary>
     public static async Task<OutgoingMessages> CancelAsync(
         Guid organizationId,
         Guid interviewId,
         int revision,
+        bool tellCandidate,
         ScreenHireDbContext db,
         CalendarAccess calendar,
         TransactionalEmail email,
@@ -268,18 +273,31 @@ internal static partial class InterviewCalendarSync
 
         var (interview, application, job, candidate, organization) = context;
         var attendees = await LoadAttendeesAsync(db, interviewId, cancellationToken);
-        foreach (var attendee in attendees.Where(a => a.ProviderEventId is not null && a.SyncStatus != InterviewSyncStatus.Synced))
+        // An event may exist with no saved id only when the interview was booked, so only then is there a window to look in.
+        var hasWindow = interview.StartsAt is not null;
+        foreach (var attendee in attendees.Where(a => a.SyncStatus != InterviewSyncStatus.Synced && (a.ProviderEventId is not null || hasWindow)))
         {
             if (await calendar.GetSessionAsync(attendee.UserId, cancellationToken) is not { } session)
             {
-                attendee.MarkFailed(NoCalendar);
+                if (attendee.ProviderEventId is not null)
+                {
+                    attendee.MarkFailed(NoCalendar);
+                }
+
                 continue;
             }
 
             try
             {
-                await session.Provider.CancelEventAsync(session.AccessToken, attendee.ProviderEventId!, cancellationToken);
-                attendee.MarkSynced(session.Connection.Provider, attendee.ProviderEventId!);
+                var eventId = attendee.ProviderEventId ?? await session.Provider.FindEventIdAsync(
+                    session.AccessToken, InterviewText.EventIdempotencyId(interviewId, attendee.UserId), interview.StartsAt!.Value, interview.StartsAt.Value + interview.Duration, cancellationToken);
+                if (eventId is null)
+                {
+                    continue;
+                }
+
+                await session.Provider.CancelEventAsync(session.AccessToken, eventId, cancellationToken);
+                attendee.MarkSynced(session.Connection.Provider, eventId);
             }
             catch (CalendarApiException e) when (e.Permanent)
             {
@@ -289,7 +307,7 @@ internal static partial class InterviewCalendarSync
 
         var now = time.GetUtcNow();
         var sendId = InterviewText.SendId("cancelled", interviewId, revision);
-        if (email.IsConfigured && !await db.ApplicationEvents.AnyAsync(e => e.Id == sendId, cancellationToken)
+        if (tellCandidate && email.IsConfigured && !await db.ApplicationEvents.AnyAsync(e => e.Id == sendId, cancellationToken)
             && await store.FindAsync(db, EmailTemplateIds.InterviewCancelled, cancellationToken) is { } template)
         {
             var model = ApplicationEmails.ModelFor(candidate, job.Title, organization.Name, stageName: null) with
@@ -411,5 +429,5 @@ public static class CancelInterviewEventsHandler
         ILogger<CancelInterviewEvents> logger,
         CancellationToken cancellationToken) =>
         InterviewCalendarSync.CancelAsync(
-            message.OrganizationId, message.InterviewId, message.Revision, db, calendar, email, renderer, store, headers, time, logger, cancellationToken);
+            message.OrganizationId, message.InterviewId, message.Revision, message.TellCandidate, db, calendar, email, renderer, store, headers, time, logger, cancellationToken);
 }
