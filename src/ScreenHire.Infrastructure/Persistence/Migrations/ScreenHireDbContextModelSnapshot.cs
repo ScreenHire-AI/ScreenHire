@@ -656,6 +656,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("source");
 
+                    b.Property<string>("SourceBoard")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("source_board");
+
                     b.Property<string>("SourceSite")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")

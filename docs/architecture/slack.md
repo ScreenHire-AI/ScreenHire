@@ -44,7 +44,7 @@ sandbox workspace in place of Slack, so no test needs Slack or the internet.
 | Off | neither | none: `GET /v1/slack` says `available: false` and every other Slack route is a 404 |
 
 The client id is plain configuration; the secret comes from the `slack-client-secret` parameter, which the AppHost adds
-only once a client id is set. `pnpm dev` has neither, so Settings > Slack says Slack is not set up here. To try it
+only once a client id is set. `pnpm dev` has neither, so Slack has no page and no Settings menu entry (design system A3), and an address to it goes to the first Settings page. To try it
 locally, turn the sandbox on (see [local demo](../operations/local-demo.md)). The test stacks turn it on, and the
 `DevelopmentDemoFixture` stack leaves it off, so both states are tested.
 

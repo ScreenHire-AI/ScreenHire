@@ -30,6 +30,7 @@ import { fromDraft, longDate } from '../../../../lib/drafts';
 import { isToken } from '../../../../lib/questionnaire';
 import { answeredCount, describeSize, TextField } from '@screenhire/ui/questions';
 import { isOrigin, useEmbedding, withEmbed } from '../../../../lib/embed';
+import { withSource } from '../../../../lib/source';
 import { basePath } from '../../../../lib/host';
 
 const { organization, job: jobSlug } = Astro.params;
@@ -174,7 +175,7 @@ const answerText = (questionId: string): string => {
 
       <form
         method="POST"
-        action={withEmbed(actions.apply.toString(), embed)}
+        action={withSource(withEmbed(actions.apply.toString(), embed), Astro.url.searchParams.get('src'))}
         enctype="multipart/form-data"
         novalidate
         aria-labelledby="step-heading"

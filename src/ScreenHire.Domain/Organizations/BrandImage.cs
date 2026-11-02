@@ -63,6 +63,12 @@ public sealed class BrandImage : ITenantOwned
     /// </summary>
     public bool IsServable => ScanStatus is MalwareScanStatus.Clean or MalwareScanStatus.NotScanned;
 
+    /// <summary>
+    /// The name the file was uploaded with, as the upload stored it: the last segment of <see cref="BlobName"/>
+    /// (<c>{organizationId}/{uploadId}/{kind}/{fileName}</c>), so no column holds it twice.
+    /// </summary>
+    public string FileName => BlobName[(BlobName.LastIndexOf('/') + 1)..];
+
     /// <summary>The file extension its public address ends with.</summary>
     public string Extension => ContentType == "image/png" ? "png" : "jpg";
 

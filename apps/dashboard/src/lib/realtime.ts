@@ -34,17 +34,18 @@ export const reportsPath = '/v1/reports';
  * email (ApplicationEmailed), answers to a follow-up questionnaire (QuestionnaireAnswered), a task, an automation run.
  * So those refetch the lists too, the job's own table (under `/v1/jobs`) and a candidate's applications included.
  * TeammateMentioned refreshes nothing: the note's own event does, and the shell turns the mention into a card for the
- * person mentioned. Reports count applications by when they arrived and the stages they reached, so arriving and
- * moving refresh them.
+ * person mentioned. Reports count applications by when they arrived and the stages they reached, and list the open jobs
+ * a person sees, so arriving, moving, a job opening or closing, a changed workflow and a changed hiring team refresh them.
  */
 export const invalidations: InvalidationMap = {
-  JobPublished: [jobsPath],
-  JobClosed: [jobsPath],
+  // Reports list the open jobs, so opening and closing one refreshes them.
+  JobPublished: [jobsPath, reportsPath],
+  JobClosed: [jobsPath, reportsPath],
   JobPostingsChanged: [jobsPath],
   // A changed time limit changes when applications fall overdue (slaDueAt), so the lists refetch too.
-  JobWorkflowChanged: [jobsPath, applicationsPath, candidatesPath],
+  JobWorkflowChanged: [jobsPath, applicationsPath, candidatesPath, reportsPath],
   // A job's team (`/v1/jobs/{id}/hiring-team`), the Team page's job counts, and for someone just added, the job itself.
-  HiringTeamChanged: [jobsPath, membersPath],
+  HiringTeamChanged: [jobsPath, membersPath, reportsPath],
   HiringTemplateVersionPublished: [jobsPath, templatesPath],
   // Any template edit, of the three kinds: the Templates page, the pickers on a new job, the email composer and an
   // application's scorecard library read them, and the usage list shows where each is used. Events are mapped by
