@@ -43,6 +43,7 @@
     openShortcuts: () => (shortcutsOpen = true),
     openNotifications: () => (notificationsOpen = true),
     live: () => 'connected',
+    features: () => ({ slack: true }),
   });
   const laptop = new MediaQuery('min-width: 1024px');
 </script>

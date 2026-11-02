@@ -43,7 +43,7 @@
 >
   <section aria-label="Careers page" class="flex flex-col gap-2">
     <svelte:element this={`h${headingLevel}`} class="text-heading">Careers page</svelte:element>
-    <PreviewFrame>
+    <PreviewFrame fit>
       <div class="bg-candidate-background text-candidate-body text-candidate-foreground">
         <div class="flex items-center gap-2 border-b border-candidate-border bg-candidate-surface px-3 py-2 text-caption text-candidate-muted-foreground">
           {#if favicon}<img src={favicon.url} alt="" width="16" height="16" class="size-4 shrink-0 rounded-xs" />{/if}

@@ -1,6 +1,8 @@
 <script lang="ts">
   import UserPlusIcon from '~icons/lucide/user-plus';
-  import { createListApplications, createListEmailTemplates, createListViews } from '@screenhire/api-client/svelte-query';
+  import XIcon from '~icons/lucide/x';
+  import { createGetFunnelApplications, createListApplications, createListEmailTemplates, createListViews } from '@screenhire/api-client/svelte-query';
+  import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { can } from '#lib/permissions.js';
   import { matchesSearch, sortableColumnIds } from '#lib/candidate-table.js';
@@ -30,7 +32,7 @@
   import { findSavedView } from '#lib/saved-views.js';
   import { createTableSort } from '#lib/table-sort.svelte.js';
   import { matchesTag, tagsOf } from '#lib/tags.js';
-  import { jobOptions, stageOptions } from '#lib/candidate-filters.js';
+  import { jobOptions, readReached, reachedLabel, stageOptions } from '#lib/candidate-filters.js';
   import { stageLabel } from '#lib/talent-pool.js';
   import { defaultSorts, differsFromView, filtersOf, sortOf, verificationOf } from '#lib/view-filters.js';
 
@@ -55,7 +57,26 @@
   let tagFilter = $state<string | null>(null);
   // Several jobs and several stages at once, such as Support Engineer and Senior .NET Engineer in Screening or Interview.
   // Stages are matched by name across jobs, and the Stage menu lists the stages of the jobs picked.
-  let jobFilter = $state<string[]>([]);
+  // A report's funnel link arrives with its jobs (`?job=`) and the stage its applications reached (`?reached=`, with the
+  // dates they were submitted in); the ids come from the same query the report counts with, so the list matches its count.
+  let jobFilter = $state<string[]>(page.url.searchParams.getAll('job'));
+  const reached = $derived(readReached(page.url.searchParams));
+  const reachedApplications = createGetFunnelApplications(
+    () => reached?.kind ?? 'Applied',
+    () => ({ from: reached?.from ?? '', to: reached?.to ?? '' }),
+    // `notifyOnChangeProps: 'all'`: the ids are read only when the list is drawn, after the query settles, and query's
+    // tracking of which fields were read can miss that read, which would leave the list empty.
+    () => ({ query: { enabled: reached !== null, notifyOnChangeProps: 'all' } }),
+  );
+  const reachedIds = $derived.by(() => {
+    const result = reachedApplications.data;
+    return new Set(result?.status === 200 ? result.data : []);
+  });
+  function clearReached() {
+    const url = new URL(page.url.href);
+    for (const name of ['reached', 'from', 'to']) url.searchParams.delete(name);
+    void goto(url, { replace: true, reset: false });
+  }
   let stageFilter = $state<string[]>([]);
   let search = $state('');
   const jobs = $derived(jobOptions(all));
@@ -70,6 +91,7 @@
     all.filter(
       (application) =>
         (!base || base.matches(application, clock.now)) &&
+        (!reached || reachedIds.has(application.id)) &&
         matchesVerificationFilter(application, verificationFilter) &&
         matchesTag(application, tagFilter) &&
         (jobFilter.length === 0 || jobFilter.includes(application.jobId)) &&
@@ -79,7 +101,7 @@
   );
   // The saved view is the page's address; the empty state's Clear filters resets only what this page set.
   const narrowed = $derived(
-    isVerificationFiltered(verificationFilter) || tagFilter !== null || jobFilter.length > 0 || stagesPicked.length > 0 || Boolean(search.trim()),
+    reached !== null || isVerificationFiltered(verificationFilter) || tagFilter !== null || jobFilter.length > 0 || stagesPicked.length > 0 || Boolean(search.trim()),
   );
   const filtering = $derived(Boolean(view) || narrowed);
 
@@ -183,6 +205,11 @@
         <!-- The filters: one row under the header, outside the table, that scrolls inside the panel rather than wrapping
              (F5), as on a job's pipeline. -->
         <div data-filters class="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">
+          {#if reached}
+            <Button variant="outline" onclick={clearReached} aria-label={`Clear filter: ${reachedLabel(reached)}`}>
+              {reachedLabel(reached)}<XIcon aria-hidden="true" />
+            </Button>
+          {/if}
           <MultiFilterMenu label="Job" options={jobs} bind:values={jobFilter} />
           <MultiFilterMenu label="Stage" options={stages} bind:values={stageFilter} />
           <VerificationFilterMenu bind:filter={verificationFilter} />
@@ -193,7 +220,11 @@
           <div class="p-4">
             <QueryError message={describeError(applications.error, 'Could not load candidates')} onretry={() => applications.refetch()} inset />
           </div>
-        {:else if applications.isPending || viewLoading}
+        {:else if reached && reachedApplications.isError}
+          <div class="p-4">
+            <QueryError message={describeError(reachedApplications.error, 'Could not load these candidates')} onretry={() => reachedApplications.refetch()} inset />
+          </div>
+        {:else if applications.isPending || viewLoading || (reached && reachedApplications.isPending)}
           <div aria-hidden="true" class="flex flex-col gap-1 p-3">
             {#each [0, 1, 2, 3, 4] as row (row)}<Skeleton class="h-12 w-full max-md:h-24" />{/each}
           </div>
@@ -209,7 +240,7 @@
             bind:selectedIds
             emptyText={filtering ? 'No candidates match this view.' : 'No candidates yet. Applications appear here as they arrive.'}
             onclearfilters={narrowed
-              ? () => ((search = ''), (verificationFilter = { ...noVerificationFilter }), (tagFilter = null), (jobFilter = []), (stageFilter = []))
+              ? () => ((search = ''), (verificationFilter = { ...noVerificationFilter }), (tagFilter = null), (jobFilter = []), (stageFilter = []), clearReached())
               : undefined}
           />
         {/if}

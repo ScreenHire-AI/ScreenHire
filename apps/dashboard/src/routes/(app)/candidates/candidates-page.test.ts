@@ -10,7 +10,7 @@ import Page from './+page.svelte';
 const appPage = vi.hoisted(() => ({ url: new URL('http://dashboard.test/candidates'), data: {} as Record<string, unknown> }));
 // The Add candidate sheet's form reads `navigating` (superforms).
 vi.mock('$app/state', () => ({ page: appPage, navigating: { to: null } }));
-vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await importOriginal()), goto: vi.fn(async () => {}) }));
+vi.mock('$app/navigation', async (importOriginal) => ({ ...(await importOriginal<typeof import('$app/navigation')>()), goto: vi.fn(async () => {}) }));
 
 afterEach(() => {
   appPage.url = new URL('http://dashboard.test/candidates');
@@ -18,15 +18,17 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const render_ = (rows: ApplicationSummary[] = applications) => {
+const render_ = (rows: ApplicationSummary[] = applications, reachedIds: string[] = []) => {
+  const stub = apiStub({
+    'GET /v1/applications': () => Response.json(rows),
+    'GET /v1/email-templates': () => Response.json({ sendingEnabled: true, templates: [], variables: [] }),
+    'GET /v1/views': () => Response.json(viewList()),
+  });
   vi.stubGlobal(
     'fetch',
-    vi.fn(
-      apiStub({
-        'GET /v1/applications': () => Response.json(rows),
-        'GET /v1/email-templates': () => Response.json({ sendingEnabled: true, templates: [], variables: [] }),
-        'GET /v1/views': () => Response.json(viewList()),
-      }),
+    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) =>
+      // A report's funnel link asks which applications reached the stage; the address carries the dates and jobs too.
+      String(input).startsWith('/v1/reports/hiring/funnel/Interview/applications') ? Response.json(reachedIds) : stub(input, init),
     ),
   );
   return render(WithQueryClient, { props: { component: Page, props: {} } });
@@ -177,6 +179,33 @@ describe('candidates page', () => {
     await waitFor(() => expect(document.querySelector('[data-selected-count]')).toHaveTextContent('Selected 1'));
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(screen.queryByRole('button', { name: /^Email/ })).toBeNull();
+  });
+
+  it('shows only the applications a report row counted, from its link, and clears that with the chip', async () => {
+    const [casey, jordan] = applications;
+    const from = '2026-10-01T00:00:00.000Z';
+    const to = '2026-10-31T00:00:00.000Z';
+    appPage.url = new URL(`http://dashboard.test/candidates?reached=Interview&from=${from}&to=${to}`);
+    render_(applications, [jordan!.id]);
+
+    expect(await screen.findByRole('link', { name: jordan!.candidateName })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: casey!.candidateName })).toBeNull();
+    expect(screen.getByText('1', { selector: '[data-slot="badge"]' })).toHaveTextContent('1 application');
+
+    await fireEvent.click(screen.getByRole('button', { name: /^Clear filter: Reached Interview, / }));
+    const [url] = vi.mocked(goto).mock.calls.at(-1)!;
+    expect((url as URL).search).toBe('');
+  });
+
+  it('starts with the jobs the link names', async () => {
+    const [casey, jordan] = applications;
+    appPage.url = new URL(`http://dashboard.test/candidates?job=${casey!.jobId}`);
+    render_();
+
+    await screen.findByRole('link', { name: casey!.candidateName });
+    const others = applications.filter((application) => application.jobId !== casey!.jobId);
+    for (const other of others) expect(screen.queryByRole('link', { name: other.candidateName })).toBeNull();
+    expect(jordan).toBeDefined();
   });
 });
 

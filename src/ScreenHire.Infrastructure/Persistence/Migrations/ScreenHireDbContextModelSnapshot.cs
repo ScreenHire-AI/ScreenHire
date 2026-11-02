@@ -655,6 +655,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("source");
 
+                    b.Property<string>("SourceBoard")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("source_board");
+
                     b.Property<string>("SourceSite")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
@@ -2352,13 +2357,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("user_id");
 
-                    b.Property<string>("Views")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("views")
-                        .HasDefaultValueSql("'{\"hiddenBuiltIns\":[]}'::jsonb");
-
                     b.HasKey("Id")
                         .HasName("pk_organization_members");
 
@@ -3451,78 +3449,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.ToTable("verification_signals", (string)null);
                 });
 
-            modelBuilder.Entity("ScreenHire.Domain.Views.SavedFilterView", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("Definition")
-                        .IsRequired()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("definition");
-
-                    b.Property<DateTimeOffset?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<bool>("IsShared")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_shared");
-
-                    b.Property<Guid?>("JobId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("job_id");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("character varying(80)")
-                        .HasColumnName("name");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("organization_id");
-
-                    b.Property<Guid>("OwnerUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("owner_user_id");
-
-                    b.Property<string>("Scope")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("scope");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_saved_filter_views");
-
-                    b.HasIndex("OwnerUserId")
-                        .HasDatabaseName("ix_saved_filter_views_owner_user_id");
-
-                    b.HasIndex("OrganizationId", "JobId")
-                        .HasDatabaseName("ix_saved_filter_views_organization_id_job_id");
-
-                    b.HasIndex("OrganizationId", "IsShared", "OwnerUserId")
-                        .HasDatabaseName("ix_saved_filter_views_organization_id_is_shared_owner_user_id");
-
-                    b.ToTable("saved_filter_views", null, t =>
-                        {
-                            t.HasCheckConstraint("ck_saved_filter_views_job", "(scope = 'Job') = (job_id IS NOT NULL)");
-
-                            t.HasCheckConstraint("ck_saved_filter_views_scope", "scope IN ('Candidates', 'Job')");
-                        });
-                });
-
             modelBuilder.Entity("ScreenHire.Domain.Webhooks.WebhookDelivery", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4439,30 +4365,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_verification_signals_applications_organization_id_applicati");
-                });
-
-            modelBuilder.Entity("ScreenHire.Domain.Views.SavedFilterView", b =>
-                {
-                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
-                        .WithMany()
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_saved_filter_views_organizations_organization_id");
-
-                    b.HasOne("ScreenHire.Infrastructure.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("OwnerUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_saved_filter_views_users_owner_user_id");
-
-                    b.HasOne("ScreenHire.Domain.Jobs.Job", null)
-                        .WithMany()
-                        .HasForeignKey("OrganizationId", "JobId")
-                        .HasPrincipalKey("OrganizationId", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .HasConstraintName("fk_saved_filter_views_jobs_organization_id_job_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Webhooks.WebhookDelivery", b =>

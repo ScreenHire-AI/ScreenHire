@@ -1,6 +1,37 @@
-import type { ApplicationSummary } from '@screenhire/api-client';
+import type { ApplicationSummary, StageKind } from '@screenhire/api-client';
 import type { FilterOption } from '#lib/components/filter-menu.svelte';
+import { locales } from '#lib/dates.js';
 import { stageLabel } from '#lib/talent-pool.js';
+import { stageKindLabels } from '#lib/workflow.js';
+
+/** The funnel's stage kinds, which a report can link to (docs/architecture/reports.md). */
+const reachableKinds: readonly StageKind[] = ['Applied', 'Screening', 'Assessment', 'Interview', 'Offer', 'Hired'];
+
+/** The applications a report row counts: those submitted between `from` and `to` that reached `kind` or a later stage. */
+export interface ReachedFilter {
+  kind: StageKind;
+  from: string;
+  to: string;
+}
+
+/** The funnel link's filter in the address (`?reached=Interview&from=...&to=...`), or null when it says none or nonsense. */
+export function readReached(params: Pick<URLSearchParams, 'get'>): ReachedFilter | null {
+  const kind = params.get('reached');
+  const from = params.get('from');
+  const to = params.get('to');
+  if (!kind || !from || !to || !reachableKinds.includes(kind as StageKind)) return null;
+  const start = Date.parse(from);
+  const end = Date.parse(to);
+  return Number.isFinite(start) && Number.isFinite(end) && start < end ? { kind: kind as StageKind, from, to } : null;
+}
+
+const days = new Intl.DateTimeFormat(locales, { dateStyle: 'medium' });
+
+/** The filter in words, for its chip: "Reached Interview, Oct 1 to Oct 30, 2026". */
+export function reachedLabel(filter: ReachedFilter): string {
+  const last = new Date(Date.parse(filter.to) - 1);
+  return `Reached ${stageKindLabels[filter.kind]}, ${days.formatRange(new Date(filter.from), last)}`;
+}
 
 /** Every job the applications are for, by title, each with how many applications it has. */
 export function jobOptions(applications: readonly ApplicationSummary[]): FilterOption[] {

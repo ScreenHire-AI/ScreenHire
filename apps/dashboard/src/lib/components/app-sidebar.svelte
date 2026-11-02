@@ -68,7 +68,7 @@
   async function run(work: Promise<string | null>) {
     viewFailure = (await work) ?? '';
   }
-  const settingsPages = $derived(visibleSettingsSections(user));
+  const settingsPages = $derived(visibleSettingsSections(user, shell.features()));
 
   // Each person's own Slack account, in their menu while the organization's workspace is connected (docs/architecture/slack.md).
   const slackConnected = $derived(Boolean(slack?.available && slack.workspace));

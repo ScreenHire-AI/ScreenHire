@@ -86,6 +86,8 @@ const panels: Record<string, string[]> = {
   'Metric card': ['Metric card'],
   'Bar chart': ['Bar chart'],
   'Chart panel': ['Chart panel'],
+  'Report stat': ['Report stat'],
+  'Week chart': ['Week chart'],
   'Date range filter': ['Date range filter'],
   'File row and file viewer': ['File row and file viewer'],
   'Edit / Preview switch': ['Edit / Preview switch'],
