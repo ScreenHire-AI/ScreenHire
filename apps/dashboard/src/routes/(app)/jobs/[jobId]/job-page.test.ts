@@ -359,6 +359,7 @@ describe('job page', () => {
     expect(publish.closest('[data-slot=action-bar]')).not.toBeNull();
     expect(publish.closest('[data-slot=header-band]')).toBeNull();
   });
+
   describe('embed code for this job', () => {
     it('shows the snippet with the job address once a site may embed the careers page', async () => {
       onPostingsTab();
@@ -374,9 +375,17 @@ describe('job page', () => {
       onPostingsTab();
       stub(job);
 
-      expect(await screen.findByText(/Only sites on your list can show your jobs/)).toBeInTheDocument();
+      expect(await screen.findByText(/Add your website on/)).toBeInTheDocument();
       expect(screen.getByRole('link', { name: 'Careers site settings' })).toHaveAttribute('href', '/settings/careers-site');
       expect(screen.queryByLabelText('Embed code for this job')).toBeNull();
+    });
+
+    it('says the code could not load, with a way to try again, when the organization fails to load', async () => {
+      onPostingsTab();
+      stub(job, { 'GET /v1/organization': () => Response.json({ title: 'Server error' }, { status: 500 }) });
+
+      expect(await screen.findByText(/Could not load the embed code/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
     });
 
     it('is not offered for a job that is not open', async () => {

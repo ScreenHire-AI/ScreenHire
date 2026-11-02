@@ -182,6 +182,14 @@ public sealed class OrganizationBrandingTests(AppHostFixture fixture)
         (await neighbour.GetAsync($"/v1/organization/branding/images/{neighbours}")).Expect(HttpStatusCode.OK);
         await ExpectServedAsync(neighbour, neighbours);
         await ExpectServedAsync(owner, saved);
+
+        // The schedule's own message goes to every organization, so the neighbour's upload, two days old and never saved,
+        // goes too.
+        await bus.PublishAsync(new PurgeExpiredBrandImageUploads());
+        await WolverineStore.WaitUntilAsync(
+            async () => (await neighbour.GetAsync($"/v1/organization/branding/images/{neighbours}")).Status == HttpStatusCode.NotFound,
+            "the daily sweep to reach the other organization", Ct);
+        await ExpectServedAsync(owner, saved);
     }
 
     // The row is only half of an image: the public route streams the blob, so this fails if the blob went.
