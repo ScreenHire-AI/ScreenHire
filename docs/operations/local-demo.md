@@ -58,11 +58,11 @@ Mailpit's inbox stay in Docker volumes (one set per clone, or per worktree start
 start has the same candidates, the same emails and anything you changed.
 
 In a Kangentic task a stack also ends by itself. The project's Stop script (`stopScript` in `kangentic.json`) runs
-`dotnet aspire stop` for that clone when the task pauses after the idle timeout or for low memory, and before it clears
-a finished task. A browser tab or the task's Browser pane connected to the stack holds a pause's stop off, and Kangentic
-tries again about every five minutes. The offscreen browser an agent drove does not count: Kangentic closes it first. A
-Pause or Stop pressed by a person leaves the stack up. After a pause, the next agent is told what stopped and starts it
-again with `/preview` when it needs the app; a worktree without `keep` reseeds the demo.
+`dotnet aspire stop` for that clone when the task pauses after the idle timeout or for low memory, unless a browser tab
+or the task's Browser pane is connected to the stack. A Pause or Stop pressed by a person leaves the stack up. A move to
+Done or To Do, or a delete, stops it whether or not a browser is connected. After a pause, the next agent is told what
+stopped and starts it again with `/preview` when it needs the app; a worktree without `keep` reseeds the demo. The
+details are in [Processes on the dev machine](../process/board-pipeline.md#processes-on-the-dev-machine).
 
 ### Start over
 

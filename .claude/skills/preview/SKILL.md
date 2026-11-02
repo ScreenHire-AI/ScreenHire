@@ -151,12 +151,13 @@ does not need the app. A stack you started only to check your own change is stop
 outcome line, so the worktree can be removed later.
 
 Kangentic also ends a stack on its own. The project's Stop script (`stopScript` in `kangentic.json`) runs
-`dotnet aspire stop` for this clone when the task pauses after the idle timeout or for low memory, and before it clears
-a finished task. A browser tab or the task's Browser pane connected to the stack holds a pause's stop off, and Kangentic
-tries again about every five minutes. The offscreen browser an agent drove does not count: Kangentic closes it first. A
-Pause or Stop pressed by a person leaves the stack up. When a pause ended the stack, the next message in the session
-says what stopped. Start it again with `/preview` when the task needs the app; the demo reseeds unless the worktree used
-`keep`.
+`dotnet aspire stop` for this clone when the task pauses after the idle timeout or for low memory, unless a browser tab
+or the task's Browser pane is connected to the stack. A Pause or Stop pressed by a person leaves the stack up. A move to
+Done or To Do, or a delete, stops it whether or not a browser is connected. When a pause ended the stack, the next
+message in the session says what stopped. Start it again with `/preview` when the task needs the app; the demo reseeds
+unless the worktree used `keep`. The script skips step 6's container check, so with data volumes run confirmation 2 of
+step 6 before you start it again. The details are in
+[Processes on the dev machine](../../../docs/process/board-pipeline.md#processes-on-the-dev-machine).
 
 To wipe this clone's persisted demo data (only the main checkout and a worktree started with `keep` have any): `/preview stop`, then `docker volume rm <name>` for each of the three data
 volumes step 4 reported, one by one.
