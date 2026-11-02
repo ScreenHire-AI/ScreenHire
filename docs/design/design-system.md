@@ -752,13 +752,13 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   events keep it current; the tables keep their default sorts (L2). Add candidate opens the Add candidate sheet (section
   11), and Ctrl K searches on the server (section 15).
 - **Candidate profile:** `/candidates/{id}`, on the detail template without tabs: the header band holds the name, contact on the
-  line under it, and a meta line (how many jobs they applied to, when first). Two panels sit side by side from a wide window,
+  line under it, and a meta line (when they first applied). Two panels sit side by side from a wide window,
   one column when narrow: Applications, oldest first, each the job as a link, a muted pill for how it ended (Hired, Rejected,
-  Withdrawn, Kept in mind) or the stage it is in, "Applied" with the date, "Got as far as" the last stage before it ended, and the end
-  date; and History, every application's activity newest first, each line saying which job. When the candidate used the
-  link in a talent pool invitation to stop being kept, a notice says so and points at Erase candidate, which sits in the More
+  Withdrawn, Kept in mind) or the stage it is in, "Applied" with the date and, once it has ended, "Got as far as" the last stage before
+  it ended and the end date; and History, every application's activity newest first, each line saying which job. When the candidate used the
+  link in a talent pool invitation to stop being kept, a notice says so and names Erase candidate, which sits in the More
   menu as a destructive item and shows only to people with Erase candidates who see every job (A2, A3). An application's
-  header links here as Also applied to, in its meta line, until the header's mini cards hold it.
+  header links here as Also applied to, in its meta line.
 - **Candidate:** the same tabs in the same order for everyone: Overview (what needs you now, the last five things
   anyone did with a box for a note, and the answers), Application, Messages (every email with the candidate, both
   ways, and the reply box), Scorecards, Verification, Activity. Activity lists everything newest first, saying who and

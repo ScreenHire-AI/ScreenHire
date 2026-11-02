@@ -81,8 +81,7 @@ public sealed class VerificationPipeline(ScreenHireDbContext db, IEnumerable<IVe
             related.AddRange(result.RelatedApplicationIds);
         }
 
-        var assessed = await AssessAsync(
-            application, job, Current(signals, done.Select(r => (r.Analyzer, r.AnalyzerVersion, r.Revision))), now, cancellationToken);
+        var assessed = await AssessAsync(application, job, signals, done.Select(r => (r.Analyzer, r.AnalyzerVersion, r.Revision)), now, cancellationToken);
         // Applications that share a detail with this one are checked again, now that this one exists (a message each, once).
         foreach (var earlier in related.Distinct().Take(MaxRechecks))
         {
@@ -156,7 +155,7 @@ public sealed class VerificationPipeline(ScreenHireDbContext db, IEnumerable<IVe
             .Select(r => new { r.Analyzer, r.AnalyzerVersion, r.Revision })
             .ToListAsync(cancellationToken);
         var runKeys = allRuns.Select(r => (r.Analyzer, r.AnalyzerVersion, r.Revision)).Append((analyzer.Name, analyzer.Version, latest.Revision + 1));
-        var assessed = await AssessAsync(context.Application, context.Job, Current(all, runKeys), now, cancellationToken);
+        var assessed = await AssessAsync(context.Application, context.Job, all, runKeys, now, cancellationToken);
 
         var assessmentId = assessed.Added.FirstOrDefault(a => a.Kind == VerificationAssessmentKind.Authenticity)?.Id
             ?? await db.VerificationAssessments.AsNoTracking()
@@ -284,10 +283,15 @@ public sealed class VerificationPipeline(ScreenHireDbContext db, IEnumerable<IVe
             && !string.Equals(left.Label, right.Label, StringComparison.Ordinal));
     }
 
+    // Takes every stored signal and every run: the runs decide which signals count, and the rest tell the ruleset what was replaced.
     private async Task<Assessed> AssessAsync(
-        JobApplication application, Domain.Jobs.Job job, List<VerificationSignal> signals, DateTimeOffset now, CancellationToken cancellationToken)
+        JobApplication application, Domain.Jobs.Job job, List<VerificationSignal> stored, IEnumerable<(string Analyzer, int Version, int Revision)> runs,
+        DateTimeOffset now, CancellationToken cancellationToken)
     {
-        var inputs = new VerificationInputs(signals, job.Workflow.VerificationPolicy.AiUse, application.AiUseDeclaration, application.AccommodationRequested);
+        var signals = Current(stored, runs);
+        var inputs = new VerificationInputs(
+            signals, job.Workflow.VerificationPolicy.AiUse, application.AiUseDeclaration, application.AccommodationRequested,
+            [.. stored.Except(signals)]);
         var results = VerificationRuleset.Assess(inputs);
         var fingerprints = results.Select(r => r.Fingerprint).ToList();
         var existing = await db.VerificationAssessments.AsNoTracking()

@@ -22,6 +22,7 @@
   import Notice from '#lib/components/notice.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import RelativeTime from '#lib/components/relative-time.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
@@ -115,7 +116,7 @@
       {/snippet}
       {#snippet meta()}
         {#if applications.length > 0}
-          <MetaItem label="First applied" icon={CalendarIcon}><span>First applied <DateText at={applications[0].submittedAt} class="text-foreground" /></span></MetaItem>
+          <MetaItem label="First applied" icon={CalendarIcon}><span>First applied <RelativeTime at={applications[0].submittedAt} class="inline text-foreground" /></span></MetaItem>
         {/if}
       {/snippet}
     </HeaderBand>
@@ -123,9 +124,9 @@
     <div class="@container flex w-full flex-col gap-5 px-4 py-5 md:px-6 md:py-6">
       {#if asked && mayErase}
         <!-- They used the link in a talent pool invitation to stop being kept. Erasing their data as well is a separate,
-             deliberate step (A2), offered here because it is what they may be asking for. -->
+             deliberate step (A2), named here because it is what they may be asking for. -->
         <Notice>
-          They asked to be taken out of the talent pool on {formatDate(asked)}.
+          They asked to be taken out of the talent pool on {formatDate(asked)}. To erase their data as well, use Erase candidate in the More menu.
         </Notice>
       {/if}
 
@@ -136,12 +137,14 @@
               {@const progress = progressOf(application, history.data?.data)}
               <li class="flex min-w-0 flex-col gap-1.5 py-3 first:pt-0 last:pb-0">
                 <div class="flex min-w-0 items-center gap-3">
-                  <span class="flex min-w-0 flex-1"><TruncatedText text={application.jobTitle} href={`/applications/${application.id}`} underlined /></span>
+                  <span class="flex min-w-0 flex-1"><TruncatedText text={application.jobTitle} href={`/applications/${application.id}`} underlined class="min-h-6 pointer-coarse:-my-3.5 pointer-coarse:py-3.5" /></span>
                   <Badge variant="muted">{progress.outcome}</Badge>
                 </div>
                 <dl class="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-1 text-muted-foreground">
                   <MetaItem label="Applied"><span>Applied <DateText at={application.submittedAt} /></span></MetaItem>
-                  <MetaItem label="How far it got"><span>Got as far as {progress.reached}</span></MetaItem>
+                  {#if progress.reached}
+                    <MetaItem label="How far it got"><span>Got as far as {progress.reached}</span></MetaItem>
+                  {/if}
                   {#if progress.endedAt}
                     <MetaItem label="How it ended"><span>Ended <DateText at={progress.endedAt} /></span></MetaItem>
                   {/if}

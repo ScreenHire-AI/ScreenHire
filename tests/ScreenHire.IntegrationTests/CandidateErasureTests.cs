@@ -301,6 +301,34 @@ public sealed class CandidateErasureTests(AppHostFixture fixture)
         (await owner.GetAsync($"/v1/candidates/{keptCandidate}")).Expect(HttpStatusCode.OK).Text("email").Should().Be(keptPerson.Email.ToLowerInvariant());
     }
 
+    [Fact]
+    public async Task Erasing_the_later_of_two_candidates_who_shared_a_device_and_phone_returns_the_earlier_application_to_its_first_assessment()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var slug = await SlugAsync(owner);
+        var firstJob = await OpenJobTitledAsync(owner, "Platform Engineer");
+        var secondJob = await OpenJobTitledAsync(owner, "Data Analyst");
+        var (keptPerson, erasedPerson) = (SyntheticApplicants.ApplicationFarm[0].AsNewFarmMember(), SyntheticApplicants.ApplicationFarm[1].AsNewFarmMember());
+        var kept = await fixture.ApplyAsync(slug, firstJob, keptPerson, Ct);
+        await VerificationSupport.SettledAsync(fixture, owner, kept);
+        var before = await VerificationSupport.AssessedAsync(owner, kept);
+        var erased = await fixture.ApplyAsync(slug, secondJob, erasedPerson, Ct);
+        await VerificationSupport.SettledAsync(fixture, owner, erased);
+        // The kept application's own assessment from before the match is the one the erasure has to bring back: the same
+        // signals, so the same inputs, as a row that is already stored.
+        await WaitForReviewEntryAsync(owner, kept, "EvidenceChanged", alsoHolds: v => AuthenticityCodes(v).Contains(SignalCatalogue.DuplicateInOrganization));
+        var erasedCandidate = await CandidateOfAsync(owner, erased);
+
+        (await owner.PostAsync($"/v1/candidates/{erasedCandidate}/erase", new JsonObject { ["confirmation"] = erasedPerson.FullName })).Expect(HttpStatusCode.NoContent);
+
+        var after = await WaitForReviewEntryAsync(
+            owner, kept, "EvidenceChanged", count: 2, alsoHolds: v => !AuthenticityCodes(v).Contains(SignalCatalogue.DuplicateInOrganization));
+        after.Text("authenticity.level").Should().Be(before.Text("authenticity.level"));
+        AuthenticityCodes(after).Should().BeEquivalentTo(AuthenticityCodes(before));
+        ReviewEntries(after, "EvidenceChanged").Last().GetProperty("note").GetString()
+            .Should().Be("A detail this application shared with another application no longer applies.");
+    }
+
     // A person with two applications on two jobs and a row in every kind of table the cascade has to reach: the careers
     // application (with its resume, answers, observation, documents and verification), a recruiter-added one on another
     // job, a note, a tag, a task, a scorecard, a verification note, a sent email, a talent pool entry and a saved draft.

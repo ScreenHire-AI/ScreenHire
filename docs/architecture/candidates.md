@@ -43,7 +43,8 @@ look at.
 
 `/candidates/{id}` shows who they are (name, contact), every application in the order it was made (the job, when they
 applied, how far it got, how it ended) and their history across all of them. "How far it got" is the stage an ended
-application was in before its last move; "how it ended" is Hired, Rejected, Withdrawn or Kept in mind, with the date.
+application was in before its last move, shown once it has ended; while it is open its stage is on the pill. "How it
+ended" is Hired, Rejected, Withdrawn or Kept in mind, with the date.
 Both come from `GET /v1/candidates/{id}` and `GET /v1/candidates/{id}/history`. The history is every timeline entry of
 every application the reader may see, newest first, each with its job. It has no verification output (ADR-0004) and no
 scorecard scores or recommendations. Both routes are for people: the `/v1/candidates` group the hiring API shares with

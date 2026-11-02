@@ -85,7 +85,7 @@ describe('progressOf', () => {
   it('names the current stage for an application that is still open, with no end date', () => {
     const open = application('open', '2026-10-01T12:00:00Z', { name: 'Interview', kind: 'Interview' });
 
-    expect(progressOf(open, [])).toEqual({ reached: 'Interview', outcome: 'Interview' });
+    expect(progressOf(open, [])).toEqual({ outcome: 'Interview' });
   });
 
   it('reads how far a hired application got from the stage before its last move, and ends it when it entered Hired', () => {
@@ -117,11 +117,10 @@ describe('progressOf', () => {
     expect(progressOf(rejected, history).reached).toBe('Screening');
   });
 
-  it('says a withdrawn application got as far as Withdrawn when the history holds no move for it', () => {
+  it('leaves out how far a withdrawn application got when the history holds no move for it', () => {
     const withdrawn = application('w', '2026-10-01T12:00:00Z', { name: 'Withdrawn', kind: 'Withdrawn' }, { stageEnteredAt: '2026-10-02T12:00:00Z' });
 
     expect(progressOf(withdrawn, [item('other', 'Other job', entry({ type: 'StageChanged' }), { fromStageName: 'Screening' })])).toEqual({
-      reached: 'Withdrawn',
       outcome: 'Withdrawn',
       endedAt: '2026-10-02T12:00:00Z',
     });
@@ -130,7 +129,7 @@ describe('progressOf', () => {
   it('falls back to the closing stage while the history has not loaded', () => {
     const hired = application('h', '2026-10-01T12:00:00Z', { name: 'Hired', kind: 'Hired' });
 
-    expect(progressOf(hired, undefined).reached).toBe('Hired');
+    expect(progressOf(hired, undefined).reached).toBeUndefined();
   });
 
   it('reports a candidate kept in mind as Kept in mind, at the stage they kept, ended when they were kept', () => {

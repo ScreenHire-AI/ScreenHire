@@ -11,8 +11,8 @@ import { isTerminal } from '#lib/workflow.js';
 
 /** How far an application got and how it ended, in the profile's words. */
 export interface Progress {
-  /** The last stage it was in before it ended, or the stage it is in. */
-  reached: string;
+  /** The last stage it was in before it ended. Undefined while it is open, where the outcome names its stage, and when no move is known. */
+  reached?: string;
   /** "Hired", "Rejected", "Withdrawn", "Kept in mind", or the current stage name while it is still open. */
   outcome: string;
   /** When it ended; undefined while it is open. */
@@ -34,11 +34,11 @@ export function progressOf(application: ApplicationSummary, history: readonly Ca
   }
 
   if (!isTerminal(application.stage.kind)) {
-    return { reached: application.stage.name, outcome: application.stage.name };
+    return { outcome: application.stage.name };
   }
 
   const lastMove = history?.find((item) => item.applicationId === application.id && item.entry.type === 'StageChanged');
-  return { reached: lastMove?.fromStageName ?? application.stage.name, outcome: application.stage.name, endedAt: application.stageEnteredAt };
+  return { reached: lastMove?.fromStageName ?? undefined, outcome: application.stage.name, endedAt: application.stageEnteredAt };
 }
 
 /** The history as Activity lists it, newest first: no edit lines, no line for a note that was deleted, and the job each entry is in. */

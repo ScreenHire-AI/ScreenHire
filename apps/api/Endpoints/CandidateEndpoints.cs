@@ -53,8 +53,9 @@ internal static class CandidateEndpoints
             .OrderByDescending(e => e.OccurredAt)
             .ThenByDescending(e => e.Id)
             .ToListAsync(cancellationToken);
+        var noteIds = events.Select(e => e.Data.NoteId).OfType<Guid>().Distinct().ToList();
         var notes = await db.ApplicationNotes.AsNoTracking().IgnoreAutoIncludes()
-            .Where(n => ids.Contains(n.ApplicationId))
+            .Where(n => noteIds.Contains(n.Id))
             .ToDictionaryAsync(n => n.Id, cancellationToken);
         var keyIds = events.Select(e => e.Data.ApiKeyId).OfType<Guid>().Distinct().ToList();
         var keyNames = keyIds.Count == 0
@@ -96,6 +97,10 @@ internal static class CandidateEndpoints
             return TypedResults.NotFound();
         }
 
+        // No CommitAsync here: SaveChangesAndFlushMessagesAsync commits this transaction with the outbox rows. The row lock
+        // makes an application arriving now wait, so one cannot cascade away with its files missing from the erasure below.
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await db.Database.ExecuteSqlAsync($"SELECT 1 FROM candidates WHERE id = {candidateId} FOR UPDATE", cancellationToken);
         if (await db.Candidates.SingleOrDefaultAsync(c => c.Id == candidateId, cancellationToken) is not { } candidate)
         {
             return TypedResults.NotFound();

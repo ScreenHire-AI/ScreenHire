@@ -90,8 +90,6 @@ internal sealed class VerificationReviewActionConfiguration : IEntityTypeConfigu
     public void Configure(EntityTypeBuilder<VerificationReviewAction> builder)
     {
         builder.Property(a => a.Type).HasConversion<string>().HasMaxLength(20);
-        // Null for EvidenceChanged, which the system writes.
-        builder.Property(a => a.ActorUserId).IsRequired(false);
         builder.Property(a => a.DismissReason).HasConversion<string>().HasMaxLength(30);
         builder.Property(a => a.ExplainReason).HasConversion<string>().HasMaxLength(30);
         // SignalId has no foreign key: signals have no (organization_id, id) key to point at. The endpoint checks the
@@ -112,8 +110,10 @@ internal sealed class VerificationReviewActionConfiguration : IEntityTypeConfigu
         // keys here: the value only ever comes from the authenticated key's own claim, with the organization resolved from
         // that same key, so a row cannot name another organization's key.
         builder.HasOne<ApiKey>().WithMany().HasForeignKey(a => a.ApiKeyId).OnDelete(DeleteBehavior.Cascade);
+        // A person or a key, never both. Only an EvidenceChanged entry has neither: the system writes it.
         builder.ToTable(t => t.HasCheckConstraint(
-            "ck_verification_review_actions_one_actor", "(actor_user_id IS NOT NULL) <> (api_key_id IS NOT NULL)"));
+            "ck_verification_review_actions_one_actor",
+            "((actor_user_id IS NOT NULL) <> (api_key_id IS NOT NULL)) OR (type = 'EvidenceChanged' AND actor_user_id IS NULL AND api_key_id IS NULL)"));
         builder.HasIndex(a => new { a.OrganizationId, a.ApplicationId, a.OccurredAt });
         builder.HasIndex(a => new { a.OrganizationId, a.AssessmentId });
         // One dismissal per assessment, even when two reviewers press the button at once.

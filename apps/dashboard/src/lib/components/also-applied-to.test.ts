@@ -40,14 +40,15 @@ describe('also applied to', () => {
     vi.stubGlobal('fetch', vi.fn(apiStub({ [`GET /v1/candidates/${candidateId}`]: () => Response.json(detail([])) })));
     renderLink();
 
-    expect(await screen.findByRole('link', { name: 'Also applied to: no other jobs' })).toHaveAttribute('href', `/candidates/${candidateId}`);
+    expect(await screen.findByText('no other jobs')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Also applied to' })).toHaveAttribute('href', `/candidates/${candidateId}`);
   });
 
   it('counts one other job in the singular', async () => {
     vi.stubGlobal('fetch', vi.fn(apiStub({ [`GET /v1/candidates/${candidateId}`]: () => Response.json(detail([summary('a2', 'Senior .NET Engineer')])) })));
     renderLink();
 
-    expect(await screen.findByRole('link', { name: 'Also applied to: 1 other job' })).toBeInTheDocument();
+    expect(await screen.findByText('1 other job')).toBeInTheDocument();
   });
 
   it('counts the other applications in the plural, leaving this one out', async () => {
@@ -57,7 +58,7 @@ describe('also applied to', () => {
     );
     renderLink();
 
-    expect(await screen.findByRole('link', { name: 'Also applied to: 2 other jobs' })).toBeInTheDocument();
+    expect(await screen.findByText('2 other jobs')).toBeInTheDocument();
   });
 
   it('keeps the link without a count when the candidate cannot be loaded', async () => {
