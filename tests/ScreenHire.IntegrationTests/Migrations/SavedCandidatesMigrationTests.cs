@@ -16,7 +16,7 @@ namespace ScreenHire.IntegrationTests.Migrations;
 /// </summary>
 public sealed class SavedCandidatesMigrationTests(AppHostFixture fixture)
 {
-    private const string Before = "RenameIntegrityToVerification";
+    private const string Before = "HardenFromWorkflowFollowUps";
     private const string After = "SavedCandidatesWithoutExpiry";
 
     [Fact]
