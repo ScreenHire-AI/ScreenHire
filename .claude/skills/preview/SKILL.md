@@ -145,8 +145,10 @@ stay. Confirm:
 
 ## Leaving it running
 
-Leave it running for a person who asked for it. A board agent that started it to check its own change runs
-`/preview stop` before printing a board outcome line, so the worktree can be removed later.
+Leave it running only for a person who asked to see it. Say so in the reply: the stack stays up, and `/preview stop`
+stops it. Run `/preview stop` as soon as that person says they are finished, or when the task turns to other work that
+does not need the app. A stack you started only to check your own change is stopped by you, before you print a board
+outcome line, so the worktree can be removed later.
 
 To wipe this clone's persisted demo data (only the main checkout and a worktree started with `keep` have any): `/preview stop`, then `docker volume rm <name>` for each of the three data
 volumes step 4 reported, one by one.

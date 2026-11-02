@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: "Claude Code tooling"
-description: "Every skill, agent and rule in .claude/ and when to use each, commands that were never run, why pnpm's global virtual store was not adopted for worktree installs, where a new task's start-up time goes and what would cut it, and how to add a new skill, agent or rule."
+description: "Every skill, agent and rule in .claude/ and when to use each, commands that were never run, why pnpm's global virtual store was not adopted for worktree installs, where a new task's start-up time goes and what would cut it, what a preview stack commits in memory and why working set hides it, and how to add a new skill, agent or rule."
 tags: [claude-code, skills, agents, rules]
 sources:
   - resource: .claude/skills/add-careers-page/SKILL.md
@@ -20,6 +20,9 @@ sources:
   - resource: .claude/skills/task-review/SKILL.md
   - resource: .claude/skills/task-review/visual-probe.js
   - resource: .claude/skills/verify/SKILL.md
+  - resource: apps/dashboard/package.json
+  - resource: apps/dashboard/scripts/prebundle.mjs
+  - resource: apps/dashboard/vite.config.ts
   - resource: Directory.Build.props
   - resource: .claude/agents/design-review.md
   - resource: .claude/agents/doc-auditor.md
@@ -236,3 +239,50 @@ Things that look like levers but are not (all measured on 2026-11-01, one run ea
 
 `.kangentic/config.json` also lists `.claude/settings.local.json` in `copyFiles`, but Kangentic skips `.claude/` entries,
 so a new worktree does not get that file.
+
+## What a preview stack commits
+
+Kangentic's low-memory pause reads commit (private bytes), not working set, and working set hides most of it. Measured
+on 2026-11-01 in a worktree with no data volumes, one run each, as the private bytes (`PrivateMemorySize64`) of every
+process whose command line names the worktree and of their descendants. That is a wider count than the local demo
+guide's 5 and 8 processes, so its process counts and working set do not match this table's. The containers run in
+Docker's VM and are not counted. The worker's commit swings between samples (251 to 897 MB across them), so read the
+totals to within a few hundred MB.
+
+A real session is the number to read. "Browsed" means signed in as Avery Quinn with `/`, the Senior .NET Engineer job
+and `/style-guide` loaded in a browser, sampled 20 s later. "Curl" means four requests to `/` and `/sign-in`, sampled 60 s
+later, which never load the app's modules.
+
+| Run | Load | Dashboard `vite dev` commit | Resident | Whole stack commit |
+|---|---|---|---|---|
+| Cold cache, `vite dev` as it was | Browsed | 3,185 MB | 1,306 MB | 6,456 MB (13 processes) |
+| Cold cache, `prebundle.mjs` without `optimizeDeps.include` | Browsed | 3,308 MB | 1,390 MB | 6,271 MB |
+| Cold cache, `prebundle.mjs` with `optimizeDeps.include` (now) | Browsed | 576 MB | 313 MB | 3,845 MB |
+| Warm cache, dashboard restarted | Browsed | 573 MB | 308 MB | 3,805 MB |
+| Cold cache, `vite dev` as it was | Curl | 1,201 MB | 352 MB | 4,035 MB |
+| Warm cache, dashboard restarted | Curl | 349 MB | 182 MB | 3,198 MB |
+| Cold cache, `vite optimize && vite dev` | Curl | 1,162 MB | 354 MB | 4,028 MB |
+| Cold cache, `prebundle.mjs` without `optimizeDeps.include` | Curl | 344 MB | 184 MB | 2,956 MB |
+| `/preview api`, backend only | None | not started | not started | 1,353 MB (10 processes; working set 2,005 MB) |
+
+A cold cache costs the dashboard about 2.6 GB of commit that the process keeps for its whole life, the shape Kangentic's
+#873 found in its own dev server. A worktree always starts cold. The cause is the in-process dependency pre-bundle, and
+it happens twice. The log of a cold start says "Forced re-optimization of dependencies". Then Vite's dependency scan
+reports "no dependencies found" in these routes, so the first page load discovers 15 packages and bundles them in the
+dev server ("optimized dependencies changed. reloading"). Careers (1,064 MB) and marketing (788 MB) hold more commit
+than their working set (346 and 286 MB) in the same way, and were not investigated.
+
+`vite optimize` is the native way to pre-bundle in a process that exits, and it does not work here. It calls
+`optimizeDeps` alone, but vite-plugin-svelte checks in its `buildStart` hook, which only a dev server runs, whether
+Svelte's settings changed since the cache was written. With no `_svelte_metadata.json` it forces a second, in-process
+optimization when the real server starts.
+
+So `apps/dashboard/scripts/prebundle.mjs` starts a Vite server in middleware mode, which runs those hooks and opens no
+port, waits until each dependency is written, and closes. The wait is on each dependency's `processing` promise, because
+`createServer` returns once the SSR run is done and closing then discards a client run that is still going. The 15
+packages are in `optimizeDeps.include` in `apps/dashboard/vite.config.ts`, so that run covers them. A package a page
+starts importing joins that list: without it the page still works, the first load bundles it in-process, and the log
+says "dependencies optimized". The dashboard's `dev` script runs the pre-bundle first. It takes about 5 s on a cold cache
+and 2 s on a warm one. It always exits 0: if it fails, it warns and `vite dev` bundles in-process as before. The
+`/preview` figures in [the local demo guide](../operations/local-demo.md#start-over) are working set; the commit above is
+beside them.
