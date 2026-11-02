@@ -13,6 +13,8 @@ public sealed class CreateApiKeyRequestValidatorTests
     [InlineData(new[] { ApiKeyScope.Read }, null)]
     [InlineData(new[] { ApiKeyScope.Read, ApiKeyScope.Write }, 600)]
     [InlineData(new[] { ApiKeyScope.Write, ApiKeyScope.Read }, 1)]
+    [InlineData(new[] { ApiKeyScope.Read, ApiKeyScope.VerificationRead }, null)]
+    [InlineData(new[] { ApiKeyScope.Read, ApiKeyScope.Write, ApiKeyScope.VerificationRead }, 600)]
     public void A_named_key_with_read_and_a_limit_up_to_the_deployments_is_accepted(ApiKeyScope[] scopes, int? permits) =>
         validator.Validate(new CreateApiKeyRequest("ATS sync", scopes, permits)).IsValid.Should().BeTrue();
 
@@ -30,6 +32,10 @@ public sealed class CreateApiKeyRequestValidatorTests
     [Fact]
     public void A_write_only_key_is_refused_because_every_key_reads() =>
         Errors(new CreateApiKeyRequest("Writer", [ApiKeyScope.Write])).Should().Contain(nameof(CreateApiKeyRequest.Scopes));
+
+    [Fact]
+    public void A_verification_key_still_needs_the_read_scope() =>
+        Errors(new CreateApiKeyRequest("Auditor", [ApiKeyScope.VerificationRead])).Should().Contain(nameof(CreateApiKeyRequest.Scopes));
 
     [Fact]
     public void A_scope_listed_twice_is_refused() =>

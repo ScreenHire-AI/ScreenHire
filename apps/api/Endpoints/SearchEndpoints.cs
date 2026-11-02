@@ -69,7 +69,7 @@ internal static class SearchEndpoints
         return TypedResults.Ok(new SearchResults(
             [.. applications.Select(r => new CandidateSearchHit(
                 r.Application.Id, r.Candidate.Id, r.Candidate.FullName, r.Candidate.Email, r.Job.Id, r.Job.Title,
-                r.Application.StageIn(r.Job)))],
+                r.Application.StageIn(r.Job), r.Application.KeptInMindAt))],
             jobs));
     }
 }

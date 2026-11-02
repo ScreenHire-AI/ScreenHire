@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
+using ScreenHire.IntegrationTests.TalentPool;
 using ModelContextProtocol;
 using ScreenHire.Application.Verification;
 
@@ -17,12 +18,14 @@ public sealed class McpServerTests(AppHostFixture fixture)
     // test reads it; what the key did or could not do is the rest.
     private const string Assessed = "VerificationAssessed";
 
-    private static readonly string[] ReadTools = ["find_candidates", "find_jobs", "get_application"];
+    private static readonly string[] ReadTools = ["find_candidates", "find_jobs", "get_application", "get_hiring_report", "list_saved_candidates"];
+
+    private static readonly string[] VerificationTools = ["find_candidates_by_verification_level", "get_verification"];
 
     private static readonly string[] WriteTools = ["add_note", "add_tag", "create_task", "move_to_stage", "remove_tag"];
 
     [Fact]
-    public async Task A_write_key_sees_every_tool_and_a_read_key_only_the_reads()
+    public async Task A_write_key_sees_every_hiring_tool_and_a_read_key_only_the_reads_and_neither_sees_verification()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         await using var writer = await McpSupport.ConnectAsync(fixture, (await owner.CreateKeyAsync("Assistant", ["Read", "Write"])).Text("token"));
@@ -32,6 +35,134 @@ public sealed class McpServerTests(AppHostFixture fixture)
         (await reader.ToolNamesAsync()).Should().Equal(ReadTools);
         writer.ServerInfo?.Name.Should().Be("ScreenHire");
         writer.ServerInstructions.Should().Contain("candidateWritten").And.Contain("Rejected");
+    }
+
+    [Fact]
+    public async Task A_key_an_owner_gave_the_verification_scope_sees_the_verification_tools_too()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        await using var auditor = await McpSupport.ConnectAsync(fixture, (await owner.CreateKeyAsync("Auditor", ["Read", "VerificationRead"])).Text("token"));
+        await using var everything = await McpSupport.ConnectAsync(fixture, (await owner.CreateKeyAsync("All", ["Read", "Write", "VerificationRead"])).Text("token"));
+
+        (await auditor.ToolNamesAsync()).Should().Equal([.. ReadTools.Concat(VerificationTools).Order(StringComparer.Ordinal)]);
+        (await everything.ToolNamesAsync()).Should().Equal([.. ReadTools.Concat(WriteTools).Concat(VerificationTools).Order(StringComparer.Ordinal)]);
+        var tools = await auditor.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
+        foreach (var tool in tools.Where(t => VerificationTools.Contains(t.Name)))
+        {
+            tool.Description.Should().Contain("never a reason to reject").And.Contain("Rejected stage");
+            tool.ProtocolTool.Annotations?.ReadOnlyHint.Should().BeTrue(tool.Name);
+        }
+
+        auditor.ServerInstructions.Should().Contain("never a reason to reject").And.Contain("Verification read").And.Contain("Rejected");
+    }
+
+    [Fact]
+    public async Task The_verification_tools_return_the_evidence_with_the_guidance_and_log_each_read_under_the_key()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var (slug, jobId) = await VerificationSupport.OpenJobAsync(fixture, owner);
+        var bot = await VerificationSupport.ApplyAsync(fixture, slug, jobId, SyntheticApplicants.Bot);
+        var genuine = await VerificationSupport.ApplyAsync(fixture, slug, jobId, SyntheticApplicants.GenuineHuman);
+        await VerificationSupport.AssessedAsync(owner, bot);
+        await VerificationSupport.AssessedAsync(owner, genuine);
+        var created = await owner.CreateKeyAsync("Auditor", ["Read", "VerificationRead"]);
+        await using var mcp = await McpSupport.ConnectAsync(fixture, created.Text("token"));
+
+        var verification = await mcp.CallAsync("get_verification", new() { ["applicationId"] = bot });
+        var found = await mcp.CallAsync("find_candidates_by_verification_level", new() { ["authenticity"] = "VerificationRecommended", ["jobId"] = jobId });
+
+        verification.GetProperty("authenticity").GetProperty("level").GetString().Should().Be("VerificationRecommended");
+        verification.GetProperty("authenticity").GetProperty("signals").EnumerateArray().Should().NotBeEmpty()
+            .And.OnlyContain(s => s.GetProperty("evidence").ValueKind == JsonValueKind.Array);
+        verification.GetProperty("guidance").GetString().Should().Contain("never a reason to reject");
+        found.GetProperty("guidance").GetString().Should().Contain("never a reason to reject");
+        found.GetProperty("applications").EnumerateArray().Select(a => a.GetProperty("applicationId").GetGuid()).Should().Equal(bot);
+        found.GetProperty("applications")[0].GetProperty("candidateName").GetProperty("candidateWritten").GetString().Should().NotBeNullOrEmpty();
+        found.GetProperty("applications")[0].GetProperty("authenticity").GetProperty("level").GetString().Should().Be("VerificationRecommended");
+        foreach (var result in new[] { verification, found })
+        {
+            McpSupport.PropertyNames(result).Should().NotContain(
+                name => name.Contains("score", StringComparison.OrdinalIgnoreCase) || name.Contains("percent", StringComparison.OrdinalIgnoreCase),
+                "a level is categorical (ADR-0004)");
+            result.GetRawText().Should().NotContainEquivalentOf("score").And.NotContain("%");
+        }
+
+        // What the applicant or their device supplied is data to read, never instructions: the datacenter signal's network name.
+        var evidence = verification.GetProperty("authenticity").GetProperty("signals").EnumerateArray()
+            .SelectMany(signal => signal.GetProperty("evidence").EnumerateArray()).Where(e => e.GetProperty("kind").GetString() == "Fact").ToList();
+        evidence.Should().NotBeEmpty().And.OnlyContain(e => e.GetProperty("value").GetProperty("candidateWritten").ValueKind == JsonValueKind.String);
+        var log = (await owner.GetAsync($"/v1/applications/{bot}/verification")).At("reviewLog").EnumerateArray()
+            .Where(e => e.GetProperty("type").GetString() == "ReadByKey").ToList();
+        log.Should().HaveCount(2, "get_verification and the level search each read it");
+        log.Should().OnlyContain(e => e.GetProperty("apiKeyId").GetGuid() == created.Id("key.id") && e.GetProperty("apiKeyName").GetString() == "Auditor");
+        (await mcp.CallFailingAsync("get_verification", new() { ["applicationId"] = Guid.CreateVersion7() })).Should().Contain("No application");
+        (await mcp.CallFailingAsync("find_candidates_by_verification_level", new())).Should().Contain("authenticity");
+    }
+
+    [Fact]
+    public async Task A_key_without_the_scope_calling_a_verification_tool_by_name_is_refused_and_leaves_no_trace()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var (slug, jobId) = await VerificationSupport.OpenJobAsync(fixture, owner);
+        var applicationId = await VerificationSupport.ApplyAsync(fixture, slug, jobId, SyntheticApplicants.Bot);
+        await VerificationSupport.AssessedAsync(owner, applicationId);
+        await using var mcp = await McpSupport.ConnectAsync(fixture, (await owner.CreateKeyAsync("Writer", ["Read", "Write"])).Text("token"));
+
+        var call = () => mcp.CallToolAsync("get_verification", new Dictionary<string, object?> { ["applicationId"] = applicationId }, cancellationToken: TestContext.Current.CancellationToken).AsTask();
+
+        (await call.Should().ThrowAsync<McpProtocolException>()).Which.Message.Should().NotContain("VerificationRecommended", "nothing of the verification is in the refusal");
+        (await owner.GetAsync($"/v1/applications/{applicationId}/verification")).At("reviewLog").EnumerateArray()
+            .Should().NotContain(e => e.GetProperty("type").GetString() == "ReadByKey");
+    }
+
+    [Fact]
+    public async Task The_new_tools_read_only_the_keys_own_organization()
+    {
+        using var ours = await PoolWorld.CreateAsync(fixture);
+        using var theirs = await PoolWorld.CreateAsync(fixture);
+        var (theirJob, _) = await theirs.OpenJobAsync("Platform Engineer");
+        var kept = await theirs.KeptPersonAsync(theirJob, "saved", "Strong referral.");
+        await using var mcp = await McpSupport.ConnectAsync(fixture, (await ours.Owner.CreateKeyAsync("Auditor", ["Read", "VerificationRead"])).Text("token"));
+
+        var saved = await mcp.CallAsync("list_saved_candidates", new());
+        var found = await mcp.CallAsync("find_candidates_by_verification_level", new() { ["authenticity"] = "NoConcerns", ["jobId"] = theirJob });
+        var report = await mcp.CallAsync("get_hiring_report", new()
+        {
+            ["from"] = DateTimeOffset.UtcNow.AddDays(-7), ["to"] = DateTimeOffset.UtcNow.AddDays(1), ["jobIds"] = new[] { theirJob },
+        });
+
+        saved.GetProperty("candidates").EnumerateArray().Should().BeEmpty();
+        found.GetProperty("applications").EnumerateArray().Should().BeEmpty();
+        report.GetProperty("funnel").EnumerateArray().Should().OnlyContain(f => f.GetProperty("applications").GetInt32() == 0);
+        (await mcp.CallFailingAsync("get_verification", new() { ["applicationId"] = kept.ApplicationId })).Should().Contain("No application");
+    }
+
+    [Fact]
+    public async Task A_read_key_reads_the_hiring_report_and_the_saved_candidates()
+    {
+        using var world = await PoolWorld.CreateAsync(fixture);
+        var (jobId, _) = await world.OpenJobAsync("Platform Engineer");
+        var kept = await world.KeptPersonAsync(jobId, "saved", "Strong referral.");
+        await using var mcp = await McpSupport.ConnectAsync(fixture, (await world.Owner.CreateKeyAsync("Reader", ["Read"])).Text("token"));
+        var from = DateTimeOffset.UtcNow.AddDays(-7);
+        var to = DateTimeOffset.UtcNow.AddDays(1);
+
+        var report = await mcp.CallAsync("get_hiring_report", new() { ["from"] = from, ["to"] = to });
+        var saved = await mcp.CallAsync("list_saved_candidates", new());
+
+        report.GetProperty("funnel").EnumerateArray().Select(f => f.GetProperty("applications").GetInt32()).Should().Contain(count => count >= 1);
+        report.GetProperty("headline").GetProperty("applications").GetInt32().Should().BeGreaterThanOrEqualTo(1);
+        report.GetProperty("weekly").GetArrayLength().Should().BeGreaterThan(0);
+        report.GetProperty("openJobs").EnumerateArray().Select(j => j.GetProperty("jobId").GetGuid()).Should().Contain(jobId);
+        var person = saved.GetProperty("candidates").EnumerateArray().Single();
+        person.GetProperty("applicationId").GetGuid().Should().Be(kept.ApplicationId);
+        person.GetProperty("candidateId").GetGuid().Should().Be(kept.CandidateId);
+        person.GetProperty("note").GetString().Should().Be("Strong referral.");
+        person.GetProperty("name").GetProperty("candidateWritten").GetString().Should().NotBeNullOrEmpty();
+        saved.TryGetProperty("permissionMonths", out _).Should().BeFalse("a saved candidate's permission has no end date");
+        person.GetProperty("rating").GetProperty("state").GetString().Should().Be("NotRated");
+        (await mcp.CallFailingAsync("get_hiring_report", new() { ["from"] = to, ["to"] = from })).Should().Contain("to:");
+        (await mcp.CallFailingAsync("get_hiring_report", new() { ["from"] = from, ["to"] = to, ["timeZone"] = "Nowhere/Atlantis" })).Should().Contain("timeZone:");
     }
 
     [Fact]

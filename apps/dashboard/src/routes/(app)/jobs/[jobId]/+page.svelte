@@ -27,6 +27,7 @@
   import HistorySheet from '#lib/components/history-sheet.svelte';
   import HiringTeamSheet from '#lib/components/hiring-team-sheet.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
+  import JobEmbedPanel from '#lib/components/job-embed-panel.svelte';
   import JobPipeline from '#lib/components/job-pipeline.svelte';
   import LastUpdated from '#lib/components/last-updated.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
@@ -305,9 +306,12 @@
             {moves}
           />
         </Tabs.Content>
-        <Tabs.Content value="postings">
+        <Tabs.Content value="postings" class="flex flex-col gap-4">
           {#if boards.data}
             <DistributionPanel job={detail} boards={boards.data.data} />
+            {#if detail.status === 'Open'}
+              <JobEmbedPanel slug={detail.slug} />
+            {/if}
           {:else if boards.isError}
             <Panel title="Postings">
               <QueryError message={describeError(boards.error, 'Could not load the job boards')} onretry={() => boards.refetch()} inset />

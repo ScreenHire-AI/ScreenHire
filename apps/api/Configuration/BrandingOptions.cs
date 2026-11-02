@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using ScreenHire.Application.Branding;
 
 namespace ScreenHire.Api.Configuration;
 
@@ -9,7 +10,7 @@ public sealed class BrandingOptions
 
     /// <summary>The private blob container brand images go to. The API serves them; storage never does.</summary>
     [Required, RegularExpression("^[a-z0-9](?!.*--)[a-z0-9-]{1,61}[a-z0-9]$")]
-    public string Container { get; set; } = "brand-images";
+    public string Container { get; set; } = BrandImagesContainer.Default;
 
     /// <summary>How long an upload link stays valid.</summary>
     [Range(typeof(TimeSpan), "00:01:00", "01:00:00")]

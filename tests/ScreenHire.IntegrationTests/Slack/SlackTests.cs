@@ -24,7 +24,7 @@ namespace ScreenHire.IntegrationTests.Slack;
 /// </summary>
 public sealed class SlackTests(AppHostFixture fixture)
 {
-    private const string Hiring = "C0SBHIRING";
+    private const string Hiring = SlackSandbox.HiringChannel;
     private const string PostType = ".PostSlackChannelMessage";
     private const string DirectType = ".SendSlackDirectMessage";
 

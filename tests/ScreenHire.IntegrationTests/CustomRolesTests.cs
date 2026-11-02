@@ -118,7 +118,7 @@ public sealed class CustomRolesTests(AppHostFixture fixture)
             "FillInScorecards", "ReviewVerification", "RunAutomations", "EditHiringTemplates",
         ];
         string[] administering = [.. recruiting, "DeleteAnyNote", "EditEmailTemplates", "EditSettings", "ManageApiKeys", "ManageWebhooks", "ManageIntegrations", "ManageTeam", "EditAnyView"];
-        string[] owning = [.. administering, "ManageOwners"];
+        string[] owning = [.. administering, "ManageOwners", "GrantVerificationAccess"];
         foreach (var (member, role, permissions) in new[] { (owner, "Owner", owning), (admin, "Admin", administering), (recruiter, "Recruiter", recruiting), (viewer, "Viewer", viewing) })
         {
             var me = (await member.GetAsync("/v1/auth/me")).Expect(HttpStatusCode.OK);

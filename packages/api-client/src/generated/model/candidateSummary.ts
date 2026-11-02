@@ -4,6 +4,7 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { CandidateEmailIssue } from './candidateEmailIssue.ts';
 
 /**
  * A candidate: one person per email address within the organization.
@@ -18,4 +19,9 @@ export interface CandidateSummary {
   firstName: string;
   /** @nullable */
   lastName: string | null;
+  emailIssue?: CandidateEmailIssue;
+  /** @nullable */
+  emailIssueAt?: string | null;
+  /** @nullable */
+  emailIssueReason?: string | null;
 }

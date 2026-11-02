@@ -27,7 +27,7 @@ public static class EmailTemplateIds
     public const string QuestionnaireRequest = "questionnaire-request";
 
     /// <summary>
-    /// Invites a candidate in the talent pool to apply for another job, with that job's link and a signed link to stop
+    /// Invites a saved candidate to apply for another job, with that job's link and a signed link to stop
     /// being kept. Only a person's Invite to apply sends it (docs/architecture/talent-pool.md): never an automation, and
     /// never as an ordinary email.
     /// </summary>
@@ -51,7 +51,7 @@ public static class EmailTemplateIds
 
     /// <summary>
     /// Whether only its own action sends <paramref name="id"/>: the rejection email (Reject), the follow-up questions
-    /// email (SendQuestionnaire) and the talent pool invitation (a person's Invite to apply). None goes as an ordinary
+    /// email (SendQuestionnaire) and the invitation to apply (a person's Invite to apply). None goes as an ordinary
     /// email by hand, and SendEmail never names one.
     /// </summary>
     public static bool IsActionOnly(string id) => id is ApplicationRejected or QuestionnaireRequest or TalentPoolInvitation;

@@ -68,6 +68,12 @@ public static class ApplicationEmails
     public const string QuestionnaireLinkNotKept = "[the candidate's link, not kept in this copy]";
 
     /// <summary>
+    /// Why nothing went to an address the email provider reported as undeliverable or as a spam complaint. The candidate's
+    /// page says so too (docs/architecture/email.md, "Bounces and complaints").
+    /// </summary>
+    public const string NotSentAddressFlagged = "The candidate's address bounced or marked an email as spam, so nothing was sent.";
+
+    /// <summary>
     /// Whether <paramref name="templateId"/> skips <paramref name="application"/> in <paramref name="stage"/>: the
     /// stage-change email never goes to one that has ended ("moved to the next step: Rejected" would be a rejection no
     /// Reject action guarded), nor to one the team kept in mind, which left the job. The API counts the skips when it
@@ -110,13 +116,15 @@ public static class ApplicationEmails
     public static async Task<ApplicationEvent> SendCopyAsync(
         ScreenHireDbContext db,
         TransactionalEmail email,
+        CandidateMailRouting routing,
         JobApplication application,
         ApplicationEmail copy,
         Guid? actorUserId,
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
-        await email.SendAsync(new EmailMessage(copy.To, copy.Subject, copy.TextBody, copy.HtmlBody), cancellationToken);
+        var route = await routing.ForAsync(db, application.OrganizationId, copy.Id, cancellationToken);
+        await email.SendAsync(route.Apply(new EmailMessage(copy.To, copy.Subject, copy.TextBody, copy.HtmlBody)), cancellationToken);
         var entry = application.EmailSent(copy, now, actorUserId);
         db.ApplicationEvents.Add(entry);
         return entry;
@@ -135,6 +143,7 @@ public static class ApplicationEmails
         EmailTemplates renderer,
         EmailTemplateStore store,
         EmailHeaders headers,
+        CandidateMailRouting routing,
         JobApplication application,
         Job job,
         string templateId,
@@ -163,10 +172,16 @@ public static class ApplicationEmails
         }
 
         var candidate = await db.Candidates.AsNoTracking().SingleAsync(c => c.Id == application.CandidateId, cancellationToken);
+        if (!candidate.CanReceiveEmail)
+        {
+            return new(NotSentAddressFlagged, null);
+        }
+
         var organization = await db.Organizations.AsNoTracking().SingleAsync(o => o.Id == application.OrganizationId, cancellationToken);
         var model = ModelFor(candidate, job.Title, organization.Name, stage?.Name, reason, questionnaireLink);
         var header = await headers.ForAsync(db, organization, cancellationToken);
-        var sent = await email.SendAsync(templateId, template.Content, candidate.Email, model, header, cancellationToken);
+        var route = await routing.ForAsync(db, application.OrganizationId, eventId, cancellationToken);
+        var sent = await email.SendAsync(templateId, template.Content, candidate.Email, model, header, cancellationToken, route);
         var kept = questionnaireLink is null
             ? sent
             : renderer.Render(template.Content, candidate.Email, model with { QuestionnaireLink = QuestionnaireLinkNotKept }, templateId, header);
@@ -189,6 +204,7 @@ public static partial class SendApplicationEmailHandler
         SendApplicationEmail message,
         ScreenHireDbContext db,
         TransactionalEmail email,
+        CandidateMailRouting routing,
         TimeProvider time,
         ILogger<SendApplicationEmail> logger,
         CancellationToken cancellationToken)
@@ -216,6 +232,15 @@ public static partial class SendApplicationEmailHandler
             return outgoing;
         }
 
+        var candidate = await db.Candidates.AsNoTracking().SingleAsync(c => c.Id == application.CandidateId, cancellationToken);
+        if (!candidate.CanReceiveEmail)
+        {
+            // The provider reported the address after this send was queued. The copy of an email that never went is not kept.
+            db.ApplicationEmails.Remove(copy);
+            LogNotSent(logger, message.SendId, "the candidate's address is flagged");
+            return outgoing;
+        }
+
         var job = await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == application.JobId, cancellationToken);
         if (copy.TemplateId is { } templateId
             && (EmailTemplateIds.IsActionOnly(templateId) || ApplicationEmails.Skips(templateId, application, job.Workflow.FindStage(application.CurrentStageId))))
@@ -228,7 +253,7 @@ public static partial class SendApplicationEmailHandler
         }
 
         var now = time.GetUtcNow();
-        await ApplicationEmails.SendCopyAsync(db, email, application, copy, message.ActorUserId, now, cancellationToken);
+        await ApplicationEmails.SendCopyAsync(db, email, routing, application, copy, message.ActorUserId, now, cancellationToken);
         outgoing.Add(new ApplicationEmailed(application.OrganizationId, application.Id, application.JobId, message.SendId, now, message.ActorUserId));
         return outgoing;
     }
@@ -251,6 +276,7 @@ public static partial class SendAutomationEmailHandler
         EmailTemplates renderer,
         EmailTemplateStore store,
         EmailHeaders headers,
+        CandidateMailRouting routing,
         TimeProvider time,
         ILogger<SendAutomationEmail> logger,
         CancellationToken cancellationToken)
@@ -271,7 +297,7 @@ public static partial class SendAutomationEmailHandler
         var job = await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == application.JobId, cancellationToken);
         var now = time.GetUtcNow();
         var result = await ApplicationEmails.SendAsync(
-            db, email, renderer, store, headers, application, job, message.TemplateId, message.Reason, message.QuestionnaireLink, message.SendId,
+            db, email, renderer, store, headers, routing, application, job, message.TemplateId, message.Reason, message.QuestionnaireLink, message.SendId,
             actorUserId: null, message.AutomationRunId, now, cancellationToken);
         if (result.Event is null)
         {

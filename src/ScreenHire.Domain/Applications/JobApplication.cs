@@ -83,7 +83,7 @@ public sealed class JobApplication : IJobScoped
     public BotCheckResult BotCheck { get; init; }
 
     /// <summary>
-    /// When the hiring team kept the candidate in mind: they left this job without a rejection (docs/architecture/
+    /// When the hiring team saved the candidate: they left this job without a rejection (docs/architecture/
     /// talent-pool.md). The application keeps its stage; it has ended, as one in a Hired, Rejected or Withdrawn stage has.
     /// Null while it is open, and again once a person moves it back to a stage.
     /// </summary>
@@ -91,13 +91,10 @@ public sealed class JobApplication : IJobScoped
 
     /// <summary>
     /// When the candidate said "Keep my details for future roles" on this application's form, or, for an application
-    /// added from the talent pool, on the application it came from (the clock never restarts). Null without permission.
+    /// added from the saved candidates, on the application it came from. Null without permission.
     /// It is this application's own permission: a tick on another job's form does not cover it.
     /// </summary>
     public DateTimeOffset? FutureRolesConsentGivenAt { get; private set; }
-
-    /// <summary>The organization's permission period, in months, when the candidate gave it (the form said so).</summary>
-    public int? FutureRolesConsentMonths { get; private set; }
 
     /// <summary>When the candidate took the permission back, or a person removed them from the pool at their request.</summary>
     public DateTimeOffset? FutureRolesWithdrawnAt { get; private set; }
@@ -147,7 +144,6 @@ public sealed class JobApplication : IJobScoped
             HoneypotFilled = intake.HoneypotFilled,
             BotCheck = intake.BotCheck,
             FutureRolesConsentGivenAt = intake.FutureRoles?.GivenAt,
-            FutureRolesConsentMonths = intake.FutureRoles?.Months,
         };
 
         return (application, application.NewEvent(
@@ -160,8 +156,8 @@ public sealed class JobApplication : IJobScoped
     /// key that moved it, if one did.
     /// </summary>
     /// <remarks>
-    /// Moving an application the team kept in mind brings it back to the job, so it records the move even to the stage it
-    /// was in; the caller takes it out of the talent pool.
+    /// Moving an application the team saved brings it back to the job, so it records the move even to the stage it
+    /// was in; the caller takes it out of the saved candidates.
     /// </remarks>
     public ApplicationEvent? MoveTo(
         WorkflowStage target, DateTimeOffset now, Guid? actorUserId, string? note, Guid? automationRunId = null, Guid? actorApiKeyId = null)
@@ -191,21 +187,22 @@ public sealed class JobApplication : IJobScoped
     public bool HasEnded(WorkflowStage? stage) => KeptInMindAt is not null || stage?.Kind.IsTerminal() == true;
 
     /// <summary>
-    /// Keeps the candidate in mind: they leave the job without a rejection, and everything on the application stays with
-    /// it. <paramref name="note"/> says why, and lives on the returned timeline entry only. Throws when the application has
-    /// ended (<paramref name="stage"/> is its current stage) or has no permission for future roles at
-    /// <paramref name="now"/>. Never reads verification output (ADR-0004): only the stage and the candidate's own answer.
+    /// Saves the candidate: they leave the job without a rejection, and everything on the application stays with it.
+    /// <paramref name="note"/> says why, and the returned timeline entry keeps it as first written (the saved entry's own
+    /// note can be edited later). Throws when the application has ended (<paramref name="stage"/> is its current stage) or
+    /// the candidate gave no permission for future roles, or took it back. Never reads verification output (ADR-0004): only
+    /// the stage and the candidate's own answer.
     /// </summary>
-    public ApplicationEvent KeepInMind(WorkflowStage? stage, int organizationMonths, DateTimeOffset now, Guid? actorUserId, string? note)
+    public ApplicationEvent KeepInMind(WorkflowStage? stage, DateTimeOffset now, Guid? actorUserId, string? note)
     {
         if (HasEnded(stage))
         {
             throw new InvalidOperationException("The application has already ended.");
         }
 
-        if (!AllowsFutureRoles(organizationMonths, now))
+        if (!AllowsFutureRoles)
         {
-            throw new InvalidOperationException("The candidate did not give permission to keep their details for future roles.");
+            throw new InvalidOperationException("The candidate did not give permission to save their details for future roles.");
         }
 
         KeptInMindAt = now;
@@ -217,17 +214,10 @@ public sealed class JobApplication : IJobScoped
     }
 
     /// <summary>
-    /// When this application's permission to keep the candidate's details runs out: the moment it was given plus the
-    /// shorter of the period then and <paramref name="organizationMonths"/>, the organization's period now, so lengthening
-    /// the setting never extends a permission already given. Null without a permission, or after it was withdrawn.
+    /// Whether the candidate's permission for future roles holds: they gave it and have not taken it back. It has no end
+    /// date; it lasts until the candidate asks or the team removes them.
     /// </summary>
-    public DateTimeOffset? FutureRolesUntil(int organizationMonths) =>
-        FutureRolesConsentGivenAt is { } given && FutureRolesConsentMonths is { } months && FutureRolesWithdrawnAt is null
-            ? given.AddMonths(Math.Min(months, organizationMonths))
-            : null;
-
-    /// <summary>Whether the candidate's permission for future roles still holds at <paramref name="now"/>.</summary>
-    public bool AllowsFutureRoles(int organizationMonths, DateTimeOffset now) => FutureRolesUntil(organizationMonths) > now;
+    public bool AllowsFutureRoles => FutureRolesConsentGivenAt is not null && FutureRolesWithdrawnAt is null;
 
     /// <summary>The candidate took back their permission for future roles. Withdrawing twice keeps the first time.</summary>
     public void WithdrawFutureRoles(DateTimeOffset now)
@@ -238,14 +228,12 @@ public sealed class JobApplication : IJobScoped
         }
     }
 
-    /// <summary>The permission an application added from the talent pool carries over from this one, if any.</summary>
+    /// <summary>The permission an application added from the saved candidates carries over from this one, if any.</summary>
     public FutureRolesConsent? CarriedFutureRoles() =>
-        FutureRolesConsentGivenAt is { } given && FutureRolesConsentMonths is { } months && FutureRolesWithdrawnAt is null
-            ? new FutureRolesConsent(given, months)
-            : null;
+        FutureRolesConsentGivenAt is { } given && FutureRolesWithdrawnAt is null ? new FutureRolesConsent(given) : null;
 
     /// <summary>
-    /// The timeline entry for the candidate leaving the talent pool, kept from this application: why, and the other job or
+    /// The timeline entry for the candidate leaving the saved candidates, saved from this application: why, and the other job or
     /// application it names (where they were added, or applied).
     /// </summary>
     public ApplicationEvent LeftTalentPool(
@@ -461,6 +449,21 @@ public sealed class JobApplication : IJobScoped
         };
 
     /// <summary>
+    /// The timeline event for a reply from the candidate. It takes the reply's id so a redelivered post finds it and
+    /// records nothing twice, and it points at the reply, which holds the body. Nobody acted: the candidate wrote.
+    /// </summary>
+    public ApplicationEvent EmailReceived(InboundEmail reply) =>
+        new()
+        {
+            Id = reply.Id,
+            OrganizationId = OrganizationId,
+            ApplicationId = Id,
+            Type = ApplicationEventType.EmailReceived,
+            Data = new ApplicationEventData(EmailSubject: reply.Subject, EmailId: reply.Id),
+            OccurredAt = reply.ReceivedAt,
+        };
+
+    /// <summary>
     /// A task a person or an API key gives the hiring team about this application (<paramref name="note"/>, trimmed), for
     /// <paramref name="assigneeUserId"/> or, when null, anyone on the team, and the timeline entry that records it with
     /// who created it. The task starts in the application's current stage; it changes nothing about the application.
@@ -551,15 +554,15 @@ public enum BotCheckResult
 }
 
 /// <summary>
-/// The candidate's permission to keep their details for future roles: when they gave it, and the organization's period
-/// in months at that moment, which the form showed them.
+/// The candidate's permission to keep their details for future roles: when they gave it. It has no end date; it lasts
+/// until the candidate asks or the team removes them.
 /// </summary>
-public sealed record FutureRolesConsent(DateTimeOffset GivenAt, int Months);
+public sealed record FutureRolesConsent(DateTimeOffset GivenAt);
 
-/// <summary>Why a candidate left the talent pool, as their kept application's Activity says it.</summary>
+/// <summary>Why a candidate left the saved candidates, as their saved application's Activity says it.</summary>
 public enum TalentPoolExit
 {
-    /// <summary>Their permission ran out.</summary>
+    /// <summary>Their permission ran out. Permission no longer expires, so nothing writes this; older Activity may carry it.</summary>
     Expired,
 
     /// <summary>A person on the team took them out.</summary>

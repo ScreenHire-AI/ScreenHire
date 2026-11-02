@@ -126,15 +126,49 @@ public static class SettingsChanges
         return lines;
     }
 
-    /// <param name="before">The settings before the save; null on the first save, which compares with the default.</param>
-    /// <param name="after">The settings after the save.</param>
-    public static IReadOnlyList<ChangeLine> TalentPool(TalentPoolSettings? before, TalentPoolSettings? after)
+    /// <param name="before">The saved entry before the save; null when the save added it.</param>
+    /// <param name="after">The saved entry after the save; null when the save removed it.</param>
+    public static IReadOnlyList<ChangeLine> SavedNote(TalentPoolEntry? before, TalentPoolEntry? after)
     {
-        var was = TalentPoolSettings.MonthsOf(before);
-        return after is null || was == after.PermissionMonths
-            ? []
-            : [ChangeLine.Of($"changed how long permission for future roles lasts from {Months(was)} to ", Months(after.PermissionMonths))];
+        // Saving someone and taking them out are on the candidate's Activity; only an edit of the note is a change here.
+        if (before is null || after is null || before.Note == after.Note)
+        {
+            return [];
+        }
+
+        var lead = after.Note is null ? "removed the note" : before.Note is null ? "added a note" : "edited the note";
+        return [ChangeLine.Plain(lead, [new ChangeDetail("Note", before.Note, after.Note, ChangeValueKind.Paragraphs)])];
     }
 
-    private static string Months(int months) => string.Create(CultureInfo.InvariantCulture, $"{months} months");
+    /// <summary>
+    /// What happened to the organization's sending domain: added, verified by the provider, no longer verified, or removed.
+    /// A check that only refreshes the records' states, or replaces them with the same facts, says nothing: history is for
+    /// what a person would ask "who did that" about, not for every look-up.
+    /// </summary>
+    public static IReadOnlyList<ChangeLine> SendingDomain(SendingDomain? before, SendingDomain? after)
+    {
+        if (before is null && after is null)
+        {
+            return [];
+        }
+
+        if (before is null)
+        {
+            return [ChangeLine.Of("added the sending domain ", after!.Domain)];
+        }
+
+        if (after is null)
+        {
+            return [ChangeLine.Of("removed the sending domain ", before.Domain)];
+        }
+
+        if (before.Status != SendingDomainStatus.Verified && after.Status == SendingDomainStatus.Verified)
+        {
+            return [ChangeLine.Of("verified the sending domain ", after.Domain, ": email now comes from it")];
+        }
+
+        return before.Status == SendingDomainStatus.Verified && after.Status != SendingDomainStatus.Verified
+            ? [ChangeLine.Of("found the sending domain ", after.Domain, " no longer verified: email comes from ScreenHire again")]
+            : [];
+    }
 }

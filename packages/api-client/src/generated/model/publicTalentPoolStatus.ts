@@ -8,7 +8,7 @@ import type { PublicOrganization } from './publicOrganization.ts';
 
 /**
  * The page a candidate opens from the link in an invitation to stop being kept. `kept`: the organization still
- * keeps their details for future roles; false once they stopped it, or it ran out.
+ * keeps their details for future roles; false once they stopped it.
  */
 export interface PublicTalentPoolStatus {
   organization: PublicOrganization;

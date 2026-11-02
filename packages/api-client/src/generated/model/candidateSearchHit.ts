@@ -17,4 +17,6 @@ export interface CandidateSearchHit {
   jobId: string;
   jobTitle: string;
   stage: ApplicationStage;
+  /** @nullable */
+  keptInMindAt?: string | null;
 }

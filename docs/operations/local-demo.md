@@ -132,7 +132,7 @@ numbers are made up.
 | Senior .NET Engineer | Open, from the "Software engineer" template | Every board | The synthetic applicants: Robin Ashby (genuine), Sam Okafor (used AI and said so, through a VPN), Jordan Vale (a bot) and a three-person application farm, all in Applied. Joel Mensah, a genuine candidate, is in Technical exercise with a note, and his Activity has two notes from the team: Jordan Ellis mentions Avery Quinn, and Avery mentions Jordan in a note she then edited. His Messages tab has the "Interview invitation" email Avery changed for him alone, with a sentence about his billing ledger answer that the template does not have. Its Interview stage uses Brightwater's own "Technical interview" scorecard, which asks every answer kind |
 | Senior Product Designer | Open, with the demo's designer questionnaire | Every board | Three candidates in Applied, Screening and Interview. Jordan Ellis scored Priya Natarajan's interview, and Avery Quinn has a review to give on her, so signed in as Avery her rating reads "Rating after your scorecard" (Jordan sees it) |
 | Frontend Engineer (Svelte) | Open, with the demo's frontend questionnaire | Careers page and sandbox board only | Three candidates in Screening, Interview and Offer (with a note). Hannah Okoro is rated 4.2 from Avery's and Jordan's interview scorecards and Eli Thompson 3.5 from Jordan's screening one; the Rating column sorts them |
-| Support Engineer | Closed, from Brightwater's own template | Removed everywhere | Six candidates who went through the stages over the weeks before the demo: three Hired (Ruth Mwangi added by a recruiter, Sam Brennan through an Adzuna link), one Rejected (through a Talent.com link), one Withdrawn (through the careers page embedded in the company's own site), so Reports' Sources panel has more than one source, the recruiter's notes on most, and Grace Adeyemi, the runner-up, kept in mind for future roles, so the Talent pool has her with the note saying why. Priya Natarajan and Hannah Okoro also allowed it, so Keep in mind shows in their Move to stage. Its careers page answers "This job has closed" |
+| Support Engineer | Closed, from Brightwater's own template | Removed everywhere | Six candidates who went through the stages over the weeks before the demo: three Hired (Ruth Mwangi added by a recruiter, Sam Brennan through an Adzuna link), one Rejected (through a Talent.com link), one Withdrawn (through the careers page embedded in the company's own site), so Reports' Sources panel has more than one source, the recruiter's notes on most, and Grace Adeyemi, the runner-up, saved for future roles, so Saved candidates has her with the note saying why (the note can be edited there, and shows its History). Priya Natarajan and Hannah Okoro also allowed it, so Save candidate shows in their Move to stage. Its careers page answers "This job has closed" |
 | Backend Engineer (Payments) | Draft, from Brightwater's own template | None | Ready to publish during the demo |
 | Customer Success Lead | Draft, with the demo's customer success questionnaire | None | No template, an on-site job in Manchester |
 
@@ -209,10 +209,24 @@ hire and both sources numbers to show (Last 90 days covers all of it; each panel
 Rating column on Frontend Engineer and a candidate's stars, which open to each scorecard; Joel Mensah's Messages (open the changed interview email as it went, or email him from the box at the top: start from a template, change it, and Preview shows it with his first name), his notes (type @ in the note box to mention a teammate; the mention emails are in
 Mailpit and never quote the note; Avery's own note offers Edit and Delete in its menu), a resume opened full window
 from the details rail's View, Support Engineer for a closed job and its candidates' activity with the recruiter's notes,
-the Talent pool (Grace Adeyemi, kept from Support Engineer: Invite to apply sends the invitation to Mailpit with the
+Saved candidates (Grace Adeyemi, saved from Support Engineer, with no end date: the page shows Rating and Last contacted (Never until an email goes, so the invitation sets it), Message opens the email composer, Edit note changes the note and shows its History, and Invite to apply sends the invitation to Mailpit with the
 job's link and her link to stop being kept, which opens on the careers site), the Templates page (below) and its builder (questions, automations and the guardrail that refuses a
 verification-driven rejection), the workflow graph and "Simulate", Ctrl K for the command palette, the dark theme, and a
 second browser window on the same job to show live updates.
+
+Replies, as Avery: send an email to a candidate from the box on their Messages tab, then open it in Mailpit and copy its
+Reply-To address (`reply+...@reply.localhost`). There is no SendGrid here, so deliver the reply with the sandbox route, on the API's
+address from the Aspire dashboard (http://localhost:5080 when the ports are pinned):
+
+```
+curl -X POST http://localhost:5080/v1/dev/inbound-email -H "Content-Type: application/json" \
+  -d '{"to":"<the Reply-To address>","from":"<the candidate's address>","subject":"Re: your email","text":"Thursday works for me."}'
+```
+
+The reply shows on the candidate's Messages tab and in Activity, and a card appears in Avery's tray. Reporting a bounce needs
+SendGrid's signature, so it is covered by the integration tests, not this walk-through. Settings > **Sending domain** takes any
+domain you own (example.org will do): the page lists made-up records, Check records says they are missing until
+`POST /v1/dev/sending-domains/publish` with `{"domain":"example.org"}`, and the next check verifies the domain.
 
 Templates, as Avery: **Templates** in the sidebar, one tab per kind, each filtered by All, In use, Not used in 6 months
 and Archived.
@@ -277,6 +291,7 @@ Settings is one item at the bottom of the sidebar; its pages share the Settings 
 | IP intelligence | Development's fixed ranges for the RFC 5737 documentation addresses the synthetic applicants use | `ScreenHire:Verification:Network` (worker) |
 | Bot challenge (Turnstile) | Not configured, so recorded as "not checked"; the honeypot still works | `ScreenHire:Turnstile` |
 | Malware scanning | `NoMalwareScanner`, which records every file as "not scanned" | `IMalwareScanner` |
+| Email provider | Mailpit sends; no SendGrid. Replies come through the sandbox route `/v1/dev/inbound-email`, and a sending domain verifies once `/v1/dev/sending-domains/publish` publishes it | `ScreenHire:Email` |
 | Slack | Off, so Settings > Slack says it is not set up; the sandbox workspace when turned on, whose messages `/v1/slack/sandbox/messages` lists | `ScreenHire:Slack` |
 
 The [MVP status](../status.md#owner-actions) lists what each of these needs before real use.

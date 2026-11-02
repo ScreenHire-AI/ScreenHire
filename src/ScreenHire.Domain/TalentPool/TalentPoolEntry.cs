@@ -4,15 +4,15 @@ using ScreenHire.Domain.Organizations;
 namespace ScreenHire.Domain.TalentPool;
 
 /// <summary>
-/// A candidate in the organization's talent pool: the team kept them in mind from one application, which they left
-/// without a rejection (docs/architecture/talent-pool.md). One entry per candidate. It belongs to that application, so a
+/// A saved candidate: the team saved them from one application, which they left without a rejection
+/// (docs/architecture/talent-pool.md). One entry per candidate. It belongs to that application, so a
 /// member on Only jobs they're on sees it only through a job they are on (ADR-0015), and it goes with the application or
 /// the candidate when either is deleted.
 /// </summary>
 /// <remarks>
-/// The entry holds no candidate data of its own. Why the team kept them is the note on the <see cref="KeptEventId"/>
-/// timeline entry; their tags are the application's; when their permission runs out comes from the application's
-/// consent. Leaving the pool deletes the entry and records why on the application's Activity.
+/// The entry holds no candidate data of its own except the team's <see cref="Note"/>, which starts as the one written
+/// when they were saved and can be edited (the Activity entry keeps the first). Their tags are the application's.
+/// Leaving the pool deletes the entry and records why on the application's Activity.
 /// </remarks>
 public sealed class TalentPoolEntry : IApplicationScoped
 {
@@ -41,6 +41,12 @@ public sealed class TalentPoolEntry : IApplicationScoped
 
     public DateTimeOffset? LastInvitedAt { get; private set; }
 
+    /// <summary>
+    /// Why the team saved them, or whatever they have written since. Starts as the note on the <see cref="KeptEventId"/>
+    /// timeline entry, which keeps it as first written. Changes are tracked (History).
+    /// </summary>
+    public string? Note { get; private set; }
+
     /// <summary>The entry for <paramref name="application"/>, kept in mind by <paramref name="kept"/>.</summary>
     public static TalentPoolEntry For(JobApplication application, ApplicationEvent kept)
     {
@@ -48,7 +54,7 @@ public sealed class TalentPoolEntry : IApplicationScoped
         ArgumentNullException.ThrowIfNull(kept);
         if (kept.ApplicationId != application.Id || kept.Type != ApplicationEventType.KeptInMind || application.KeptInMindAt is null)
         {
-            throw new InvalidOperationException("The entry needs the application's own Kept in mind entry.");
+            throw new InvalidOperationException("The entry needs the application's own Saved entry.");
         }
 
         return new TalentPoolEntry
@@ -60,6 +66,7 @@ public sealed class TalentPoolEntry : IApplicationScoped
             KeptEventId = kept.Id,
             KeptAt = kept.OccurredAt,
             KeptByUserId = kept.ActorUserId,
+            Note = Normalize(kept.Data.Note),
         };
     }
 
@@ -74,4 +81,9 @@ public sealed class TalentPoolEntry : IApplicationScoped
         LastInvitedJobId = jobId;
         LastInvitedAt = at;
     }
+
+    /// <summary>Replaces the note. Blank text clears it.</summary>
+    public void EditNote(string? note) => Note = Normalize(note);
+
+    private static string? Normalize(string? note) => string.IsNullOrWhiteSpace(note) ? null : note.Trim();
 }

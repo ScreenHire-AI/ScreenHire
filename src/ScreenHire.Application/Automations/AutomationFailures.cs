@@ -46,6 +46,8 @@ public static class AutomationFailures
         services.TryAddSingleton<EmailTemplates>();
         services.TryAddSingleton<EmailTemplateStore>();
         services.TryAddSingleton<TransactionalEmail>();
+        services.AddScreenHireEmailOptions();
+        services.TryAddSingleton<CandidateMailRouting>();
 
         services.AddOptions<WebhookOptions>().BindConfiguration(WebhookOptions.Section);
         services.TryAddSingleton<IWebhookSender, HttpWebhookSender>();

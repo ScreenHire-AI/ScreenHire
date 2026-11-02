@@ -33,8 +33,8 @@ namespace ScreenHire.Domain.Verification;
 /// </remarks>
 public static class VerificationRuleset
 {
-    /// <summary>Stored with every assessment. Change it whenever a rule, weight or threshold changes.</summary>
-    public const string Version = "2026-10-21.2";
+    /// <summary>Stored with every assessment. Change it whenever a rule, weight or threshold changes, or an analyzer changes what its signals mean (a new analyzer version).</summary>
+    public const string Version = "2026-11-02.1";
 
     public const int CorroboratingWeight = 2;
 

@@ -120,6 +120,7 @@ internal static class TemplateEndpoints
         CreateHiringTemplateRequest request,
         IValidator<CreateHiringTemplateRequest> validator,
         ScreenHireDbContext db,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
         TimeProvider time,
         CancellationToken cancellationToken)
@@ -157,7 +158,7 @@ internal static class TemplateEndpoints
             tenant.OrganizationId!.Value, request.Name.Trim(), Text.NullIfBlank(request.Description), Sanitize(definition), time.GetUtcNow(), tenant.UserId,
             copiedFrom);
         db.HiringTemplates.Add(template);
-        await db.SaveChangesAsync(cancellationToken);
+        await outbox.SaveTemplateChangeAsync(TemplateKind.HiringTemplate, SubjectId(template.Id), tenant, time, cancellationToken);
         return TypedResults.Created($"/v1/templates/{template.Id}", await DetailAsync(db, template, cancellationToken));
     }
 
@@ -166,6 +167,8 @@ internal static class TemplateEndpoints
         UpdateHiringTemplateRequest request,
         IValidator<UpdateHiringTemplateRequest> validator,
         ScreenHireDbContext db,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        ITenantContext tenant,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
@@ -191,7 +194,7 @@ internal static class TemplateEndpoints
         }
 
         template.Rename(request.Name.Trim(), Text.NullIfBlank(request.Description), time.GetUtcNow());
-        await db.SaveChangesAsync(cancellationToken);
+        await outbox.SaveTemplateChangeAsync(TemplateKind.HiringTemplate, SubjectId(template.Id), tenant, time, cancellationToken);
         return TypedResults.Ok(await DetailAsync(db, template, cancellationToken));
     }
 
@@ -200,6 +203,7 @@ internal static class TemplateEndpoints
         Guid templateId,
         CreateHiringTemplateVersionRequest request,
         ScreenHireDbContext db,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
         TimeProvider time,
         CancellationToken cancellationToken)
@@ -237,7 +241,7 @@ internal static class TemplateEndpoints
         db.HiringTemplateVersions.Add(draft);
         try
         {
-            await db.SaveChangesAsync(cancellationToken);
+            await outbox.SaveTemplateChangeAsync(TemplateKind.HiringTemplate, SubjectId(template.Id), tenant, time, cancellationToken);
         }
         catch (DbUpdateException exception) when (exception.IsUniqueViolation())
         {
@@ -260,6 +264,9 @@ internal static class TemplateEndpoints
         int version,
         UpdateHiringTemplateVersionRequest request,
         ScreenHireDbContext db,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        ITenantContext tenant,
+        TimeProvider time,
         CancellationToken cancellationToken)
     {
         var found = await db.HiringTemplateVersions
@@ -292,7 +299,7 @@ internal static class TemplateEndpoints
         found.Revise(Sanitize(request.Definition));
         try
         {
-            await db.SaveChangesAsync(cancellationToken);
+            await outbox.SaveTemplateChangeAsync(TemplateKind.HiringTemplate, SubjectId(templateId), tenant, time, cancellationToken);
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -368,15 +375,18 @@ internal static class TemplateEndpoints
     // Archiving takes the template out of the pickers: no new job starts from it, and the jobs that did keep their copy.
     // Both directions are idempotent, and each records a line in the template's History.
     private static Task<Results<Ok<HiringTemplateDetail>, NotFound, ProblemHttpResult>> ArchiveTemplate(
-        Guid templateId, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken) =>
-        SetArchivedAsync(templateId, archived: true, db, time, cancellationToken);
+        Guid templateId, ScreenHireDbContext db, IDbContextOutbox<ScreenHireDbContext> outbox, ITenantContext tenant, TimeProvider time,
+        CancellationToken cancellationToken) =>
+        SetArchivedAsync(templateId, archived: true, db, outbox, tenant, time, cancellationToken);
 
     private static Task<Results<Ok<HiringTemplateDetail>, NotFound, ProblemHttpResult>> UnarchiveTemplate(
-        Guid templateId, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken) =>
-        SetArchivedAsync(templateId, archived: false, db, time, cancellationToken);
+        Guid templateId, ScreenHireDbContext db, IDbContextOutbox<ScreenHireDbContext> outbox, ITenantContext tenant, TimeProvider time,
+        CancellationToken cancellationToken) =>
+        SetArchivedAsync(templateId, archived: false, db, outbox, tenant, time, cancellationToken);
 
     private static async Task<Results<Ok<HiringTemplateDetail>, NotFound, ProblemHttpResult>> SetArchivedAsync(
-        Guid templateId, bool archived, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken)
+        Guid templateId, bool archived, ScreenHireDbContext db, IDbContextOutbox<ScreenHireDbContext> outbox, ITenantContext tenant,
+        TimeProvider time, CancellationToken cancellationToken)
     {
         var template = await LoadAsync(db, templateId, tracking: true, cancellationToken);
         if (template is null)
@@ -398,7 +408,7 @@ internal static class TemplateEndpoints
             template.Unarchive(time.GetUtcNow());
         }
 
-        await db.SaveChangesAsync(cancellationToken);
+        await outbox.SaveTemplateChangeAsync(TemplateKind.HiringTemplate, SubjectId(template.Id), tenant, time, cancellationToken);
         return TypedResults.Ok(await DetailAsync(db, template, cancellationToken));
     }
 

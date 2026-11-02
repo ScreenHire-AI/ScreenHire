@@ -6,9 +6,9 @@
  */
 
 /**
- * Keeps the candidates of these applications in mind: each leaves its job without a rejection and joins the talent pool.
+ * Saves the candidates of these applications: each leaves its job without a rejection and joins the saved candidates.
  * `note` says why, once for all of them. Only an open application whose candidate gave permission for future roles
- * on its form can be kept.
+ * on its form can be saved.
  */
 export interface KeepInMindRequest {
   applicationIds: string[];

@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
-using ScreenHire.Domain.Organizations;
 using ScreenHire.Domain.TalentPool;
 
 namespace ScreenHire.Infrastructure.Persistence.Configurations;
@@ -23,20 +22,10 @@ internal sealed class TalentPoolEntryConfiguration : IEntityTypeConfiguration<Ta
             .HasPrincipalKey(c => new { c.OrganizationId, c.Id })
             .OnDelete(DeleteBehavior.Cascade);
 
-        // One entry per candidate: keeping them from another application replaces it.
+        // One entry per candidate: saving them from another application replaces it.
         builder.HasIndex(e => new { e.OrganizationId, e.CandidateId }).IsUnique();
         builder.HasIndex(e => new { e.OrganizationId, e.ApplicationId });
-    }
-}
 
-internal sealed class TalentPoolSettingsConfiguration : IEntityTypeConfiguration<TalentPoolSettings>
-{
-    public void Configure(EntityTypeBuilder<TalentPoolSettings> builder)
-    {
-        builder.ToTable("talent_pool_settings");
-        builder.HasKey(s => s.OrganizationId);
-        builder.HasOne<Organization>().WithOne()
-            .HasForeignKey<TalentPoolSettings>(s => s.OrganizationId)
-            .OnDelete(DeleteBehavior.Cascade);
+        builder.Property(e => e.Note).HasMaxLength(JobApplication.MaxNoteLength);
     }
 }

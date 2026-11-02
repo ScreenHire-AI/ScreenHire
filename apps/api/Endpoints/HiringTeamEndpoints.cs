@@ -6,6 +6,7 @@ using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Api.Realtime;
 using ScreenHire.Application.Jobs;
+using ScreenHire.Application.Templates;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -131,8 +132,8 @@ internal static class HiringTeamEndpoints
     // The default team gives nobody access by itself: it becomes a job's team when someone creates a job from the
     // template (JobEndpoints.CreateJob), and that is logged per job too.
     private static async Task<Results<Ok<List<HiringTeamMember>>, NotFound, ValidationProblem, ProblemHttpResult>> SetTemplateTeam(
-        Guid templateId, HiringTeamRequest request, IValidator<HiringTeamRequest> validator, ScreenHireDbContext db, ITenantContext tenant,
-        TimeProvider time, CancellationToken cancellationToken)
+        Guid templateId, HiringTeamRequest request, IValidator<HiringTeamRequest> validator, ScreenHireDbContext db,
+        IDbContextOutbox<ScreenHireDbContext> outbox, ITenantContext tenant, TimeProvider time, CancellationToken cancellationToken)
     {
         if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
         {
@@ -144,6 +145,7 @@ internal static class HiringTeamEndpoints
             return TypedResults.ValidationProblem(ValidationExtensions.Problem("copyFromJobId", "A template's team is not copied from a job."));
         }
 
+        // No CommitAsync here: SaveTemplateChangeAsync commits this transaction with the outbox rows.
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await Invitations.LockMembersAsync(db, tenant.OrganizationId!.Value, cancellationToken);
         var template = await db.HiringTemplates.SingleOrDefaultAsync(t => t.Id == templateId, cancellationToken);
@@ -168,8 +170,7 @@ internal static class HiringTeamEndpoints
         if (!change.IsEmpty)
         {
             HiringTeams.Log(db, tenant, members, change, time.GetUtcNow(), templateId: template.Id);
-            await db.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+            await outbox.SaveTemplateChangeAsync(TemplateKind.HiringTemplate, templateId.ToString("D"), tenant, time, cancellationToken);
         }
 
         return TypedResults.Ok(await HiringTeams.DescribeAsync(db, members, template.DefaultHiringTeam, cancellationToken));

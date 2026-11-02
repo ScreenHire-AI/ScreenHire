@@ -1,4 +1,7 @@
 using System.Text.Json.Nodes;
+using ScreenHire.Domain.Hiring;
+using ScreenHire.IntegrationTests.Messaging;
+using static ScreenHire.IntegrationTests.ScorecardSupport;
 
 namespace ScreenHire.IntegrationTests.Realtime;
 
@@ -45,6 +48,61 @@ public sealed class HiringRealtimeTests(AppHostFixture fixture)
         theirClient.ReceivedAnythingAbout(job.Id()).Should().BeFalse("another organization's job events never reach us");
         theirClient.ReceivedAnythingAbout(application.Id()).Should().BeFalse();
         theirClient.ReceivedAnythingAbout(versionId).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task A_template_edit_of_any_kind_reaches_its_own_organization_and_never_another()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var ours = await fixture.SignedInWithOrganizationAsync();
+        using var theirs = await fixture.SignedInWithOrganizationAsync();
+        await using var ourClient = await EventsConnection.ConnectAsync(ours.Session, cancellationToken);
+        await using var theirClient = await EventsConnection.ConnectAsync(theirs.Session, cancellationToken);
+
+        // A hiring template: created, renamed and archived each say so, with the member who did it.
+        var template = await ours.CreateTemplateAsync("Platform roles");
+        var created = await ourClient.WaitForAsync("TemplateChanged", "templateId", template.Id().ToString("D"), cancellationToken);
+        created.GetProperty("kind").GetString().Should().Be("HiringTemplate");
+        created.GetProperty("organizationId").GetGuid().Should().Be(ours.OrganizationId);
+        created.GetProperty("actorUserId").GetGuid().Should().Be(ours.UserId);
+        (await ours.PutAsync($"/v1/templates/{template.Id()}", new JsonObject { ["name"] = "Platform roles, renamed" })).Expect(HttpStatusCode.OK);
+        (await ours.PostAsync($"/v1/templates/{template.Id()}/archive")).Expect(HttpStatusCode.OK);
+        await WaitForCountAsync(ourClient, template.Id().ToString("D"), 3, cancellationToken);
+
+        // An email template: a built-in's first edit and its reset to ScreenHire's wording.
+        var original = (await ours.GetAsync($"/v1/email-templates/{EmailTemplateIds.StageChange}")).Expect(HttpStatusCode.OK);
+        (await ours.PutAsync($"/v1/email-templates/{EmailTemplateIds.StageChange}", new JsonObject
+        {
+            ["subject"] = "Next steps for {{ jobTitle }}", ["body"] = original.Text("body"),
+        })).Expect(HttpStatusCode.OK);
+        await WaitForCountAsync(ourClient, EmailTemplateIds.StageChange, 1, cancellationToken);
+        (await ours.DeleteAsync($"/v1/email-templates/{EmailTemplateIds.StageChange}")).Expect(HttpStatusCode.NoContent);
+        await WaitForCountAsync(ourClient, EmailTemplateIds.StageChange, 2, cancellationToken);
+        ourClient.Received.First(e => e.Type == "TemplateChanged" && e.Data.GetProperty("templateId").GetString() == EmailTemplateIds.StageChange)
+            .Data.GetProperty("kind").GetString().Should().Be("EmailTemplate");
+
+        // A library scorecard: created, then changed. A save that changes nothing raises nothing.
+        var scorecard = await CreateScorecardAsync(ours, "Platform interview", Rating5("depth"));
+        await WaitForCountAsync(ourClient, scorecard, 1, cancellationToken);
+        var body = new JsonObject { ["name"] = "Platform interview", ["questions"] = Questions(Rating5("depth")) };
+        (await ours.PutAsync($"/v1/scorecard-templates/{scorecard}", body)).Expect(HttpStatusCode.OK);
+        body["name"] = "Platform interview, v2";
+        (await ours.PutAsync($"/v1/scorecard-templates/{scorecard}", body)).Expect(HttpStatusCode.OK);
+        await WaitForCountAsync(ourClient, scorecard, 2, cancellationToken);
+        ourClient.Received.Count(e => e.Type == "TemplateChanged" && e.Data.GetProperty("templateId").GetString() == scorecard)
+            .Should().Be(2, "the save that changed nothing raised no event");
+        ourClient.Received.First(e => e.Type == "TemplateChanged" && e.Data.GetProperty("templateId").GetString() == scorecard)
+            .Data.GetProperty("kind").GetString().Should().Be("ScorecardTemplate");
+
+        // Our last event has arrived, so one of ours sent to them would have too.
+        theirClient.Received.Should().NotContain(e => e.Type == "TemplateChanged", "another organization's template edits never reach us");
+    }
+
+    private static async Task WaitForCountAsync(EventsConnection client, string templateId, int count, CancellationToken cancellationToken)
+    {
+        await WolverineStore.WaitUntilAsync(
+            () => Task.FromResult(client.Received.Count(e => e.Type == "TemplateChanged" && e.Data.GetProperty("templateId").GetString() == templateId) >= count),
+            $"{count} TemplateChanged events for {templateId}", cancellationToken);
     }
 
     [Fact]

@@ -32,6 +32,7 @@ public enum Permission
     CreateTasks,
     ManageIntegrations,
     EditAnyView,
+    GrantVerificationAccess,
 }
 
 /// <summary>The groups the Roles page shows permissions in.</summary>
@@ -98,6 +99,8 @@ public static class RolePermissions
             "Invite people, change roles and remove members, except Owners, and make roles."),
         new(Permission.ManageOwners, PermissionGroup.Organization, "Manage Owners",
             "Make someone an Owner, or change or remove an Owner.", OwnerOnly: true),
+        new(Permission.GrantVerificationAccess, PermissionGroup.Organization, "Give a key verification access",
+            "Give an API key the Verification read scope, so an assistant can read verification results.", OwnerOnly: true),
     ];
 
     private static readonly Dictionary<Permission, PermissionDefinition> ByPermission = Permissions.ToDictionary(p => p.Permission);
@@ -132,7 +135,7 @@ public static class RolePermissions
     public static IReadOnlyList<RoleDefinition> Roles { get; } =
     [
         new(OrganizationRole.Owner, "Everything, including making and removing other Owners.",
-            new HashSet<Permission>([.. Reading, .. HiringWrites, .. Administration, Permission.ManageOwners])),
+            new HashSet<Permission>([.. Reading, .. HiringWrites, .. Administration, Permission.ManageOwners, Permission.GrantVerificationAccess])),
         new(OrganizationRole.Admin,
             "Everything a Recruiter does, plus settings, email templates, API keys, webhooks, Slack and the team.",
             new HashSet<Permission>([.. Reading, .. HiringWrites, .. Administration])),

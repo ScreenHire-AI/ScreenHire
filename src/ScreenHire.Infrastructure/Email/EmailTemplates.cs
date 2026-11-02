@@ -21,7 +21,7 @@ namespace ScreenHire.Infrastructure.Email;
 /// <c>candidateName</c>: the full name. <c>firstName</c>: the first name, or the full name when none is given (a
 /// candidate from before the name was split keeps their whole name as the first name). <c>lastName</c>: empty when the
 /// candidate gave none. <c>questionnaireLink</c>: the signed link to a follow-up questionnaire, for the questionnaire
-/// request email only. <c>jobLink</c> and <c>removeLink</c>: the talent pool invitation's links, to the job's careers
+/// request email only. <c>jobLink</c> and <c>removeLink</c>: the invitation to apply's links, to the job's careers
 /// page and to the page where the candidate stops being kept; in that email <c>jobTitle</c> is the job they are invited
 /// to.
 /// </remarks>
@@ -86,10 +86,10 @@ public sealed partial class EmailTemplates
     /// <summary>The variable only <see cref="EmailTemplateIds.QuestionnaireRequest"/> may use, and must.</summary>
     public static EmailTemplateVariable QuestionnaireLink { get; } = new("questionnaireLink", "Questionnaire link");
 
-    /// <summary>The link to the job a talent pool invitation is for: only that email may use it, and must.</summary>
+    /// <summary>The link to the job an invitation to apply is for: only that email may use it, and must.</summary>
     public static EmailTemplateVariable JobLink { get; } = new("jobLink", "Job link");
 
-    /// <summary>The link to stop being kept in the talent pool: only the invitation may use it, and must.</summary>
+    /// <summary>The link to stop being kept as a saved candidate: only the invitation may use it, and must.</summary>
     public static EmailTemplateVariable RemoveLink { get; } = new("removeLink", "Stop link");
 
     /// <summary>The variables <paramref name="templateId"/> may use: every template's, plus its own required ones.</summary>
@@ -247,7 +247,7 @@ public sealed partial class EmailTemplates
         }
 
         // Only the addresses the template's author wrote, and the links ScreenHire makes (the questionnaire's, and the
-        // talent pool invitation's job and stop links), become links: a value a candidate typed (a name that is a web
+        // invitation to apply's job and stop links), become links: a value a candidate typed (a name that is a web
         // address) stays text.
         var linkable = TextAddresses(body).Where(address => !HoldsLiquid(address)).ToHashSet(StringComparer.Ordinal);
         foreach (var link in new[] { model.QuestionnaireLink, model.JobLink, model.RemoveLink })

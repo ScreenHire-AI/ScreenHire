@@ -15,11 +15,12 @@ interface FakeFrame {
   scrollIntoView(): void;
 }
 
-function hostPage(scriptSrc: string, pageOrigin = 'https://www.example.com') {
+function hostPage(scriptSrc: string, pageOrigin = 'https://www.example.com', attributes: Record<string, string> = {}) {
   const inserted: FakeFrame[] = [];
   const listeners: ((event: { origin: string; source: unknown; data: unknown }) => void)[] = [];
   const script = {
     src: scriptSrc,
+    getAttribute: (name: string) => attributes[name] ?? null,
     nextSibling: null,
     parentNode: { insertBefore: (node: FakeFrame) => inserted.push(node) },
   };
@@ -50,6 +51,24 @@ function hostPage(scriptSrc: string, pageOrigin = 'https://www.example.com') {
 }
 
 describe('the embed script', () => {
+  it('shows one job when the tag names it, on a tenant host and on a path-style board', () => {
+    expect(hostPage('https://acme.careers.example/embed.js', undefined, { 'data-job': 'senior-barista' }).frame.src).toBe(
+      'https://acme.careers.example/jobs/senior-barista?embed=https%3A%2F%2Fwww.example.com',
+    );
+    expect(hostPage('https://careers.example/acme/embed.js?v=1', undefined, { 'data-job': 'barista-2' }).frame.src).toBe(
+      'https://careers.example/acme/jobs/barista-2?embed=https%3A%2F%2Fwww.example.com',
+    );
+  });
+
+  it.each(['', 'Senior-Barista', 'a/b', '../admin', 'barista?x=1', '-barista', 'barista--lead', 'barista ', 'a'.repeat(121)])(
+    'ignores a job address that is not one (%j) and shows the board',
+    (job) => {
+      expect(hostPage('https://acme.careers.example/embed.js', undefined, { 'data-job': job }).frame.src).toBe(
+        'https://acme.careers.example/?embed=https%3A%2F%2Fwww.example.com',
+      );
+    },
+  );
+
   it('adds one frame after itself, showing the board with the page it is on', () => {
     const { frame, inserted } = hostPage('https://acme.careers.example/embed.js');
 

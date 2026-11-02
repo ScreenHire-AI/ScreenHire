@@ -9,7 +9,7 @@
   import EmailComposerSheet from '#lib/components/email-composer-sheet.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import FilterMenu from '#lib/components/filter-menu.svelte';
-  import KeepInMindSheet from '#lib/components/keep-in-mind-sheet.svelte';
+  import SaveCandidateSheet from '#lib/components/save-candidate-sheet.svelte';
   import Panel from '#lib/components/panel.svelte';
   import PipelineBoard from '#lib/components/pipeline-board.svelte';
   import QueryError from '#lib/components/query-error.svelte';
@@ -124,7 +124,7 @@
   const canEmail = $derived(Boolean(emailTemplates.data?.data.sendingEnabled) && can(page.data.user, 'EmailCandidates'));
   let emailOpen = $state(false);
   let emailed = $state('');
-  // Keep in mind for the selection, with the same guard as Email: never on rows a Verification filter picked (ADR-0004).
+  // Save candidate for the selection, with the same guard as Email: never on rows a Verification filter picked (ADR-0004).
   let keepOpen = $state(false);
   const stageOptions = $derived(
     stages.map((stage) => ({
@@ -278,7 +278,7 @@
   <EmailComposerSheet bind:open={emailOpen} recipients={selected} onsent={(message) => ((emailed = message), (selectedIds = []))} />
 {/if}
 {#if moves.allowed}
-  <KeepInMindSheet bind:open={keepOpen} applicationIds={selected.map((application) => application.id)} ondone={(message) => ((emailed = message), (selectedIds = []))} />
+  <SaveCandidateSheet bind:open={keepOpen} applicationIds={selected.map((application) => application.id)} ondone={(message) => ((emailed = message), (selectedIds = []))} />
 {/if}
 
 {#snippet searchField(className: string)}

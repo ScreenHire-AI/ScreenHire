@@ -25,7 +25,7 @@
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { preferences } from '#lib/preferences.svelte.js';
-  import { mentionNotification, mentionNotificationId, Notifications, teamNotification } from '#lib/notifications.svelte.js';
+  import { mentionNotification, mentionNotificationId, Notifications, replyNotification, teamNotification } from '#lib/notifications.svelte.js';
   import { createQueryClient } from '#lib/query.js';
   import { startLiveUpdates } from '#lib/realtime.js';
   import { sidebarViews } from '#lib/sidebar-views.js';
@@ -85,7 +85,22 @@
       void notifyMention(event.data.applicationId, event.data.noteId, event.data.authorUserId);
     }
     if (event.type === 'ApplicationNoteDeleted') notifications.dismiss(mentionNotificationId(event.data.noteId));
+    // A candidate's reply shows a card to the person who sent the email it answers, or, when an automation sent it, to everyone
+    // the event reaches (the members who see the job). An automatic answer (out of office) shows none.
+    if (event.type === 'CandidateReplied' && !event.data.autoReply && (!event.data.senderUserId || event.data.senderUserId === data.user?.id)) {
+      void notifyReply(event.data.applicationId, event.data.inboundEmailId, Boolean(event.data.senderUserId));
+    }
   });
+
+  async function notifyReply(applicationId: string, inboundEmailId: string, answersYou: boolean) {
+    try {
+      const application = await getApplication(applicationId);
+      if (application.status !== 200) return;
+      notifications.add(replyNotification(inboundEmailId, application.data, answersYou));
+    } catch {
+      // As for NotifyTeam: the reply stays in Messages, and the email went out either way.
+    }
+  }
 
   async function notifyTeam(applicationId: string, runId: string) {
     try {

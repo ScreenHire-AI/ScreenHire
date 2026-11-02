@@ -150,8 +150,8 @@ builder's "time limit") measures the hiring team's delay, never the candidate: s
 3. **Every automated action is audit-logged** with the definition version, trigger event, evaluated facts and result.
 4. Accommodation: if the candidate requested accommodation, automations referencing timing/telemetry facts are skipped.
    `SlaBreached` is the exception, and the reason is section 8.
-5. **Keep in mind is a person's action only** ([talent pool](talent-pool.md)): no automation action keeps a candidate in
-   mind, so no condition, verification or otherwise, can take someone out of a job that way. An application kept in mind
+5. **Save candidate is a person's action only** ([saved candidates](talent-pool.md)): no automation action saves a
+   candidate, so no condition, verification or otherwise, can take someone out of a job that way. A saved application
    has ended like one in a Hired, Rejected or Withdrawn stage: actions skip it and its stage's timers do nothing.
 
 ## 3. Execution model
@@ -445,7 +445,8 @@ The data model and API from the jobs and templates task, and the engine that run
   tasks (`ApplicationActivity`), read in the list's own query.
 - **Events** through the outbox: `JobPublished` (with the job version), `JobClosed`, `ApplicationSubmitted`,
   `ApplicationMoved` (both carrying the timeline event id, the engine's idempotency key) and
-  `HiringTemplateVersionPublished`.
+  `HiringTemplateVersionPublished`, and `TemplateChanged` for any other edit of a hiring, email or scorecard template
+  ([realtime](realtime.md)).
 
 ## 8. The engine (v1)
 
@@ -516,7 +517,7 @@ one email. A webhook happens before the commit; a crash in between can repeat on
 
 | Action | What v1 does |
 |---|---|
-| `SendEmail` | Renders one of the organization's email templates to the candidate, in its current wording: a built-in (`application-received`, `stage-change`) or one of its own, named by id ([email.md](email.md)). Queues the email with the action's commit; the worker sends it and adds an `EmailSent` timeline entry linked to the run. Skipped when email is not configured; fails when the template was deleted. The rejection email is not available here: it says a candidate is out, so only `Reject` sends it. `stage-change` says "moved to the next step", so it is refused at save on entering a rejected or withdrawn stage and skipped when the application is in one by the time it sends. |
+| `SendEmail` | Renders one of the organization's email templates to the candidate, in its current wording: a built-in (`application-received`, `stage-change`) or one of its own, named by id ([email.md](email.md)). Queues the email with the action's commit; the worker sends it and adds an `EmailSent` timeline entry linked to the run. Skipped when email is not configured and when the candidate's address bounced or marked an email as spam ([email.md](email.md), "Bounces and complaints"); fails when the template was deleted. The rejection email is not available here: it says a candidate is out, so only `Reject` sends it. `stage-change` says "moved to the next step", so it is refused at save on entering a rejected or withdrawn stage and skipped when the application is in one by the time it sends. |
 | `MoveToStage` | Moves the application and links the timeline entry to the run, which fires the next stage's triggers. Never moves an application out of a terminal stage. |
 | `AddTag` | Adds a tag (a `TagAdded` timeline entry). Conditions read tags as `application.tags`. |
 | `AssignReviewer` | Creates a `Review` task, for the named member or the whole team. It is done when its member submits any scorecard for the application (anyone, for the whole team), never by ticking it. The builder offers the members whose role fills in scorecards (a Viewer could not do the review) or "Anyone on the team". Saving a workflow checks only that a member is named; the run checks they still belong to the organization, and fails the action if not. A member who already gave a scorecard at the stage the candidate is in has done the review, so the run skips the action rather than leave a task nobody can finish. |

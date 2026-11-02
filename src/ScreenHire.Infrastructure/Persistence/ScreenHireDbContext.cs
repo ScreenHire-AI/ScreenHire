@@ -83,6 +83,14 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<ApplicationEmail> ApplicationEmails => Set<ApplicationEmail>();
 
+    /// <summary>A candidate's replies to the emails sent them, and their attachments.</summary>
+    public DbSet<InboundEmail> InboundEmails => Set<InboundEmail>();
+
+    public DbSet<InboundEmailAttachment> InboundEmailAttachments => Set<InboundEmailAttachment>();
+
+    /// <summary>The organization's own domain that candidate email is sent from.</summary>
+    public DbSet<SendingDomain> SendingDomains => Set<SendingDomain>();
+
     public DbSet<ApplicationNoteMention> ApplicationNoteMentions => Set<ApplicationNoteMention>();
 
     public DbSet<JobPosting> JobPostings => Set<JobPosting>();
@@ -163,8 +171,6 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<TalentPoolEntry> TalentPoolEntries => Set<TalentPoolEntry>();
 
-    public DbSet<TalentPoolSettings> TalentPoolSettings => Set<TalentPoolSettings>();
-
     /// <summary>
     /// The ASP.NET Core Data Protection key ring the API and the worker share (<see cref="DataProtectionRegistration"/>).
     /// Not tenant-owned: the keys protect every organization's cookies and links alike.
@@ -185,6 +191,9 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
+        // Trigram indexes for the search box (CandidateConfiguration, JobConfiguration).
+        builder.HasPostgresExtension("pg_trgm");
 
         builder.Entity<ApplicationUser>().ToTable("users");
         builder.Entity<IdentityUserClaim<Guid>>().ToTable("user_claims");
