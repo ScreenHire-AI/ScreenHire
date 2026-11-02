@@ -40,7 +40,8 @@ hiring process. So the question is how to open the evidence to a key without mak
    that act on a verification (dismiss, explain, note, request verification) stay the session's: a key reads and
    never decides.
 4. **Every read through a key is in the review log.** One `ReadByKey` row per application read: the key, the time, and
-   no acting user. A level search that returns ten applications writes ten rows. The row is saved before the answer
+   no acting user. A level search that returns ten applications writes ten rows, and one that returns none writes
+   none, because the log belongs to an application. The row is saved before the answer
    goes out, so a read that cannot be recorded is not answered. The log stays append-only. The review log panel shows
    it as "Read through the API key X" with the person who made the key, and folds a run of reads by one key into one
    line with a count.
@@ -67,7 +68,12 @@ hiring process. So the question is how to open the evidence to a key without mak
   descriptions, the guidance field and the instructions, plus the log of every read. A technical refusal of the pair
   would be a later decision.
 - The review log has a new kind of entry and its actor column is nullable. A database check keeps a row to a person or
-  a key, never both and never neither. The migration adds, and its `Down` removes the key rows first.
+  a key, never both and never neither. The key's foreign key cascades like the table's others: the app role cannot
+  delete a key, revoking keeps the row, and only an organization's own deletion removes one. `Down` deletes the key
+  rows and takes the scope off every key, because the previous release cannot parse its name.
+- The log grows by a row for every read and the verification route returns the whole log, so a key that polls one
+  application makes each later read larger. The per-key rate limit bounds it and an application's review is short, so
+  the rows stay; the panel folds them.
 - The OpenAPI document gains two operations under the `apiKey` scheme and one nullable shape on `VerificationReviewEntry`.
 - `docs/architecture/talent-pool.md` and `reports.md` said no MCP tool reads them. They are corrected.
 - A removed Owner's keys keep working. Removing a member already offers to revoke the keys they made.

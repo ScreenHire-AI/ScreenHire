@@ -19,6 +19,7 @@ sources:
   - resource: apps/api/Hiring/JobReads.cs
   - resource: tests/ScreenHire.IntegrationTests/McpServerTests.cs
   - resource: tests/ScreenHire.IntegrationTests/VerificationReadScopeTests.cs
+  - resource: tests/ScreenHire.IntegrationTests/Migrations/VerificationReadByKeyMigrationTests.cs
   - resource: tests/ScreenHire.UnitTests/Mcp/McpToolsTests.cs
   - resource: tests/ScreenHire.UnitTests/Mcp/McpMappingsTests.cs
 ---
@@ -169,7 +170,8 @@ cannot connect until ScreenHire runs an authorization server.
 
 | Test | Proves |
 |---|---|
-| `McpServerTests` (integration) | a Write key lists the hiring tools and a Read key the five reads, neither a verification tool; a Verification read key also lists the two verification tools, whose descriptions and the server instructions say a level is never a reason to reject; the verification tools return evidence with the guidance and log each read under the key; a key without the scope is refused them and leaves no log row; the report and saved-candidate tools read; each tool's change lands in the timeline under the key; a move to Rejected works as over HTTP; a Read key's writes are refused and change nothing; another organization's jobs and applications are unreachable; no verification output from the hiring tools; only a valid key connects |
-| `VerificationReadScopeTests` (integration) | only an Owner gives the scope; a key without it is refused the verification routes; with it the reads work and each is in the review log with the key and its maker; the key still sees no verification in lists or the timeline and cannot dismiss or note; another organization's application is a 404 |
+| `McpServerTests` (integration) | a Write key lists the hiring tools and a Read key the five reads, neither a verification tool; a Verification read key also lists the two verification tools, whose descriptions and the server instructions say a level is never a reason to reject; the verification tools return evidence with the guidance and log each read under the key; a key without the scope is refused them and leaves no log row; the report and saved-candidate tools read; each tool's change lands in the timeline under the key; a move to Rejected works as over HTTP; a Read key's writes are refused and change nothing; another organization's jobs and applications are unreachable; no verification output from the hiring tools; only a valid key connects; the new tools read only the key's own organization |
+| `VerificationReadScopeTests` (integration) | only an Owner gives the scope; a key without it is refused the verification routes; with it the reads work and each is in the review log with the key and its maker; the key still sees no verification in lists or the timeline and cannot dismiss or note; another organization's application is a 404; a list by level is newest first, never ranked |
+| `VerificationReadByKeyMigrationTests` (integration) | undoing the migration removes the key reads and the scope, keeps people's actions and the keys, and restores FORCE; deleting an organization takes its keys and their reads with it |
 | `ApplicationTasksTests` (integration) | the task route the `create_task` tool mirrors |
 | `McpToolsTests`, `McpMappingsTests` (unit) | the write policy on every write tool, the verification policy on every verification tool, no verification tool that rejects, moves or changes anything, the never-reject sentence in every verification description, snake_case names, and which words are wrapped as `candidateWritten` |
