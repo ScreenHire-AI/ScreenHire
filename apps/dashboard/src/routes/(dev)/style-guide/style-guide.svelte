@@ -118,6 +118,7 @@
   import ReorderDemo from './reorder-demo.svelte';
   import SortTableDemo from './sort-table-demo.svelte';
   import TaskCheckboxDemo from './task-checkbox-demo.svelte';
+  import UndoNoticeDemo from './undo-notice-demo.svelte';
 
   // Every component in design system section 11, in each state, for authors and reviewers to compare against. Pick a
   // width to see the section 8 sizes; the components respond to the frame, not the window. Development builds only.
@@ -641,6 +642,9 @@
               <DropdownMenu.Item variant="destructive">Close &amp; remove everywhere</DropdownMenu.Item>
             </MoreMenu>
           </div>
+        </Panel>
+        <Panel title="Undo notice" class="flex-[1_1_320px]">
+          <UndoNoticeDemo />
         </Panel>
         <Panel title="Picker" class="flex-[1_1_320px]">
           <Picker

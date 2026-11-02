@@ -295,6 +295,7 @@
           {/each}
           <JobPipeline
             bind:view
+            jobId={params.jobId}
             jobTitle={detail.title}
             {stages}
             applications={all}

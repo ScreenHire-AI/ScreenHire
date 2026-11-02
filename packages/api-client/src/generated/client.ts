@@ -42,6 +42,7 @@ import type {
   CreateJobRequest,
   CreateRoleRequest,
   CreateScorecardTemplateRequest,
+  CreateViewRequest,
   CreateWebhookEndpointRequest,
   CreatedApiKey,
   CurrentUser,
@@ -127,6 +128,7 @@ import type {
   RequestScorecardRequest,
   RoleCatalogue,
   SandboxBoardListing,
+  SavedViewSummary,
   ScorecardEntry,
   ScorecardTemplateDetail,
   ScorecardTemplateSummary,
@@ -153,6 +155,7 @@ import type {
   UpdateBrandingRequest,
   UpdateCareersEmbeddingRequest,
   UpdateEmailTemplateRequest,
+  UpdateHiddenViewsRequest,
   UpdateHiringTemplateRequest,
   UpdateHiringTemplateVersionRequest,
   UpdateJobRequest,
@@ -165,11 +168,13 @@ import type {
   UpdateSlackChannelRequest,
   UpdateTalentPoolSettingsRequest,
   UpdateVerificationSettingsRequest,
+  UpdateViewRequest,
   UpdateWebhookEndpointRequest,
   UploadRequest,
   UploadTicket,
   UploadedFile,
   ValidateWorkflowRequest,
+  ViewList,
   WebhookDeliveryEntry,
   WebhookEndpointEntry,
   WebhookEndpointWithSecret,
@@ -6677,6 +6682,349 @@ return apiFetch<updateNotificationSettingsResponse>(getUpdateNotificationSetting
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateNotificationSettingsRequest)
+  }
+);}
+
+
+
+export type listViewsResponse200 = {
+  data: ViewList
+  status: 200
+}
+
+export type listViewsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listViewsResponseSuccess = (listViewsResponse200) & {
+  headers: Headers;
+};
+export type listViewsResponseError = (listViewsResponse401) & {
+  headers: Headers;
+};
+
+export type listViewsResponse = (listViewsResponseSuccess | listViewsResponseError)
+
+export const getListViewsUrl = () => {
+
+
+
+
+  return `/v1/views`
+}
+
+export const listViews = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listViewsResponse> => {
+
+  return apiFetch<listViewsResponse>(getListViewsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type createViewResponse201 = {
+  data: SavedViewSummary
+  status: 201
+}
+
+export type createViewResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createViewResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createViewResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type createViewResponseSuccess = (createViewResponse201) & {
+  headers: Headers;
+};
+export type createViewResponseError = (createViewResponse400 | createViewResponse401 | createViewResponse409) & {
+  headers: Headers;
+};
+
+export type createViewResponse = (createViewResponseSuccess | createViewResponseError)
+
+export const getCreateViewUrl = () => {
+
+
+
+
+  return `/v1/views`
+}
+
+export const createView = async (createViewRequest: CreateViewRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createViewResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createViewResponse>(getCreateViewUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createViewRequest)
+  }
+);}
+
+
+
+export type updateViewResponse200 = {
+  data: SavedViewSummary
+  status: 200
+}
+
+export type updateViewResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateViewResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateViewResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateViewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateViewResponseSuccess = (updateViewResponse200) & {
+  headers: Headers;
+};
+export type updateViewResponseError = (updateViewResponse400 | updateViewResponse401 | updateViewResponse403 | updateViewResponse404) & {
+  headers: Headers;
+};
+
+export type updateViewResponse = (updateViewResponseSuccess | updateViewResponseError)
+
+export const getUpdateViewUrl = (viewId: string,) => {
+
+
+
+
+  return `/v1/views/${viewId}`
+}
+
+export const updateView = async (viewId: string,
+    updateViewRequest: UpdateViewRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateViewResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateViewResponse>(getUpdateViewUrl(viewId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateViewRequest)
+  }
+);}
+
+
+
+export type deleteViewResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteViewResponse401 = {
+  data: void
+  status: 401
+}
+
+export type deleteViewResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type deleteViewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type deleteViewResponseSuccess = (deleteViewResponse204) & {
+  headers: Headers;
+};
+export type deleteViewResponseError = (deleteViewResponse401 | deleteViewResponse403 | deleteViewResponse404) & {
+  headers: Headers;
+};
+
+export type deleteViewResponse = (deleteViewResponseSuccess | deleteViewResponseError)
+
+export const getDeleteViewUrl = (viewId: string,) => {
+
+
+
+
+  return `/v1/views/${viewId}`
+}
+
+export const deleteView = async (viewId: string, options?: Parameters<typeof apiFetch>[1]): Promise<deleteViewResponse> => {
+
+  return apiFetch<deleteViewResponse>(getDeleteViewUrl(viewId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type restoreViewResponse200 = {
+  data: SavedViewSummary
+  status: 200
+}
+
+export type restoreViewResponse401 = {
+  data: void
+  status: 401
+}
+
+export type restoreViewResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type restoreViewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type restoreViewResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type restoreViewResponseSuccess = (restoreViewResponse200) & {
+  headers: Headers;
+};
+export type restoreViewResponseError = (restoreViewResponse401 | restoreViewResponse403 | restoreViewResponse404 | restoreViewResponse409) & {
+  headers: Headers;
+};
+
+export type restoreViewResponse = (restoreViewResponseSuccess | restoreViewResponseError)
+
+export const getRestoreViewUrl = (viewId: string,) => {
+
+
+
+
+  return `/v1/views/${viewId}/restore`
+}
+
+export const restoreView = async (viewId: string, options?: Parameters<typeof apiFetch>[1]): Promise<restoreViewResponse> => {
+
+  return apiFetch<restoreViewResponse>(getRestoreViewUrl(viewId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type updateHiddenViewsResponse200 = {
+  data: ViewList
+  status: 200
+}
+
+export type updateHiddenViewsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateHiddenViewsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateHiddenViewsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateHiddenViewsResponseSuccess = (updateHiddenViewsResponse200) & {
+  headers: Headers;
+};
+export type updateHiddenViewsResponseError = (updateHiddenViewsResponse400 | updateHiddenViewsResponse401 | updateHiddenViewsResponse404) & {
+  headers: Headers;
+};
+
+export type updateHiddenViewsResponse = (updateHiddenViewsResponseSuccess | updateHiddenViewsResponseError)
+
+export const getUpdateHiddenViewsUrl = () => {
+
+
+
+
+  return `/v1/views/hidden-built-ins`
+}
+
+export const updateHiddenViews = async (updateHiddenViewsRequest: UpdateHiddenViewsRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateHiddenViewsResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateHiddenViewsResponse>(getUpdateHiddenViewsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateHiddenViewsRequest)
   }
 );}
 

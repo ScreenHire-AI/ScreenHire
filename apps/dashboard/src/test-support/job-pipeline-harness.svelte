@@ -19,6 +19,7 @@
 </script>
 
 <JobPipeline
+  jobId="job-1"
   jobTitle="Senior .NET Engineer"
   {stages}
   {applications}

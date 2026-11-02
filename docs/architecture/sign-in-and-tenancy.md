@@ -233,6 +233,10 @@ every role (`EveryRole`): reads are not permission-checked, and job access will 
 Owner-only (`OwnerOnly`): no custom role holds it. Delete anyone's notes (`NotePolicy`) lets a role delete a note
 someone else wrote; Owners and Admins have it. It comes with Add notes and tags, which the delete route asks for first.
 
+Edit anyone's views (`ViewPolicy`, `saved-views.md`) lets a role rename, share or delete a view someone else saved; Owners and
+Admins have it, and so can a custom role, with no other permission needed because a view is a screen preference, not
+hiring data.
+
 Create tasks came after custom roles, with the route that creates a task by hand. The built-in roles that write hiring
 data have it. It is a hiring write, and a Write key needs every hiring write in its creator's role, so the
 `GrantCreateTasksToCustomRoles` migration gave it to each custom role that already held all the other hiring writes;
@@ -332,7 +336,7 @@ also records the founding Owner, as "created the team". Hiring teams stay in the
 ADR-0015. Each job has a hiring team, `jobs.hiring_team`, the membership ids of the people who work on it. A member's
 job access is `All` or `HiringTeamOnly` (`organization_members.job_access`); Owners and Admins see all jobs whatever it
 says (`JobAccessRules.SeesAllJobs`). A member on Only jobs they're on sees a job, its applications and everything under
-them, only while they are on its team; another job is a 404 like another organization's, and lists, Tasks, saved views,
+them, only while they are on its team; another job is a 404 like another organization's, and lists, Tasks, views (`saved-views.md`),
 search (`GET /v1/search`, the dashboard's Ctrl K, signed-in people only, which starts from applications so a candidate
 shows only through a job the reader sees), reports (`reports.md`) and live updates leave it out. Existing members and new invitations start at All jobs.
 

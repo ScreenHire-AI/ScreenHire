@@ -14,6 +14,7 @@ using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Domain.Slack;
+using ScreenHire.Domain.Views;
 using ScreenHire.Domain.TalentPool;
 using ScreenHire.Domain.Webhooks;
 using ScreenHire.Infrastructure.Identity;
@@ -125,6 +126,8 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     public DbSet<VerificationSettings> VerificationSettings => Set<VerificationSettings>();
 
     public DbSet<EmailTemplate> EmailTemplates => Set<EmailTemplate>();
+
+    public DbSet<SavedFilterView> SavedFilterViews => Set<SavedFilterView>();
 
     public DbSet<ScorecardTemplate> ScorecardTemplates => Set<ScorecardTemplate>();
 

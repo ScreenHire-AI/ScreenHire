@@ -16,7 +16,7 @@
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
-  import { candidateRowHeight, candidateTableFeatures, type CandidateColumn } from '#lib/candidate-table.js';
+  import { candidateRowHeight, candidateTableFeatures, sortableColumnIds, type CandidateColumn } from '#lib/candidate-table.js';
   import { initials, sourceLabel } from '#lib/format.js';
   import { IsMobile } from '#lib/hooks/is-mobile.svelte.js';
   import { chipOf } from '#lib/verification.js';
@@ -41,15 +41,7 @@
     filters,
     fill = false,
     sortId,
-    sort = createTableSort(sortId, stages ? { id: 'stage', desc: false } : { id: 'applied', desc: true }, [
-      'candidate',
-      ...extraColumns.flatMap((column) => (column.id ? [column.id] : [])),
-      ...(showJob ? ['job'] : []),
-      'stage',
-      'source',
-      'applied',
-      'lastActivity',
-    ]),
+    sort = createTableSort(sortId, stages ? { id: 'stage', desc: false } : { id: 'applied', desc: true }, sortableColumnIds(extraColumns, showJob)),
   }: {
     applications: readonly ApplicationSummary[];
     /**

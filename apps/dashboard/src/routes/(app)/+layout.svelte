@@ -3,6 +3,8 @@
   import {
     createGetSlack,
     createListApplications,
+    createListJobs,
+    createListViews,
     getGetApplicationQueryOptions,
     getGetHiringTemplateQueryOptions,
     getGetNotificationSettingsQueryOptions,
@@ -19,17 +21,20 @@
   import CommandPalette from '#lib/components/command-palette.svelte';
   import NotificationSettingsSheet from '#lib/components/notification-settings-sheet.svelte';
   import NotificationTray from '#lib/components/notification-tray.svelte';
+  import UndoNotice from '#lib/components/undo-notice.svelte';
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { mentionNotification, mentionNotificationId, Notifications, teamNotification } from '#lib/notifications.svelte.js';
   import { createQueryClient } from '#lib/query.js';
   import { startLiveUpdates } from '#lib/realtime.js';
-  import { savedViews } from '#lib/saved-views.js';
+  import { sidebarViews } from '#lib/sidebar-views.js';
   import { sections, setShell } from '#lib/shell.js';
   import { createChordHandler } from '#lib/shortcuts.js';
   import { defaultNotificationSettings } from '#lib/teammate-changes.js';
   import { TeammateToasts } from '#lib/teammate-toasts.js';
+  import { UndoOffer } from '#lib/undo.svelte.js';
+  import { createViewActions } from '#lib/views.svelte.js';
   import type { LayoutProps } from './$types';
 
   let { data, children }: LayoutProps = $props();
@@ -142,12 +147,21 @@
     }
   }
 
-  // Saved-view counts come from the same list the candidates page shows, so they agree and update live.
+  // The Views list: the built-in views and the saved ones, each with its count from the same list the candidates page
+  // shows, so they agree and update live. A deleted view's Undo is offered in the notice below the page.
   const applications = createListApplications();
-  const viewCounts = $derived(
-    Object.fromEntries(
-      savedViews.map((view) => [view.id, applications.data?.data.filter((application) => view.matches(application, clock.now)).length]),
-    ),
+  const savedViewList = createListViews();
+  const jobList = createListJobs();
+  const undo = new UndoOffer();
+  const viewActions = createViewActions({ undo, hiddenBuiltIns: () => savedViewList.data?.data.hiddenBuiltIns ?? [] });
+  const views = $derived(
+    sidebarViews({
+      saved: savedViewList.data?.data.views ?? [],
+      hiddenBuiltIns: savedViewList.data?.data.hiddenBuiltIns ?? [],
+      applications: applications.data?.data,
+      now: clock.now,
+      jobTitles: Object.fromEntries((jobList.data?.data ?? []).map((job) => [job.id, job.title])),
+    }),
   );
 
   // Slack, for the Slack account item in each person's menu (docs/architecture/slack.md); it changes rarely.
@@ -162,12 +176,13 @@
 
 <!-- The full sidebar from lg, the icon rail at md, and a sheet behind the menu button on phones (design system section 8). -->
 <Sidebar.Provider open={laptop.current}>
-  <AppSidebar user={data.user} {viewCounts} slack={slack.data?.data} />
+  <AppSidebar user={data.user} {views} {viewActions} slack={slack.data?.data} />
   <Sidebar.Inset class="min-w-0">
     {@render children()}
   </Sidebar.Inset>
 </Sidebar.Provider>
 
+<UndoNotice offer={undo} />
 <NotificationTray items={notifications.items} ondismiss={(id) => notifications.dismiss(id)} onhold={(reason, held) => notifications.hold(reason, held)} />
 <!-- A save re-reads the settings, so Close automatically applies to the toasts already showing, not only the next. -->
 <NotificationSettingsSheet

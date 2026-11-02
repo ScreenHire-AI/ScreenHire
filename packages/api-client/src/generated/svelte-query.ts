@@ -58,6 +58,7 @@ import type {
   CreateJobRequest,
   CreateRoleRequest,
   CreateScorecardTemplateRequest,
+  CreateViewRequest,
   CreateWebhookEndpointRequest,
   CreatedApiKey,
   CurrentUser,
@@ -143,6 +144,7 @@ import type {
   RequestScorecardRequest,
   RoleCatalogue,
   SandboxBoardListing,
+  SavedViewSummary,
   ScorecardEntry,
   ScorecardTemplateDetail,
   ScorecardTemplateSummary,
@@ -169,6 +171,7 @@ import type {
   UpdateBrandingRequest,
   UpdateCareersEmbeddingRequest,
   UpdateEmailTemplateRequest,
+  UpdateHiddenViewsRequest,
   UpdateHiringTemplateRequest,
   UpdateHiringTemplateVersionRequest,
   UpdateJobRequest,
@@ -181,11 +184,13 @@ import type {
   UpdateSlackChannelRequest,
   UpdateTalentPoolSettingsRequest,
   UpdateVerificationSettingsRequest,
+  UpdateViewRequest,
   UpdateWebhookEndpointRequest,
   UploadRequest,
   UploadTicket,
   UploadedFile,
   ValidateWorkflowRequest,
+  ViewList,
   WebhookDeliveryEntry,
   WebhookEndpointEntry,
   WebhookEndpointWithSecret,
@@ -12019,6 +12024,622 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getUpdateNotificationSettingsMutationOptions(options?.()) }), queryClient);
+    }
+
+export type listViewsResponse200 = {
+  data: ViewList
+  status: 200
+}
+
+export type listViewsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listViewsResponseSuccess = (listViewsResponse200) & {
+  headers: Headers;
+};
+export type listViewsResponseError = (listViewsResponse401) & {
+  headers: Headers;
+};
+
+export const getListViewsUrl = () => {
+
+
+
+
+  return `/v1/views`
+}
+
+export const listViews = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<listViewsResponseSuccess> => {
+
+  return apiQueryFetch<listViewsResponseSuccess>(getListViewsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListViewsQueryKey = () => {
+    return [
+    'v1','views'
+    ] as const;
+    }
+
+
+export const getListViewsQueryOptions = <TData = Awaited<ReturnType<typeof listViews>>, TError = ErrorType<void>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listViews>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListViewsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listViews>>> = ({ signal }) => listViews({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listViews>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListViewsQueryResult = NonNullable<Awaited<ReturnType<typeof listViews>>>
+export type ListViewsQueryError = ErrorType<void>
+
+
+
+export function createListViews<TData = Awaited<ReturnType<typeof listViews>>, TError = ErrorType<void>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listViews>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListViewsQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type createViewResponse201 = {
+  data: SavedViewSummary
+  status: 201
+}
+
+export type createViewResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createViewResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createViewResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type createViewResponseSuccess = (createViewResponse201) & {
+  headers: Headers;
+};
+export type createViewResponseError = (createViewResponse400 | createViewResponse401 | createViewResponse409) & {
+  headers: Headers;
+};
+
+export const getCreateViewUrl = () => {
+
+
+
+
+  return `/v1/views`
+}
+
+export const createView = async (createViewRequest: CreateViewRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<createViewResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<createViewResponseSuccess>(getCreateViewUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createViewRequest)
+  }
+);}
+
+
+
+
+
+export const getCreateViewMutationKey = () => ['createView'] as const;
+
+export const getCreateViewMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createView>>, TError,CreateViewMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof createView>>, TError,CreateViewMutationVariables, TContext> => {
+
+const mutationKey = getCreateViewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createView>>, CreateViewMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createView(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateViewMutationResult = NonNullable<Awaited<ReturnType<typeof createView>>>
+    export type CreateViewMutationBody = CreateViewRequest
+    export type CreateViewMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type CreateViewMutationVariables = {data: CreateViewRequest}
+
+    export const createCreateView = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createView>>, TError,CreateViewMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof createView>>,
+        TError,
+        CreateViewMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getCreateViewMutationOptions(options?.()) }), queryClient);
+    }
+
+export type updateViewResponse200 = {
+  data: SavedViewSummary
+  status: 200
+}
+
+export type updateViewResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateViewResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateViewResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateViewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateViewResponseSuccess = (updateViewResponse200) & {
+  headers: Headers;
+};
+export type updateViewResponseError = (updateViewResponse400 | updateViewResponse401 | updateViewResponse403 | updateViewResponse404) & {
+  headers: Headers;
+};
+
+export const getUpdateViewUrl = (viewId: string,) => {
+
+
+
+
+  return `/v1/views/${viewId}`
+}
+
+export const updateView = async (viewId: string,
+    updateViewRequest: UpdateViewRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<updateViewResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<updateViewResponseSuccess>(getUpdateViewUrl(viewId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateViewRequest)
+  }
+);}
+
+
+
+
+
+export const getUpdateViewMutationKey = () => ['updateView'] as const;
+
+export const getUpdateViewMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateView>>, TError,UpdateViewMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof updateView>>, TError,UpdateViewMutationVariables, TContext> => {
+
+const mutationKey = getUpdateViewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateView>>, UpdateViewMutationVariables> = (props) => {
+          const {viewId,data} = props ?? {};
+
+          return  updateView(viewId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateViewMutationResult = NonNullable<Awaited<ReturnType<typeof updateView>>>
+    export type UpdateViewMutationBody = UpdateViewRequest
+    export type UpdateViewMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type UpdateViewMutationVariables = {viewId: string;data: UpdateViewRequest}
+
+    export const createUpdateView = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateView>>, TError,UpdateViewMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof updateView>>,
+        TError,
+        UpdateViewMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getUpdateViewMutationOptions(options?.()) }), queryClient);
+    }
+
+export type deleteViewResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteViewResponse401 = {
+  data: void
+  status: 401
+}
+
+export type deleteViewResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type deleteViewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type deleteViewResponseSuccess = (deleteViewResponse204) & {
+  headers: Headers;
+};
+export type deleteViewResponseError = (deleteViewResponse401 | deleteViewResponse403 | deleteViewResponse404) & {
+  headers: Headers;
+};
+
+export const getDeleteViewUrl = (viewId: string,) => {
+
+
+
+
+  return `/v1/views/${viewId}`
+}
+
+export const deleteView = async (viewId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<deleteViewResponseSuccess> => {
+
+  return apiQueryFetch<deleteViewResponseSuccess>(getDeleteViewUrl(viewId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteViewMutationKey = () => ['deleteView'] as const;
+
+export const getDeleteViewMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof deleteView>>, TError,DeleteViewMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof deleteView>>, TError,DeleteViewMutationVariables, TContext> => {
+
+const mutationKey = getDeleteViewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteView>>, DeleteViewMutationVariables> = (props) => {
+          const {viewId} = props ?? {};
+
+          return  deleteView(viewId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteViewMutationResult = NonNullable<Awaited<ReturnType<typeof deleteView>>>
+
+    export type DeleteViewMutationError = ErrorType<void | ProblemDetails>
+    export type DeleteViewMutationVariables = {viewId: string}
+
+    export const createDeleteView = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof deleteView>>, TError,DeleteViewMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof deleteView>>,
+        TError,
+        DeleteViewMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getDeleteViewMutationOptions(options?.()) }), queryClient);
+    }
+
+export type restoreViewResponse200 = {
+  data: SavedViewSummary
+  status: 200
+}
+
+export type restoreViewResponse401 = {
+  data: void
+  status: 401
+}
+
+export type restoreViewResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type restoreViewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type restoreViewResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type restoreViewResponseSuccess = (restoreViewResponse200) & {
+  headers: Headers;
+};
+export type restoreViewResponseError = (restoreViewResponse401 | restoreViewResponse403 | restoreViewResponse404 | restoreViewResponse409) & {
+  headers: Headers;
+};
+
+export const getRestoreViewUrl = (viewId: string,) => {
+
+
+
+
+  return `/v1/views/${viewId}/restore`
+}
+
+export const restoreView = async (viewId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<restoreViewResponseSuccess> => {
+
+  return apiQueryFetch<restoreViewResponseSuccess>(getRestoreViewUrl(viewId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRestoreViewMutationKey = () => ['restoreView'] as const;
+
+export const getRestoreViewMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof restoreView>>, TError,RestoreViewMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof restoreView>>, TError,RestoreViewMutationVariables, TContext> => {
+
+const mutationKey = getRestoreViewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof restoreView>>, RestoreViewMutationVariables> = (props) => {
+          const {viewId} = props ?? {};
+
+          return  restoreView(viewId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RestoreViewMutationResult = NonNullable<Awaited<ReturnType<typeof restoreView>>>
+
+    export type RestoreViewMutationError = ErrorType<void | ProblemDetails>
+    export type RestoreViewMutationVariables = {viewId: string}
+
+    export const createRestoreView = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof restoreView>>, TError,RestoreViewMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof restoreView>>,
+        TError,
+        RestoreViewMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getRestoreViewMutationOptions(options?.()) }), queryClient);
+    }
+
+export type updateHiddenViewsResponse200 = {
+  data: ViewList
+  status: 200
+}
+
+export type updateHiddenViewsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateHiddenViewsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateHiddenViewsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateHiddenViewsResponseSuccess = (updateHiddenViewsResponse200) & {
+  headers: Headers;
+};
+export type updateHiddenViewsResponseError = (updateHiddenViewsResponse400 | updateHiddenViewsResponse401 | updateHiddenViewsResponse404) & {
+  headers: Headers;
+};
+
+export const getUpdateHiddenViewsUrl = () => {
+
+
+
+
+  return `/v1/views/hidden-built-ins`
+}
+
+export const updateHiddenViews = async (updateHiddenViewsRequest: UpdateHiddenViewsRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<updateHiddenViewsResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<updateHiddenViewsResponseSuccess>(getUpdateHiddenViewsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateHiddenViewsRequest)
+  }
+);}
+
+
+
+
+
+export const getUpdateHiddenViewsMutationKey = () => ['updateHiddenViews'] as const;
+
+export const getUpdateHiddenViewsMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateHiddenViews>>, TError,UpdateHiddenViewsMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof updateHiddenViews>>, TError,UpdateHiddenViewsMutationVariables, TContext> => {
+
+const mutationKey = getUpdateHiddenViewsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateHiddenViews>>, UpdateHiddenViewsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateHiddenViews(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateHiddenViewsMutationResult = NonNullable<Awaited<ReturnType<typeof updateHiddenViews>>>
+    export type UpdateHiddenViewsMutationBody = UpdateHiddenViewsRequest
+    export type UpdateHiddenViewsMutationError = ErrorType<HttpValidationProblemDetails | void>
+    export type UpdateHiddenViewsMutationVariables = {data: UpdateHiddenViewsRequest}
+
+    export const createUpdateHiddenViews = <TError = ErrorType<HttpValidationProblemDetails | void>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateHiddenViews>>, TError,UpdateHiddenViewsMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof updateHiddenViews>>,
+        TError,
+        UpdateHiddenViewsMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getUpdateHiddenViewsMutationOptions(options?.()) }), queryClient);
     }
 
 export type getJobHiringTeamResponse200 = {

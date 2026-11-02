@@ -344,6 +344,8 @@ internal static class TeamEndpoints
 
         // Their Slack account goes with them: no direct message reaches someone who left.
         await db.SlackAccountLinks.Where(l => l.UserId == member.UserId).ExecuteDeleteAsync(cancellationToken);
+        // So do their private views, which nobody else can see. Views they shared stay with the team (docs/architecture/saved-views.md).
+        await db.SavedFilterViews.Where(v => v.OwnerUserId == member.UserId && !v.IsShared).ExecuteDeleteAsync(cancellationToken);
         db.MembershipEvents.Add(new MembershipEvent
         {
             OrganizationId = member.OrganizationId,

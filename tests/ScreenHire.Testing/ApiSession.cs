@@ -45,6 +45,10 @@ public sealed class ApiSession : IDisposable
     public Task<HttpResponseMessage> PutAsync<T>(string path, T body, CancellationToken cancellationToken) =>
         SendAsync(HttpMethod.Put, path, body, cancellationToken);
 
+    /// <summary>Sends a JSON PATCH with the antiforgery header, fetching a token first if this session has none.</summary>
+    public Task<HttpResponseMessage> PatchAsync<T>(string path, T body, CancellationToken cancellationToken) =>
+        SendAsync(HttpMethod.Patch, path, body, cancellationToken);
+
     /// <summary>Sends a DELETE with the antiforgery header, fetching a token first if this session has none.</summary>
     public Task<HttpResponseMessage> DeleteAsync(string path, CancellationToken cancellationToken) =>
         SendAsync<object?>(HttpMethod.Delete, path, null, cancellationToken);

@@ -82,8 +82,11 @@ new route is the `/add-dashboard-page` skill.
   `extraColumns`, right after Candidate (status first, T2); build them with `candidateColumns` from `#lib/candidate-table.ts`. The
   verification chips are `verificationColumns` (`#lib/verification-columns.ts`). The table sorts (a column with an accessor gets
   a header button and `aria-sort`, through `SortHeader`) but never filters: pages filter the rows they pass in (stage, saved view,
-  `VerificationFilter`, search with `matchesSearch`), so the count and "select all" match what is shown. Saved views are
-  the list in `#lib/saved-views.ts`.
+  `VerificationFilter`, search with `matchesSearch`), so the count and "select all" match what is shown. The built-in
+  views are the list in `#lib/saved-views.ts`; the views people save live on the server (`createListViews()`,
+  `docs/architecture/saved-views.md`), and `#lib/view-filters.ts` is where a table's filters become a view and back, so the
+  pages and the sidebar's counts agree. A table that offers Save view owns its `TableSortState` (`createTableSort`), so a
+  view can set the sort.
 - Every TanStack table sorts the same way (design system L2): `SortHeader` draws each header, and `createTableSort`
   with `tableSortOptions` (`#lib/table-sort.svelte.ts`) gives it one sorted column, the table's default, two states
   per column, and the person's choice remembered per table through `preferences` (in the browser). `SortMenu` is the

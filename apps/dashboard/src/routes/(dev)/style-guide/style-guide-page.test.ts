@@ -60,6 +60,7 @@ const panels: Record<string, string[]> = {
   'Tag list': ['Tag list'],
   'Task list': ['Task list'],
   'Task checkbox': ['Task list'],
+  'Undo notice': ['Undo notice'],
   Scorecard: ['Scorecard'],
   'Notification tray': ['Notification tray'],
   Sheet: ['Sheet'],

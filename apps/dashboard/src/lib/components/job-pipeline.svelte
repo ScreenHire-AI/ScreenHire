@@ -1,9 +1,9 @@
 <script lang="ts">
   import type { ApplicationSummary, WorkflowStage } from '@screenhire/api-client';
-  import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
+  import { createListEmailTemplates, createListViews } from '@screenhire/api-client/svelte-query';
   import { page } from '$app/state';
   import { can } from '#lib/permissions.js';
-  import { matchesSearch } from '#lib/candidate-table.js';
+  import { matchesSearch, sortableColumnIds } from '#lib/candidate-table.js';
   import ApplicationTable from '#lib/components/application-table.svelte';
   import AuthenticityFilter from '#lib/components/authenticity-filter.svelte';
   import EmailComposerSheet from '#lib/components/email-composer-sheet.svelte';
@@ -13,6 +13,7 @@
   import Panel from '#lib/components/panel.svelte';
   import PipelineBoard from '#lib/components/pipeline-board.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import SaveViewButton from '#lib/components/save-view-button.svelte';
   import SearchField from '#lib/components/search-field.svelte';
   import SelectionBar from '#lib/components/selection-bar.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -34,6 +35,8 @@
   import type { Moves } from '#lib/moves.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { describeError } from '#lib/query.js';
+  import { createTableSort } from '#lib/table-sort.svelte.js';
+  import { defaultSorts, differsFromView, filtersOf, sortOf, verificationOf } from '#lib/view-filters.js';
   import { hasModifier, isTypingTarget } from '#lib/shortcuts.js';
 
   // A job's candidates as a table or a board, the job page's work area (design system section 21). The panel header holds
@@ -41,6 +44,7 @@
   // scrolls inside the panel (F5). Ticked rows get the selection bar. On a phone the filters are menus beside the Sort
   // chip. The page filters nothing itself.
   let {
+    jobId,
     jobTitle,
     stages,
     applications,
@@ -51,6 +55,7 @@
     verificationFilter = $bindable({ ...noVerificationFilter }),
     view = $bindable('table'),
   }: {
+    jobId: string;
     jobTitle: string;
     stages: readonly WorkflowStage[];
     applications: readonly ApplicationSummary[];
@@ -77,6 +82,41 @@
   const shown = $derived(onBoard.filter((application) => !chosenStage || (application.stage.id === chosenStage && !application.keptInMindAt)));
   const filtering = $derived(Boolean(chosenStage) || Boolean(search.trim()) || isVerificationFiltered(verificationFilter));
   const moveTargets = $derived(bulkMoveStages(stages, verificationFilter));
+
+  // A view of this job's table is named in the address (docs/architecture/saved-views.md). Opening one puts its stage,
+  // verification filter and sort on the table; leaving one clears them. The sort belongs here so a view can set it, and it
+  // outlives switching to the board and back. A view sets it without changing the sort the person remembers.
+  const viewId = $derived(page.url.searchParams.get('view'));
+  const savedViews = createListViews();
+  const saved = $derived(savedViews.data?.data.views.find((candidate) => candidate.id === viewId && candidate.jobId === jobId));
+  const viewGone = $derived(Boolean(viewId) && !saved && savedViews.isSuccess);
+  const sort = createTableSort('job-candidates', defaultSorts.Job, sortableColumnIds([...verificationColumns, ratingColumn], false));
+  let applied = $state<string | null>(null);
+  $effect(() => {
+    const id = saved?.id ?? null;
+    if (id === applied) return;
+    if (saved) {
+      stageFilter = saved.filters.stages[0] ?? null;
+      verificationFilter = verificationOf(saved.filters);
+      sort.sorting = [sortOf(saved.filters, 'Job')];
+    } else if (applied !== null) {
+      stageFilter = null;
+      verificationFilter = { ...noVerificationFilter };
+      sort.sorting = [preferences.sortFor('job-candidates') ?? defaultSorts.Job];
+    }
+    applied = id;
+  });
+  const filtersNow = $derived(
+    filtersOf({
+      baseView: saved?.filters.baseView ?? null,
+      stages: chosenStage ? [chosenStage] : [],
+      verification: verificationFilter,
+      sort: sort.sorting[0] ?? defaultSorts.Job,
+    }),
+  );
+  const canSave = $derived(
+    !viewGone && (!saved || applied === saved.id) && differsFromView(filtersNow, 'Job', saved ? { filters: saved.filters } : null),
+  );
   // Only the rows on screen: a ticked row that a search or filter hides is never moved with the rest.
   const selected = $derived(shown.filter((application) => selectedIds.includes(application.id)));
   // Email to the selection, hidden under a verification filter for the reason bulkMoveStages gives (ADR-0004).
@@ -170,10 +210,12 @@
       <div data-filters class="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2">
         {#if view === 'table'}{@render stageMenu()}{/if}
         <AuthenticityFilter {applications} filter={verificationFilter} onchange={setVerificationFilter} />
+        {@render saveView('ms-auto')}
       </div>
     {:else if view === 'board'}
       <div data-filters class="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border-subtle px-4 py-2">
         <AuthenticityFilter {applications} filter={verificationFilter} onchange={setVerificationFilter} menu />
+        {@render saveView('ms-auto')}
       </div>
     {/if}
     {#if view === 'table' && selected.length > 0}
@@ -203,6 +245,7 @@
       label={`Candidates for ${jobTitle}`}
       fill={!sidebar.isMobile}
       sortId="job-candidates"
+      {sort}
       {stages}
       {moves}
       extraColumns={[...verificationColumns, ratingColumn]}
@@ -213,6 +256,7 @@
       {#snippet filters()}
         {@render stageMenu()}
         <AuthenticityFilter {applications} filter={verificationFilter} onchange={setVerificationFilter} menu />
+        {@render saveView('ms-auto')}
       {/snippet}
     </ApplicationTable>
   {:else if onBoard.length === 0}
@@ -226,6 +270,7 @@
   <!-- A move that worked is a quiet line; a failed one is a problem to fix (T1). -->
   <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4">{moves.failure ? '' : moves.announcement}</p>
   <FailureText message={moves.failure ? moves.announcement : ''} class="px-4.5 py-2 max-md:px-4" />
+  <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4">{viewGone ? 'That view is no longer there, so this shows every candidate.' : ''}</p>
   <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4">{emailed}</p>
 </Panel>
 
@@ -238,6 +283,10 @@
 
 {#snippet searchField(className: string)}
   <SearchField bind:value={search} label="Search candidates" class={className} />
+{/snippet}
+
+{#snippet saveView(className: string)}
+  <SaveViewButton scope="Job" {jobId} filters={filtersNow} show={canSave} class={className} />
 {/snippet}
 
 {#snippet stageMenu()}
