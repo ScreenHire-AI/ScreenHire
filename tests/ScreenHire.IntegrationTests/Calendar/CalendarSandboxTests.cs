@@ -226,7 +226,7 @@ public sealed class CalendarSandboxTests(AppHostFixture fixture)
         var tokens = new CalendarTokens(new EphemeralDataProtectionProvider());
         var options = Options.Create(new CalendarOptions { Sandbox = new CalendarSandboxOptions { Enabled = true } });
         var access = new CalendarAccess(
-            options, tokens, db, TimeProvider.System, new GoogleCalendarProvider(), new MicrosoftCalendarProvider(), Provider(db, organization));
+            options, tokens, db, TimeProvider.System, new GoogleCalendarProvider(options, TimeProvider.System), new MicrosoftCalendarProvider(options, TimeProvider.System), Provider(db, organization));
         return (access, tokens);
     }
 

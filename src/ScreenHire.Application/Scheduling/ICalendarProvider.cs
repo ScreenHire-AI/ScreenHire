@@ -96,4 +96,7 @@ public sealed class CalendarApiException : Exception
     public string Code { get; } = "unknown";
 
     public bool Permanent { get; }
+
+    /// <summary>How long the provider asked callers to wait (<c>Retry-After</c>), when it said so. Only a transient refusal has one.</summary>
+    public TimeSpan? RetryAfter { get; init; }
 }

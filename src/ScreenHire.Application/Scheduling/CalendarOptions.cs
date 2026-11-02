@@ -22,6 +22,9 @@ public sealed class CalendarOptions
 
     public CalendarInterviewOptions Interviews { get; set; } = new();
 
+    /// <summary>Where the providers' servers are. Configurable only so a test can point the real providers at a stand-in.</summary>
+    public CalendarEndpointOptions Endpoints { get; set; } = new();
+
     /// <summary>How long one call to a calendar provider may take.</summary>
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(10);
 
@@ -66,6 +69,26 @@ public sealed class CalendarOAuthApp
 public sealed class CalendarSandboxOptions
 {
     public bool Enabled { get; set; }
+}
+
+/// <summary>
+/// The providers' addresses. The defaults are the real ones; nothing in a deployment changes them. Bases end in a slash so
+/// a relative path joins onto them. Microsoft's authority uses the <c>common</c> tenant, so work and personal accounts of
+/// any organization can connect.
+/// </summary>
+public sealed class CalendarEndpointOptions
+{
+    public Uri GoogleAuthorize { get; set; } = new("https://accounts.google.com/o/oauth2/v2/auth");
+
+    public Uri GoogleToken { get; set; } = new("https://oauth2.googleapis.com/token");
+
+    public Uri GoogleRevoke { get; set; } = new("https://oauth2.googleapis.com/revoke");
+
+    public Uri GoogleApi { get; set; } = new("https://www.googleapis.com/calendar/v3/");
+
+    public Uri MicrosoftAuthority { get; set; } = new("https://login.microsoftonline.com/common/oauth2/v2.0/");
+
+    public Uri MicrosoftGraph { get; set; } = new("https://graph.microsoft.com/v1.0/");
 }
 
 /// <summary>How interviews are offered: the notice a slot needs and the step between offered start times.</summary>

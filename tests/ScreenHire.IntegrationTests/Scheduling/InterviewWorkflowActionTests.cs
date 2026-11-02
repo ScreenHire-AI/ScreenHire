@@ -115,7 +115,7 @@ public sealed class InterviewWorkflowActionTests(AppHostFixture fixture)
 
         // The candidate books: the InterviewScheduled automation fires.
         var page = (await world.PublicGetAsync(token)).Expect(HttpStatusCode.OK);
-        var start = InterviewWorld.SlotsOf(page).First();
+        var start = InterviewWorld.SlotsOf(page)[0];
         (await world.BookAsync(token, start)).Expect(HttpStatusCode.NoContent);
         var tagged = await WaitForAsync(world, application, d => d.At("tags").EnumerateArray().Any(t => t.GetString() == "interview-booked"), "the tag");
         tagged.At("tags").EnumerateArray().Select(t => t.GetString()).Should().Contain("interview-booked");
@@ -240,7 +240,7 @@ public sealed class InterviewWorkflowActionTests(AppHostFixture fixture)
         ["actions"] = new JsonArray(new JsonObject { ["type"] = "AddTag", ["tag"] = "interview-booked" }),
     };
 
-    private async Task<(Guid Job, Guid Application, string Email)> JobAndApplicationAsync(InterviewWorld world, string title, params JsonObject[] automations)
+    private static async Task<(Guid Job, Guid Application, string Email)> JobAndApplicationAsync(InterviewWorld world, string title, params JsonObject[] automations)
     {
         var job = await AutomationSamples.JobWithAutomationsAsync(world.Owner, title, automations);
         var email = ApiSession.NewEmail("candidate");

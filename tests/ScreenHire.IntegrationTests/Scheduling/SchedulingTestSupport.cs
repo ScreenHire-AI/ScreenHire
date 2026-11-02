@@ -118,7 +118,7 @@ internal static class SchedulingTestSupport
     {
         var options = Options.Create(new CalendarOptions { Sandbox = new CalendarSandboxOptions { Enabled = true } });
         var access = new CalendarAccess(
-            options, Tokens, db, TimeProvider.System, new GoogleCalendarProvider(), new MicrosoftCalendarProvider(),
+            options, Tokens, db, TimeProvider.System, new GoogleCalendarProvider(options, TimeProvider.System), new MicrosoftCalendarProvider(options, TimeProvider.System),
             new SandboxCalendarProvider(db, tenant, TimeProvider.System));
         var availability = new InterviewAvailability(db, access, TimeProvider.System);
         return (availability, new InterviewBooking(db, availability, access, TimeProvider.System));

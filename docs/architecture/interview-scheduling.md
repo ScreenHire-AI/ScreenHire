@@ -11,7 +11,11 @@ sources:
   - resource: src/ScreenHire.Application/Scheduling/CalendarTokens.cs
   - resource: src/ScreenHire.Application/Scheduling/CalendarAccess.cs
   - resource: src/ScreenHire.Application/Scheduling/SandboxCalendarProvider.cs
-  - resource: src/ScreenHire.Application/Scheduling/RealCalendarProviders.cs
+  - resource: src/ScreenHire.Application/Scheduling/CalendarHttp.cs
+  - resource: src/ScreenHire.Application/Scheduling/GoogleCalendarProvider.cs
+  - resource: src/ScreenHire.Application/Scheduling/MicrosoftCalendarProvider.cs
+  - resource: tests/ScreenHire.UnitTests/Scheduling/GoogleCalendarProviderTests.cs
+  - resource: tests/ScreenHire.UnitTests/Scheduling/MicrosoftCalendarProviderTests.cs
   - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/CalendarConfiguration.cs
   - resource: apps/api/Endpoints/CalendarEndpoints.cs
   - resource: apps/api/Contracts/CalendarContracts.cs
@@ -47,7 +51,7 @@ sources:
 # Interview scheduling on team calendars
 
 ScreenHire schedules interviews on the calendars the team already uses, through the free Google Calendar and Microsoft
-Graph APIs. This page describes the parts that exist so far: a member connecting and disconnecting their own calendar, the interview
+Graph APIs. This page describes a member connecting and disconnecting their own calendar, the interview
 request with its slot finder and booking transaction, the routes that offer, book, move and cancel an interview, the
 worker that writes the events and emails the candidate, the careers page the candidate books on, and the recruiter's side
 in the dashboard, and the workflow action that offers an interview without a person.
@@ -92,7 +96,7 @@ so a handler's retry policy runs.
 
 Everything goes through `ICalendarProvider`: the authorize URL, the code and refresh exchanges, revoke, free/busy, and
 creating, moving and cancelling an event on the member's own calendar. `SandboxCalendarProvider` is the local stand-in.
-`GoogleCalendarProvider` and `MicrosoftCalendarProvider` are stubs until the real providers land.
+`GoogleCalendarProvider` and `MicrosoftCalendarProvider` call the real APIs; see "Google and Microsoft".
 
 `ScreenHire:Calendar` (`CalendarOptions`), forwarded by the AppHost to the API and the worker:
 
@@ -105,6 +109,76 @@ creating, moving and cancelling an event on the member's own calendar. `SandboxC
 
 A provider is available only when both its client id and its secret are set, because an id without a secret cannot work.
 A provider that is not available is hidden, never an error.
+
+## Google and Microsoft
+
+Both real providers are singletons over one long-lived `HttpClient` each (`CalendarHttp`), with the timeout from
+`ScreenHire:Calendar:Timeout`. They do not use the HTTP client factory: its resilience handler would retry a call, and
+Wolverine's retry policy is the only retry layer. Creating an event is safe to repeat because of the ids below. Neither
+provider logs a token, an address or event text, and an exception carries only a short code, never the provider's message.
+`CalendarOptions.Endpoints` holds the providers' base URLs. The defaults are the real ones and only a test changes them.
+
+| | Google | Microsoft |
+|---|---|---|
+| Scopes | `calendar.freebusy` and `calendar.events` (both sensitive) | `Calendars.ReadWrite` and `offline_access` |
+| Authorize | `accounts.google.com/o/oauth2/v2/auth`, `access_type=offline`, `prompt=consent` | `login.microsoftonline.com/common/oauth2/v2.0/authorize`, `response_mode=query` |
+| Tokens | `oauth2.googleapis.com/token`; the refresh token stays the same | `.../common/oauth2/v2.0/token`; the refresh token rotates on every refresh |
+| Revoke | `oauth2.googleapis.com/revoke` | none (a no-op: Graph has no per-token revoke for delegated tokens) |
+| Busy time | `POST /calendar/v3/freeBusy` on `primary` | `GET /me/calendarView` in UTC, paged through `@odata.nextLink` |
+| Create | `POST calendars/primary/events` with our event id | `POST /me/events` with `transactionId` |
+| Meeting link | `conferenceData.createRequest` (Meet), `conferenceDataVersion=1` | `isOnlineMeeting` with `teamsForBusiness` |
+| Guest email | `sendUpdates=all` when there are guests | Graph sends it |
+| Move | `PATCH events/{id}` with `sendUpdates=all` | `PATCH /me/events/{id}` |
+| Cancel | `DELETE events/{id}` with `sendUpdates=all` | `POST /me/events/{id}/cancel`, else `DELETE` |
+| Account address | the primary calendar's title, only if it looks like an address | `owner.address` of `GET /me/calendar` |
+
+No identity scope is requested (`openid`, `email`, `profile`, `User.Read`): the address in the sheet is a label from the
+calendar itself and is dropped when the calendar does not give one. `GoogleCalendarProviderTests` and
+`MicrosoftCalendarProviderTests` assert the scope strings exactly. After a code exchange the scopes the member actually
+allowed are checked (Google lets a member untick one), and a missing one fails the connect with `consent_required`. A
+first connect that returns no refresh token fails with `no_refresh_token`.
+
+**Busy time on Microsoft** uses `calendarView`, not `getSchedule`. `getSchedule` asks about addresses, so it needs the
+member's own address on every call and the call site holds only the access token. `calendarView` on `/me` needs none.
+`showAs` of `free` and a cancelled event are free; `busy`, `tentative`, `oof`, `workingElsewhere` and `unknown` block the
+time, because a time we cannot read must not be offered. A window with more than 2000 events fails as transient rather
+than offering times from a partly read calendar. A next-page link is followed only on the Graph host.
+
+**Idempotency ids.** `EventSpec.IdempotencyId` is derived from the interview and the member
+(`InterviewText.EventIdempotencyId`, 32 lowercase hex characters). Google event ids may use only `a` to `v` and `0` to `9`
+and be 5 to 1024 long, so a valid id is used as it is and any other becomes the SHA-256 of it in lowercase hex. A 409 means
+the event exists: it is read back and returned. A deleted Google event keeps its id as `cancelled`, so a 409 for one
+patches it back to `confirmed`. Microsoft gets the id as `transactionId`. Graph's documentation says only that it avoids
+redundant creates, not what a repeat answers, so a success is taken as the existing event, and a 409 or an error naming the
+transaction is answered by looking in `calendarView` for the event with that `transactionId`.
+
+**Moving and cancelling.** Moving an event that is gone (404, 410, or held as cancelled) throws a non-permanent
+`event_not_found`, and the handler creates it again. Cancelling one that is gone is a no-op.
+
+**Errors.** Every refusal becomes a `CalendarApiException` whose code is the provider's reason when it is a short token
+(`[A-Za-z0-9_.-]`, 64 characters at most) and `http_<status>` otherwise.
+
+| Answer | Permanent |
+|---|---|
+| 401, `invalid_grant`, `interaction_required`, `AADSTS70008` or `AADSTS700082` (expired refresh token), `consent_required` | yes: the member must connect again |
+| 403 with `rateLimitExceeded`, `userRateLimitExceeded` or `quotaExceeded`; 429 (with `RetryAfter` when sent); 408; any 5xx; a timeout; no connection; a body that is not JSON | no |
+| Any other 4xx (a 403 for a missing permission, a 400, a 404 on create) | yes for the call, with the reason as the code |
+
+## Setting up the providers (owner)
+
+Without these steps the Google and Outlook buttons stay hidden. The redirect URIs are on the dashboard origin, which proxies
+`/v1` to the API, as for Slack. Set the keys as user secrets locally or as app settings in a deployment.
+
+1. **Google.** In a Google Cloud project, configure the OAuth consent screen (external) and add the two scopes
+   `calendar.freebusy` and `calendar.events`. Both are sensitive, so Google must verify the app before more than 100 test
+   users can connect; verification takes weeks. Create an OAuth client of type Web application with the redirect URI
+   `<dashboard origin>/v1/calendar/oauth/callback/google`. Set `ScreenHire:Calendar:Google:ClientId`; the secret goes in the
+   `google-calendar-client-secret` parameter (`ScreenHire:Calendar:Google:ClientSecret`).
+2. **Microsoft.** In Entra, register an application that supports accounts in any organizational directory and personal
+   Microsoft accounts. Add a Web redirect URI `<dashboard origin>/v1/calendar/oauth/callback/microsoft` and the delegated
+   permissions `Calendars.ReadWrite` and `offline_access`. Create a client secret. Set `ScreenHire:Calendar:Microsoft:ClientId`;
+   the secret goes in the `microsoft-calendar-client-secret` parameter.
+3. A provider shows in the sheet only once both its id and its secret are set.
 
 ## The sandbox calendar
 
