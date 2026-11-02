@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace ScreenHire.E2E;
 
 /// <summary>
@@ -33,6 +35,7 @@ public sealed class E2EFixture : AppHostFixture
         {
             browser = await LaunchChromiumAsync(playwright);
             await base.InitializeAsync();
+            await WarmUpSignInAsync();
         }
         catch
         {
@@ -53,6 +56,37 @@ public sealed class E2EFixture : AppHostFixture
             // Stop the AppHost and its containers even if the browser fails to close.
             await base.DisposeAsync();
         }
+    }
+
+    // The first sign-in on a fresh stack costs more than any later one, and only the stack can pay that once. On a quiet
+    // machine the API's first sign-in took about 0.4 s (the identity provider's first token, the OIDC discovery document,
+    // JIT and the first run of each query) against 0.03 to 0.05 s for the next, and the browser's sign-in to the Jobs
+    // heading took 0.35 to 0.55 s. The tests start together, about thirty classes, and each one waits 5 s for that heading,
+    // so a run that slows everything tenfold (the machine is also compiling and starting Chromium, often beside other
+    // stacks) turns the first wave's 0.4 s into 4 s on top of the browser's own time (docs/process/testing.md, flaky
+    // tests). So the stack signs in once, the way a test does, before the first test starts. It is the real flow and
+    // nothing in it is skipped for tests. Its own wait is generous because nothing is waiting on it but the start.
+    private async Task WarmUpSignInAsync()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var started = Stopwatch.StartNew();
+        var email = ApiSession.NewEmail("e2e-warm-up");
+        using (var session = new ApiSession(this))
+        {
+            await session.SignInWithDevSsoAsync(email, ct);
+            await session.OnboardAsync(ct);
+        }
+
+        await using var context = await Browser.NewContextAsync();
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(new Uri(GetEndpoint("dashboard"), "/sign-in").ToString());
+        await page.GetByRole(AriaRole.Link, new() { Name = "Continue with Dev SSO" }).ClickAsync();
+        await page.GetByLabel("Any email address").FillAsync(email);
+        var signedIn = Stopwatch.StartNew();
+        await page.GetByRole(AriaRole.Button, new() { Name = "Sign in with this address" }).ClickAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Level = 1, Name = "Jobs" }).WaitForAsync(new() { Timeout = 120_000 });
+        TestContext.Current.SendDiagnosticMessage(
+            $"Sign-in warm-up: {started.ElapsedMilliseconds} ms in all, {signedIn.ElapsedMilliseconds} ms from the last click to the Jobs heading");
     }
 
     // Idempotent: runs after a failed start and again if xUnit then disposes the fixture.

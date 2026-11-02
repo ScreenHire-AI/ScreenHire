@@ -21,6 +21,7 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                 .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
@@ -1276,6 +1277,18 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.HasAlternateKey("OrganizationId", "Id")
                         .HasName("ak_candidates_organization_id_id");
 
+                    b.HasIndex("Email")
+                        .HasDatabaseName("ix_candidates_email");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Email"), "gin");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Email"), new[] { "gin_trgm_ops" });
+
+                    b.HasIndex("FullName")
+                        .HasDatabaseName("ix_candidates_full_name");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("FullName"), "gin");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("FullName"), new[] { "gin_trgm_ops" });
+
                     b.HasIndex("OrganizationId", "NormalizedEmail")
                         .IsUnique()
                         .HasDatabaseName("ix_candidates_organization_id_normalized_email");
@@ -1969,6 +1982,12 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.HasIndex("SourceTemplateVersionId")
                         .HasDatabaseName("ix_jobs_source_template_version_id");
 
+                    b.HasIndex("Title")
+                        .HasDatabaseName("ix_jobs_title");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Title"), "gin");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Title"), new[] { "gin_trgm_ops" });
+
                     b.HasIndex("OrganizationId", "Slug")
                         .IsUnique()
                         .HasDatabaseName("ix_jobs_organization_id_slug");
@@ -2123,6 +2142,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("organization_id");
 
+                    b.Property<DateTimeOffset?>("SavedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("saved_at");
+
                     b.Property<string>("ScanStatus")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -2154,6 +2177,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("OrganizationId", "Kind")
                         .HasDatabaseName("ix_brand_images_organization_id_kind");
+
+                    b.HasIndex("OrganizationId", "UploadedAt")
+                        .HasDatabaseName("ix_brand_images_organization_id_uploaded_at")
+                        .HasFilter("saved_at is null");
 
                     b.ToTable("brand_images", (string)null);
                 });
@@ -3543,6 +3570,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.HasIndex("OrganizationId", "AssessmentId")
                         .HasDatabaseName("ix_verification_review_actions_organization_id_assessment_id");
 
+                    b.HasIndex("OrganizationId", "SignalId")
+                        .HasDatabaseName("ix_verification_review_actions_organization_id_signal_id");
+
                     b.HasIndex("OrganizationId", "ApplicationId", "OccurredAt")
                         .HasDatabaseName("ix_verification_review_actions_organization_id_application_id_");
 
@@ -3678,6 +3708,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_verification_signals");
+
+                    b.HasAlternateKey("OrganizationId", "Id")
+                        .HasName("ak_verification_signals_organization_id_id");
 
                     b.HasIndex("OrganizationId", "AnalyzerRunId")
                         .HasDatabaseName("ix_verification_signals_organization_id_analyzer_run_id");
@@ -4621,6 +4654,13 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasPrincipalKey("OrganizationId", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .HasConstraintName("fk_verification_review_actions_verification_assessments_organi");
+
+                    b.HasOne("ScreenHire.Domain.Verification.VerificationSignal", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "SignalId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_verification_review_actions_verification_signals_organizati");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Verification.VerificationSettings", b =>

@@ -218,7 +218,8 @@ public sealed record PublicApplicationDraftRequest(
     IReadOnlyList<ApplicationAnswer>? Answers = null,
     bool AccommodationRequested = false,
     AiUseDeclaration AiUseDeclaration = AiUseDeclaration.NotProvided,
-    string? AiUseDetails = null);
+    string? AiUseDetails = null,
+    string? BotCheckToken = null);
 
 /// <summary>A saved draft: the token in its link, which the careers page keeps to save it again, and when it is deleted.</summary>
 public sealed record PublicApplicationDraftReceipt(string Token, DateTimeOffset ExpiresAt);
@@ -260,6 +261,7 @@ internal sealed class PublicApplicationDraftRequestValidator : AbstractValidator
         });
         RuleFor(r => r.AiUseDeclaration).IsInEnum();
         RuleFor(r => r.AiUseDetails).MaximumLength(2000);
+        RuleFor(r => r.BotCheckToken).MaximumLength(4096);
     }
 }
 

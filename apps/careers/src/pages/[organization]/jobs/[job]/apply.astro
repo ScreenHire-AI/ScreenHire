@@ -360,17 +360,21 @@ const answerText = (questionId: string): string => {
               <label for="leave-this-empty">Leave this field empty</label>
               <input id="leave-this-empty" type="text" name={HONEYPOT_FIELD} tabindex="-1" autocomplete="off" value="" />
             </div>
+          </>
+        )}
 
-            {form.turnstileSiteKey && (
-              <>
-                <div class="cf-turnstile" data-sitekey={form.turnstileSiteKey} />
-                <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
-              </>
-            )}
+        {/* Wherever a check can run, the candidate reads this first. */}
+        {(step === 'review' || (form.turnstileSiteKey && canSave)) && (
+          <p class="text-[13.5px] text-candidate-muted-foreground">
+            Our checks for bots and impersonation never reject you. A person at {employer.name} looks at anything they flag.
+          </p>
+        )}
 
-            <p class="text-[13.5px] text-candidate-muted-foreground">
-              Our checks for bots and impersonation never reject you. A person at {employer.name} looks at anything they flag.
-            </p>
+        {/* The final send and a first "Save and finish later" both need its token: saving emails a link to the address typed. */}
+        {form.turnstileSiteKey && (step === 'review' || canSave) && (
+          <>
+            <div class="cf-turnstile" data-sitekey={form.turnstileSiteKey} />
+            <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
           </>
         )}
 

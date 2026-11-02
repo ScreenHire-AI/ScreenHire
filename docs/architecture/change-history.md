@@ -65,12 +65,15 @@ former teammate" once their account is gone, so no name is ever stored in the ta
 was said: a later rename of a question leaves the old lines naming it as it was. An invited address is stored as
 written, since nobody has an account yet, and the invitation row keeps the same address.
 
-Objects that existed before history was recorded start their history at their first edit; nothing is back-filled.
+Objects that existed before history was recorded start their history at their first edit; no record is invented for them.
 Their Last updated falls back to the row's own times with nobody named: Created at `created_at` when `updated_at` is
 empty or the same, else Updated at `updated_at` (`LastUpdate.From`). A row people only ever change, never create (the
 verification settings, the branding, an edited built-in email template), falls back to Updated
 (`LastUpdate.FromChange`). The Team and API keys pages fall back to Created when the organization was. Records written
-before the `created` column read as updates.
+before the `created` column were marked afterwards by migration `HardenFromWorkflowFollowUps`: a record of a kind that
+sets `created` whose first line is a creation's own words ("created the template", "created the job", "created the
+role from", "created the scorecard", "created the team") got `created = true`, run as the owner because the application
+role cannot update this table. An API key's "created the key" line is left alone, since keys never set `created`.
 
 ## How it is written
 

@@ -3,10 +3,16 @@
  *
  *   <script src="https://{your careers address}/embed.js" async></script>
  *
- * where your jobs should appear. This script adds one frame after its own tag, showing your careers pages from
- * ScreenHire's careers origin, and makes the frame as tall as the page inside it. That is all it does: it reads nothing
- * from your page, and your page cannot read or change what candidates type in the frame. Your site must be on the
- * list of sites that can embed the careers page (Settings, Organization), or the browser refuses to show the frame.
+ * where your jobs should appear. To show one job instead of the whole board, add its address (the last part of the
+ * job's link, such as "senior-barista") as a data attribute:
+ *
+ *   <script src="https://{your careers address}/embed.js" data-job="senior-barista" async></script>
+ *
+ * This script adds one frame after its own tag, showing your careers pages from
+ * ScreenHire's careers origin, and makes the frame as tall as the page inside it. That is all it does: it reads only
+ * its own tag, nothing else on your page, and your page cannot read or change what candidates type in the frame. Your
+ * site must be on the list of sites that can embed the careers page (Settings, Organization), or the browser refuses to
+ * show the frame.
  */
 (function () {
   'use strict';
@@ -16,7 +22,11 @@
   // The careers board is this script's own address without "/embed.js".
   var board = script.src.replace(/[?#].*$/, '').replace(/\/embed\.js$/, '');
   var careersOrigin = new URL(board).origin;
-  var source = new URL(board);
+  // A job's address is lowercase letters and digits separated by single hyphens. Anything else is ignored, and the whole
+  // board shows, so a mistyped attribute never builds an address of its own.
+  var job = script.getAttribute('data-job');
+  var jobPage = job && job.length <= 120 && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(job);
+  var source = new URL(jobPage ? board + '/jobs/' + job : board);
   source.searchParams.set('embed', window.location.origin);
 
   var frame = document.createElement('iframe');

@@ -43,6 +43,8 @@ internal sealed class JobConfiguration : IEntityTypeConfiguration<Job>
         builder.HasAlternateKey(j => new { j.OrganizationId, j.Id });
         builder.HasIndex(j => new { j.OrganizationId, j.Slug }).IsUnique();
         builder.HasIndex(j => new { j.OrganizationId, j.Status });
+        // Trigram index for the search box's ILIKE '%text%' on the title; see CandidateConfiguration for its limits.
+        builder.HasIndex(j => j.Title).HasMethod("gin").HasOperators("gin_trgm_ops");
 
         // The source template may be a system template (no organization), so these keys are plain; the API loads the
         // version through the tenant filter before it links one.

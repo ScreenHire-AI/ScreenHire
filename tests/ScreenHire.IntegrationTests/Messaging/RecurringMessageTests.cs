@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using ScreenHire.Application.Branding;
 using ScreenHire.Application.Jobs;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Infrastructure.Persistence;
@@ -34,6 +35,22 @@ public sealed class RecurringMessageTests(AppHostFixture fixture)
             async () => await worker.Store.CountHandledOfTypeAsync(nameof(ReportOpenJobs), cancellationToken) >= 1,
             "the triggered ReportOpenJobs to be handled", cancellationToken);
         worker.Logs.Entries.Should().Contain(e => e.Message.Contains(" open jobs across ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Abandoned_brand_images_are_swept_daily_by_a_tracked_schedule()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var settings = new MessagingSettings { Schema = MessagingHost.NewSchema(), AutoProvision = true };
+        await using var worker = await MessagingHost.StartHandlerAsync(fixture, settings, [], cancellationToken, withRecurringSchedules: true);
+        var schedules = worker.Services.GetRequiredService<IRecurringScheduleControl>();
+
+        await WolverineStore.WaitUntilAsync(
+            async () => (await schedules.QueryAsync(cancellationToken)).Any(s => s.Name == nameof(PurgeExpiredBrandImageUploads)),
+            "the PurgeExpiredBrandImageUploads schedule to be tracked", cancellationToken);
+        var schedule = (await schedules.QueryAsync(cancellationToken)).Should().ContainSingle(s => s.Name == nameof(PurgeExpiredBrandImageUploads)).Subject;
+        schedule.CronExpression.Should().Be("27 3 * * *");
+        schedule.Paused.Should().BeFalse();
     }
 
     [Fact]

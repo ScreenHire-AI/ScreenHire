@@ -64,6 +64,16 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "410": {
             "description": "Gone",
             "content": {
@@ -16931,6 +16941,12 @@
             "$ref": "#/components/schemas/AiUseDeclaration"
           },
           "aiUseDetails": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "botCheckToken": {
             "type": [
               "null",
               "string"

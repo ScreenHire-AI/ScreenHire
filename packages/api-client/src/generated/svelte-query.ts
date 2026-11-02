@@ -218,6 +218,11 @@ export type createPublicApplicationDraftResponse400 = {
   status: 400
 }
 
+export type createPublicApplicationDraftResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
 export type createPublicApplicationDraftResponse404 = {
   data: void
   status: 404
@@ -236,7 +241,7 @@ export type createPublicApplicationDraftResponse429 = {
 export type createPublicApplicationDraftResponseSuccess = (createPublicApplicationDraftResponse201) & {
   headers: Headers;
 };
-export type createPublicApplicationDraftResponseError = (createPublicApplicationDraftResponse400 | createPublicApplicationDraftResponse404 | createPublicApplicationDraftResponse410 | createPublicApplicationDraftResponse429) & {
+export type createPublicApplicationDraftResponseError = (createPublicApplicationDraftResponse400 | createPublicApplicationDraftResponse403 | createPublicApplicationDraftResponse404 | createPublicApplicationDraftResponse410 | createPublicApplicationDraftResponse429) & {
   headers: Headers;
 };
 
@@ -282,7 +287,7 @@ return apiQueryFetch<createPublicApplicationDraftResponseSuccess>(getCreatePubli
 
 export const getCreatePublicApplicationDraftMutationKey = () => ['createPublicApplicationDraft'] as const;
 
-export const getCreatePublicApplicationDraftMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+export const getCreatePublicApplicationDraftMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | ProblemDetails | void>,
     TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createPublicApplicationDraft>>, TError,CreatePublicApplicationDraftMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
 ): CreateMutationOptions<Awaited<ReturnType<typeof createPublicApplicationDraft>>, TError,CreatePublicApplicationDraftMutationVariables, TContext> => {
 
@@ -311,10 +316,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreatePublicApplicationDraftMutationResult = NonNullable<Awaited<ReturnType<typeof createPublicApplicationDraft>>>
     export type CreatePublicApplicationDraftMutationBody = PublicApplicationDraftRequest
-    export type CreatePublicApplicationDraftMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type CreatePublicApplicationDraftMutationError = ErrorType<HttpValidationProblemDetails | ProblemDetails | void>
     export type CreatePublicApplicationDraftMutationVariables = {organizationSlug: string;jobId: string;data: PublicApplicationDraftRequest}
 
-    export const createCreatePublicApplicationDraft = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    export const createCreatePublicApplicationDraft = <TError = ErrorType<HttpValidationProblemDetails | ProblemDetails | void>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createPublicApplicationDraft>>, TError,CreatePublicApplicationDraftMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof createPublicApplicationDraft>>,

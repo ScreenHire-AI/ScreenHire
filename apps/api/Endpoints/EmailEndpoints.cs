@@ -7,6 +7,7 @@ using ScreenHire.Api.Email;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.Branding;
+using ScreenHire.Application.Templates;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Hiring;
@@ -150,6 +151,7 @@ internal static class EmailEndpoints
         CreateEmailTemplateRequest request,
         IValidator<CreateEmailTemplateRequest> validator,
         ScreenHireDbContext db,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
         EmailTemplates renderer,
         EmailTemplateStore store,
         ITenantContext tenant,
@@ -176,7 +178,7 @@ internal static class EmailEndpoints
 
         var template = EmailTemplate.CreateCustom(tenant.OrganizationId!.Value, request.Name.Trim(), request.Subject, body, time.GetUtcNow());
         db.EmailTemplates.Add(template);
-        await db.SaveChangesAsync(cancellationToken);
+        await outbox.SaveTemplateChangeAsync(TemplateKind.EmailTemplate, template.Key, tenant, time, cancellationToken);
         var created = await store.FindAsync(db, template.Key, cancellationToken);
         return TypedResults.Created($"/v1/email-templates/{template.Key}", await EntryAsync(db, created!, cancellationToken));
     }
@@ -187,6 +189,7 @@ internal static class EmailEndpoints
         UpdateEmailTemplateRequest request,
         IValidator<UpdateEmailTemplateRequest> validator,
         ScreenHireDbContext db,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
         EmailTemplates renderer,
         EmailTemplateStore store,
         ITenantContext tenant,
@@ -247,7 +250,7 @@ internal static class EmailEndpoints
 
         try
         {
-            await db.SaveChangesAsync(cancellationToken);
+            await outbox.SaveTemplateChangeAsync(TemplateKind.EmailTemplate, templateId, tenant, time, cancellationToken);
         }
         // Another person's first edit of this built-in added its row between the read above and this insert. This edit
         // goes on top of theirs, as any later edit would.
@@ -258,7 +261,7 @@ internal static class EmailEndpoints
             added.Subject = request.Subject;
             added.Body = body;
             added.UpdatedAt = now;
-            await db.SaveChangesAsync(cancellationToken);
+            await outbox.SaveTemplateChangeAsync(TemplateKind.EmailTemplate, templateId, tenant, time, cancellationToken);
         }
 
         return TypedResults.Ok(await EntryAsync(db, (await store.FindAsync(db, templateId, cancellationToken))!, cancellationToken));
@@ -267,15 +270,18 @@ internal static class EmailEndpoints
     // Archiving takes an own template out of the pickers. Automations that name it keep sending it, so nothing running
     // changes. A built-in cannot be archived: Reset to original (DELETE) is how a team takes back its wording.
     private static Task<Results<Ok<EmailTemplateEntry>, NotFound, ProblemHttpResult>> ArchiveEmailTemplate(
-        string templateId, ScreenHireDbContext db, EmailTemplateStore store, TimeProvider time, CancellationToken cancellationToken) =>
-        SetArchivedAsync(templateId, archived: true, db, store, time, cancellationToken);
+        string templateId, ScreenHireDbContext db, IDbContextOutbox<ScreenHireDbContext> outbox, ITenantContext tenant, EmailTemplateStore store,
+        TimeProvider time, CancellationToken cancellationToken) =>
+        SetArchivedAsync(templateId, archived: true, db, outbox, tenant, store, time, cancellationToken);
 
     private static Task<Results<Ok<EmailTemplateEntry>, NotFound, ProblemHttpResult>> UnarchiveEmailTemplate(
-        string templateId, ScreenHireDbContext db, EmailTemplateStore store, TimeProvider time, CancellationToken cancellationToken) =>
-        SetArchivedAsync(templateId, archived: false, db, store, time, cancellationToken);
+        string templateId, ScreenHireDbContext db, IDbContextOutbox<ScreenHireDbContext> outbox, ITenantContext tenant, EmailTemplateStore store,
+        TimeProvider time, CancellationToken cancellationToken) =>
+        SetArchivedAsync(templateId, archived: false, db, outbox, tenant, store, time, cancellationToken);
 
     private static async Task<Results<Ok<EmailTemplateEntry>, NotFound, ProblemHttpResult>> SetArchivedAsync(
-        string templateId, bool archived, ScreenHireDbContext db, EmailTemplateStore store, TimeProvider time, CancellationToken cancellationToken)
+        string templateId, bool archived, ScreenHireDbContext db, IDbContextOutbox<ScreenHireDbContext> outbox, ITenantContext tenant,
+        EmailTemplateStore store, TimeProvider time, CancellationToken cancellationToken)
     {
         if (EmailTemplateIds.All.Contains(templateId))
         {
@@ -295,7 +301,7 @@ internal static class EmailEndpoints
             var now = time.GetUtcNow();
             row.ArchivedAt = archived ? now : null;
             row.UpdatedAt = now;
-            await db.SaveChangesAsync(cancellationToken);
+            await outbox.SaveTemplateChangeAsync(TemplateKind.EmailTemplate, templateId, tenant, time, cancellationToken);
         }
 
         return TypedResults.Ok(await EntryAsync(db, (await store.FindAsync(db, templateId, cancellationToken))!, cancellationToken));
@@ -304,14 +310,15 @@ internal static class EmailEndpoints
     // An organization template goes, unless an automation names it. A built-in goes back to ScreenHire's wording. Both
     // delete through the change tracker, not ExecuteDelete, so the change history records them.
     private static async Task<Results<NoContent, NotFound, ProblemHttpResult>> DeleteEmailTemplate(
-        string templateId, ScreenHireDbContext db, CancellationToken cancellationToken)
+        string templateId, ScreenHireDbContext db, IDbContextOutbox<ScreenHireDbContext> outbox, ITenantContext tenant, TimeProvider time,
+        CancellationToken cancellationToken)
     {
         if (EmailTemplateIds.All.Contains(templateId))
         {
             if (await db.EmailTemplates.SingleOrDefaultAsync(t => t.BuiltInId == templateId, cancellationToken) is { } reworded)
             {
                 db.EmailTemplates.Remove(reworded);
-                await SaveDeletionAsync(db, cancellationToken);
+                await SaveDeletionAsync(outbox, templateId, tenant, time, cancellationToken);
             }
 
             return TypedResults.NoContent();
@@ -334,20 +341,21 @@ internal static class EmailEndpoints
         }
 
         db.EmailTemplates.Remove(row);
-        await SaveDeletionAsync(db, cancellationToken);
+        await SaveDeletionAsync(outbox, templateId, tenant, time, cancellationToken);
         return TypedResults.NoContent();
     }
 
     // Someone else deleted the row at the same moment: the template is gone either way, and their deletion is recorded.
-    private static async Task SaveDeletionAsync(ScreenHireDbContext db, CancellationToken cancellationToken)
+    private static async Task SaveDeletionAsync(
+        IDbContextOutbox<ScreenHireDbContext> outbox, string templateId, ITenantContext tenant, TimeProvider time, CancellationToken cancellationToken)
     {
         try
         {
-            await db.SaveChangesAsync(cancellationToken);
+            await outbox.SaveTemplateChangeAsync(TemplateKind.EmailTemplate, templateId, tenant, time, cancellationToken);
         }
         catch (DbUpdateConcurrencyException)
         {
-            db.ChangeTracker.Clear();
+            outbox.DbContext.ChangeTracker.Clear();
         }
     }
 

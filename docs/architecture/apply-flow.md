@@ -247,10 +247,19 @@ busy moment never mails a second link. The API (`PublicApplicationDraftEndpoints
   organization (a per-address advisory lock, as for sign-in links); the sixth save is a 429. The answer is the same
   whether or not the address applied before. If the email cannot be sent, the draft is deleted and the request fails,
   so a draft never sits without its link or counts against the cap.
-- Accepted limits. Saving a draft takes no bot check, so anyone can make the API email a link to an address they
-  type: the per-address cap and the per-network rate limit bound it, and the email says to ignore it if you did not
-  start the application. The sixth save's 429 tells the caller that address has saved several drafts in that
-  organization today, which says nothing about whether it applied.
+- Bot check. The first save of a draft is the one public route that emails a link to an address the visitor typed, so
+  it needs Turnstile's check to pass, which a submission does not (`BotCheck` above): the careers form sends the
+  widget's token (`botCheckToken`) with the save, and `PublicApplicationDraftEndpoints.BotCheckProblemAsync` answers a
+  failed check with a 403 before anything is looked up or sent. Only a failed check refuses. A check that was not run,
+  because no keys are configured or Cloudflare was unreachable, goes on, as it does on a submission. The widget shows on
+  every step that offers Save and finish later, not only on the review step. Saving a draft again sends no email and
+  needs no token, and sending the application never needs one, so a candidate who cannot pass the check (JavaScript off,
+  a strict privacy tool) applies as before; the 403's message says so. The notice that the checks never reject anyone shows
+  wherever the check runs, on the review step and on any step that offers Save. This is a limit on mail the form can trigger,
+  not a verdict on the candidate: no signal is written, and nothing about a draft reaches verification.
+- Accepted limits. The check, the per-address cap and the per-network rate limit bound what anyone can make the API
+  email, and the email says to ignore it if you did not start the application. The sixth save's 429 tells the caller
+  that address has saved several drafts in that organization today, which says nothing about whether it applied.
 - The token is Data Protection under its own purpose (`ScreenHire.ApplicationDraft.Link.v1`), naming the organization
   and the draft, like follow-up links. A draft is found by its token, never by its email, so nobody who knows an
   address can replace the answers saved under it. The careers page keeps the token in its state, so saving again

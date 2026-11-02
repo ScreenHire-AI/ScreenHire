@@ -23,5 +23,11 @@ internal sealed class CandidateConfiguration : IEntityTypeConfiguration<Candidat
         // Target of the applications' composite tenant foreign key.
         builder.HasAlternateKey(c => new { c.OrganizationId, c.Id });
         builder.HasIndex(c => new { c.OrganizationId, c.NormalizedEmail }).IsUnique();
+        // Trigram indexes for the search box's ILIKE '%text%' (GET /v1/search, the applications list and the MCP tools).
+        // A term shorter than three characters has no trigram, so it still scans. Under row-level security the planner
+        // uses an index for a user's condition only when its function is leakproof, which ILIKE is not, so the app role
+        // does not use these today; see docs/architecture/sign-in-and-tenancy.md.
+        builder.HasIndex(c => c.FullName).HasMethod("gin").HasOperators("gin_trgm_ops");
+        builder.HasIndex(c => c.Email).HasMethod("gin").HasOperators("gin_trgm_ops");
     }
 }
