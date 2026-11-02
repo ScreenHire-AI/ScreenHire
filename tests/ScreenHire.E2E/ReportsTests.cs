@@ -105,11 +105,11 @@ public sealed class ReportsTests(E2EFixture fixture) : BrowserTest(fixture)
         var now = DateTimeOffset.UtcNow;
         DateTimeOffset Ago(int days) => now.AddDays(-days);
         await Fixture.AddApplicationHistoryAsync(
-            organizationId, platform.Id, Ago(20), ApplicationSource.CareersSite, [("screening", Ago(18)), ("interview", Ago(15)), ("offer", Ago(12)), ("hired", Ago(10))], Ct);
+            organizationId, platform.Id, Ago(20), ApplicationSource.CareersSite, [("screening", Ago(18)), ("interview", Ago(15)), ("offer", Ago(12)), ("hired", Ago(10))], cancellationToken: Ct);
         await Fixture.AddApplicationHistoryAsync(
-            organizationId, platform.Id, Ago(25), ApplicationSource.Recruiter, [("screening", Ago(24)), ("interview", Ago(20)), ("rejected", Ago(19))], Ct);
+            organizationId, platform.Id, Ago(25), ApplicationSource.Recruiter, [("screening", Ago(24)), ("interview", Ago(20)), ("rejected", Ago(19))], cancellationToken: Ct);
         await Fixture.AddApplicationHistoryAsync(
-            organizationId, platform.Id, Ago(45), ApplicationSource.CareersSite, [("interview", Ago(40)), ("hired", Ago(5))], Ct);
+            organizationId, platform.Id, Ago(45), ApplicationSource.CareersSite, [("interview", Ago(40)), ("hired", Ago(5))], cancellationToken: Ct);
         await Fixture.AddApplicationHistoryAsync(organizationId, data.Id, Ago(8), ApplicationSource.CareersSite, cancellationToken: Ct);
         return email;
     }

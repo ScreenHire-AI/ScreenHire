@@ -163,9 +163,9 @@ public sealed class ReportsTests(AppHostFixture fixture)
         closed.Close(DaysAgo(10));
         var draft = TestData.NewJob(owner.OrganizationId, $"draft-{Guid.NewGuid():N}", "Draft Role");
         await fixture.AddJobsAsync(owner.OrganizationId, [open, closed, draft], Ct);
-        await fixture.AddApplicationHistoryAsync(owner.OrganizationId, open.Id, DaysAgo(5), ApplicationSource.CareersSite, [("screening", DaysAgo(4)), ("interview", DaysAgo(3))], Ct);
-        await fixture.AddApplicationHistoryAsync(owner.OrganizationId, open.Id, DaysAgo(4), ApplicationSource.CareersSite, null, Ct);
-        await fixture.AddApplicationHistoryAsync(owner.OrganizationId, open.Id, DaysAgo(10), ApplicationSource.CareersSite, [("hired", DaysAgo(2))], Ct);
+        await fixture.AddApplicationHistoryAsync(owner.OrganizationId, open.Id, DaysAgo(5), ApplicationSource.CareersSite, [("screening", DaysAgo(4)), ("interview", DaysAgo(3))], cancellationToken: Ct);
+        await fixture.AddApplicationHistoryAsync(owner.OrganizationId, open.Id, DaysAgo(4), ApplicationSource.CareersSite, null, cancellationToken: Ct);
+        await fixture.AddApplicationHistoryAsync(owner.OrganizationId, open.Id, DaysAgo(10), ApplicationSource.CareersSite, [("hired", DaysAgo(2))], cancellationToken: Ct);
 
         var report = (await owner.GetAsync($"/v1/reports/hiring?{Range}")).Expect(HttpStatusCode.OK);
 
@@ -306,12 +306,12 @@ public sealed class ReportsTests(AppHostFixture fixture)
 
         Task<Guid> Add(Job job, double appliedDaysAgo, ApplicationSource source, params (string Stage, double DaysAgo)[] moves) =>
             fixture.AddApplicationHistoryAsync(
-                organizationId, job.Id, DaysAgo(appliedDaysAgo), source, moves.Select(m => (m.Stage, DaysAgo(m.DaysAgo))), Ct);
+                organizationId, job.Id, DaysAgo(appliedDaysAgo), source, moves.Select(m => (m.Stage, DaysAgo(m.DaysAgo))), cancellationToken: Ct);
 
         // Through a job board's apply link, and through the careers page embedded in the organization's own site.
         Task<Guid> AddFrom(Job job, double appliedDaysAgo, string? board, string? site, params (string Stage, double DaysAgo)[] moves) =>
             fixture.AddApplicationHistoryAsync(
-                organizationId, job.Id, DaysAgo(appliedDaysAgo), ApplicationSource.CareersSite, moves.Select(m => (m.Stage, DaysAgo(m.DaysAgo))), Ct,
+                organizationId, job.Id, DaysAgo(appliedDaysAgo), ApplicationSource.CareersSite, moves.Select(m => (m.Stage, DaysAgo(m.DaysAgo))), cancellationToken: Ct,
                 sourceSite: site, sourceBoard: board);
 
         // Platform, in the range.

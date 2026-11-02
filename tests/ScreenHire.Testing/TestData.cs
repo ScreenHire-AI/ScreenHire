@@ -80,9 +80,9 @@ public static class TestData
         DateTimeOffset submittedAt,
         ApplicationSource source,
         IEnumerable<(string StageId, DateTimeOffset At)>? moves = null,
-        CancellationToken cancellationToken = default,
         string? sourceSite = null,
-        string? sourceBoard = null)
+        string? sourceBoard = null,
+        CancellationToken cancellationToken = default)
     {
         var tenant = new TenantContext();
         tenant.SetOrganization(organizationId);

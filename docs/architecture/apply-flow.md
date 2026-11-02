@@ -86,7 +86,7 @@ What this build records with an application (`JobApplication`): the answers, the
 (`AccommodationRequested`, which later turns telemetry and typing signals off and is never a signal itself), the
 AI-use declaration and details, `PrivacyNoticeVersion`, `Source = CareersSite` (with `SourceSite`, the organization's
 own site, when the form was in the embeddable widget: [careers widget](careers-widget.md)), `SourceBoard`, the job board whose
-link brought the candidate (below), and two automation signals for the verification engine:
+link brought the candidate (below; like `SourceSite` it tags the link they followed, is stored after the notice and is never a verification signal, so the notice version did not change), and two automation signals for the verification engine:
 
 - `HoneypotFilled` (`AUTO_HONEYPOT`): an off-screen field that only bots fill;
 - `BotCheck` (`AUTO_TURNSTILE_FAIL`): Cloudflare Turnstile's result when `ScreenHire:Turnstile:SiteKey` and `SecretKey`
