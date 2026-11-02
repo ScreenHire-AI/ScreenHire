@@ -285,7 +285,7 @@ Settings is one item at the bottom of the sidebar; its pages share the Settings 
   them), choose a length and the days, and **Send invitation**. Mailpit and the candidate's Messages tab hold "Pick a time to talk with Brightwater Studio
   about ..." with a link to http://localhost:4322/brightwater/interviews/... Open it in a private window: the page needs no script,
   lists the free times by day in a time zone you can change, and books one with a radio and a button. Back in the
-  dashboard the header says "Booked for", the Overview's Interview panel lists the interviewer and the meeting link on
+  dashboard the header has an Interview card, the Overview's Interview panel lists the interviewer and the meeting link on
   `meet.example.org`, and Mailpit holds "Your interview with Brightwater Studio is set", whose link moves or cancels the time. To have a workflow offer the interview, add a **Schedule an interview** action on a stage
   ([interview scheduling](../architecture/interview-scheduling.md)).
 

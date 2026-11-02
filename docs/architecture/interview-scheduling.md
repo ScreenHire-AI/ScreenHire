@@ -89,9 +89,11 @@ needing a reconnect. The row holds secrets, so change history never reads it.
 `CalendarAccess.GetSessionAsync(userId)` is how later work gets a token. It returns the member's provider and an access
 token that is valid now, or null when the member has no calendar, the provider is not configured here, or the connection
 needs reconnecting. A token within two minutes of expiry is refreshed first, under a per-connection Postgres advisory
-lock, because Microsoft rotates the refresh token and two refreshes at once would burn one. A refresh the provider
-refuses for good records the problem, so the sheet tells the member to connect again. A provider that is only down throws,
-so a handler's retry policy runs.
+lock, because Microsoft rotates the refresh token and two refreshes at once would burn one. The refresh commits on a
+connection of its own (`ScreenHireDbContext.CreateIndependent`), because the caller's transaction can roll back, and a
+rotated token lost that way would leave the member to connect again. A refresh the provider refuses for good records the
+problem, so the sheet tells the member to connect again. A provider that is only down throws, so a handler's retry policy
+runs.
 
 ## Providers and configuration
 
@@ -277,7 +279,9 @@ outcome.
 ## The candidate's routes
 
 `/v1/public/organizations/{organizationSlug}/interviews/{token}` is anonymous and rate limited like the apply flow. A token
-for another organization, or one that is forged, damaged or past its own limit, is a 404.
+for another organization, or one that is forged, damaged or past its own limit, is a 404. An Open or Booked interview whose
+application has ended (rejected, withdrawn, hired or kept in mind) reads as `Cancelled` here, so a candidate who has left
+the job cannot book, move or cancel.
 
 | Route | What it does |
 |---|---|
@@ -310,6 +314,10 @@ go on; a calendar that is only down throws, so Wolverine retries and the events 
 candidate gets `interview-confirmation` (or `interview-cancelled`), whose timeline entry has an id derived from the interview
 and revision, and `InterviewChanged` tells open dashboards.
 
+These handlers take the interviewers' locks before they read the request and hold them through the calendar calls, until
+the handler's transaction commits. A cancellation or a move takes the same locks, so it cannot slip in while events are
+being written: it waits, then finds the event ids it needs to remove or move.
+
 ## The candidate's page
 
 The invitation and confirmation emails link to `/interviews/{token}` on the careers site ([apply flow](apply-flow.md), §8.1),
@@ -319,7 +327,7 @@ offers instants and the zone; it never sends formatted text. Booking, moving and
 redirect back to the same address with an outcome word (`booked`, `rescheduled`, `cancelled`, `slot-taken`, `too-late`).
 A conflict maps to its notice by the problem's `type`. The page shows one screen of five days that have times and links to the
 next, shows no meeting link of its own (the calendar invitation has it), names no interviewer, and says nothing about
-verification. The browser test (`InterviewBookingTests`) runs the whole journey with JavaScript off, axe clean, and checks
+verification. Cancelling asks first: a `details` element opens a line that says what happens and a Yes, cancel it button. The browser test (`InterviewBookingTests`) runs the whole journey with JavaScript off, axe clean, and checks
 the page at 390 and 1280 pixels wide for sideways scrolling and touch targets.
 
 ## The dashboard
@@ -347,12 +355,13 @@ It opens `ScheduleInterviewSheet`, which lists the members who see the job from 
   becomes one sentence naming the interviewers whose calendars do not work, under the list. A 409 shows the API's own words
   (an interview is already open or booked, or the application has ended), and a 404 says scheduling is not set up here.
 
-**The header** gets one fact, "Booked for" and the time in the reader's own zone, only while an interview is booked. The
-time is said nowhere else on the screen except Activity, which records the time each entry was about.
+**The header** gets a mini card, Interview, only while an interview is booked: the time in the reader's own zone, then the
+length and how many interviewers. The time is said nowhere else on the screen except Activity, which records the time each
+entry was about.
 
 **The Interview panel** sits under Next steps on Overview and is not drawn while no interview was ever offered. An open
 interview says it is waiting for the candidate and gives the days they can choose from, in the interview's zone. A booked
-one lists the interviewers with the organizer marked in words, the meeting link, and a note under an interviewer whose
+one lists the interviewers with the organizer marked in words when there are two or more, the meeting link, and a note under an interviewer whose
 calendar event is still pending or failed (the failure's own words, such as "Their calendar refused the event"). A cancelled or expired
 one is one line saying how it ended. Cancel is a destructive item in the panel's menu behind a dialog, for people who may
 email candidates, because it tells the candidate and removes the event from every calendar.

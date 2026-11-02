@@ -766,4 +766,4 @@ evaluator for one trigger and lists each triggered automation's outcome, rule re
 - Approval steps (mid-market): model as a stage kind or a cross-cutting action? (Leaning: `RequestApproval` action +
   `ApprovalCompleted` trigger.)
 - Agency mode: templates scoped per client company.
-- Interview scheduling: resolved. It is built on the Google and Microsoft calendar APIs, and `ScheduleInterview` and `InterviewScheduled` are in the engine ([interview-scheduling.md](interview-scheduling.md), ADR-0021).
+- Interview scheduling: resolved. It is built on the Google and Microsoft calendar APIs, and `ScheduleInterview` and `InterviewScheduled` are in the engine ([interview-scheduling.md](interview-scheduling.md), ADR-0024).
