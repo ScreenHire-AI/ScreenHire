@@ -181,19 +181,29 @@ describe('API keys page', () => {
     await waitFor(() => expect(bodies).toEqual([{ name: 'Export', scopes: ['Read', 'Write'] }]));
   });
 
-  it('turns the Verification read switch off for anyone but an owner, and says why', async () => {
+  it('gives anyone but an owner no Verification read switch, and says who can give it', async () => {
     signInAsAdmin();
     renderPage([]);
     const dialog = await openCreateDialog();
 
-    expect(within(dialog).getByRole('switch', { name: 'Verification read' })).toBeDisabled();
-    expect(within(dialog).getByText(/Ask an owner to turn this on\./)).toBeInTheDocument();
+    expect(within(dialog).queryByRole('switch', { name: 'Verification read' })).not.toBeInTheDocument();
+    expect(within(dialog).getByText('Only an owner can give a key Verification read.')).toBeInTheDocument();
   });
 
-  it('says in the list that a key can read verification', async () => {
-    renderPage([key('k5', 'Auditor', { scopes: ['Read', 'VerificationRead'] })]);
+  it('shows on a key that it has the scope and what the scope opens, and keeps its access words short', async () => {
+    renderPage([key('k5', 'Auditor', { scopes: ['Read', 'VerificationRead'] }), key('k6', 'Payroll sync', { scopes: ['Read', 'Write'] })]);
 
-    expect((await screen.findAllByText('Read only with verification')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('Verification read. Opens verification levels, reasons and evidence.')).length).toBe(2);
+    expect(screen.getAllByText('Read only').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/with verification/)).not.toBeInTheDocument();
+    await expectNoAxeViolations();
+  });
+
+  it('says nothing of the scope on a key without it or a revoked one', async () => {
+    renderPage([syncKey, key('k7', 'Old auditor', { scopes: ['Read', 'VerificationRead'], revokedAt: '2026-10-10T09:00:00Z' })]);
+    await screen.findAllByText('Payroll sync');
+
+    expect(screen.queryByText(/^Verification read\. Opens/)).not.toBeInTheDocument();
   });
 
   it('shows the new token once, with Copy, and forgets it after Done', async () => {

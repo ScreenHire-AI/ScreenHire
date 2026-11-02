@@ -164,7 +164,28 @@ public sealed class VerificationReadScopeTests(AppHostFixture fixture)
         (await aKey.GetAsync($"/v1/applications/{bApplication}/verification")).Expect(HttpStatusCode.NotFound);
         (await aKey.GetAsync("/v1/verification/applications?authenticity=VerificationRecommended")).Expect(HttpStatusCode.OK)
             .At("items").GetArrayLength().Should().Be(0);
+        (await aKey.GetAsync($"/v1/verification/applications?authenticity=VerificationRecommended&jobId={jobId}")).Expect(HttpStatusCode.OK)
+            .At("items").GetArrayLength().Should().Be(0, "naming the other organization's job finds nothing either");
         (await ReadsByKeyAsync(b, bApplication)).Should().BeEmpty("another organization's key left no row");
+    }
+
+    [Fact]
+    public async Task A_list_by_level_is_in_the_order_applications_arrived_never_ranked_by_how_concerning_they_are()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var (slug, jobId) = await VerificationSupport.OpenJobAsync(fixture, owner);
+        var bot = await VerificationSupport.ApplyAsync(fixture, slug, jobId, SyntheticApplicants.Bot);
+        var genuine = await VerificationSupport.ApplyAsync(fixture, slug, jobId, SyntheticApplicants.GenuineHuman);
+        var botVerification = await VerificationSupport.AssessedAsync(owner, bot);
+        var genuineVerification = await VerificationSupport.AssessedAsync(owner, genuine);
+        botVerification.Text("authenticity.level").Should().NotBe(genuineVerification.Text("authenticity.level"), "the two differ in the level a ranking would use");
+        botVerification.Text("aiAssistance.level").Should().Be(genuineVerification.Text("aiAssistance.level"), "the other level lets one list hold both");
+        using var key = new KeyClient(fixture, (await owner.CreateKeyAsync("Auditor", ["Read", "VerificationRead"])).Text("token"));
+
+        var list = (await key.GetAsync($"/v1/verification/applications?aiAssistance={botVerification.Text("aiAssistance.level")}&jobId={jobId}")).Expect(HttpStatusCode.OK);
+
+        list.At("items").EnumerateArray().Select(i => i.GetProperty("applicationId").GetGuid())
+            .Should().Equal([genuine, bot], "the newest application comes first, though the older one has the more serious authenticity level");
     }
 
     [Fact]

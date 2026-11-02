@@ -116,6 +116,28 @@ public sealed class McpServerTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task The_new_tools_read_only_the_keys_own_organization()
+    {
+        using var ours = await PoolWorld.CreateAsync(fixture);
+        using var theirs = await PoolWorld.CreateAsync(fixture);
+        var (theirJob, _) = await theirs.OpenJobAsync("Platform Engineer");
+        var kept = await theirs.KeptPersonAsync(theirJob, "saved", "Strong referral.");
+        await using var mcp = await McpSupport.ConnectAsync(fixture, (await ours.Owner.CreateKeyAsync("Auditor", ["Read", "VerificationRead"])).Text("token"));
+
+        var saved = await mcp.CallAsync("list_saved_candidates", new());
+        var found = await mcp.CallAsync("find_candidates_by_verification_level", new() { ["authenticity"] = "NoConcerns", ["jobId"] = theirJob });
+        var report = await mcp.CallAsync("get_hiring_report", new()
+        {
+            ["from"] = DateTimeOffset.UtcNow.AddDays(-7), ["to"] = DateTimeOffset.UtcNow.AddDays(1), ["jobIds"] = new[] { theirJob },
+        });
+
+        saved.GetProperty("candidates").EnumerateArray().Should().BeEmpty();
+        found.GetProperty("applications").EnumerateArray().Should().BeEmpty();
+        report.GetProperty("funnel").EnumerateArray().Should().OnlyContain(f => f.GetProperty("applications").GetInt32() == 0);
+        (await mcp.CallFailingAsync("get_verification", new() { ["applicationId"] = kept.ApplicationId })).Should().Contain("No application");
+    }
+
+    [Fact]
     public async Task A_read_key_reads_the_hiring_report_and_the_saved_candidates()
     {
         using var world = await PoolWorld.CreateAsync(fixture);
