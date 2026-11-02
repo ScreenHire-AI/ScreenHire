@@ -162,7 +162,7 @@ export const GetCurrentUserResponse = zod.object({
   "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
 }).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
@@ -219,7 +219,7 @@ export const CompleteOnboardingResponse = zod.object({
   "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
 }).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
@@ -240,7 +240,7 @@ export const AcceptInvitationResponse = zod.object({
   "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
 }).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
@@ -261,7 +261,7 @@ export const SwitchOrganizationResponse = zod.object({
   "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
 }).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
@@ -4590,6 +4590,59 @@ export const GetCandidateResponse = zod.object({
 }).describe('A candidate and every application they made to the organization.')
 
 
+export const GetCandidateHistoryParams = zod.object({
+  "candidateId": zod.uuid()
+})
+
+export const GetCandidateHistoryResponseItem = zod.object({
+  "applicationId": zod.uuid(),
+  "jobId": zod.uuid(),
+  "jobTitle": zod.string(),
+  "entry": zod.object({
+  "id": zod.uuid(),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'EmailReceived']),
+  "occurredAt": zod.iso.datetime({"offset":true}),
+  "actorUserId": zod.uuid().nullable(),
+  "fromStageId": zod.string().nullable(),
+  "toStageId": zod.string().nullable(),
+  "note": zod.string().nullable(),
+  "tag": zod.string().nullable(),
+  "automationRunId": zod.uuid().nullable(),
+  "actorApiKeyId": zod.uuid().nullable(),
+  "scorecardId": zod.uuid().nullable(),
+  "stageId": zod.string().nullable(),
+  "recommendation": zod.string().nullable(),
+  "emailTemplateId": zod.string().nullish(),
+  "emailSubject": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish(),
+  "questionnaireRequestId": zod.uuid().nullish(),
+  "noteId": zod.uuid().nullish(),
+  "noteEditedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "actorApiKeyName": zod.string().nullish(),
+  "emailId": zod.uuid().nullish(),
+  "taskId": zod.uuid().nullish(),
+  "poolExit": zod.union([zod.null(),zod.union([zod.literal('Expired'),zod.literal('Removed'),zod.literal('CandidateAsked'),zod.literal('AddedToJob'),zod.literal('AppliedAgain'),zod.literal('BackInJob'),zod.literal('KeptFromAnotherJob'),zod.literal(null)])]).optional(),
+  "otherJobId": zod.uuid().nullish(),
+  "otherApplicationId": zod.uuid().nullish()
+}).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.'),
+  "fromStageName": zod.string().nullish(),
+  "toStageName": zod.string().nullish(),
+  "stageName": zod.string().nullish()
+}).describe('One entry of a candidate\'s history across all of their applications: an entry of one application\'s timeline, with the\napplication and job it belongs to, newest first. It leaves out verification output (the Verification tab holds that,\nADR-0004) and what a reviewer scored or recommended (a scorecard entry says one was submitted, nothing more).')
+export const GetCandidateHistoryResponse = zod.array(GetCandidateHistoryResponseItem)
+
+
+export const EraseCandidateParams = zod.object({
+  "candidateId": zod.uuid()
+})
+
+export const EraseCandidateBody = zod.object({
+  "confirmation": zod.string()
+}).describe('Erases a candidate. `confirmation` is the candidate\'s full name as the person typed it, compared ignoring case and\nsurrounding spaces, so an erasure is never one stray click.')
+
+export const EraseCandidateResponse = zod.void()
+
+
 export const GetApplicationVerificationParams = zod.object({
   "applicationId": zod.uuid()
 })
@@ -4782,7 +4835,7 @@ export const GetApplicationVerificationResponse = zod.object({
 }).describe('How much of the content appears generated or templated? Informational, and relative to the job\'s AI policy.')]),
   "reviewLog": zod.array(zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Dismissed', 'NoteAdded', 'ReasonExplained', 'ExplanationUndone', 'ReadByKey']),
+  "type": zod.enum(['Dismissed', 'NoteAdded', 'ReasonExplained', 'ExplanationUndone', 'ReadByKey', 'EvidenceChanged']),
   "assessmentKind": zod.union([zod.null(),zod.union([zod.literal('Authenticity'),zod.literal('AiAssistance'),zod.literal(null)])]),
   "assessmentId": zod.uuid().nullable(),
   "dismissReason": zod.union([zod.null(),zod.enum(['VerifiedOutsideScreenHire', 'ExplainedByCandidate', 'FalsePositive', 'Other']).describe('Why a reviewer dismissed an assessment.')]),
@@ -5040,7 +5093,7 @@ export const DismissVerificationAssessmentResponse = zod.object({
 }).describe('How much of the content appears generated or templated? Informational, and relative to the job\'s AI policy.')]),
   "reviewLog": zod.array(zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Dismissed', 'NoteAdded', 'ReasonExplained', 'ExplanationUndone', 'ReadByKey']),
+  "type": zod.enum(['Dismissed', 'NoteAdded', 'ReasonExplained', 'ExplanationUndone', 'ReadByKey', 'EvidenceChanged']),
   "assessmentKind": zod.union([zod.null(),zod.union([zod.literal('Authenticity'),zod.literal('AiAssistance'),zod.literal(null)])]),
   "assessmentId": zod.uuid().nullable(),
   "dismissReason": zod.union([zod.null(),zod.enum(['VerifiedOutsideScreenHire', 'ExplainedByCandidate', 'FalsePositive', 'Other']).describe('Why a reviewer dismissed an assessment.')]),
@@ -5270,7 +5323,7 @@ export const ExplainVerificationReasonResponse = zod.object({
 }).describe('How much of the content appears generated or templated? Informational, and relative to the job\'s AI policy.')]),
   "reviewLog": zod.array(zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Dismissed', 'NoteAdded', 'ReasonExplained', 'ExplanationUndone', 'ReadByKey']),
+  "type": zod.enum(['Dismissed', 'NoteAdded', 'ReasonExplained', 'ExplanationUndone', 'ReadByKey', 'EvidenceChanged']),
   "assessmentKind": zod.union([zod.null(),zod.union([zod.literal('Authenticity'),zod.literal('AiAssistance'),zod.literal(null)])]),
   "assessmentId": zod.uuid().nullable(),
   "dismissReason": zod.union([zod.null(),zod.enum(['VerifiedOutsideScreenHire', 'ExplainedByCandidate', 'FalsePositive', 'Other']).describe('Why a reviewer dismissed an assessment.')]),
@@ -5495,7 +5548,7 @@ export const UndoVerificationReasonExplanationResponse = zod.object({
 }).describe('How much of the content appears generated or templated? Informational, and relative to the job\'s AI policy.')]),
   "reviewLog": zod.array(zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Dismissed', 'NoteAdded', 'ReasonExplained', 'ExplanationUndone', 'ReadByKey']),
+  "type": zod.enum(['Dismissed', 'NoteAdded', 'ReasonExplained', 'ExplanationUndone', 'ReadByKey', 'EvidenceChanged']),
   "assessmentKind": zod.union([zod.null(),zod.union([zod.literal('Authenticity'),zod.literal('AiAssistance'),zod.literal(null)])]),
   "assessmentId": zod.uuid().nullable(),
   "dismissReason": zod.union([zod.null(),zod.enum(['VerifiedOutsideScreenHire', 'ExplainedByCandidate', 'FalsePositive', 'Other']).describe('Why a reviewer dismissed an assessment.')]),
@@ -5723,7 +5776,7 @@ export const AddVerificationNoteResponse = zod.object({
 }).describe('How much of the content appears generated or templated? Informational, and relative to the job\'s AI policy.')]),
   "reviewLog": zod.array(zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Dismissed', 'NoteAdded', 'ReasonExplained', 'ExplanationUndone', 'ReadByKey']),
+  "type": zod.enum(['Dismissed', 'NoteAdded', 'ReasonExplained', 'ExplanationUndone', 'ReadByKey', 'EvidenceChanged']),
   "assessmentKind": zod.union([zod.null(),zod.union([zod.literal('Authenticity'),zod.literal('AiAssistance'),zod.literal(null)])]),
   "assessmentId": zod.uuid().nullable(),
   "dismissReason": zod.union([zod.null(),zod.enum(['VerifiedOutsideScreenHire', 'ExplainedByCandidate', 'FalsePositive', 'Other']).describe('Why a reviewer dismissed an assessment.')]),
@@ -6376,7 +6429,7 @@ export const CreateInvitationResponse = zod.object({
 
 export const ListMembershipLogResponseItem = zod.object({
   "id": zod.uuid(),
-  "kind": zod.enum(['Invited', 'InvitationRevoked', 'Joined', 'RoleChanged', 'Removed', 'RoleCreated', 'RoleUpdated', 'RoleDeleted', 'JobAccessChanged', 'AddedToHiringTeam', 'RemovedFromHiringTeam']),
+  "kind": zod.enum(['Invited', 'InvitationRevoked', 'Joined', 'RoleChanged', 'Removed', 'RoleCreated', 'RoleUpdated', 'RoleDeleted', 'JobAccessChanged', 'AddedToHiringTeam', 'RemovedFromHiringTeam', 'CandidateErased']),
   "actorUserId": zod.uuid().nullable(),
   "memberUserId": zod.uuid().nullable(),
   "invitationId": zod.uuid().nullable(),
@@ -6755,7 +6808,7 @@ export const ListRolesResponse = zod.object({
   "customRoleId": zod.uuid().nullable(),
   "name": zod.string(),
   "description": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "people": zod.int(),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
@@ -6766,7 +6819,7 @@ export const ListRolesResponse = zod.object({
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.')
 }).describe('A role: built-in (`customRoleId` null), or Custom with its id. `description` is one line on what it is\nfor, generated from its permissions for a custom role. `people` counts the members who have it. A built-in role\nis last updated by ScreenHire.')),
   "permissions": zod.array(zod.object({
-  "permission": zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.'),
+  "permission": zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.'),
   "group": zod.enum(['Hiring', 'Templates', 'Organization']).describe('The groups the Roles page shows permissions in.'),
   "name": zod.string(),
   "description": zod.string(),
@@ -6788,7 +6841,7 @@ export const CreateRoleResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "description": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "people": zod.int(),
   "copiedFrom": zod.string(),
   "createdAt": zod.iso.datetime({"offset":true}),
@@ -6812,7 +6865,7 @@ export const GetRoleResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "description": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "people": zod.int(),
   "copiedFrom": zod.string(),
   "createdAt": zod.iso.datetime({"offset":true}),
@@ -6832,7 +6885,7 @@ export const UpdateRoleParams = zod.object({
 
 export const UpdateRoleBody = zod.object({
   "name": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')).nullable()
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')).nullable()
 }).describe('Renames a custom role and sets what it can do.')
 
 export const updateRoleResponseLastUpdatedCreatedDefault = false;
@@ -6841,7 +6894,7 @@ export const UpdateRoleResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "description": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "people": zod.int(),
   "copiedFrom": zod.string(),
   "createdAt": zod.iso.datetime({"offset":true}),

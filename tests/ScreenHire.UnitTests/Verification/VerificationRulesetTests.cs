@@ -257,6 +257,25 @@ public sealed class VerificationRulesetTests
     }
 
     [Fact]
+    public void A_later_revision_of_the_evidence_has_its_own_fingerprint_so_taking_evidence_back_is_a_new_assessment()
+    {
+        VerificationSignal[] signals = [Signal(SignalCatalogue.DatacenterIp)];
+        var inputs = new VerificationInputs(signals, AiUsePolicy.AllowedWithDisclosure, AiUseDeclaration.NotProvided, AccommodationRequested: false);
+        var first = VerificationRuleset.Assess(inputs).Single(r => r.Kind == VerificationAssessmentKind.Authenticity).Fingerprint;
+
+        var replaced = Signal(SignalCatalogue.DuplicateInOrganization);
+        var ai = VerificationRuleset.Assess(inputs).Single(r => r.Kind == VerificationAssessmentKind.AiAssistance).Fingerprint;
+
+        VerificationRuleset.Assess(inputs with { Superseded = [] }).Single(r => r.Kind == VerificationAssessmentKind.Authenticity).Fingerprint
+            .Should().Be(first, "an application whose evidence never changed keeps the fingerprint it always had");
+        var back = VerificationRuleset.Assess(inputs with { Superseded = [replaced] });
+        back.Single(r => r.Kind == VerificationAssessmentKind.Authenticity).Fingerprint
+            .Should().NotBe(first, "the same signals after evidence came and went must become the current assessment again");
+        back.Single(r => r.Kind == VerificationAssessmentKind.AiAssistance).Fingerprint
+            .Should().Be(ai, "a new AI assistance row would leave a reviewer's dismissal of the old one behind");
+    }
+
+    [Fact]
     public void Nothing_in_an_assessment_is_a_score()
     {
         var results = VerificationRuleset.Assess(new VerificationInputs(

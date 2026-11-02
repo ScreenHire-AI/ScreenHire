@@ -35,6 +35,12 @@ public interface IApplicantFileStore
 {
     /// <summary>The file's bytes, or why they were not read: no storage configured, or larger than <paramref name="maxBytes"/>.</summary>
     Task<StoredFile> ReadAsync(string blobName, long maxBytes, CancellationToken cancellationToken);
+
+    /// <summary>Deletes the file's blob when a candidate is erased. A blob that is not there is already gone, not an error.</summary>
+    Task DeleteAsync(string blobName, CancellationToken cancellationToken);
+
+    /// <summary>Deletes a reply attachment's blob, from the email attachments container, when a candidate is erased. As <see cref="DeleteAsync"/>.</summary>
+    Task DeleteReplyAttachmentAsync(string blobName, CancellationToken cancellationToken);
 }
 
 /// <summary>A file's bytes, or the reason (<see cref="Problem"/>) there are none.</summary>
@@ -48,6 +54,10 @@ public sealed class NoApplicantFileStore : IApplicantFileStore
 {
     public Task<StoredFile> ReadAsync(string blobName, long maxBytes, CancellationToken cancellationToken) =>
         Task.FromResult(StoredFile.NotRead("No file storage is configured, so the file was not read."));
+
+    public Task DeleteAsync(string blobName, CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task DeleteReplyAttachmentAsync(string blobName, CancellationToken cancellationToken) => Task.CompletedTask;
 }
 
 public static partial class ExtractApplicationDocumentHandler
@@ -68,8 +78,12 @@ public static partial class ExtractApplicationDocumentHandler
             return []; // read already: a redelivered message
         }
 
-        var file = await db.ApplicationFiles.AsNoTracking().SingleOrDefaultAsync(f => f.Id == message.FileId, cancellationToken)
-            ?? throw new InvalidOperationException($"File {message.FileId} is not visible to organization {message.OrganizationId}.");
+        // A file erased with its candidate since the message was sent has nothing left to read: done, not failed.
+        if (await db.ApplicationFiles.AsNoTracking().SingleOrDefaultAsync(f => f.Id == message.FileId, cancellationToken) is not { } file)
+        {
+            return [];
+        }
+
         ExtractedDocument extracted;
         if (file.ScanStatus == MalwareScanStatus.Infected)
         {
@@ -146,8 +160,12 @@ public static partial class CheckApplicationConsistencyHandler
             return [message.DelayedFor(staleAfter)];
         }
 
-        var application = await db.Applications.AsNoTracking().SingleOrDefaultAsync(a => a.Id == message.ApplicationId, cancellationToken)
-            ?? throw new InvalidOperationException($"Application {message.ApplicationId} is not visible to organization {message.OrganizationId}.");
+        // An application erased since the message was sent has nothing left to check: done, not failed.
+        if (await db.Applications.AsNoTracking().SingleOrDefaultAsync(a => a.Id == message.ApplicationId, cancellationToken) is not { } application)
+        {
+            return [];
+        }
+
         var fileIds = await db.ApplicationFiles.AsNoTracking().Where(f => f.ApplicationId == application.Id).Select(f => f.Id).ToListAsync(cancellationToken);
         var documents = await db.ApplicationDocuments.AsNoTracking()
             .Where(d => d.ApplicationId == application.Id && d.ExtractorVersion == DocumentExtraction.Version)

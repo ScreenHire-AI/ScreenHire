@@ -201,14 +201,13 @@ reply lands in Messages ([email](email.md), "Replies"). The link stays, because 
 
 ## Not built
 
-- **Erasure.** No erasure or data-access request feature exists yet ("Before real customers" in the
-  [roadmap](../roadmap.md)). The entry cascades from the candidate, so a future erasure removes them from the list.
-  Until then, a person removes them with "They asked to be removed", which also withdraws the permission. The note's
-  History does not cascade. Its before and after values are free text in `change_records`, which the app cannot delete
-  from, and those rows are keyed by the entry alone. When someone leaves the list the entry goes, so the rows stay, nobody
-  can read them, and nothing links them to the candidate any more. An erasure feature cannot find them by candidate, so
-  it needs that link or a purge of orphaned `TalentPoolEntry` rows, and the legal review covers it
-  ([status](../status.md#owner-actions)).
+- **Erasure.** An Owner or Admin can erase a candidate from their profile ([candidates.md](candidates.md)). The entry
+  cascades from the candidate, so erasing removes them from the list, and the erasure deletes the note's History from
+  `change_records`, including that of entries that had already left the list ([candidates.md](candidates.md)). A candidate's
+  own request to stop being kept deletes nothing; the profile then offers Erase candidate. There is still no request form for data access or erasure ("Before real
+  customers" in the [roadmap](../roadmap.md)).
+  Until then, a person removes them with "They asked to be removed", which also withdraws the permission. When someone
+  leaves the list and is not erased, the note's History stays: nobody can read it, and nothing links it to the candidate.
 - **Record retention.** Nothing deletes an ended application after a period; that is the same roadmap item. It matters
   more now: nothing expires a saved candidate, so until retention exists their details stay until a person removes them
   or the candidate stops it.

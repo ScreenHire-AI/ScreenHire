@@ -90,8 +90,13 @@ public sealed class VerificationTests(AppHostFixture fixture)
     {
         using var tenant = await fixture.SignedInWithOrganizationAsync();
         var (slug, jobId) = await OpenJobAsync(tenant);
-        await ApplyAsync(slug, jobId, SyntheticApplicants.ApplicationFarm[0]);
-        var second = await ApplyAsync(slug, jobId, SyntheticApplicants.ApplicationFarm[1]);
+        // The second member applies to another job whose title the first member's review log must never mention. The first
+        // member is settled first: a re-check of an application that has not run its duplicate check yet does nothing.
+        var otherJobId = (await tenant.CreateJobAsync(Samples.RemoteJob("Quarterly Auditor"))).Id();
+        await tenant.PublishJobAsync(otherJobId);
+        var first = await ApplyAsync(slug, jobId, SyntheticApplicants.ApplicationFarm[0]);
+        await SettledAsync(tenant, first);
+        var second = await ApplyAsync(slug, otherJobId, SyntheticApplicants.ApplicationFarm[1]);
 
         var verification = await AssessedAsync(tenant, second);
 
@@ -100,6 +105,22 @@ public sealed class VerificationTests(AppHostFixture fixture)
         duplicate.GetProperty("weight").GetString().Should().Be("High");
         duplicate.GetProperty("evidence").EnumerateArray().Select(e => e.GetProperty("label").GetString())
             .Should().Contain(["Same device", "Same resume file", "Same phone number", "Same email address (ignoring a plus tag)"]);
+
+        // The first member carries the same evidence once the later application has been seen, and its review log says why.
+        var earlier = await CandidateTestSupport.WaitForReviewEntryAsync(
+            tenant, first, "EvidenceChanged", alsoHolds: v => v.Text("authenticity.level") == "VerificationRecommended");
+        earlier.Text("authenticity.level").Should().Be(
+            "VerificationRecommended", "the first member's level rises with the evidence the later one brought (its reasons: {0})", string.Join(", ", CandidateTestSupport.AuthenticityCodes(earlier)));
+        var earlierDuplicate = earlier.At("authenticity.signals").EnumerateArray().Single(s => s.GetProperty("code").GetString() == SignalCatalogue.DuplicateInOrganization);
+        earlierDuplicate.GetProperty("weight").GetString().Should().Be("High");
+        earlierDuplicate.GetProperty("evidence").EnumerateArray().Select(e => e.GetProperty("label").GetString())
+            .Should().Contain(["Same device", "Same resume file", "Same phone number", "Same email address (ignoring a plus tag)"]);
+        var entry = CandidateTestSupport.ReviewEntries(earlier, "EvidenceChanged").Should().ContainSingle().Which;
+        entry.GetProperty("actorUserId").ValueKind.Should().Be(JsonValueKind.Null);
+        entry.GetProperty("note").GetString().Should().StartWith("New evidence");
+        var other = SyntheticApplicants.ApplicationFarm[1];
+        entry.GetRawText().Should().NotContainEquivalentOf(other.FirstName).And.NotContainEquivalentOf(other.LastName)
+            .And.NotContainEquivalentOf(other.Email).And.NotContain("Quarterly Auditor").And.NotContain(second.ToString());
     }
 
     [Fact]

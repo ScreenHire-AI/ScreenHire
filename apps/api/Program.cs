@@ -40,6 +40,8 @@ builder.AddScreenHireRealtime();
 
 builder.Services.AddSingleton<TimeProvider>(DatabasePrecisionTimeProvider.Instance);
 // Email templates render here for previews and test sends; every send to a candidate renders in the worker.
+// Erasing a candidate asks the duplicate check's directory who shared a detail with them, before their rows go.
+builder.Services.AddScoped<ScreenHire.Application.Verification.IApplicantDirectory, ScreenHire.Application.Verification.DatabaseApplicantDirectory>();
 builder.Services.AddSingleton<EmailTemplates>();
 builder.Services.AddSingleton<EmailTemplateStore>();
 builder.Services.AddSingleton<IValidator<CreateEmailTemplateRequest>, CreateEmailTemplateRequestValidator>();
@@ -121,6 +123,7 @@ app.MapPublicTelemetryEndpoints();
 app.MapJobEndpoints();
 app.MapTemplateEndpoints();
 app.MapApplicationEndpoints();
+app.MapCandidateEndpoints();
 app.MapVerificationEndpoints();
 app.MapDistributionEndpoints();
 app.MapPublicDistributionEndpoints();

@@ -65,8 +65,12 @@ public static class AutomationActionFailedHandler
         AutomationActionFailed message, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken)
     {
         var outgoing = new OutgoingMessages();
-        var action = await db.AutomationActionRuns.SingleOrDefaultAsync(a => a.Id == message.ActionRunId, cancellationToken)
-            ?? throw new InvalidOperationException($"Automation action {message.ActionRunId} is not visible to organization {message.OrganizationId}.");
+        // The action goes with its application when a candidate is erased: nothing left to mark, done and not failed.
+        if (await db.AutomationActionRuns.SingleOrDefaultAsync(a => a.Id == message.ActionRunId, cancellationToken) is not { } action)
+        {
+            return outgoing;
+        }
+
         if (action.Status != AutomationActionStatus.Pending)
         {
             return outgoing;

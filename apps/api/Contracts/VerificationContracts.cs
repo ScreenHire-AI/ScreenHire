@@ -126,7 +126,9 @@ public sealed record VerificationDismissal(Guid ActionId, DismissReason Reason, 
 /// <c>assessmentKind</c> and <c>assessmentId</c> are null for a note on the application's verification as a whole.
 /// <c>signalId</c> and <c>signalTitle</c> name the reason an explanation or its undo is about; <c>explainReason</c> is why
 /// it was explained. An entry of type <c>ReadByKey</c> has no <c>actorUserId</c>: <c>apiKeyId</c> and <c>apiKeyName</c>
-/// name the API key that read the verification (ADR-0021), and <c>keyCreatedByName</c> the person who made the key.
+/// name the API key that read the verification (ADR-0021), and <c>keyCreatedByName</c> the person who made the key. An
+/// <c>EvidenceChanged</c> entry has neither: the system writes it when a re-check adds or removes evidence, and its
+/// <c>note</c> says why.
 /// </remarks>
 public sealed record VerificationReviewEntry(
     Guid Id,

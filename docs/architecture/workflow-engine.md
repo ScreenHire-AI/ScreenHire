@@ -544,7 +544,9 @@ as for anyone (above), and the validator keeps timing facts out of its condition
 after every retry goes to the dead-letter table, and the error policy's last step (`AutomationFailures`) publishes
 `AutomationActionFailed`, which marks the action and its run failed. `AutomationRunFinished` (completed, failed or
 blocked) and `TeamNotified` reach the organization's dashboards; quiet outcomes raise nothing, so a skip for an
-accommodation never reaches anyone's browser. `GET /v1/applications/{id}/automation-runs` and `.../tasks` show the rest.
+accommodation never reaches anyone's browser. A run, an action or a failure notice that arrives after its application
+was erased ([candidates](candidates.md#erasure)) finds nothing and finishes without error, so it never reaches the
+dead-letter table. `GET /v1/applications/{id}/automation-runs` and `.../tasks` show the rest.
 
 **Tasks, notes and tags by hand.** The tasks automations make are the dashboard's My tasks: `GET /v1/tasks` lists open
 tasks assigned to the signed-in person, oldest first; `scope=Team` lists the ones assigned to nobody in particular,

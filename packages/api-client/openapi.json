@@ -4199,6 +4199,116 @@
         ]
       }
     },
+    "/v1/candidates/{candidateId}/history": {
+      "get": {
+        "tags": [
+          "Candidates"
+        ],
+        "operationId": "GetCandidateHistory",
+        "parameters": [
+          {
+            "name": "candidateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CandidateHistoryEntry"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/candidates/{candidateId}/erase": {
+      "post": {
+        "tags": [
+          "Candidates"
+        ],
+        "operationId": "EraseCandidate",
+        "parameters": [
+          {
+            "name": "candidateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EraseCandidateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/applications/{applicationId}/verification": {
       "get": {
         "tags": [
@@ -13343,6 +13453,50 @@
         "description": "Why ScreenHire no longer emails a candidate's address (reported by the email provider).",
         "default": "None"
       },
+      "CandidateHistoryEntry": {
+        "required": [
+          "applicationId",
+          "jobId",
+          "jobTitle",
+          "entry"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "entry": {
+            "$ref": "#/components/schemas/ApplicationTimelineEntry"
+          },
+          "fromStageName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "toStageName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "stageName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One entry of a candidate's history across all of their applications: an entry of one application's timeline, with the\napplication and job it belongs to, newest first. It leaves out verification output (the Verification tab holds that,\nADR-0004) and what a reviewer scored or recommended (a scorecard entry says one was submitted, nothing more)."
+      },
       "CandidateInput": {
         "required": [
           "email"
@@ -14516,6 +14670,18 @@
           "Temporary",
           "Internship"
         ]
+      },
+      "EraseCandidateRequest": {
+        "required": [
+          "confirmation"
+        ],
+        "type": "object",
+        "properties": {
+          "confirmation": {
+            "type": "string"
+          }
+        },
+        "description": "Erases a candidate. `confirmation` is the candidate's full name as the person typed it, compared ignoring case and\nsurrounding spaces, so an erasure is never one stray click."
       },
       "EvaluationOutcome": {
         "enum": [
@@ -16477,7 +16643,8 @@
           "RoleDeleted",
           "JobAccessChanged",
           "AddedToHiringTeam",
-          "RemovedFromHiringTeam"
+          "RemovedFromHiringTeam",
+          "CandidateErased"
         ]
       },
       "MembershipLogEntry": {
@@ -17007,6 +17174,7 @@
           "DeleteAnyNote",
           "CreateTasks",
           "ManageIntegrations",
+          "EraseCandidates",
           "EditAnyView",
           "GrantVerificationAccess"
         ],
@@ -21047,7 +21215,8 @@
           "NoteAdded",
           "ReasonExplained",
           "ExplanationUndone",
-          "ReadByKey"
+          "ReadByKey",
+          "EvidenceChanged"
         ]
       },
       "VerificationReviewEntry": {

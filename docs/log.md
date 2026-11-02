@@ -32,6 +32,13 @@ is still never a reason to reject: the tools and the server instructions say so,
 moves anyone. The MCP server also gains read tools for the hiring report and the saved candidates (today's talent
 pool; the rename and rating work for saved candidates is its own task).
 
+**One candidate across jobs** ([candidates](architecture/candidates.md)). A candidate's page at `/candidates/{id}` lists
+every application they made and their history across them; each application's header links to it as Also applied to.
+A later application that shares a detail with an earlier one re-checks the earlier one's duplicates, and the review log
+says why ([verification engine](architecture/verification-engine.md) section 10.2). An Owner or Admin can erase a
+candidate with their name typed to confirm, leaving a line in the team log with no personal data. Erasing also deletes
+their replies' attachments and the history of their saved notes, which sit outside the candidate's cascade.
+
 ## 2026-10-31
 
 **The test gate runs on GitHub Actions** ([ADR-0020](adr/0020-test-gate-on-github-actions.md)). Agents run

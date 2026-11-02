@@ -36,6 +36,9 @@ public sealed class VerificationSignal : IApplicationScoped
 
     public int SourceVersion { get; init; }
 
+    /// <summary>The <see cref="VerificationAnalyzerRun.Revision"/> of the run that wrote it.</summary>
+    public int SourceRevision { get; init; } = 1;
+
     public DateTimeOffset ObservedAt { get; init; }
 
     /// <summary>

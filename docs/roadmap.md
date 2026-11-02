@@ -59,7 +59,8 @@ each item names the doc that designs it. Board workflows carry the detail.
 
 - **Hosting and CI:** nothing is hosted; ADR-0007 sets the Azure plan, and the repo has no infrastructure or CI yet.
 - **Billing:** none exists.
-- **Compliance** ([legal](research/legal.md)): erasure and data-access requests, record retention, bias audits,
+- **Compliance** ([legal](research/legal.md)): data-access requests and a form for candidates to ask for erasure (a
+  person erases a candidate from the profile today), record retention, bias audits,
   Colorado and California automated-decision rules (due 1 January 2027), EU AI Act provider duties (due 2 December
   2027), the customer documentation pack.
 - **Accessibility:** an external WCAG 2.2 audit before general availability (ADR-0009).

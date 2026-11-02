@@ -26,6 +26,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
+  import AlsoAppliedTo from '#lib/components/also-applied-to.svelte';
   import ActivityPanel from '#lib/components/candidate/activity-panel.svelte';
   import AskScorecardSheet from '#lib/components/ask-scorecard-sheet.svelte';
   import PhoneIcon from '~icons/lucide/phone';
@@ -369,6 +370,8 @@
                 recruiter <RelativeTime at={detail.submittedAt} class="inline" />{/if}
             </span>
           </MetaItem>
+          <!-- The link to the candidate's profile, which lists every application the person made. -->
+          <AlsoAppliedTo candidateId={detail.candidate.id} applicationId={detail.id} />
           <!-- Saved stays once they leave the list, so this says they are still on it. -->
           {#if detail.inTalentPool}
             <MetaItem label="Saved candidates"><TruncatedText text="In Saved candidates" href="/saved" underlined /></MetaItem>

@@ -3,6 +3,7 @@
   import ClipboardPenIcon from '~icons/lucide/clipboard-pen';
   import KeyRoundIcon from '~icons/lucide/key-round';
   import MessageSquareCheckIcon from '~icons/lucide/message-square-check';
+  import ScanSearchIcon from '~icons/lucide/scan-search';
   import Undo2Icon from '~icons/lucide/undo-2';
   import type { VerificationReviewEntry } from '@screenhire/api-client';
   import { createGetApplicationVerification } from '@screenhire/api-client/svelte-query';
@@ -18,8 +19,9 @@
   import { describeError } from '#lib/query.js';
 
   // The people's side of an application's verification: every dismissal, explained reason, undo and note, newest first,
-  // with who and when, and each read through an API key that has the Verification read scope (ADR-0021), by key. It reads the
-  // verification panel's query, so the two share one request and update together.
+  // with who and when, each read through an API key that has the Verification read scope (ADR-0021), by key, and the evidence
+  // a re-check added or took away (written by ScreenHire, with its reason, so a level never moves without one; a person's
+  // note is never mixed up with it). It reads the verification panel's query, so the two share one request and update together.
   let { applicationId }: { applicationId: string } = $props();
 
   const queryClient = useQueryClient();
@@ -41,7 +43,7 @@
 
   function actorOf({ entry }: ReviewLogRow): string {
     if (entry.type === 'ReadByKey') return entry.keyCreatedByName ? `key made by ${entry.keyCreatedByName}` : 'key made by someone who has left';
-    return `by ${reviewerName(entry.actorUserId, entry.actorName, page.data.user?.id)}`;
+    return entry.actorUserId ? `by ${reviewerName(entry.actorUserId, entry.actorName, page.data.user?.id)}` : 'by ScreenHire';
   }
 
   function describeEntry(entry: VerificationReviewEntry): string {
@@ -50,6 +52,8 @@
     if (entry.type === 'Dismissed') return `Dismissed ${about ?? 'an assessment'}: ${entry.dismissReason ? dismissReasonLabels[entry.dismissReason] : 'no reason'}`;
     if (entry.type === 'ReasonExplained') return `Explained ${reason}: ${entry.explainReason ? explainReasonLabels[entry.explainReason] : 'no reason'}`;
     if (entry.type === 'ExplanationUndone') return `Undid the explanation of ${reason}`;
+    // The reason is the entry's note, in words that name no other application, job or candidate (ADR-0015).
+    if (entry.type === 'EvidenceChanged') return entry.note ?? 'Evidence changed';
     return about ? `Note on ${about}` : 'Note';
   }
 
@@ -59,6 +63,7 @@
     ReasonExplained: MessageSquareCheckIcon,
     ExplanationUndone: Undo2Icon,
     ReadByKey: KeyRoundIcon,
+    EvidenceChanged: ScanSearchIcon,
   };
 
   const items = $derived<Activity[]>(
@@ -69,7 +74,8 @@
         icon: icons[row.entry.type],
         event: describeRow(row),
         actor: actorOf(row),
-        note: row.entry.note ?? undefined,
+        // The system's reason is the event line itself; a reviewer's words are quoted under theirs.
+        note: row.entry.type === 'EvidenceChanged' ? undefined : (row.entry.note ?? undefined),
         at: row.entry.occurredAt,
       })),
   );

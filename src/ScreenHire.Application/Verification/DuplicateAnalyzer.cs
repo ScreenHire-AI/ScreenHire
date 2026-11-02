@@ -14,7 +14,8 @@ namespace ScreenHire.Application.Verification;
 /// </summary>
 /// <remarks>
 /// A shared device or file is strong (High); a shared email base or phone alone is Medium, since families and shared
-/// inboxes exist. Earlier applications are not revisited when a later one matches them: the later one carries the signal.
+/// inboxes exist. A later application that matches an earlier one sends the earlier one a re-check
+/// (<see cref="RecheckApplicationDuplicates"/>), so the first member of a group carries the signal too.
 /// </remarks>
 public sealed class DuplicateAnalyzer(IApplicantDirectory directory) : IVerificationAnalyzer
 {
@@ -49,7 +50,10 @@ public sealed class DuplicateAnalyzer(IApplicantDirectory directory) : IVerifica
                     ["others"] = Count(others),
                 },
                 Weight: strong ? SignalWeight.High : SignalWeight.Medium),
-        ]);
+        ])
+        {
+            RelatedApplicationIds = [.. matches.SelectMany(m => m.ApplicationIds).Distinct()],
+        };
     }
 
     private static string Label(SharedIdentifier kind) => kind switch

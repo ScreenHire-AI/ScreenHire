@@ -135,8 +135,8 @@ brackets.
   keeping their details until the candidate asks or the team removes them, with no expiry, including permissions given
   before this under a form that promised 6 to 24 months and still running when it shipped; the apply form's "Keep my
   details for future roles" wording and the privacy page's "Future roles" section, per market; and the note's History,
-  whose free text outlives a saved entry in append-only `change_records` with no link back to the candidate (the saved
-  candidates task).
+  whose free text outlives a saved entry in append-only `change_records` with no link back to the candidate until an
+  erasure in that organization purges it (the saved candidates task).
 - **Product.** Set prices and job limits in `apps/marketing/src/lib/pricing.ts` (#6). Move jobs still on "Software
   engineer" version 1 to version 2 (#13).
 
@@ -146,10 +146,11 @@ brackets.
   applicant, and they count an application through the careers widget under the careers page although it records its
   site; only the MCP server reads reports for a key, not the HTTP API; and stage kinds come from each job's current workflow, so a
   removed stage's history drops out of the funnel (`architecture/reports.md` section 6).
-- Erasure requests: nothing deletes a candidate yet. A saved candidate goes with their candidate record when one is
-  deleted, and until erasure exists a person removes someone from the saved candidates with "They asked to be removed",
-  which withdraws their permission for future roles. Nothing expires a saved candidate and nothing deletes an ended
-  application, so record retention matters more than before ([saved candidates](architecture/talent-pool.md)).
+- Erasure requests: an Owner or Admin erases a candidate from their profile, with the name typed to confirm
+  ([candidates](architecture/candidates.md)). There is no form for a candidate to ask for their data or its erasure: the
+  privacy page tells them to write to the employer. A candidate who uses the stop link in a saved candidate's invitation is
+  only taken off the list ([saved candidates](architecture/talent-pool.md)); the profile then offers Erase candidate.
+  Nothing expires a saved candidate and nothing deletes an ended application, so record retention matters more than before.
 
 - MCP clients that sign in only with OAuth, such as claude.ai custom connectors, cannot connect until OAuth comes
   (ADR-0011 decision 6).

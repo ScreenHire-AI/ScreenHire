@@ -246,6 +246,8 @@ do, in three groups (Hiring, Templates, Organization), and the set each built-in
 every role (`EveryRole`): reads are not permission-checked, and job access will narrow which jobs. Manage Owners and
 Give a key verification access are Owner-only (`OwnerOnly`): no custom role holds either, and Admin has neither. Delete anyone's notes (`NotePolicy`) lets a role delete a note
 someone else wrote; Owners and Admins have it. It comes with Add notes and tags, which the delete route asks for first.
+Erase candidates (`POST /v1/candidates/{id}/erase`) is held by Owners and Admins and can go in a custom role; the route also
+needs a person who sees every job, and refuses organization API keys ([candidates](candidates.md)).
 
 Edit anyone's views (`ViewPolicy`, `saved-views.md`) lets a role rename, share or delete a view someone else saved; Owners and
 Admins have it, and so can a custom role, with no other permission needed because a view is a screen preference, not

@@ -44,6 +44,7 @@ import type {
   BrandingImage,
   CandidateDetail,
   CandidateEmailEntry,
+  CandidateHistoryEntry,
   CandidateSummary,
   ChallengeProviderParams,
   ChangeMemberJobAccessRequest,
@@ -71,6 +72,7 @@ import type {
   EmailTemplateEntry,
   EmailTemplateList,
   EmailsQueued,
+  EraseCandidateRequest,
   ExplainVerificationReasonRequest,
   GetApiKeysHistoryParams,
   GetEmailTemplateHistoryParams,
@@ -7754,6 +7756,214 @@ export function createGetCandidate<TData = Awaited<ReturnType<typeof getCandidat
 
 
 
+
+export type getCandidateHistoryResponse200 = {
+  data: CandidateHistoryEntry[]
+  status: 200
+}
+
+export type getCandidateHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getCandidateHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getCandidateHistoryResponseSuccess = (getCandidateHistoryResponse200) & {
+  headers: Headers;
+};
+export type getCandidateHistoryResponseError = (getCandidateHistoryResponse401 | getCandidateHistoryResponse404) & {
+  headers: Headers;
+};
+
+export const getGetCandidateHistoryUrl = (candidateId: string,) => {
+
+
+
+
+  return `/v1/candidates/${candidateId}/history`
+}
+
+export const getCandidateHistory = async (candidateId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getCandidateHistoryResponseSuccess> => {
+
+  return apiQueryFetch<getCandidateHistoryResponseSuccess>(getGetCandidateHistoryUrl(candidateId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCandidateHistoryQueryKey = (candidateId: string,) => {
+    return [
+    'v1','candidates',candidateId,'history'
+    ] as const;
+    }
+
+
+export const getGetCandidateHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getCandidateHistory>>, TError = ErrorType<void>>(candidateId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getCandidateHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCandidateHistoryQueryKey(candidateId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCandidateHistory>>> = ({ signal }) => getCandidateHistory(candidateId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: candidateId !== null && candidateId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getCandidateHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetCandidateHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getCandidateHistory>>>
+export type GetCandidateHistoryQueryError = ErrorType<void>
+
+
+
+export function createGetCandidateHistory<TData = Awaited<ReturnType<typeof getCandidateHistory>>, TError = ErrorType<void>>(
+ candidateId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getCandidateHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetCandidateHistoryQueryOptions(candidateId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type eraseCandidateResponse204 = {
+  data: void
+  status: 204
+}
+
+export type eraseCandidateResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type eraseCandidateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type eraseCandidateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type eraseCandidateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type eraseCandidateResponseSuccess = (eraseCandidateResponse204) & {
+  headers: Headers;
+};
+export type eraseCandidateResponseError = (eraseCandidateResponse400 | eraseCandidateResponse401 | eraseCandidateResponse403 | eraseCandidateResponse404) & {
+  headers: Headers;
+};
+
+export const getEraseCandidateUrl = (candidateId: string,) => {
+
+
+
+
+  return `/v1/candidates/${candidateId}/erase`
+}
+
+export const eraseCandidate = async (candidateId: string,
+    eraseCandidateRequest: EraseCandidateRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<eraseCandidateResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<eraseCandidateResponseSuccess>(getEraseCandidateUrl(candidateId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(eraseCandidateRequest)
+  }
+);}
+
+
+
+
+
+export const getEraseCandidateMutationKey = () => ['eraseCandidate'] as const;
+
+export const getEraseCandidateMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof eraseCandidate>>, TError,EraseCandidateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof eraseCandidate>>, TError,EraseCandidateMutationVariables, TContext> => {
+
+const mutationKey = getEraseCandidateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof eraseCandidate>>, EraseCandidateMutationVariables> = (props) => {
+          const {candidateId,data} = props ?? {};
+
+          return  eraseCandidate(candidateId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EraseCandidateMutationResult = NonNullable<Awaited<ReturnType<typeof eraseCandidate>>>
+    export type EraseCandidateMutationBody = EraseCandidateRequest
+    export type EraseCandidateMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type EraseCandidateMutationVariables = {candidateId: string;data: EraseCandidateRequest}
+
+    export const createEraseCandidate = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof eraseCandidate>>, TError,EraseCandidateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof eraseCandidate>>,
+        TError,
+        EraseCandidateMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getEraseCandidateMutationOptions(options?.()) }), queryClient);
+    }
 
 export type getApplicationVerificationResponse200 = {
   data: ApplicationVerification

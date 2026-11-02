@@ -20,4 +20,5 @@ export const MembershipEventKind = {
   JobAccessChanged: 'JobAccessChanged',
   AddedToHiringTeam: 'AddedToHiringTeam',
   RemovedFromHiringTeam: 'RemovedFromHiringTeam',
+  CandidateErased: 'CandidateErased',
 } as const;

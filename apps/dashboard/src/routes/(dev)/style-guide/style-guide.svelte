@@ -145,6 +145,7 @@
 
   let shortcutsOpen = $state(false);
   let confirmOpen = $state(false);
+  let typedConfirmOpen = $state(false);
   let emailOpen = $state(true);
   let secretOpen = $state(false);
   const demoStages: WorkflowStage[] = [
@@ -474,6 +475,16 @@
   {#snippet icon()}<CircleXIcon aria-hidden="true" />{/snippet}
 </ConfirmDialog>
 
+<ConfirmDialog
+  bind:open={typedConfirmOpen}
+  title="Erase this candidate?"
+  description="This erases Jordan Ellis and all of their applications, files, answers, notes and verification data, for good."
+  confirmLabel="Erase candidate"
+  failure="Could not erase the candidate"
+  confirmText="Jordan Ellis"
+  onconfirm={async () => {}}
+/>
+
 <main class="flex min-h-screen flex-col">
   <HeaderBand title="Style guide">
     {#snippet actions()}
@@ -764,6 +775,7 @@
         </Panel>
         <Panel title="Confirm dialog" class="flex-[1_1_320px]">
           <Button variant="outline" onclick={() => (confirmOpen = true)}>Close the job</Button>
+          <Button variant="outline" onclick={() => (typedConfirmOpen = true)}>Erase a candidate</Button>
         </Panel>
         <Panel title="Secret dialog" class="flex-[1_1_320px]">
           <Button variant="outline" onclick={() => (secretOpen = true)}>Show a new key</Button>

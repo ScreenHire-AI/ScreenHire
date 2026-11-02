@@ -19,8 +19,10 @@ internal sealed class VerificationAnalyzerRunConfiguration : IEntityTypeConfigur
             .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasAlternateKey(r => new { r.OrganizationId, r.Id });
-        // The pipeline's idempotency key (verification-engine.md §5): each analyzer version runs once per application.
-        builder.HasIndex(r => new { r.OrganizationId, r.ApplicationId, r.Analyzer, r.AnalyzerVersion }).IsUnique();
+        builder.Property(r => r.Revision).HasDefaultValue(1);
+        // The pipeline's idempotency key (verification-engine.md §5): each analyzer version runs once per application. A
+        // re-check of the same version (the duplicate check when a later application shares a detail) is the next revision.
+        builder.HasIndex(r => new { r.OrganizationId, r.ApplicationId, r.Analyzer, r.AnalyzerVersion, r.Revision }).IsUnique();
     }
 }
 
@@ -34,6 +36,7 @@ internal sealed class VerificationSignalConfiguration : IEntityTypeConfiguration
         builder.Property(s => s.Weight).HasConversion<string>().HasMaxLength(10);
         builder.Property(s => s.Confidence).HasConversion<string>().HasMaxLength(10);
         builder.Property(s => s.Source).HasMaxLength(40);
+        builder.Property(s => s.SourceRevision).HasDefaultValue(1);
         builder.Property(s => s.Explanation).HasMaxLength(1000);
         builder.Property(s => s.Evidence).HasJsonColumn();
         builder.Property(s => s.CounterEvidence).HasJsonColumn();
@@ -113,8 +116,10 @@ internal sealed class VerificationReviewActionConfiguration : IEntityTypeConfigu
         // keys here: the value only ever comes from the authenticated key's own claim, with the organization resolved from
         // that same key, so a row cannot name another organization's key.
         builder.HasOne<ApiKey>().WithMany().HasForeignKey(a => a.ApiKeyId).OnDelete(DeleteBehavior.Cascade);
+        // A person or a key, never both. Only an EvidenceChanged entry has neither: the system writes it.
         builder.ToTable(t => t.HasCheckConstraint(
-            "ck_verification_review_actions_one_actor", "(actor_user_id IS NOT NULL) <> (api_key_id IS NOT NULL)"));
+            "ck_verification_review_actions_one_actor",
+            "((actor_user_id IS NOT NULL) <> (api_key_id IS NOT NULL)) OR (type = 'EvidenceChanged' AND actor_user_id IS NULL AND api_key_id IS NULL)"));
         builder.HasIndex(a => new { a.OrganizationId, a.ApplicationId, a.OccurredAt });
         builder.HasIndex(a => new { a.OrganizationId, a.AssessmentId });
         // One dismissal per assessment, even when two reviewers press the button at once.

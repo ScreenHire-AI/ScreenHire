@@ -46,8 +46,12 @@ public static partial class ScanApplicationFileHandler
         ILogger<ScanApplicationFile> logger,
         CancellationToken cancellationToken)
     {
-        var file = await db.ApplicationFiles.SingleOrDefaultAsync(f => f.Id == message.FileId, cancellationToken)
-            ?? throw new InvalidOperationException($"File {message.FileId} is not visible to organization {message.OrganizationId}.");
+        // A file erased with its candidate since the message was sent has nothing left to scan: done, not failed.
+        if (await db.ApplicationFiles.SingleOrDefaultAsync(f => f.Id == message.FileId, cancellationToken) is not { } file)
+        {
+            return [];
+        }
+
         if (file.ScanStatus != MalwareScanStatus.Pending)
         {
             return []; // a redelivered message for a file already scanned, whose reading was sent with the scan
