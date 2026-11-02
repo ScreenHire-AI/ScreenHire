@@ -73,7 +73,7 @@ their account. ASP.NET Core Identity is the user store (`ApplicationUser`, table
 `user_claims`, `user_tokens`); the session is the `sh.session` cookie (HttpOnly, SameSite=Lax, 14 days sliding).
 
 Sign-in keeps no provider tokens. A member who connects a Google or Outlook calendar for interview scheduling goes through
-a separate OAuth flow with its own scopes and stored tokens, and removing the member deletes that connection
+a separate OAuth flow with its own scopes and stored tokens, and removing the member deletes that connection and takes them off the interviews still to come
 ([interview scheduling](interview-scheduling.md)).
 
 The dashboard calls the API same-origin through its `/v1` path (the Vite proxy locally), so cookies are host-only on

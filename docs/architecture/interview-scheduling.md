@@ -26,6 +26,7 @@ sources:
   - resource: src/ScreenHire.Application/Scheduling/InterviewLinks.cs
   - resource: src/ScreenHire.Application/Scheduling/InterviewMessages.cs
   - resource: src/ScreenHire.Application/Scheduling/InterviewLifecycleHandlers.cs
+  - resource: src/ScreenHire.Application/Applications/ApplicationMoved.cs
   - resource: apps/api/Endpoints/InterviewEndpoints.cs
   - resource: apps/api/Hiring/InterviewerReferences.cs
   - resource: src/ScreenHire.Application/Automations/ExecuteAutomationActionHandler.cs
