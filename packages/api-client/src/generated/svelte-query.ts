@@ -78,6 +78,7 @@ import type {
   GetJobHistoryParams,
   GetOrganizationBrandingHistoryParams,
   GetOrganizationHistoryParams,
+  GetOrganizationSendingDomainHistoryParams,
   GetOrganizationTalentPoolSettingsHistoryParams,
   GetOrganizationVerificationSettingsHistoryParams,
   GetRoleHistoryParams,
@@ -123,6 +124,7 @@ import type {
   OnboardingRequest,
   OrganizationBranding,
   OrganizationProfile,
+  OrganizationSendingDomain,
   OrganizationTalentPoolSettings,
   OrganizationVerificationSettings,
   PendingInvitation,
@@ -140,6 +142,7 @@ import type {
   PublicQuestionnaireAnswers,
   PublicTalentPoolStatus,
   PublishJobRequest,
+  ReceivedEmail,
   RemoveApplicationTagParams,
   RemoveFromTalentPoolRequest,
   RequestScorecardRequest,
@@ -151,7 +154,9 @@ import type {
   SearchParams,
   SearchResults,
   SendEmailsRequest,
+  SendingDomainDetail,
   SentEmail,
+  SetSendingDomainRequest,
   SignInMethods,
   SimulateWorkflowRequest,
   SlackAccount,
@@ -18958,6 +18963,198 @@ export function createGetSentEmail<TData = Awaited<ReturnType<typeof getSentEmai
 
 
 
+export type getReceivedEmailResponse200 = {
+  data: ReceivedEmail
+  status: 200
+}
+
+export type getReceivedEmailResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getReceivedEmailResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getReceivedEmailResponseSuccess = (getReceivedEmailResponse200) & {
+  headers: Headers;
+};
+export type getReceivedEmailResponseError = (getReceivedEmailResponse401 | getReceivedEmailResponse404) & {
+  headers: Headers;
+};
+
+export const getGetReceivedEmailUrl = (replyId: string,) => {
+
+
+
+
+  return `/v1/replies/${replyId}`
+}
+
+export const getReceivedEmail = async (replyId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getReceivedEmailResponseSuccess> => {
+
+  return apiQueryFetch<getReceivedEmailResponseSuccess>(getGetReceivedEmailUrl(replyId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetReceivedEmailQueryKey = (replyId: string,) => {
+    return [
+    'v1','replies',replyId
+    ] as const;
+    }
+
+
+export const getGetReceivedEmailQueryOptions = <TData = Awaited<ReturnType<typeof getReceivedEmail>>, TError = ErrorType<void>>(replyId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getReceivedEmail>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetReceivedEmailQueryKey(replyId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getReceivedEmail>>> = ({ signal }) => getReceivedEmail(replyId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: replyId !== null && replyId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getReceivedEmail>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetReceivedEmailQueryResult = NonNullable<Awaited<ReturnType<typeof getReceivedEmail>>>
+export type GetReceivedEmailQueryError = ErrorType<void>
+
+
+
+export function createGetReceivedEmail<TData = Awaited<ReturnType<typeof getReceivedEmail>>, TError = ErrorType<void>>(
+ replyId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getReceivedEmail>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetReceivedEmailQueryOptions(replyId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type downloadReplyAttachmentResponse401 = {
+  data: void
+  status: 401
+}
+
+export type downloadReplyAttachmentResponse404 = {
+  data: void
+  status: 404
+}
+
+export type downloadReplyAttachmentResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+;
+export type downloadReplyAttachmentResponseError = (downloadReplyAttachmentResponse401 | downloadReplyAttachmentResponse404 | downloadReplyAttachmentResponse409) & {
+  headers: Headers;
+};
+
+export type downloadReplyAttachmentResponse = (downloadReplyAttachmentResponseError)
+
+export const getDownloadReplyAttachmentUrl = (replyId: string,
+    attachmentId: string,) => {
+
+
+
+
+  return `/v1/replies/${replyId}/attachments/${attachmentId}`
+}
+
+export const downloadReplyAttachment = async (replyId: string,
+    attachmentId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<downloadReplyAttachmentResponse> => {
+
+  return apiQueryFetch<downloadReplyAttachmentResponse>(getDownloadReplyAttachmentUrl(replyId,attachmentId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDownloadReplyAttachmentQueryKey = (replyId: string,
+    attachmentId: string,) => {
+    return [
+    'v1','replies',replyId,'attachments',attachmentId
+    ] as const;
+    }
+
+
+export const getDownloadReplyAttachmentQueryOptions = <TData = Awaited<ReturnType<typeof downloadReplyAttachment>>, TError = ErrorType<void | ProblemDetails>>(replyId: string,
+    attachmentId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof downloadReplyAttachment>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadReplyAttachmentQueryKey(replyId,attachmentId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadReplyAttachment>>> = ({ signal }) => downloadReplyAttachment(replyId,attachmentId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: replyId !== null && replyId !== undefined && attachmentId !== null && attachmentId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof downloadReplyAttachment>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type DownloadReplyAttachmentQueryResult = NonNullable<Awaited<ReturnType<typeof downloadReplyAttachment>>>
+export type DownloadReplyAttachmentQueryError = ErrorType<void | ProblemDetails>
+
+
+
+export function createDownloadReplyAttachment<TData = Awaited<ReturnType<typeof downloadReplyAttachment>>, TError = ErrorType<void | ProblemDetails>>(
+ replyId: () =>  string,
+    attachmentId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof downloadReplyAttachment>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getDownloadReplyAttachmentQueryOptions(replyId(),
+    attachmentId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
 export type listCandidateEmailsResponse200 = {
   data: CandidateEmailEntry[]
   status: 200
@@ -19050,6 +19247,613 @@ export function createListCandidateEmails<TData = Awaited<ReturnType<typeof list
 
 
 
+
+export type clearCandidateEmailIssueResponse200 = {
+  data: CandidateSummary
+  status: 200
+}
+
+export type clearCandidateEmailIssueResponse401 = {
+  data: void
+  status: 401
+}
+
+export type clearCandidateEmailIssueResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type clearCandidateEmailIssueResponse404 = {
+  data: void
+  status: 404
+}
+
+export type clearCandidateEmailIssueResponseSuccess = (clearCandidateEmailIssueResponse200) & {
+  headers: Headers;
+};
+export type clearCandidateEmailIssueResponseError = (clearCandidateEmailIssueResponse401 | clearCandidateEmailIssueResponse403 | clearCandidateEmailIssueResponse404) & {
+  headers: Headers;
+};
+
+export const getClearCandidateEmailIssueUrl = (candidateId: string,) => {
+
+
+
+
+  return `/v1/candidates/${candidateId}/email-issue/clear`
+}
+
+export const clearCandidateEmailIssue = async (candidateId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<clearCandidateEmailIssueResponseSuccess> => {
+
+  return apiQueryFetch<clearCandidateEmailIssueResponseSuccess>(getClearCandidateEmailIssueUrl(candidateId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getClearCandidateEmailIssueMutationKey = () => ['clearCandidateEmailIssue'] as const;
+
+export const getClearCandidateEmailIssueMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof clearCandidateEmailIssue>>, TError,ClearCandidateEmailIssueMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof clearCandidateEmailIssue>>, TError,ClearCandidateEmailIssueMutationVariables, TContext> => {
+
+const mutationKey = getClearCandidateEmailIssueMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof clearCandidateEmailIssue>>, ClearCandidateEmailIssueMutationVariables> = (props) => {
+          const {candidateId} = props ?? {};
+
+          return  clearCandidateEmailIssue(candidateId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ClearCandidateEmailIssueMutationResult = NonNullable<Awaited<ReturnType<typeof clearCandidateEmailIssue>>>
+
+    export type ClearCandidateEmailIssueMutationError = ErrorType<void | ProblemDetails>
+    export type ClearCandidateEmailIssueMutationVariables = {candidateId: string}
+
+    export const createClearCandidateEmailIssue = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof clearCandidateEmailIssue>>, TError,ClearCandidateEmailIssueMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof clearCandidateEmailIssue>>,
+        TError,
+        ClearCandidateEmailIssueMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getClearCandidateEmailIssueMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getOrganizationSendingDomainResponse200 = {
+  data: OrganizationSendingDomain
+  status: 200
+}
+
+export type getOrganizationSendingDomainResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationSendingDomainResponseSuccess = (getOrganizationSendingDomainResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationSendingDomainResponseError = (getOrganizationSendingDomainResponse401) & {
+  headers: Headers;
+};
+
+export const getGetOrganizationSendingDomainUrl = () => {
+
+
+
+
+  return `/v1/organization/sending-domain`
+}
+
+export const getOrganizationSendingDomain = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<getOrganizationSendingDomainResponseSuccess> => {
+
+  return apiQueryFetch<getOrganizationSendingDomainResponseSuccess>(getGetOrganizationSendingDomainUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOrganizationSendingDomainQueryKey = () => {
+    return [
+    'v1','organization','sending-domain'
+    ] as const;
+    }
+
+
+export const getGetOrganizationSendingDomainQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizationSendingDomain>>, TError = ErrorType<void>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationSendingDomain>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationSendingDomainQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationSendingDomain>>> = ({ signal }) => getOrganizationSendingDomain({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationSendingDomain>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOrganizationSendingDomainQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizationSendingDomain>>>
+export type GetOrganizationSendingDomainQueryError = ErrorType<void>
+
+
+
+export function createGetOrganizationSendingDomain<TData = Awaited<ReturnType<typeof getOrganizationSendingDomain>>, TError = ErrorType<void>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationSendingDomain>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetOrganizationSendingDomainQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type setOrganizationSendingDomainResponse200 = {
+  data: SendingDomainDetail
+  status: 200
+}
+
+export type setOrganizationSendingDomainResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type setOrganizationSendingDomainResponse401 = {
+  data: void
+  status: 401
+}
+
+export type setOrganizationSendingDomainResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type setOrganizationSendingDomainResponse404 = {
+  data: void
+  status: 404
+}
+
+export type setOrganizationSendingDomainResponse502 = {
+  data: ProblemDetails
+  status: 502
+}
+
+export type setOrganizationSendingDomainResponseSuccess = (setOrganizationSendingDomainResponse200) & {
+  headers: Headers;
+};
+export type setOrganizationSendingDomainResponseError = (setOrganizationSendingDomainResponse400 | setOrganizationSendingDomainResponse401 | setOrganizationSendingDomainResponse403 | setOrganizationSendingDomainResponse404 | setOrganizationSendingDomainResponse502) & {
+  headers: Headers;
+};
+
+export const getSetOrganizationSendingDomainUrl = () => {
+
+
+
+
+  return `/v1/organization/sending-domain`
+}
+
+export const setOrganizationSendingDomain = async (setSendingDomainRequest: SetSendingDomainRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<setOrganizationSendingDomainResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<setOrganizationSendingDomainResponseSuccess>(getSetOrganizationSendingDomainUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(setSendingDomainRequest)
+  }
+);}
+
+
+
+
+
+export const getSetOrganizationSendingDomainMutationKey = () => ['setOrganizationSendingDomain'] as const;
+
+export const getSetOrganizationSendingDomainMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof setOrganizationSendingDomain>>, TError,SetOrganizationSendingDomainMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof setOrganizationSendingDomain>>, TError,SetOrganizationSendingDomainMutationVariables, TContext> => {
+
+const mutationKey = getSetOrganizationSendingDomainMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setOrganizationSendingDomain>>, SetOrganizationSendingDomainMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  setOrganizationSendingDomain(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetOrganizationSendingDomainMutationResult = NonNullable<Awaited<ReturnType<typeof setOrganizationSendingDomain>>>
+    export type SetOrganizationSendingDomainMutationBody = SetSendingDomainRequest
+    export type SetOrganizationSendingDomainMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type SetOrganizationSendingDomainMutationVariables = {data: SetSendingDomainRequest}
+
+    export const createSetOrganizationSendingDomain = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof setOrganizationSendingDomain>>, TError,SetOrganizationSendingDomainMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof setOrganizationSendingDomain>>,
+        TError,
+        SetOrganizationSendingDomainMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getSetOrganizationSendingDomainMutationOptions(options?.()) }), queryClient);
+    }
+
+export type deleteOrganizationSendingDomainResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteOrganizationSendingDomainResponse401 = {
+  data: void
+  status: 401
+}
+
+export type deleteOrganizationSendingDomainResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type deleteOrganizationSendingDomainResponse404 = {
+  data: void
+  status: 404
+}
+
+export type deleteOrganizationSendingDomainResponse502 = {
+  data: ProblemDetails
+  status: 502
+}
+
+export type deleteOrganizationSendingDomainResponseSuccess = (deleteOrganizationSendingDomainResponse204) & {
+  headers: Headers;
+};
+export type deleteOrganizationSendingDomainResponseError = (deleteOrganizationSendingDomainResponse401 | deleteOrganizationSendingDomainResponse403 | deleteOrganizationSendingDomainResponse404 | deleteOrganizationSendingDomainResponse502) & {
+  headers: Headers;
+};
+
+export const getDeleteOrganizationSendingDomainUrl = () => {
+
+
+
+
+  return `/v1/organization/sending-domain`
+}
+
+export const deleteOrganizationSendingDomain = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<deleteOrganizationSendingDomainResponseSuccess> => {
+
+  return apiQueryFetch<deleteOrganizationSendingDomainResponseSuccess>(getDeleteOrganizationSendingDomainUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteOrganizationSendingDomainMutationKey = () => ['deleteOrganizationSendingDomain'] as const;
+
+export const getDeleteOrganizationSendingDomainMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof deleteOrganizationSendingDomain>>, TError,void, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof deleteOrganizationSendingDomain>>, TError,void, TContext> => {
+
+const mutationKey = getDeleteOrganizationSendingDomainMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteOrganizationSendingDomain>>, void> = () => {
+
+
+          return  deleteOrganizationSendingDomain(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteOrganizationSendingDomainMutationResult = NonNullable<Awaited<ReturnType<typeof deleteOrganizationSendingDomain>>>
+
+    export type DeleteOrganizationSendingDomainMutationError = ErrorType<void | ProblemDetails>
+
+
+    export const createDeleteOrganizationSendingDomain = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof deleteOrganizationSendingDomain>>, TError,void, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof deleteOrganizationSendingDomain>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getDeleteOrganizationSendingDomainMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getOrganizationSendingDomainHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getOrganizationSendingDomainHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getOrganizationSendingDomainHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationSendingDomainHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getOrganizationSendingDomainHistoryResponseSuccess = (getOrganizationSendingDomainHistoryResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationSendingDomainHistoryResponseError = (getOrganizationSendingDomainHistoryResponse400 | getOrganizationSendingDomainHistoryResponse401 | getOrganizationSendingDomainHistoryResponse404) & {
+  headers: Headers;
+};
+
+export const getGetOrganizationSendingDomainHistoryUrl = (params?: GetOrganizationSendingDomainHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/sending-domain/history?${stringifiedParams}` : `/v1/organization/sending-domain/history`
+}
+
+export const getOrganizationSendingDomainHistory = async (params?: GetOrganizationSendingDomainHistoryParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getOrganizationSendingDomainHistoryResponseSuccess> => {
+
+  return apiQueryFetch<getOrganizationSendingDomainHistoryResponseSuccess>(getGetOrganizationSendingDomainHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOrganizationSendingDomainHistoryQueryKey = (params?: GetOrganizationSendingDomainHistoryParams,) => {
+    return [
+    'v1','organization','sending-domain','history', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetOrganizationSendingDomainHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizationSendingDomainHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(params?: GetOrganizationSendingDomainHistoryParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationSendingDomainHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationSendingDomainHistoryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationSendingDomainHistory>>> = ({ signal }) => getOrganizationSendingDomainHistory(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationSendingDomainHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOrganizationSendingDomainHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizationSendingDomainHistory>>>
+export type GetOrganizationSendingDomainHistoryQueryError = ErrorType<HttpValidationProblemDetails | void>
+
+
+
+export function createGetOrganizationSendingDomainHistory<TData = Awaited<ReturnType<typeof getOrganizationSendingDomainHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
+ params?: () =>  GetOrganizationSendingDomainHistoryParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationSendingDomainHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetOrganizationSendingDomainHistoryQueryOptions(params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type checkOrganizationSendingDomainResponse200 = {
+  data: SendingDomainDetail
+  status: 200
+}
+
+export type checkOrganizationSendingDomainResponse401 = {
+  data: void
+  status: 401
+}
+
+export type checkOrganizationSendingDomainResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type checkOrganizationSendingDomainResponse404 = {
+  data: void
+  status: 404
+}
+
+export type checkOrganizationSendingDomainResponse502 = {
+  data: ProblemDetails
+  status: 502
+}
+
+export type checkOrganizationSendingDomainResponseSuccess = (checkOrganizationSendingDomainResponse200) & {
+  headers: Headers;
+};
+export type checkOrganizationSendingDomainResponseError = (checkOrganizationSendingDomainResponse401 | checkOrganizationSendingDomainResponse403 | checkOrganizationSendingDomainResponse404 | checkOrganizationSendingDomainResponse502) & {
+  headers: Headers;
+};
+
+export const getCheckOrganizationSendingDomainUrl = () => {
+
+
+
+
+  return `/v1/organization/sending-domain/check`
+}
+
+export const checkOrganizationSendingDomain = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<checkOrganizationSendingDomainResponseSuccess> => {
+
+  return apiQueryFetch<checkOrganizationSendingDomainResponseSuccess>(getCheckOrganizationSendingDomainUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCheckOrganizationSendingDomainMutationKey = () => ['checkOrganizationSendingDomain'] as const;
+
+export const getCheckOrganizationSendingDomainMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof checkOrganizationSendingDomain>>, TError,void, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof checkOrganizationSendingDomain>>, TError,void, TContext> => {
+
+const mutationKey = getCheckOrganizationSendingDomainMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof checkOrganizationSendingDomain>>, void> = () => {
+
+
+          return  checkOrganizationSendingDomain(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CheckOrganizationSendingDomainMutationResult = NonNullable<Awaited<ReturnType<typeof checkOrganizationSendingDomain>>>
+
+    export type CheckOrganizationSendingDomainMutationError = ErrorType<void | ProblemDetails>
+
+
+    export const createCheckOrganizationSendingDomain = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof checkOrganizationSendingDomain>>, TError,void, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof checkOrganizationSendingDomain>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getCheckOrganizationSendingDomainMutationOptions(options?.()) }), queryClient);
+    }
 
 export type listTalentPoolResponse200 = {
   data: TalentPoolList

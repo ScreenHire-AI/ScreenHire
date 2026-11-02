@@ -15,7 +15,7 @@ public sealed class TransactionalEmail(IServiceProvider services, EmailTemplates
 
     /// <summary>
     /// Renders <paramref name="content"/> as template <paramref name="templateId"/> for <paramref name="to"/> under
-    /// <paramref name="header"/>, sends it, and returns what was sent.
+    /// <paramref name="header"/>, sends it (addressed by <paramref name="route"/> when given), and returns what was sent.
     /// </summary>
     public async Task<EmailMessage> SendAsync(
         string templateId,
@@ -23,9 +23,10 @@ public sealed class TransactionalEmail(IServiceProvider services, EmailTemplates
         string to,
         EmailTemplateModel model,
         EmailHeader? header,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        MailRoute? route = null)
     {
-        var message = templates.Render(content, to, model, templateId, header);
+        var message = (route ?? MailRoute.None).Apply(templates.Render(content, to, model, templateId, header));
         await (sender ?? throw new InvalidOperationException("No email sender is configured.")).SendAsync(message, cancellationToken);
         return message;
     }

@@ -265,7 +265,7 @@ permissions (`RolePermissions.Summarize`), so it always says what the role allow
 
 The dashboard follows the same permissions (`apps/dashboard/src/lib/permissions.ts`). **Settings** is one sidebar item
 for anyone whose role has a settings permission; it opens the Settings menu (Organization, Team, Roles, Branding,
-Verification, API keys and Webhooks, under `/settings/*`; email templates are on the Templates page, and their old
+Verification, Sending domain, API keys and Webhooks, under `/settings/*`; email templates are on the Templates page, and their old
 `/settings/email-templates` addresses redirect there), each page
 behind its permission (`settingsSections` in `apps/dashboard/src/lib/settings.ts`), and the command palette lists the
 same pages. Slack's page and entry are left out wherever `GET /v1/slack` says Slack is not `available` (a feature on its

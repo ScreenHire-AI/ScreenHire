@@ -143,7 +143,8 @@ public sealed partial class Mailpit(Uri baseAddress)
             var message = await Client.GetFromJsonAsync<JsonElement>(
                 new Uri(baseAddress, $"/api/v1/message/{summary.GetProperty("ID").GetString()}"), cancellationToken);
             messages.Add(new MailpitMessage(
-                message.GetProperty("Subject").GetString() ?? "", message.GetProperty("Text").GetString() ?? "", message.GetProperty("HTML").GetString() ?? ""));
+                message.GetProperty("Subject").GetString() ?? "", message.GetProperty("Text").GetString() ?? "", message.GetProperty("HTML").GetString() ?? "",
+                MailpitAddress.From(message, "From"), MailpitAddress.From(message, "ReplyTo")));
         }
 
         return messages;
@@ -161,5 +162,27 @@ public sealed partial class Mailpit(Uri baseAddress)
     private static partial Regex InvitationToken();
 }
 
-/// <summary>One email as Mailpit stored it.</summary>
-public sealed record MailpitMessage(string Subject, string Text, string Html);
+/// <summary>One email as Mailpit stored it. <c>From</c> and <c>ReplyTo</c> are null when the email had no such header.</summary>
+public sealed record MailpitMessage(string Subject, string Text, string Html, MailpitAddress? From = null, MailpitAddress? ReplyTo = null);
+
+/// <summary>A mailbox in an email header: the display name (empty when there is none) and the address.</summary>
+public sealed record MailpitAddress(string Name, string Address)
+{
+    // Mailpit's message JSON has From as one object and ReplyTo as an array of them.
+    internal static MailpitAddress? From(JsonElement message, string property)
+    {
+        if (!message.TryGetProperty(property, out var value))
+        {
+            return null;
+        }
+
+        if (value.ValueKind == JsonValueKind.Array)
+        {
+            value = value.GetArrayLength() == 0 ? default : value[0];
+        }
+
+        return value.ValueKind == JsonValueKind.Object
+            ? new MailpitAddress(value.GetProperty(nameof(Name)).GetString() ?? "", value.GetProperty(nameof(Address)).GetString() ?? "")
+            : null;
+    }
+}

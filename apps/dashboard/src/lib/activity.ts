@@ -8,6 +8,7 @@ import ListChecksIcon from '~icons/lucide/list-checks';
 import ListTodoIcon from '~icons/lucide/list-todo';
 import MailPlusIcon from '~icons/lucide/mail-plus';
 import PencilIcon from '~icons/lucide/pencil';
+import ReplyIcon from '~icons/lucide/reply';
 import ScanSearchIcon from '~icons/lucide/scan-search';
 import SendIcon from '~icons/lucide/send';
 import StickyNoteIcon from '~icons/lucide/sticky-note';
@@ -38,6 +39,7 @@ const kinds: Partial<Record<ApplicationEventType, ActivityKind>> = {
   NoteAdded: 'notes',
   NoteDeleted: 'notes',
   EmailSent: 'emails',
+  EmailReceived: 'emails',
   ScorecardSubmitted: 'scorecards',
   Submitted: 'stage',
   StageChanged: 'stage',
@@ -76,6 +78,7 @@ export const eventIcons: Record<ApplicationEventType, Component> = {
   NoteDeleted: Trash2Icon,
   ScorecardSubmitted: ClipboardCheckIcon,
   EmailSent: SendIcon,
+  EmailReceived: ReplyIcon,
   QuestionnaireSent: ClipboardListIcon,
   QuestionnaireCompleted: ListChecksIcon,
   TaskCreated: ListTodoIcon,
@@ -130,6 +133,9 @@ export function describeEvent(entry: ApplicationTimelineEntry, names: ActivityNa
     case 'EmailSent':
       // The body is never kept on the timeline, only the subject the candidate received.
       return `Emailed "${entry.emailSubject ?? 'an update'}"`;
+    case 'EmailReceived':
+      // The candidate wrote, so nobody is named. The reply itself is in Messages.
+      return `Candidate replied "${entry.emailSubject ?? 'to an email'}"`;
     case 'QuestionnaireSent':
       return `Sent the "${names.followUpName(entry.questionnaireRequestId)}" questionnaire`;
     case 'QuestionnaireCompleted':

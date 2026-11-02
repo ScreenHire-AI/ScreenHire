@@ -62,6 +62,7 @@ import type {
   GetJobHistoryParams,
   GetOrganizationBrandingHistoryParams,
   GetOrganizationHistoryParams,
+  GetOrganizationSendingDomainHistoryParams,
   GetOrganizationTalentPoolSettingsHistoryParams,
   GetOrganizationVerificationSettingsHistoryParams,
   GetRoleHistoryParams,
@@ -107,6 +108,7 @@ import type {
   OnboardingRequest,
   OrganizationBranding,
   OrganizationProfile,
+  OrganizationSendingDomain,
   OrganizationTalentPoolSettings,
   OrganizationVerificationSettings,
   PendingInvitation,
@@ -124,6 +126,7 @@ import type {
   PublicQuestionnaireAnswers,
   PublicTalentPoolStatus,
   PublishJobRequest,
+  ReceivedEmail,
   RemoveApplicationTagParams,
   RemoveFromTalentPoolRequest,
   RequestScorecardRequest,
@@ -135,7 +138,9 @@ import type {
   SearchParams,
   SearchResults,
   SendEmailsRequest,
+  SendingDomainDetail,
   SentEmail,
+  SetSendingDomainRequest,
   SignInMethods,
   SimulateWorkflowRequest,
   SlackAccount,
@@ -10500,6 +10505,96 @@ export const getSentEmail = async (emailId: string, options?: Parameters<typeof 
 
 
 
+export type getReceivedEmailResponse200 = {
+  data: ReceivedEmail
+  status: 200
+}
+
+export type getReceivedEmailResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getReceivedEmailResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getReceivedEmailResponseSuccess = (getReceivedEmailResponse200) & {
+  headers: Headers;
+};
+export type getReceivedEmailResponseError = (getReceivedEmailResponse401 | getReceivedEmailResponse404) & {
+  headers: Headers;
+};
+
+export type getReceivedEmailResponse = (getReceivedEmailResponseSuccess | getReceivedEmailResponseError)
+
+export const getGetReceivedEmailUrl = (replyId: string,) => {
+
+
+
+
+  return `/v1/replies/${replyId}`
+}
+
+export const getReceivedEmail = async (replyId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getReceivedEmailResponse> => {
+
+  return apiFetch<getReceivedEmailResponse>(getGetReceivedEmailUrl(replyId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type downloadReplyAttachmentResponse401 = {
+  data: void
+  status: 401
+}
+
+export type downloadReplyAttachmentResponse404 = {
+  data: void
+  status: 404
+}
+
+export type downloadReplyAttachmentResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+;
+export type downloadReplyAttachmentResponseError = (downloadReplyAttachmentResponse401 | downloadReplyAttachmentResponse404 | downloadReplyAttachmentResponse409) & {
+  headers: Headers;
+};
+
+export type downloadReplyAttachmentResponse = (downloadReplyAttachmentResponseError)
+
+export const getDownloadReplyAttachmentUrl = (replyId: string,
+    attachmentId: string,) => {
+
+
+
+
+  return `/v1/replies/${replyId}/attachments/${attachmentId}`
+}
+
+export const downloadReplyAttachment = async (replyId: string,
+    attachmentId: string, options?: Parameters<typeof apiFetch>[1]): Promise<downloadReplyAttachmentResponse> => {
+
+  return apiFetch<downloadReplyAttachmentResponse>(getDownloadReplyAttachmentUrl(replyId,attachmentId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
 export type listCandidateEmailsResponse200 = {
   data: CandidateEmailEntry[]
   status: 200
@@ -10538,6 +10633,337 @@ export const listCandidateEmails = async (candidateId: string, options?: Paramet
   {
     ...options,
     method: 'GET'
+
+
+  }
+);}
+
+
+
+export type clearCandidateEmailIssueResponse200 = {
+  data: CandidateSummary
+  status: 200
+}
+
+export type clearCandidateEmailIssueResponse401 = {
+  data: void
+  status: 401
+}
+
+export type clearCandidateEmailIssueResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type clearCandidateEmailIssueResponse404 = {
+  data: void
+  status: 404
+}
+
+export type clearCandidateEmailIssueResponseSuccess = (clearCandidateEmailIssueResponse200) & {
+  headers: Headers;
+};
+export type clearCandidateEmailIssueResponseError = (clearCandidateEmailIssueResponse401 | clearCandidateEmailIssueResponse403 | clearCandidateEmailIssueResponse404) & {
+  headers: Headers;
+};
+
+export type clearCandidateEmailIssueResponse = (clearCandidateEmailIssueResponseSuccess | clearCandidateEmailIssueResponseError)
+
+export const getClearCandidateEmailIssueUrl = (candidateId: string,) => {
+
+
+
+
+  return `/v1/candidates/${candidateId}/email-issue/clear`
+}
+
+export const clearCandidateEmailIssue = async (candidateId: string, options?: Parameters<typeof apiFetch>[1]): Promise<clearCandidateEmailIssueResponse> => {
+
+  return apiFetch<clearCandidateEmailIssueResponse>(getClearCandidateEmailIssueUrl(candidateId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type getOrganizationSendingDomainResponse200 = {
+  data: OrganizationSendingDomain
+  status: 200
+}
+
+export type getOrganizationSendingDomainResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationSendingDomainResponseSuccess = (getOrganizationSendingDomainResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationSendingDomainResponseError = (getOrganizationSendingDomainResponse401) & {
+  headers: Headers;
+};
+
+export type getOrganizationSendingDomainResponse = (getOrganizationSendingDomainResponseSuccess | getOrganizationSendingDomainResponseError)
+
+export const getGetOrganizationSendingDomainUrl = () => {
+
+
+
+
+  return `/v1/organization/sending-domain`
+}
+
+export const getOrganizationSendingDomain = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationSendingDomainResponse> => {
+
+  return apiFetch<getOrganizationSendingDomainResponse>(getGetOrganizationSendingDomainUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type setOrganizationSendingDomainResponse200 = {
+  data: SendingDomainDetail
+  status: 200
+}
+
+export type setOrganizationSendingDomainResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type setOrganizationSendingDomainResponse401 = {
+  data: void
+  status: 401
+}
+
+export type setOrganizationSendingDomainResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type setOrganizationSendingDomainResponse404 = {
+  data: void
+  status: 404
+}
+
+export type setOrganizationSendingDomainResponse502 = {
+  data: ProblemDetails
+  status: 502
+}
+
+export type setOrganizationSendingDomainResponseSuccess = (setOrganizationSendingDomainResponse200) & {
+  headers: Headers;
+};
+export type setOrganizationSendingDomainResponseError = (setOrganizationSendingDomainResponse400 | setOrganizationSendingDomainResponse401 | setOrganizationSendingDomainResponse403 | setOrganizationSendingDomainResponse404 | setOrganizationSendingDomainResponse502) & {
+  headers: Headers;
+};
+
+export type setOrganizationSendingDomainResponse = (setOrganizationSendingDomainResponseSuccess | setOrganizationSendingDomainResponseError)
+
+export const getSetOrganizationSendingDomainUrl = () => {
+
+
+
+
+  return `/v1/organization/sending-domain`
+}
+
+export const setOrganizationSendingDomain = async (setSendingDomainRequest: SetSendingDomainRequest, options?: Parameters<typeof apiFetch>[1]): Promise<setOrganizationSendingDomainResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<setOrganizationSendingDomainResponse>(getSetOrganizationSendingDomainUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(setSendingDomainRequest)
+  }
+);}
+
+
+
+export type deleteOrganizationSendingDomainResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteOrganizationSendingDomainResponse401 = {
+  data: void
+  status: 401
+}
+
+export type deleteOrganizationSendingDomainResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type deleteOrganizationSendingDomainResponse404 = {
+  data: void
+  status: 404
+}
+
+export type deleteOrganizationSendingDomainResponse502 = {
+  data: ProblemDetails
+  status: 502
+}
+
+export type deleteOrganizationSendingDomainResponseSuccess = (deleteOrganizationSendingDomainResponse204) & {
+  headers: Headers;
+};
+export type deleteOrganizationSendingDomainResponseError = (deleteOrganizationSendingDomainResponse401 | deleteOrganizationSendingDomainResponse403 | deleteOrganizationSendingDomainResponse404 | deleteOrganizationSendingDomainResponse502) & {
+  headers: Headers;
+};
+
+export type deleteOrganizationSendingDomainResponse = (deleteOrganizationSendingDomainResponseSuccess | deleteOrganizationSendingDomainResponseError)
+
+export const getDeleteOrganizationSendingDomainUrl = () => {
+
+
+
+
+  return `/v1/organization/sending-domain`
+}
+
+export const deleteOrganizationSendingDomain = async ( options?: Parameters<typeof apiFetch>[1]): Promise<deleteOrganizationSendingDomainResponse> => {
+
+  return apiFetch<deleteOrganizationSendingDomainResponse>(getDeleteOrganizationSendingDomainUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type getOrganizationSendingDomainHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getOrganizationSendingDomainHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getOrganizationSendingDomainHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationSendingDomainHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getOrganizationSendingDomainHistoryResponseSuccess = (getOrganizationSendingDomainHistoryResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationSendingDomainHistoryResponseError = (getOrganizationSendingDomainHistoryResponse400 | getOrganizationSendingDomainHistoryResponse401 | getOrganizationSendingDomainHistoryResponse404) & {
+  headers: Headers;
+};
+
+export type getOrganizationSendingDomainHistoryResponse = (getOrganizationSendingDomainHistoryResponseSuccess | getOrganizationSendingDomainHistoryResponseError)
+
+export const getGetOrganizationSendingDomainHistoryUrl = (params?: GetOrganizationSendingDomainHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/sending-domain/history?${stringifiedParams}` : `/v1/organization/sending-domain/history`
+}
+
+export const getOrganizationSendingDomainHistory = async (params?: GetOrganizationSendingDomainHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationSendingDomainHistoryResponse> => {
+
+  return apiFetch<getOrganizationSendingDomainHistoryResponse>(getGetOrganizationSendingDomainHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type checkOrganizationSendingDomainResponse200 = {
+  data: SendingDomainDetail
+  status: 200
+}
+
+export type checkOrganizationSendingDomainResponse401 = {
+  data: void
+  status: 401
+}
+
+export type checkOrganizationSendingDomainResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type checkOrganizationSendingDomainResponse404 = {
+  data: void
+  status: 404
+}
+
+export type checkOrganizationSendingDomainResponse502 = {
+  data: ProblemDetails
+  status: 502
+}
+
+export type checkOrganizationSendingDomainResponseSuccess = (checkOrganizationSendingDomainResponse200) & {
+  headers: Headers;
+};
+export type checkOrganizationSendingDomainResponseError = (checkOrganizationSendingDomainResponse401 | checkOrganizationSendingDomainResponse403 | checkOrganizationSendingDomainResponse404 | checkOrganizationSendingDomainResponse502) & {
+  headers: Headers;
+};
+
+export type checkOrganizationSendingDomainResponse = (checkOrganizationSendingDomainResponseSuccess | checkOrganizationSendingDomainResponseError)
+
+export const getCheckOrganizationSendingDomainUrl = () => {
+
+
+
+
+  return `/v1/organization/sending-domain/check`
+}
+
+export const checkOrganizationSendingDomain = async ( options?: Parameters<typeof apiFetch>[1]): Promise<checkOrganizationSendingDomainResponse> => {
+
+  return apiFetch<checkOrganizationSendingDomainResponse>(getCheckOrganizationSendingDomainUrl(),
+  {
+    ...options,
+    method: 'POST'
 
 
   }
