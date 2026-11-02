@@ -315,3 +315,5 @@ refreshes the records' states records nothing ([change history](change-history.m
 - Attachments on outgoing mail, scheduled sends and per-person signatures.
 - A Slack direct message for a reply (the card and the email are the notifications).
 - A scheduled re-check of a sending domain that is still waiting for DNS: Check records is by hand.
+- A check of a reply's sender. Inbound Parse posts DKIM and SPF results that nothing reads yet, so whoever holds a reply
+  address can write any From, and Messages shows it as written.
