@@ -170,8 +170,8 @@ Without these steps the Google and Outlook buttons stay hidden. The redirect URI
 `/v1` to the API, as for Slack. Set the keys as user secrets locally or as app settings in a deployment.
 
 1. **Google.** In a Google Cloud project, configure the OAuth consent screen (external) and add the two scopes
-   `calendar.freebusy` and `calendar.events`. Both are sensitive, so Google must verify the app before more than 100 test
-   users can connect; verification takes weeks. Create an OAuth client of type Web application with the redirect URI
+   `calendar.freebusy` and `calendar.events`. Both are sensitive scopes, so Google must verify the app, which takes weeks.
+   Create an OAuth client of type Web application with the redirect URI
    `<dashboard origin>/v1/calendar/oauth/callback/google`. Set `ScreenHire:Calendar:Google:ClientId`; the secret goes in the
    `google-calendar-client-secret` parameter (`ScreenHire:Calendar:Google:ClientSecret`).
 2. **Microsoft.** In Entra, register an application that supports accounts in any organizational directory and personal
