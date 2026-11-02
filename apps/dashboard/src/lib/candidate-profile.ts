@@ -66,11 +66,13 @@ export function historyItems(
         event: describeEvent(entry, { stageName, followUpName: () => 'a follow-up questionnaire', jobName }),
         actor: who ? `${who} in ${item.jobTitle}` : `in ${item.jobTitle}`,
         note: entry.note ?? undefined,
+        // A team note can mention a member by id, so the page draws it as the team reads it, not as a quote.
+        noteId: entry.type === 'NoteAdded' ? (entry.noteId ?? undefined) : undefined,
         at: entry.occurredAt,
       };
     });
 }
 
-/** When the candidate asked to be removed from the talent pool through the link in an invitation, if they did. */
+/** When the candidate asked to be removed from Saved candidates through the link in an invitation, if they did. */
 export const askedToBeRemovedAt = (history: readonly CandidateHistoryEntry[] | undefined): string | undefined =>
   history?.find(({ entry }) => entry.type === 'LeftTalentPool' && entry.poolExit === 'CandidateAsked')?.entry.occurredAt;

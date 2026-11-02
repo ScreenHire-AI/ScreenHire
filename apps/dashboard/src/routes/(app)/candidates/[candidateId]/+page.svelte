@@ -13,12 +13,13 @@
   } from '@screenhire/api-client/svelte-query';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
-  import ActivityList from '#lib/components/activity-list.svelte';
+  import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import EraseCandidateDialog from '#lib/components/erase-candidate-dialog.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import MetaItem from '#lib/components/meta-item.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
+  import NoteText from '#lib/components/note-text.svelte';
   import Notice from '#lib/components/notice.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
@@ -64,6 +65,10 @@
 <svelte:head>
   <title>{detail?.fullName ?? 'Candidate'} · ScreenHire</title>
 </svelte:head>
+
+{#snippet noteBody(item: Activity)}
+  <NoteText text={item.note ?? ''} members={team.data?.data} />
+{/snippet}
 
 <TopBar crumbs={[{ label: 'Candidates', href: '/candidates' }, { label: detail?.fullName ?? 'Candidate' }]} back />
 
@@ -160,7 +165,7 @@
           {:else if items && items.length === 0}
             <p class="text-muted-foreground">Nothing has happened yet.</p>
           {:else}
-            <ActivityList label="History across all applications" {items} />
+            <ActivityList label="History across all applications" {items} body={noteBody} />
           {/if}
         </Panel>
       </div>
