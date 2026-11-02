@@ -6,6 +6,7 @@ using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.Branding;
+using ScreenHire.Application.Templates;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.History;
@@ -17,7 +18,6 @@ using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Persistence.History;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
-using ScreenHire.Application.Templates;
 
 namespace ScreenHire.Api.Endpoints;
 

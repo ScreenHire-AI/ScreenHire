@@ -9,9 +9,10 @@
  *   <script src="https://{your careers address}/embed.js" data-job="senior-barista" async></script>
  *
  * This script adds one frame after its own tag, showing your careers pages from
- * ScreenHire's careers origin, and makes the frame as tall as the page inside it. That is all it does: it reads nothing
- * from your page, and your page cannot read or change what candidates type in the frame. Your site must be on the
- * list of sites that can embed the careers page (Settings, Organization), or the browser refuses to show the frame.
+ * ScreenHire's careers origin, and makes the frame as tall as the page inside it. That is all it does: it reads only
+ * its own tag, nothing else on your page, and your page cannot read or change what candidates type in the frame. Your
+ * site must be on the list of sites that can embed the careers page (Settings, Organization), or the browser refuses to
+ * show the frame.
  */
 (function () {
   'use strict';

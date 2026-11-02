@@ -9,8 +9,9 @@ namespace ScreenHire.Api.Hiring;
 internal static class TemplateChangeEvents
 {
     /// <summary>
-    /// Saves the tracked changes and publishes the event in one transaction through the outbox: the event goes out only
-    /// if the save commits, and never twice for one save.
+    /// Saves the tracked changes and publishes the event in one transaction through the outbox, so the event goes out
+    /// only with a save that commits. A caller that retries a failed save can send it twice, which costs an open dashboard
+    /// one more refetch. When the caller has a transaction open, this commits it.
     /// </summary>
     public static async Task SaveTemplateChangeAsync(
         this IDbContextOutbox<ScreenHireDbContext> outbox, TemplateKind kind, string templateId, ITenantContext tenant, TimeProvider time,

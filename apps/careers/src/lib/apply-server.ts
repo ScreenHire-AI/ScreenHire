@@ -223,7 +223,7 @@ async function saveDraft(
         step,
         state,
         errors: {},
-        formError: 'We could not finish the security check, so no link was emailed. Try again, or send your application now.',
+        formError: 'Our bot check did not finish, so no link was emailed. Wait a moment and try again, or send your application now.',
       };
     case 410:
       return { step, state, errors: {}, outcome: 'closed' };

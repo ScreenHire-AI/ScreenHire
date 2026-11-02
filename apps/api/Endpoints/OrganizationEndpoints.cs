@@ -361,7 +361,19 @@ internal static class OrganizationEndpoints
             image.MarkSaved(time.GetUtcNow());
         }
 
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        // The daily clean-up removed an upload that had waited a day, between the checks above and this save.
+        catch (DbUpdateConcurrencyException exception) when (exception.Entries.Any(e => e.Entity is BrandImage))
+        {
+            var removed = exception.Entries.Select(e => e.Entity).OfType<BrandImage>().Select(i => i.Id).ToHashSet();
+            return TypedResults.ValidationProblem(slots
+                .Where(s => s.Id is { } id && removed.Contains(id))
+                .ToDictionary(s => s.Field, s => new[] { ImageProblem(null, s.Kind)! }));
+        }
+
         return TypedResults.Ok(await ToBrandingAsync(db, organization, domains.Value, cancellationToken));
     }
 

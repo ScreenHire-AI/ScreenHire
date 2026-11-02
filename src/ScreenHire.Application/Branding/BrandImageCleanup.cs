@@ -9,14 +9,16 @@ namespace ScreenHire.Application.Branding;
 
 /// <summary>
 /// The brand images container, as the worker reads it: the API's <c>ScreenHire:Branding:Container</c> setting, with the
-/// same default as its <c>BrandingOptions</c>.
+/// default its <c>BrandingOptions</c> uses too.
 /// </summary>
 public static class BrandImagesContainer
 {
+    public const string Default = "brand-images";
+
     public static string From(IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
-        return configuration["ScreenHire:Branding:Container"] is { Length: > 0 } name ? name : "brand-images";
+        return configuration["ScreenHire:Branding:Container"] is { Length: > 0 } name ? name : Default;
     }
 }
 

@@ -6,11 +6,11 @@ using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Api.Realtime;
 using ScreenHire.Application.Jobs;
+using ScreenHire.Application.Templates;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
-using ScreenHire.Application.Templates;
 
 namespace ScreenHire.Api.Endpoints;
 
@@ -145,6 +145,7 @@ internal static class HiringTeamEndpoints
             return TypedResults.ValidationProblem(ValidationExtensions.Problem("copyFromJobId", "A template's team is not copied from a job."));
         }
 
+        // No CommitAsync here: SaveTemplateChangeAsync commits this transaction with the outbox rows.
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await Invitations.LockMembersAsync(db, tenant.OrganizationId!.Value, cancellationToken);
         var template = await db.HiringTemplates.SingleOrDefaultAsync(t => t.Id == templateId, cancellationToken);
@@ -169,10 +170,6 @@ internal static class HiringTeamEndpoints
         if (!change.IsEmpty)
         {
             HiringTeams.Log(db, tenant, members, change, time.GetUtcNow(), templateId: template.Id);
-            await db.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-            // After the commit, in the outbox's own transaction (this one is the member lock's): a lost event only leaves
-            // another dashboard's template page stale until its next refetch.
             await outbox.SaveTemplateChangeAsync(TemplateKind.HiringTemplate, templateId.ToString("D"), tenant, time, cancellationToken);
         }
 

@@ -3,14 +3,14 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Api.Hiring;
+using ScreenHire.Application.Templates;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.History;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Persistence.History;
 using ScreenHire.Infrastructure.Tenancy;
-using ScreenHire.Api.Hiring;
-using ScreenHire.Application.Templates;
 using Wolverine.EntityFrameworkCore;
 
 namespace ScreenHire.Api.Endpoints;
