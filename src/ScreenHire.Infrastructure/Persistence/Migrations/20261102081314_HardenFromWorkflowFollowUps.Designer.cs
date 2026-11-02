@@ -13,7 +13,7 @@ using ScreenHire.Infrastructure.Persistence;
 namespace ScreenHire.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ScreenHireDbContext))]
-    [Migration("20261102065853_HardenFromWorkflowFollowUps")]
+    [Migration("20261102081314_HardenFromWorkflowFollowUps")]
     partial class HardenFromWorkflowFollowUps
     {
         /// <inheritdoc />
@@ -658,6 +658,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("source");
+
+                    b.Property<string>("SourceBoard")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("source_board");
 
                     b.Property<string>("SourceSite")
                         .HasMaxLength(200)
