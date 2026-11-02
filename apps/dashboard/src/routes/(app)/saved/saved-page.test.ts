@@ -266,7 +266,7 @@ describe('saved candidates page', () => {
       renderPage();
       const menu = await openRowMenu('Casey Morgan');
 
-      expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Invite to apply', 'Add to a job', 'Edit note', 'Remove from saved candidates']);
+      expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Invite to apply', 'Add to a job', 'Edit note', 'Remove from saved']);
     });
 
     it('stays on each list item on a phone, where the record page has none of these actions (section 8)', async () => {
@@ -281,7 +281,7 @@ describe('saved candidates page', () => {
         'Add to a job',
         'Message',
         'Edit note',
-        'Remove from saved candidates',
+        'Remove from saved',
       ]);
       expect(screen.getByText('Last contacted Oct 28, 2026')).toBeInTheDocument();
       expect(screen.getByText('Not contacted yet')).toBeInTheDocument();
@@ -291,7 +291,7 @@ describe('saved candidates page', () => {
       renderPage({ sending: false });
       const menu = await openRowMenu('Casey Morgan');
 
-      expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Add to a job', 'Edit note', 'Remove from saved candidates']);
+      expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Add to a job', 'Edit note', 'Remove from saved']);
     });
 
     it('offers only Edit note and Remove to someone who may move candidates but not add or email them', async () => {
@@ -299,7 +299,7 @@ describe('saved candidates page', () => {
       renderPage({ as: mover });
       const menu = await openRowMenu('Casey Morgan');
 
-      expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Edit note', 'Remove from saved candidates']);
+      expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Edit note', 'Remove from saved']);
     });
 
     it('gives a viewer the list and the links but no menu and no checkboxes that act', async () => {
@@ -462,10 +462,10 @@ describe('saved candidates page', () => {
     });
   });
 
-  describe('Remove from saved candidates', () => {
+  describe('Remove from saved', () => {
     async function openRemoveDialog() {
       const menu = await openRowMenu('Casey Morgan');
-      await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Remove from saved candidates' }));
+      await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Remove from saved' }));
       return screen.findByRole('dialog', { name: 'Remove Casey Morgan from saved candidates?' });
     }
 

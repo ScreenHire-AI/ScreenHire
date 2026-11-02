@@ -140,7 +140,7 @@ export function describeEvent(entry: ApplicationTimelineEntry, names: ActivityNa
       return 'Created a task';
     case 'KeptInMind':
       // Why shows under it, quoted, as a stage move's note does.
-      return 'Saved: left the job without a rejection';
+      return 'Saved';
     case 'LeftTalentPool':
       return poolExits[entry.poolExit ?? 'Removed'](names.jobName?.(entry.otherJobId) ?? 'another job');
     case 'InvitedToApply':

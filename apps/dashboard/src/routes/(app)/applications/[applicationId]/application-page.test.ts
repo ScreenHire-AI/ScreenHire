@@ -868,16 +868,18 @@ describe('application page', () => {
       stubDetail({ keptInMindAt: keptAt, allowsFutureRoles: true, inTalentPool: false });
       renderPage();
 
-      expect(await stagePill()).toHaveTextContent('Saved');
-      expect(screen.queryByText('Saved candidate')).toBeNull();
+      const pill = await stagePill();
+      expect(pill).toHaveTextContent('Saved');
+      expect(pill.querySelector('[data-status-icon="bookmark"]')).not.toBeNull();
+      expect(screen.queryByRole('link', { name: 'In Saved candidates' })).toBeNull();
     });
 
-    it('says in the header that they are a saved candidate', async () => {
+    it('links to Saved candidates from the header while they are on the list', async () => {
       stubDetail({ keptInMindAt: keptAt, allowsFutureRoles: true, inTalentPool: true });
       renderPage();
 
       expect(await stagePill()).toHaveTextContent('Saved');
-      expect(await screen.findByText('Saved candidate')).toBeInTheDocument();
+      expect(await screen.findByRole('link', { name: 'In Saved candidates' })).toHaveAttribute('href', '/saved');
     });
 
     it('marks no stage as current in Move to stage once they were saved, and offers no second save', async () => {
@@ -944,7 +946,7 @@ describe('application page', () => {
         expect(lines(region)).toEqual([
           expect.stringContaining('Left saved candidates: applied for Support Engineer'),
           'Invited to apply for Support Engineer by you',
-          'Saved: left the job without a rejection by you',
+          'Saved by you',
           'Applied on the careers page, into Applied',
         ]);
         expect(within(region).getByText('"Strong, wrong timing."')).toBeInTheDocument();

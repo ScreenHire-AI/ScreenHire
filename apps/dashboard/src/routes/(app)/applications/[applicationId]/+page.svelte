@@ -1,6 +1,5 @@
 <script lang="ts">
   import ArrowLeftIcon from '~icons/lucide/arrow-left';
-  import BookmarkIcon from '~icons/lucide/bookmark';
   import BriefcaseBusinessIcon from '~icons/lucide/briefcase-business';
   import CalendarIcon from '~icons/lucide/calendar';
   import MailIcon from '~icons/lucide/mail';
@@ -63,7 +62,7 @@
   import { authenticityLevels } from '#lib/verification.js';
   import { createMoves } from '#lib/moves.svelte.js';
   import { siteName } from '#lib/format.js';
-  import { canKeepInMind, stageLabel } from '#lib/talent-pool.js';
+  import { canKeepInMind, keptInMindLabel } from '#lib/talent-pool.js';
   import { membersWhoSee } from '#lib/hiring-team.js';
   import { can } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
@@ -334,8 +333,10 @@
         {/snippet}
         {#snippet meta()}
           <!-- The stage is the one fact a recruiter acts on, so it is a muted pill: a fact, not a second status (T2). -->
-          <!-- A saved candidate has left the job: the pill says so where the stage was. -->
-          <MetaItem label="Stage"><Badge variant="muted">{stageLabel(detail)}</Badge></MetaItem>
+          <!-- A saved candidate has left the job: the Saved status says so where the stage was. -->
+          <MetaItem label="Stage">
+            {#if detail.keptInMindAt}<StatusBadge status="saved" label={keptInMindLabel} />{:else}<Badge variant="muted">{detail.stage.name}</Badge>{/if}
+          </MetaItem>
           <MetaItem label="Job" icon={BriefcaseBusinessIcon}><TruncatedText text={detail.jobTitle} href={`/jobs/${detail.jobId}`} underlined /></MetaItem>
           <!-- When and where from, as one phrase that reads without its label. -->
           <MetaItem label="Applied" icon={CalendarIcon}>
@@ -346,8 +347,9 @@
                 recruiter <RelativeTime at={detail.submittedAt} class="inline" />{/if}
             </span>
           </MetaItem>
+          <!-- Saved stays once they leave the list, so this says they are still on it. -->
           {#if detail.inTalentPool}
-            <MetaItem label="Saved" icon={BookmarkIcon}><span>Saved candidate</span></MetaItem>
+            <MetaItem label="Saved candidates"><TruncatedText text="In Saved candidates" href="/saved" underlined /></MetaItem>
           {/if}
           <MetaItem label="Rating" icon={StarIcon}>
             <!-- From people's scorecards only (ADR-0013); it opens to each scorecard. -->

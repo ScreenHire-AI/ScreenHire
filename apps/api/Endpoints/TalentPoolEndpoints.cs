@@ -369,7 +369,7 @@ internal static class TalentPoolEndpoints
     }
 
     // Each candidate gets an application on the job, as a recruiter adding them by hand does, carrying the permission they
-    // gave on the application they were kept from, so its clock does not restart. Adding them takes them out of the pool
+    // gave on the application they were kept from, so stopping withdraws it with the rest. Adding them takes them out of the pool
     // (ApplicationSubmission), and the kept application's Activity names the new one. One commit for the selection: a
     // candidate who applied to the job at the same moment fails the whole add with a 409, and nothing is half done.
     private static async Task<Results<Ok<AddedFromTalentPool>, ValidationProblem, ProblemHttpResult>> AddFromTalentPool(

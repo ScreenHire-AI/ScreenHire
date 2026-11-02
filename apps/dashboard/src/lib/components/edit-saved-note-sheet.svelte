@@ -84,7 +84,7 @@
   <Sheet.Content side="right" class="w-full overflow-y-auto">
     <Sheet.Header>
       <Sheet.Title>Edit note for {person?.candidateName ?? ''}</Sheet.Title>
-      <Sheet.Description>The first note stays in their Activity. Changes are kept in History.</Sheet.Description>
+      <Sheet.Description>The first note stays in their Activity.</Sheet.Description>
     </Sheet.Header>
     <form method="POST" use:enhance novalidate class="flex flex-col gap-4 px-4 pb-4">
       <Field.Field data-invalid={$errors.note ? true : undefined}>

@@ -8,6 +8,7 @@
   import { createListEmailTemplates, createListTalentPool, createRemoveFromTalentPool } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { createSortedRowModel, createTable, rowSortingFeature, sortFn_alphanumeric, sortFn_basic, tableFeatures, type ColumnDef } from '@tanstack/svelte-table';
+  import { mergeProps } from 'bits-ui';
   import { page } from '$app/state';
   import AddToJobSheet from '#lib/components/add-to-job-sheet.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
@@ -34,6 +35,7 @@
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
+  import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { formatDate } from '#lib/dates.js';
   import { can } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
@@ -315,19 +317,27 @@
                   <Table.Cell class="w-full max-w-0 min-w-48">
                     {#if mayEditNote}
                       <!-- A real button, above the row's link, that fills the cell and opens the note's sheet. -->
-                      <button
-                        type="button"
-                        class="relative flex w-full min-w-0 cursor-pointer rounded-md text-left hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-                        onclick={() => open('note', [person])}
-                      >
-                        {#if person.note}
-                          <span class="block min-w-0 truncate">{person.note}</span>
-                        {:else}
-                          <span class="text-muted-foreground">Add a note</span>
-                        {/if}
-                        <!-- The visible text stays inside the button's name (WCAG 2.5.3); this says whose note it is. -->
-                        <span class="sr-only">. Edit note for {person.candidateName}</span>
-                      </button>
+                      <!-- One line in the row, the whole note in the tooltip (F5). -->
+                      <Tooltip.Root disabled={!person.note}>
+                        <Tooltip.Trigger>
+                          {#snippet child({ props })}
+                            <button
+                              {...mergeProps(props, { onclick: () => open('note', [person]) })}
+                              type="button"
+                              class="relative flex w-full min-w-0 cursor-pointer items-center rounded-md text-left hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none pointer-coarse:min-h-11"
+                            >
+                              {#if person.note}
+                                <span class="block min-w-0 truncate">{person.note}</span>
+                              {:else}
+                                <span class="text-muted-foreground">Add a note</span>
+                              {/if}
+                              <!-- The visible text stays inside the button's name (WCAG 2.5.3); this says whose note it is. -->
+                              <span class="sr-only">. Edit note for {person.candidateName}</span>
+                            </button>
+                          {/snippet}
+                        </Tooltip.Trigger>
+                        <Tooltip.Content>{person.note}</Tooltip.Content>
+                      </Tooltip.Root>
                     {:else}
                       <span class="flex min-w-0"><TruncatedText text={person.note ?? ''} /></span>
                       {#if !person.note}<span class="sr-only">No note</span>{/if}
@@ -384,7 +394,7 @@
     {/if}
     {#if mayRemove}
       <DropdownMenu.Item variant="destructive" onSelect={() => (chosen = { person, action: 'remove' })}>
-        <BookmarkXIcon aria-hidden="true" />Remove from saved candidates
+        <BookmarkXIcon aria-hidden="true" />Remove from saved
       </DropdownMenu.Item>
     {/if}
   </MoreMenu>

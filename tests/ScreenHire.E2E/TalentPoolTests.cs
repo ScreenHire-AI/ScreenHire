@@ -50,7 +50,7 @@ public sealed partial class TalentPoolTests(E2EFixture fixture) : BrowserTest(fi
         await Expect(sheet).ToBeHiddenAsync();
         await Expect(Page.GetByText("Saved Casey Morgan.")).ToBeAttachedAsync();
         await Expect(Page.GetByText("Saved", new() { Exact = true }).First).ToBeVisibleAsync();
-        await Expect(Page.Locator("main").GetByText("Saved candidate", new() { Exact = true })).ToBeVisibleAsync();
+        await Expect(Page.Locator("main").GetByRole(AriaRole.Link, new() { Name = "In Saved candidates" })).ToBeVisibleAsync();
 
         // Saved candidates lists them with the note, the job they were saved from and the day they were saved. Nobody has
         // emailed them yet, so Last contacted says so.

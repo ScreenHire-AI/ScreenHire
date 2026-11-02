@@ -1,4 +1,5 @@
 import ArchiveIcon from '~icons/lucide/archive';
+import BookmarkIcon from '~icons/lucide/bookmark';
 import CircleCheckIcon from '~icons/lucide/circle-check';
 import CircleMinusIcon from '~icons/lucide/circle-minus';
 import ClockAlertIcon from '~icons/lucide/clock-alert';
@@ -61,6 +62,8 @@ export const statuses = {
   draft: view('neutral', 'file-pen-line', FilePenLineIcon),
   /** Archived, a template taken out of the pickers until someone restores it. */
   archived: view('neutral', 'archive', ArchiveIcon),
+  /** Saved, a candidate who left the job without a rejection, kept for future roles. */
+  saved: view('neutral', 'bookmark', BookmarkIcon),
   /** Not posted, Removed, Off, Skipped, Revoked: not in effect. */
   notInEffect: view('neutral', 'circle-minus', CircleMinusIcon),
 } as const satisfies Record<string, StatusView>;

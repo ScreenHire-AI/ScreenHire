@@ -65,7 +65,7 @@ describe('edit saved note sheet', () => {
     renderSheet();
     const sheet = await screen.findByRole('dialog', { name: 'Edit note for Casey Morgan' });
 
-    expect(sheet).toHaveTextContent('The first note stays in their Activity. Changes are kept in History.');
+    expect(sheet).toHaveTextContent('The first note stays in their Activity.');
     expect(within(sheet).getByLabelText('Note')).toHaveValue('Strong systems thinking, wrong timing.');
     expect(within(sheet).getByLabelText('Note')).toHaveAttribute('maxlength', '2000');
     await expectNoAxeViolations(document.body);

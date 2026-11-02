@@ -63,7 +63,7 @@ describe('activity', () => {
 
     it('says a candidate was saved without a rejection, and lists it under Stage', () => {
       const kept = entry('k', { type: 'KeptInMind', note: 'Strong, wrong timing.' });
-      expect(describeEvent(kept, jobNames)).toBe('Saved: left the job without a rejection');
+      expect(describeEvent(kept, jobNames)).toBe('Saved');
       expect(kindCounts([kept]).stage).toBe(1);
     });
 

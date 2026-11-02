@@ -22,6 +22,8 @@
   import type { Moves } from '#lib/moves.svelte.js';
   import { hasModifier } from '#lib/shortcuts.js';
   import { isOverdue } from '#lib/sla.js';
+  import StatusIcon from '#lib/components/status-icon.svelte';
+  import type { StatusName } from '#lib/status.js';
   import { keptInMindLabel } from '#lib/talent-pool.js';
 
   // A job's candidates by stage (design system sections 5 and 21). A stage with candidates is a 296px column and an
@@ -122,11 +124,12 @@
      A row with nobody in it has nothing to open, so it has no chevron and is not a button. Opening shows plain cards that
      link to the candidate, as the open columns' cards do; they are not draggable, because the menu on an open column's
      card is the way to move someone. -->
-{#snippet closedRow(key: string, name: string, cards: readonly ApplicationSummary[])}
+{#snippet closedRow(key: string, name: string, cards: readonly ApplicationSummary[], status?: StatusName)}
   {@const open = expandedClosed.has(key)}
   {#if cards.length === 0}
-    <span class="flex min-w-0 items-center justify-between gap-2 px-2 py-1.5 text-body text-muted-foreground">
-      <span class="min-w-0 break-words">{name}</span>
+    <span class="flex min-w-0 items-center gap-2 px-2 py-1.5 text-body text-muted-foreground">
+      {#if status}<StatusIcon {status} />{/if}
+      <span class="min-w-0 flex-1 break-words">{name}</span>
       <span class="tabular-nums">0</span>
     </span>
   {:else}
@@ -138,6 +141,7 @@
       class="flex min-h-9 w-full min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-left text-body text-muted-foreground hover:bg-card focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:min-h-11"
       onclick={() => toggleClosed(key)}
     >
+      {#if status}<StatusIcon {status} />{/if}
       <span class="min-w-0 flex-1 break-words">{name}</span>
       <span class="tabular-nums">{cards.length}</span>
       <ChevronDownIcon aria-hidden="true" class={['size-4 shrink-0 transition-transform', open && 'rotate-180']} />
@@ -274,7 +278,7 @@
                drop: saving someone needs their permission and a note, which the candidate's menu asks for. -->
           {#if applications.length > stillIn.length}
             <div data-kept-in-mind class="flex flex-col rounded-md">
-              {@render closedRow(keptKey, keptInMindLabel, applications.filter((application) => application.keptInMindAt))}
+              {@render closedRow(keptKey, keptInMindLabel, applications.filter((application) => application.keptInMindAt), 'saved')}
             </div>
           {/if}
         </div>

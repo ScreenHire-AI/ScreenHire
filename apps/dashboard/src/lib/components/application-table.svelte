@@ -24,7 +24,8 @@
   import { preferences } from '#lib/preferences.svelte.js';
   import { hasModifier, isTypingTarget } from '#lib/shortcuts.js';
   import { isOverdue } from '#lib/sla.js';
-  import { stageLabel } from '#lib/talent-pool.js';
+  import StatusBadge from '#lib/components/status-badge.svelte';
+  import { keptInMindLabel, stageLabel } from '#lib/talent-pool.js';
   import { createTableSort, tableSortOptions, type TableSortState } from '#lib/table-sort.svelte.js';
 
   let {
@@ -277,7 +278,11 @@
        pill (L1). -->
   <span class="flex min-w-0 items-center gap-1.5">
     <OverdueBadge dueAt={application.slaDueAt} />
-    <TruncatedText text={stageLabel(application)} class="max-w-48" />
+    {#if application.keptInMindAt}
+      <StatusBadge status="saved" label={keptInMindLabel} quiet />
+    {:else}
+      <TruncatedText text={application.stage.name} class="max-w-48" />
+    {/if}
   </span>
 {/snippet}
 
@@ -328,7 +333,11 @@
     {#snippet facts()}
       <!-- relative: above the item's link, so the due time's tooltip opens on tap. -->
       <OverdueBadge dueAt={application.slaDueAt} class="relative" />
-      <Badge variant="muted">{stageLabel(application)}</Badge>
+      {#if application.keptInMindAt}
+        <StatusBadge status="saved" label={keptInMindLabel} quiet />
+      {:else}
+        <Badge variant="muted">{application.stage.name}</Badge>
+      {/if}
       {#if showJob}
         <!-- relative: above the item's link, so the full title's tooltip opens on tap. -->
         <Badge variant="muted" class="relative max-w-full"><TruncatedText text={application.jobTitle} /></Badge>

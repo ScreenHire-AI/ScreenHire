@@ -2,9 +2,10 @@
   import { createGetCandidate } from '@screenhire/api-client/svelte-query';
   import DateText from '#lib/components/date-text.svelte';
   import Panel from '#lib/components/panel.svelte';
+  import StatusBadge from '#lib/components/status-badge.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
-  import { stageLabel } from '#lib/talent-pool.js';
+  import { keptInMindLabel } from '#lib/talent-pool.js';
 
   // The candidate's other applications to the organization, each a link to its page (docs/architecture/talent-pool.md):
   // an application added from saved candidates links back to the one the candidate was saved from, and that one
@@ -21,7 +22,11 @@
       {#each others as application (application.id)}
         <li class="flex min-w-0 items-center gap-3 py-2 first:pt-0 last:pb-0">
           <span class="flex min-w-0 flex-1"><TruncatedText text={application.jobTitle} href={`/applications/${application.id}`} underlined /></span>
-          <Badge variant="muted">{stageLabel(application)}</Badge>
+          {#if application.keptInMindAt}
+            <StatusBadge status="saved" label={keptInMindLabel} quiet />
+          {:else}
+            <Badge variant="muted">{application.stage.name}</Badge>
+          {/if}
           <DateText at={application.submittedAt} class="shrink-0 text-muted-foreground" />
         </li>
       {/each}
