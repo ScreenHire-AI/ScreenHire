@@ -248,18 +248,27 @@ describe('application page', () => {
     const heading = await screen.findByRole('heading', { level: 1, name: 'Casey Morgan' });
     const band = heading.closest<HTMLElement>('[data-slot="header-band"]')!;
 
-    // One meta line above the tabs, where the eye starts on every tab; there is no rail at the window's far edge. Each
-    // value reads without its label, which only screen readers hear.
-    const facts = within(band)
-      .getAllByRole('term')
-      .map((term) => [term.textContent?.trim(), term.nextElementSibling?.textContent?.replace(/\s+/g, ' ').trim()]);
-    expect(facts.map(([label]) => label)).toEqual(['Stage', 'Job', 'Applied', 'Candidate profile', 'Rating']);
-    for (const term of within(band).getAllByRole('term')) expect(term).toHaveClass('sr-only');
-    expect(facts[0]![1]).toBe('Screening');
-    expect(facts[2]![1]).toMatch(/^Applied .+ via the careers page$/);
-    expect(within(band).getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/jobs/${jobId}`);
-    expect(within(band).getByRole('link', { name: /^Also applied to/ })).toHaveAttribute('href', `/candidates/${candidateId}`);
-    expect(within(band).getByRole('link', { name: 'casey.morgan@example.com' })).toHaveAttribute('href', 'mailto:casey.morgan@example.com');
+    // Above the tabs, where the eye starts on every tab: the name, the pipeline tracker, then three mini cards. There is no
+    // meta line and no rail at the window's far edge.
+    expect(within(band).queryAllByRole('term')).toHaveLength(0);
+    // The tracker draws once the job's workflow is in.
+    const steps = within(await within(band).findByRole('list', { name: 'Pipeline' })).getAllByRole('listitem');
+    expect(steps.map((step) => step.getAttribute('data-state'))).toEqual(['passed', 'current', 'upcoming', 'upcoming']);
+    expect(steps[1]).toHaveAttribute('aria-current', 'step');
+    expect(steps[1]).toHaveTextContent(/^Screening, step 2 of 4.*Here .+/);
+    expect(steps[0]).toHaveTextContent(/^Applied, step 1 of 4.*Oct 20(, 2026)?$/);
+
+    const contact = within(band).getByRole('group', { name: 'Contact' });
+    expect(within(contact).getByRole('link', { name: 'casey.morgan@example.com' })).toHaveAttribute('href', 'mailto:casey.morgan@example.com');
+    expect(within(contact).getByRole('button', { name: 'Copy email address' })).toBeInTheDocument();
+    const applied = within(band).getByRole('group', { name: 'Application' });
+    expect(within(applied).getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/jobs/${jobId}`);
+    expect(applied).toHaveTextContent(/Applied .+ via the careers page$/);
+    // Nobody scored them, so the third card is their other applications, and nothing says "Not rated yet".
+    const others = within(band).getByRole('group', { name: 'Also applied to' });
+    expect(within(others).getByRole('link', { name: 'Candidate profile' })).toHaveAttribute('href', `/candidates/${candidateId}`);
+    expect(within(band).queryByRole('group', { name: 'Rating' })).toBeNull();
+    expect(band).not.toHaveTextContent('Not rated yet');
     expect(screen.queryByRole('complementary', { name: 'Details' })).toBeNull();
     const files = await screen.findByRole('region', { name: 'Files' });
     expect(within(files).getByRole('button', { name: 'View Casey Morgan CV.pdf' })).toBeInTheDocument();
@@ -303,6 +312,7 @@ describe('application page', () => {
     // The level is also the candidate's status, beside the name on every tab (S2, T2).
     const band = screen.getByRole('heading', { level: 1 }).closest<HTMLElement>('[data-slot="header-band"]')!;
     expect(within(band).getByText('Verification suggested')).toBeInTheDocument();
+    expect(within(band).queryByRole('button', { name: /reject/i })).toBeNull();
   });
 
   it("labels each answer with the job's question and shows choices by their labels", async () => {
@@ -577,11 +587,11 @@ describe('application page', () => {
       candidate: { ...application.candidate, emailIssue: issue, emailIssueAt: '2026-10-21T08:00:00Z', emailIssueReason: '550 mailbox not found' },
     });
 
-    it('says so beside the name and in a notice that names the way back, and offers no email box', async () => {
+    it('says so on the Contact card and in a notice that names the way back, and offers no email box', async () => {
       stubApi({ [`GET /v1/applications/${applicationId}`]: () => Response.json(flagged('Bounced')) });
       renderPage('messages');
 
-      expect(await screen.findByText('Email bounced')).toBeInTheDocument();
+      expect(await within(await screen.findByRole('group', { name: 'Contact' })).findByText('Email bounced')).toBeInTheDocument();
       expect(screen.getByText(/ScreenHire does not email this address any more/)).toHaveTextContent('(550 mailbox not found)');
       expect(screen.getByRole('button', { name: 'Allow email again' })).toBeInTheDocument();
       expect(screen.queryByRole('form', { name: /Email Casey Morgan/ })).not.toBeInTheDocument();
@@ -920,10 +930,10 @@ describe('application page', () => {
       await fireEvent.pointerDown(await screen.findByRole('button', { name: 'Move to stage, Casey Morgan' }), { button: 0, pointerType: 'mouse' });
       return screen.findByRole('menu');
     };
-    const stagePill = async () => {
-      const band = (await screen.findByRole('heading', { level: 1, name: 'Casey Morgan' })).closest<HTMLElement>('[data-slot="header-band"]')!;
-      return within(band).getAllByRole('term').find((term) => term.textContent?.trim() === 'Stage')!.nextElementSibling!;
-    };
+    const header = async () => (await screen.findByRole('heading', { level: 1, name: 'Casey Morgan' })).closest<HTMLElement>('[data-slot="header-band"]')!;
+    /** The first line: the name and the one status badge beside it. */
+    const firstLine = async () => (await screen.findByRole('heading', { level: 1, name: 'Casey Morgan' })).parentElement!;
+    const sending = { 'GET /v1/email-templates': () => Response.json({ sendingEnabled: true, templates: [], variables: [] }) };
 
     it('offers Save candidate in Move to stage when the candidate allowed it', async () => {
       stubDetail({ allowsFutureRoles: true, futureRolesGivenAt: '2026-10-20T09:00:00Z' });
@@ -937,7 +947,6 @@ describe('application page', () => {
     it.each([
       ['never gave permission', {}],
       ['gave it and took it back', { allowsFutureRoles: false, futureRolesGivenAt: '2026-10-20T09:00:00Z' }],
-      ['were already saved', { allowsFutureRoles: true, keptInMindAt: keptAt }],
       ['were rejected', { allowsFutureRoles: true, stage: { id: 'rejected', name: 'Rejected', kind: 'Rejected' as const } }],
     ])('leaves Save candidate out of Move to stage for a candidate who %s', async (_case, patch) => {
       stubDetail(patch);
@@ -975,13 +984,16 @@ describe('application page', () => {
       expect(await screen.findByText('Saved Casey Morgan.', { selector: '[role="status"]' })).toBeInTheDocument();
     });
 
-    it('says Saved in the header where the stage was, and no Saved fact until they are in the list', async () => {
+    it('says Saved beside the name, with a dark dot on the stage they left from, and no Saved fact until they are in the list', async () => {
       stubDetail({ keptInMindAt: keptAt, allowsFutureRoles: true, inTalentPool: false });
       renderPage();
 
-      const pill = await stagePill();
-      expect(pill).toHaveTextContent('Saved');
-      expect(pill.querySelector('[data-status-icon="bookmark"]')).not.toBeNull();
+      const line = await firstLine();
+      await waitFor(() => expect(line).toHaveTextContent('Saved'));
+      expect(line.querySelector('[data-status-icon="bookmark"]')).not.toBeNull();
+      const left = within(await header()).getAllByRole('listitem').find((step) => step.getAttribute('data-state') === 'left')!;
+      expect(left).toHaveTextContent(/^Screening, step 2 of 4.*Saved Oct 29$/);
+      expect(within(await header()).queryByRole('listitem', { current: 'step' })).toBeNull();
       expect(screen.queryByRole('link', { name: 'In Saved candidates' })).toBeNull();
     });
 
@@ -989,25 +1001,91 @@ describe('application page', () => {
       stubDetail({ keptInMindAt: keptAt, allowsFutureRoles: true, inTalentPool: true });
       renderPage();
 
-      expect(await stagePill()).toHaveTextContent('Saved');
+      expect(await firstLine()).toHaveTextContent('Saved');
       expect(await screen.findByRole('link', { name: 'In Saved candidates' })).toHaveAttribute('href', '/saved');
     });
 
-    it('marks no stage as current in Move to stage once they were saved, and offers no second save', async () => {
-      stubDetail({ keptInMindAt: keptAt, allowsFutureRoles: true, inTalentPool: true });
+    it('says when they were last contacted on the Contact card, from the newest email either way', async () => {
+      const email = (id: string, sentAt: string): CandidateEmailEntry => ({ id, applicationId, jobTitle: 'Senior .NET Engineer', subject: 'Hello', sentAt, direction: 'Sent' }) as CandidateEmailEntry;
+      stubDetail(
+        { keptInMindAt: keptAt, allowsFutureRoles: true },
+        { [`GET /v1/candidates/${candidateId}/emails`]: () => Response.json([email('a', '2026-10-27T09:00:00Z'), email('b', '2026-10-20T09:00:00Z')]) },
+      );
       renderPage();
 
-      const menu = await openMoveMenu();
-
-      expect(within(menu).queryByText('current')).toBeNull();
-      expect(within(menu).queryByRole('menuitem', { name: /Save candidate/ })).toBeNull();
+      const contact = await screen.findByRole('group', { name: 'Contact' });
+      expect(await within(contact).findByText(/Last contacted/)).toHaveTextContent('Last contacted 3 days ago');
     });
 
-    it('shows the stage name, not Saved, for an application still in the job', async () => {
+    it('says they were not contacted yet when no email went either way', async () => {
+      stubDetail({ keptInMindAt: keptAt, allowsFutureRoles: true });
+      renderPage();
+
+      expect(await within(await screen.findByRole('group', { name: 'Contact' })).findByText('Not contacted yet')).toBeInTheDocument();
+    });
+
+    it('does not say last contacted for an application still in the job', async () => {
       stubDetail({ allowsFutureRoles: true });
       renderPage();
 
-      expect(await stagePill()).toHaveTextContent('Screening');
+      const contact = await screen.findByRole('group', { name: 'Contact' });
+      await waitFor(() => expect(within(contact).getByRole('link', { name: 'casey.morgan@example.com' })).toBeInTheDocument());
+      expect(contact).not.toHaveTextContent('Last contacted');
+      expect(contact).not.toHaveTextContent('Not contacted yet');
+    });
+
+    it('offers Message and Invite to another job in place of Email and Move to stage', async () => {
+      stubDetail({ keptInMindAt: keptAt, allowsFutureRoles: true, inTalentPool: true }, sending);
+      renderPage();
+
+      const band = await header();
+      expect(await within(band).findByRole('button', { name: 'Message' })).toBeInTheDocument();
+      expect(within(band).getByRole('button', { name: 'Invite to another job' })).toBeInTheDocument();
+      expect(within(band).queryByRole('button', { name: 'Email' })).toBeNull();
+      expect(within(band).queryByRole('button', { name: 'Move to stage, Casey Morgan' })).toBeNull();
+    });
+
+    it('offers neither Message nor Invite to another job for a saved candidate whose address the provider flagged', async () => {
+      const fetch = stubDetail({ keptInMindAt: keptAt, allowsFutureRoles: true, inTalentPool: true, candidate: { ...application.candidate, emailIssue: 'Bounced' } }, sending);
+      renderPage();
+
+      const band = await header();
+      await within(band).findByText('Email bounced');
+      // Sending is on once this answer is in, so only the flag can hide the two buttons.
+      await waitFor(() => expect(fetch.mock.calls.some(([url]) => String(url).includes('/v1/email-templates'))).toBe(true));
+      await new Promise((resolve) => setTimeout(resolve));
+      expect(within(band).queryByRole('button', { name: 'Message' })).toBeNull();
+      expect(within(band).queryByRole('button', { name: 'Invite to another job' })).toBeNull();
+    });
+
+    it('shows the stage name as current, and Email and Move to stage, for an application still in the job', async () => {
+      stubDetail({ allowsFutureRoles: true }, sending);
+      renderPage();
+
+      const band = await header();
+      expect(await within(band).findByRole('button', { name: 'Move to stage, Casey Morgan' })).toBeInTheDocument();
+      expect(within(band).getByRole('button', { name: 'Email' })).toBeInTheDocument();
+      expect(within(band).queryByRole('button', { name: 'Message' })).toBeNull();
+      expect(within(band).queryByRole('button', { name: 'Invite to another job' })).toBeNull();
+      expect(within(band).getByRole('listitem', { current: 'step' })).toHaveTextContent(/^Screening/);
+    });
+
+    it.each([
+      ['Rejected', 'rejected'],
+      ['Withdrawn', 'withdrawn'],
+    ])('says %s beside the name and leaves the dark dot on the stage the last move left from', async (label, id) => {
+      stubDetail(
+        { stage: { id, name: label, kind: label as 'Rejected' | 'Withdrawn' }, stageEnteredAt: '2026-10-28T09:00:00Z' },
+        {
+          [`GET /v1/applications/${applicationId}/timeline`]: () =>
+            Response.json([...timeline, entry({ type: 'StageChanged', occurredAt: '2026-10-28T09:00:00Z', fromStageId: 'interview', toStageId: id })]),
+        },
+      );
+      renderPage();
+
+      expect(await firstLine()).toHaveTextContent(label);
+      const left = within(await header()).getAllByRole('listitem').find((step) => step.getAttribute('data-state') === 'left')!;
+      expect(left).toHaveTextContent(new RegExp(`^Interview, step 3 of 4.*${label} Oct 28$`));
     });
 
     describe('Future roles on the Application tab', () => {

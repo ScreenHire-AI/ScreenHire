@@ -17,7 +17,7 @@ sources:
   - resource: apps/worker/BlobApplicantFileStore.cs
   - resource: apps/dashboard/src/routes/(app)/candidates/[candidateId]/+page.svelte
   - resource: apps/dashboard/src/lib/candidate-profile.ts
-  - resource: apps/dashboard/src/lib/components/also-applied-to.svelte
+  - resource: apps/dashboard/src/lib/components/candidate/header-cards.svelte
   - resource: apps/dashboard/src/lib/components/erase-candidate-dialog.svelte
   - resource: apps/dashboard/src/lib/components/confirm-dialog.svelte
 ---
@@ -51,7 +51,7 @@ scorecard scores or recommendations. Both routes are for people: the `/v1/candid
 organization API keys does not carry them, and no MCP tool reads the history.
 
 Each application's page links to the profile as **Also applied to**, with the number of other jobs the reader sees.
-It sits in the header's meta line until the header gets its mini cards, where it becomes the third card.
+It is the third mini card in the header (ADR-0023). Once someone scored the candidate that card is Rating, and its second line links to the profile in place of the count.
 
 The history shows tags and notes as the team wrote them, the same as an application's own activity. A team that
 tags from a verification condition in an automation therefore sees that tag in the history too. That is the team's

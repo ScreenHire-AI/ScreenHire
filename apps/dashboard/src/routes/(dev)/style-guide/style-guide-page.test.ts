@@ -45,6 +45,8 @@ const panels: Record<string, string[]> = {
   'More menu': ['More menu'],
   Count: ['Count'],
   'Step marker': ['Step marker'],
+  'Pipeline tracker': ['Pipeline tracker'],
+  'Mini card': ['Mini card'],
   'Icon button': ['Icon button'],
   'Summary list': ['Summary list'],
   'Key cap': ['Key cap and tooltip'],

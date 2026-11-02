@@ -78,7 +78,13 @@ export function dayLabel(iso: string, now: number): string {
     return word.charAt(0).toLocaleUpperCase(locales) + word.slice(1);
   }
 
-  return at.getFullYear() === today.getFullYear() ? monthDay.format(at) : date.format(at);
+  return shortDate(iso, now);
+}
+
+/** A date for a tracker's caption: `Oct 31`, with the year only for another year (`Oct 31, 2025`). */
+export function shortDate(iso: string, now: number): string {
+  const at = new Date(iso);
+  return at.getFullYear() === new Date(now).getFullYear() ? monthDay.format(at) : date.format(at);
 }
 
 /** Time ago in text: `now`, `5 minutes ago`, `yesterday`; the date once it is more than a week old. */
