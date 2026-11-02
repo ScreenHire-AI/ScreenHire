@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json.Nodes;
 using ScreenHire.Application.Applications;
 using ScreenHire.IntegrationTests.Realtime;
@@ -174,6 +175,23 @@ public sealed class EmailWebhookTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task The_sandbox_refuses_an_attachment_that_is_not_base64_as_a_bad_request()
+    {
+        using var client = fixture.AnonymousClient();
+        var body = new JsonObject
+        {
+            ["to"] = "reply+not-a-token@reply.example.test",
+            ["from"] = "jordan.reyes@example.com",
+            ["attachments"] = new JsonArray(new JsonObject { ["fileName"] = "cv.pdf", ["contentBase64"] = "not base64!" }),
+        };
+
+        using var response = await client.PostAsync(
+            "/v1/dev/inbound-email", new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json"), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
     public async Task A_signed_bounce_flags_the_candidate_and_further_emails_to_them_are_skipped_until_a_person_clears_it()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
@@ -264,6 +282,21 @@ public sealed class EmailWebhookTests(AppHostFixture fixture)
 
         await fixture.DevReplyAsync(sent.ReplyAddress, sent.Address.ToUpperInvariant(), "It works after all.", messageId: "<same@mail.example.org>");
         (await owner.EmailIssueAsync(sent.ApplicationId)).Should().Be("None");
+    }
+
+    [Fact]
+    public async Task An_automatic_answer_from_the_flagged_address_leaves_the_flag_on()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var sent = await fixture.SendToNewCandidateAsync(owner);
+        (await fixture.PostEventsAsync(ReplySupport.EventBody(owner.OrganizationId, sent.SendId, sent.Address, "spamreport")))
+            .Should().Be(HttpStatusCode.OK);
+        (await owner.EmailIssueAsync(sent.ApplicationId)).Should().Be("SpamComplaint");
+
+        (await fixture.DevReplyAsync(sent.ReplyAddress, sent.Address, "I am out of the office.", messageId: "<away@mail.example.org>", autoReply: true))
+            .Should().Be("Stored");
+
+        (await owner.EmailIssueAsync(sent.ApplicationId)).Should().Be("SpamComplaint", "an out-of-office is not the candidate asking for email again");
     }
 
     [Fact]
