@@ -1,5 +1,6 @@
 {
   "version": 1,
+  "stopScript": "set ASPIRE_CLI_TELEMETRY_OPTOUT=true&& dotnet aspire stop --non-interactive --nologo --apphost apps/apphost/ScreenHire.AppHost.csproj",
   "columns": [
     {
       "id": "1fe3f089-d5a2-41d3-a23a-3f1e86e8d50a",

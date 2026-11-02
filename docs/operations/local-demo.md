@@ -10,6 +10,7 @@ sources:
   - resource: apps/apphost/DevSso/config.json
   - resource: src/ScreenHire.Infrastructure/Persistence/DevelopmentDataSeeder.cs
   - resource: .claude/skills/preview/SKILL.md
+  - resource: kangentic.json
 ---
 # Run ScreenHire locally and demo it
 
@@ -55,6 +56,13 @@ your IDE. After a change to the AppHost itself, start it again; this clone's run
 Stop with Ctrl+C (or `/preview stop`, which is `dotnet aspire stop`). Aspire then removes the containers it started. The database, uploaded files and
 Mailpit's inbox stay in Docker volumes (one set per clone, or per worktree started with `/preview keep`), so the next
 start has the same candidates, the same emails and anything you changed.
+
+In a Kangentic task a stack also ends by itself. The project's Stop script (`stopScript` in `kangentic.json`) runs
+`dotnet aspire stop` for that clone when the task pauses after the idle timeout or for low memory, unless a browser tab
+or the task's Browser pane is connected to the stack. A Pause or Stop pressed by a person leaves the stack up. A move to
+Done or To Do, or a delete, stops it whether or not a browser is connected. After a pause, the next agent is told what
+stopped and starts it again with `/preview` when it needs the app; a worktree without `keep` reseeds the demo. The
+details are in [Processes on the dev machine](../process/board-pipeline.md#processes-on-the-dev-machine).
 
 ### Start over
 
