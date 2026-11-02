@@ -80,8 +80,8 @@ internal static class CandidateEndpoints
     // Erases the candidate and, by the database's cascades, every application, answer, file row, note, email, task, scorecard
     // and piece of verification data under them, in the one transaction that records the tombstone. Needs a person who sees
     // every job: erasing reaches every application, so one on Only jobs they're on gets a 404 and learns nothing. The files'
-    // blobs go with a message sent in the same transaction. The applications that shared a detail with the erased ones are
-    // checked again afterwards, so no level keeps resting on a person who is gone.
+    // blobs and their replies' attachments go with a message sent in the same transaction. The applications that shared a
+    // detail with the erased ones are checked again afterwards, so no level keeps resting on a person who is gone.
     private static async Task<Results<NoContent, NotFound, ValidationProblem>> EraseCandidate(
         Guid candidateId,
         EraseCandidateRequest request,
@@ -117,6 +117,8 @@ internal static class CandidateEndpoints
         var jobIds = applications.Select(a => a.JobId).Distinct().ToList();
         var jobs = await db.Jobs.AsNoTracking().Where(j => jobIds.Contains(j.Id)).ToDictionaryAsync(j => j.Id, cancellationToken);
         var files = await db.ApplicationFiles.AsNoTracking().Where(f => applicationIds.Contains(f.ApplicationId)).ToListAsync(cancellationToken);
+        var replyAttachments = await db.InboundEmailAttachments.AsNoTracking()
+            .Where(a => applicationIds.Contains(a.ApplicationId)).Select(a => a.BlobName).ToListAsync(cancellationToken);
         var observations = await db.SubmissionObservations.AsNoTracking()
             .Where(o => applicationIds.Contains(o.ApplicationId)).ToDictionaryAsync(o => o.ApplicationId, cancellationToken);
 
@@ -129,11 +131,14 @@ internal static class CandidateEndpoints
                 application, candidate, jobs[application.JobId], observations.GetValueOrDefault(application.Id),
                 [.. files.Where(f => f.ApplicationId == application.Id)], now);
             var related = (await directory.FindSharedAsync(context, cancellationToken)).SelectMany(m => m.ApplicationIds).Distinct();
-            rechecks.AddRange(related.Select(id => new RecheckApplicationDuplicates(organizationId, id, application.Id)));
+            rechecks.AddRange(related.Select(id => new RecheckApplicationDuplicates(organizationId, id, application.Id, CauseErased: true)));
         }
 
         // A draft saved before applying is keyed by the address, not by a candidate row, so no cascade reaches it.
         db.ApplicationDrafts.RemoveRange(await db.ApplicationDrafts.Where(d => d.Email == candidate.NormalizedEmail).ToListAsync(cancellationToken));
+        // The history of a saved note holds its text, keeps no link to the candidate and is append-only for this role. Run
+        // before the delete below: the function keeps what belongs to every other candidate's entry.
+        await db.Database.ExecuteSqlAsync($"SELECT erase_saved_note_history({candidateId})", cancellationToken);
         db.Candidates.Remove(candidate);
         db.MembershipEvents.Add(new MembershipEvent
         {
@@ -143,9 +148,9 @@ internal static class CandidateEndpoints
             OccurredAt = now,
         });
 
-        if (files.Count > 0)
+        if (files.Count > 0 || replyAttachments.Count > 0)
         {
-            await outbox.PublishAsync(new EraseApplicantFiles(organizationId, [.. files.Select(f => f.BlobName)]));
+            await outbox.PublishAsync(new EraseApplicantFiles(organizationId, [.. files.Select(f => f.BlobName)], replyAttachments));
         }
 
         foreach (var recheck in rechecks.DistinctBy(r => (r.ApplicationId, r.CauseApplicationId)))

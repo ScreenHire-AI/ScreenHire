@@ -7,7 +7,7 @@
   import { applicationsPath, candidatesPath, jobsPath, talentPoolPath } from '#lib/realtime.js';
 
   // Erases a candidate (design system A2): the one place that says what erasing takes and what it keeps. It follows a
-  // candidate's own request to be removed from the talent pool, or a privacy request that reached the team, so the
+  // candidate's own request to be removed from Saved candidates, or a privacy request that reached the team, so the
   // person types the name to be sure. Needs Erase candidates and, on the server, access to every job.
   let {
     candidateId,

@@ -12,12 +12,13 @@ namespace ScreenHire.Application.Verification;
 /// it when a later application's duplicate check finds this one), or because one that did is gone. The earlier application
 /// then carries the same evidence as the later one, and the review log says when and why
 /// (verification-engine.md §10.2). <c>CauseApplicationId</c> is the application that matched it, or the one erased; it only
-/// keys the message, and the log never names it.
+/// keys the message, and the log never names it. <c>CauseErased</c> says which: one application can do both, and the
+/// erasure must not be dropped as a repeat of the match it undoes.
 /// </summary>
-public sealed record RecheckApplicationDuplicates(Guid OrganizationId, Guid ApplicationId, Guid CauseApplicationId) : ITenantMessage
+public sealed record RecheckApplicationDuplicates(Guid OrganizationId, Guid ApplicationId, Guid CauseApplicationId, bool CauseErased = false) : ITenantMessage
 {
-    /// <summary>One intent, one key: this application rechecked because of that one (or because of an erasure).</summary>
-    public string IdempotencyKey => $"recheck-duplicates:{ApplicationId}:{CauseApplicationId}";
+    /// <summary>One intent, one key: this application rechecked because that one matched it, or because that one was erased.</summary>
+    public string IdempotencyKey => $"recheck-duplicates:{ApplicationId}:{CauseApplicationId}:{(CauseErased ? "erased" : "matched")}";
 }
 
 public static partial class RecheckApplicationDuplicatesHandler

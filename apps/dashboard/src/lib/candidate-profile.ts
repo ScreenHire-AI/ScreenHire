@@ -13,7 +13,7 @@ import { isTerminal } from '#lib/workflow.js';
 export interface Progress {
   /** The last stage it was in before it ended. Undefined while it is open, where the outcome names its stage, and when no move is known. */
   reached?: string;
-  /** "Hired", "Rejected", "Withdrawn", "Kept in mind", or the current stage name while it is still open. */
+  /** "Hired", "Rejected", "Withdrawn", "Saved", or the current stage name while it is still open. */
   outcome: string;
   /** When it ended; undefined while it is open. */
   endedAt?: string;
@@ -25,7 +25,7 @@ export const inTimeOrder = (applications: readonly ApplicationSummary[]): Applic
 
 /**
  * How far the application got and how it ended. A hired, rejected or withdrawn application sits in a closing stage, so
- * "how far" is the stage it was in before its last move; a candidate kept in mind kept their stage. The history is the
+ * "how far" is the stage it was in before its last move; a saved candidate kept their stage. The history is the
  * source for the move, newest first.
  */
 export function progressOf(application: ApplicationSummary, history: readonly CandidateHistoryEntry[] | undefined): Progress {

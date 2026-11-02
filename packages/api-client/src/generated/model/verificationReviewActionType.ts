@@ -14,4 +14,5 @@ export const VerificationReviewActionType = {
   ReasonExplained: 'ReasonExplained',
   ExplanationUndone: 'ExplanationUndone',
   ReadByKey: 'ReadByKey',
+  EvidenceChanged: 'EvidenceChanged',
 } as const;

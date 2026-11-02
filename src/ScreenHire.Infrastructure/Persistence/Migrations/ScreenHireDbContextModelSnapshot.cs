@@ -3577,7 +3577,7 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
 
                     b.ToTable("verification_review_actions", null, t =>
                         {
-                            t.HasCheckConstraint("ck_verification_review_actions_one_actor", "(actor_user_id IS NOT NULL) <> (api_key_id IS NOT NULL)");
+                            t.HasCheckConstraint("ck_verification_review_actions_one_actor", "((actor_user_id IS NOT NULL) <> (api_key_id IS NOT NULL)) OR (type = 'EvidenceChanged' AND actor_user_id IS NULL AND api_key_id IS NULL)");
                         });
                 });
 

@@ -123,10 +123,10 @@
 
     <div class="@container flex w-full flex-col gap-5 px-4 py-5 md:px-6 md:py-6">
       {#if asked && mayErase}
-        <!-- They used the link in a talent pool invitation to stop being kept. Erasing their data as well is a separate,
+        <!-- They used the stop link in an invitation from Saved candidates. Erasing their data as well is a separate,
              deliberate step (A2), named here because it is what they may be asking for. -->
         <Notice>
-          They asked to be taken out of the talent pool on {formatDate(asked)}. To erase their data as well, use Erase candidate in the More menu.
+          They asked to be removed from Saved candidates on {formatDate(asked)}. To erase their data as well, use Erase candidate in the More menu.
         </Notice>
       {/if}
 

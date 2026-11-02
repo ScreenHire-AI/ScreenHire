@@ -38,6 +38,9 @@ public interface IApplicantFileStore
 
     /// <summary>Deletes the file's blob when a candidate is erased. A blob that is not there is already gone, not an error.</summary>
     Task DeleteAsync(string blobName, CancellationToken cancellationToken);
+
+    /// <summary>Deletes a reply attachment's blob, from the email attachments container, when a candidate is erased. As <see cref="DeleteAsync"/>.</summary>
+    Task DeleteReplyAttachmentAsync(string blobName, CancellationToken cancellationToken);
 }
 
 /// <summary>A file's bytes, or the reason (<see cref="Problem"/>) there are none.</summary>
@@ -53,6 +56,8 @@ public sealed class NoApplicantFileStore : IApplicantFileStore
         Task.FromResult(StoredFile.NotRead("No file storage is configured, so the file was not read."));
 
     public Task DeleteAsync(string blobName, CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task DeleteReplyAttachmentAsync(string blobName, CancellationToken cancellationToken) => Task.CompletedTask;
 }
 
 public static partial class ExtractApplicationDocumentHandler
