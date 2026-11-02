@@ -23,5 +23,6 @@ public sealed class ProjectStopScriptTests
         script.Should().Contain("--apphost apps/apphost/ScreenHire.AppHost.csproj", "the stop must name this clone's AppHost");
         script.Should().NotContain("--all", "it stops other clones' stacks");
         script.Should().NotContain("--force", "it cleans up persistent resources");
+        File.Exists(RepositoryFiles.PathTo("apps/apphost/ScreenHire.AppHost.csproj")).Should().BeTrue("a moved AppHost would leave the script stopping nothing");
     }
 }
