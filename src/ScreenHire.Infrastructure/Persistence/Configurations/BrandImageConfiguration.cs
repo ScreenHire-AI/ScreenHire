@@ -15,6 +15,7 @@ internal sealed class BrandImageConfiguration : IEntityTypeConfiguration<BrandIm
         builder.Property(i => i.ScanStatus).HasConversion<string>().HasMaxLength(20);
         builder.Ignore(i => i.IsServable);
         builder.Ignore(i => i.Extension);
+        builder.Ignore(i => i.FileName);
 
         builder.HasOne<Organization>().WithMany().HasForeignKey(i => i.OrganizationId).OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(i => new { i.OrganizationId, i.Kind });

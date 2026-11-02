@@ -36,7 +36,8 @@ design system, section 18.
 `Organization` holds `BrandColor`, `SecondColor` (both `#rrggbb`), `HeadingFont` (an enum, null for Bricolage
 Grotesque) and the three images in use, `LogoImageId`, `FaviconImageId` and `SharingImageId`. Each id names a
 `BrandImage`, a tenant-owned row (`brand_images`, row-level security) with the blob's name, its type, size, pixel size
-and malware scan status. The image columns are not foreign keys: Postgres checks a foreign key without row-level
+and malware scan status. The upload's file name is not a column: it is the last part of the blob name, and the API
+returns it as `fileName` so the Branding tile can name the file. The image columns are not foreign keys: Postgres checks a foreign key without row-level
 security, so a key would accept another organization's image. The branding save looks each id up within the tenant
 instead, and brand images are never deleted, because emails already sent point at them.
 

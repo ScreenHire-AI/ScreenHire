@@ -65,6 +65,19 @@ public sealed class JobApplicationTests
     }
 
     [Fact]
+    public void An_application_from_a_boards_link_keeps_the_board_and_stays_a_careers_page_one()
+    {
+        var (job, candidate) = JobAndCandidate();
+        var intake = new ApplicationIntake(ApplicationSource.CareersSite, [], PrivacyNoticeVersion: "2026-10-31.2", SourceBoard: "talent");
+
+        var (application, _) = JobApplication.Submit(job, candidate, false, AiUseDeclaration.DidNotUse, null, Monday, null, intake);
+
+        application.Source.Should().Be(ApplicationSource.CareersSite);
+        application.SourceBoard.Should().Be("talent");
+        application.SourceSite.Should().BeNull();
+    }
+
+    [Fact]
     public void A_recruiter_added_application_has_no_answers_or_checks()
     {
         var (job, candidate) = JobAndCandidate();
@@ -75,6 +88,7 @@ public sealed class JobApplicationTests
         application.Answers.Should().BeEmpty();
         application.PrivacyNoticeVersion.Should().BeNull();
         application.SourceSite.Should().BeNull();
+        application.SourceBoard.Should().BeNull();
         application.BotCheck.Should().Be(BotCheckResult.NotChecked);
     }
 

@@ -36,6 +36,17 @@ public sealed class HiringReportTests
     }
 
     [Fact]
+    public void A_previous_range_names_both_ends_ends_after_it_starts_and_covers_five_years_at_most()
+    {
+        var from = Now.AddDays(-30);
+        ReportEndpoints.Problems(from, Now, null, from.AddDays(-30), from).Should().BeEmpty();
+        ReportEndpoints.Problems(from, Now, null, from.AddDays(-30), null).Keys.Should().Equal("previousTo");
+        ReportEndpoints.Problems(from, Now, null, null, from).Keys.Should().Equal("previousFrom");
+        ReportEndpoints.Problems(from, Now, null, from, from).Keys.Should().Equal("previousTo");
+        ReportEndpoints.Problems(from, Now, null, from.AddDays(-1828), from).Keys.Should().Equal("previousTo");
+    }
+
+    [Fact]
     public void A_report_filters_by_two_hundred_jobs_at_most()
     {
         ReportEndpoints.Problems(Now.AddDays(-1), Now, [.. Enumerable.Range(0, 200).Select(_ => Guid.NewGuid())]).Should().BeEmpty();
