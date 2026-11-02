@@ -1,11 +1,11 @@
 <script lang="ts">
   import UserPlusIcon from '~icons/lucide/user-plus';
   import XIcon from '~icons/lucide/x';
-  import { createGetFunnelApplications, createListApplications, createListEmailTemplates } from '@screenhire/api-client/svelte-query';
+  import { createGetFunnelApplications, createListApplications, createListEmailTemplates, createListViews } from '@screenhire/api-client/svelte-query';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { can } from '#lib/permissions.js';
-  import { matchesSearch } from '#lib/candidate-table.js';
+  import { matchesSearch, sortableColumnIds } from '#lib/candidate-table.js';
   import { clock } from '#lib/clock.svelte.js';
   import ActionBar from '#lib/components/action-bar.svelte';
   import AddCandidateSheet, { type AddedCandidate } from '#lib/components/add-candidate-sheet.svelte';
@@ -17,6 +17,7 @@
   import MultiFilterMenu from '#lib/components/multi-filter-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import SaveViewButton from '#lib/components/save-view-button.svelte';
   import SearchField from '#lib/components/search-field.svelte';
   import TagFilterMenu from '#lib/components/tag-filter.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
@@ -27,15 +28,29 @@
   import { isVerificationFiltered, matchesVerificationFilter, noVerificationFilter, type VerificationFilter } from '#lib/verification.js';
   import { IsMobile } from '#lib/hooks/is-mobile.svelte.js';
   import { describeError } from '#lib/query.js';
+  import { preferences } from '#lib/preferences.svelte.js';
   import { findSavedView } from '#lib/saved-views.js';
+  import { createTableSort } from '#lib/table-sort.svelte.js';
   import { matchesTag, tagsOf } from '#lib/tags.js';
   import { jobOptions, readReached, reachedLabel, stageOptions } from '#lib/candidate-filters.js';
   import { stageLabel } from '#lib/talent-pool.js';
+  import { defaultSorts, differsFromView, filtersOf, sortOf, verificationOf } from '#lib/view-filters.js';
 
   // Every application in the organization, newest first; new ones, stage moves and verification levels arrive live
   // (#lib/realtime.ts).
   const applications = createListApplications();
-  const view = $derived(findSavedView(page.url.searchParams.get('view')));
+  // The address names a view: a built-in one (code), or one that a person saved (the server's list, docs/architecture/saved-views.md).
+  const viewId = $derived(page.url.searchParams.get('view'));
+  const builtIn = $derived(findSavedView(viewId));
+  const savedViews = createListViews();
+  const saved = $derived(
+    builtIn ? undefined : savedViews.data?.data.views.find((candidate) => candidate.id === viewId && candidate.scope === 'Candidates'),
+  );
+  // What the page shows as the view: its name, and for a built-in status view the status that marks it.
+  const view = $derived(builtIn ?? (saved ? { label: saved.name, status: undefined } : undefined));
+  // A view that is gone (deleted, or made private by someone else) shows every candidate and says so.
+  const viewGone = $derived(Boolean(viewId) && !builtIn && !saved && savedViews.isSuccess);
+  const viewLoading = $derived(Boolean(viewId) && !builtIn && !saved && savedViews.isPending);
   const all = $derived(applications.data?.data ?? []);
   // The sidebar counts use the same clock, so a view and its count agree.
   let verificationFilter = $state<VerificationFilter>({ ...noVerificationFilter });
@@ -70,10 +85,12 @@
   const stagesPicked = $derived(stageFilter.filter((name) => stages.some((stage) => stage.value === name)));
   // Tags people and automations put on applications; tags and removals arrive live (ApplicationTagsChanged).
   const tags = $derived(tagsOf(all));
+  // A saved view narrows a built-in view when it was saved from one; the built-in view is code, so it is looked up by id.
+  const base = $derived(builtIn ?? (saved?.filters.baseView ? findSavedView(saved.filters.baseView) : undefined));
   const shown = $derived(
     all.filter(
       (application) =>
-        (!view || view.matches(application, clock.now)) &&
+        (!base || base.matches(application, clock.now)) &&
         (!reached || reachedIds.has(application.id)) &&
         matchesVerificationFilter(application, verificationFilter) &&
         matchesTag(application, tagFilter) &&
@@ -87,6 +104,50 @@
     reached !== null || isVerificationFiltered(verificationFilter) || tagFilter !== null || jobFilter.length > 0 || stagesPicked.length > 0 || Boolean(search.trim()),
   );
   const filtering = $derived(Boolean(view) || narrowed);
+
+  // The table's sort belongs to the page, so a saved view can set it. A view sets it without changing the sort the person
+  // remembers for this table; choosing a column afterwards does remember it.
+  const sort = createTableSort('candidates', defaultSorts.Candidates, sortableColumnIds(verificationColumns, true));
+  // Opening a saved view puts its filters and sort on the page; leaving one clears them again. `applied` is the view whose
+  // filters are on the page, so the Save view button waits for them.
+  let applied = $state<string | null>(null);
+  $effect(() => {
+    const id = saved?.id ?? null;
+    if (id === applied) return;
+    if (saved) {
+      const filters = saved.filters;
+      jobFilter = [...filters.jobIds];
+      stageFilter = [...filters.stages];
+      verificationFilter = verificationOf(filters);
+      tagFilter = filters.tag ?? null;
+      search = '';
+      sort.show(sortOf(filters, 'Candidates'));
+    } else if (applied !== null) {
+      jobFilter = [];
+      stageFilter = [];
+      verificationFilter = { ...noVerificationFilter };
+      tagFilter = null;
+      sort.show(preferences.sortFor('candidates'));
+    }
+    applied = id;
+  });
+  const filtersNow = $derived(
+    filtersOf({
+      baseView: base?.id ?? null,
+      jobIds: jobFilter,
+      stages: stagesPicked,
+      verification: verificationFilter,
+      tag: tagFilter,
+      sort: sort.sorting[0] ?? defaultSorts.Candidates,
+    }),
+  );
+  // The Save view button: only once the page's filters or sort differ from the view it is on.
+  const canSave = $derived(
+    !viewLoading &&
+      !viewGone &&
+      (!saved || applied === saved.id) &&
+      differsFromView(filtersNow, 'Candidates', saved ? { filters: saved.filters } : builtIn ? { baseView: builtIn.id } : null),
+  );
   let activeId = $state<string | null>(null);
   let selectedIds = $state<string[]>([]);
   // The table has no footer (design system K1), so a pill in the panel header says how many of the shown rows are ticked.
@@ -99,7 +160,7 @@
   // the team's delay never counts against a candidate (workflow-engine.md section 8). Every status view has a mark. One
   // candidate at a time, from their page, is still a person's decision.
   const emailTemplates = createListEmailTemplates();
-  const statusPicked = $derived(isVerificationFiltered(verificationFilter) || Boolean(view?.status));
+  const statusPicked = $derived(isVerificationFiltered(verificationFilter) || Boolean(base?.status));
   const canEmail = $derived(
     Boolean(emailTemplates.data?.data.sendingEnabled) && can(page.data.user, 'EmailCandidates') && !statusPicked,
   );
@@ -142,18 +203,22 @@
           {/if}
         {/snippet}
         <!-- The filters: one row under the header, outside the table, that scrolls inside the panel rather than wrapping
-             (F5), as on a job's pipeline. -->
-        <div data-filters class="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">
-          {#if reached}
-            <Button variant="outline" onclick={clearReached} aria-label={`Clear filter: ${reachedLabel(reached)}`}>
-              {reachedLabel(reached)}<XIcon aria-hidden="true" />
-            </Button>
-          {/if}
-          <MultiFilterMenu label="Job" options={jobs} bind:values={jobFilter} />
-          <MultiFilterMenu label="Stage" options={stages} bind:values={stageFilter} />
-          <VerificationFilterMenu bind:filter={verificationFilter} />
-          <TagFilterMenu bind:tag={tagFilter} {tags} />
+             (F5), as on a job's pipeline. Save view stays in view at the end, as the phone's Sort chip does. -->
+        <div data-filters class="flex shrink-0 items-center gap-2 border-b border-border-subtle px-4.5 py-2 max-md:px-4">
+          <div class="-my-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-1">
+            {#if reached}
+              <Button variant="outline" onclick={clearReached} aria-label={`Clear filter: ${reachedLabel(reached)}`}>
+                {reachedLabel(reached)}<XIcon aria-hidden="true" />
+              </Button>
+            {/if}
+            <MultiFilterMenu label="Job" options={jobs} bind:values={jobFilter} />
+            <MultiFilterMenu label="Stage" options={stages} bind:values={stageFilter} />
+            <VerificationFilterMenu bind:filter={verificationFilter} />
+            <TagFilterMenu bind:tag={tagFilter} {tags} />
+          </div>
+          <SaveViewButton scope="Candidates" filters={filtersNow} show={canSave} />
         </div>
+        <p role="status" class="border-b border-border-subtle px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4">{viewGone ? 'That view is no longer there, so this shows every candidate.' : ''}</p>
         {#if applications.isError}
           <div class="p-4">
             <QueryError message={describeError(applications.error, 'Could not load candidates')} onretry={() => applications.refetch()} inset />
@@ -162,7 +227,7 @@
           <div class="p-4">
             <QueryError message={describeError(reachedApplications.error, 'Could not load these candidates')} onretry={() => reachedApplications.refetch()} inset />
           </div>
-        {:else if applications.isPending || (reached && reachedApplications.isPending)}
+        {:else if applications.isPending || viewLoading || (reached && reachedApplications.isPending)}
           <div aria-hidden="true" class="flex flex-col gap-1 p-3">
             {#each [0, 1, 2, 3, 4] as row (row)}<Skeleton class="h-12 w-full max-md:h-24" />{/each}
           </div>
@@ -172,6 +237,7 @@
             fill={!phone.current}
             showJob
             sortId="candidates"
+            {sort}
             extraColumns={verificationColumns}
             bind:activeId
             bind:selectedIds

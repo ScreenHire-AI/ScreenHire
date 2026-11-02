@@ -36,6 +36,7 @@ public sealed partial class RolePermissionsTests
         ["ReopenTask"] = Permission.CompleteTasks,
         ["SendEmails"] = Permission.EmailCandidates,
         ["KeepInMind"] = Permission.MoveCandidates,
+        ["EditSavedNote"] = Permission.MoveCandidates,
         ["RemoveFromTalentPool"] = Permission.MoveCandidates,
         ["PreviewTalentPoolInvitation"] = Permission.EmailCandidates,
         ["InviteToApply"] = Permission.EmailCandidates,
@@ -75,7 +76,10 @@ public sealed partial class RolePermissionsTests
         ["CreateBrandImageUpload"] = Permission.EditSettings,
         ["VerifyBrandImageUpload"] = Permission.EditSettings,
         ["UpdateOrganizationVerificationSettings"] = Permission.EditSettings,
-        ["UpdateOrganizationTalentPoolSettings"] = Permission.EditSettings,
+        ["SetOrganizationSendingDomain"] = Permission.EditSettings,
+        ["CheckOrganizationSendingDomain"] = Permission.EditSettings,
+        ["DeleteOrganizationSendingDomain"] = Permission.EditSettings,
+        ["ClearCandidateEmailIssue"] = Permission.EmailCandidates,
         ["ListApiKeys"] = Permission.ManageApiKeys,
         ["CreateApiKey"] = Permission.ManageApiKeys,
         ["GetApiKey"] = Permission.ManageApiKeys,
@@ -95,6 +99,7 @@ public sealed partial class RolePermissionsTests
         ["UpdateSlackChannel"] = Permission.ManageIntegrations,
         ["SendSlackTestMessage"] = Permission.ManageIntegrations,
         ["DisconnectSlack"] = Permission.ManageIntegrations,
+        ["EraseCandidate"] = Permission.EraseCandidates,
         ["ListInvitations"] = Permission.ManageTeam,
         ["ListMembershipLog"] = Permission.ManageTeam,
         ["GetTeamHistory"] = Permission.ManageTeam,
@@ -123,7 +128,7 @@ public sealed partial class RolePermissionsTests
     {
         // Written out, not derived: these are the sets the role-name checks allowed before custom roles, plus Create tasks,
         // which came with the task route and went to every role that writes hiring data (custom roles do not get it), and Manage
-        // integrations, which came with Slack and went to Owners and Admins.
+        // integrations, which came with Slack and went to Owners and Admins, and Erase candidates, which came with erasure and went to the same two.
         Permission[] viewer = [Permission.ViewHiring];
         Permission[] recruiter =
         [
@@ -134,9 +139,9 @@ public sealed partial class RolePermissionsTests
         Permission[] admin =
         [
             .. recruiter, Permission.DeleteAnyNote, Permission.EditEmailTemplates, Permission.EditSettings, Permission.ManageApiKeys, Permission.ManageWebhooks,
-            Permission.ManageIntegrations, Permission.ManageTeam,
+            Permission.ManageIntegrations, Permission.ManageTeam, Permission.EraseCandidates, Permission.EditAnyView,
         ];
-        Permission[] owner = [.. admin, Permission.ManageOwners];
+        Permission[] owner = [.. admin, Permission.ManageOwners, Permission.GrantVerificationAccess];
 
         RolePermissions.Of(OrganizationRole.Owner).Should().BeEquivalentTo(owner);
         RolePermissions.Of(OrganizationRole.Admin).Should().BeEquivalentTo(admin);
@@ -174,12 +179,15 @@ public sealed partial class RolePermissionsTests
     }
 
     [Fact]
-    public void Only_managing_owners_is_owner_only_and_a_custom_role_never_holds_it()
+    public void Managing_owners_and_giving_a_key_verification_access_are_owner_only_and_a_custom_role_never_holds_them()
     {
-        RolePermissions.Permissions.Where(p => p.OwnerOnly).Select(p => p.Permission).Should().Equal(Permission.ManageOwners);
-        RolePermissions.ForCustom(Enum.GetValues<Permission>()).Should().NotContain(Permission.ManageOwners)
+        RolePermissions.Permissions.Where(p => p.OwnerOnly).Select(p => p.Permission)
+            .Should().Equal(Permission.ManageOwners, Permission.GrantVerificationAccess);
+        RolePermissions.ForCustom(Enum.GetValues<Permission>()).Should().NotContain([Permission.ManageOwners, Permission.GrantVerificationAccess])
             .And.BeEquivalentTo(RolePermissions.Of(OrganizationRole.Admin), "a custom role can hold anything but Owner-only permissions");
-        RolePermissions.Assignable.Should().NotContain(Permission.ManageOwners);
+        RolePermissions.Assignable.Should().NotContain([Permission.ManageOwners, Permission.GrantVerificationAccess]);
+        RolePermissions.Of(OrganizationRole.Admin).Should().NotContain(Permission.GrantVerificationAccess, "only an Owner gives a key the scope (ADR-0021)");
+        RolePermissions.Of(OrganizationRole.Owner).Should().Contain(Permission.GrantVerificationAccess);
     }
 
     [Fact]
@@ -187,8 +195,10 @@ public sealed partial class RolePermissionsTests
     {
         RolePermissions.Permissions.Select(p => p.Permission).Should().BeEquivalentTo(Enum.GetValues<Permission>())
             .And.OnlyHaveUniqueItems();
-        // Seeing hiring data has no write route, Manage Owners is TeamPolicy's, and deleting anyone's note is NotePolicy's.
-        Permission[] byRule = [Permission.ViewHiring, Permission.ManageOwners, Permission.DeleteAnyNote];
+        // Seeing hiring data has no write route, Manage Owners is TeamPolicy's, deleting anyone's note is NotePolicy's,
+        // editing anyone's view is ViewPolicy's, and giving a key the Verification read scope is checked inside
+        // CreateApiKey, which Manage API keys opens.
+        Permission[] byRule = [Permission.ViewHiring, Permission.ManageOwners, Permission.DeleteAnyNote, Permission.EditAnyView, Permission.GrantVerificationAccess];
         Enum.GetValues<Permission>().Except(byRule).Should().OnlyContain(permission => Routes.ContainsValue(permission));
     }
 

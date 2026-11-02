@@ -46,8 +46,12 @@ public static partial class ExecuteAutomationActionHandler
         CancellationToken cancellationToken)
     {
         var outgoing = new OutgoingMessages();
-        var action = await db.AutomationActionRuns.SingleOrDefaultAsync(a => a.Id == message.ActionRunId, cancellationToken)
-            ?? throw new InvalidOperationException($"Automation action {message.ActionRunId} is not visible to organization {message.OrganizationId}.");
+        // The action goes with its application when a candidate is erased: nothing left to run, done and not failed.
+        if (await db.AutomationActionRuns.SingleOrDefaultAsync(a => a.Id == message.ActionRunId, cancellationToken) is not { } action)
+        {
+            return outgoing;
+        }
+
         var run = await db.AutomationRuns.SingleAsync(r => r.Id == action.RunId, cancellationToken);
         if (action.Status != AutomationActionStatus.Pending || run.Status != AutomationRunStatus.Running)
         {

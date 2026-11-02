@@ -40,8 +40,7 @@ export interface ApplicationDetail {
   rating?: null | ApplicationRating;
   /** @nullable */
   keptInMindAt?: string | null;
-  /** @nullable */
-  futureRolesUntil?: string | null;
+  allowsFutureRoles?: boolean;
   /** @nullable */
   futureRolesGivenAt?: string | null;
   inTalentPool?: boolean;

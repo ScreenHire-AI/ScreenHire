@@ -6,7 +6,7 @@
  */
 
 /**
- * Invites these candidates from the talent pool to apply for `jobId`, an open job.
+ * Invites these saved candidates to apply for `jobId`, an open job.
  */
 export interface InviteToApplyRequest {
   candidateIds: string[];

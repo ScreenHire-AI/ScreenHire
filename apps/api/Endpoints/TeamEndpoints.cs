@@ -356,6 +356,8 @@ internal static class TeamEndpoints
             .Select(x => x.Attendee)
             .ToListAsync(cancellationToken);
         upcoming.ForEach(a => a.MarkFailed("They left the organization, so this interview is not on their calendar."));
+        // So do their private views, which nobody else can see. Views they shared stay with the team (docs/architecture/saved-views.md).
+        await db.SavedFilterViews.Where(v => v.OwnerUserId == member.UserId && !v.IsShared).ExecuteDeleteAsync(cancellationToken);
         db.MembershipEvents.Add(new MembershipEvent
         {
             OrganizationId = member.OrganizationId,

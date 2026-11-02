@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { ApplicationSummary, SavedViewSummary } from '@screenhire/api-client';
 import { goto } from '$app/navigation';
-import type { ApplicationSummary } from '@screenhire/api-client';
-import { apiStub, applications, user, userAs } from '../../../test-support/fixtures.js';
+import { apiStub, applications, savedView, user, userAs, viewList } from '../../../test-support/fixtures.js';
 import WithQueryClient from '../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
@@ -22,6 +22,7 @@ const render_ = (rows: ApplicationSummary[] = applications, reachedIds: string[]
   const stub = apiStub({
     'GET /v1/applications': () => Response.json(rows),
     'GET /v1/email-templates': () => Response.json({ sendingEnabled: true, templates: [], variables: [] }),
+    'GET /v1/views': () => Response.json(viewList()),
   });
   vi.stubGlobal(
     'fetch',
@@ -205,5 +206,169 @@ describe('candidates page', () => {
     const others = applications.filter((application) => application.jobId !== casey!.jobId);
     for (const other of others) expect(screen.queryByRole('link', { name: other.candidateName })).toBeNull();
     expect(jordan).toBeDefined();
+  });
+});
+
+// Views people save (docs/architecture/saved-views.md): the Save view button, the dialog, and opening a saved view.
+describe('candidates page views', () => {
+  const view = savedView({ filters: { ...savedView().filters, tag: 'Referral', sortColumn: 'candidate', sortDescending: false } });
+  const names = () => screen.getAllByRole('link', { name: /^(Casey Morgan|Jordan Lee|Sam Taylor)$/ }).map((link) => link.textContent);
+  const stubViews = (saved: SavedViewSummary[], extra: Parameters<typeof apiStub>[0] = {}) => {
+    const fetchStub = vi.fn(
+      apiStub({
+        'GET /v1/applications': () => Response.json(applications),
+        'GET /v1/email-templates': () => Response.json({ sendingEnabled: true, templates: [], variables: [] }),
+        'GET /v1/views': () => Response.json(viewList(saved)),
+        ...extra,
+      }),
+    );
+    vi.stubGlobal('fetch', fetchStub);
+    return fetchStub;
+  };
+  const filterRow = (panel: HTMLElement) => within(panel.querySelector<HTMLElement>('[data-filters]')!);
+  const pickTag = async (panel: HTMLElement) => {
+    await fireEvent.pointerDown(filterRow(panel).getByRole('button', { name: /^Tag: / }), { button: 0, pointerType: 'mouse' });
+    await fireEvent.click(within(await screen.findByRole('menu')).getByRole('menuitemradio', { name: 'Referral' }));
+  };
+
+  it('offers Save view at the end of the filter row only once the filters differ from the view it is on', async () => {
+    stubViews([]);
+    render(WithQueryClient, { props: { component: Page, props: {} } });
+    const panel = await screen.findByRole('region', { name: 'Applications' });
+    await screen.findByRole('link', { name: 'Casey Morgan' });
+    expect(filterRow(panel).queryByRole('button', { name: 'Save view' })).toBeNull();
+
+    await pickTag(panel);
+
+    const buttons = filterRow(panel).getAllByRole('button');
+    expect(buttons.at(-1)).toHaveAccessibleName('Save view');
+    expect(buttons.at(-1)).toHaveAttribute('aria-haspopup', 'dialog');
+  });
+
+  describe('what a saved view keeps of the verification guardrails (ADR-0004)', () => {
+    const flagged = applications.map((application) => ({
+      ...application,
+      verification: {
+        authenticity: 'ReviewSuggested' as const,
+        authenticityReasons: ['RESUME_TEMPLATE_MATCH'],
+        authenticityDismissed: false,
+        aiAssistance: 'NotIndicated' as const,
+        aiAssistanceReasons: [],
+        aiAssistanceDismissed: false,
+      },
+    }));
+    const open = async (filters: Partial<SavedViewSummary['filters']>) => {
+      const opened = savedView({ filters: { ...savedView().filters, ...filters } });
+      appPage.data = { user };
+      appPage.url = new URL(`http://dashboard.test/candidates?view=${opened.id}`);
+      stubViews([opened], { 'GET /v1/applications': () => Response.json(flagged) });
+      render(WithQueryClient, { props: { component: Page, props: {} } });
+      await screen.findByRole('heading', { level: 1, name: opened.name });
+      await fireEvent.click(await screen.findByRole('checkbox', { name: `Select ${applications[0]!.candidateName}` }));
+      await waitFor(() => expect(document.querySelector('[data-selected-count]')).toHaveTextContent('Selected 1'));
+    };
+
+    it('offers Email in a view verification did not pick', async () => {
+      await open({ sortColumn: 'candidate', sortDescending: false });
+
+      expect(await screen.findByRole('button', { name: 'Email 1 selected' })).toBeInTheDocument();
+    });
+
+    it.each([
+      ['an authenticity level', { authenticity: 'ReviewSuggested' }],
+      ['an AI assistance level', { aiAssistance: 'NotIndicated' }],
+      ['a built-in verification view', { baseView: 'needs-review' }],
+    ])('offers no Email in a view that holds %s', async (_, filters) => {
+      await open(filters);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(screen.queryByRole('button', { name: /^Email/ })).toBeNull();
+    });
+  });
+
+  it('saves the filters and sort under a name, not shared unless the switch is on, and opens the new view', async () => {
+    const created = savedView({ id: '01a157d4-0000-7000-8000-0000000003bb', name: 'Warm referrals', shared: true });
+    const fetchStub = stubViews([], { 'POST /v1/views': () => Response.json(created, { status: 201 }) });
+    render(WithQueryClient, { props: { component: Page, props: {} } });
+    const panel = await screen.findByRole('region', { name: 'Applications' });
+    await screen.findByRole('link', { name: 'Casey Morgan' });
+    await pickTag(panel);
+
+    await fireEvent.click(filterRow(panel).getByRole('button', { name: 'Save view' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Save view' });
+    expect(within(dialog).getByRole('switch', { name: 'Share with the team' })).not.toBeChecked();
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save view' }));
+    expect(await within(dialog).findByText('Name the view.')).toBeInTheDocument();
+
+    await fireEvent.input(within(dialog).getByRole('textbox', { name: 'Name' }), { target: { value: ' Warm referrals ' } });
+    await fireEvent.click(within(dialog).getByRole('switch', { name: 'Share with the team' }));
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save view' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Save view' })).toBeNull());
+    const post = fetchStub.mock.calls.find(([url, init]) => String(url) === '/v1/views' && init?.method === 'POST')!;
+    expect(JSON.parse(String(post[1]!.body))).toEqual({
+      name: 'Warm referrals',
+      scope: 'Candidates',
+      jobId: null,
+      shared: true,
+      filters: {
+        baseView: null,
+        jobIds: [],
+        stages: [],
+        authenticity: null,
+        aiAssistance: null,
+        tag: 'Referral',
+        sortColumn: 'applied',
+        sortDescending: true,
+      },
+    });
+    expect(goto).toHaveBeenCalledWith(`/candidates?view=${created.id}`);
+  });
+
+  it('says why a name is refused, in the dialog', async () => {
+    stubViews([], {
+      'POST /v1/views': () => Response.json({ errors: { name: ['You already have a view with this name here.'] } }, { status: 400 }),
+    });
+    render(WithQueryClient, { props: { component: Page, props: {} } });
+    const panel = await screen.findByRole('region', { name: 'Applications' });
+    await screen.findByRole('link', { name: 'Casey Morgan' });
+    await pickTag(panel);
+
+    await fireEvent.click(filterRow(panel).getByRole('button', { name: 'Save view' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Save view' });
+    await fireEvent.input(within(dialog).getByRole('textbox', { name: 'Name' }), { target: { value: 'Weekly' } });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save view' }));
+
+    expect(await within(dialog).findByText('You already have a view with this name here.')).toBeInTheDocument();
+  });
+
+  it('opens a saved view with its filters and sort on the page, and offers Save view only when they change', async () => {
+    appPage.url = new URL(`http://dashboard.test/candidates?view=${view.id}`);
+    stubViews([view]);
+    render(WithQueryClient, { props: { component: Page, props: {} } });
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Referrals in screening' })).toBeInTheDocument();
+    await waitFor(() => expect(names()).toEqual(['Jordan Lee']));
+    const panel = screen.getByRole('region', { name: 'Applications' });
+    expect(filterRow(panel).getByRole('button', { name: /^Tag: Referral/ })).toBeInTheDocument();
+    expect(within(panel).getByRole('columnheader', { name: /Candidate/ })).toHaveAttribute('aria-sort', 'ascending');
+    expect(filterRow(panel).queryByRole('button', { name: 'Save view' })).toBeNull();
+    expect(document.title).toBe('Referrals in screening · ScreenHire');
+
+    await fireEvent.pointerDown(filterRow(panel).getByRole('button', { name: /^Tag: Referral/ }), { button: 0, pointerType: 'mouse' });
+    await fireEvent.click(within(await screen.findByRole('menu')).getByRole('menuitemradio', { name: 'Any tag' }));
+
+    expect(await filterRow(panel).findByRole('button', { name: 'Save view' })).toBeInTheDocument();
+  });
+
+  it('shows every candidate and says so when the view in the address is gone', async () => {
+    appPage.url = new URL('http://dashboard.test/candidates?view=01a157d4-0000-7000-8000-0000000003ff');
+    stubViews([]);
+    render(WithQueryClient, { props: { component: Page, props: {} } });
+
+    expect(await screen.findByText('That view is no longer there, so this shows every candidate.')).toBeInTheDocument();
+    await waitFor(() => expect(names()).toHaveLength(applications.length));
+    expect(screen.getByRole('heading', { level: 1, name: 'Candidates' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save view' })).toBeNull();
   });
 });

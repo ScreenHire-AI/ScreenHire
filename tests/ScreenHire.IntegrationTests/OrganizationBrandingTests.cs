@@ -3,10 +3,15 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
+using ScreenHire.Application.Branding;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Tenancy;
 using ScreenHire.IntegrationTests.Messaging;
+using Wolverine;
 
 namespace ScreenHire.IntegrationTests;
 
@@ -116,6 +121,91 @@ public sealed class OrganizationBrandingTests(AppHostFixture fixture)
 
         var history = (await owner.GetAsync("/v1/organization/branding/history")).Expect(HttpStatusCode.OK);
         history.Text("entries.0.lines.0.text").Should().Be("added a logo");
+    }
+
+    // An image that goes into the branding is marked saved for good; one nobody saves is removed a day after its upload,
+    // blob and row, along with blobs nobody ever verified. The sweep runs one organization at a time.
+    [Fact]
+    public async Task The_daily_sweep_removes_uploads_nobody_saved_and_keeps_the_rest()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var neighbour = await fixture.SignedInWithOrganizationAsync();
+        var saved = (await UploadAsync(owner, "Logo", "logo.png", Png(400, 100))).Text("id");
+        var abandoned = (await UploadAsync(owner, "SharingImage", "share.png", Png(1200, 630))).Text("id");
+        var fresh = (await UploadAsync(owner, "Favicon", "icon.png", Png(64, 64))).Text("id");
+        var unverified = await TicketAndPutAsync(owner, "Logo", "stray.png", Png(400, 100));
+        var neighbours = (await UploadAsync(neighbour, "Logo", "logo.png", Png(400, 100))).Text("id");
+        await ScannedAsync(owner, saved);
+        await ScannedAsync(neighbour, neighbours);
+        (await owner.PutAsync("/v1/organization/branding", new JsonObject { ["logoId"] = saved })).Expect(HttpStatusCode.OK);
+
+        await using (var db = await fixture.CreateDbContextAsync(TenantOf(owner.OrganizationId), Ct))
+        {
+            (await db.BrandImages.AsNoTracking().Where(i => i.Id == Guid.Parse(saved)).Select(i => i.SavedAt).SingleAsync(Ct))
+                .Should().NotBeNull("saving the branding marks the image saved");
+            (await db.BrandImages.AsNoTracking().Where(i => i.Id == Guid.Parse(abandoned)).Select(i => i.SavedAt).SingleAsync(Ct))
+                .Should().BeNull("an upload nobody saved stays unsaved");
+        }
+
+        // Two days old, the saved logo among them: saving once keeps an image for good, even after a newer logo replaces it.
+        await using (var connection = new NpgsqlConnection(await fixture.GetOwnerConnectionStringAsync(Ct)))
+        {
+            await connection.OpenAsync(Ct);
+            await using var age = new NpgsqlCommand("UPDATE brand_images SET uploaded_at = now() - interval '2 days' WHERE id = ANY(@ids)", connection);
+            age.Parameters.AddWithValue("ids", new[] { Guid.Parse(saved), Guid.Parse(abandoned), Guid.Parse(neighbours) });
+            await age.ExecuteNonQueryAsync(Ct);
+        }
+
+        await using var sender = await MessagingHost.StartPublisherToAppHostQueuesAsync(fixture, Ct);
+        var bus = sender.Services.GetRequiredService<IMessageBus>();
+
+        // What the sweep sends for this organization, a day after the upload.
+        await bus.PublishAsync(new PurgeOrganizationBrandImageUploads(owner.OrganizationId, DateTimeOffset.UtcNow.AddDays(-1)));
+        await WolverineStore.WaitUntilAsync(
+            async () => (await owner.GetAsync($"/v1/organization/branding/images/{abandoned}")).Status == HttpStatusCode.NotFound,
+            "the sweep to remove the abandoned image", Ct);
+        // Verifying an upload whose blob is still there would keep it again, so a refusal means the blob went too.
+        (await owner.PostAsync($"/v1/organization/branding/images/{abandoned}/verify")).Expect(HttpStatusCode.NotFound);
+        (await owner.GetAsync($"/v1/organization/branding/images/{saved}")).Expect(HttpStatusCode.OK);
+        (await owner.GetAsync($"/v1/organization/branding/images/{fresh}")).Expect(HttpStatusCode.OK);
+        (await neighbour.GetAsync($"/v1/organization/branding/images/{neighbours}")).Expect(HttpStatusCode.OK);
+        await ExpectServedAsync(neighbour, neighbours);
+
+        // Later, with the unverified upload and the fresh one past the day: both go, the saved logo stays.
+        await bus.PublishAsync(new PurgeOrganizationBrandImageUploads(owner.OrganizationId, DateTimeOffset.UtcNow.AddHours(1)));
+        await WolverineStore.WaitUntilAsync(
+            async () => (await owner.GetAsync($"/v1/organization/branding/images/{fresh}")).Status == HttpStatusCode.NotFound,
+            "the sweep to remove the image nobody saved", Ct);
+        (await owner.PostAsync($"/v1/organization/branding/images/{unverified}/verify")).Expect(HttpStatusCode.NotFound);
+        (await owner.GetAsync($"/v1/organization/branding/images/{saved}")).Expect(HttpStatusCode.OK);
+        (await owner.GetAsync("/v1/organization/branding")).Expect(HttpStatusCode.OK).Text("logo.id").Should().Be(saved);
+        (await neighbour.GetAsync($"/v1/organization/branding/images/{neighbours}")).Expect(HttpStatusCode.OK);
+        await ExpectServedAsync(neighbour, neighbours);
+        await ExpectServedAsync(owner, saved);
+
+        // The schedule's own message goes to every organization, so the neighbour's upload, two days old and never saved,
+        // goes too.
+        await bus.PublishAsync(new PurgeExpiredBrandImageUploads());
+        await WolverineStore.WaitUntilAsync(
+            async () => (await neighbour.GetAsync($"/v1/organization/branding/images/{neighbours}")).Status == HttpStatusCode.NotFound,
+            "the daily sweep to reach the other organization", Ct);
+        await ExpectServedAsync(owner, saved);
+    }
+
+    // The row is only half of an image: the public route streams the blob, so this fails if the blob went.
+    private async Task ExpectServedAsync(Tenant tenant, string imageId)
+    {
+        var slug = (await tenant.Session.CurrentUserAsync(Ct))!.Value.At("organization.slug").GetString();
+        using var anonymous = fixture.CreateHttpClient("api");
+        using var served = await anonymous.GetAsync($"/v1/public/organizations/{slug}/branding/images/{imageId}", Ct);
+        served.StatusCode.Should().Be(HttpStatusCode.OK, "the image's blob is still in storage");
+    }
+
+    private static TenantContext TenantOf(Guid organizationId)
+    {
+        var tenant = new TenantContext();
+        tenant.SetOrganization(organizationId);
+        return tenant;
     }
 
     [Fact]

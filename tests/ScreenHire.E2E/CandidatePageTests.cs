@@ -8,7 +8,8 @@ namespace ScreenHire.E2E;
 
 /// <summary>
 /// The candidate page on the detail template (design system sections 7, 11 and 21) at the sizes F1 names and the review
-/// canvas's 820 and 390: who they are and where they stand in the header band, with no rail at the window's edge (S7);
+/// canvas's 820 and 390: who they are and where they stand in the header band (the name and one status, the pipeline
+/// tracker, three mini cards), with no rail at the window's edge (S7);
 /// Overview's two columns of panels where they fit, one column below that; and Move to stage in a bar at the bottom on a
 /// phone. The same six tabs for every candidate, and a header that does not move between them. Signs in as a new person
 /// with a new organization.
@@ -34,6 +35,10 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
         var move = Page.GetByRole(AriaRole.Button, new() { Name = $"Move to stage, {applicant.FullName}", Exact = true });
         await Expect(move).ToBeVisibleAsync();
         await WaitForTabCountsAsync();
+        await WaitForHeaderAsync();
+        await Expect(Tracker.Locator("[aria-current='step']")).ToContainTextAsync("Here ");
+        await Expect(Group("Contact").GetByRole(AriaRole.Button, new() { Name = "Copy email address" })).ToBeVisibleAsync();
+        await Expect(Group("Application").GetByRole(AriaRole.Link, new() { Name = "Platform Engineer" })).ToBeVisibleAsync();
 
         // Wide: Overview's two columns side by side, Files beside Next steps. Narrower: one column, Files after Next steps.
         foreach (var (width, height, name) in new[] { (1920, 1080, "wide"), (1440, 1000, "desktop"), (1024, 900, "laptop"), (820, 1180, "tablet"), (768, 1024, "small-tablet"), (390, 844, "phone"), (360, 780, "small-phone") })
@@ -55,6 +60,28 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
             {
                 files.Y.Should().BeGreaterThan(content.Y + content.Height, $"one column at {width}px, Files after Next steps");
                 files.X.Should().BeApproximately(content.X, 1);
+            }
+
+            // The mini cards sit three across from a wide band and stack on a phone; the tracker shows every stage when wide
+            // and only the current one, with its place, on a phone.
+            var contact = await BoxAsync(Group("Contact"));
+            var application = await BoxAsync(Group("Application"));
+            var also = await BoxAsync(Group("Also applied to"));
+            var visibleStages = await Tracker.GetByRole(AriaRole.Listitem).EvaluateAllAsync<int>(
+                "items => items.filter((item) => item.getBoundingClientRect().width > 2).length");
+            if (width >= 1440)
+            {
+                application.X.Should().BeGreaterThan(contact.X + contact.Width - 1, $"Application is beside Contact at {width}px");
+                application.Y.Should().BeApproximately(contact.Y, 1);
+                also.Y.Should().BeApproximately(contact.Y, 1);
+                visibleStages.Should().BeGreaterThan(1, $"every stage shows at {width}px");
+            }
+            else if (width <= 390)
+            {
+                application.Y.Should().BeGreaterThanOrEqualTo(contact.Y + contact.Height - 1, $"the cards stack at {width}px");
+                also.Y.Should().BeGreaterThanOrEqualTo(application.Y + application.Height - 1);
+                visibleStages.Should().Be(1, $"only the current stage shows at {width}px");
+                await Expect(Tracker.Locator("[aria-current='step']")).ToContainTextAsync(new Regex(@"\d+ of \d+"));
             }
 
             if (width < 768)
@@ -115,8 +142,10 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
         await SignInAsync(email);
         await Page.GotoAsync(DashboardUrl($"/applications/{applicationIds[0]}"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(applicant.FullName);
-        // The tabs' counts arrive with the timeline; measure once the header band has taken its final shape.
+        // The tabs' counts arrive with the timeline and the tracker with the job's workflow; measure once the header band has
+        // taken its final shape.
         await WaitForTabCountsAsync();
+        await WaitForHeaderAsync();
         await SettledAsync();
         await Page.EvaluateAsync("() => { document.querySelector('[data-slot=\"header-band\"]').dataset.probe = 'same element'; }");
         var before = await BoxAsync(Band);
@@ -149,6 +178,17 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
     }
 
     private ILocator Band => Page.Locator("[data-slot='header-band']");
+
+    private ILocator Tracker => Page.GetByRole(AriaRole.List, new() { Name = "Pipeline", Exact = true });
+
+    private ILocator Group(string name) => Page.GetByRole(AriaRole.Group, new() { Name = name, Exact = true });
+
+    // The tracker draws once the job's workflow has loaded, and the third card's count once the profile has.
+    private async Task WaitForHeaderAsync()
+    {
+        await Expect(Tracker).ToBeVisibleAsync();
+        await Expect(Group("Also applied to")).ToContainTextAsync("No other jobs");
+    }
 
     private ILocator Region(string name) => Page.GetByRole(AriaRole.Region, new() { Name = name, Exact = true });
 

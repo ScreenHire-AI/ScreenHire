@@ -32,7 +32,7 @@ public sealed class ShellTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Open navigation" })).ToHaveCountAsync(0);
         await ExpectNoSidewaysScrollAsync();
 
-        var candidates = Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Candidates" });
+        var candidates = Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Candidates", Exact = true });
         await candidates.HoverAsync();
         await Expect(Page.Locator("[data-slot='tooltip-content']")).ToContainTextAsync("Candidates");
         await ExpectNoAccessibilityViolationsAsync();
@@ -58,7 +58,7 @@ public sealed class ShellTests(E2EFixture fixture) : BrowserTest(fixture)
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-shell-390-sheet");
 
-        await sheet.GetByRole(AriaRole.Link, new() { Name = "Candidates" }).ClickAsync();
+        await sheet.GetByRole(AriaRole.Link, new() { Name = "Candidates", Exact = true }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/candidates"));
         await Expect(sheet).ToHaveCountAsync(0);
 

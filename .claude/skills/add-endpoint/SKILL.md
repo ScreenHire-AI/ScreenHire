@@ -69,7 +69,8 @@ internal static class MetaEndpoints
   `.RequireAuthorization()`, which also accepts an organization API key and applies the per-key rate limit (ADR-0011).
   The tenant is then the key's organization with no user, so `ITenantContext.UserId` may be null; never dereference it.
   Writes still call `.RequirePermission(Permission.X)`, which checks the key's `Write` scope for a hiring write.
-  Anything else stays session-only.
+  The verification read routes use `.AllowVerificationApiKeys()` instead, for a key with the `VerificationRead` scope
+  (ADR-0021), and record each read in the review log. Anything else stays session-only.
 - **Never filter by organization yourself, and never take an organization id from the route, query or body.** The
   named query filter `Tenant` and row-level security scope every query on an `ITenantOwned` entity. A handler that
   needs the current organization's id reads `ITenantContext.OrganizationId`. Never call `IgnoreQueryFilters()`.

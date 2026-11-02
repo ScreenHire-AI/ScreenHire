@@ -47,6 +47,17 @@ function renderPalette(answer: (url: string) => Response = () => Response.json(r
 }
 
 describe('command palette', () => {
+  it('shows Saved with its bookmark in place of the stage for a saved candidate', async () => {
+    const saved = { ...results, candidates: results.candidates.map((hit) => ({ ...hit, keptInMindAt: '2026-11-02T08:00:00+00:00' })) };
+    const { palette, input } = renderPalette(() => Response.json(saved));
+
+    await fireEvent.input(input, { target: { value: 'casey' } });
+
+    const badge = await within(palette).findByText('Saved');
+    expect(badge.querySelector('[data-status-icon="bookmark"]')).not.toBeNull();
+    expect(within(palette).queryByText('Screening')).toBeNull();
+  });
+
   it('searches the server once typing pauses, from two characters, and never loads the lists', async () => {
     const { searches, input } = renderPalette();
 

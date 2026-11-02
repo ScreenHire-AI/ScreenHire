@@ -45,6 +45,22 @@ public sealed class OrganizationMember : ITenantOwned
         return true;
     }
 
+    /// <summary>The built-in views this member hid from their sidebar (docs/architecture/saved-views.md); none until they hide one.</summary>
+    public ViewPreferences Views { get; private set; } = ViewPreferences.Default;
+
+    /// <summary>Replaces the built-in views the member hides. Returns whether they changed.</summary>
+    public bool SetViews(ViewPreferences views)
+    {
+        ArgumentNullException.ThrowIfNull(views);
+        if (Views == views)
+        {
+            return false;
+        }
+
+        Views = views;
+        return true;
+    }
+
     /// <summary>Sets which jobs the member sees. Returns whether it changed.</summary>
     public bool SetJobAccess(JobAccess access)
     {

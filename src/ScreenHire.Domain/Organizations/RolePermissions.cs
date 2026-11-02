@@ -31,6 +31,9 @@ public enum Permission
     DeleteAnyNote,
     CreateTasks,
     ManageIntegrations,
+    EraseCandidates,
+    EditAnyView,
+    GrantVerificationAccess,
 }
 
 /// <summary>The groups the Roles page shows permissions in.</summary>
@@ -73,6 +76,8 @@ public static class RolePermissions
             "Note and tag a candidate, and edit or delete your own notes."),
         new(Permission.DeleteAnyNote, PermissionGroup.Hiring, "Delete anyone's notes",
             "Delete a note someone else wrote, as well as your own."),
+        new(Permission.EditAnyView, PermissionGroup.Hiring, "Edit anyone's views",
+            "Rename, share, make private or delete a view someone else saved, as well as your own."),
         new(Permission.CreateTasks, PermissionGroup.Hiring, "Create tasks", "Give the hiring team, or one person on it, a task about a candidate."),
         new(Permission.CompleteTasks, PermissionGroup.Hiring, "Complete tasks", "Mark a candidate's task done."),
         new(Permission.EmailCandidates, PermissionGroup.Hiring, "Email candidates", "Send an email to one candidate or a selection."),
@@ -82,6 +87,8 @@ public static class RolePermissions
         new(Permission.RunAutomations, PermissionGroup.Hiring, "Run automations", "Run a manual automation on a candidate."),
         new(Permission.EditHiringTemplates, PermissionGroup.Templates, "Edit hiring templates",
             "Create, edit and publish hiring templates."),
+        new(Permission.EraseCandidates, PermissionGroup.Hiring, "Erase candidates",
+            "Erase a candidate and all of their applications, files, notes and verification data."),
         new(Permission.EditEmailTemplates, PermissionGroup.Templates, "Edit email templates",
             "Create, edit and delete email templates, and send a test."),
         new(Permission.EditSettings, PermissionGroup.Organization, "Edit settings",
@@ -95,6 +102,8 @@ public static class RolePermissions
             "Invite people, change roles and remove members, except Owners, and make roles."),
         new(Permission.ManageOwners, PermissionGroup.Organization, "Manage Owners",
             "Make someone an Owner, or change or remove an Owner.", OwnerOnly: true),
+        new(Permission.GrantVerificationAccess, PermissionGroup.Organization, "Give a key verification access",
+            "Give an API key the Verification read scope, so an assistant can read verification results.", OwnerOnly: true),
     ];
 
     private static readonly Dictionary<Permission, PermissionDefinition> ByPermission = Permissions.ToDictionary(p => p.Permission);
@@ -122,14 +131,14 @@ public static class RolePermissions
     private static readonly Permission[] Administration =
     [
         Permission.DeleteAnyNote, Permission.EditEmailTemplates, Permission.EditSettings, Permission.ManageApiKeys, Permission.ManageWebhooks,
-        Permission.ManageIntegrations, Permission.ManageTeam,
+        Permission.ManageIntegrations, Permission.ManageTeam, Permission.EraseCandidates, Permission.EditAnyView,
     ];
 
     /// <summary>The built-in roles, most access first.</summary>
     public static IReadOnlyList<RoleDefinition> Roles { get; } =
     [
         new(OrganizationRole.Owner, "Everything, including making and removing other Owners.",
-            new HashSet<Permission>([.. Reading, .. HiringWrites, .. Administration, Permission.ManageOwners])),
+            new HashSet<Permission>([.. Reading, .. HiringWrites, .. Administration, Permission.ManageOwners, Permission.GrantVerificationAccess])),
         new(OrganizationRole.Admin,
             "Everything a Recruiter does, plus settings, email templates, API keys, webhooks, Slack and the team.",
             new HashSet<Permission>([.. Reading, .. HiringWrites, .. Administration])),

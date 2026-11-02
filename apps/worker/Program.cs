@@ -1,3 +1,4 @@
+using ScreenHire.Application.Branding;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Verification.Content;
 using ScreenHire.Application.Messaging;
@@ -13,8 +14,9 @@ builder.AddScreenHireDataProtection();
 builder.Services.AddSingleton<TimeProvider>(DatabasePrecisionTimeProvider.Instance);
 builder.AddJobDistribution();
 
-// Transactional email from automations (Mailpit locally). It needs an SMTP server from the AppHost and a From address
-// (ScreenHire:Email:From); without either, no sender is registered and automations skip their emails instead of failing.
+// Transactional email from automations and people's sends: SendGrid when its API key is set (ADR-0022), Mailpit locally.
+// It needs a From address (ScreenHire:Email:From) and either the key or an SMTP server from the AppHost; without them no
+// sender is registered and automations skip their emails instead of failing. The reply settings are read in every case.
 if (builder.Configuration["ScreenHire:Email:From"] is { Length: > 0 } from)
 {
     builder.AddScreenHireEmail(from);
@@ -24,6 +26,8 @@ if (builder.Configuration["ScreenHire:Email:From"] is { Length: > 0 } from)
 // the messaging setup, whose local adapter (no storage) then stays out of the way.
 builder.AddAzureBlobServiceClient("blobs");
 builder.Services.AddSingleton<IApplicantFileStore, BlobApplicantFileStore>();
+// The daily clean-up of brand images nobody saved deletes from the brand images container (docs/architecture/branding.md).
+builder.Services.AddSingleton<IBrandImageStore, BlobBrandImageStore>();
 
 // Wolverine: the worker queue's durable inbox, every handler in ScreenHire.Application, the durability agent and the
 // cron schedules (ADR-0008, docs/architecture/messaging.md).

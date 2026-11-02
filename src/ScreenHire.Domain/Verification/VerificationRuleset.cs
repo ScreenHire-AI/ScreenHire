@@ -33,8 +33,8 @@ namespace ScreenHire.Domain.Verification;
 /// </remarks>
 public static class VerificationRuleset
 {
-    /// <summary>Stored with every assessment. Change it whenever a rule, weight or threshold changes.</summary>
-    public const string Version = "2026-10-21.2";
+    /// <summary>Stored with every assessment. Change it whenever a rule, weight or threshold changes, or an analyzer changes what its signals mean (a new analyzer version).</summary>
+    public const string Version = "2026-11-02.1";
 
     public const int CorroboratingWeight = 2;
 
@@ -168,6 +168,15 @@ public static class VerificationRuleset
             text.Append('|').Append(id.ToString("N", CultureInfo.InvariantCulture));
         }
 
+        // Evidence that came and went leaves the signals an earlier assessment already has, and the newest assessment is
+        // the current one, so going back has to be a new assessment. Replaced signals are never removed, so the count only
+        // grows. It is zero for evidence that never changed, which keeps the fingerprint that application always had.
+        var superseded = inputs.Superseded?.Count(s => s.Assessment == kind) ?? 0;
+        if (superseded > 0)
+        {
+            text.Append("|s").Append(superseded.ToString(CultureInfo.InvariantCulture));
+        }
+
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text.ToString())));
     }
 
@@ -229,9 +238,14 @@ public static class VerificationRuleset
     }
 }
 
-/// <summary>What the ruleset reads: the application's signals, the job's AI policy and the candidate's declarations.</summary>
+/// <summary>
+/// What the ruleset reads: the application's current signals, the job's AI policy and the candidate's declarations.
+/// <c>Superseded</c> holds the signals later runs replaced: they never count towards a level, and only tell this
+/// assessment apart from an earlier one with the same signals.
+/// </summary>
 public sealed record VerificationInputs(
-    IReadOnlyList<VerificationSignal> Signals, AiUsePolicy AiUsePolicy, AiUseDeclaration AiUseDeclaration, bool AccommodationRequested);
+    IReadOnlyList<VerificationSignal> Signals, AiUsePolicy AiUsePolicy, AiUseDeclaration AiUseDeclaration, bool AccommodationRequested,
+    IReadOnlyList<VerificationSignal>? Superseded = null);
 
 /// <summary>One assessment as the ruleset derived it; <see cref="ToAssessment"/> makes the row.</summary>
 public sealed record RulesetResult(

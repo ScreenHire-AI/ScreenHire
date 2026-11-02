@@ -45,6 +45,8 @@ const panels: Record<string, string[]> = {
   'More menu': ['More menu'],
   Count: ['Count'],
   'Step marker': ['Step marker'],
+  'Pipeline tracker': ['Pipeline tracker'],
+  'Mini card': ['Mini card'],
   'Icon button': ['Icon button'],
   'Summary list': ['Summary list'],
   'Key cap': ['Key cap and tooltip'],
@@ -60,6 +62,9 @@ const panels: Record<string, string[]> = {
   'Tag list': ['Tag list'],
   'Task list': ['Task list'],
   'Task checkbox': ['Task list'],
+  'Save view button': ['Save view button'],
+  'Rename view dialog': ['Save view button'],
+  'Undo notice': ['Undo notice'],
   Scorecard: ['Scorecard'],
   'Notification tray': ['Notification tray'],
   Sheet: ['Sheet'],
@@ -125,6 +130,14 @@ describe('style guide', { timeout: 20_000 }, () => {
     render(WithTooltips, { props: { component: Page } });
 
     await expectNoAxeViolations(document.body);
+  });
+
+  it('opens the Save view dialog from its panel', async () => {
+    render(WithTooltips, { props: { component: Page } });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Save view' }));
+
+    expect(await screen.findByRole('dialog', { name: 'Save view' })).toBeInTheDocument();
   });
 
   it('has one main landmark; the sidebar demos frame their inset in a div (X1)', () => {

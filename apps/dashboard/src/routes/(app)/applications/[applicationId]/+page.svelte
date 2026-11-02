@@ -1,20 +1,19 @@
 <script lang="ts">
   import ArrowLeftIcon from '~icons/lucide/arrow-left';
-  import BookmarkIcon from '~icons/lucide/bookmark';
-  import BriefcaseBusinessIcon from '~icons/lucide/briefcase-business';
-  import CalendarClockIcon from '~icons/lucide/calendar-clock';
-  import CalendarIcon from '~icons/lucide/calendar';
   import CalendarPlusIcon from '~icons/lucide/calendar-plus';
+  import MailCheckIcon from '~icons/lucide/mail-check';
   import MailIcon from '~icons/lucide/mail';
-  import StarIcon from '~icons/lucide/star';
+  import SendIcon from '~icons/lucide/send';
   import {
     ApiError,
     createGetApplication,
     createGetApplicationVerification,
     createGetApplicationTimeline,
+    createGetCandidate,
     createGetJob,
     createListApplicationScorecards,
     createListCandidateEmails,
+    createClearCandidateEmailIssue,
     createListApplicationInterviews,
     createListEmailTemplates,
     createGetJobHiringTeam,
@@ -30,33 +29,32 @@
   import ActionBar from '#lib/components/action-bar.svelte';
   import ActivityPanel from '#lib/components/candidate/activity-panel.svelte';
   import AskScorecardSheet from '#lib/components/ask-scorecard-sheet.svelte';
-  import PhoneIcon from '~icons/lucide/phone';
   import ApplicationTab from '#lib/components/candidate/application-tab.svelte';
+  import HeaderCards from '#lib/components/candidate/header-cards.svelte';
   import MessagesTab from '#lib/components/candidate/messages-tab.svelte';
   import OverviewTab from '#lib/components/candidate/overview-tab.svelte';
   import ScorecardsTab from '#lib/components/candidate/scorecards-tab.svelte';
   import EmailComposerSheet from '#lib/components/email-composer-sheet.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import InviteToApplySheet from '#lib/components/invite-to-apply-sheet.svelte';
   import VerificationPanel from '#lib/components/verification-panel.svelte';
-  import KeepInMindSheet from '#lib/components/keep-in-mind-sheet.svelte';
+  import SaveCandidateSheet from '#lib/components/save-candidate-sheet.svelte';
   import MetaItem from '#lib/components/meta-item.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import MoveNoteSheet from '#lib/components/move-note-sheet.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
+  import Notice from '#lib/components/notice.svelte';
   import ScheduleInterviewSheet from '#lib/components/schedule-interview-sheet.svelte';
-  import OverdueBadge from '#lib/components/overdue-badge.svelte';
   import Panel from '#lib/components/panel.svelte';
+  import PipelineTracker from '#lib/components/pipeline-tracker.svelte';
   import QueryError from '#lib/components/query-error.svelte';
-  import Rating from '#lib/components/rating.svelte';
   import RecordTabs, { type RecordTab } from '#lib/components/record-tabs.svelte';
-  import RelativeTime from '#lib/components/relative-time.svelte';
   import ReviewLog from '#lib/components/review-log.svelte';
   import ScorecardSheet from '#lib/components/scorecard-sheet.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
-  import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
@@ -64,11 +62,12 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
   import { visibleEntries, type ActivityNames } from '#lib/activity.js';
+  import { clock } from '#lib/clock.svelte.js';
+  import { emailIssueNotice } from '#lib/email-issue.js';
   import { authenticityLevels } from '#lib/verification.js';
   import { createMoves } from '#lib/moves.svelte.js';
-  import { formatDate, formatDateTime } from '#lib/dates.js';
-  import { siteName } from '#lib/format.js';
-  import { canKeepInMind, stageLabel } from '#lib/talent-pool.js';
+  import { endedStatus, trackerFor } from '#lib/pipeline-tracker.js';
+  import { canKeepInMind } from '#lib/talent-pool.js';
   import { membersWhoSee } from '#lib/hiring-team.js';
   import { isTerminal } from '#lib/workflow.js';
   import { can } from '#lib/permissions.js';
@@ -80,9 +79,9 @@
 
   let { params }: PageProps = $props();
 
-  // A candidate (design system sections 7 and 22): the header band holds who they are and where they stand (contact under
-  // the name, then a meta line of the stage, job, when and where from, and rating) above the same six tabs in the same order for
-  // everyone, so the facts sit where the eye starts on every tab. The tab is in the address (?tab=), so a link can open
+  // A candidate (design system sections 7 and 22): the header band holds who they are and where they stand (the name and one
+  // status, the pipeline tracker, then the Contact, Application and Also applied to or Rating mini cards) above the same six
+  // tabs in the same order for everyone, so the facts sit where the eye starts on every tab. The tab is in the address (?tab=), so a link can open
   // one: the Overview's "All in Activity", a mention email's link to the note. Each tab's body is its own component.
   const tabs = ['overview', 'application', 'messages', 'scorecards', 'verification', 'activity'] as const;
   type Tab = (typeof tabs)[number];
@@ -119,7 +118,7 @@
   const mayScore = $derived(can(page.data.user, 'FillInScorecards'));
   const mayAsk = $derived(can(page.data.user, 'CreateTasks'));
   let moveNoteOpen = $state(false);
-  // Keep in mind (docs/architecture/talent-pool.md) sits in Move to stage beside Rejected, for a candidate who allowed it.
+  // Save candidate (docs/architecture/talent-pool.md) sits in Move to stage beside Rejected, for a candidate who allowed it.
   let keepOpen = $state(false);
   let keptMessage = $state('');
   let scorecardOpen = $state(false);
@@ -142,7 +141,23 @@
   const sidebar = Sidebar.useSidebar();
   // Email shows only where this deployment can send it and the person may (A3).
   const emailTemplates = createListEmailTemplates();
-  const canEmail = $derived(Boolean(emailTemplates.data?.data.sendingEnabled) && can(page.data.user, 'EmailCandidates'));
+  // An address the email provider flagged is sent nothing more, so the controls are hidden and the notice says why.
+  const emailIssue = $derived(detail?.candidate.emailIssue ?? 'None');
+  const canEmail = $derived(Boolean(emailTemplates.data?.data.sendingEnabled) && can(page.data.user, 'EmailCandidates') && emailIssue === 'None');
+  const clearEmailIssue = createClearCandidateEmailIssue();
+  let clearFailure = $state('');
+  async function addressWorks() {
+    if (!detail) return;
+    clearFailure = '';
+    try {
+      await clearEmailIssue.mutateAsync({ candidateId: detail.candidate.id });
+      invalidatePath(queryClient, '/v1/applications');
+      invalidatePath(queryClient, '/v1/candidates');
+      emailed = 'ScreenHire will email this address again.';
+    } catch (error) {
+      clearFailure = describeError(error, 'Could not clear the flag');
+    }
+  }
   let emailOpen = $state(false);
   // The sheet opens once the More menu has closed, so focus can go back to the menu's button.
   let emailChosen = false;
@@ -179,11 +194,39 @@
   const questions = $derived(new Map((workflow?.questionnaire.questions ?? []).map((question) => [question.id, question])));
   const followUpName = (requestId: string | null | undefined) =>
     detail?.followUps.find((followUp) => followUp.id === requestId)?.name ?? 'a follow-up questionnaire';
-  // The talent pool's entries name other jobs: where the candidate was invited, added or applied.
+  // Saved candidates' entries name other jobs: where the candidate was invited, added or applied.
   const jobs = createListJobs();
   const jobName = (id: string | null | undefined) => jobs.data?.data.find((candidate) => candidate.id === id)?.title ?? 'another job';
   const names: ActivityNames = { stageName, followUpName, jobName };
   const entries = $derived(timeline.data?.data);
+
+  // The pipeline tracker under the name: the job's stages, where the candidate has been and is, or how they left.
+  const tracker = $derived(detail && stages.length > 0 ? trackerFor(stages, detail, entries, clock.now) : undefined);
+  // Once they left the job a status says how, in place of the authenticity level beside the name.
+  const ended = $derived(detail ? endedStatus(detail) : undefined);
+
+  // A saved candidate has left the job, so the header offers to reach them or invite them to another job in place of Email
+  // and Move to stage (docs/architecture/talent-pool.md). Invite is the page's primary action then.
+  const saved = $derived(Boolean(detail?.keptInMindAt));
+  let inviteOpen = $state(false);
+  // The jobs the candidate already applied to are skipped by the invitation; the profile lists them all.
+  const profile = createGetCandidate(
+    () => detail?.candidate.id ?? '',
+    () => ({ query: { enabled: Boolean(detail) } }),
+  );
+  const invitee = $derived(
+    detail
+      ? [
+          {
+            candidateId: detail.candidate.id,
+            candidateName: detail.candidate.fullName,
+            appliedJobIds: [detail.jobId, ...(profile.data?.data.applications.map((application) => application.jobId) ?? [])],
+          },
+        ]
+      : [],
+  );
+  // The bottom bar on a phone holds the primary action: Invite for a saved candidate, otherwise Move to stage.
+  const primaryOnPhone = $derived(saved ? canEmail : stages.length > 0 && mayMove);
 
   // Fill in offers every scorecard the reader can still give: the stages the application reached that have one (the
   // current stage first), then the library's, given at the current stage. A link names one (?scorecard=, My tasks' row
@@ -279,7 +322,7 @@
   {#if detail && stages.length > 0 && mayMove}
     <MoveToStage
       candidateName={detail.candidate.fullName}
-      currentStageId={detail.keptInMindAt ? '' : detail.stage.id}
+      currentStageId={detail.stage.id}
       {stages}
       variant="default"
       size="lg"
@@ -288,6 +331,12 @@
       onnote={() => (moveNoteOpen = true)}
       onkeep={canKeepInMind(detail) ? () => (keepOpen = true) : undefined}
     />
+  {/if}
+{/snippet}
+
+{#snippet invite()}
+  {#if canEmail}
+    <Button variant="default" size="lg" onclick={() => (inviteOpen = true)}><SendIcon aria-hidden="true" />Invite to another job</Button>
   {/if}
 {/snippet}
 
@@ -302,25 +351,30 @@
         else if (scheduleChosen) ((scheduleChosen = false), (scheduleOpen = true));
       }}
     >
-      <DropdownMenu.Item onSelect={() => (emailChosen = true)}><MailIcon aria-hidden="true" />Email</DropdownMenu.Item>
+      <DropdownMenu.Item onSelect={() => (emailChosen = true)}><MailIcon aria-hidden="true" />{saved ? 'Message' : 'Email'}</DropdownMenu.Item>
       {#if canSchedule}
         <DropdownMenu.Item onSelect={() => (scheduleChosen = true)}><CalendarPlusIcon aria-hidden="true" />Schedule interview</DropdownMenu.Item>
       {/if}
     </MoreMenu>
   {:else if canEmail}
-    <Button variant="outline" size="lg" onclick={() => (emailOpen = true)}><MailIcon aria-hidden="true" />Email</Button>
+    <Button variant="outline" size="lg" onclick={() => (emailOpen = true)}><MailIcon aria-hidden="true" />{saved ? 'Message' : 'Email'}</Button>
     {#if canSchedule}
       <Button variant="outline" size="lg" onclick={() => (scheduleOpen = true)}><CalendarPlusIcon aria-hidden="true" />Schedule interview</Button>
     {/if}
   {/if}
-  {#if !sidebar.isMobile}{@render moveToStage()}{/if}
+  {#if !sidebar.isMobile}{#if saved}{@render invite()}{:else}{@render moveToStage()}{/if}{/if}
+{/snippet}
+
+<!-- Saved stays once they leave the list, so this says they are still on it. A badge is never a link (A5). -->
+{#snippet savedLink()}
+  <MetaItem label="Saved candidates"><TruncatedText text="In Saved candidates" href="/saved" underlined /></MetaItem>
 {/snippet}
 
 {#snippet headerTabs()}
   <RecordTabs label="Candidate sections" tabs={recordTabs} />
 {/snippet}
 
-<main class={['flex flex-col', sidebar.isMobile && detail && stages.length > 0 && mayMove && 'pb-28']}>
+<main class={['flex flex-col', sidebar.isMobile && detail && primaryOnPhone && 'pb-28']}>
   {#if application.isError}
     {#if notFound}
       <HeaderBand title="Application not found" />
@@ -354,55 +408,48 @@
     <p class="sr-only" role="status">Loading the application…</p>
   {:else}
     <Tabs.Root bind:value={() => tab, selectTab}>
-      <HeaderBand title={detail.candidate.fullName} actions={bandActions} tabs={headerTabs}>
+      <HeaderBand title={detail.candidate.fullName} actions={bandActions} tabs={headerTabs} meta={detail.inTalentPool ? savedLink : undefined}>
         {#snippet status()}
-          <!-- Status first, beside the name, on every tab (S2, T2): the authenticity level when it needs a look. A calm
-               level says nothing. It is a badge, never a link (A5); Next steps links to the reasons. -->
-          {#if attention}<StatusBadge status={attention.level.status} label={attention.level.label} />{/if}
-          <OverdueBadge dueAt={detail.slaDueAt} />
+          <!-- The first line is the name and one status badge (S2, T2), on every tab. Once they left the job it says how
+               (Saved, Rejected, Withdrawn, Hired); until then it is the authenticity level when it needs a look, and a
+               calm level says nothing. A badge, never a link (A5); Next steps links to the reasons. The overdue and
+               email-issue badges sit where they apply: beside "Here 3 days" and the address. -->
+          {#if ended}<StatusBadge {...ended} />{:else if attention}<StatusBadge status={attention.level.status} label={attention.level.label} />{/if}
         {/snippet}
-        {#snippet details()}
-          <!-- Contact on the muted line under the name: each an icon and its value, no labels (section 7). -->
-          <TruncatedText text={detail.candidate.email} href={`mailto:${detail.candidate.email}`} icon={MailIcon} underlined class="pointer-coarse:-my-3.5 pointer-coarse:py-3.5" />
-          {#if detail.candidate.phone}
-            <TruncatedText text={detail.candidate.phone} href={`tel:${detail.candidate.phone}`} icon={PhoneIcon} underlined class="pointer-coarse:-my-3.5 pointer-coarse:py-3.5" />
-          {/if}
-        {/snippet}
-        {#snippet meta()}
-          <!-- The stage is the one fact a recruiter acts on, so it is a muted pill: a fact, not a second status (T2). -->
-          <!-- A candidate kept in mind has left the job: the pill says so where the stage was. -->
-          <MetaItem label="Stage"><Badge variant="muted">{stageLabel(detail)}</Badge></MetaItem>
-          <MetaItem label="Job" icon={BriefcaseBusinessIcon}><TruncatedText text={detail.jobTitle} href={`/jobs/${detail.jobId}`} underlined /></MetaItem>
-          <!-- When and where from, as one phrase that reads without its label. -->
-          <MetaItem label="Applied" icon={CalendarIcon}>
-            <span>
-              {#if detail.source === 'CareersSite'}Applied <RelativeTime at={detail.submittedAt} class="inline" /> via {detail.sourceSite
-                  ? siteName(detail.sourceSite)
-                  : 'the careers page'}{:else}Added by a
-                recruiter <RelativeTime at={detail.submittedAt} class="inline" />{/if}
-            </span>
-          </MetaItem>
-          <!-- A booked interview is one fact here, in the reader's own zone, and not said again in the Interview panel (W7). -->
-          {#if booked?.startsAt}
-            <MetaItem label="Interview" icon={CalendarClockIcon}><span>Booked for <time datetime={booked.startsAt}>{formatDateTime(booked.startsAt)}</time></span></MetaItem>
-          {/if}
-          {#if detail.inTalentPool && detail.futureRolesUntil}
-            <MetaItem label="Talent pool" icon={BookmarkIcon}><span>In the talent pool until {formatDate(detail.futureRolesUntil)}</span></MetaItem>
-          {/if}
-          <MetaItem label="Rating" icon={StarIcon}>
-            <!-- From people's scorecards only (ADR-0013); it opens to each scorecard. -->
-            <Rating rating={detail.rating} scorecards={scorecards.data?.data} stageName={(id) => stageName(id)} {members} {currentUserId} />
-          </MetaItem>
+        {#snippet summary()}
+          {#if tracker}<PipelineTracker {tracker} overdueAt={detail.slaDueAt} />{/if}
+          <HeaderCards
+            {detail}
+            emails={candidateEmails.data?.data}
+            scorecards={scorecards.data?.data}
+            stageName={(id) => stageName(id)}
+            {members}
+            {currentUserId}
+            interview={booked}
+          />
         {/snippet}
       </HeaderBand>
 
       <div class="@container w-full px-4 py-5 md:px-6 md:py-6">
-        <!-- A move that worked shows in the header's Stage and in Activity, so only screen readers hear it. A failure
+        <!-- A move that worked shows in the pipeline tracker and in Activity, so only screen readers hear it. A failure
              shows in the header band, beside Move to stage. -->
         <p role="status" class="sr-only">{moves.failure ? '' : moves.announcement}</p>
         <p role="status" class="sr-only">{emailed}</p>
         <p role="status" class="sr-only">{scheduled}</p>
         <p role="status" class="sr-only">{keptMessage}</p>
+
+        <!-- The address was flagged by the email provider (E2): what it means for the team, and the way back. The badge on
+             the Contact card's email says which, so the sentence does not repeat it (W7). -->
+        {#if emailIssue !== 'None'}
+          {@const sentence = emailIssueNotice(detail.candidate.emailIssue, detail.candidate.emailIssueReason)}
+          <div class="mb-5 flex flex-col items-start gap-3">
+            {#if sentence}<Notice>{sentence}</Notice>{/if}
+            {#if can(page.data.user, 'EmailCandidates')}
+              <Button variant="outline" disabled={clearEmailIssue.isPending} onclick={addressWorks}><MailCheckIcon aria-hidden="true" />Allow email again</Button>
+            {/if}
+            <FailureText message={clearFailure} />
+          </div>
+        {/if}
 
         <!-- Only the selected tab's body is rendered: each loads what it shows, and a note's anchor is on the page once. -->
         <div class="flex min-w-0 flex-col gap-5">
@@ -483,8 +530,8 @@
       </div>
     </Tabs.Root>
 
-    {#if sidebar.isMobile && stages.length > 0 && mayMove}
-      <ActionBar>{@render moveToStage()}</ActionBar>
+    {#if sidebar.isMobile && primaryOnPhone}
+      <ActionBar>{#if saved}{@render invite()}{:else}{@render moveToStage()}{/if}</ActionBar>
     {/if}
 
     {#if canEmail}
@@ -493,6 +540,9 @@
         recipients={[{ id: detail.id, candidateName: detail.candidate.fullName }]}
         onsent={(message) => (emailed = message)}
       />
+    {/if}
+    {#if saved && canEmail}
+      <InviteToApplySheet bind:open={inviteOpen} people={invitee} ondone={(message) => (emailed = message)} />
     {/if}
 
     {#if canSchedule}
@@ -529,17 +579,16 @@
       />
     {/if}
     {#if mayMove}
-      <KeepInMindSheet
+      <SaveCandidateSheet
         bind:open={keepOpen}
         applicationIds={[detail.id]}
         candidateName={detail.candidate.fullName}
-        until={detail.futureRolesUntil}
         ondone={(message) => (keptMessage = message)}
       />
       <MoveNoteSheet
         bind:open={moveNoteOpen}
         candidateName={detail.candidate.fullName}
-        currentStageId={detail.keptInMindAt ? '' : detail.stage.id}
+        currentStageId={detail.stage.id}
         {stages}
         failure={moves.failure}
         onmove={(stage, note) => moves.move({ id: detail.id, jobId: detail.jobId, candidateName: detail.candidate.fullName }, stage, note)}

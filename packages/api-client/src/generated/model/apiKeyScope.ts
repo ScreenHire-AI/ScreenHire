@@ -14,4 +14,5 @@ export type ApiKeyScope = typeof ApiKeyScope[keyof typeof ApiKeyScope];
 export const ApiKeyScope = {
   Read: 'Read',
   Write: 'Write',
+  VerificationRead: 'VerificationRead',
 } as const;

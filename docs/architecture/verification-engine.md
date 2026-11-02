@@ -34,6 +34,7 @@ sources:
   - resource: src/ScreenHire.Application/Verification/VerificationPipeline.cs
   - resource: src/ScreenHire.Application/Verification/VerificationRegistration.cs
   - resource: src/ScreenHire.Application/Verification/NetworkAnalyzer.cs
+  - resource: src/ScreenHire.Application/Verification/RecheckApplicationDuplicates.cs
   - resource: src/ScreenHire.Application/Verification/SyntheticApplicants.cs
   - resource: src/ScreenHire.Application/Verification/SyntheticDocuments.cs
   - resource: src/ScreenHire.Application/Verification/TelemetrySource.cs
@@ -52,11 +53,15 @@ sources:
   - resource: src/ScreenHire.Infrastructure/Verification/Llm/LlmAccess.cs
   - resource: src/ScreenHire.Infrastructure/Verification/TextSimilarity.cs
   - resource: apps/api/Endpoints/VerificationEndpoints.cs
+  - resource: apps/api/Contracts/VerificationContracts.cs
+  - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/VerificationConfiguration.cs
+  - resource: apps/dashboard/src/lib/components/review-log.svelte
   - resource: apps/api/Endpoints/PublicTelemetryEndpoints.cs
   - resource: apps/dashboard/src/lib/verification.ts
   - resource: packages/telemetry/src/collector.ts
   - resource: packages/telemetry/src/device.ts
   - resource: packages/telemetry/src/index.ts
+  - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/VerificationConfiguration.cs
 ---
 # Verification Engine: Applicant Authenticity & AI-Assistance Signals
 
@@ -328,9 +333,13 @@ separate message so the pipeline retries and fails apart from the workflow engin
 
 1. runs each registered `IVerificationAnalyzer` whose `(application, name, version)` has no `verification_analyzer_runs`
    row, and stores the run (with a `note` when it could not look, such as "No IP intelligence source is configured")
-   and its signals. A unique index on the run is the idempotency key;
+   and its signals. A unique index on the run (application, name, version, revision) is the idempotency key. The pipeline
+   writes revision 1; a re-check (below) writes the next;
 2. derives both assessments with the ruleset. An assessment row is written only when its inputs changed: its
-   `fingerprint` (ruleset version, signal ids, policy, declaration, accommodation) has a unique index;
+   `fingerprint` (ruleset version, signal ids, policy, declaration, accommodation) has a unique index. It also counts the
+   signals of that kind a later run replaced, when there are any: evidence that came and went leaves the signals of an
+   earlier assessment, and the newest assessment is the current one, so going back has to be a new row. A re-check that
+   touches only authenticity leaves the AI assistance row alone, so a dismissal of it stands;
 3. when a level changed (or on the first assessment), appends a `VerificationAssessed` timeline entry with both level
    names, and publishes the `VerificationAssessed` tenant event and `RunAutomations(VerificationAssessed)` for the workflow
    engine. New evidence at the same levels is stored as a new assessment row and not announced: content forensics
@@ -427,19 +436,33 @@ Rules of thumb in the analyzers:
   accommodation. The threshold is the analyzer's and changed for the resumed case only, versioned by the analyzer, so
   the ruleset version stays.
 - **Duplicates** count only other candidates. One person applying to two jobs is normal. A shared device or file is
-  `High`; a shared email base or phone alone is `Medium`. Earlier applications are not revisited when a later one
-  matches them, so the first member of a farm carries no duplicate signal of its own.
+  `High`; a shared email base or phone alone is `Medium`. One person is one candidate (matched by email within the
+  organization, `docs/architecture/candidates.md`), so a person's own applications never match each other.
+  **Re-checks.** When a later application's duplicate check finds earlier applications, the pipeline sends each a
+  `RecheckApplicationDuplicates` (up to 25, one per pair and cause, `[Deduplicated]`, ordered per application like the
+  analysis).
+  Its handler runs only the duplicate analyzer again over the earlier application. When the findings are the same as the
+  latest run's, nothing is written. Otherwise it writes the next `revision` of the run with its signals, reassesses (the
+  usual rule: a level change is announced, new evidence at the same level is stored quietly) and appends an
+  `EvidenceChanged` row to the review log: written by ScreenHire, no actor, with the reason in words ("New evidence: ..."),
+  never naming the other application, its job or its candidate, because the reader may not see that job (ADR-0015). So
+  the first member of a group carries the signal too, and nobody sees a level move without a reason. A re-check never sends
+  another, so two applications do not bounce. `VerificationPipeline.Current` counts each analyzer's newest (version,
+  revision) only, so one observation is never counted twice. Erasing a candidate sends the same re-check to the
+  applications that shared details with them, so no level keeps resting on someone who is gone; the row then reads
+  "A detail this application shared with another application no longer applies." Near-duplicate answers (`AnswerAnalyzer`)
+  are not revisited.
 - **Phone numbers** use libphonenumber. A number without a country code is checked only when the job is in exactly one
   country; otherwise it is not a signal.
 - **Accommodation** (the assistive-technology switch): the API stores no page times, device hash, automation markers or telemetry, accessibility-sensitive
   signals (timing, telemetry, the honeypot) are never stored, the behavioural analyzer never asks for telemetry, and the
   run's note reads the same either way, so nothing records the switch.
 
-### 10.3 Ruleset (`VerificationRuleset`, version `2026-10-21.2`)
+### 10.3 Ruleset (`VerificationRuleset`, version `2026-11-02.1`)
 
 Weights count `Low` 1, `Medium` 2, `High` 3. A category **corroborates** when its weights add up to at least 2;
 context-only signals (`NET_ANON_PROXY`, `AUTO_TURNSTILE_FAIL`) add their weight only next to a direct signal of the same
-category. Informational signals (`CNT_TEMPLATED_ANSWER`) add nothing at all; version `2026-10-20.3` added that rule. Version `2026-10-20.4` added `telemetry-only-alongside-another-category`. Version `2026-10-21.1` took the declaration out of AI assistance summaries. Version `2026-10-21.2` shortened summaries to the count and the kinds of check; the reasons list names each signal. The honeypot is `Medium` and accessibility-sensitive: autofill and assistive tools can fill a hidden field.
+category. Informational signals (`CNT_TEMPLATED_ANSWER`) add nothing at all; version `2026-10-20.3` added that rule. Version `2026-10-20.4` added `telemetry-only-alongside-another-category`. Version `2026-10-21.1` took the declaration out of AI assistance summaries. Version `2026-10-21.2` shortened summaries to the count and the kinds of check; the reasons list names each signal. Version `2026-11-02.1` followed the automation analyzer to version 2 (active time per page replaced the time from first showing the form to sending it): the ruleset version moves whenever an analyzer changes what its signals mean, so an assessment says which meaning it was made under. The honeypot is `Medium` and accessibility-sensitive: autofill and assistive tools can fill a hidden field.
 For each assessment, in order:
 
 | Rule id | Rule |
@@ -472,10 +495,10 @@ made with.
 |---|---|---|
 | `submission_observations` | raw network and session data of a careers submission: IP address, user agent, device hash, the active seconds on each page (and, in rows from before them, the form start time), automation markers, `expires_at` | insert, read, delete (retention) |
 | `telemetry_snapshots` | one page view's form telemetry (counts only), its session, the application once bound, `expires_at` | insert, read, update (upsert, binding), delete (retention, accommodation) |
-| `verification_analyzer_runs` | one row per analyzer version per application | insert, read |
-| `verification_signals` | signals with their evidence (JSONB) | insert, read |
+| `verification_analyzer_runs` | one row per analyzer version and revision per application | insert, read |
+| `verification_signals` | signals with their evidence (JSONB) and the revision of the run that wrote them | insert, read |
 | `verification_assessments` | each assessment, newest per kind is current | insert, read |
-| `verification_review_actions` | the reviewers' audit log | insert, read |
+| `verification_review_actions` | the reviewers' audit log, and the system's `EvidenceChanged` entries (no actor). A reason explained or undone names its signal by a composite foreign key `(organization_id, signal_id)` to `verification_signals`, cascading with the signal's application, so an invented id or another organization's signal is refused by the database | insert, read |
 | `application_documents` | what each uploaded file says: visible text, metadata, hidden text (§10.10) | insert, read |
 | `answer_fingerprints` | a SimHash per free-text answer, for near-duplicate lookups | insert, read |
 | `consistency_checks` | the consistency check per application and prompt version, with its contradictions and token use | insert, read, update |
@@ -487,7 +510,8 @@ an observation; a recruiter's own address is never recorded for a candidate. The
 HMAC with a per-organization salt (`ScreenHire:Verification:DeviceHashKey`, generated by the AppHost locally), so it never
 matches across employers. Evidence keeps the network operator and country, never the address. Extracted documents and
 answer fingerprints cannot be deleted by the application role on their own: they go when their application or file is
-deleted (the foreign keys cascade), so a future erasure job deletes the parent row.
+deleted (the foreign keys cascade), so erasing a candidate deletes the candidate row and the database does the rest
+(`docs/architecture/candidates.md`).
 
 `PurgeExpiredVerificationData` runs daily at 03:17 UTC and fans out one `PurgeOrganizationVerificationData` per organization
 (the worker sees no tenant rows without a tenant). It deletes observations past `expires_at`
@@ -525,6 +549,7 @@ Every route is tenant-scoped (another organization's application is 404). No res
 | Route | What |
 |---|---|
 | `GET /v1/applications/{id}/verification` | `status` (`Pending` until assessed), both current assessments with level, reason codes, summary, next step, signals with evidence and counter-evidence, any dismissal, AI policy context, the review log, and whether verification can be requested (not until phase 2) |
+| `GET /v1/verification/applications` | the applications whose current authenticity or AI assistance level is the one asked for (`authenticity`, `aiAssistance`, `jobId`, `includeDismissed`, `limit` up to 50), newest first and never ranked, each with both levels, their reason codes and whether each was dismissed. At least one level is required. For a key with the Verification read scope; each application returned is logged (below) |
 | `POST .../verification/assessments/{assessmentId}/dismiss` | a reason (`VerifiedOutsideScreenHire`, `ExplainedByCandidate`, `FalsePositive`, or `Other` with a note); only the current assessment, above the lowest level, once |
 | `POST .../verification/assessments/{assessmentId}/signals/{signalId}/explain` | marks one reason explained: a reason (`ConfirmedWithCandidate`, `ExpectedForRole`, `KnownFalsePositive`, or `Other` with a note) and an optional note; only the current assessment, above the lowest level and not dismissed, and once until undone. It changes nothing but the review log |
 | `POST .../verification/assessments/{assessmentId}/signals/{signalId}/undo-explanation` | takes an explanation back; only its author (403 otherwise), and only while the assessment is not dismissed |
@@ -536,13 +561,22 @@ Every route is tenant-scoped (another organization's application is 404). No res
 The verification view also carries `consistencyCheck` (status, note, prompt version, models) once the check is decided, and
 each signal's `informational` flag and, for `CNT_INCONSISTENCY`, its `llm` provenance.
 
+The two GET routes above accept the session or an API key with the Verification read scope an Owner gave it (ADR-0021);
+a key without the scope gets 403, and every other route here is the session's, so a key reads and never decides. A read
+through a key adds a `ReadByKey` row to the review log for each application read, in the same save that precedes the
+answer: the key's id and the time, no acting user. A database check keeps every row to a person (`actor_user_id`) or a
+key (`api_key_id`), never both. The view shows it as `type: ReadByKey` with `apiKeyId`, `apiKeyName` and
+`keyCreatedByName`, and the dashboard's review log folds a run of reads by one key into one line with a count. Reading
+decides nothing: no level, filter, automation fact or webhook reads these rows (ADR-0004).
+
 Writes need a hiring role and the antiforgery header. Dismissing records a decision and never changes the assessment.
 A unique index (`ix_verification_review_actions_one_dismissal`) keeps one dismissal per assessment when two reviewers
 dismiss at once; the second gets the same 409 as a later attempt. The review log is append-only, so an undo is a row of
 its own (`ExplanationUndone`) and the latest explain or undo row for a reason decides; each signal in the view carries
 `explained` (who, when, why) while one stands, and a reassessment starts with nothing explained. Two reviewers who
 explain one reason at the same moment both land in the log, and the later one shows. `ApplicationSummary.verification` and
-`VerificationAssessed` never carry explanations.
+`VerificationAssessed` never carry explanations. `EvidenceChanged` entries have a null `actorUserId` and their reason in
+`note`; the dashboard shows them as "by ScreenHire".
 `ApplicationSummary.verification` carries the chips for lists: both levels, their reason codes and whether each was
 dismissed. The `VerificationAssessed` tenant event carries ids, the two level names and the ruleset version, never
 evidence.
@@ -593,7 +627,7 @@ assessment, shown next to it as context; it is never a reason on its own.
   version 3. Jobs copied from version 1 keep their copy and show "update available". Level names in conditions are
   still not validated, because validation would block those version 1 jobs until someone adopts version 2. Turning it
   on is a small change once no job uses version 1.
-- Duplicates do not revisit earlier applications (§10.2).
+- Near-duplicate answers do not revisit earlier applications; the duplicate check does (§10.2).
 - With the demo seeding on in the end-to-end stack, `LiveUpdatesTests` failed in 3 of 9 runs: a live `JobClosed` took
   more than 5 seconds to reach the second browser. With it off, 10 of 10 runs passed. The demo itself finished well
   before the test ran. The trigger is the burst of
@@ -616,6 +650,9 @@ assessment, shown next to it as context; it is never a reason on its own.
   with no OCR.
 - Duplicate answers have the same blind spot as other duplicates, and one more: two applications analyzed at the same
   moment may miss each other, because each keeps its fingerprints only when its pipeline commits.
+- A re-check that reaches an application whose duplicate check has not run yet does nothing, because that run will read
+  the data as it then stands. An erasure in the moment after that run has read the data and before it commits leaves the
+  application with the finding until something re-checks it.
 - Turning the consistency check on does not reach back: applications already checked, skipped or switched off keep that
   outcome.
 - The dashboard's verification panel (§7) and questionnaire editor both exist now. A job asks for a LinkedIn export only

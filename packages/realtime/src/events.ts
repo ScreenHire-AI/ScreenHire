@@ -29,6 +29,19 @@ export const realtimeEventSchemas = {
   InterviewChanged: z.object({ organizationId: id, applicationId: id, jobId: id, interviewId: id, status: z.string().nullable() }),
   // An email went to an application's candidate and is on its timeline.
   ApplicationEmailed: z.object({ organizationId: id, applicationId: id, jobId: id, eventId: id, sentAt: instant, actorUserId: actor }),
+  // A candidate answered an email. senderUserId is who sent that email (null when an automation did): their dashboard, or for an
+  // automation's email every dashboard that sees the job, shows a card. autoReply (an out-of-office) notifies nobody.
+  CandidateReplied: z.object({
+    organizationId: id,
+    applicationId: id,
+    jobId: id,
+    inboundEmailId: id,
+    receivedAt: instant,
+    senderUserId: actor,
+    autoReply: z.boolean(),
+  }),
+  // The email provider flagged a candidate's address (Bounced, SpamComplaint), or the flag was cleared (None).
+  CandidateEmailStatusChanged: z.object({ organizationId: id, candidateId: id, issue: z.string(), changedAt: instant }),
   // A note from the hiring team: ids only, the dashboard reads the note through GET /v1/applications/{id}/timeline.
   ApplicationNoteAdded: z.object({ organizationId: id, applicationId: id, jobId: id, eventId: id, addedAt: instant, actorUserId: actor }),
   // A note's author changed its text, or someone deleted it (and its text): the timeline refetches.
@@ -114,6 +127,15 @@ export const realtimeEventSchemas = {
     // The member who changed the template last, when not the publisher, whose dashboard can say so.
     previousEditorUserId: id.nullish(),
   }),
+  // Someone changed a template. Kind is the C# TemplateKind. The id is text because a built-in email template or
+  // scorecard has a name for an id, not a Guid.
+  TemplateChanged: z.object({
+    organizationId: id,
+    kind: z.enum(['HiringTemplate', 'EmailTemplate', 'ScorecardTemplate']),
+    templateId: z.string(),
+    changedAt: instant,
+    actorUserId: actor,
+  }),
   // Levels only, never evidence: the dashboard reads the assessment itself through the API. Enums are the C#
   // AuthenticityLevel and AiAssistanceLevel.
   VerificationAssessed: z.object({
@@ -142,10 +164,13 @@ export const realtimeEventSchemas = {
   // A job's own workflow was edited or took a template update (workflow-engine.md §7): its stages may have changed.
   JobWorkflowChanged: z.object({ organizationId: id, jobId: id, workflowVersion: z.number().int(), changedAt: instant }),
   LiveUpdatesChecked: z.object({ organizationId: id, checkId: id }),
-  // Someone joined or left the talent pool, or was invited from it (docs/architecture/talent-pool.md). applicationId is
-  // the application they were kept in mind from.
+  // Someone was saved or left the saved candidates, or was invited from them (docs/architecture/talent-pool.md). applicationId is
+  // the application they were saved from.
   TalentPoolChanged: z.object({ organizationId: id, applicationId: id, jobId: id, candidateId: id, changedAt: instant }),
+  // A candidate and everything about them was erased. Carries the id and the time only (an erased id names no one).
+  CandidateErased: z.object({ organizationId: id, candidateId: id, erasedAt: instant }),
   TeamNotified: z.object({ organizationId: id, applicationId: id, jobId: id, runId: id, notifiedAt: instant }),
+  ViewsChanged: z.object({ organizationId: id, viewId: id, changedAt: instant, actorUserId: actor }),
 } as const;
 
 export type RealtimeEventType = keyof typeof realtimeEventSchemas;

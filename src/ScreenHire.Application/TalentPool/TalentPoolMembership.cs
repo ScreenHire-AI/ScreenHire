@@ -14,16 +14,12 @@ public sealed record TalentPoolChanged(Guid OrganizationId, Guid ApplicationId, 
     : IJobEvent;
 
 /// <summary>
-/// Joining and leaving the talent pool, shared by the API's routes, the public link to stop being kept and the worker's
-/// expiry sweep, so every way in or out keeps the same record: an entry while they are in, and the reason on the kept
+/// Joining and leaving the talent pool, shared by the API's routes and the public link to stop being kept, so every way in or out keeps the same
+/// record: an entry while they are in, and the reason on the kept
 /// application's Activity when they leave. Never reads verification output (ADR-0004). The caller saves.
 /// </summary>
 public static class TalentPoolMembership
 {
-    /// <summary>The organization's permission period in months: its setting, or the default.</summary>
-    public static async Task<int> MonthsAsync(ScreenHireDbContext db, CancellationToken cancellationToken) =>
-        TalentPoolSettings.MonthsOf(await db.TalentPoolSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken));
-
     /// <summary>
     /// Takes the candidate of <paramref name="entry"/> out of the pool: deletes the entry and records why on the
     /// application they were kept from (<paramref name="keptFrom"/>). Returns the event for open dashboards.

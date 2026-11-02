@@ -1,18 +1,19 @@
 <script lang="ts">
   import type { ApplicationSummary, WorkflowStage } from '@screenhire/api-client';
-  import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
+  import { createListEmailTemplates, createListViews } from '@screenhire/api-client/svelte-query';
   import { page } from '$app/state';
   import { can } from '#lib/permissions.js';
-  import { matchesSearch } from '#lib/candidate-table.js';
+  import { matchesSearch, sortableColumnIds } from '#lib/candidate-table.js';
   import ApplicationTable from '#lib/components/application-table.svelte';
   import AuthenticityFilter from '#lib/components/authenticity-filter.svelte';
   import EmailComposerSheet from '#lib/components/email-composer-sheet.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import FilterMenu from '#lib/components/filter-menu.svelte';
-  import KeepInMindSheet from '#lib/components/keep-in-mind-sheet.svelte';
+  import SaveCandidateSheet from '#lib/components/save-candidate-sheet.svelte';
   import Panel from '#lib/components/panel.svelte';
   import PipelineBoard from '#lib/components/pipeline-board.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import SaveViewButton from '#lib/components/save-view-button.svelte';
   import SearchField from '#lib/components/search-field.svelte';
   import SelectionBar from '#lib/components/selection-bar.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -34,6 +35,8 @@
   import type { Moves } from '#lib/moves.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { describeError } from '#lib/query.js';
+  import { createTableSort } from '#lib/table-sort.svelte.js';
+  import { defaultSorts, differsFromView, filtersOf, sortOf, verificationOf } from '#lib/view-filters.js';
   import { hasModifier, isTypingTarget } from '#lib/shortcuts.js';
 
   // A job's candidates as a table or a board, the job page's work area (design system section 21). The panel header holds
@@ -41,6 +44,7 @@
   // scrolls inside the panel (F5). Ticked rows get the selection bar. On a phone the filters are menus beside the Sort
   // chip. The page filters nothing itself.
   let {
+    jobId,
     jobTitle,
     stages,
     applications,
@@ -51,6 +55,7 @@
     verificationFilter = $bindable({ ...noVerificationFilter }),
     view = $bindable('table'),
   }: {
+    jobId: string;
     jobTitle: string;
     stages: readonly WorkflowStage[];
     applications: readonly ApplicationSummary[];
@@ -77,6 +82,40 @@
   const shown = $derived(onBoard.filter((application) => !chosenStage || (application.stage.id === chosenStage && !application.keptInMindAt)));
   const filtering = $derived(Boolean(chosenStage) || Boolean(search.trim()) || isVerificationFiltered(verificationFilter));
   const moveTargets = $derived(bulkMoveStages(stages, verificationFilter));
+
+  // A view of this job's table is named in the address (docs/architecture/saved-views.md). Opening one puts its stage,
+  // verification filter and sort on the table; leaving one clears them. The sort belongs here so a view can set it, and it
+  // outlives switching to the board and back. A view sets it without changing the sort the person remembers.
+  const viewId = $derived(page.url.searchParams.get('view'));
+  const savedViews = createListViews();
+  const saved = $derived(savedViews.data?.data.views.find((candidate) => candidate.id === viewId && candidate.jobId === jobId));
+  const viewGone = $derived(Boolean(viewId) && !saved && savedViews.isSuccess);
+  const sort = createTableSort('job-candidates', defaultSorts.Job, sortableColumnIds([...verificationColumns, ratingColumn], false));
+  let applied = $state<string | null>(null);
+  $effect(() => {
+    const id = saved?.id ?? null;
+    if (id === applied) return;
+    if (saved) {
+      stageFilter = saved.filters.stages[0] ?? null;
+      verificationFilter = verificationOf(saved.filters);
+      sort.show(sortOf(saved.filters, 'Job'));
+    } else if (applied !== null) {
+      stageFilter = null;
+      verificationFilter = { ...noVerificationFilter };
+      sort.show(preferences.sortFor('job-candidates'));
+    }
+    applied = id;
+  });
+  const filtersNow = $derived(
+    filtersOf({
+      stages: chosenStage ? [chosenStage] : [],
+      verification: verificationFilter,
+      sort: sort.sorting[0] ?? defaultSorts.Job,
+    }),
+  );
+  const canSave = $derived(
+    !viewGone && (!saved || applied === saved.id) && differsFromView(filtersNow, 'Job', saved ? { filters: saved.filters } : null),
+  );
   // Only the rows on screen: a ticked row that a search or filter hides is never moved with the rest.
   const selected = $derived(shown.filter((application) => selectedIds.includes(application.id)));
   // Email to the selection, hidden under a verification filter for the reason bulkMoveStages gives (ADR-0004).
@@ -84,7 +123,7 @@
   const canEmail = $derived(Boolean(emailTemplates.data?.data.sendingEnabled) && can(page.data.user, 'EmailCandidates'));
   let emailOpen = $state(false);
   let emailed = $state('');
-  // Keep in mind for the selection, with the same guard as Email: never on rows a Verification filter picked (ADR-0004).
+  // Save candidate for the selection, with the same guard as Email: never on rows a Verification filter picked (ADR-0004).
   let keepOpen = $state(false);
   const stageOptions = $derived(
     stages.map((stage) => ({
@@ -165,17 +204,24 @@
   {/if}
   {#if !pending && !error}
     {#if !sidebar.isMobile}
-      <!-- The filters: one line that scrolls inside the panel rather than wrapping (F5). The board's columns are the
-           stages, so only the table has the Stage filter. -->
-      <div data-filters class="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2">
-        {#if view === 'table'}{@render stageMenu()}{/if}
-        <AuthenticityFilter {applications} filter={verificationFilter} onchange={setVerificationFilter} />
+      <!-- The filters: one line that scrolls inside the panel rather than wrapping (F5), with Save view in view at its end.
+           The board's columns are the stages, so only the table has the Stage filter. -->
+      <div data-filters class="flex shrink-0 items-center gap-2 border-b border-border-subtle px-4.5 py-2">
+        <div class="-my-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-1">
+          {#if view === 'table'}{@render stageMenu()}{/if}
+          <AuthenticityFilter {applications} filter={verificationFilter} onchange={setVerificationFilter} />
+        </div>
+        {@render saveView()}
       </div>
     {:else if view === 'board'}
-      <div data-filters class="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border-subtle px-4 py-2">
-        <AuthenticityFilter {applications} filter={verificationFilter} onchange={setVerificationFilter} menu />
+      <div data-filters class="flex shrink-0 items-center gap-2 border-b border-border-subtle px-4 py-2">
+        <div class="-my-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-1">
+          <AuthenticityFilter {applications} filter={verificationFilter} onchange={setVerificationFilter} menu />
+        </div>
+        {@render saveView()}
       </div>
     {/if}
+    <p role="status" class="border-b border-border-subtle px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4">{viewGone ? 'That view is no longer there, so this shows every candidate.' : ''}</p>
     {#if view === 'table' && selected.length > 0}
       <SelectionBar
         count={selected.length}
@@ -203,6 +249,7 @@
       label={`Candidates for ${jobTitle}`}
       fill={!sidebar.isMobile}
       sortId="job-candidates"
+      {sort}
       {stages}
       {moves}
       extraColumns={[...verificationColumns, ratingColumn]}
@@ -214,6 +261,7 @@
         {@render stageMenu()}
         <AuthenticityFilter {applications} filter={verificationFilter} onchange={setVerificationFilter} menu />
       {/snippet}
+      {#snippet filterAction()}{@render saveView()}{/snippet}
     </ApplicationTable>
   {:else if onBoard.length === 0}
     <Empty.Root class="gap-3 p-6">
@@ -233,11 +281,15 @@
   <EmailComposerSheet bind:open={emailOpen} recipients={selected} onsent={(message) => ((emailed = message), (selectedIds = []))} />
 {/if}
 {#if moves.allowed}
-  <KeepInMindSheet bind:open={keepOpen} applicationIds={selected.map((application) => application.id)} ondone={(message) => ((emailed = message), (selectedIds = []))} />
+  <SaveCandidateSheet bind:open={keepOpen} applicationIds={selected.map((application) => application.id)} ondone={(message) => ((emailed = message), (selectedIds = []))} />
 {/if}
 
 {#snippet searchField(className: string)}
   <SearchField bind:value={search} label="Search candidates" class={className} />
+{/snippet}
+
+{#snippet saveView()}
+  <SaveViewButton scope="Job" {jobId} filters={filtersNow} show={canSave} />
 {/snippet}
 
 {#snippet stageMenu()}

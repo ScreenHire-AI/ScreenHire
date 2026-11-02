@@ -36,7 +36,7 @@ describe('app shell', () => {
     expect(links.map((link) => link.textContent?.trim())).toEqual([
       'Jobs',
       'Candidates',
-      'Talent pool',
+      'Saved candidates',
       'Templates',
       'My tasks',
       'Reports',
@@ -204,7 +204,7 @@ describe('app shell', () => {
     render(ShellHarness, { props: { user: userAs(role), viewCounts } });
 
     expect(within(main()).queryByRole('link', { name: 'Settings' })).toBeNull();
-    // The six sections (Talent pool, My tasks and Reports included) and the six saved views.
+    // The six sections (Saved candidates, My tasks and Reports included) and the six saved views.
     expect(within(main()).getAllByRole('link')).toHaveLength(12);
   });
 

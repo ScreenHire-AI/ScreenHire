@@ -1,7 +1,7 @@
 <script lang="ts">
   import ExternalLinkIcon from '~icons/lucide/external-link';
   import SaveIcon from '~icons/lucide/save';
-  import type { HttpValidationProblemDetails, OrganizationProfile } from '@screenhire/api-client';
+  import type { HttpValidationProblemDetails } from '@screenhire/api-client';
   import {
     ApiError,
     createGetOrganization,
@@ -15,6 +15,7 @@
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
   import CodeBlock from '#lib/components/code-block.svelte';
+  import { embedSnippet } from '#lib/embed-snippet.js';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -106,9 +107,6 @@
     }
   }
 
-  // The widget's script lives on the careers board, so the snippet is the board's address and the script's name. The
-  // closing tag is escaped, or it would end this component's own script.
-  const snippet = (profile: OrganizationProfile) => `<script src="${profile.careersUrl.replace(/\/$/, '')}/embed.js" async><\/script>`;
 </script>
 
 <svelte:head>
@@ -194,7 +192,7 @@
           {#if detail.embedOrigins.length > 0}
             <div class="mt-5 flex flex-col gap-2 border-t border-border-subtle pt-5">
               <h3 class="font-semibold">Embed code</h3>
-              <CodeBlock code={snippet(detail)} label="Embed code" />
+              <CodeBlock code={embedSnippet(detail.careersUrl)} label="Embed code" />
               <p class="text-muted-foreground">Paste it into your site where the jobs should show.</p>
             </div>
           {/if}

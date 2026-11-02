@@ -19,8 +19,10 @@ internal sealed class VerificationAnalyzerRunConfiguration : IEntityTypeConfigur
             .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasAlternateKey(r => new { r.OrganizationId, r.Id });
-        // The pipeline's idempotency key (verification-engine.md §5): each analyzer version runs once per application.
-        builder.HasIndex(r => new { r.OrganizationId, r.ApplicationId, r.Analyzer, r.AnalyzerVersion }).IsUnique();
+        builder.Property(r => r.Revision).HasDefaultValue(1);
+        // The pipeline's idempotency key (verification-engine.md §5): each analyzer version runs once per application. A
+        // re-check of the same version (the duplicate check when a later application shares a detail) is the next revision.
+        builder.HasIndex(r => new { r.OrganizationId, r.ApplicationId, r.Analyzer, r.AnalyzerVersion, r.Revision }).IsUnique();
     }
 }
 
@@ -34,6 +36,7 @@ internal sealed class VerificationSignalConfiguration : IEntityTypeConfiguration
         builder.Property(s => s.Weight).HasConversion<string>().HasMaxLength(10);
         builder.Property(s => s.Confidence).HasConversion<string>().HasMaxLength(10);
         builder.Property(s => s.Source).HasMaxLength(40);
+        builder.Property(s => s.SourceRevision).HasDefaultValue(1);
         builder.Property(s => s.Explanation).HasMaxLength(1000);
         builder.Property(s => s.Evidence).HasJsonColumn();
         builder.Property(s => s.CounterEvidence).HasJsonColumn();
@@ -47,6 +50,8 @@ internal sealed class VerificationSignalConfiguration : IEntityTypeConfiguration
             .HasForeignKey(s => new { s.OrganizationId, s.AnalyzerRunId })
             .HasPrincipalKey(r => new { r.OrganizationId, r.Id })
             .OnDelete(DeleteBehavior.Cascade);
+        // Target of the review actions' composite tenant foreign key (a reason explained or undone points at a signal).
+        builder.HasAlternateKey(s => new { s.OrganizationId, s.Id });
         builder.HasIndex(s => new { s.OrganizationId, s.ApplicationId });
         builder.HasIndex(s => new { s.OrganizationId, s.AnalyzerRunId });
     }
@@ -89,8 +94,8 @@ internal sealed class VerificationReviewActionConfiguration : IEntityTypeConfigu
         builder.Property(a => a.Type).HasConversion<string>().HasMaxLength(20);
         builder.Property(a => a.DismissReason).HasConversion<string>().HasMaxLength(30);
         builder.Property(a => a.ExplainReason).HasConversion<string>().HasMaxLength(30);
-        // SignalId has no foreign key: signals have no (organization_id, id) key to point at. The endpoint checks the
-        // signal is one of the assessment's, and the assessment's key cascades.
+        // SignalId is null for a dismissal or a note, which the foreign key then skips. The endpoint also checks the
+        // signal is one of the assessment's.
         builder.Property(a => a.Note).HasMaxLength(VerificationReviewAction.MaxNoteLength);
 
         builder.HasOne<JobApplication>().WithMany()
@@ -101,6 +106,20 @@ internal sealed class VerificationReviewActionConfiguration : IEntityTypeConfigu
             .HasForeignKey(a => new { a.OrganizationId, a.AssessmentId })
             .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
             .OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<VerificationSignal>().WithMany()
+            .HasForeignKey(a => new { a.OrganizationId, a.SignalId })
+            .HasPrincipalKey(s => new { s.OrganizationId, s.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        // A read through an API key (ADR-0021) names the key instead of a person. Cascade like the other keys here: the app
+        // role cannot delete a key (revoking keeps the row, so the log stays append-only), and only an organization's own
+        // deletion removes one, which NO ACTION would refuse. The key is one column, not (OrganizationId, Id) like the other
+        // keys here: the value only ever comes from the authenticated key's own claim, with the organization resolved from
+        // that same key, so a row cannot name another organization's key.
+        builder.HasOne<ApiKey>().WithMany().HasForeignKey(a => a.ApiKeyId).OnDelete(DeleteBehavior.Cascade);
+        // A person or a key, never both. Only an EvidenceChanged entry has neither: the system writes it.
+        builder.ToTable(t => t.HasCheckConstraint(
+            "ck_verification_review_actions_one_actor",
+            "((actor_user_id IS NOT NULL) <> (api_key_id IS NOT NULL)) OR (type = 'EvidenceChanged' AND actor_user_id IS NULL AND api_key_id IS NULL)"));
         builder.HasIndex(a => new { a.OrganizationId, a.ApplicationId, a.OccurredAt });
         builder.HasIndex(a => new { a.OrganizationId, a.AssessmentId });
         // One dismissal per assessment, even when two reviewers press the button at once.

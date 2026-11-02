@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
@@ -90,8 +90,13 @@ public sealed class VerificationTests(AppHostFixture fixture)
     {
         using var tenant = await fixture.SignedInWithOrganizationAsync();
         var (slug, jobId) = await OpenJobAsync(tenant);
-        await ApplyAsync(slug, jobId, SyntheticApplicants.ApplicationFarm[0]);
-        var second = await ApplyAsync(slug, jobId, SyntheticApplicants.ApplicationFarm[1]);
+        // The second member applies to another job whose title the first member's review log must never mention. The first
+        // member is settled first: a re-check of an application that has not run its duplicate check yet does nothing.
+        var otherJobId = (await tenant.CreateJobAsync(Samples.RemoteJob("Quarterly Auditor"))).Id();
+        await tenant.PublishJobAsync(otherJobId);
+        var first = await ApplyAsync(slug, jobId, SyntheticApplicants.ApplicationFarm[0]);
+        await SettledAsync(tenant, first);
+        var second = await ApplyAsync(slug, otherJobId, SyntheticApplicants.ApplicationFarm[1]);
 
         var verification = await AssessedAsync(tenant, second);
 
@@ -100,6 +105,22 @@ public sealed class VerificationTests(AppHostFixture fixture)
         duplicate.GetProperty("weight").GetString().Should().Be("High");
         duplicate.GetProperty("evidence").EnumerateArray().Select(e => e.GetProperty("label").GetString())
             .Should().Contain(["Same device", "Same resume file", "Same phone number", "Same email address (ignoring a plus tag)"]);
+
+        // The first member carries the same evidence once the later application has been seen, and its review log says why.
+        var earlier = await CandidateTestSupport.WaitForReviewEntryAsync(
+            tenant, first, "EvidenceChanged", alsoHolds: v => v.Text("authenticity.level") == "VerificationRecommended");
+        earlier.Text("authenticity.level").Should().Be(
+            "VerificationRecommended", "the first member's level rises with the evidence the later one brought (its reasons: {0})", string.Join(", ", CandidateTestSupport.AuthenticityCodes(earlier)));
+        var earlierDuplicate = earlier.At("authenticity.signals").EnumerateArray().Single(s => s.GetProperty("code").GetString() == SignalCatalogue.DuplicateInOrganization);
+        earlierDuplicate.GetProperty("weight").GetString().Should().Be("High");
+        earlierDuplicate.GetProperty("evidence").EnumerateArray().Select(e => e.GetProperty("label").GetString())
+            .Should().Contain(["Same device", "Same resume file", "Same phone number", "Same email address (ignoring a plus tag)"]);
+        var entry = CandidateTestSupport.ReviewEntries(earlier, "EvidenceChanged").Should().ContainSingle().Which;
+        entry.GetProperty("actorUserId").ValueKind.Should().Be(JsonValueKind.Null);
+        entry.GetProperty("note").GetString().Should().StartWith("New evidence");
+        var other = SyntheticApplicants.ApplicationFarm[1];
+        entry.GetRawText().Should().NotContainEquivalentOf(other.FirstName).And.NotContainEquivalentOf(other.LastName)
+            .And.NotContainEquivalentOf(other.Email).And.NotContain("Quarterly Auditor").And.NotContain(second.ToString());
     }
 
     [Fact]
@@ -287,6 +308,31 @@ public sealed class VerificationTests(AppHostFixture fixture)
         (await forged.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
     }
 
+    // The review log's reason (signal_id) points at a signal of the same organization: the composite foreign key refuses
+    // an invented id and another organization's signal, which the endpoint's own check would never be asked about.
+    [Fact]
+    public async Task A_review_action_can_only_name_a_signal_of_its_own_organization()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        using var other = await fixture.SignedInWithOrganizationAsync();
+        var (slug, jobId) = await OpenJobAsync(tenant);
+        var applicationId = await ApplyAsync(slug, jobId, SyntheticApplicants.Bot);
+        var verification = await AssessedAsync(tenant, applicationId);
+        var assessmentId = verification.Id("authenticity.id");
+        var ownSignal = verification.At("authenticity.signals").EnumerateArray().First().GetProperty("id").GetGuid();
+        var (otherSlug, otherJobId) = await OpenJobAsync(other);
+        var otherApplication = await ApplyAsync(otherSlug, otherJobId, SyntheticApplicants.Bot);
+        var othersSignal = (await AssessedAsync(other, otherApplication)).At("authenticity.signals").EnumerateArray().First().GetProperty("id").GetGuid();
+
+        (await InsertExplanationAsync(tenant.OrganizationId, applicationId, assessmentId, ownSignal)).Should().Be(1);
+        (await InsertExplanationAsync(tenant.OrganizationId, applicationId, assessmentId, null)).Should().Be(1, "a note or dismissal names no signal");
+        foreach (var signal in new[] { Guid.CreateVersion7(), othersSignal })
+        {
+            var invented = () => InsertExplanationAsync(tenant.OrganizationId, applicationId, assessmentId, signal);
+            (await invented.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.ForeignKeyViolation);
+        }
+    }
+
     [Fact]
     public async Task With_the_assistive_technology_switch_no_timing_is_stored_and_the_honeypot_does_not_count()
     {
@@ -442,6 +488,41 @@ public sealed class VerificationTests(AppHostFixture fixture)
         (await forget.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
     }
 
+    [Fact]
+    public async Task The_review_log_takes_a_person_or_a_key_never_both_or_neither_and_stays_append_only()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        var (slug, jobId) = await OpenJobAsync(tenant);
+        var applicationId = await ApplyAsync(slug, jobId, SyntheticApplicants.Bot);
+        var keyId = (await tenant.CreateKeyAsync("Auditor", ["Read", "VerificationRead"])).Id("key.id");
+        var now = DateTimeOffset.UtcNow;
+
+        VerificationReviewAction Row(Guid? person, Guid? key) => new()
+        {
+            OrganizationId = tenant.OrganizationId, ApplicationId = applicationId, Type = VerificationReviewActionType.NoteAdded,
+            Note = "probe", ActorUserId = person, ApiKeyId = key, OccurredAt = now,
+        };
+
+        async Task<PostgresException> RefusedAsync(VerificationReviewAction row)
+        {
+            await using var db = await TenantDbAsync(tenant.OrganizationId);
+            db.VerificationReviewActions.Add(row);
+            var save = () => db.SaveChangesAsync(Ct);
+            return (await save.Should().ThrowAsync<DbUpdateException>()).Which.InnerException.Should().BeOfType<PostgresException>().Subject;
+        }
+
+        (await RefusedAsync(Row(null, null))).SqlState.Should().Be(PostgresErrorCodes.CheckViolation, "a row names who acted");
+        (await RefusedAsync(Row(tenant.UserId, keyId))).SqlState.Should().Be(PostgresErrorCodes.CheckViolation, "a row is a person's or a key's");
+
+        await using var db = await TenantDbAsync(tenant.OrganizationId);
+        db.VerificationReviewActions.Add(VerificationReviewAction.ReadByKey(tenant.OrganizationId, applicationId, keyId, now));
+        await db.SaveChangesAsync(Ct);
+        var change = () => db.VerificationReviewActions.Where(a => a.ApiKeyId == keyId).ExecuteUpdateAsync(s => s.SetProperty(a => a.Note, "edited"), Ct);
+        var erase = () => db.VerificationReviewActions.Where(a => a.ApiKeyId == keyId).ExecuteDeleteAsync(Ct);
+        (await change.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
+        (await erase.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
+    }
+
     // A published remote job with the default workflow, in the tenant's organization, and the organization's slug.
     private Task<(string Slug, Guid JobId)> OpenJobAsync(Tenant tenant) => VerificationSupport.OpenJobAsync(fixture, tenant);
 
@@ -452,6 +533,34 @@ public sealed class VerificationTests(AppHostFixture fixture)
 
     // Every analyzer has run, content forensics included, so row counts no longer change underneath a test.
     private Task<ApiResult> SettledAsync(Tenant tenant, Guid applicationId) => VerificationSupport.SettledAsync(fixture, tenant, applicationId);
+
+    // One review action as the application role with the organization as tenant, left in place when it fits.
+    private async Task<int> InsertExplanationAsync(Guid organizationId, Guid applicationId, Guid assessmentId, Guid? signalId)
+    {
+        await using var connection = new NpgsqlConnection(await fixture.GetAppConnectionStringAsync(Ct));
+        await connection.OpenAsync(Ct);
+        await using var transaction = await connection.BeginTransactionAsync(Ct);
+        await using (var setTenant = new NpgsqlCommand("SELECT set_config('app.tenant_id', @tenant, true), set_config('app.job_scope', 'all', true)", connection, transaction))
+        {
+            setTenant.Parameters.AddWithValue("tenant", organizationId.ToString());
+            await setTenant.ExecuteNonQueryAsync(Ct);
+        }
+
+        await using var command = new NpgsqlCommand(
+            "INSERT INTO verification_review_actions (id, organization_id, application_id, assessment_id, type, signal_id, explain_reason, note, actor_user_id, occurred_at) " +
+            "VALUES (gen_random_uuid(), @organization, @application, @assessment, @type, @signal, @reason, @note, gen_random_uuid(), now())",
+            connection, transaction);
+        command.Parameters.AddWithValue("organization", organizationId);
+        command.Parameters.AddWithValue("application", applicationId);
+        command.Parameters.AddWithValue("assessment", assessmentId);
+        command.Parameters.AddWithValue("type", signalId is null ? "NoteAdded" : "ReasonExplained");
+        command.Parameters.AddWithValue("signal", (object?)signalId ?? DBNull.Value);
+        command.Parameters.AddWithValue("reason", signalId is null ? DBNull.Value : "ExpectedForRole");
+        command.Parameters.AddWithValue("note", signalId is null ? "x" : DBNull.Value);
+        var affected = await command.ExecuteNonQueryAsync(Ct);
+        await transaction.RollbackAsync(Ct);
+        return affected;
+    }
 
     // One scalar statement as the application role with the organization as tenant, in a transaction like the API's.
     private async Task<long> CountAsync(Guid organizationId, string sql, Guid applicationId, Guid? organization = null)

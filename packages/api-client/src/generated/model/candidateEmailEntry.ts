@@ -4,6 +4,7 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { EmailDirection } from './emailDirection.ts';
 
 /**
  * One email to the candidate, for Messages: what went, when, and who or which automation sent it. `kept` is false
@@ -22,4 +23,8 @@ export interface CandidateEmailEntry {
   automationRunId: string | null;
   sentAt: string;
   kept: boolean;
+  direction?: EmailDirection;
+  /** @nullable */
+  fromAddress?: string | null;
+  attachmentCount?: number;
 }

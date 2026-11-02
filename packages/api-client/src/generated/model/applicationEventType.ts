@@ -29,4 +29,5 @@ export const ApplicationEventType = {
   InterviewBooked: 'InterviewBooked',
   InterviewRescheduled: 'InterviewRescheduled',
   InterviewCancelled: 'InterviewCancelled',
+  EmailReceived: 'EmailReceived',
 } as const;

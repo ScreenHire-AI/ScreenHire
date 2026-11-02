@@ -20,9 +20,9 @@ public sealed class ProductionApiFixture : AppHostFixture
 {
     protected override IReadOnlyList<string> RequiredResources => [];
 
-    // The sandbox workspace and calendar are refused outside Development (SlackSandboxGate, CalendarSandboxGate), and this stack runs
-    // the API as Production.
-    protected override IReadOnlyList<string> ExtraArguments => ["--ScreenHire:Slack:Sandbox:Enabled=false", "--ScreenHire:Calendar:Sandbox:Enabled=false"];
+    // The sandbox workspace and calendar are refused outside Development (SlackSandboxGate, CalendarSandboxGate), as is the email sandbox
+    // (EmailSandboxGate), and this stack runs the API as Production.
+    protected override IReadOnlyList<string> ExtraArguments => ["--ScreenHire:Slack:Sandbox:Enabled=false", "--ScreenHire:Calendar:Sandbox:Enabled=false", "--ScreenHire:Email:Sandbox:Enabled=false"];
 
     protected override void Configure(IDistributedApplicationTestingBuilder builder)
     {

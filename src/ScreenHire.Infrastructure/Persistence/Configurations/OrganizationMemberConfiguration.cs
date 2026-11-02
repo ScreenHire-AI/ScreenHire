@@ -15,6 +15,7 @@ internal sealed class OrganizationMemberConfiguration : IEntityTypeConfiguration
         // The default fills existing rows with everything on; a new member's row is written with its value.
         builder.Property(m => m.Notifications).HasJsonColumn()
             .HasDefaultValueSql("'{\"toasts\":true,\"closeToasts\":true,\"off\":[]}'::jsonb");
+        builder.Property(m => m.Views).HasJsonColumn().HasDefaultValueSql("'{\"hiddenBuiltIns\":[]}'::jsonb");
         builder.ToTable(t => t.HasCheckConstraint("ck_organization_members_job_access", "job_access IN ('All', 'HiringTeamOnly')"));
         builder.ToTable(t => t.HasCheckConstraint(
             "ck_organization_members_custom_role", "(role = 'Custom') = (custom_role_id IS NOT NULL)"));

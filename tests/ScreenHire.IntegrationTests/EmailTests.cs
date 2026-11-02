@@ -72,6 +72,22 @@ public sealed class EmailTests(AppHostFixture fixture)
         (await owner.GetAsync($"/v1/email-templates/{id}")).Expect(HttpStatusCode.NotFound);
     }
 
+    // Several people's first edit of one built-in race to add its row. One insert wins, and each loser's meets the unique
+    // index, then goes on top of the winner's row. A run where the requests happen not to race still passes, so this can
+    // only ever fail for a real reason.
+    [Fact]
+    public async Task First_edits_of_a_built_in_at_the_same_moment_all_land()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        (await owner.GetAsync("/v1/email-templates")).Expect(HttpStatusCode.OK);
+
+        var edits = await Task.WhenAll(Enumerable.Range(1, 8).Select(i =>
+            owner.PutAsync("/v1/email-templates/stage-change", Wording($"Edit {i}", "Hi {{ candidateName }}."))));
+
+        edits.Select(e => e.Status).Should().AllBeEquivalentTo(HttpStatusCode.OK);
+        (await owner.GetAsync("/v1/email-templates/stage-change")).Expect(HttpStatusCode.OK).At("edited").GetBoolean().Should().BeTrue();
+    }
+
     [Fact]
     public async Task Wording_outside_the_variables_and_safe_tags_is_refused()
     {

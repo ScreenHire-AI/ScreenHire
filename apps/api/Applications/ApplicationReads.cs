@@ -75,9 +75,8 @@ internal static class ApplicationReads
             .ToListAsync(cancellationToken);
         var verification = await VerificationSummariesAsync(user, db, [.. found.Select(r => r.Application.Id)], cancellationToken);
         var ratings = await RatingReads.ForAsync(db, [.. found.Select(r => r.Application.Id)], tenant.UserId, cancellationToken);
-        var poolMonths = await TalentPoolMembership.MonthsAsync(db, cancellationToken);
         return [.. found.Select(r => r.Application.ToSummary(
-            r.Job, r.Candidate, ApplicationActivity.LastAt(r.Application.SubmittedAt, r.LastEventAt, r.LastTaskCompletedAt), poolMonths,
+            r.Job, r.Candidate, ApplicationActivity.LastAt(r.Application.SubmittedAt, r.LastEventAt, r.LastTaskCompletedAt),
             verification.GetValueOrDefault(r.Application.Id), ratings.GetValueOrDefault(r.Application.Id)))];
     }
 
@@ -94,7 +93,6 @@ internal static class ApplicationReads
         ITenantContext tenant, ScreenHireDbContext db, JobApplication application, Job job, Candidate candidate, CancellationToken cancellationToken) =>
         application.ToDetail(
             job, candidate, await FilesOfAsync(db, application.Id, cancellationToken), await FollowUpsOfAsync(db, application.Id, cancellationToken),
-            await TalentPoolMembership.MonthsAsync(db, cancellationToken),
             await db.TalentPoolEntries.AnyAsync(e => e.ApplicationId == application.Id, cancellationToken),
             await RatingReads.ForAsync(db, application.Id, tenant.UserId, cancellationToken));
 
@@ -138,8 +136,10 @@ internal static class ApplicationReads
     }
 
     /// <summary>
-    /// Verification output is evidence for the person reviewing an application (ADR-0004), so an API key never receives it:
-    /// an integrator's system could reject on it, which ScreenHire's own automations may not (ADR-0011).
+    /// Verification output is evidence for the person reviewing an application (ADR-0004), so no list, detail or timeline
+    /// gives it to an API key: an integrator's system could reject on it, which ScreenHire's own automations may not
+    /// (ADR-0011). A key with the Verification read scope reads it only through the verification routes and tools, which
+    /// record every read in the review log (ADR-0021).
     /// </summary>
     public static async Task<Dictionary<Guid, VerificationSummary>> VerificationSummariesAsync(
         ClaimsPrincipal user, ScreenHireDbContext db, IReadOnlyCollection<Guid> applicationIds, CancellationToken cancellationToken) =>

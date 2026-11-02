@@ -16,15 +16,16 @@
 
   // Invite to apply (docs/architecture/talent-pool.md), in a sheet (design system section 9): pick an open job, see the
   // email as the first person receives it, and send. The email is the organization's "Invitation to apply" template as
-  // it stands (edited on Templates): it has the job's careers link and the candidate's own link to stop being kept, which
+  // it stands (edited on Templates): it has the job's careers link and the candidate's own link to stop being saved, which
   // the worker makes as it sends. A job someone already applied to skips them.
+  // `people` need only these three fields, so a candidate's own page can invite them without a saved-candidates row.
   let {
     open = $bindable(false),
     people,
     ondone,
   }: {
     open?: boolean;
-    people: readonly TalentPoolMember[];
+    people: readonly Pick<TalentPoolMember, 'candidateId' | 'candidateName' | 'appliedJobIds'>[];
     ondone?: (message: string) => void;
   } = $props();
 
@@ -82,7 +83,7 @@
     try {
       const response = await invite.mutateAsync({ data: { candidateIds: people.map((person) => person.candidateId), jobId } });
       const { queued, skipped } = response.data;
-      ondone?.(`Sending ${queued === 1 ? '1 invitation' : `${queued} invitations`}.${skipped > 0 ? ` ${skipped} skipped: already applied or no longer in the pool.` : ''}`);
+      ondone?.(`Sending ${queued === 1 ? '1 invitation' : `${queued} invitations`}.${skipped > 0 ? ` ${skipped} skipped: already applied or no longer saved.` : ''}`);
       open = false;
     } catch (error) {
       failure = describeError(error, 'Could not send the invitations');
@@ -94,7 +95,7 @@
   <Sheet.Content side="right" class="w-full overflow-y-auto sm:max-w-xl">
     <Sheet.Header>
       <Sheet.Title>{title}</Sheet.Title>
-      <Sheet.Description>An email with the job's link. It says how to stop being kept.</Sheet.Description>
+      <Sheet.Description>An email with the job's link. It says how to stop being saved.</Sheet.Description>
     </Sheet.Header>
     <form novalidate class="flex flex-col gap-4 px-4 pb-4" {onsubmit}>
       {#if openJobs.length === 0}

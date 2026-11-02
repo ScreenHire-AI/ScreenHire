@@ -52,7 +52,7 @@ sources:
 # Interview scheduling on team calendars
 
 ScreenHire schedules interviews on the calendars the team already uses, through the free Google Calendar and Microsoft
-Graph APIs ([ADR-0021](../adr/0021-interview-scheduling-on-calendar-apis.md)). This page describes a member connecting
+Graph APIs ([ADR-0024](../adr/0024-interview-scheduling-on-calendar-apis.md)). This page describes a member connecting
 and disconnecting their own calendar, the interview request with its slot finder and booking transaction, the routes that
 offer, book, move and cancel an interview, the workflow action that offers one without a person, the worker that writes
 the events and emails the candidate, the careers page the candidate books on, and the recruiter's side in the dashboard.

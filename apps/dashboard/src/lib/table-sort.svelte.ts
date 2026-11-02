@@ -15,13 +15,21 @@ export class TableSortState {
   sorting = $state<SortingState>([]);
 
   readonly #table: string | undefined;
+  readonly #fallback: TableSort | undefined;
+  readonly #columnIds: readonly string[] | undefined;
 
   constructor(table: string | undefined, fallback: TableSort | undefined, columnIds?: readonly string[]) {
     this.#table = table;
+    this.#fallback = fallback;
+    this.#columnIds = columnIds;
     // A stored sort on a column the table no longer has falls back to the default.
-    const stored = table ? preferences.sortFor(table) : undefined;
-    const initial = stored && (!columnIds || columnIds.includes(stored.id)) ? stored : fallback;
-    this.sorting = initial ? [{ id: initial.id, desc: initial.desc }] : [];
+    this.show(table ? preferences.sortFor(table) : undefined);
+  }
+
+  /** Sorts by this choice without remembering it, or by the default when the table has no such column (a saved view's sort). */
+  show(choice: TableSort | undefined): void {
+    const next = choice && (!this.#columnIds || this.#columnIds.includes(choice.id)) ? choice : this.#fallback;
+    this.sorting = next ? [{ id: next.id, desc: next.desc }] : [];
   }
 
   /** TanStack's `onSortingChange`: keeps the first sorted column and remembers it. */

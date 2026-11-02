@@ -24,6 +24,9 @@ sources:
   - resource: apps/api/Endpoints/TeamEndpoints.cs
   - resource: apps/api/Endpoints/RoleEndpoints.cs
   - resource: apps/api/Endpoints/ApiKeyEndpoints.cs
+  - resource: apps/api/Contracts/ApiKeyContracts.cs
+  - resource: apps/dashboard/src/routes/(app)/settings/api-keys/+page.svelte
+  - resource: apps/api/Endpoints/VerificationEndpoints.cs
   - resource: apps/api/Endpoints/HiringTeamEndpoints.cs
   - resource: apps/api/Hiring/HiringTeams.cs
   - resource: apps/api/Configuration/DomainOptions.cs
@@ -55,6 +58,7 @@ sources:
   - resource: apps/dashboard/src/routes/(app)/settings/roles/+page.svelte
   - resource: apps/dashboard/src/routes/(app)/settings/roles/[roleId]/+page.svelte
   - resource: apps/dashboard/src/routes/(app)/settings/roles/compare/+page.svelte
+  - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/CandidateConfiguration.cs
 ---
 # Sign-in, organizations and tenant isolation
 
@@ -148,7 +152,7 @@ API keys (Owners and Admins) manages keys in a session, on the dashboard's Setti
 | Route | What it does |
 |---|---|
 | `GET /v1/organization/api-keys` | The organization's keys, revoked ones too: prefix, name, scopes, rate limit, created, last used, revoked, and who created it. |
-| `POST /v1/organization/api-keys` | Creates a key and returns it once, with `Cache-Control: no-store`. |
+| `POST /v1/organization/api-keys` | Creates a key and returns it once, with `Cache-Control: no-store`. The `VerificationRead` scope needs the Owner-only Give a key verification access permission, otherwise 403 "Owners only". |
 | `GET /v1/organization/api-keys/{id}` | One key, without the key itself. |
 | `POST /v1/organization/api-keys/{id}/revoke` | Revokes it. The next request with it gets 401. |
 | `GET /v1/organization/api-keys/history`, `GET /v1/organization/api-keys/last-update` | The page's change history: each key created and revoked, with its name, access and who, never its hash or prefix (`docs/architecture/change-history.md`). |
@@ -165,22 +169,32 @@ API keys (Owners and Admins) manages keys in a session, on the dashboard's Setti
   authorization policy, whose scheme `SessionOrApiKey` forwards to the key handler when the request has an
   `Authorization` header and to the cookie otherwise. A request is judged by one credential: a bad key with a good
   cookie is 401. Every other route keeps the cookie-only default and fallback policies, so a key gets 401 on sign-in,
-  onboarding, key management, organization settings, verification review, automations, distribution and the hub.
-- **No verification output.** Application and candidate reads send a key `verification: null`, and the application
-  timeline leaves out `VerificationAssessed` entries (ADR-0011): levels and reason codes are for the person reviewing
-  (ADR-0004), not for another system to reject on. The MCP server returns none either.
+  onboarding, key management, organization settings, the routes that act on a verification, automations, distribution
+  and the hub.
+- **Verification only with its scope.** Application and candidate reads send a key `verification: null`, and the
+  application timeline leaves out `VerificationAssessed` entries (ADR-0011): levels and reason codes are for the person
+  reviewing (ADR-0004), not for another system to reject on. A key with the `VerificationRead` scope an Owner gave it
+  (ADR-0021) reads them through two routes only, `GET /v1/applications/{id}/verification` and
+  `GET /v1/verification/applications` (applications by level), whose `verification-api` policy admits the session or a
+  key with that scope and answers 403 to any other key. Each read through a key adds a `ReadByKey` row to the
+  application's verification review log, saved before the answer goes out: the key, the time and no person. Dismissing,
+  explaining and noting stay the session's. The MCP server's verification tools use the same reads
+  ([MCP server](mcp-server.md)).
 - **The MCP server** at `/v1/mcp` lets a team's AI assistant use the hiring API with a key, and only a key: its own
   `mcp` policy authenticates the `ApiKey` scheme alone, so a session cookie gets 401 there
   ([MCP server](mcp-server.md)). Its write tools check the same scope rule as the routes
-  (`HiringAuthorization.KeyRefusal`).
+  (`HiringAuthorization.KeyRefusal`), its verification tools need the `VerificationRead` scope, and its report and
+  saved-candidate tools need only `Read` and call the read services of session-only routes.
 - **The tenant** is the key's organization, with no user (`TenantResolutionMiddleware`, which runs after
   authorization because the hiring policy replaces the request's user there). Writes by a key record no user; the
   application timeline records the key as `actorApiKeyId`.
-- **Scopes** are `Read` and `Write`. A key always has `Read`; `Write` passes `RequirePermission` for the hiring
-  writes (`RolePermissions.HiringWrites`), what a Recruiter does, and a read-only key gets 403 "Read-only key". Every
-  other permission refuses a key ("Not for API keys"). Creating a Write key needs every hiring write in the creator's
-  role, so a key never carries more than the person who made it (ADR-0014). A member on Only jobs they're on creates no
-  key at all, because a key reads every job (ADR-0015).
+- **Scopes** are `Read`, `Write` and `VerificationRead`. A key always has `Read`; `Write` passes `RequirePermission`
+  for the hiring writes (`RolePermissions.HiringWrites`), what a Recruiter does, and a read-only key gets 403
+  "Read-only key". Every other permission refuses a key ("Not for API keys"). `VerificationRead` includes nothing and
+  `Write` does not include it. Creating a Write key needs every hiring write in the creator's role, and creating a
+  `VerificationRead` key needs Give a key verification access, which only the Owner role has, so a key never carries
+  more than the person who made it (ADR-0014, ADR-0021). A key's scopes are fixed at creation. A member on Only jobs
+  they're on creates no key at all, because a key reads every job (ADR-0015).
 - **Antiforgery** is skipped for a request the key scheme authenticated: it carries no cookie to forge with.
 - **Rate limit.** The `api-key` rate-limiter policy on the hiring groups gives each key a fixed window per minute of
   `ScreenHire:ApiKeys:PermitsPerMinute` (default 600), or the lower `permitsPerMinute` set on the key, and answers 429
@@ -188,8 +202,8 @@ API keys (Owners and Admins) manages keys in a session, on the dashboard's Setti
   `ScreenHire:ApiKeys:FailedAttemptsPerMinute` (default 30) the address gets 429 with `Retry-After` for every key until
   the minute is up, without a database lookup. Both counts are per API instance.
 - **OpenAPI** declares two security schemes, `session` (the cookie) on every signed-in route and `apiKey` (HTTP
-  bearer) as the alternative on the hiring API (`apps/api/Auth/SecuritySchemes.cs`), so Scalar and the generated
-  client show them.
+  bearer) as the alternative on the hiring API and the two verification reads (`apps/api/Auth/SecuritySchemes.cs`), so
+  Scalar and the generated client show them.
 - **The API reference** (Scalar at `/scalar`) and the OpenAPI file (`/openapi/v1.json`) are public in every
   environment, at the same paths: they document the public API and hold no data. `GET /v1/meta` reports the API's
   public origin (`ScreenHire:Domains:ApiHost`), and the dashboard's API keys and Webhooks pages build their base URL and
@@ -233,9 +247,15 @@ candidates."). Removing a member also closes their open real-time connections in
 
 **The permission catalogue** (`src/ScreenHire.Domain/Organizations/RolePermissions.cs`) names what a role lets a person
 do, in three groups (Hiring, Templates, Organization), and the set each built-in role has. See jobs and candidates is in
-every role (`EveryRole`): reads are not permission-checked, and job access will narrow which jobs. Manage Owners is
-Owner-only (`OwnerOnly`): no custom role holds it. Delete anyone's notes (`NotePolicy`) lets a role delete a note
+every role (`EveryRole`): reads are not permission-checked, and job access will narrow which jobs. Manage Owners and
+Give a key verification access are Owner-only (`OwnerOnly`): no custom role holds either, and Admin has neither. Delete anyone's notes (`NotePolicy`) lets a role delete a note
 someone else wrote; Owners and Admins have it. It comes with Add notes and tags, which the delete route asks for first.
+Erase candidates (`POST /v1/candidates/{id}/erase`) is held by Owners and Admins and can go in a custom role; the route also
+needs a person who sees every job, and refuses organization API keys ([candidates](candidates.md)).
+
+Edit anyone's views (`ViewPolicy`, `saved-views.md`) lets a role rename, share or delete a view someone else saved; Owners and
+Admins have it, and so can a custom role, with no other permission needed because a view is a screen preference, not
+hiring data.
 
 Create tasks came after custom roles, with the route that creates a task by hand. The built-in roles that write hiring
 data have it. It is a hiring write, and a Write key needs every hiring write in its creator's role, so the
@@ -255,7 +275,7 @@ permissions (`RolePermissions.Summarize`), so it always says what the role allow
 
 The dashboard follows the same permissions (`apps/dashboard/src/lib/permissions.ts`). **Settings** is one sidebar item
 for anyone whose role has a settings permission; it opens the Settings menu (Organization, Team, Roles, Branding,
-Verification, API keys and Webhooks, under `/settings/*`; email templates are on the Templates page, and their old
+Verification, Sending domain, API keys and Webhooks, under `/settings/*`; email templates are on the Templates page, and their old
 `/settings/email-templates` addresses redirect there), each page
 behind its permission (`settingsSections` in `apps/dashboard/src/lib/settings.ts`), and the command palette lists the
 same pages. Slack's page and entry are left out wherever `GET /v1/slack` says Slack is not `available` (a feature on its
@@ -337,7 +357,7 @@ also records the founding Owner, as "created the team". Hiring teams stay in the
 ADR-0015. Each job has a hiring team, `jobs.hiring_team`, the membership ids of the people who work on it. A member's
 job access is `All` or `HiringTeamOnly` (`organization_members.job_access`); Owners and Admins see all jobs whatever it
 says (`JobAccessRules.SeesAllJobs`). A member on Only jobs they're on sees a job, its applications and everything under
-them, only while they are on its team; another job is a 404 like another organization's, and lists, Tasks, saved views,
+them, only while they are on its team; another job is a 404 like another organization's, and lists, Tasks, views (`saved-views.md`),
 search (`GET /v1/search`, the dashboard's Ctrl K, signed-in people only, which starts from applications so a candidate
 shows only through a job the reader sees), reports (`reports.md`) and live updates leave it out. Existing members and new invitations start at All jobs.
 
@@ -417,7 +437,7 @@ Two layers, so one mistake is not a breach.
 
    Job access (migration `AddJobAccess`, ADR-0015) adds a `job_scope` policy, `AS RESTRICTIVE` and `TO screenhire_app`,
    to `jobs` and every table under a job or an application (since then, `talent_pool_entries` too, in `AddTalentPool`:
-   a member on Only jobs they're on sees the people kept in mind from their own jobs). Restrictive policies are ANDed with `tenant_isolation`, so
+   a member on Only jobs they're on sees the saved candidates from their own jobs). Restrictive policies are ANDed with `tenant_isolation`, so
    they only narrow it. `jobs` shows a row when `app.job_scope` is `all` or `app.member_id` is in `hiring_team`; the
    others ask `app_sees_job` or `app_sees_application`, or their parent row. `candidates` and `change_records` keep
    tenant-only policies: a candidate is one row across jobs and is found by email when they apply again, so the API
@@ -453,6 +473,19 @@ Who the tenant is:
 | Accepting an invitation | The organization the token names, for the lookup by hash and the join that follows |
 | Switching organization | The chosen one, after a check that the user is a member of it |
 | Worker handler | `TenantMessageMiddleware`: the `OrganizationId` of an `ITenantMessage`; none for system messages, which set each organization in turn. Every job. |
+
+### Row-level security and indexes
+
+A user's condition on a table with row-level security (the search box's `ILIKE '%text%'`) is applied after the policy, and
+Postgres lets a planner use an index for it only when its function is **leakproof**, which `texticlike` and `textlike`
+are not. So as `screenhire_app` the trigram indexes on `candidates.full_name`, `candidates.email` and `jobs.title`
+(migration `HardenFromWorkflowFollowUps`) do not serve the search today: `EXPLAIN` as that role reads the organization's
+rows through an `organization_id` index and applies the `ILIKE` to them as a filter, so a search costs one organization's
+rows, not the whole table, while the owner (a superuser, which skips the policy) uses the trigram index. The indexes are right for the query's shape (`SearchTests` proves it as the owner) and cost writes, and they
+help the day a leakproof wrapper exists. Marking a function leakproof needs a superuser, so it is an owner action
+before anything claims a faster search; check any new index for an RLS table with `EXPLAIN` as the application role,
+never the owner. `pg_trgm` is a trusted extension, and Azure Database for PostgreSQL also needs it in the server's
+`azure.extensions` list before `CREATE EXTENSION` runs.
 
 ### Adding a tenant-owned table
 

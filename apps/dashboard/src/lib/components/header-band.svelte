@@ -13,6 +13,7 @@
     actions,
     facts,
     meta,
+    summary,
     tabs,
     form = false,
     level = 1,
@@ -33,6 +34,8 @@
     facts?: Snippet;
     /** `MetaItem` items: one line of facts that read without their labels, each with its icon. */
     meta?: Snippet;
+    /** A record's pipeline tracker and mini cards, under its meta line (section 7). */
+    summary?: Snippet;
     /** Tabs on the band's bottom edge. */
     tabs?: Snippet;
     /** A form page's band, its title in line with the 688px column (section 7). */
@@ -70,6 +73,9 @@
     </div>
     {#if meta}
       <dl class="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-2">{@render meta()}</dl>
+    {/if}
+    {#if summary}
+      <div class="flex min-w-0 flex-col gap-4">{@render summary()}</div>
     {/if}
     {#if facts}
       <!-- The clip hides each line's first rule; its 4px margin keeps focus rings inside it. -->

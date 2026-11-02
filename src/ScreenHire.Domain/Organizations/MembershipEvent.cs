@@ -92,4 +92,10 @@ public enum MembershipEventKind
 
     /// <summary>A member left a job's hiring team or a template's default one.</summary>
     RemovedFromHiringTeam,
+
+    /// <summary>
+    /// A person erased a candidate. The tombstone: who and when, with nothing about the candidate, because the point of
+    /// erasing is that nothing about them is kept.
+    /// </summary>
+    CandidateErased,
 }

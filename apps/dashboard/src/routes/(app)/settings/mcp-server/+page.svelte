@@ -21,8 +21,20 @@
   const apiOrigin = $derived(meta.data?.data.apiOrigin);
   const serverUrl = $derived(apiOrigin ? `${apiOrigin}/v1/mcp` : undefined);
 
-  // The server's tools (apps/api/Mcp/HiringTools.cs), in words.
-  const tools = ['Find jobs', 'Find candidates', 'Read an application', 'Add notes', 'Add tags', 'Remove tags', 'Create tasks', 'Move to a stage'];
+  // The server's tools in words: HiringTools.cs, and VerificationTools.cs, which only a key with the scope sees (ADR-0021).
+  const tools = [
+    'Find jobs',
+    'Find candidates',
+    'Read an application',
+    'Read the hiring report',
+    'List saved candidates',
+    'Add notes',
+    'Add tags',
+    'Remove tags',
+    'Create tasks',
+    'Move to a stage',
+  ];
+  const verificationTools = ["Read an application's verification", 'Find candidates by verification level'];
 
   // The shape most clients' config files share; each client documents where its file lives.
   const config = (url: string) => `{
@@ -48,7 +60,7 @@
   <SettingsMenu>
     <Panel title="Connect a client">
       <div class="flex flex-col gap-4">
-        <p class="max-w-measure">Any MCP client can work in ScreenHire with an API key. It never sees verification results.</p>
+        <p class="max-w-measure">Any MCP client can work in ScreenHire with an API key. It sees verification results only through a key an owner gave the Verification read scope.</p>
         <SummaryList>
           <SummaryItem label="Server URL">
             {#if serverUrl}
@@ -63,6 +75,11 @@
           <SummaryItem label="Tools">
             <ul aria-label="Tools" class="flex flex-wrap gap-1.5">
               {#each tools as tool (tool)}<li><Badge variant="muted">{tool}</Badge></li>{/each}
+            </ul>
+          </SummaryItem>
+          <SummaryItem label="With Verification read">
+            <ul aria-label="With Verification read" class="flex flex-wrap gap-1.5">
+              {#each verificationTools as tool (tool)}<li><Badge variant="muted">{tool}</Badge></li>{/each}
             </ul>
           </SummaryItem>
         </SummaryList>

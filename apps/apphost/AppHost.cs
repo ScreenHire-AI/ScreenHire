@@ -49,6 +49,16 @@
 //                               is the local sandbox calendar (Development only; appsettings.Development.json and the
 //                               test stacks turn it on). Interviews:MinNoticeHours and Interviews:StepMinutes tune
 //                               the slots offered.
+//   Email:*                     email settings (ScreenHire.Infrastructure EmailOptions, docs/architecture/email.md),
+//                               forwarded to the API and the worker. Mailpit sends unless SendGrid:Enabled=true, which
+//                               makes the secret parameter sendgrid-api-key required (never from these keys) and sends
+//                               through SendGrid; sendgrid-inbound-secret (generated locally; the tests pin it with
+//                               --Parameters:sendgrid-inbound-secret) is the password of the inbound webhook;
+//                               SendGrid:EventWebhookPublicKey is its signed
+//                               event webhook's public key. ReplyDomain is the host replies arrive on. Sandbox:Enabled=true
+//                               is the local fake for inbound replies and sending domains (Development only; the test
+//                               stacks and appsettings.Development.json turn it on). email-reply-key signs reply addresses
+//                               and is generated locally.
 // Avoid :5173 — Kangentic's own dev server uses it on this machine.
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
@@ -197,6 +207,40 @@ foreach (var (key, value) in settings.GetSection("Webhooks").AsEnumerable(makePa
         api.WithEnvironment(name, value);
         worker.WithEnvironment(name, value);
     }
+}
+
+// Candidate email (docs/architecture/email.md): the settings, the key reply addresses are signed with, and, with SendGrid
+// on, its API key and the secret its inbound webhook sends. Generated locally like the other keys; production sets its own.
+foreach (var (key, value) in settings.GetSection("Email").AsEnumerable(makePathsRelative: true))
+{
+    // The keys are secrets: they go through the parameters below, never as plain configuration.
+    if (value is not null && !key.Equals("SendGrid:ApiKey", StringComparison.OrdinalIgnoreCase)
+        && !key.Equals("SendGrid:InboundSecret", StringComparison.OrdinalIgnoreCase)
+        && !key.Equals("ReplyKey", StringComparison.OrdinalIgnoreCase))
+    {
+        var name = $"ScreenHire__Email__{key.Replace(":", "__", StringComparison.Ordinal)}";
+        api.WithEnvironment(name, value);
+        worker.WithEnvironment(name, value);
+    }
+}
+
+var emailReplyKey = builder.AddParameter("email-reply-key", new GenerateParameterDefault { MinLength = 32, Special = false }, secret: true);
+api.WithEnvironment("ScreenHire__Email__ReplyKey", emailReplyKey);
+worker.WithEnvironment("ScreenHire__Email__ReplyKey", emailReplyKey);
+
+// The password of the URL SendGrid posts replies to. Generated locally, so the route exists but nobody can guess its
+// credentials; the tests pin it to post a reply the way SendGrid does. Production sets its own and gives SendGrid the URL.
+var sendGridInboundSecret = builder.AddParameter(
+    "sendgrid-inbound-secret", new GenerateParameterDefault { MinLength = 32, Special = false }, secret: true);
+api.WithEnvironment("ScreenHire__Email__SendGrid__InboundSecret", sendGridInboundSecret);
+
+if (string.Equals(settings["Email:SendGrid:Enabled"], "true", StringComparison.OrdinalIgnoreCase))
+{
+    // Set with `dotnet user-secrets set Parameters:sendgrid-api-key "<key>"` in apps/apphost or by the deployment's secret
+    // store. Asked for only in SendGrid mode.
+    var sendGridKey = builder.AddParameter("sendgrid-api-key", secret: true);
+    api.WithEnvironment("ScreenHire__Email__SendGrid__ApiKey", sendGridKey);
+    worker.WithEnvironment("ScreenHire__Email__SendGrid__ApiKey", sendGridKey);
 }
 
 foreach (var (key, value) in settings.GetSection("CareersEmbedding").AsEnumerable(makePathsRelative: true))
