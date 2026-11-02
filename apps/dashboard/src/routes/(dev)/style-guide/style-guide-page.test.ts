@@ -60,6 +60,8 @@ const panels: Record<string, string[]> = {
   'Tag list': ['Tag list'],
   'Task list': ['Task list'],
   'Task checkbox': ['Task list'],
+  'Save view button': ['Save view button'],
+  'Rename view dialog': ['Save view button'],
   'Undo notice': ['Undo notice'],
   Scorecard: ['Scorecard'],
   'Notification tray': ['Notification tray'],

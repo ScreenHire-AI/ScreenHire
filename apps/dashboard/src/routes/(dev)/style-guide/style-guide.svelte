@@ -120,6 +120,7 @@
   import FormBuilderDemo from './form-builder-demo.svelte';
   import ReorderDemo from './reorder-demo.svelte';
   import SortTableDemo from './sort-table-demo.svelte';
+  import SaveViewDemo from './save-view-demo.svelte';
   import TaskCheckboxDemo from './task-checkbox-demo.svelte';
   import UndoNoticeDemo from './undo-notice-demo.svelte';
 
@@ -661,6 +662,9 @@
               <DropdownMenu.Item variant="destructive">Close &amp; remove everywhere</DropdownMenu.Item>
             </MoreMenu>
           </div>
+        </Panel>
+        <Panel title="Save view button" class="flex-[1_1_320px]">
+          <SaveViewDemo />
         </Panel>
         <Panel title="Undo notice" class="flex-[1_1_320px]">
           <UndoNoticeDemo />
