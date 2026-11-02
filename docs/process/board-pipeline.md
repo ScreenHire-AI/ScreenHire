@@ -74,7 +74,7 @@ when its condition holds, alone, with nothing after it.
 | Executing | `Implementation: complete` | Apply findings | Does **not** move the task. Sends the agent a message asking it to apply any findings or follow-ups from its last message, re-run checks and commit. It skips a finding already filed as a task on the board, and never deletes or moves a task. |
 | Executing | `Findings: applied` | On to Code Review (max 4) | Moves the task to Code Review. |
 | Executing | `Blocked: dependency not on main` | Dependency missing | Desktop notification. The task stays in Executing. |
-| Planning | `Blocked: dependency not on main` | Dependency missing | Desktop notification. The task stays in Planning. Checked in Kangentic's source only (its turn-end runner has no plan-mode gate): Kangentic reads `kangentic.json` from the root checkout, so the first task that blocks here after this row merges is the real run. |
+| Planning | `Blocked: dependency not on main` | Dependency missing | Desktop notification. The task stays in Planning. Checked in Kangentic's source, where the turn-end runner has no plan-mode gate. Not yet seen on a real run, because Kangentic reads `kangentic.json` from the root checkout. |
 | Code Review | `Verdict: Ready` | On to Testing (max 3) | Moves the task to Testing. |
 | Code Review | `Verdict: Blocked` | Back for revisions (max 3) | Moves the task back to Executing with the review's numbered steps. The implementer does them and ends on `Findings: applied`, which brings the task back to Code Review. |
 | Code Review | `Verdict: Blocked`, with the 3 returns used up | Review stuck | Desktop notification. The task stays in Code Review. |
