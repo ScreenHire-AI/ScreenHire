@@ -270,7 +270,7 @@ Each status has its own Lucide icon. The icon alone tells statuses apart, so col
 | Review | Review suggested (`eye`); Overdue by 2 days (`clock-alert`) | `status-review` | `#7A4205` | `#FBEFD3` | `#C77700` |
 | Verify | Verification suggested (`id-card`). Needs fixes, for a refused posting or a workflow with problems, and for a posting a board did not answer (Error), a webhook Turned off after failures, a delivery that Failed, and a Slack workspace that is Not posting or Disconnected (`wrench`). Unsafe file, flagged by the malware scan (`shield-x`) | `status-verify` | `#9A2F17` | `#F9E0D6` | `#B4461F` |
 | AI (information) | No signs, Some signs or Strong signs of AI help (`sparkles`) | `status-ai` | `#2B2788` | `#ECEBFA` | `#2B2788` |
-| Grey: waiting or not started | Sent, Queued, Submitted, Removing and Removal requested, waiting on a board; Pending, a webhook delivery waiting for its next try (`clock-4`). Scanning and Checks pending, ScreenHire at work; Connecting, the live updates connection (`loader-circle`). Closed (`door-closed`). Draft (`file-pen-line`). Archived, a template out of the pickers until someone restores it (`archive`). Not in effect: Not posted, a board the job is not on; Removed, a board that took the job down; Off, a webhook someone turned off; Skipped, a delivery not sent; Revoked, an API key; Offline, the live updates connection (`circle-minus`) | `muted-foreground` on `secondary` | `#5F5A52` | `#F4F1EB` | `#5F5A52` |
+| Grey: waiting or not started | Sent, Queued, Submitted, Removing and Removal requested, waiting on a board; Pending, a webhook delivery waiting for its next try (`clock-4`). Scanning and Checks pending, ScreenHire at work; Connecting, the live updates connection (`loader-circle`). Closed (`door-closed`). Draft (`file-pen-line`). Archived, a template out of the pickers until someone restores it (`archive`). Saved, a candidate who left the job without a rejection, kept for future roles (`bookmark`). Not in effect: Not posted, a board the job is not on; Removed, a board that took the job down; Off, a webhook someone turned off; Skipped, a delivery not sent; Revoked, an API key; Offline, the live updates connection (`circle-minus`) | `muted-foreground` on `secondary` | `#5F5A52` | `#F4F1EB` | `#5F5A52` |
 
 Status colours are never used for brand, decoration or facts. No status uses the warning triangle: it marks only the
 verification cards that fed a level (section 16). Counts use tabular figures.
@@ -390,7 +390,7 @@ questionnaire preview shows the candidate base with `text-candidate-body`.
 | Sidebar | 248px; icon rail 64px |
 | Top bar | 56px |
 | Content widths | Pages fill the window: a page's content container has no max-width. Long paragraphs stop at 72ch (`max-w-measure`) and forms at 688px (`max-w-form`). If a layout needs a limit, the element gets a max-width, never the page |
-| Board columns | 296px; an empty stage shrinks to 188px, and the stages that end a candidacy (Hired, Rejected, Withdrawn) share one 188px Closed column that counts each; each of its rows (and Kept in mind) with someone in it is a button with a chevron (A9) that opens in place to that stage's candidates as plain cards linking to the candidate, collapsed to start |
+| Board columns | 296px; an empty stage shrinks to 188px, and the stages that end a candidacy (Hired, Rejected, Withdrawn) share one 188px Closed column that counts each; each of its rows (and Saved) with someone in it is a button with a chevron (A9) that opens in place to that stage's candidates as plain cards linking to the candidate, collapsed to start |
 
 ## 6. Layers
 
@@ -813,7 +813,7 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   Rating is the same read as the candidate page, with the reviewer gate ("After yours"). Last contacted is a date with a
   Message button beside it (for a reader who may email candidates) that opens the email composer. The note is the
   team's, and pressing it opens the Edit note sheet, which has a History button. A row's menu has Invite to apply, Add to
-  a job, Edit note and Remove from saved candidates (destructive, with "They asked to be removed" as its checkbox); a
+  a job, Edit note and Remove from saved (destructive, with "They asked to be removed" as its checkbox); a
   selection gets Invite to apply and Add to a job. Invite to apply is a sheet with the job and the email's preview; it
   has no wording to change, because only Templates rewords the invitation. No Verification column or filter
   (ADR-0004). Save candidate sits in Move to stage on the candidate's page, beside Move on a job's selection bar

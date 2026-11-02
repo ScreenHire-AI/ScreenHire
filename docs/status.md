@@ -118,7 +118,8 @@ brackets.
 - **Legal and policy.** A legal review of the law tracker before publishing (#6); the analytics decision, with a privacy
   page and the ePrivacy position per market (#6); a legal review before any typing-rhythm signal (#18); a check of the
   device-check defaults per jurisdiction (notice outside the EU and EEA, consent inside) (#18). A legal review of saved candidates:
-  keeping their details until the candidate asks or the team removes them, with no expiry; the apply form's "Keep my
+  keeping their details until the candidate asks or the team removes them, with no expiry, including permissions given
+  before this under a form that promised 6 to 24 months and still running when it shipped; the apply form's "Keep my
   details for future roles" wording and the privacy page's "Future roles" section, per market (the saved candidates
   task).
 - **Product.** Set prices and job limits in `apps/marketing/src/lib/pricing.ts` (#6). Move jobs still on "Software

@@ -38,7 +38,7 @@ setting and the daily sweep that enforced it are gone.
 The names in code and on the wire are the older ones: `KeptInMind` is the event type, `KeptInMindAt` the column,
 `/v1/talent-pool` the route family, `TalentPoolChanged` the realtime event and `/{organization}/talent-pool/{token}` the
 stop link (it is already in sent emails). Only labels changed. `TalentPoolExit.Expired` stays in the enum so old
-Activity rows still read, but nothing writes it.
+Activity rows still read, but nothing writes it any more.
 
 Keeping someone's data for future roles needs their permission in the UK and EU. So only a candidate who said so on the
 apply form can be saved. Whether keeping their details with no end date is acceptable in each market is an owner
@@ -54,7 +54,7 @@ permission **on that application**, never on the candidate:
 | `applications` column | What |
 |---|---|
 | `future_roles_consent_given_at` | When they ticked it (the application's submission time) |
-| `future_roles_withdrawn_at` | When they took it back, or a person removed them at their request |
+| `future_roles_withdrawn_at` | When they took it back, a person removed them at their request, or (for a permission given before the period went) it ran out |
 
 A careers form never changes an existing candidate, because anyone can type any email address
 (`ApplicationSubmission`), so a stranger cannot extend someone's permission. A tick on one application covers that
@@ -63,6 +63,12 @@ application only. An unticked box on a later application withdraws nothing.
 The permission has no period and no end date. `JobApplication.AllowsFutureRoles` is true once it was given and until it
 is withdrawn, and application reads carry it as `allowsFutureRoles`. (It replaced `futureRolesUntil` and the
 `future_roles_consent_months` column.) `futureRolesGivenAt` and `futureRolesWithdrawnAt` stay.
+
+Removing the period does not bring back a permission that had already run out. The migration
+`SavedCandidatesWithoutExpiry` applies the old rule one last time: a permission past the shorter of its own period and the
+organization's gets `future_roles_withdrawn_at` set to the day it ended, and anyone still saved on one leaves the list
+with `Expired` on their Activity. A permission still running when the migration ran now has no end date, although the form
+that collected it named a period. That is part of the legal review.
 
 ## Saving
 
@@ -112,7 +118,7 @@ candidate.
 `GET /v1/talent-pool` lists everyone saved whose permission still holds. The **Saved candidates** page (a sidebar item
 after Candidates, G then S; `/talent-pool` redirects to `/saved`) is the list template: search over name, email, job
 and note; Saved from and Tag filters; columns Candidate, Rating, Note, Tags, Saved from, Saved and Last contacted; and a
-row menu with Invite to apply, Add to a job, Edit note and Remove from saved candidates. There is no Verification
+row menu with Invite to apply, Add to a job, Edit note and Remove from saved. There is no Verification
 column or filter, so the list never becomes one picked by level for bulk invitations (ADR-0004).
 
 **Rating** is the saved-from application's rating, read by the same code as the candidate page (`RatingReads`). A
@@ -146,7 +152,7 @@ note's History.
 
 | `poolExit` | When |
 |---|---|
-| `Expired` | Legacy. Written by the retired daily sweep; nothing writes it now, and old rows still read |
+| `Expired` | Legacy. Written by the retired daily sweep and, once, by the migration that removed it; old rows still read |
 | `Removed` | A person took them out |
 | `CandidateAsked` | The candidate stopped it from their link, or a person removed them at their request, which also withdraws the permission |
 | `AddedToJob` | A person added them to a job (from the list or by hand) |
@@ -198,7 +204,11 @@ out (GDPR Art. 7(3)).
 
 - **Erasure.** No erasure or data-access request feature exists yet ("Before real customers" in the
   [roadmap](../roadmap.md)). The entry cascades from the candidate, so a future erasure removes them from the list.
-  Until then, a person removes them with "They asked to be removed", which also withdraws the permission.
+  Until then, a person removes them with "They asked to be removed", which also withdraws the permission. The note's
+  History does not cascade: its before and after values are free text in `change_records`, which the app cannot delete
+  from and which has no key to the candidate. Those rows outlive the entry, unread, when someone leaves the list. An
+  erasure feature has to clear the `TalentPoolEntry` rows for the candidate's entries as the table owner, and it must
+  know those entry ids before it removes them.
 - **Record retention.** Nothing deletes an ended application after a period; that is the same roadmap item. It matters
   more now: nothing expires a saved candidate, so until retention exists their details stay until a person removes them
   or the candidate stops it.
