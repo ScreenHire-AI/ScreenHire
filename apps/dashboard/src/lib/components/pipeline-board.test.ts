@@ -170,7 +170,10 @@ describe('pipeline board', () => {
       expect(hired).toHaveAttribute('aria-expanded', 'true');
       const list = within(closed).getByRole('list', { name: 'Hired candidates' });
       expect(within(list).getAllByRole('listitem').map((item) => item.getAttribute('aria-label'))).toEqual([`${applications[1]!.candidateName}, Hired`]);
-      expect(within(list).getByRole('link', { name: applications[1]!.candidateName })).toHaveAttribute('href', `/applications/${applications[1]!.id}`);
+      const link = within(list).getByRole('link', { name: applications[1]!.candidateName });
+      expect(link).toHaveAttribute('href', `/applications/${applications[1]!.id}`);
+      // The link is the card's only control, so it covers the whole card.
+      expect(link).toHaveClass('after:absolute', 'after:inset-0');
       // Only the row that was opened.
       expect(within(closed).queryByRole('list', { name: 'Rejected candidates' })).toBeNull();
 

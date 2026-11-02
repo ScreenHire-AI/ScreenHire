@@ -148,16 +148,17 @@
           <li
             data-closed-card-id={card.id}
             aria-label={`${card.candidateName}, ${name}`}
-            class="flex flex-col gap-2 rounded-lg border border-border-subtle bg-card p-3 shadow-surface"
+            class="relative flex flex-col gap-2 rounded-lg border border-border-subtle bg-card p-3 shadow-surface"
           >
             <span class="flex min-w-0 items-center gap-2">
               <span aria-hidden="true" class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-caption font-bold text-secondary-foreground"
                 >{initials(card.candidateName)}</span
               >
+              <!-- This link is the card's only control, so its target is the whole card (F4). -->
               <TruncatedText
                 href={`/applications/${card.id}`}
                 text={card.candidateName}
-                class="font-semibold text-foreground no-underline hover:underline"
+                class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline"
               />
             </span>
             <span class="truncate text-caption text-muted-foreground"><RelativeTime at={card.submittedAt} /></span>

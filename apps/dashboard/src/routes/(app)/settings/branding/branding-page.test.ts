@@ -105,6 +105,7 @@ describe('branding page', () => {
     expect(within(tile).getByRole('button', { name: 'Replace logo' })).toBeInTheDocument();
     expect(within(tile).getByRole('button', { name: 'Remove logo' })).toBeInTheDocument();
     expect(tile).not.toHaveAttribute('data-empty');
+    expect(tile).toHaveAccessibleName('Logo');
     await expectNoAxeViolations();
   });
 
@@ -225,7 +226,7 @@ describe('branding page', () => {
       [`GET /v1/organization/branding/images/${ticket.uploadId}`]: () =>
         Response.json(++scans > 1 ? scanned : { ...scanned, scanStatus: 'Pending', url: null }),
     });
-    const input = (await screen.findByLabelText('Favicon')) as HTMLInputElement;
+    const input = (await screen.findByLabelText('Favicon', { selector: 'input' })) as HTMLInputElement;
 
     await fireEvent.change(input, { target: { files: [new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], 'icon.png', { type: 'image/png' })] } });
 
