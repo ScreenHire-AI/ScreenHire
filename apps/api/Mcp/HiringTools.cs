@@ -198,7 +198,7 @@ internal sealed class HiringTools(
         return new(application.Id, application.Stage, application.StageEnteredAt);
     }
 
-    private static int Limit(int? limit) => Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
+    internal static int Limit(int? limit) => Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
 
     // A name, an email or a few words of a title: anything longer is not a search, and each character is work for ILIKE.
     private static string? Search(string? text) =>

@@ -21,7 +21,6 @@ namespace ScreenHire.Api.Mcp;
 [McpServerToolType]
 internal sealed class VerificationTools(ScreenHireDbContext db, ITenantContext tenant, TimeProvider time)
 {
-    private const int DefaultLimit = 20;
     private const string NoApplication = "No application with that id in this organization.";
 
     [McpServerTool(Name = "get_verification", Title = "Read an application's verification", ReadOnly = true, OpenWorld = false, UseStructuredContent = true)]
@@ -67,13 +66,8 @@ internal sealed class VerificationTools(ScreenHireDbContext db, ITenantContext t
             throw new McpException("authenticity: Name an authenticity level, an AI assistance level or both.");
         }
 
-        if (limit is < 1 or > VerificationEndpoints.MaxMatches)
-        {
-            throw new McpException($"limit: The limit is 1 to {VerificationEndpoints.MaxMatches}.");
-        }
-
         var matches = await VerificationReads.ByLevelAsync(
-            db, authenticity, aiAssistance, jobId, includeDismissed ?? true, limit ?? DefaultLimit, cancellationToken);
+            db, authenticity, aiAssistance, jobId, includeDismissed ?? true, HiringTools.Limit(limit), cancellationToken);
         await VerificationReads.RecordKeyReadsAsync(user, db, tenant, time, [.. matches.Items.Select(m => m.ApplicationId)], cancellationToken);
         return matches.ToMcp();
     }

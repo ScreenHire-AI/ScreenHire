@@ -4333,7 +4333,7 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.HasOne("ScreenHire.Domain.Organizations.ApiKey", null)
                         .WithMany()
                         .HasForeignKey("ApiKeyId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .HasConstraintName("fk_verification_review_actions_api_keys_api_key_id");
 
                     b.HasOne("ScreenHire.Domain.Applications.JobApplication", null)

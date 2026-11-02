@@ -72,8 +72,8 @@
   // keys' path refreshes both, since they live under it.
   const keysPath = '/v1/organization/api-keys';
 
-  // Only an owner can give a key the Verification read scope (ADR-0021); the API refuses anyone else, so the switch is
-  // off for them, with the reason beside it (design system A3).
+  // Only an owner can give a key the Verification read scope (ADR-0021); the API refuses anyone else, so they get no
+  // switch they cannot use, only a line saying who can (design system A3, E3).
   const mayGrantVerification = $derived(can(page.data.user, 'GrantVerificationAccess'));
 
   const queryClient = useQueryClient();
@@ -87,11 +87,10 @@
   const meta = createGetMeta();
   const apiOrigin = $derived(meta.data?.data.apiOrigin);
   const list = $derived(keys.data?.data ?? []);
-  // The words the key's history uses too (ChangeLabels.ApiKeyAccess).
-  const access = (scopes: readonly ApiKeyScope[]) => {
-    const words = scopes.includes('Write') ? 'Read and write' : 'Read only';
-    return scopes.includes('VerificationRead') ? `${words} with verification` : words;
-  };
+  const access = (scopes: readonly ApiKeyScope[]) => (scopes.includes('Write') ? 'Read and write' : 'Read only');
+  // What the Verification read scope opens, in the create dialog and on each live key that has it (ADR-0021).
+  const verificationOpens = 'Opens verification levels, reasons and evidence.';
+  const opensVerification = (key: ApiKeySummary) => !key.revokedAt && key.scopes.includes('VerificationRead');
 
   // The table sorts (L2), keys by name first.
   const features = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: { basic: sortFn_basic, alphanumeric: sortFn_alphanumeric } });
@@ -226,6 +225,7 @@
                     <Badge variant="muted" class="font-mono">{key.prefix}…</Badge>
                     <Badge variant="muted">{access(key.scopes)}</Badge>
                   </span>
+                  {#if opensVerification(key)}<p class="text-caption text-muted-foreground">Verification read. {verificationOpens}</p>{/if}
                 </div>
                 {#if !key.revokedAt}{@render keyMenu(key)}{/if}
               </li>
@@ -247,7 +247,10 @@
                 {#each sorted as key (key.id)}
                   <Table.Row class="h-12">
                     <Table.Cell class="px-4.5">{@render status(key)}</Table.Cell>
-                    <Table.Cell class="w-full max-w-0"><TruncatedText text={key.name} class="font-semibold" /></Table.Cell>
+                    <Table.Cell class="w-full max-w-0">
+                      <TruncatedText text={key.name} class="font-semibold" />
+                      {#if opensVerification(key)}<TruncatedText text={`Verification read. ${verificationOpens}`} class="text-caption text-muted-foreground" />{/if}
+                    </Table.Cell>
                     <Table.Cell class="text-muted-foreground">{key.prefix}…</Table.Cell>
                     <Table.Cell>{access(key.scopes)}</Table.Cell>
                     <Table.Cell class="text-muted-foreground">{#if key.lastUsedAt}<DateText at={key.lastUsedAt} />{:else}Never{/if}</Table.Cell>
@@ -264,17 +267,17 @@
 
     <Panel title="Use the ScreenHire API">
       <div class="flex flex-col gap-4">
-        <p class="max-w-measure">
-          A key lets another system read and change your jobs, candidates, applications and templates. A key sees verification
-          results only with the Verification read scope, which an owner gives it. Every read through it is recorded in the application's review
-          log, and a level is never a reason to reject on its own.
-        </p>
+        <p class="max-w-measure">A key lets another system read and change your jobs, candidates, applications and templates.</p>
         <SummaryList>
           <SummaryItem label="Base URL">
             {#if apiOrigin}<span class="font-mono text-code break-all">{apiOrigin}/v1</span>{:else}<Skeleton class="h-4 w-48" />{/if}
           </SummaryItem>
           <SummaryItem label="Sign in with"><span class="font-mono text-code break-all">Authorization: Bearer shk_…</span></SummaryItem>
           <SummaryItem label="Access">Read only, or read and write. Write also changes hiring data, as a Recruiter can.</SummaryItem>
+          <SummaryItem label="Verification read">
+            Without it a key sees no verification results. With it a key reads levels, reasons and evidence and lists candidates by level. Only an owner can give it.
+            Every read is recorded in the application's review log, and a level is never a reason to reject on its own.
+          </SummaryItem>
           <SummaryItem label="Reference">
             {#if apiOrigin}
               <span class="flex flex-wrap gap-x-4 gap-y-1">
@@ -370,22 +373,17 @@
           <ChoiceCard name="access" value="Write" bind:group={$form.access} title="Read and write" description="Also changes hiring data, as a Recruiter can." />
         </div>
       </div>
-      <div class="flex items-start gap-4">
-        <div class="flex min-w-0 flex-1 flex-col gap-1">
-          <Field.Label for="key-verification">Verification read</Field.Label>
-          <Field.Description id="key-verification-hint">
-            Lets this key read verification levels, reasons and evidence, and list candidates by level.
-            {#if !mayGrantVerification}Ask an owner to turn this on.{/if}
-          </Field.Description>
+      {#if mayGrantVerification}
+        <div class="flex items-start gap-4">
+          <div class="flex min-w-0 flex-1 flex-col gap-1">
+            <Field.Label for="key-verification">Verification read</Field.Label>
+            <Field.Description id="key-verification-hint">{verificationOpens}</Field.Description>
+          </div>
+          <Switch id="key-verification" bind:checked={$form.verification} aria-describedby="key-verification-hint" class="mt-1" />
         </div>
-        <Switch
-          id="key-verification"
-          bind:checked={$form.verification}
-          disabled={!mayGrantVerification}
-          aria-describedby="key-verification-hint"
-          class="mt-1"
-        />
-      </div>
+      {:else}
+        <p class="text-caption text-muted-foreground">Only an owner can give a key Verification read.</p>
+      {/if}
       <FailureText message={$errors._errors?.[0]} />
       <Dialog.Footer>
         <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Dialog.Close>

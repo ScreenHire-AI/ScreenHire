@@ -40,7 +40,8 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                 table: "verification_review_actions",
                 column: "api_key_id",
                 principalTable: "api_keys",
-                principalColumn: "id");
+                principalColumn: "id",
+                onDelete: ReferentialAction.Cascade);
         }
 
         /// <inheritdoc />
@@ -50,11 +51,16 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
             // with no actor exactly the rows with a key, so this leaves none for the NOT NULL below to refuse. Migrations
             // run as the table's owner, so unlike the application role they may delete from this append-only table.
             // The table forces row-level security even on its owner, and no tenant is set here, so the policy is lifted
-            // for the delete, as RenameIntegrityToVerification does for its data changes.
+            // for the delete, as RenameIntegrityToVerification does for its data changes. The scope leaves the keys the same
+            // way: scopes are stored by name, and the previous release cannot parse this one, so a key left holding it could
+            // not be loaded. The key itself stays, with the access it had without the scope.
             migrationBuilder.Sql(
                 "ALTER TABLE verification_review_actions NO FORCE ROW LEVEL SECURITY;"
                 + " DELETE FROM verification_review_actions WHERE api_key_id IS NOT NULL;"
-                + " ALTER TABLE verification_review_actions FORCE ROW LEVEL SECURITY;");
+                + " ALTER TABLE verification_review_actions FORCE ROW LEVEL SECURITY;"
+                + " ALTER TABLE api_keys NO FORCE ROW LEVEL SECURITY;"
+                + " UPDATE api_keys SET scopes = array_remove(scopes, 'VerificationRead');"
+                + " ALTER TABLE api_keys FORCE ROW LEVEL SECURITY;");
 
             migrationBuilder.DropForeignKey(
                 name: "fk_verification_review_actions_api_keys_api_key_id",
