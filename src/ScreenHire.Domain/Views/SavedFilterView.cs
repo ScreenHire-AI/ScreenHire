@@ -20,7 +20,10 @@ public sealed class SavedFilterView : ITenantOwned
 {
     public const int MaxNameLength = 80;
 
-    /// <summary>How long Undo can restore a deleted view. Longer than the offer on screen, which waits while it is held.</summary>
+    /// <summary>
+    /// How long Undo can restore a deleted view. The offer on screen lasts 10 seconds, or longer while it is held; held past
+    /// this, Undo says it could not bring the view back.
+    /// </summary>
     public static readonly TimeSpan RestoreWindow = TimeSpan.FromMinutes(1);
 
     public Guid Id { get; init; } = Guid.CreateVersion7();

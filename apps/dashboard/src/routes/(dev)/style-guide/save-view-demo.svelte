@@ -1,11 +1,14 @@
 <script lang="ts">
   import { ViewScope, type SavedViewSummary, type ViewFilters } from '@screenhire/api-client';
+  import { QueryClient, setQueryClientContext } from '@tanstack/svelte-query';
   import RenameViewDialog from '#lib/components/rename-view-dialog.svelte';
   import SaveViewButton from '#lib/components/save-view-button.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
 
-  // The button as it shows once a table's filters differ from its view, and the dialog that renames a saved view. Nothing
-  // is sent from here: Rename succeeds at once, and the Save view dialog needs the signed-in app to save.
+  // The button as it shows once a table's filters differ from its view, and the dialog that renames a saved view. Rename
+  // succeeds at once. The style guide has no API, so this example brings its own query client and the Save view dialog shows
+  // its failure line.
+  setQueryClientContext(new QueryClient({ defaultOptions: { mutations: { retry: false } } }));
   const filters: ViewFilters = {
     baseView: null,
     jobIds: [],

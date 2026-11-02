@@ -48,7 +48,9 @@ Search text is not part of a view: it is a lookup, not a filter. The built-in vi
 their ids (`BuiltInViews`, checked against `saved-views.ts` by `ViewPolicyTests`).
 
 A view picks rows, it never stores them. The jobs a view names must be jobs its saver sees (400 otherwise). When a member is
-removed, their private views go with them; the views they shared stay with the team.
+removed, their private views go with them; the views they shared stay with the team. The delete runs under the job scope, so
+when a custom role with Manage team removes someone, a private view of a job that role cannot see stays, seen by nobody, until
+the member rejoins.
 
 A shared view shows for everyone who can see its jobs (ADR-0015). A view of one job is returned only to members who see that
 job: the list query reads `jobs` through the `JobScope` filter, and the table's `job_scope` row-level security policy holds the

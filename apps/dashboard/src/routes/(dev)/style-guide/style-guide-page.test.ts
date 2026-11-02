@@ -130,6 +130,14 @@ describe('style guide', { timeout: 20_000 }, () => {
     await expectNoAxeViolations(document.body);
   });
 
+  it('opens the Save view dialog from its panel', async () => {
+    render(WithTooltips, { props: { component: Page } });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Save view' }));
+
+    expect(await screen.findByRole('dialog', { name: 'Save view' })).toBeInTheDocument();
+  });
+
   it('has one main landmark; the sidebar demos frame their inset in a div (X1)', () => {
     render(WithTooltips, { props: { component: Page } });
 
