@@ -74,7 +74,7 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("pk_interview_requests", x => x.id);
-                    table.UniqueConstraint("ak_interview_requests_organization_id_id", x => new { x.organization_id, x.id });
+                    table.UniqueConstraint("ak_interview_requests_organization_id_id_application_id", x => new { x.organization_id, x.id, x.application_id });
                     table.ForeignKey(
                         name: "fk_interview_requests_applications_organization_id_application",
                         columns: x => new { x.organization_id, x.application_id },
@@ -115,9 +115,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "fk_interview_attendees_interview_requests_organization_id_inte",
-                        columns: x => new { x.organization_id, x.interview_id },
+                        columns: x => new { x.organization_id, x.interview_id, x.application_id },
                         principalTable: "interview_requests",
-                        principalColumns: new[] { "organization_id", "id" },
+                        principalColumns: new[] { "organization_id", "id", "application_id" },
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -131,6 +131,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                 table: "interview_attendees",
                 columns: new[] { "organization_id", "interview_id", "user_id" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "ix_interview_attendees_organization_id_interview_id_applicatio",
+                table: "interview_attendees",
+                columns: new[] { "organization_id", "interview_id", "application_id" });
 
             migrationBuilder.CreateIndex(
                 name: "ix_interview_attendees_organization_id_user_id",

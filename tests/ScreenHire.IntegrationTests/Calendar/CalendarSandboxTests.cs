@@ -57,6 +57,28 @@ public sealed class CalendarSandboxTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task One_organizations_sandbox_calendars_are_invisible_to_another()
+    {
+        using var first = await fixture.SignedInWithOrganizationAsync();
+        using var second = await fixture.SignedInWithOrganizationAsync();
+        var (organization, user) = (first.OrganizationId, Guid.CreateVersion7());
+        await using (var db = await OrganizationAsync(organization))
+        {
+            db.CalendarSandboxBusy.Add(new CalendarSandboxBusy { OrganizationId = organization, UserId = user, StartsAt = Day.AddHours(9), EndsAt = Day.AddHours(10) });
+            await db.SaveChangesAsync(Ct);
+            await Provider(db, organization).CreateEventAsync(SandboxCalendarProvider.AccessTokenFor(organization, user), Spec("mine", Day.AddHours(13), Day.AddHours(14)), Ct);
+        }
+
+        // Row-level security alone, with the query filters off: the other organization sees neither table's rows.
+        await using var other = await OrganizationAsync(second.OrganizationId);
+        (await other.CalendarSandboxBusy.IgnoreQueryFilters().CountAsync(Ct)).Should().Be(0);
+        (await other.CalendarSandboxEvents.IgnoreQueryFilters().CountAsync(Ct)).Should().Be(0);
+        await using var owner = await OrganizationAsync(organization);
+        (await owner.CalendarSandboxBusy.IgnoreQueryFilters().CountAsync(Ct)).Should().Be(1);
+        (await owner.CalendarSandboxEvents.IgnoreQueryFilters().CountAsync(Ct)).Should().Be(1);
+    }
+
+    [Fact]
     public async Task Creating_the_same_event_twice_gives_the_first_one_back_with_a_meeting_link_on_a_reserved_host()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();

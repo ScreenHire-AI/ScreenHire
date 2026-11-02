@@ -69,7 +69,9 @@ internal sealed class InterviewRequestConfiguration : IEntityTypeConfiguration<I
             .HasPrincipalKey(j => new { j.OrganizationId, j.Id })
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasAlternateKey(r => new { r.OrganizationId, r.Id });
+        // The attendee's foreign key names the application too, so a row cannot say it is for another application than its
+        // interview (row-level security on the attendee reads its job through that application).
+        builder.HasAlternateKey(r => new { r.OrganizationId, r.Id, r.ApplicationId });
         // One live interview per application. The index sees the stored status, so an Open request past its window is
         // stored as Expired before a new one is made.
         builder.HasIndex(r => new { r.OrganizationId, r.ApplicationId }).IsUnique().HasFilter("status IN ('Open', 'Booked')");
@@ -94,8 +96,8 @@ internal sealed class InterviewAttendeeConfiguration : IEntityTypeConfiguration<
             .HasPrincipalKey(x => new { x.OrganizationId, x.Id })
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasOne<InterviewRequest>().WithMany()
-            .HasForeignKey(a => new { a.OrganizationId, a.InterviewId })
-            .HasPrincipalKey(r => new { r.OrganizationId, r.Id })
+            .HasForeignKey(a => new { a.OrganizationId, a.InterviewId, a.ApplicationId })
+            .HasPrincipalKey(r => new { r.OrganizationId, r.Id, r.ApplicationId })
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(a => new { a.OrganizationId, a.InterviewId, a.UserId }).IsUnique();

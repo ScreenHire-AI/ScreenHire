@@ -105,6 +105,29 @@ public sealed class InterviewRowLevelSecurityTests(AppHostFixture fixture)
         await save.Should().ThrowAsync<DbUpdateException>();
     }
 
+    [Fact]
+    public async Task An_attendee_cannot_name_another_application_than_its_interviews()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var job = await owner.CreateJobAsync(Samples.RemoteJob("Role"));
+        var first = await ApplicationAsync(owner.OrganizationId, (await owner.CreateApplicationAsync(job.Id(), ApiSession.NewEmail("first"))).Id());
+        var second = await ApplicationAsync(owner.OrganizationId, (await owner.CreateApplicationAsync(job.Id(), ApiSession.NewEmail("second"))).Id());
+        var now = SchedulingTestSupport.Now();
+        var interview = InterviewRequest.Create(first, 30, now, now.AddDays(7), "UTC", null, now);
+        await using var db = await fixture.ContextAsync(owner.OrganizationId, Ct);
+        db.InterviewRequests.Add(interview);
+        await db.SaveChangesAsync(Ct);
+
+        // The attendee's own application is what its job_scope policy reads, so it must be its interview's.
+        var elsewhere = InterviewAttendee.Create(interview, Guid.CreateVersion7(), isOrganizer: true, CalendarProvider.Sandbox);
+        db.Entry(elsewhere).Property(a => a.ApplicationId).CurrentValue = second.Id;
+        db.InterviewAttendees.Add(elsewhere);
+
+        var save = () => db.SaveChangesAsync(Ct);
+
+        await save.Should().ThrowAsync<DbUpdateException>();
+    }
+
     private async Task AddInterviewAsync(Guid organizationId, Guid applicationId)
     {
         var application = await ApplicationAsync(organizationId, applicationId);

@@ -364,5 +364,6 @@ move is history the header no longer shows.
 
 `calendar_connections`, `calendar_sandbox_busy`, `calendar_sandbox_events`, `interview_requests` and `interview_attendees`
 are tenant-owned with forced row-level security, like every other tenant table. The last two sit under an application,
-so they also carry the restrictive `job_scope` policy (ADR-0015). A connection is unique per organization and member. Removing a member from the
-organization deletes their connection.
+so they also carry the restrictive `job_scope` policy (ADR-0015). A connection is unique per organization and member. An attendee's foreign key to its interview includes the application,
+so an attendee cannot name another application than its interview's, which is the application its `job_scope` policy reads.
+Removing a member from the organization deletes their connection.

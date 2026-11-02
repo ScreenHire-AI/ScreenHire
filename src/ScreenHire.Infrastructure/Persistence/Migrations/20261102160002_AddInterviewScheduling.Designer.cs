@@ -2857,6 +2857,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.HasIndex("OrganizationId", "UserId")
                         .HasDatabaseName("ix_interview_attendees_organization_id_user_id");
 
+                    b.HasIndex("OrganizationId", "InterviewId", "ApplicationId")
+                        .HasDatabaseName("ix_interview_attendees_organization_id_interview_id_applicatio");
+
                     b.HasIndex("OrganizationId", "InterviewId", "UserId")
                         .IsUnique()
                         .HasDatabaseName("ix_interview_attendees_organization_id_interview_id_user_id");
@@ -2956,8 +2959,8 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_interview_requests");
 
-                    b.HasAlternateKey("OrganizationId", "Id")
-                        .HasName("ak_interview_requests_organization_id_id");
+                    b.HasAlternateKey("OrganizationId", "Id", "ApplicationId")
+                        .HasName("ak_interview_requests_organization_id_id_application_id");
 
                     b.HasIndex("OrganizationId", "ApplicationId")
                         .IsUnique()
@@ -4926,8 +4929,8 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
 
                     b.HasOne("ScreenHire.Domain.Scheduling.InterviewRequest", null)
                         .WithMany()
-                        .HasForeignKey("OrganizationId", "InterviewId")
-                        .HasPrincipalKey("OrganizationId", "Id")
+                        .HasForeignKey("OrganizationId", "InterviewId", "ApplicationId")
+                        .HasPrincipalKey("OrganizationId", "Id", "ApplicationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_interview_attendees_interview_requests_organization_id_inte");
