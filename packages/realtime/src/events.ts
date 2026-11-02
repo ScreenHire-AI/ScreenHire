@@ -165,6 +165,7 @@ export const realtimeEventSchemas = {
   // the application they were saved from.
   TalentPoolChanged: z.object({ organizationId: id, applicationId: id, jobId: id, candidateId: id, changedAt: instant }),
   TeamNotified: z.object({ organizationId: id, applicationId: id, jobId: id, runId: id, notifiedAt: instant }),
+  ViewsChanged: z.object({ organizationId: id, viewId: id, changedAt: instant, actorUserId: actor }),
 } as const;
 
 export type RealtimeEventType = keyof typeof realtimeEventSchemas;

@@ -6372,6 +6372,318 @@
         ]
       }
     },
+    "/v1/views": {
+      "get": {
+        "tags": [
+          "Views"
+        ],
+        "operationId": "ListViews",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ViewList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Views"
+        ],
+        "operationId": "CreateView",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateViewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedViewSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/views/{viewId}": {
+      "patch": {
+        "tags": [
+          "Views"
+        ],
+        "operationId": "UpdateView",
+        "parameters": [
+          {
+            "name": "viewId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateViewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedViewSummary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Views"
+        ],
+        "operationId": "DeleteView",
+        "parameters": [
+          {
+            "name": "viewId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/views/{viewId}/restore": {
+      "post": {
+        "tags": [
+          "Views"
+        ],
+        "operationId": "RestoreView",
+        "parameters": [
+          {
+            "name": "viewId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedViewSummary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/views/hidden-built-ins": {
+      "put": {
+        "tags": [
+          "Views"
+        ],
+        "operationId": "UpdateHiddenViews",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateHiddenViewsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ViewList"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/jobs/{jobId}/hiring-team": {
       "get": {
         "tags": [
@@ -13744,6 +14056,38 @@
         },
         "description": "A new scorecard of the organization's own, optionally a copy of another (`copiedFrom`, by id)."
       },
+      "CreateViewRequest": {
+        "required": [
+          "name",
+          "scope",
+          "jobId",
+          "shared",
+          "filters"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ViewScope"
+          },
+          "jobId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "shared": {
+            "type": "boolean"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/ViewFilters"
+          }
+        },
+        "description": "Saves the current filters and sort as a view; a job view names its job, a candidates view takes none."
+      },
       "CreateWebhookEndpointRequest": {
         "required": [
           "url",
@@ -16663,6 +17007,7 @@
           "DeleteAnyNote",
           "CreateTasks",
           "ManageIntegrations",
+          "EditAnyView",
           "GrantVerificationAccess"
         ],
         "description": "Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions."
@@ -18262,6 +18607,56 @@
           }
         },
         "description": "One listing on the local sandbox board, as the board itself would show it."
+      },
+      "SavedViewSummary": {
+        "required": [
+          "id",
+          "name",
+          "scope",
+          "jobId",
+          "shared",
+          "mine",
+          "canEdit",
+          "filters",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ViewScope"
+          },
+          "jobId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "shared": {
+            "type": "boolean"
+          },
+          "mine": {
+            "type": "boolean"
+          },
+          "canEdit": {
+            "type": "boolean"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/ViewFilters"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "A saved view as the signed-in member sees it: their own, and the team's shared ones. `mine` is whether they saved\nit; `canEdit` whether they may rename, share or delete it (its owner, or a role that edits anyone's views)."
       },
       "Scorecard": {
         "required": [
@@ -20006,6 +20401,21 @@
         },
         "description": "New wording for a template. `name` renames the organization's own template; leave it out for a built-in,\nwhose name is ScreenHire's."
       },
+      "UpdateHiddenViewsRequest": {
+        "required": [
+          "hiddenBuiltIns"
+        ],
+        "type": "object",
+        "properties": {
+          "hiddenBuiltIns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Replaces the built-in views the member hides; each id once."
+      },
       "UpdateHiringTemplateRequest": {
         "required": [
           "name"
@@ -20262,6 +20672,28 @@
           }
         },
         "description": "Turns the LLM consistency check on or off and sets its monthly token budget (null for the deployment's default)."
+      },
+      "UpdateViewRequest": {
+        "required": [
+          "name",
+          "shared"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "shared": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        },
+        "description": "Renames a view, shares it or makes it private; a member left out stays as it is."
       },
       "UpdateWebhookEndpointRequest": {
         "required": [
@@ -20887,6 +21319,97 @@
         },
         "description": "The verification chips for an application in a list: each current level and its reason codes (shown as \"3 reasons\"), and\nwhether a reviewer dismissed it. Null on the summary until the application is assessed."
       },
+      "ViewFilters": {
+        "required": [
+          "baseView",
+          "jobIds",
+          "stages",
+          "authenticity",
+          "aiAssistance",
+          "tag",
+          "sortColumn",
+          "sortDescending"
+        ],
+        "type": "object",
+        "properties": {
+          "baseView": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "jobIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "authenticity": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "aiAssistance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tag": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sortColumn": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sortDescending": {
+            "type": "boolean"
+          }
+        },
+        "description": "What a view filters and how it sorts. `baseView` is a built-in view this one narrows; `jobIds` and\n`stages` pick jobs and stages (stage names on the Candidates page, stage ids on a job's table); `authenticity`\nis an authenticity level name or `Pending`; `aiAssistance` an AI assistance level name; `sortColumn` the\nsorted column, or none for the table's own order. Search text is not saved."
+      },
+      "ViewList": {
+        "required": [
+          "views",
+          "hiddenBuiltIns"
+        ],
+        "type": "object",
+        "properties": {
+          "views": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SavedViewSummary"
+            }
+          },
+          "hiddenBuiltIns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "The views the member sees, oldest first, and the ids of the built-in views they hid."
+      },
+      "ViewScope": {
+        "enum": [
+          "Candidates",
+          "Job"
+        ],
+        "description": "Which table a view filters: the Candidates page, or one job's candidates."
+      },
       "WebhookDeliveryEntry": {
         "required": [
           "id",
@@ -21252,6 +21775,9 @@
     },
     {
       "name": "Notifications"
+    },
+    {
+      "name": "Views"
     },
     {
       "name": "Hiring teams"

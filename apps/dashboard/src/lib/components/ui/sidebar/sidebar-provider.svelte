@@ -18,7 +18,8 @@
 	} = $props();
 
 	// The (app) layout drives the open state from the window width (full at lg, the rail below it), so there is no cookie
-	// and no Ctrl B toggle: section 15 of the design system lists every shortcut.
+	// and no Ctrl B toggle: section 15 of the design system lists every shortcut. On a tablet the top bar's trigger opens
+	// it by hand until the width class changes.
 	// No tooltip provider here either. The root layout's serves the whole app, and the rail's labels set their own delay
 	// (sidebar-menu-button.svelte).
 	setSidebar({

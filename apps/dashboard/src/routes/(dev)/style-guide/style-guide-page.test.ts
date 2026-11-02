@@ -60,6 +60,9 @@ const panels: Record<string, string[]> = {
   'Tag list': ['Tag list'],
   'Task list': ['Task list'],
   'Task checkbox': ['Task list'],
+  'Save view button': ['Save view button'],
+  'Rename view dialog': ['Save view button'],
+  'Undo notice': ['Undo notice'],
   Scorecard: ['Scorecard'],
   'Notification tray': ['Notification tray'],
   Sheet: ['Sheet'],
@@ -125,6 +128,14 @@ describe('style guide', { timeout: 20_000 }, () => {
     render(WithTooltips, { props: { component: Page } });
 
     await expectNoAxeViolations(document.body);
+  });
+
+  it('opens the Save view dialog from its panel', async () => {
+    render(WithTooltips, { props: { component: Page } });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Save view' }));
+
+    expect(await screen.findByRole('dialog', { name: 'Save view' })).toBeInTheDocument();
   });
 
   it('has one main landmark; the sidebar demos frame their inset in a div (X1)', () => {

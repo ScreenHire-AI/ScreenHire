@@ -43,6 +43,9 @@
     {:else}
       <Sidebar.Trigger size="icon-lg" class="-ml-1.5" />
     {/if}
+  {:else}
+    <!-- A tablet's icon rail has no room for the Views menus or Show hidden views, so the full sidebar is a press away. -->
+    <Sidebar.Trigger size="icon-lg" class="-ml-1.5 lg:hidden" />
   {/if}
 
   <nav aria-label="Breadcrumb" class="min-w-0 flex-1">

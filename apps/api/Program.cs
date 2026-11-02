@@ -43,6 +43,9 @@ builder.Services.AddSingleton<TimeProvider>(DatabasePrecisionTimeProvider.Instan
 builder.Services.AddSingleton<EmailTemplates>();
 builder.Services.AddSingleton<EmailTemplateStore>();
 builder.Services.AddSingleton<IValidator<CreateEmailTemplateRequest>, CreateEmailTemplateRequestValidator>();
+builder.Services.AddSingleton<IValidator<CreateViewRequest>, CreateViewRequestValidator>();
+builder.Services.AddSingleton<IValidator<UpdateViewRequest>, UpdateViewRequestValidator>();
+builder.Services.AddSingleton<IValidator<UpdateHiddenViewsRequest>, UpdateHiddenViewsRequestValidator>();
 builder.Services.AddSingleton<IValidator<UpdateEmailTemplateRequest>, UpdateEmailTemplateRequestValidator>();
 builder.Services.AddSingleton<IValidator<EmailTemplateDraft>, EmailTemplateDraftValidator>();
 builder.Services.AddSingleton<IValidator<ApplicationEmailDraft>, ApplicationEmailDraftValidator>();
@@ -124,6 +127,7 @@ app.MapPublicDistributionEndpoints();
 app.MapOrganizationEndpoints();
 app.MapTeamEndpoints();
 app.MapNotificationSettingsEndpoints();
+app.MapViewEndpoints();
 app.MapHiringTeamEndpoints();
 app.MapRoleEndpoints();
 app.MapApiKeyEndpoints();

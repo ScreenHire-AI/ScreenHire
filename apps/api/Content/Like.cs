@@ -17,6 +17,9 @@ internal static class Like
     public static string? StartsWith(string? text) =>
         string.IsNullOrWhiteSpace(text) ? null : Literal(text) + "%";
 
+    /// <summary>The pattern for values equal to <paramref name="text"/> without regard to case.</summary>
+    public static string Exactly(string text) => Literal(text);
+
     private static string Literal(string text) =>
         text.Trim().Replace(Escape, Escape + Escape, StringComparison.Ordinal)
             .Replace("%", Escape + "%", StringComparison.Ordinal)
