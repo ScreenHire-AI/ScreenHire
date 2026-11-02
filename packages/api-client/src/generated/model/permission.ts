@@ -33,4 +33,5 @@ export const Permission = {
   DeleteAnyNote: 'DeleteAnyNote',
   CreateTasks: 'CreateTasks',
   ManageIntegrations: 'ManageIntegrations',
+  GrantVerificationAccess: 'GrantVerificationAccess',
 } as const;

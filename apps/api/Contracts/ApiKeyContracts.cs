@@ -29,8 +29,10 @@ public sealed record ApiKeySummary(
 public sealed record CreatedApiKey(ApiKeySummary Key, string Token);
 
 /// <summary>
-/// Creates a key. <c>scopes</c> is <c>["Read"]</c> or <c>["Read", "Write"]</c>. <c>permitsPerMinute</c> lowers the
-/// key's rate limit below the deployment's; null uses the deployment's.
+/// Creates a key. <c>scopes</c> is <c>["Read"]</c> or <c>["Read", "Write"]</c>, with <c>"VerificationRead"</c> added to
+/// let the key read verification results. Only an owner can add <c>VerificationRead</c>; every read through such a key is
+/// recorded in the verification review log (ADR-0021). <c>permitsPerMinute</c> lowers the key's rate limit below the
+/// deployment's; null uses the deployment's.
 /// </summary>
 public sealed record CreateApiKeyRequest(string Name, IReadOnlyList<ApiKeyScope> Scopes, int? PermitsPerMinute = null);
 
@@ -49,7 +51,7 @@ internal sealed class CreateApiKeyRequestValidator : AbstractValidator<CreateApi
         // JSON numbers bind to enums as well as names, so a number that names no scope is refused here.
         RuleFor(r => r.Scopes).Cascade(CascadeMode.Stop).NotNull()
             .Must(scopes => scopes.All(Enum.IsDefined))
-            .WithMessage("Scopes are Read and Write.")
+            .WithMessage("Scopes are Read, Write and VerificationRead.")
             .Must(scopes => scopes.Contains(ApiKeyScope.Read))
             .WithMessage("A key needs the Read scope.")
             .Must(scopes => scopes.Distinct().Count() == scopes.Count)

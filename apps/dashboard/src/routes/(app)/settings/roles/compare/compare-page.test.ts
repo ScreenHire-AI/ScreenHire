@@ -40,6 +40,7 @@ describe('compare roles page', () => {
       'Organization',
       'Manage the team',
       'Manage Owners',
+      'Give a key verification access',
     ]);
     const cells = (name: string) =>
       within(within(table).getByRole('rowheader', { name }).closest('tr')!)
@@ -49,6 +50,7 @@ describe('compare roles page', () => {
     expect(cells('Move candidates')).toEqual(['Yes', 'Yes', 'Yes', 'No', 'No']);
     expect(cells('Fill in scorecards')).toEqual(['Yes', 'Yes', 'Yes', 'No', 'Yes']);
     expect(cells('Manage Owners')).toEqual(['Yes', 'No', 'No', 'No', 'No']);
+    expect(cells('Give a key verification access')).toEqual(['Yes', 'No', 'No', 'No', 'No']);
     const keys = screen.getByText(/An API key has a scope instead of a role/);
     expect(within(keys).getByRole('link', { name: 'API keys' })).toHaveAttribute('href', '/settings/api-keys');
     await expectNoAxeViolations();
