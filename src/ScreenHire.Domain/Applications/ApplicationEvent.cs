@@ -70,6 +70,9 @@ public enum ApplicationEventType
 
     /// <summary>A person invited the candidate, saved from this application, to apply for another job.</summary>
     InvitedToApply,
+
+    /// <summary>The candidate answered an email: their reply, kept as an <see cref="InboundEmail"/>.</summary>
+    EmailReceived,
 }
 
 /// <summary>
@@ -88,6 +91,8 @@ public enum ApplicationEventType
 /// template it started from (null for a blank email), the subject as the candidate received it, and the copy of the email
 /// as it went (<see cref="ApplicationEmail"/>), which holds the body. Emails sent before copies were kept have no
 /// <c>emailId</c>; the body is never kept here.
+/// <c>emailSubject</c>, <c>emailId</c> also describe an <see cref="ApplicationEventType.EmailReceived"/> entry: the
+/// reply's subject and its row (<see cref="InboundEmail"/>), which holds the body; the entry has no actor.
 /// <c>questionnaireId</c>, <c>questionnaireRequestId</c>: For <see cref="ApplicationEventType.QuestionnaireSent"/> and
 /// <see cref="ApplicationEventType.QuestionnaireCompleted"/>, the follow-up questionnaire and the request that carries
 /// its link and, once completed, its answers. The answers are never kept here.

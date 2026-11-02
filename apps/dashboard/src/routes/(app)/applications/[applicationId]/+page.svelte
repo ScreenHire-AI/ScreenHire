@@ -2,6 +2,7 @@
   import ArrowLeftIcon from '~icons/lucide/arrow-left';
   import BriefcaseBusinessIcon from '~icons/lucide/briefcase-business';
   import CalendarIcon from '~icons/lucide/calendar';
+  import MailCheckIcon from '~icons/lucide/mail-check';
   import MailIcon from '~icons/lucide/mail';
   import StarIcon from '~icons/lucide/star';
   import {
@@ -12,6 +13,7 @@
     createGetJob,
     createListApplicationScorecards,
     createListCandidateEmails,
+    createClearCandidateEmailIssue,
     createListEmailTemplates,
     createGetJobHiringTeam,
     createListJobs,
@@ -40,6 +42,7 @@
   import MoreMenu from '#lib/components/more-menu.svelte';
   import MoveNoteSheet from '#lib/components/move-note-sheet.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
+  import Notice from '#lib/components/notice.svelte';
   import OverdueBadge from '#lib/components/overdue-badge.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
@@ -59,6 +62,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
   import { visibleEntries, type ActivityNames } from '#lib/activity.js';
+  import { emailIssueNotice, emailIssueStatus } from '#lib/email-issue.js';
   import { authenticityLevels } from '#lib/verification.js';
   import { createMoves } from '#lib/moves.svelte.js';
   import { siteName } from '#lib/format.js';
@@ -135,7 +139,23 @@
   const sidebar = Sidebar.useSidebar();
   // Email shows only where this deployment can send it and the person may (A3).
   const emailTemplates = createListEmailTemplates();
-  const canEmail = $derived(Boolean(emailTemplates.data?.data.sendingEnabled) && can(page.data.user, 'EmailCandidates'));
+  // An address the email provider flagged is sent nothing more, so the controls are hidden and the notice says why.
+  const emailIssue = $derived(detail?.candidate.emailIssue ?? 'None');
+  const canEmail = $derived(Boolean(emailTemplates.data?.data.sendingEnabled) && can(page.data.user, 'EmailCandidates') && emailIssue === 'None');
+  const clearEmailIssue = createClearCandidateEmailIssue();
+  let clearFailure = $state('');
+  async function addressWorks() {
+    if (!detail) return;
+    clearFailure = '';
+    try {
+      await clearEmailIssue.mutateAsync({ candidateId: detail.candidate.id });
+      invalidatePath(queryClient, '/v1/applications');
+      invalidatePath(queryClient, '/v1/candidates');
+      emailed = 'ScreenHire will email this address again.';
+    } catch (error) {
+      clearFailure = describeError(error, 'Could not clear the flag');
+    }
+  }
   let emailOpen = $state(false);
   // The sheet opens once the More menu has closed, so focus can go back to the menu's button.
   let emailChosen = false;
@@ -322,6 +342,8 @@
           <!-- Status first, beside the name, on every tab (S2, T2): the authenticity level when it needs a look. A calm
                level says nothing. It is a badge, never a link (A5); Next steps links to the reasons. -->
           {#if attention}<StatusBadge status={attention.level.status} label={attention.level.label} />{/if}
+          {@const flagged = emailIssueStatus(detail.candidate.emailIssue)}
+          {#if flagged}<StatusBadge {...flagged} />{/if}
           <OverdueBadge dueAt={detail.slaDueAt} />
         {/snippet}
         {#snippet details()}
@@ -364,6 +386,19 @@
         <p role="status" class="sr-only">{moves.failure ? '' : moves.announcement}</p>
         <p role="status" class="sr-only">{emailed}</p>
         <p role="status" class="sr-only">{keptMessage}</p>
+
+        <!-- The address was flagged by the email provider (E2): what it means for the team, and the way back. The badge beside
+             the name says which, so the sentence does not repeat it (W7). -->
+        {#if emailIssue !== 'None'}
+          {@const sentence = emailIssueNotice(detail.candidate.emailIssue, detail.candidate.emailIssueReason)}
+          <div class="mb-5 flex flex-col items-start gap-3">
+            {#if sentence}<Notice>{sentence}</Notice>{/if}
+            {#if can(page.data.user, 'EmailCandidates')}
+              <Button variant="outline" disabled={clearEmailIssue.isPending} onclick={addressWorks}><MailCheckIcon aria-hidden="true" />Allow email again</Button>
+            {/if}
+            <FailureText message={clearFailure} />
+          </div>
+        {/if}
 
         <!-- Only the selected tab's body is rendered: each loads what it shows, and a note's anchor is on the page once. -->
         <div class="flex min-w-0 flex-col gap-5">

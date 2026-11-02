@@ -26,6 +26,19 @@ export const realtimeEventSchemas = {
   }),
   // An email went to an application's candidate and is on its timeline.
   ApplicationEmailed: z.object({ organizationId: id, applicationId: id, jobId: id, eventId: id, sentAt: instant, actorUserId: actor }),
+  // A candidate answered an email. senderUserId is who sent that email (null when an automation did): their dashboard, or for an
+  // automation's email every dashboard that sees the job, shows a card. autoReply (an out-of-office) notifies nobody.
+  CandidateReplied: z.object({
+    organizationId: id,
+    applicationId: id,
+    jobId: id,
+    inboundEmailId: id,
+    receivedAt: instant,
+    senderUserId: actor,
+    autoReply: z.boolean(),
+  }),
+  // The email provider flagged a candidate's address (Bounced, SpamComplaint), or the flag was cleared (None).
+  CandidateEmailStatusChanged: z.object({ organizationId: id, candidateId: id, issue: z.string(), changedAt: instant }),
   // A note from the hiring team: ids only, the dashboard reads the note through GET /v1/applications/{id}/timeline.
   ApplicationNoteAdded: z.object({ organizationId: id, applicationId: id, jobId: id, eventId: id, addedAt: instant, actorUserId: actor }),
   // A note's author changed its text, or someone deleted it (and its text): the timeline refetches.

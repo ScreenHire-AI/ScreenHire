@@ -125,14 +125,12 @@ column or filter, so the list never becomes one picked by level for bulk invitat
 reviewer who has a scorecard to give on it sees "After yours" instead of the number, as on the candidate page, so
 the list leaks nothing the gate hides.
 
-**Last contacted** is the newest `EmailSent` event over every application of the candidate that the reader can see,
-whichever job the email was for (the same source as the candidate's Messages). The event types counted are one list in
-`TalentPoolEndpoints` (`ContactTypes`). Its limits:
+**Last contacted** is the newest `EmailSent` (an email to them) or `EmailReceived` (their reply) event over every
+application of the candidate that the reader can see, whichever job it was for (the same source as the candidate's
+Messages). The event types counted are one list in `TalentPoolReads` (`ContactTypes`). Its limits:
 
-- A member on Only jobs they're on sees only emails sent through jobs they are on, so their date can be older than
+- A member on Only jobs they're on sees only email through jobs they are on, so their date can be older than
   another member's.
-- Replies are not read yet (roadmap item 1), so a candidate writing to the team does not move it. When inbound mail lands,
-  its event type joins the list.
 
 A **Message** button beside the date opens the email composer for the saved-from application. It shows only for a
 reader who may email candidates, with a sending-enabled sender.
@@ -174,7 +172,7 @@ of the built-in `talent-pool-invitation` template ([email](email.md)), with:
 - `{{ jobLink }}`, that job's public careers page, with no token or personal data;
 - `{{ removeLink }}`, the signed link to stop being kept.
 
-It sends the email, then keeps the copy for Messages with "[the candidate's link, not kept in this copy]" in place of
+It sends nothing to an address the email provider flagged as bounced or marked as spam. It sends the email, then keeps the copy for Messages with "[the candidate's link, not kept in this copy]" in place of
 the remove link, because that link acts for the candidate. It records `InvitedToApply` and `EmailSent` on the saved
 application, so an invitation also moves Last contacted. Only Invite to apply sends this template: the email composer
 never offers it, and no automation names it. Its wording is edited on Templates, not per send. The sheet previews it
@@ -197,8 +195,9 @@ always work, and stopping is all it can do. `POST /v1/public/organizations/{slug
 permission the candidate gave the organization and takes them out of the saved candidates, in one transaction. It lands
 on `/talent-pool/stopped`, with no token in the address. A forged token, or one for another organization, is a 404.
 
-Replies to candidate email are not read yet (roadmap item 1), so without this link an invitation would offer no way
-out (GDPR Art. 7(3)).
+A candidate can also answer the invitation: it carries the same reply address as other email about an application, and the
+reply lands in Messages ([email](email.md), "Replies"). The link stays, because a link works without writing anyone
+(GDPR Art. 7(3)).
 
 ## Not built
 

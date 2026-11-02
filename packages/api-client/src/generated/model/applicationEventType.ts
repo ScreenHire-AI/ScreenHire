@@ -25,4 +25,5 @@ export const ApplicationEventType = {
   KeptInMind: 'KeptInMind',
   LeftTalentPool: 'LeftTalentPool',
   InvitedToApply: 'InvitedToApply',
+  EmailReceived: 'EmailReceived',
 } as const;

@@ -9,8 +9,8 @@ its setting (`/v1/organization/talent-pool-settings`), the daily expiry sweep an
 column are gone. A permission that had already run out stays ended: the migration withdraws it and takes anyone still saved
 on it off the list. The apply form's "Keep my details for future roles" box stays, with new wording and a new notice
 version, `2026-11-02.1`; application reads carry `allowsFutureRoles` in place of `futureRolesUntil`. The list gained
-Rating (with the reviewer gate), Last contacted (the newest email to the candidate over the applications the reader
-sees; replies are not read yet), a Message button, and a note the team can edit, with History. Code and wire names keep
+Rating (with the reviewer gate), Last contacted (the newest email to the candidate, or reply from them, over the applications the
+reader sees), a Message button, and a note the team can edit, with History. Code and wire names keep
 the old words (`KeptInMind`, `/v1/talent-pool`). Because nothing expires a saved candidate, a legal review of keeping
 details without an end date is an owner action ([status](status.md#owner-actions)), and record retention matters more
 ([saved candidates](architecture/talent-pool.md)). Earlier entries below keep their old words.

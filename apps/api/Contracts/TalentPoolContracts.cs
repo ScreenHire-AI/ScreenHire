@@ -17,7 +17,7 @@ public sealed record TalentPoolList(IReadOnlyList<TalentPoolMember> People);
 /// <c>noteUpdated</c>: the last edit of the note, null until someone edits it. <c>tags</c>: that application's tags.
 /// <c>keptByUserId</c>: who saved them. <c>rating</c>: that application's rating, read as the candidate page reads it, so a
 /// reviewer with a scorecard to give sees "after your scorecard" instead of the number. <c>lastContactedAt</c>: the newest
-/// email sent to the candidate for any job the reader can see; null when none was sent. Replies are not read yet.
+/// email sent to the candidate or reply from them, for any job the reader can see; null when there is none.
 /// <c>lastInvitedJobId</c>, <c>lastInvitedJobTitle</c>, <c>lastInvitedAt</c>: their last invitation to apply.
 /// <c>appliedJobIds</c>: every job the candidate has an application for, as the reader sees them, so an invitation or an
 /// add skips them. No Verification output: saving and inviting never read it (ADR-0004).

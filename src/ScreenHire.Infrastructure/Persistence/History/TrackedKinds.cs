@@ -40,6 +40,9 @@ public static class TrackedKinds
         // a new note, and edits made under the job it was saved from stay with that entry, which a member on Only jobs
         // they're on may not see.
         Track<TalentPoolEntry>(ChangeSubjectKind.TalentPoolEntry, e => e.Id.ToString("D"), SettingsChanges.SavedNote),
+        // An organization has one sending domain at a time, so the subject is the organization: a replacement reads as the old
+        // domain removed and the new one added, in one history. The row holds no secret; its records are not in any line.
+        Track<SendingDomain>(ChangeSubjectKind.SendingDomain, d => d.OrganizationId.ToString("D"), SettingsChanges.SendingDomain),
 
         // The Team page's one history. Its first member arrives with the organization, and that save creates the team.
         Track<OrganizationMember>(ChangeSubjectKind.Team, m => m.OrganizationId.ToString("D"), MemberAsync, creates: WithOrganization),

@@ -37,8 +37,10 @@ templates, email templates, scorecard templates, jobs, custom roles and the orga
 its branding and its verification settings, each with a history of its own (`/v1/organization/history`,
 `/branding/history`, `/verification-settings/history`). The Team page and the API keys page have one history each: the
 team's members, roles, job access and invitations, and every key created and revoked. A saved candidate's note has one
-history per saved entry ([saved candidates](talent-pool.md)); the retired talent pool settings (the permission period)
-keep the `TalentPoolSettings` kind so their old rows still read, and nothing writes it now. Built-in roles never change, so
+history per saved entry ([saved candidates](talent-pool.md)); the sending domain has one too
+(`/v1/organization/sending-domain/history`): added, verified, no longer verified and removed, and nothing for a check that
+only refreshes its records. The retired talent pool settings (the permission period) keep the `TalentPoolSettings` kind so
+their old rows still read, and nothing writes it now. Built-in roles never change, so
 they have no history. A webhook
 endpoint has none either: its row holds the signing secret, which the allow-list keeps out (Secrets, below), so its page
 shows when it was added and when its secret was last rotated instead. It never holds
@@ -51,7 +53,7 @@ One `change_records` row (`ChangeRecord`) per object per save:
 
 | Column | Holds |
 |---|---|
-| `subject_kind`, `subject_id` | The object: `HiringTemplate`, `EmailTemplate`, `ScorecardTemplate`, `Job`, `Role`, `Organization`, `Branding`, `VerificationSettings`, `Team`, `ApiKeys` or `TalentPoolEntry`, and its id (the organization's id for the five before `TalentPoolEntry`, the saved entry's own id for that one; `TalentPoolSettings` is retired). A built-in email template's id is its built-in id (`stage-change`), because restoring deletes its row and the next edit adds a new one. A template version belongs to its template |
+| `subject_kind`, `subject_id` | The object: `HiringTemplate`, `EmailTemplate`, `ScorecardTemplate`, `Job`, `Role`, `Organization`, `Branding`, `VerificationSettings`, `SendingDomain`, `Team`, `ApiKeys` or `TalentPoolEntry` (and the retired `TalentPoolSettings`), and its id (the organization's id for the settings kinds, the sending domain, the team and the keys; the saved entry's own id for `TalentPoolEntry`). A built-in email template's id is its built-in id (`stage-change`), because restoring deletes its row and the next edit adds a new one. A template version belongs to its template |
 | `actor_user_id`, `actor_api_key_id` | The member who made it, or the organization API key. Neither means ScreenHire: the worker, an automation, the demo's setup |
 | `occurred_at` | From `TimeProvider`, when the save ran |
 | `created` | Whether the save created the object: its first line says so, and Last updated says Created until a later change |

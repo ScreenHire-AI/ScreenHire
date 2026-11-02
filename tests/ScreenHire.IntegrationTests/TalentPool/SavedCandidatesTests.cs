@@ -105,6 +105,28 @@ public sealed class SavedCandidatesTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_reply_from_the_candidate_is_contact_too_and_moves_last_contacted()
+    {
+        using var world = await PoolWorld.CreateAsync(fixture);
+        var (savedFrom, _) = await world.OpenJobAsync("Saved from");
+        var email = ApiSession.NewEmail("replier");
+        var application = await world.ApplyAsync(savedFrom, email, keep: true);
+        (await world.KeepAsync([application])).Expect(HttpStatusCode.OK).At("kept").GetInt32().Should().Be(1);
+        var candidate = (await world.DetailAsync(application)).Id("candidate.id");
+        var sent = await fixture.SendAsync(world.Owner, savedFrom, application, email, "Next steps");
+        var sentAt = (await world.EntryAsync(application, "EmailSent")).GetProperty("occurredAt").GetDateTimeOffset();
+        PersonOf(await world.PoolAsync(), candidate).GetProperty("lastContactedAt").GetDateTimeOffset().Should().Be(sentAt);
+
+        (await fixture.DevReplyAsync(sent.ReplyAddress, sent.Address, "Thursday works for me.")).Should().Be("Stored");
+        await world.WaitForTimelineAsync(application, "EmailReceived");
+        var repliedAt = (await world.EntryAsync(application, "EmailReceived")).GetProperty("occurredAt").GetDateTimeOffset();
+
+        repliedAt.Should().BeAfter(sentAt);
+        PersonOf(await world.PoolAsync(), candidate).GetProperty("lastContactedAt").GetDateTimeOffset()
+            .Should().Be(repliedAt, "what the candidate wrote counts as contact, and the newest wins");
+    }
+
+    [Fact]
     public async Task Last_contacted_is_the_newest_email_over_every_job_the_candidate_applied_for_and_empty_until_one_is_sent()
     {
         using var world = await PoolWorld.CreateAsync(fixture);

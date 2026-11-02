@@ -36,6 +36,7 @@ public static partial class SendTalentPoolInvitationHandler
         EmailTemplateStore store,
         TalentPoolLinks links,
         Branding.EmailHeaders headers,
+        Applications.CandidateMailRouting routing,
         TimeProvider time,
         ILogger<SendTalentPoolInvitation> logger,
         CancellationToken cancellationToken)
@@ -69,6 +70,12 @@ public static partial class SendTalentPoolInvitationHandler
         }
 
         var candidate = await db.Candidates.AsNoTracking().SingleAsync(c => c.Id == application!.CandidateId, cancellationToken);
+        if (!candidate.CanReceiveEmail)
+        {
+            LogNotSent(logger, message.SendId, "the candidate's address bounced or marked an email as spam");
+            return outgoing;
+        }
+
         var organization = await db.Organizations.AsNoTracking().SingleAsync(o => o.Id == application!.OrganizationId, cancellationToken);
         var model = ApplicationEmails.ModelFor(candidate, job!.Title, organization.Name, stageName: null) with
         {
@@ -76,7 +83,8 @@ public static partial class SendTalentPoolInvitationHandler
             RemoveLink = links.RemoveUrl(organization.Slug, links.Issue(organization.Id, candidate.Id)),
         };
         var header = await headers.ForAsync(db, organization, cancellationToken);
-        await email.SendAsync(EmailTemplateIds.TalentPoolInvitation, template.Content, candidate.Email, model, header, cancellationToken);
+        var route = await routing.ForAsync(db, application!.OrganizationId, message.SendId, cancellationToken);
+        await email.SendAsync(EmailTemplateIds.TalentPoolInvitation, template.Content, candidate.Email, model, header, cancellationToken, route);
 
         // The team's copy says where the candidate's own link was: it lets whoever holds it stop the candidate being kept.
         var kept = renderer.Render(

@@ -1,4 +1,5 @@
 using FluentValidation;
+using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Infrastructure.Content;
 using ScreenHire.Infrastructure.Email;
@@ -73,9 +74,12 @@ public sealed record ApplicationEmailDraft(Guid ApplicationId, string Subject, s
 /// for an email sent before ScreenHire kept each email's copy: only its subject is known.
 /// </summary>
 /// <remarks>
-/// <c>id</c>: the email, as <c>GET /v1/emails/{emailId}</c> names it. <c>templateId</c>: the template it started from;
-/// null for a blank email. <c>actorUserId</c>: the person who sent it. <c>automationRunId</c>: the automation run that
-/// sent it.
+/// <c>id</c>: the email, as <c>GET /v1/emails/{emailId}</c> names it, or for a received one the reply, as
+/// <c>GET /v1/replies/{replyId}</c> names it. <c>direction</c>: <c>Sent</c> to the candidate, or <c>Received</c> from them;
+/// a received email has no template, actor or automation run, its <c>sentAt</c> is when it arrived, and it is always kept.
+/// <c>templateId</c>: the template it started from; null for a blank email. <c>actorUserId</c>: the person who sent it.
+/// <c>automationRunId</c>: the automation run that sent it. <c>fromAddress</c>: who a received email came from.
+/// <c>attachmentCount</c>: the files kept with a received email.
 /// </remarks>
 public sealed record CandidateEmailEntry(
     Guid Id,
@@ -86,7 +90,42 @@ public sealed record CandidateEmailEntry(
     Guid? ActorUserId,
     Guid? AutomationRunId,
     DateTimeOffset SentAt,
-    bool Kept);
+    bool Kept,
+    EmailDirection Direction = EmailDirection.Sent,
+    string? FromAddress = null,
+    int AttachmentCount = 0);
+
+/// <summary>Which way an email in Messages went.</summary>
+public enum EmailDirection
+{
+    /// <summary>ScreenHire sent it to the candidate.</summary>
+    Sent,
+
+    /// <summary>The candidate sent it, as a reply.</summary>
+    Received,
+}
+
+/// <summary>
+/// A candidate's reply as it arrived: who it is from, the subject, the sanitized HTML part (may be empty) and the plain-text
+/// part, and the files that came with it. <c>autoReply</c> marks an out-of-office or other automatic answer.
+/// </summary>
+public sealed record ReceivedEmail(
+    Guid Id,
+    Guid ApplicationId,
+    string FromAddress,
+    string? FromName,
+    string Subject,
+    string Html,
+    string Text,
+    DateTimeOffset ReceivedAt,
+    bool AutoReply,
+    IReadOnlyList<ReceivedAttachment> Attachments);
+
+/// <summary>
+/// A file that came with a reply. It can be downloaded once <c>scanStatus</c> is <c>Clean</c> or <c>NotScanned</c>; while it is
+/// <c>Pending</c> the download answers 409, and an <c>Infected</c> file is never offered.
+/// </summary>
+public sealed record ReceivedAttachment(Guid Id, string FileName, string ContentType, long SizeBytes, MalwareScanStatus ScanStatus);
 
 /// <summary>An email exactly as it went to the candidate: the address, the subject, the HTML part and the plain-text part.</summary>
 /// <remarks><c>templateId</c>: the template it started from; null for a blank email.</remarks>
@@ -94,7 +133,7 @@ public sealed record SentEmail(Guid Id, Guid ApplicationId, string? TemplateId, 
 
 /// <summary>
 /// How many emails were queued. <c>skipped</c> counts applications the email does not fit: the stage-change email to a
-/// candidate whose application has ended. Each sent email appears in its application's activity.
+/// candidate whose application has ended, and a candidate whose address bounced or marked an email as spam. Each sent email appears in its application's activity.
 /// </summary>
 public sealed record EmailsQueued(int Queued, int Skipped);
 

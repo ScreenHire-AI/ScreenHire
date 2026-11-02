@@ -214,6 +214,20 @@ job's link and her link to stop being kept, which opens on the careers site), th
 verification-driven rejection), the workflow graph and "Simulate", Ctrl K for the command palette, the dark theme, and a
 second browser window on the same job to show live updates.
 
+Replies, as Avery: send an email to a candidate from the box on their Messages tab, then open it in Mailpit and copy its
+Reply-To address (`reply+...@reply.localhost`). There is no SendGrid here, so deliver the reply with the sandbox route, on the API's
+address from the Aspire dashboard (http://localhost:5080 when the ports are pinned):
+
+```
+curl -X POST http://localhost:5080/v1/dev/inbound-email -H "Content-Type: application/json" \
+  -d '{"to":"<the Reply-To address>","from":"<the candidate's address>","subject":"Re: your email","text":"Thursday works for me."}'
+```
+
+The reply shows on the candidate's Messages tab and in Activity, and a card appears in Avery's tray. Reporting a bounce needs
+SendGrid's signature, so it is covered by the integration tests, not this walk-through. Settings > **Sending domain** takes any
+domain you own (example.org will do): the page lists made-up records, Check records says they are missing until
+`POST /v1/dev/sending-domains/publish` with `{"domain":"example.org"}`, and the next check verifies the domain.
+
 Templates, as Avery: **Templates** in the sidebar, one tab per kind, each filtered by All, In use, Not used in 6 months
 and Archived.
 
@@ -277,6 +291,7 @@ Settings is one item at the bottom of the sidebar; its pages share the Settings 
 | IP intelligence | Development's fixed ranges for the RFC 5737 documentation addresses the synthetic applicants use | `ScreenHire:Verification:Network` (worker) |
 | Bot challenge (Turnstile) | Not configured, so recorded as "not checked"; the honeypot still works | `ScreenHire:Turnstile` |
 | Malware scanning | `NoMalwareScanner`, which records every file as "not scanned" | `IMalwareScanner` |
+| Email provider | Mailpit sends; no SendGrid. Replies come through the sandbox route `/v1/dev/inbound-email`, and a sending domain verifies once `/v1/dev/sending-domains/publish` publishes it | `ScreenHire:Email` |
 | Slack | Off, so Settings > Slack says it is not set up; the sandbox workspace when turned on, whose messages `/v1/slack/sandbox/messages` lists | `ScreenHire:Slack` |
 
 The [MVP status](../status.md#owner-actions) lists what each of these needs before real use.

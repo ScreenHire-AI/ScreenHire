@@ -14,12 +14,12 @@ namespace ScreenHire.UnitTests.History;
 public sealed partial class TrackedKindsTests
 {
     [Fact]
-    public void Templates_jobs_roles_settings_the_team_and_api_keys_are_tracked_and_webhook_endpoints_are_not()
+    public void Templates_jobs_roles_settings_the_sending_domain_the_team_and_api_keys_are_tracked_and_webhook_endpoints_are_not()
     {
         TrackedKinds.All.Select(k => k.EntityType).Should().BeEquivalentTo(
         [
             typeof(HiringTemplate), typeof(HiringTemplateVersion), typeof(EmailTemplate), typeof(Job), typeof(ScorecardTemplate), typeof(CustomRole),
-            typeof(Organization), typeof(Organization), typeof(VerificationSettings), typeof(TalentPoolEntry),
+            typeof(Organization), typeof(Organization), typeof(VerificationSettings), typeof(TalentPoolEntry), typeof(SendingDomain),
             typeof(OrganizationMember), typeof(OrganizationInvitation), typeof(ApiKey),
         ]);
         TrackedKinds.FindAll(typeof(WebhookEndpoint)).Should().BeEmpty("its row holds the signing secret (ADR-0016)");

@@ -10008,6 +10008,99 @@
         ]
       }
     },
+    "/v1/replies/{replyId}": {
+      "get": {
+        "tags": [
+          "Email"
+        ],
+        "operationId": "GetReceivedEmail",
+        "parameters": [
+          {
+            "name": "replyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceivedEmail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/replies/{replyId}/attachments/{attachmentId}": {
+      "get": {
+        "tags": [
+          "Email"
+        ],
+        "operationId": "DownloadReplyAttachment",
+        "parameters": [
+          {
+            "name": "replyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "attachmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/candidates/{candidateId}/emails": {
       "get": {
         "tags": [
@@ -10041,6 +10134,307 @@
           },
           "404": {
             "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/candidates/{candidateId}/email-issue/clear": {
+      "post": {
+        "tags": [
+          "Email"
+        ],
+        "operationId": "ClearCandidateEmailIssue",
+        "parameters": [
+          {
+            "name": "candidateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateSummary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/sending-domain": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "GetOrganizationSendingDomain",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationSendingDomain"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "SetOrganizationSendingDomain",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetSendingDomainRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendingDomainDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "DeleteOrganizationSendingDomain",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/sending-domain/history": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "GetOrganizationSendingDomainHistory",
+        "parameters": [
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/sending-domain/check": {
+      "post": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "CheckOrganizationSendingDomain",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendingDomainDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "401": {
             "description": "Unauthorized"
@@ -11129,7 +11523,8 @@
           "TaskCreated",
           "KeptInMind",
           "LeftTalentPool",
-          "InvitedToApply"
+          "InvitedToApply",
+          "EmailReceived"
         ]
       },
       "ApplicationFileSummary": {
@@ -12609,9 +13004,32 @@
           },
           "kept": {
             "type": "boolean"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/EmailDirection"
+          },
+          "fromAddress": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "attachmentCount": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
           }
         },
         "description": "One email to the candidate, for Messages: what went, when, and who or which automation sent it. `kept` is false\nfor an email sent before ScreenHire kept each email's copy: only its subject is known."
+      },
+      "CandidateEmailIssue": {
+        "enum": [
+          "None",
+          "Bounced",
+          "SpamComplaint"
+        ],
+        "description": "Why ScreenHire no longer emails a candidate's address (reported by the email provider).",
+        "default": "None"
       },
       "CandidateInput": {
         "required": [
@@ -12731,6 +13149,22 @@
             "type": "string"
           },
           "lastName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emailIssue": {
+            "$ref": "#/components/schemas/CandidateEmailIssue"
+          },
+          "emailIssueAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "emailIssueReason": {
             "type": [
               "null",
               "string"
@@ -13548,6 +13982,14 @@
         },
         "description": "Replaces a saved candidate's note. Blank clears it. The Activity entry from when they were saved keeps the first note."
       },
+      "EmailDirection": {
+        "enum": [
+          "Sent",
+          "Received"
+        ],
+        "description": "Which way an email in Messages went.",
+        "default": "Sent"
+      },
       "EmailPreview": {
         "required": [
           "subject",
@@ -13584,7 +14026,7 @@
             "format": "int32"
           }
         },
-        "description": "How many emails were queued. `skipped` counts applications the email does not fit: the stage-change email to a\ncandidate whose application has ended. Each sent email appears in its application's activity."
+        "description": "How many emails were queued. `skipped` counts applications the email does not fit: the stage-change email to a\ncandidate whose application has ended, and a candidate whose address bounced or marked an email as spam. Each sent email appears in its application's activity."
       },
       "EmailTemplateDraft": {
         "required": [
@@ -16048,6 +16490,43 @@
         ],
         "description": "The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text."
       },
+      "OrganizationSendingDomain": {
+        "required": [
+          "available",
+          "sandbox",
+          "domain"
+        ],
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "sandbox": {
+            "type": "boolean"
+          },
+          "domain": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SendingDomainDetail"
+              }
+            ]
+          },
+          "lastUpdated": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LastUpdate"
+              }
+            ]
+          }
+        },
+        "description": "The organization's sending domain (Settings, Sending domain). `available` is false when this deployment has no email\nprovider: the page says so and offers nothing. `sandbox` says the records are made up for a local run. `domain`\nis null until one is added. `lastUpdated` is the newest change to it (added, verified, no longer verified), null with\nno domain; its History is `GET /v1/organization/sending-domain/history`."
+      },
       "OrganizationVerificationSettings": {
         "required": [
           "llmConsistencyCheck",
@@ -17387,6 +17866,93 @@
         ],
         "description": "`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\nreader has a review to give first."
       },
+      "ReceivedAttachment": {
+        "required": [
+          "id",
+          "fileName",
+          "contentType",
+          "sizeBytes",
+          "scanStatus"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "scanStatus": {
+            "$ref": "#/components/schemas/MalwareScanStatus"
+          }
+        },
+        "description": "A file that came with a reply. It can be downloaded once `scanStatus` is `Clean` or `NotScanned`; while it is\n`Pending` the download answers 409, and an `Infected` file is never offered."
+      },
+      "ReceivedEmail": {
+        "required": [
+          "id",
+          "applicationId",
+          "fromAddress",
+          "fromName",
+          "subject",
+          "html",
+          "text",
+          "receivedAt",
+          "autoReply",
+          "attachments"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fromAddress": {
+            "type": "string"
+          },
+          "fromName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "subject": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "autoReply": {
+            "type": "boolean"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceivedAttachment"
+            }
+          }
+        },
+        "description": "A candidate's reply as it arrived: who it is from, the subject, the sanitized HTML part (may be empty) and the plain-text\npart, and the files that came with it. `autoReply` marks an out-of-office or other automatic answer."
+      },
       "Recommendation": {
         "enum": [
           "StrongNo",
@@ -18100,6 +18666,128 @@
         },
         "description": "An email to the candidates of these applications, one each, rendered for each candidate. Give the wording\n(`subject` and `body`, Liquid over the general variables), a `templateId` to send the template as it\nstands, or both: then the wording goes, changed for this send only, and the template id records where it started.\nA blank email has wording and no template id."
       },
+      "SendingDomainDetail": {
+        "required": [
+          "domain",
+          "status",
+          "fromAddress",
+          "replyHost",
+          "records",
+          "createdAt",
+          "lastCheckedAt",
+          "verifiedAt",
+          "providerMessage"
+        ],
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SendingDomainStatus"
+          },
+          "fromAddress": {
+            "type": "string"
+          },
+          "replyHost": {
+            "type": "string"
+          },
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SendingDomainRecordEntry"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastCheckedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "verifiedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "providerMessage": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "A sending domain and what is left to do. `status` is Verified only once the email provider confirms the records,\nand only then does mail come from `fromAddress`; until then it keeps ScreenHire's address."
+      },
+      "SendingDomainRecordEntry": {
+        "required": [
+          "purpose",
+          "type",
+          "host",
+          "value",
+          "priority",
+          "state",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "purpose": {
+            "$ref": "#/components/schemas/SendingDomainRecordPurpose"
+          },
+          "type": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "priority": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "state": {
+            "$ref": "#/components/schemas/SendingDomainRecordState"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "description": "One DNS record to add at the domain's DNS host, why it is needed, and what the last check found."
+      },
+      "SendingDomainRecordPurpose": {
+        "enum": [
+          "Dkim",
+          "ReturnPath",
+          "Replies"
+        ],
+        "description": "Why a record is on the list."
+      },
+      "SendingDomainRecordState": {
+        "enum": [
+          "NotChecked",
+          "Matches",
+          "Differs",
+          "Missing"
+        ],
+        "description": "What the last DNS lookup found for a record."
+      },
+      "SendingDomainStatus": {
+        "enum": [
+          "Pending",
+          "Verified"
+        ]
+      },
       "SentEmail": {
         "required": [
           "id",
@@ -18145,6 +18833,18 @@
           }
         },
         "description": "An email exactly as it went to the candidate: the address, the subject, the HTML part and the plain-text part."
+      },
+      "SetSendingDomainRequest": {
+        "required": [
+          "domain"
+        ],
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string"
+          }
+        },
+        "description": "The domain to send from, such as `example.com`. Replaces the organization's current one."
       },
       "SignalCategory": {
         "enum": [

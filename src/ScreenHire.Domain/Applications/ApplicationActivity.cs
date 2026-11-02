@@ -26,6 +26,8 @@ public static class ApplicationActivity
         ApplicationEventType.NoteDeleted,
         ApplicationEventType.ScorecardSubmitted,
         ApplicationEventType.EmailSent,
+        // The candidate's reply is the candidate acting, like applying or answering a questionnaire.
+        ApplicationEventType.EmailReceived,
         // A follow-up questionnaire's link is an email to the candidate.
         ApplicationEventType.QuestionnaireSent,
         ApplicationEventType.QuestionnaireCompleted,

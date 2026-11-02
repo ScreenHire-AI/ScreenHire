@@ -39,6 +39,9 @@ public enum ChangeSubjectKind
 
     /// <summary>A saved candidate's note, on the Saved candidates page. The subject is the saved entry.</summary>
     TalentPoolEntry,
+
+    /// <summary>The organization's sending domain, on Settings, Sending domain: added, verified, no longer verified and removed.</summary>
+    SendingDomain,
 }
 
 /// <summary>

@@ -14,15 +14,14 @@ namespace ScreenHire.Api.Applications;
 /// </summary>
 internal static class TalentPoolReads
 {
-    // What counts as contacting a candidate: the events that record an email to them. Replies are not read yet (roadmap
-    // item 1); when they are, their event type joins this list.
-    private static readonly ApplicationEventType[] ContactTypes = [ApplicationEventType.EmailSent];
+    // What counts as contacting a candidate: the events that record an email to them or a reply from them.
+    private static readonly ApplicationEventType[] ContactTypes = [ApplicationEventType.EmailSent, ApplicationEventType.EmailReceived];
 
     /// <summary>
     /// Everyone saved whose permission still holds. A pool is a few hundred people at most, so it is one read and the rule
     /// runs here. <paramref name="userId"/> is the member reading, for the reviewer gate on Rating (null for an API key,
-    /// which has no scorecards to give). The rating is the one the candidate page shows; the last email is the newest to
-    /// the candidate over every application the reader sees, whichever job it was for.
+    /// which has no scorecards to give). The rating is the one the candidate page shows; the last contact is the newest email to
+    /// the candidate or reply from them over every application the reader sees, whichever job it was for.
     /// </summary>
     public static async Task<TalentPoolList> ReadAsync(ScreenHireDbContext db, Guid? userId, CancellationToken cancellationToken)
     {

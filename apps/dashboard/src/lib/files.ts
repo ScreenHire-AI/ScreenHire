@@ -2,7 +2,7 @@ import type { ApplicationFileSummary, MalwareScanStatus } from '@screenhire/api-
 import type { StatusName } from '#lib/status.js';
 
 /** The API offers a file only once its scan is clean or when no scanner is configured (docs/architecture/apply-flow.md). */
-export const canDownload = (file: ApplicationFileSummary) => file.scanStatus === 'Clean' || file.scanStatus === 'NotScanned';
+export const canDownload = (file: Pick<ApplicationFileSummary, 'scanStatus'>) => file.scanStatus === 'Clean' || file.scanStatus === 'NotScanned';
 
 /**
  * The file viewer draws PDFs, in its isolated frame, and only files a person may download. Images and Word files have
@@ -20,5 +20,5 @@ const withheld: Record<Exclude<MalwareScanStatus, 'Clean' | 'NotScanned'>, Withh
 };
 
 /** The reason a file is withheld, or undefined when it may be downloaded. */
-export const withheldReason = (file: ApplicationFileSummary): Withheld | undefined =>
+export const withheldReason = (file: Pick<ApplicationFileSummary, 'scanStatus'>): Withheld | undefined =>
   canDownload(file) ? undefined : withheld[file.scanStatus as keyof typeof withheld];

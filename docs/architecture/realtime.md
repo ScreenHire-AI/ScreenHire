@@ -117,8 +117,10 @@ The migration `GrantAppRoleApiMessagingAccess` creates `wolverine_api` and grant
   on. A connection is in one of the two kinds, never both, so an event sent to both arrives once, and neither name is a
   record topic. Every tenant event that carries a job id implements `IJobEvent` and goes to the all-jobs group and its
   job's team group (`RealtimeGroups.For`, held by `RealtimeGroupsTests`); one with no job, such as
-  `HiringTemplateVersionPublished` and `TemplateChanged`, goes to `org:{organizationId}`. `TeamNotified` and `TeammateMentioned` are job
-  events too, so a notification card never tells anyone about a job they cannot see.
+  `HiringTemplateVersionPublished` and `TemplateChanged`, goes to `org:{organizationId}`. `TeamNotified`, `TeammateMentioned` and `CandidateReplied` are job
+  events too, so a notification card never tells anyone about a job they cannot see. `CandidateEmailStatusChanged` (the
+  provider flagged a candidate's address, or the flag was cleared) carries a candidate id and no job, so it goes to
+  `org:{organizationId}`; it holds no name, address or reason.
 - **Subscriptions.** `Subscribe(topic, id)` and `Unsubscribe(topic, id)` add a connection to one record's group,
   `org:{organizationId}:{topic}:{id}`. `RealtimeTopics.Exists` checks the record as the caller, so another
   organization's record, and a job outside a member's hiring teams, fails exactly like a missing one. Today the only
@@ -157,7 +159,9 @@ and the Team page's counts, so a person just added sees the job appear.
   goes through `LiveUpdates.onEvent`: the shell turns `TeamNotified` into a notification in its tray, after reading the
   application and the run through the API, because the event carries ids only. `TeammateMentioned` reaches the whole
   organization like every event, and only the dashboard of `mentionedUserId` shows its card; the worker's handler of the
-  same event sends the mention email.
+  same event sends the mention email. `CandidateReplied` works the same way: the shell shows a card to the member in
+  `senderUserId` (who sent the email the candidate answered), or to every member the event reaches when `senderUserId` is null
+  because an automation sent it, and none for an `autoReply`; the worker's handler of the same event emails the sender once.
 - `realtimeEventSchemas` has a Zod schema per event. `parseRealtimeEvent` ignores an unknown type, which a newer API may
   send, and throws on a known type that does not match its schema.
 

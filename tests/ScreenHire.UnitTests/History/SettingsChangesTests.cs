@@ -79,6 +79,26 @@ public sealed class SettingsChangesTests
         SettingsChanges.Verification(null, off).Should().BeEmpty("saving the defaults changes nothing");
     }
 
+    [Fact]
+    public void The_sending_domain_says_when_it_is_added_verified_no_longer_verified_and_removed_and_nothing_for_a_check_that_found_the_same()
+    {
+        var pending = new SendingDomain { Domain = "acme.example.org" };
+        var verified = new SendingDomain { Domain = "acme.example.org" };
+        var now = new DateTimeOffset(2026, 11, 2, 9, 0, 0, TimeSpan.Zero);
+        verified.RecordCheck([], providerConfirmed: true, providerMessage: null, now);
+        var stillPending = new SendingDomain { Domain = "acme.example.org" };
+        stillPending.RecordCheck([], providerConfirmed: false, providerMessage: "Not yet.", now);
+
+        Sentences(SettingsChanges.SendingDomain(null, pending)).Should().Equal("added the sending domain acme.example.org");
+        Sentences(SettingsChanges.SendingDomain(pending, verified)).Should().Equal("verified the sending domain acme.example.org: email now comes from it");
+        Sentences(SettingsChanges.SendingDomain(verified, pending)).Should().Equal(
+            "found the sending domain acme.example.org no longer verified: email comes from ScreenHire again");
+        Sentences(SettingsChanges.SendingDomain(verified, null)).Should().Equal("removed the sending domain acme.example.org");
+        SettingsChanges.SendingDomain(pending, stillPending).Should().BeEmpty("a check that found it still waiting is not a change anyone made");
+        SettingsChanges.SendingDomain(verified, verified).Should().BeEmpty();
+        SettingsChanges.SendingDomain(null, null).Should().BeEmpty();
+    }
+
     private static Organization Organization(string name, string? brandColor = null)
     {
         var organization = new Organization { Name = name, Slug = "brightwater", HomeRegion = "eu" };
