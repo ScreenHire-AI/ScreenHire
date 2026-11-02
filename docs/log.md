@@ -1,5 +1,14 @@
 # Log
 
+## 2026-11-02
+
+**Interview scheduling runs on the Google Calendar and Microsoft Graph APIs** ([ADR-0021](adr/0021-interview-scheduling-on-calendar-apis.md)).
+The owner's decision recorded on 2026-10-31 is built. Members connect their own calendar from the account menu, a
+candidate books from an emailed link with no account, and each interviewer gets the event in their own calendar. The
+workflow engine now accepts the `ScheduleInterview` action and the `InterviewScheduled` trigger, never from a
+verification signal or a passed time limit. [Interview scheduling](architecture/interview-scheduling.md) describes it;
+the roadmap's item 4 moved to done, and [local demo](operations/local-demo.md) shows how to try the sandbox calendar.
+
 ## 2026-10-31
 
 **The test gate runs on GitHub Actions** ([ADR-0020](adr/0020-test-gate-on-github-actions.md)). Agents run

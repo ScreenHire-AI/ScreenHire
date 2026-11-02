@@ -22,12 +22,13 @@ Architecture decision records, oldest first. A changed decision is a new or amen
 * [ADR-0018: Employer branding refuses failing colours, hosts six heading fonts and serves images on the careers origin](0018-branding.md) - Branding v1: a colour is used as given and refused with the nearest passing shade when it fails WCAG 2.2 AA, the second colour fills the header band with white or ink on it, six self-hosted OFL heading fonts, PNG and JPEG images only, served same-origin at one address per image, and an email logo that can never be a tracking pixel.
 * [ADR-0019: Integrity is renamed Verification in code, the API, events, configuration and tables](0019-rename-integrity-to-verification.md) - Before launch, every name that said integrity says verification: API routes and schemas, the verification.assessed webhook event, the realtime event, ScreenHire:Verification configuration, the verification_* tables by a migration that renames and never drops, namespaces, the dashboard, docs and agents; what keeps its name and why.
 * [ADR-0020: The test gate runs on GitHub Actions, and agents run only fast checks and their own tests locally](0020-test-gate-on-github-actions.md) - The board's test gate moves from the local pnpm verify to CI's Gate check on a public AGPL-3.0 repository closed to contributions: verify:fast plus a branch's own tests by class or file locally, one push per Testing run, Merge on a green Gate without a re-run when main moved, a red main fixed by the next task, Lighthouse report-only, and why private hosted runners, a rented self-hosted runner and a machine-wide stack limit were rejected.
+* [ADR-0021: Interview scheduling runs on the Google Calendar and Microsoft Graph APIs](0021-interview-scheduling-on-calendar-apis.md) - Interviews are scheduled on members' own calendars through the free Google Calendar and Microsoft Graph APIs behind one provider interface and a Postgres-backed sandbox: calendar OAuth kept apart from sign-in with free/busy and event scopes only, encrypted per-member tokens, a no-account booking link on the careers site, one event per interviewer, double-booking prevented by advisory locks, lazy expiry, and why Cal.com, Nylas, Cronofy and a calendar of our own were rejected.
 
 ## Status
 
 | ADR | Status |
 |---|---|
-| 0001, 0002, 0006 to 0008, 0012, 0014 to 0016, 0018 to 0020 | Accepted |
+| 0001, 0002, 0006 to 0008, 0012, 0014 to 0016, 0018 to 0021 | Accepted |
 | 0003 | Accepted, Lighthouse enforcement amended by 0020 (report-only in CI until calibrated on the runners) |
 | 0004, 0011 | Accepted, terminology amended by 0019 (integrity is called verification) |
 | 0005 | Accepted with a gate: the Signal Network stays flagged off until a legal review and DPIA |

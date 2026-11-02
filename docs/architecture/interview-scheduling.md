@@ -27,6 +27,7 @@ sources:
   - resource: src/ScreenHire.Application/Scheduling/InterviewMessages.cs
   - resource: apps/api/Endpoints/InterviewEndpoints.cs
   - resource: apps/api/Hiring/InterviewerReferences.cs
+  - resource: src/ScreenHire.Application/Automations/ExecuteAutomationActionHandler.cs
   - resource: tests/ScreenHire.IntegrationTests/Scheduling/InterviewWorkflowActionTests.cs
   - resource: apps/api/Contracts/InterviewContracts.cs
   - resource: apps/api/Endpoints/PublicInterviewEndpoints.cs
@@ -51,10 +52,10 @@ sources:
 # Interview scheduling on team calendars
 
 ScreenHire schedules interviews on the calendars the team already uses, through the free Google Calendar and Microsoft
-Graph APIs. This page describes a member connecting and disconnecting their own calendar, the interview
-request with its slot finder and booking transaction, the routes that offer, book, move and cancel an interview, the
-worker that writes the events and emails the candidate, the careers page the candidate books on, and the recruiter's side
-in the dashboard, and the workflow action that offers an interview without a person.
+Graph APIs ([ADR-0021](../adr/0021-interview-scheduling-on-calendar-apis.md)). This page describes a member connecting
+and disconnecting their own calendar, the interview request with its slot finder and booking transaction, the routes that
+offer, book, move and cancel an interview, the workflow action that offers one without a person, the worker that writes
+the events and emails the candidate, the careers page the candidate books on, and the recruiter's side in the dashboard.
 
 ## Connecting a calendar
 
@@ -291,7 +292,7 @@ A change that cannot happen is a problem whose `type` (also its `code` member) s
 that holds the interviewers' locks and the outbox: the request and attendees, the timeline entry
 (`InterviewBooked` or `InterviewRescheduled`, no actor), `CreateInterviewEvents` or `UpdateInterviewEvents` with the
 revision, and `InterviewChanged` commit together or not at all. A first booking also raises the `InterviewScheduled`
-automation trigger (`RunAutomations`, keyed on the interview), which no automation can use until the validator accepts it.
+automation trigger (`RunAutomations`, keyed on the interview), so an automation can tag or notify when a time is picked.
 
 ## The worker
 

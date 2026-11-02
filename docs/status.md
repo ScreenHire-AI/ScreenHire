@@ -30,6 +30,7 @@ What comes next, in order, is the [roadmap](roadmap.md).
 | Roles and permissions | The server checks permissions, not role names, on every route; custom roles copied from a built-in or custom role, edited on their own page with History, deleted only when nobody has them; nobody gives more access than their own role has; Owner-only permissions stay with Owners; API keys capped by their creator ([ADR-0014](adr/0014-permissions-and-custom-roles.md)) | the custom roles task |
 | API access | Organization API keys on the hiring API (jobs, applications, candidates, templates): read or read and write, shown once, a per-key rate limit, revocable ([ADR-0011](adr/0011-api-keys-for-integrators.md)) | #37 |
 | Slack | An Owner or Admin connects the workspace from Settings > Slack and picks a channel and the events posted there (a new application, a candidate moved, an automation that failed, a job published); each person links their own account from their menu for their mentions and tasks as direct messages; messages name the candidate and the job and link to them, and never carry verification output ([Slack](architecture/slack.md)) | the Slack task |
+| Interview scheduling | A member connects their own Google or Outlook calendar from the account menu (sign-in keeps no tokens, and the scopes are free/busy and events only); a recruiter with the permission to email candidates offers an interview from the candidate's page, or a `ScheduleInterview` automation does; the candidate picks a time that is free for every interviewer on a careers page that needs no account and no script, and can move or cancel it from the same link; one calendar event per interviewer with a Meet or Teams link, an advisory-locked booking that never double-books an interviewer, confirmation and cancellation emails, an Interview panel and a booked time on the candidate's page, and an `InterviewScheduled` automation trigger. No verification output reaches a calendar, an email or the page ([interview scheduling](architecture/interview-scheduling.md), [ADR-0021](adr/0021-interview-scheduling-on-calendar-apis.md)) | the interview scheduling task |
 | MCP server | A team's AI assistant at `/v1/mcp`, signed in with an API key: find jobs and candidates, read an application with the candidate's words marked, add notes, tags and tasks, move a candidate to a stage; Read keys see only the reads; no verification output ([MCP server](architecture/mcp-server.md)) | the MCP server task |
 | Hiring | Jobs with versions, hiring templates (system and your own), candidates, applications, the pipeline | #9 |
 | Reports | A Reports page for every member, over a date range and chosen jobs: the hiring funnel by stage kind with the share that moved on, median time to hire per job and overall, applications and hires by source; each chart has a table view; job access narrows the numbers; no verification data ([Reports](architecture/reports.md)) | the reports task |
@@ -67,6 +68,7 @@ hidden rather than an error.
 | Job boards | A sandbox push board (Development only) and the feeds; Google Indexing has a local fake and is off unless set; Indeed is flags only |
 | Webhook receivers | `WebhookReceiver` in `tests/ScreenHire.Testing`, a local server, so no test needs the internet |
 | Slack | The sandbox workspace behind `ISlackClient` (Development only, on in the test stacks); with no Slack app configured, Settings > Slack says it is not set up |
+| Calendars | The sandbox calendar behind `ICalendarProvider` (Development only, on in `pnpm dev` and the test stacks); with no Google or Microsoft app configured those buttons are hidden |
 | IP data | Configured ranges for the RFC 5737 documentation addresses; an ip2asn file and a Tor exit list are optional and absent |
 | Storage, bot challenge, malware scan | Azurite; Turnstile unconfigured (recorded as "not checked", the honeypot still works); `NoMalwareScanner`, which records every file as "not scanned" |
 | Built, flagged off | The cross-employer Signal Network, off until legal review (ADR-0005) |
@@ -94,6 +96,7 @@ brackets.
   Home's Messages tab on. Put its client id in `ScreenHire:Slack:ClientId` and its secret in the `slack-client-secret`
   parameter. Before real tenants connect, add Slack to the sub-processor list, and list the app in the Slack
   Marketplace if it is to be found there (the Slack task).
+- **Calendars.** Create a Google Cloud OAuth client with the sensitive scopes `calendar.freebusy` and `calendar.events`, redirect URI `{AppOrigin}/v1/calendar/oauth/callback/google`, and submit the app for Google's verification, which takes weeks (until then only test users can connect). Register a Microsoft Entra application for any organizational directory and personal accounts, with delegated `Calendars.ReadWrite` and `offline_access` and the redirect URI `{AppOrigin}/v1/calendar/oauth/callback/microsoft`. Put each client id in `ScreenHire:Calendar:<Provider>:ClientId` and each secret in the `google-calendar-client-secret` and `microsoft-calendar-client-secret` parameters. The Data Protection key ring protection above now also guards calendar tokens. Add Google and Microsoft calendar access to the sub-processor list before real tenants connect (the interview scheduling task).
 - **Integrators.** Integrator docs and terms must carry the `verification.assessed` guidance on automated rejection
   (GDPR Art. 22, NYC LL144 and the other rules in [legal](research/legal.md)); no integrator docs exist yet (#36).
 - **LLM.** Set `ScreenHire:Verification:Llm:Provider=Anthropic` and the `anthropic-api-key` secret, then replace the
@@ -126,6 +129,7 @@ brackets.
 
 ## Known gaps
 
+- Interview scheduling sends no reminders, and a recruiter cannot move a booked interview for the candidate: they cancel it and offer a new one. Events made for interviewers on different providers are separate copies, not one shared event ([interview scheduling](architecture/interview-scheduling.md)).
 - Reports know two sources, the careers page and a recruiter, because nothing records which job board sent a careers
   applicant, and they count an application through the careers widget under the careers page although it records its
   site; the MCP server and API keys have no report yet; and stage kinds come from each job's current workflow, so a
