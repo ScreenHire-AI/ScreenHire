@@ -951,6 +951,11 @@ public static partial class DefinitionValidator
             // Its links are for one candidate and one job, which only a person's Invite to apply chooses.
             errors.Add(new(Join(path, "emailTemplate"), "The invitation to apply is sent only from the talent pool, by a person."));
         }
+        else if (action.EmailTemplate is not null && EmailTemplateIds.IsInterview(action.EmailTemplate))
+        {
+            // Their links are for one interview request, which only scheduling an interview creates.
+            errors.Add(new(Join(path, "emailTemplate"), "The interview emails are sent only when an interview is scheduled, with their links."));
+        }
         else if (action.Type == ActionType.Reject && action.EmailTemplate is not null && action.EmailTemplate != EmailTemplateIds.ApplicationRejected)
         {
             errors.Add(new(Join(path, "emailTemplate"), $"A Reject action sends {EmailTemplateIds.ApplicationRejected}, with its reason; leave emailTemplate out."));

@@ -49,6 +49,9 @@ export const invalidations: InvalidationMap = {
   ApplicationMoved: [jobsPath, applicationsPath, candidatesPath, reportsPath],
   // The application's Activity, the candidate's Messages (every email to them) and every list's last activity.
   ApplicationEmailed: [jobsPath, applicationsPath, candidatesPath],
+  // An interview offered, booked, moved or cancelled: the application's interviews (`/v1/applications/{id}/interviews`),
+  // its Activity and every list's last activity.
+  InterviewChanged: [jobsPath, applicationsPath, candidatesPath],
   ApplicationNoteAdded: [jobsPath, applicationsPath, candidatesPath],
   ApplicationNoteEdited: [jobsPath, applicationsPath, candidatesPath],
   ApplicationNoteDeleted: [jobsPath, applicationsPath, candidatesPath],

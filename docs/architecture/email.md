@@ -17,6 +17,12 @@ sources:
   - resource: src/ScreenHire.Infrastructure/Email/Templates/questionnaire-request.subject.liquid
   - resource: src/ScreenHire.Infrastructure/Email/Templates/stage-change.body.liquid
   - resource: src/ScreenHire.Infrastructure/Email/Templates/stage-change.subject.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-invitation.body.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-invitation.subject.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-confirmation.body.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-confirmation.subject.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-cancelled.body.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-cancelled.subject.liquid
   - resource: src/ScreenHire.Application/Applications/SendApplicationEmail.cs
   - resource: src/ScreenHire.Domain/Applications/ApplicationEmail.cs
   - resource: apps/api/Endpoints/EmailEndpoints.cs
@@ -41,8 +47,9 @@ appears in the application's Activity and the candidate's Messages. Candidates c
 There are two kinds, both listed by `GET /v1/email-templates` and edited on the Templates page's Emails tab
 (`/templates/emails/{id}`; the old `/settings/email-templates` addresses redirect there):
 
-- **Built-in.** `application-received`, `stage-change`, `questionnaire-request`, `application-rejected` and
-  `talent-pool-invitation` (`EmailTemplateIds`). ScreenHire's
+- **Built-in.** `application-received`, `stage-change`, `questionnaire-request`, `application-rejected`,
+  `talent-pool-invitation` and the three interview emails `interview-invitation`, `interview-confirmation` and
+  `interview-cancelled` (`EmailTemplateIds`). ScreenHire's
   wording lives in `src/ScreenHire.Infrastructure/Email/Templates` (`{id}.subject.liquid`, `{id}.body.liquid`). An
   organization that edits one gets an `email_templates` row with `built_in_id` set; deleting the row restores
   ScreenHire's wording: the dashboard calls this Reset to original, and asks first. A built-in keeps its name and is
@@ -80,6 +87,15 @@ carries, and a template cannot add one. The rendered subject is one line, cut at
   why (workflow-engine.md §2).
 - The follow-up questions email (`questionnaire-request`) must use `{{ questionnaireLink }}`: the signed link to the
   questionnaire is the reason it exists (workflow-engine.md §8).
+- The interview emails ([interview scheduling](interview-scheduling.md)) are sent only by scheduling, which makes their
+  links, so like the talent pool invitation they are `invitationOnly` in the API: the composer never offers them, the
+  generic send route refuses them and no `SendEmail` action may name them. `interview-invitation` must use
+  `{{ bookingLink }}` and may use `{{ interviewLength }}`. `interview-confirmation` must use `{{ interviewTime }}` and
+  `{{ manageLink }}` and may use `{{ meetingLink }}` (empty until the organizer's calendar event has one, so wrap it in
+  `{% if meetingLink != blank %}`) and `{{ interviewLength }}`. `interview-cancelled` may use `{{ interviewTime }}`, which
+  is empty when the offer was withdrawn before a time was booked. The worker writes `interviewTime` from the instant and
+  the interview's time zone (`Tuesday 3 November 2026, 10:00 to 10:30 (Europe/London)`); the API never sends formatted
+  dates. The copy the team keeps hides the candidate's own link, as the follow-up questions email does.
 
 The template preview (`POST /v1/email-templates/preview`) renders unsaved wording with a made-up candidate, Jordan Lee.
 The dashboard shows the HTML part in a sandboxed frame, never in the page, in the preview beside the wording where both

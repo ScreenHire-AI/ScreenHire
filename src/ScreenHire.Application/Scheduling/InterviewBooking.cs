@@ -109,11 +109,7 @@ public sealed class InterviewBooking(ScreenHireDbContext db, InterviewAvailabili
         var ownsTransaction = db.Database.CurrentTransaction is null;
         await using var transaction = ownsTransaction ? await db.Database.BeginTransactionAsync(cancellationToken) : null;
         var userIds = attendees.Select(a => a.UserId).Distinct().Order().ToList();
-        foreach (var userId in userIds)
-        {
-            var key = $"interview-calendar:{interview.OrganizationId:N}:{userId:N}";
-            await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({key}, 0))", cancellationToken);
-        }
+        await InterviewLocks.TakeAsync(db, interview.OrganizationId, userIds, cancellationToken);
 
         // Another request may have booked, moved or cancelled this one while this waited for the locks.
         await db.Entry(interview).ReloadAsync(cancellationToken);
