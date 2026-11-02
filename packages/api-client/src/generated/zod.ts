@@ -6017,8 +6017,9 @@ export const GetOrganizationBrandingResponse = zod.object({
   "width": zod.int(),
   "height": zod.int(),
   "sizeBytes": zod.int(),
+  "fileName": zod.string(),
   "url": zod.string().nullable()
-}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served.')]),
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served. `fileName` is the\nname it was uploaded with.')]),
   "favicon": zod.union([zod.null(),zod.object({
   "id": zod.uuid(),
   "kind": zod.enum(['Logo', 'Favicon', 'SharingImage']).describe('What a brand image is for, which decides its limits (BrandImageRules).'),
@@ -6027,8 +6028,9 @@ export const GetOrganizationBrandingResponse = zod.object({
   "width": zod.int(),
   "height": zod.int(),
   "sizeBytes": zod.int(),
+  "fileName": zod.string(),
   "url": zod.string().nullable()
-}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served.')]),
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served. `fileName` is the\nname it was uploaded with.')]),
   "sharingImage": zod.union([zod.null(),zod.object({
   "id": zod.uuid(),
   "kind": zod.enum(['Logo', 'Favicon', 'SharingImage']).describe('What a brand image is for, which decides its limits (BrandImageRules).'),
@@ -6037,8 +6039,9 @@ export const GetOrganizationBrandingResponse = zod.object({
   "width": zod.int(),
   "height": zod.int(),
   "sizeBytes": zod.int(),
+  "fileName": zod.string(),
   "url": zod.string().nullable()
-}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served.')]),
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served. `fileName` is the\nname it was uploaded with.')]),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
   "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
@@ -6072,8 +6075,9 @@ export const UpdateOrganizationBrandingResponse = zod.object({
   "width": zod.int(),
   "height": zod.int(),
   "sizeBytes": zod.int(),
+  "fileName": zod.string(),
   "url": zod.string().nullable()
-}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served.')]),
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served. `fileName` is the\nname it was uploaded with.')]),
   "favicon": zod.union([zod.null(),zod.object({
   "id": zod.uuid(),
   "kind": zod.enum(['Logo', 'Favicon', 'SharingImage']).describe('What a brand image is for, which decides its limits (BrandImageRules).'),
@@ -6082,8 +6086,9 @@ export const UpdateOrganizationBrandingResponse = zod.object({
   "width": zod.int(),
   "height": zod.int(),
   "sizeBytes": zod.int(),
+  "fileName": zod.string(),
   "url": zod.string().nullable()
-}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served.')]),
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served. `fileName` is the\nname it was uploaded with.')]),
   "sharingImage": zod.union([zod.null(),zod.object({
   "id": zod.uuid(),
   "kind": zod.enum(['Logo', 'Favicon', 'SharingImage']).describe('What a brand image is for, which decides its limits (BrandImageRules).'),
@@ -6092,8 +6097,9 @@ export const UpdateOrganizationBrandingResponse = zod.object({
   "width": zod.int(),
   "height": zod.int(),
   "sizeBytes": zod.int(),
+  "fileName": zod.string(),
   "url": zod.string().nullable()
-}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served.')]),
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served. `fileName` is the\nname it was uploaded with.')]),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
   "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
@@ -6171,8 +6177,9 @@ export const VerifyBrandImageUploadResponse = zod.object({
   "width": zod.int(),
   "height": zod.int(),
   "sizeBytes": zod.int(),
+  "fileName": zod.string(),
   "url": zod.string().nullable()
-}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served.')
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served. `fileName` is the\nname it was uploaded with.')
 
 
 export const GetBrandImageParams = zod.object({
@@ -6187,8 +6194,9 @@ export const GetBrandImageResponse = zod.object({
   "width": zod.int(),
   "height": zod.int(),
   "sizeBytes": zod.int(),
+  "fileName": zod.string(),
   "url": zod.string().nullable()
-}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served.')
+}).describe('An uploaded brand image. `scanStatus` is the malware scan\'s: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served. `fileName` is the\nname it was uploaded with.')
 
 
 export const getOrganizationVerificationSettingsResponseLastUpdatedCreatedDefault = false;

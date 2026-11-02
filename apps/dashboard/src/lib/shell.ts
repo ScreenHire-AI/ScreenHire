@@ -6,6 +6,7 @@ import ListTodoIcon from '~icons/lucide/list-todo';
 import UsersIcon from '~icons/lucide/users';
 import type { ConnectionStatus } from '@screenhire/realtime';
 import { getContext, setContext } from 'svelte';
+import type { SettingsFeatures } from '#lib/settings.js';
 
 /** What the signed-in shell offers the pages inside it. */
 export interface Shell {
@@ -17,6 +18,8 @@ export interface Shell {
   openNotifications(): void;
   /** The hub connection's state, for the top bar's Live indicator. */
   live(): ConnectionStatus;
+  /** Which optional features this installation has (Slack today); a feature not heard from yet is missing, and counts as off. */
+  features(): SettingsFeatures;
 }
 
 const key = Symbol('shell');

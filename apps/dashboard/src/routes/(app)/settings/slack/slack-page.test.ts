@@ -1,5 +1,5 @@
 import type { SlackChannelOption, SlackStatus } from '@screenhire/api-client';
-import { fireEvent, render, screen, within } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
 import { apiStub, user } from '../../../../test-support/fixtures.js';
@@ -62,13 +62,14 @@ afterEach(() => {
 });
 
 describe('Slack page', () => {
-  it('says Slack is not set up here and offers nothing when this ScreenHire has no Slack app', async () => {
+  // The Settings layout leaves the page and the menu drops its entry (A3), so the page itself never offers Slack.
+  it('offers nothing and does not say Slack is missing when this ScreenHire has no Slack app', async () => {
     renderPage({ available: false, sandbox: false, workspace: null, account: null, settings: null });
 
-    expect(await screen.findByText('Slack is not set up here')).toBeInTheDocument();
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/v1/slack'), expect.anything()));
+    expect(screen.queryByText(/not set up/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Add to Slack/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'More actions' })).not.toBeInTheDocument();
-    await expectNoAxeViolations();
   });
 
   it('offers Add to Slack, the one primary action, before a workspace is connected', async () => {

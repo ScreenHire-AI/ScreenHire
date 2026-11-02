@@ -36,9 +36,14 @@
     width: 400,
     height: 100,
     sizeBytes: 24_576,
+    fileName: 'brightwater-logo.png',
     url: null,
   };
-  const blocked: BrandingImage = { ...scanning, kind: 'Favicon', scanStatus: 'Infected' };
+  const blocked: BrandingImage = { ...scanning, kind: 'Favicon', scanStatus: 'Infected', fileName: 'tab.png' };
+  // A one-pixel PNG stands in for the uploaded files, so the set tiles draw without a server.
+  const pixel = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  const set: BrandingImage = { ...scanning, scanStatus: 'Clean', url: pixel };
+  const sharing: BrandingImage = { ...set, kind: 'SharingImage', width: 1200, height: 630, sizeBytes: 182_400, fileName: 'share.jpg' };
 </script>
 
 <div class="flex flex-wrap items-start gap-5">
@@ -51,9 +56,12 @@
 
   <Panel title="Image field" class="flex-[1_1_420px]">
     <div class="flex flex-col gap-6">
-      <ImageField id="demo-logo" noun="logo" description="PNG or JPEG, up to 1 MB." image={scanning} onchoose={() => {}} onremove={() => {}} />
-      <ImageField id="demo-favicon" noun="favicon" description="A square PNG or JPEG." image={blocked} onchoose={() => {}} onremove={() => {}} />
-      <ImageField id="demo-sharing" noun="sharing image" description="PNG or JPEG, at least 600 by 315 pixels." image={null} onchoose={() => {}} onremove={() => {}} />
+      <ImageField id="demo-logo" kind="logo" noun="logo" description="PNG or JPEG, up to 1 MB." organizationName="Brightwater Studio" image={set} onchoose={() => {}} onremove={() => {}} />
+      <ImageField id="demo-favicon" kind="favicon" noun="favicon" description="A square PNG or JPEG." organizationName="Brightwater Studio" image={{ ...set, kind: 'Favicon', width: 64, height: 64, fileName: 'tab.png' }} onchoose={() => {}} onremove={() => {}} />
+      <ImageField id="demo-sharing" kind="sharing" noun="sharing image" description="PNG or JPEG, at least 600 by 315 pixels." organizationName="Brightwater Studio" image={sharing} onchoose={() => {}} onremove={() => {}} />
+      <ImageField id="demo-empty" kind="logo" noun="logo" description="Nothing uploaded yet." organizationName="Brightwater Studio" image={null} onchoose={() => {}} onremove={() => {}} />
+      <ImageField id="demo-scanning" kind="logo" noun="logo" description="The malware scan is running." organizationName="Brightwater Studio" image={scanning} onchoose={() => {}} onremove={() => {}} />
+      <ImageField id="demo-blocked" kind="favicon" noun="favicon" description="The scan blocked the file." organizationName="Brightwater Studio" image={blocked} onchoose={() => {}} onremove={() => {}} />
     </div>
   </Panel>
 </div>

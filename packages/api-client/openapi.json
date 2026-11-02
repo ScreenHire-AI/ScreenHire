@@ -12372,6 +12372,7 @@
           "width",
           "height",
           "sizeBytes",
+          "fileName",
           "url"
         ],
         "type": "object",
@@ -12401,6 +12402,9 @@
             "type": "integer",
             "format": "int64"
           },
+          "fileName": {
+            "type": "string"
+          },
           "url": {
             "type": [
               "null",
@@ -12408,7 +12412,7 @@
             ]
           }
         },
-        "description": "An uploaded brand image. `scanStatus` is the malware scan's: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served."
+        "description": "An uploaded brand image. `scanStatus` is the malware scan's: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served. `fileName` is the\nname it was uploaded with."
       },
       "CandidateDetail": {
         "required": [
