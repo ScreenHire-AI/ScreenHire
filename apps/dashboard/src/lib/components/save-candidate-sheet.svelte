@@ -82,7 +82,7 @@
       <Field.Field>
         <Field.Label for="save-candidate-note">Note</Field.Label>
         <Textarea id="save-candidate-note" rows={4} maxlength={maxNoteLength} bind:value={note} />
-        <Field.Description>Saved candidates shows it beside them. You can edit it there.</Field.Description>
+        <Field.Description>Saved candidates shows it beside them.</Field.Description>
       </Field.Field>
       <FailureText message={failure} />
       <div class="flex justify-end gap-2">

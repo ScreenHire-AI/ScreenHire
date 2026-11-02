@@ -14,8 +14,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
     public partial class SavedCandidatesWithoutExpiry : Migration
     {
         // Runs first, while the periods exist. The rule is the old JobApplication.FutureRolesUntil: the shorter of the period
-        // when it was given and the organization's period, 12 months when it set none. The last daily sweep may not have seen
-        // everyone, so anyone still saved on a lapsed permission leaves as the sweep took them, with Expired on their Activity.
+        // when it was given and the organization's period, 12 months when it set none. A consent with no period never counted
+        // as a permission, so it ends on the day it was given (LEAST alone would skip the NULL). The last daily sweep may not
+        // have seen everyone, so anyone still saved on a lapsed permission leaves as the sweep took them, with Expired on
+        // their Activity.
         // Row-level security is forced on all four tables and the migration has no tenant, so FORCE is off around it. The
         // settings table is dropped next, so only the other three get it back.
         private const string EndLapsedPermissions = """
@@ -27,7 +29,7 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
             WITH permissions AS (
                 SELECT application.id,
                        application.future_roles_consent_given_at + make_interval(months => LEAST(
-                           application.future_roles_consent_months, COALESCE(settings.permission_months, 12))) AS ended_at
+                           COALESCE(application.future_roles_consent_months, 0), COALESCE(settings.permission_months, 12))) AS ended_at
                 FROM applications AS application
                 LEFT JOIN talent_pool_settings AS settings ON settings.organization_id = application.organization_id
                 WHERE application.future_roles_consent_given_at IS NOT NULL

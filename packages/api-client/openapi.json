@@ -12578,6 +12578,13 @@
           },
           "stage": {
             "$ref": "#/components/schemas/ApplicationStage"
+          },
+          "keptInMindAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         },
         "description": "A candidate whose name or email matched, on one of their applications: the record to open."

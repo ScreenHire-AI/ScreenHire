@@ -8424,7 +8424,8 @@ export const SearchResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
-}).describe('A stage of the job\'s workflow, as an application sees it.')
+}).describe('A stage of the job\'s workflow, as an application sees it.'),
+  "keptInMindAt": zod.iso.datetime({"offset":true}).nullish()
 }).describe('A candidate whose name or email matched, on one of their applications: the record to open.')),
   "jobs": zod.array(zod.object({
   "id": zod.uuid(),

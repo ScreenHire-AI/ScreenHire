@@ -18,6 +18,22 @@ public sealed class SavedCandidatesTests(AppHostFixture fixture)
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
+    public async Task Search_says_when_the_team_saved_a_candidate_from_the_application_it_found()
+    {
+        using var world = await PoolWorld.CreateAsync(fixture);
+        var (job, _) = await world.OpenJobAsync("Searched job");
+        var saved = await world.KeptPersonAsync(job, "found-saved");
+        var email = ApiSession.NewEmail("found-open");
+        await world.ApplyAsync(job, email, keep: true);
+
+        var savedHit = (await world.Owner.GetAsync($"/v1/search?q={Uri.EscapeDataString(saved.Email)}")).Expect(HttpStatusCode.OK).At("candidates")[0];
+        var openHit = (await world.Owner.GetAsync($"/v1/search?q={Uri.EscapeDataString(email)}")).Expect(HttpStatusCode.OK).At("candidates")[0];
+
+        savedHit.GetProperty("keptInMindAt").ValueKind.Should().Be(JsonValueKind.String, "the palette shows Saved in place of the stage");
+        openHit.GetProperty("keptInMindAt").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
     public async Task A_permission_given_years_ago_still_lets_them_be_saved_and_stay_listed()
     {
         using var world = await PoolWorld.CreateAsync(fixture);

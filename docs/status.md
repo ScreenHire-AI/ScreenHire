@@ -120,8 +120,9 @@ brackets.
   device-check defaults per jurisdiction (notice outside the EU and EEA, consent inside) (#18). A legal review of saved candidates:
   keeping their details until the candidate asks or the team removes them, with no expiry, including permissions given
   before this under a form that promised 6 to 24 months and still running when it shipped; the apply form's "Keep my
-  details for future roles" wording and the privacy page's "Future roles" section, per market (the saved candidates
-  task).
+  details for future roles" wording and the privacy page's "Future roles" section, per market; and the note's History,
+  whose free text outlives a saved entry in append-only `change_records` with no link back to the candidate (the saved
+  candidates task).
 - **Product.** Set prices and job limits in `apps/marketing/src/lib/pricing.ts` (#6). Move jobs still on "Software
   engineer" version 1 to version 2 (#13).
 

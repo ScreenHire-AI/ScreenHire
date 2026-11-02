@@ -205,10 +205,11 @@ out (GDPR Art. 7(3)).
 - **Erasure.** No erasure or data-access request feature exists yet ("Before real customers" in the
   [roadmap](../roadmap.md)). The entry cascades from the candidate, so a future erasure removes them from the list.
   Until then, a person removes them with "They asked to be removed", which also withdraws the permission. The note's
-  History does not cascade: its before and after values are free text in `change_records`, which the app cannot delete
-  from and which has no key to the candidate. Those rows outlive the entry, unread, when someone leaves the list. An
-  erasure feature has to clear the `TalentPoolEntry` rows for the candidate's entries as the table owner, and it must
-  know those entry ids before it removes them.
+  History does not cascade. Its before and after values are free text in `change_records`, which the app cannot delete
+  from, and those rows are keyed by the entry alone. When someone leaves the list the entry goes, so the rows stay, nobody
+  can read them, and nothing links them to the candidate any more. An erasure feature cannot find them by candidate, so
+  it needs that link or a purge of orphaned `TalentPoolEntry` rows, and the legal review covers it
+  ([status](../status.md#owner-actions)).
 - **Record retention.** Nothing deletes an ended application after a period; that is the same roadmap item. It matters
   more now: nothing expires a saved candidate, so until retention exists their details stay until a person removes them
   or the candidate stops it.
