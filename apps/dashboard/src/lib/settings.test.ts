@@ -100,7 +100,7 @@ describe('visibleSettingsSections', () => {
     const owner = userAs('Owner');
 
     expect(labels(owner)).not.toContain('Slack');
-    expect(labels(owner)).toHaveLength(9);
+    expect(labels(owner)).toHaveLength(10);
     expect(visibleSettingsSections(owner, { slack: false }).map((section) => section.label)).not.toContain('Slack');
     expect(visibleSettingsSections(owner, { slack: true }).map((section) => section.label)).toContain('Slack');
   });
