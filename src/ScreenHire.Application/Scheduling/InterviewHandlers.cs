@@ -30,6 +30,18 @@ internal sealed record InterviewContext(
 
 internal static class InterviewContexts
 {
+    /// <summary>
+    /// <see cref="LoadAsync"/> under the interviewers' locks, which the handler's transaction then holds through its calendar
+    /// calls. A cancellation or a move takes the same locks, so it waits for the handler to commit and then sees the event
+    /// ids it needs, and the handler reads the status and revision only after any earlier change has committed.
+    /// </summary>
+    public static async Task<InterviewContext?> LockAndLoadAsync(ScreenHireDbContext db, Guid organizationId, Guid interviewId, CancellationToken cancellationToken)
+    {
+        var interviewers = await db.InterviewAttendees.AsNoTracking().Where(a => a.InterviewId == interviewId).Select(a => a.UserId).ToListAsync(cancellationToken);
+        await InterviewLocks.TakeAsync(db, organizationId, interviewers, cancellationToken);
+        return await LoadAsync(db, interviewId, cancellationToken);
+    }
+
     /// <summary>The rows for <paramref name="interviewId"/>, or null when any is gone (the application was deleted since).</summary>
     public static async Task<InterviewContext?> LoadAsync(ScreenHireDbContext db, Guid interviewId, CancellationToken cancellationToken)
     {
@@ -147,6 +159,7 @@ internal static partial class InterviewCalendarSync
 
     /// <summary>Creates, or when <paramref name="move"/> moves, each interviewer's event for a Booked interview.</summary>
     public static async Task<OutgoingMessages> WriteAsync(
+        Guid organizationId,
         Guid interviewId,
         int revision,
         bool move,
@@ -163,7 +176,7 @@ internal static partial class InterviewCalendarSync
         CancellationToken cancellationToken)
     {
         var outgoing = new OutgoingMessages();
-        var context = await InterviewContexts.LoadAsync(db, interviewId, cancellationToken);
+        var context = await InterviewContexts.LockAndLoadAsync(db, organizationId, interviewId, cancellationToken);
         if (context is null || !InterviewText.IsCurrent(context.Interview, revision, InterviewStatus.Booked) || context.Interview.StartsAt is not { } start)
         {
             LogSuperseded(logger, interviewId, revision);
@@ -232,6 +245,7 @@ internal static partial class InterviewCalendarSync
 
     /// <summary>Removes each interviewer's event for a Cancelled interview and tells the candidate it is cancelled.</summary>
     public static async Task<OutgoingMessages> CancelAsync(
+        Guid organizationId,
         Guid interviewId,
         int revision,
         ScreenHireDbContext db,
@@ -245,7 +259,7 @@ internal static partial class InterviewCalendarSync
         CancellationToken cancellationToken)
     {
         var outgoing = new OutgoingMessages();
-        var context = await InterviewContexts.LoadAsync(db, interviewId, cancellationToken);
+        var context = await InterviewContexts.LockAndLoadAsync(db, organizationId, interviewId, cancellationToken);
         if (context is null || !InterviewText.IsCurrent(context.Interview, revision, InterviewStatus.Cancelled))
         {
             LogSuperseded(logger, interviewId, revision);
@@ -357,7 +371,7 @@ public static class CreateInterviewEventsHandler
         ILogger<CreateInterviewEvents> logger,
         CancellationToken cancellationToken) =>
         InterviewCalendarSync.WriteAsync(
-            message.InterviewId, message.Revision, move: false, db, calendar, email, renderer, store, links, headers, dashboard, time, logger, cancellationToken);
+            message.OrganizationId, message.InterviewId, message.Revision, move: false, db, calendar, email, renderer, store, links, headers, dashboard, time, logger, cancellationToken);
 }
 
 /// <summary>Moves each interviewer's event to the new time and confirms it to the candidate (<see cref="InterviewCalendarSync"/>).</summary>
@@ -378,7 +392,7 @@ public static class UpdateInterviewEventsHandler
         ILogger<UpdateInterviewEvents> logger,
         CancellationToken cancellationToken) =>
         InterviewCalendarSync.WriteAsync(
-            message.InterviewId, message.Revision, move: true, db, calendar, email, renderer, store, links, headers, dashboard, time, logger, cancellationToken);
+            message.OrganizationId, message.InterviewId, message.Revision, move: true, db, calendar, email, renderer, store, links, headers, dashboard, time, logger, cancellationToken);
 }
 
 /// <summary>Removes each interviewer's event and tells the candidate the interview is cancelled (<see cref="InterviewCalendarSync"/>).</summary>
@@ -397,5 +411,5 @@ public static class CancelInterviewEventsHandler
         ILogger<CancelInterviewEvents> logger,
         CancellationToken cancellationToken) =>
         InterviewCalendarSync.CancelAsync(
-            message.InterviewId, message.Revision, db, calendar, email, renderer, store, headers, time, logger, cancellationToken);
+            message.OrganizationId, message.InterviewId, message.Revision, db, calendar, email, renderer, store, headers, time, logger, cancellationToken);
 }

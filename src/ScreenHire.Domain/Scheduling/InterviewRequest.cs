@@ -263,11 +263,18 @@ public sealed class InterviewRequest : IApplicationScoped
         Revision++;
     }
 
-    /// <summary>Keeps the meeting link the organizer's event got; a blank or overlong one is dropped.</summary>
+    /// <summary>
+    /// Keeps the meeting link the organizer's event got. It comes from the provider and ends up as a link in the dashboard and
+    /// the candidate's email, so anything but an absolute https address is dropped, as is an overlong one.
+    /// </summary>
     public void SetMeetingUrl(string? url)
     {
         var trimmed = url?.Trim();
-        MeetingUrl = string.IsNullOrEmpty(trimmed) || trimmed.Length > MaxMeetingUrlLength ? null : trimmed;
+        MeetingUrl = trimmed is { Length: <= MaxMeetingUrlLength }
+            && Uri.TryCreate(trimmed, UriKind.Absolute, out var parsed)
+            && parsed.Scheme == Uri.UriSchemeHttps
+                ? trimmed
+                : null;
     }
 
     /// <summary>

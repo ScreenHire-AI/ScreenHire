@@ -59,56 +59,60 @@ public sealed class CalendarAccess(
             return null;
         }
 
-        if (connection.AccessTokenExpiresAt - time.GetUtcNow() > RefreshWindow)
-        {
-            return await ReadAsync(connection, provider, cancellationToken);
-        }
+        var accessToken = connection.AccessTokenExpiresAt - time.GetUtcNow() > RefreshWindow
+            ? await ReadAsync(db, connection, cancellationToken)
+            : await RefreshOnOwnConnectionAsync(connection.Id, provider, cancellationToken);
+        return accessToken is null ? null : new CalendarSession(connection, provider, accessToken);
+    }
 
-        // Microsoft rotates the refresh token on every refresh, so two refreshes at once would burn the token the second
-        // one holds. The per-connection lock makes the second wait, then find the fresh token and use it.
-        var ownsTransaction = db.Database.CurrentTransaction is null;
-        await using var transaction = ownsTransaction ? await db.Database.BeginTransactionAsync(cancellationToken) : null;
-        await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({"calendar-token:" + connection.Id.ToString("N")}, 0))", cancellationToken);
-        await db.Entry(connection).ReloadAsync(cancellationToken);
-        if (connection.Problem is not null)
+    // Microsoft rotates the refresh token on every refresh, so the new one must be stored whatever happens to the work that
+    // asked for it. That work usually holds a transaction that can roll back (a booking that loses its slot, a handler that
+    // retries), which would lose the new token after the provider spent the old one and leave the member to connect again.
+    // So the refresh commits on its own connection. Two refreshes at once would burn the token the second one holds, so the
+    // per-connection lock makes the second wait, then find the fresh token and use it. The lock ends with this short
+    // transaction, not the caller's, so it can never be held across a booking.
+    private async Task<string?> RefreshOnOwnConnectionAsync(Guid connectionId, ICalendarProvider provider, CancellationToken cancellationToken)
+    {
+        string? accessToken = null;
+        await using (var own = db.CreateIndependent())
         {
-            return null;
-        }
+            await using var transaction = await own.Database.BeginTransactionAsync(cancellationToken);
+            await own.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({"calendar-token:" + connectionId.ToString("N")}, 0))", cancellationToken);
+            if (await own.CalendarConnections.SingleOrDefaultAsync(c => c.Id == connectionId, cancellationToken) is { Problem: null } connection)
+            {
+                accessToken = connection.AccessTokenExpiresAt - time.GetUtcNow() > RefreshWindow
+                    ? await ReadAsync(own, connection, cancellationToken)
+                    : await RefreshAsync(own, connection, provider, cancellationToken);
+            }
 
-        CalendarSession? session;
-        if (connection.AccessTokenExpiresAt - time.GetUtcNow() > RefreshWindow)
-        {
-            session = await ReadAsync(connection, provider, cancellationToken);
-        }
-        else
-        {
-            session = await RefreshAsync(connection, provider, cancellationToken);
-        }
-
-        if (transaction is not null)
-        {
             await transaction.CommitAsync(cancellationToken);
         }
 
-        return session;
+        // The caller's copy of the row is stale now. Reloading one that was disconnected meanwhile detaches it.
+        if (db.ChangeTracker.Entries<CalendarConnection>().SingleOrDefault(e => e.Entity.Id == connectionId) is { } entry)
+        {
+            await entry.ReloadAsync(cancellationToken);
+        }
+
+        return accessToken;
     }
 
-    private async Task<CalendarSession?> ReadAsync(CalendarConnection connection, ICalendarProvider provider, CancellationToken cancellationToken)
+    private async Task<string?> ReadAsync(ScreenHireDbContext context, CalendarConnection connection, CancellationToken cancellationToken)
     {
         if (tokens.Unprotect(connection.OrganizationId, connection.UserId, connection.ProtectedAccessToken) is { } accessToken)
         {
-            return new CalendarSession(connection, provider, accessToken);
+            return accessToken;
         }
 
-        await RecordProblemAsync(connection, cancellationToken);
+        await RecordProblemAsync(context, connection, cancellationToken);
         return null;
     }
 
-    private async Task<CalendarSession?> RefreshAsync(CalendarConnection connection, ICalendarProvider provider, CancellationToken cancellationToken)
+    private async Task<string?> RefreshAsync(ScreenHireDbContext context, CalendarConnection connection, ICalendarProvider provider, CancellationToken cancellationToken)
     {
         if (tokens.Unprotect(connection.OrganizationId, connection.UserId, connection.ProtectedRefreshToken) is not { Length: > 0 } refreshToken)
         {
-            await RecordProblemAsync(connection, cancellationToken);
+            await RecordProblemAsync(context, connection, cancellationToken);
             return null;
         }
 
@@ -119,7 +123,7 @@ public sealed class CalendarAccess(
         }
         catch (CalendarApiException e) when (e.Permanent)
         {
-            await RecordProblemAsync(connection, cancellationToken);
+            await RecordProblemAsync(context, connection, cancellationToken);
             return null;
         }
 
@@ -127,14 +131,14 @@ public sealed class CalendarAccess(
             tokens.Protect(connection.OrganizationId, connection.UserId, grant.AccessToken),
             grant.RefreshToken is { } rotated ? tokens.Protect(connection.OrganizationId, connection.UserId, rotated) : null,
             grant.ExpiresAt);
-        await db.SaveChangesAsync(cancellationToken);
-        return new CalendarSession(connection, provider, grant.AccessToken);
+        await context.SaveChangesAsync(cancellationToken);
+        return grant.AccessToken;
     }
 
-    private async Task RecordProblemAsync(CalendarConnection connection, CancellationToken cancellationToken)
+    private async Task RecordProblemAsync(ScreenHireDbContext context, CalendarConnection connection, CancellationToken cancellationToken)
     {
         connection.RecordProblem(time.GetUtcNow());
-        await db.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
     }
 
     private ICalendarProvider? Provider(CalendarProvider id) => id switch

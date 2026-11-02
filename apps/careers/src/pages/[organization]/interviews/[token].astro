@@ -220,13 +220,19 @@ const closed = !interview || state === 'Cancelled' || state === 'Expired';
               <div class="mt-6">
                 <a href={interviewPath(base, token!, { tz: here.tz, change: true })} class="button-primary">Pick another time</a>
               </div>
-              <form method="POST" action={actions.interviewCancel} aria-labelledby="cancel-heading" class="mt-10 flex flex-col items-start gap-3 border-t border-candidate-border pt-6">
-                <input type="hidden" name="organization" value={employer.slug} />
-                <input type="hidden" name="token" value={token} />
-                <input type="hidden" name="tz" value={zone} />
+              <section aria-labelledby="cancel-heading" class="mt-10 border-t border-candidate-border pt-6">
                 <h2 id="cancel-heading" class="text-candidate-body font-bold">Cannot make it?</h2>
-                <button type="submit" class="button-secondary">Cancel this interview</button>
-              </form>
+                <details class="mt-3">
+                  <summary class="button-secondary w-fit cursor-pointer">Cancel this interview</summary>
+                  <form method="POST" action={actions.interviewCancel} class="mt-4 flex flex-col items-start gap-3">
+                    <input type="hidden" name="organization" value={employer.slug} />
+                    <input type="hidden" name="token" value={token} />
+                    <input type="hidden" name="tz" value={zone} />
+                    <p class="text-candidate-body">This closes your link, and the team will need to offer a new time.</p>
+                    <button type="submit" class="button-secondary">Yes, cancel it</button>
+                  </form>
+                </details>
+              </section>
             </>
           )
         }

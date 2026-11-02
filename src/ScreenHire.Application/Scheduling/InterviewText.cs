@@ -53,17 +53,22 @@ public static class InterviewText
         return string.Join(' ', parts);
     }
 
+    /// <summary>The text without angle brackets and control characters, so it cannot be read as markup or start a new line.</summary>
+    public static string Plain(string text) => new([.. text.Where(c => c is not ('<' or '>') && !char.IsControl(c))]);
+
     /// <summary>The title every interviewer's event has.</summary>
-    public static string EventTitle(string candidateName, string jobTitle) => $"Interview: {candidateName} - {jobTitle}";
+    public static string EventTitle(string candidateName, string jobTitle) => $"Interview: {Plain(candidateName)} - {Plain(jobTitle)}";
 
     /// <summary>
     /// The body of an interviewer's event: the job, the candidate, a link to the application in the dashboard when this
     /// host knows its address, and the meeting link on the copies that do not carry it themselves (everyone but the
-    /// organizer, whose event makes it).
+    /// organizer, whose event makes it). A candidate chooses their own name, and Google renders HTML in an event's
+    /// description, so the name and the title go in as <see cref="Plain"/> text: a link in a name must not become a link in
+    /// an interviewer's calendar.
     /// </summary>
     public static string EventDescription(string candidateName, string jobTitle, Uri? applicationLink, string? meetingUrl)
     {
-        var lines = new List<string> { $"Job: {jobTitle}", $"Candidate: {candidateName}" };
+        var lines = new List<string> { $"Job: {Plain(jobTitle)}", $"Candidate: {Plain(candidateName)}" };
         if (applicationLink is not null)
         {
             lines.Add($"Application: {applicationLink}");

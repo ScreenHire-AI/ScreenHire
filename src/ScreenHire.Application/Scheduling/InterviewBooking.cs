@@ -94,7 +94,7 @@ public sealed class InterviewBooking(ScreenHireDbContext db, InterviewAvailabili
             return new InterviewBookingResult(InterviewBookingOutcome.NoCalendar, interview, attendees, []);
         }
 
-        // Before the transaction and the locks: these are the slow calls to the providers.
+        // Before the locks: these are the slow calls to the providers.
         var offered = await availability.FindSlotsAsync(interview, attendees, cancellationToken);
         if (!offered.HasAllCalendars)
         {

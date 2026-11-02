@@ -41,9 +41,12 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     /// </summary>
     public const string JobScopeFilter = "JobScope";
 
+    private readonly DbContextOptions<ScreenHireDbContext> options;
+
     public ScreenHireDbContext(DbContextOptions<ScreenHireDbContext> options, ITenantContext tenant)
         : base(options)
     {
+        this.options = options;
         Tenant = tenant;
         // Even a one-row SaveChanges runs in a transaction, so TenantSessionInterceptor can set the row-level security
         // settings as a separate command ahead of the batch.
@@ -51,6 +54,12 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     }
 
     public ITenantContext Tenant { get; }
+
+    /// <summary>
+    /// A new context for the same tenant on a connection of its own, for a write that must outlive this context's
+    /// transaction (a rotated calendar token). The caller disposes it.
+    /// </summary>
+    public ScreenHireDbContext CreateIndependent() => new(options, Tenant);
 
     public DbSet<Organization> Organizations => Set<Organization>();
 

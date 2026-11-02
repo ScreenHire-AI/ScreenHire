@@ -78,7 +78,7 @@
             <li class="flex min-w-0 flex-col gap-0.5">
               <span class="flex min-w-0 flex-wrap items-center gap-x-2 font-semibold">
                 <span class="min-w-0 break-words">{person.displayName}</span>
-                {#if person.isOrganizer}<Badge variant="muted">Organizer</Badge>{/if}
+                {#if person.isOrganizer && shown.interviewers.length > 1}<Badge variant="muted">Organizer</Badge>{/if}
               </span>
               {#if person.syncStatus === 'Failed'}
                 <FailureText role="status" message={person.syncProblem ?? `Could not put this on ${firstName(person.displayName)}'s calendar.`} />

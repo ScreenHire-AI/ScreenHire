@@ -82,6 +82,7 @@ public enum ApplicationEventType
 
     /// <summary>A person or the candidate cancelled the interview.</summary>
     InterviewCancelled,
+
     /// <summary>The candidate answered an email: their reply, kept as an <see cref="InboundEmail"/>.</summary>
     EmailReceived,
 }

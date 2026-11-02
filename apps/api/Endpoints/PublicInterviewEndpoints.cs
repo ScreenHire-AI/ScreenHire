@@ -28,7 +28,9 @@ namespace ScreenHire.Api.Endpoints;
 /// The slug's organization becomes the tenant, as on every public route, and the token must name that organization: a
 /// token for another organization, or one that is forged, damaged or long past its expiry, is a 404. The page shows only
 /// what the candidate needs: the employer, the job, the length, the offered times and their own booked time. It never
-/// names the interviewers and never holds verification output.
+/// names the interviewers and never holds verification output. An interview whose application has ended (rejected,
+/// withdrawn, hired or kept in mind) reads as cancelled, whatever its row says, so nobody books a time on the team's
+/// calendars for a job they have left.
 /// </para>
 /// <para>
 /// A change answers with a problem whose <c>type</c> (also its <c>code</c> member) says why, so the page can word it: 410 for an interview that is
@@ -87,9 +89,9 @@ internal static class PublicInterviewEndpoints
 
         var now = time.GetUtcNow();
         var interview = found.Interview;
-        var status = interview.EffectiveStatus(now);
+        var status = found.StatusAt(now);
         var minNotice = TimeSpan.FromHours(calendar.Options.Interviews.MinNoticeHours);
-        var canChange = interview.CanBeChangedByCandidate(now, minNotice);
+        var canChange = status == InterviewStatus.Booked && interview.CanBeChangedByCandidate(now, minNotice);
         IReadOnlyList<DateTimeOffset> slots = [];
         var unavailable = false;
         if (status == InterviewStatus.Open || (status == InterviewStatus.Booked && canChange))
@@ -178,7 +180,7 @@ internal static class PublicInterviewEndpoints
         }
 
         var now = time.GetUtcNow();
-        if (NotChangeable(found.Interview, reschedule, now) is { } refused)
+        if (NotChangeable(found.StatusAt(now), reschedule) is { } refused)
         {
             return refused;
         }
@@ -242,7 +244,7 @@ internal static class PublicInterviewEndpoints
 
         var interview = found.Interview;
         var now = time.GetUtcNow();
-        if (ClosedProblem(interview.EffectiveStatus(now)) is { } closed)
+        if (ClosedProblem(found.StatusAt(now)) is { } closed)
         {
             return closed;
         }
@@ -251,7 +253,7 @@ internal static class PublicInterviewEndpoints
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await InterviewLocks.TakeAsync(db, interview.OrganizationId, attendeeUsers, cancellationToken);
         await db.Entry(interview).ReloadAsync(cancellationToken);
-        if (ClosedProblem(interview.EffectiveStatus(now)) is { } closedNow)
+        if (ClosedProblem(found.StatusAt(now)) is { } closedNow)
         {
             return closedNow;
         }
@@ -279,9 +281,8 @@ internal static class PublicInterviewEndpoints
 
     // A request that cannot take this change at all, before any calendar is read: closed for good (410), or not in the state
     // the change needs (409).
-    private static ProblemHttpResult? NotChangeable(InterviewRequest interview, bool reschedule, DateTimeOffset now)
+    private static ProblemHttpResult? NotChangeable(InterviewStatus status, bool reschedule)
     {
-        var status = interview.EffectiveStatus(now);
         if (ClosedProblem(status) is { } closed)
         {
             return closed;
@@ -299,7 +300,7 @@ internal static class PublicInterviewEndpoints
         InterviewBookingOutcome.TooLate => TooLate(),
         InterviewBookingOutcome.NoCalendar => CalendarUnavailable(),
         // The request changed while this waited: say what it is now.
-        InterviewBookingOutcome.NotOpen when result.Interview is { } interview => NotChangeable(interview, reschedule, now) ?? NotBooked(),
+        InterviewBookingOutcome.NotOpen when result.Interview is { } interview => NotChangeable(interview.EffectiveStatus(now), reschedule) ?? NotBooked(),
         _ => Problem(StatusCodes.Status409Conflict, "slot_taken", "That time is no longer available", "Choose another time."),
     };
 
@@ -345,10 +346,21 @@ internal static class PublicInterviewEndpoints
 
         var row = await db.Applications.AsNoTracking()
             .Where(a => a.Id == interview.ApplicationId)
-            .Join(db.Jobs.AsNoTracking(), a => a.JobId, j => j.Id, (a, j) => new { Application = a, j.Title })
+            .Join(db.Jobs.AsNoTracking(), a => a.JobId, j => j.Id, (a, j) => new { Application = a, Job = j })
             .SingleOrDefaultAsync(cancellationToken);
-        return row is null ? null : new Found(organization, interview, row.Application, row.Title);
+        return row is null
+            ? null
+            : new Found(organization, interview, row.Application, row.Job.Title, row.Application.HasEnded(row.Job.Workflow.FindStage(row.Application.CurrentStageId)));
     }
 
-    private sealed record Found(Domain.Organizations.Organization Organization, InterviewRequest Interview, JobApplication Application, string JobTitle);
+    private sealed record Found(
+        Domain.Organizations.Organization Organization, InterviewRequest Interview, JobApplication Application, string JobTitle, bool ApplicationEnded)
+    {
+        // What the candidate is told: the request's own status, or cancelled once the application it belongs to has ended.
+        public InterviewStatus StatusAt(DateTimeOffset now)
+        {
+            var status = Interview.EffectiveStatus(now);
+            return ApplicationEnded && status is InterviewStatus.Open or InterviewStatus.Booked ? InterviewStatus.Cancelled : status;
+        }
+    }
 }

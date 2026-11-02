@@ -5,19 +5,24 @@ namespace ScreenHire.Application.Scheduling;
 
 /// <summary>
 /// The per-interviewer Postgres advisory locks that order every change to an interviewer's booked interviews
-/// (docs/architecture/interview-scheduling.md): a booking, a move and a team cancellation all take them, so one cannot
-/// slip between another's check and its write. The locks last until the current transaction ends.
+/// (docs/architecture/interview-scheduling.md): a booking, a move, a cancellation and the worker's calendar writes all take
+/// them, so one cannot slip between another's check and its write. The locks last until the current transaction ends.
 /// </summary>
 public static class InterviewLocks
 {
     /// <summary>
     /// Takes the lock of each of <paramref name="userIds"/> in sorted order, so two callers never wait on each other in a
-    /// circle. The caller has a transaction open, or the lock is released at once.
+    /// circle. A lock outside a transaction would be released at once, so that is refused.
     /// </summary>
     public static async Task TakeAsync(ScreenHireDbContext db, Guid organizationId, IEnumerable<Guid> userIds, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(db);
         ArgumentNullException.ThrowIfNull(userIds);
+        if (db.Database.CurrentTransaction is null)
+        {
+            throw new InvalidOperationException("The interview locks last for a transaction, and none is open.");
+        }
+
         foreach (var userId in userIds.Distinct().Order())
         {
             var key = $"interview-calendar:{organizationId:N}:{userId:N}";

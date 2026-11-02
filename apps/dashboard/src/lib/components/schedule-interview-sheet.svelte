@@ -154,7 +154,7 @@
 </script>
 
 <Sheet.Root bind:open>
-  <Sheet.Content side="right" class="w-full overflow-y-auto sm:max-w-xl">
+  <Sheet.Content side="right" class="w-full overflow-y-auto data-[side=right]:sm:max-w-xl">
     <Sheet.Header>
       <Sheet.Title>Schedule interview</Sheet.Title>
       <Sheet.Description>{candidateName} gets a link to pick a time.</Sheet.Description>
@@ -168,8 +168,7 @@
         </div>
         <p class="sr-only" role="status">Loading the interviewers…</p>
       {:else if nobodyConnected}
-        <!-- Nobody can be offered until a calendar is connected (A3 allows the disabled-with-reason state only for a control
-             this screen can enable, and this screen can open the sheet that does). -->
+        <!-- Nobody can be offered until a calendar is connected, and this button opens the sheet that does it. -->
         <Empty.Root>
           <Empty.Header>
             <Empty.Description>Nobody who sees this job has a calendar connected.</Empty.Description>
@@ -299,12 +298,14 @@
         </fieldset>
       {/if}
       <FailureText message={$errors._errors?.[0]} />
-      <div class="flex justify-end gap-2">
-        <Sheet.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Sheet.Close>
-        {#if people && !nobodyConnected}
-          <Button type="submit" size="lg" disabled={$submitting}><SendIcon aria-hidden="true" />Send invitation</Button>
-        {/if}
-      </div>
+      {#if !nobodyConnected}
+        <div class="flex justify-end gap-2">
+          <Sheet.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Sheet.Close>
+          {#if people}
+            <Button type="submit" size="lg" disabled={$submitting}><SendIcon aria-hidden="true" />Send invitation</Button>
+          {/if}
+        </div>
+      {/if}
     </form>
   </Sheet.Content>
 </Sheet.Root>

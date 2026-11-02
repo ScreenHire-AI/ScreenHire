@@ -70,14 +70,13 @@
   <Sheet.Content side="right" class="w-full overflow-y-auto">
     <Sheet.Header>
       <Sheet.Title>Calendar</Sheet.Title>
-      {#if connection}<Sheet.Description>{connection.providerName}</Sheet.Description>{/if}
     </Sheet.Header>
     <div class="flex flex-col gap-5 px-4 pb-4">
       {#if !connection}
         <p>Connect your calendar so ScreenHire offers candidates times you are free, and puts their interview in it.</p>
         <div class="flex flex-wrap gap-2">
-          {#each status.providers as provider (provider.id)}
-            <Button size="lg" disabled={connecting} onclick={() => connectCalendar(provider.id)}>
+          {#each status.providers as provider, index (provider.id)}
+            <Button size="lg" variant={index === 0 ? 'default' : 'outline'} disabled={connecting} onclick={() => connectCalendar(provider.id)}>
               <CalendarIcon aria-hidden="true" />Connect {provider.name}
             </Button>
           {/each}
@@ -85,8 +84,8 @@
       {:else}
         {#if connection.problem}<Notice>{calendarProblems[connection.problem]}</Notice>{/if}
         <p>
-          Connected to <span class="font-semibold">{connection.providerName}</span>{#if connection.accountEmail}
-            as <span class="font-semibold">{connection.accountEmail}</span>{/if}.
+          Connected to <span class="font-semibold">{connection.providerName}</span>{#if connection.accountEmail}{' '}as
+            <span class="font-semibold">{connection.accountEmail}</span>{/if}.
         </p>
         <div class="flex flex-wrap gap-2">
           {#if connection.problem}
