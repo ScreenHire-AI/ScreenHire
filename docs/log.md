@@ -2,6 +2,14 @@
 
 ## 2026-11-02
 
+**Hardening from the last workflow's follow-ups.** Saving a draft application needs the bot check to pass; the
+verification ruleset moved to `2026-11-02.1` for the automation analyzer's version 2 (an analyzer that changes what its
+signals mean now moves it); `TemplateChanged` refreshes open dashboards after any template edit; brand images nobody
+saved are removed after a day; a job has its own embed snippet; and the database got trigram indexes, a foreign key from
+a review action to its signal and a backfill of `change_records.created`. See [realtime](architecture/realtime.md),
+[branding](architecture/branding.md), [careers widget](architecture/careers-widget.md) and
+[testing](process/testing.md) for the details.
+
 **Verification read, an API key scope only an Owner can give** ([ADR-0021](adr/0021-verification-read-scope-for-api-keys.md)).
 This is the owner's decision that the MCP server sees verification results. An Owner can add a third scope,
 Verification read, when creating a key (a new Owner-only permission, so no Admin or custom role can). A key with it

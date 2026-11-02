@@ -1,3 +1,4 @@
+using ScreenHire.Application.Branding;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Verification.Content;
 using ScreenHire.Application.Messaging;
@@ -24,6 +25,8 @@ if (builder.Configuration["ScreenHire:Email:From"] is { Length: > 0 } from)
 // the messaging setup, whose local adapter (no storage) then stays out of the way.
 builder.AddAzureBlobServiceClient("blobs");
 builder.Services.AddSingleton<IApplicantFileStore, BlobApplicantFileStore>();
+// The daily clean-up of brand images nobody saved deletes from the brand images container (docs/architecture/branding.md).
+builder.Services.AddSingleton<IBrandImageStore, BlobBrandImageStore>();
 
 // Wolverine: the worker queue's durable inbox, every handler in ScreenHire.Application, the durability agent and the
 // cron schedules (ADR-0008, docs/architecture/messaging.md).

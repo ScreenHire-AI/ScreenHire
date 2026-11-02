@@ -111,6 +111,15 @@ export const realtimeEventSchemas = {
     // The member who changed the template last, when not the publisher, whose dashboard can say so.
     previousEditorUserId: id.nullish(),
   }),
+  // Someone changed a template. Kind is the C# TemplateKind. The id is text because a built-in email template or
+  // scorecard has a name for an id, not a Guid.
+  TemplateChanged: z.object({
+    organizationId: id,
+    kind: z.enum(['HiringTemplate', 'EmailTemplate', 'ScorecardTemplate']),
+    templateId: z.string(),
+    changedAt: instant,
+    actorUserId: actor,
+  }),
   // Levels only, never evidence: the dashboard reads the assessment itself through the API. Enums are the C#
   // AuthenticityLevel and AiAssistanceLevel.
   VerificationAssessed: z.object({
