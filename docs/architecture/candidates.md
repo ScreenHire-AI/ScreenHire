@@ -51,7 +51,7 @@ scorecard scores or recommendations. Both routes are for people: the `/v1/candid
 organization API keys does not carry them, and no MCP tool reads the history.
 
 Each application's page links to the profile as **Also applied to**, with the number of other jobs the reader sees.
-It is the third mini card in the header (ADR-0023), or the Rating card once someone scored the candidate.
+It is the third mini card in the header (ADR-0023). Once someone scored the candidate that card is Rating, and its second line links to the profile in place of the count.
 
 The history shows tags and notes as the team wrote them, the same as an application's own activity. A team that
 tags from a verification condition in an automation therefore sees that tag in the history too. That is the team's
