@@ -209,7 +209,7 @@ hire and both sources numbers to show (Last 90 days covers all of it; each panel
 Rating column on Frontend Engineer and a candidate's stars, which open to each scorecard; Joel Mensah's Messages (open the changed interview email as it went, or email him from the box at the top: start from a template, change it, and Preview shows it with his first name), his notes (type @ in the note box to mention a teammate; the mention emails are in
 Mailpit and never quote the note; Avery's own note offers Edit and Delete in its menu), a resume opened full window
 from the details rail's View, Support Engineer for a closed job and its candidates' activity with the recruiter's notes,
-Saved candidates (Grace Adeyemi, saved from Support Engineer, with no end date: the page shows Rating and Last contacted, Message opens the email composer, Edit note changes the note and shows its History, and Invite to apply sends the invitation to Mailpit with the
+Saved candidates (Grace Adeyemi, saved from Support Engineer, with no end date: the page shows Rating and Last contacted (Never until an email goes, so the invitation sets it), Message opens the email composer, Edit note changes the note and shows its History, and Invite to apply sends the invitation to Mailpit with the
 job's link and her link to stop being kept, which opens on the careers site), the Templates page (below) and its builder (questions, automations and the guardrail that refuses a
 verification-driven rejection), the workflow graph and "Simulate", Ctrl K for the command palette, the dark theme, and a
 second browser window on the same job to show live updates.
