@@ -89,6 +89,13 @@ describe('activity', () => {
       );
     });
 
+    it('says what happened to an interview without its time', () => {
+      expect(describeEvent(entry('a', { type: 'InterviewInvited' }), names)).toBe('Invited to pick an interview time');
+      expect(describeEvent(entry('b', { type: 'InterviewBooked' }), names)).toBe('Interview booked');
+      expect(describeEvent(entry('c', { type: 'InterviewRescheduled' }), names)).toBe('Interview moved to another time');
+      expect(describeEvent(entry('d', { type: 'InterviewCancelled' }), names)).toBe('Interview cancelled');
+    });
+
     it('names the job an invitation was for, and lists it under Emails', () => {
       const invited = entry('i', { type: 'InvitedToApply', otherJobId: 'j2' });
       expect(describeEvent(invited, jobNames)).toBe('Invited to apply for Support Engineer');

@@ -33,6 +33,11 @@ public static class ApplicationActivity
         // A person kept the candidate in mind, or invited them to apply for another job (docs/architecture/talent-pool.md).
         ApplicationEventType.KeptInMind,
         ApplicationEventType.InvitedToApply,
+        // An interview is offered, booked, moved or cancelled by the team or the candidate (docs/architecture/interview-scheduling.md).
+        ApplicationEventType.InterviewInvited,
+        ApplicationEventType.InterviewBooked,
+        ApplicationEventType.InterviewRescheduled,
+        ApplicationEventType.InterviewCancelled,
     ];
 
     /// <summary>

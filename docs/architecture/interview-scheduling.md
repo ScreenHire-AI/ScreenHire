@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Interview scheduling on team calendars"
-description: "Members connect their own Google, Outlook or sandbox calendar from the account menu: the OAuth round trip kept apart from sign-in, tokens under Data Protection for each member, the ICalendarProvider seam with a Postgres-backed sandbox, token refresh under an advisory lock, and the configuration that hides a provider until its client id and secret are set."
+description: "Members connect their own Google, Outlook or sandbox calendar from the account menu: the OAuth round trip kept apart from sign-in, tokens under Data Protection for each member, the ICalendarProvider seam with a Postgres-backed sandbox, token refresh under an advisory lock, and the configuration that hides a provider until its client id and secret are set. Interview requests: the slot finder in the interview's time zone, the offered times, and the booking transaction that never double-books an interviewer."
 tags: [scheduling, calendar, integrations, oauth]
 sources:
   - resource: src/ScreenHire.Domain/Scheduling/CalendarConnection.cs
@@ -15,6 +15,14 @@ sources:
   - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/CalendarConfiguration.cs
   - resource: apps/api/Endpoints/CalendarEndpoints.cs
   - resource: apps/api/Contracts/CalendarContracts.cs
+  - resource: src/ScreenHire.Domain/Scheduling/InterviewRequest.cs
+  - resource: src/ScreenHire.Domain/Scheduling/SlotFinder.cs
+  - resource: src/ScreenHire.Application/Scheduling/InterviewAvailability.cs
+  - resource: src/ScreenHire.Application/Scheduling/InterviewBooking.cs
+  - resource: src/ScreenHire.Application/Scheduling/InterviewLinks.cs
+  - resource: src/ScreenHire.Application/Scheduling/InterviewMessages.cs
+  - resource: apps/api/Endpoints/InterviewEndpoints.cs
+  - resource: tests/ScreenHire.IntegrationTests/Scheduling/InterviewBookingTests.cs
   - resource: apps/dashboard/src/lib/components/calendar-account-sheet.svelte
   - resource: apps/dashboard/src/lib/calendar.ts
   - resource: tests/ScreenHire.IntegrationTests/Calendar/CalendarConnectionTests.cs
@@ -23,8 +31,9 @@ sources:
 # Interview scheduling on team calendars
 
 ScreenHire schedules interviews on the calendars the team already uses, through the free Google Calendar and Microsoft
-Graph APIs. This page describes the part that exists so far: a member connecting and disconnecting their own calendar.
-Booking, the candidate's page and the workflow action build on it and are described here as they land.
+Graph APIs. This page describes the parts that exist so far: a member connecting and disconnecting their own calendar, and the
+interview request with its slot finder and booking transaction. The candidate's page, the workers that write events and
+the workflow action build on them and are described here as they land.
 
 ## Connecting a calendar
 
@@ -91,8 +100,46 @@ A member's busy time is their rows in `calendar_sandbox_busy` plus their live ro
 creates are idempotent on the caller's id, and their meeting link is on `meet.example.org`, a reserved host. Both routes
 exist only while the sandbox is on, and neither is in the API's description.
 
+## Interview requests and booking
+
+An `InterviewRequest` is one interview offered to one application's candidate: the interviewers (`InterviewAttendee` rows,
+the first is the organizer), a length (15, 30, 45, 60, 90 or 120 minutes), a window of at most 90 days, working hours
+(09:00 to 17:00 by default, weekdays only) in an IANA time zone, and a status of Open, Booked, Cancelled or Expired. There
+is at most one Open or Booked request per application, held by a partial unique index. An Open request past its window
+reads as Expired without a timer (`EffectiveStatus`); whoever next touches it stores that (`MarkExpired`), because the
+index sees the stored status. `Revision` counts bookings, moves and cancellations, and the idempotency keys of the
+calendar messages and the provider event ids derive from it.
+
+`SlotFinder` is pure. It walks local days in the interview's zone, so daylight saving time is right: a local time that
+does not exist is skipped, a local time that happens twice means its first occurrence, and start times are `dayStart + k *
+step` in local wall-clock time. Busy time is half-open, so a meeting that ends at 10:00 leaves 10:00 free.
+
+`InterviewAvailability` gives each interviewer's busy time from their calendar (free/busy, one interviewer at a time) plus
+the interviews ScreenHire has booked for them, and offers the times where all of them are free, at least
+`ScreenHire:Calendar:Interviews:MinNoticeHours` from now, on the `StepMinutes` grid. An interviewer with no usable calendar
+is reported by user id and nothing is offered, because times offered without their calendar could double-book them.
+
+`InterviewBooking` books or moves an interview. It recomputes the offered times and checks the chosen start is one of them,
+then takes `pg_advisory_xact_lock` per interviewer in sorted order and checks the interviews already confirmed in the
+database before it changes the request and marks every attendee Pending. A `btree_gist` exclusion constraint would do the
+last check in the database but needs extension privileges, so the lock plus the overlap query is the guard. Outcomes: Done,
+SlotTaken (not offered, or another booking got it first), NotOpen, TooLate (the candidate cannot move an interview that
+starts inside the minimum notice), NoCalendar and NotFound. It runs for the whole organization (the careers endpoints and
+the worker), because a member on Only jobs they're on would not see an interviewer's bookings on other jobs. It publishes
+nothing: the caller opens its transaction first when it needs the outbox, and publishes
+`CreateInterviewEvents` or `UpdateInterviewEvents` (ids and revision only) with the outcome.
+
+`GET /v1/interviewers?jobId=` lists the members who see the job (everyone who sees all jobs, and its hiring team), each with
+`calendarConnected` and `calendarProvider`. It needs the permission that emails candidates, since scheduling emails the
+candidate. A job the caller cannot see is a 404.
+
+`InterviewLinks` signs the careers page link (`/interviews/{token}`) with Data Protection under the purpose
+`ScreenHire.Interview.Link.v1`. One token serves the whole life of the request, valid until the window ends plus 30 days;
+the request's status is what closes it.
+
 ## Tenancy
 
-`calendar_connections`, `calendar_sandbox_busy` and `calendar_sandbox_events` are tenant-owned with forced row-level
-security, like every other tenant table. A connection is unique per organization and member. Removing a member from the
+`calendar_connections`, `calendar_sandbox_busy`, `calendar_sandbox_events`, `interview_requests` and `interview_attendees`
+are tenant-owned with forced row-level security, like every other tenant table. The last two sit under an application,
+so they also carry the restrictive `job_scope` policy (ADR-0015). A connection is unique per organization and member. Removing a member from the
 organization deletes their connection.

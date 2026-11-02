@@ -25,4 +25,8 @@ export const ApplicationEventType = {
   KeptInMind: 'KeptInMind',
   LeftTalentPool: 'LeftTalentPool',
   InvitedToApply: 'InvitedToApply',
+  InterviewInvited: 'InterviewInvited',
+  InterviewBooked: 'InterviewBooked',
+  InterviewRescheduled: 'InterviewRescheduled',
+  InterviewCancelled: 'InterviewCancelled',
 } as const;

@@ -2532,6 +2532,186 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.ToTable("calendar_sandbox_events", (string)null);
                 });
 
+            modelBuilder.Entity("ScreenHire.Domain.Scheduling.InterviewAttendee", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("application_id");
+
+                    b.Property<Guid>("InterviewId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("interview_id");
+
+                    b.Property<bool>("IsOrganizer")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_organizer");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("ProviderEventId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("provider_event_id");
+
+                    b.Property<string>("SyncProblem")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("sync_problem");
+
+                    b.Property<string>("SyncStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("sync_status");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_interview_attendees");
+
+                    b.HasIndex("OrganizationId", "ApplicationId")
+                        .HasDatabaseName("ix_interview_attendees_organization_id_application_id");
+
+                    b.HasIndex("OrganizationId", "UserId")
+                        .HasDatabaseName("ix_interview_attendees_organization_id_user_id");
+
+                    b.HasIndex("OrganizationId", "InterviewId", "UserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_interview_attendees_organization_id_interview_id_user_id");
+
+                    b.ToTable("interview_attendees", (string)null);
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Scheduling.InterviewRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("application_id");
+
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelled_at");
+
+                    b.Property<bool>("CancelledByCandidate")
+                        .HasColumnType("boolean")
+                        .HasColumnName("cancelled_by_candidate");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<TimeOnly>("DayEnd")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("day_end");
+
+                    b.Property<TimeOnly>("DayStart")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("day_start");
+
+                    b.Property<int>("DurationMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("duration_minutes");
+
+                    b.Property<DateTimeOffset?>("EndsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ends_at");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("job_id");
+
+                    b.Property<string>("MeetingUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("meeting_url");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer")
+                        .HasColumnName("revision");
+
+                    b.Property<string>("SourceKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("source_key");
+
+                    b.Property<DateTimeOffset?>("StartsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("starts_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("TimeZone")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("time_zone");
+
+                    b.Property<DateTimeOffset>("WindowEnd")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("window_end");
+
+                    b.Property<DateTimeOffset>("WindowStart")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("window_start");
+
+                    b.HasKey("Id")
+                        .HasName("pk_interview_requests");
+
+                    b.HasAlternateKey("OrganizationId", "Id")
+                        .HasName("ak_interview_requests_organization_id_id");
+
+                    b.HasIndex("OrganizationId", "ApplicationId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_interview_requests_organization_id_application_id")
+                        .HasFilter("status IN ('Open', 'Booked')");
+
+                    b.HasIndex("OrganizationId", "JobId")
+                        .HasDatabaseName("ix_interview_requests_organization_id_job_id");
+
+                    b.HasIndex("OrganizationId", "StartsAt")
+                        .HasDatabaseName("ix_interview_requests_organization_id_starts_at")
+                        .HasFilter("status = 'Booked'");
+
+                    b.HasIndex("OrganizationId", "ApplicationId", "SourceKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_interview_requests_organization_id_application_id_source_key")
+                        .HasFilter("source_key IS NOT NULL");
+
+                    b.ToTable("interview_requests", (string)null);
+                });
+
             modelBuilder.Entity("ScreenHire.Domain.Slack.SlackAccountLink", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4340,6 +4520,44 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_calendar_sandbox_events_organizations_organization_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Scheduling.InterviewAttendee", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Applications.JobApplication", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "ApplicationId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_interview_attendees_applications_organization_id_applicatio");
+
+                    b.HasOne("ScreenHire.Domain.Scheduling.InterviewRequest", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "InterviewId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_interview_attendees_interview_requests_organization_id_inte");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Scheduling.InterviewRequest", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Applications.JobApplication", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "ApplicationId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_interview_requests_applications_organization_id_application");
+
+                    b.HasOne("ScreenHire.Domain.Jobs.Job", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "JobId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_interview_requests_jobs_organization_id_job_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Slack.SlackAccountLink", b =>

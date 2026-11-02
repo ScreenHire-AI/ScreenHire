@@ -76,6 +76,7 @@ import type {
   HiringTemplateVersionDetail,
   HistoryPage,
   HttpValidationProblemDetails,
+  Interviewer,
   InvitationAcceptance,
   InvitationPreviewRequest,
   InvitationRequest,
@@ -93,6 +94,7 @@ import type {
   KeepInMindRequest,
   KeptInMind,
   LastUpdate,
+  ListInterviewersParams,
   ListJobBoardJobsParams,
   ListTasksParams,
   ListWebhookDeliveriesParams,
@@ -9740,6 +9742,63 @@ return apiFetch<startCalendarConnectResponse>(getStartCalendarConnectUrl(),
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(startCalendarConnectRequest)
+  }
+);}
+
+
+
+export type listInterviewersResponse200 = {
+  data: Interviewer[]
+  status: 200
+}
+
+export type listInterviewersResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listInterviewersResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listInterviewersResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listInterviewersResponseSuccess = (listInterviewersResponse200) & {
+  headers: Headers;
+};
+export type listInterviewersResponseError = (listInterviewersResponse401 | listInterviewersResponse403 | listInterviewersResponse404) & {
+  headers: Headers;
+};
+
+export type listInterviewersResponse = (listInterviewersResponseSuccess | listInterviewersResponseError)
+
+export const getListInterviewersUrl = (params: ListInterviewersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/interviewers?${stringifiedParams}` : `/v1/interviewers`
+}
+
+export const listInterviewers = async (params: ListInterviewersParams, options?: Parameters<typeof apiFetch>[1]): Promise<listInterviewersResponse> => {
+
+  return apiFetch<listInterviewersResponse>(getListInterviewersUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
   }
 );}
 

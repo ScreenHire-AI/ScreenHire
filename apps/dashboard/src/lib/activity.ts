@@ -1,6 +1,10 @@
 import ArrowRightIcon from '~icons/lucide/arrow-right';
 import BookmarkIcon from '~icons/lucide/bookmark';
 import BookmarkXIcon from '~icons/lucide/bookmark-x';
+import CalendarCheckIcon from '~icons/lucide/calendar-check';
+import CalendarClockIcon from '~icons/lucide/calendar-clock';
+import CalendarPlusIcon from '~icons/lucide/calendar-plus';
+import CalendarXIcon from '~icons/lucide/calendar-x';
 import ClipboardCheckIcon from '~icons/lucide/clipboard-check';
 import ClipboardListIcon from '~icons/lucide/clipboard-list';
 import InboxIcon from '~icons/lucide/inbox';
@@ -82,6 +86,10 @@ export const eventIcons: Record<ApplicationEventType, Component> = {
   KeptInMind: BookmarkIcon,
   LeftTalentPool: BookmarkXIcon,
   InvitedToApply: MailPlusIcon,
+  InterviewInvited: CalendarPlusIcon,
+  InterviewBooked: CalendarCheckIcon,
+  InterviewRescheduled: CalendarClockIcon,
+  InterviewCancelled: CalendarXIcon,
 };
 
 /** What the screen knows that an entry names by id: stage names, follow-up questionnaire names and job titles. */
@@ -145,6 +153,15 @@ export function describeEvent(entry: ApplicationTimelineEntry, names: ActivityNa
       return poolExits[entry.poolExit ?? 'Removed'](names.jobName?.(entry.otherJobId) ?? 'another job');
     case 'InvitedToApply':
       return `Invited to apply for ${names.jobName?.(entry.otherJobId) ?? 'another job'}`;
+    // The time is the interview panel's to show, in the reader's zone; Activity records only that it happened.
+    case 'InterviewInvited':
+      return 'Invited to pick an interview time';
+    case 'InterviewBooked':
+      return 'Interview booked';
+    case 'InterviewRescheduled':
+      return 'Interview moved to another time';
+    case 'InterviewCancelled':
+      return 'Interview cancelled';
   }
 }
 

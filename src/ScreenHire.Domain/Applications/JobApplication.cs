@@ -3,6 +3,7 @@ using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.Scheduling;
 
 namespace ScreenHire.Domain.Applications;
 
@@ -252,6 +253,28 @@ public sealed class JobApplication : IJobScoped
     /// <summary>The timeline entry for an invitation to apply for <paramref name="jobId"/>, which the email's own entry follows.</summary>
     public ApplicationEvent InvitedToApply(Guid jobId, DateTimeOffset now, Guid? actorUserId) =>
         NewEvent(ApplicationEventType.InvitedToApply, new ApplicationEventData(OtherJobId: jobId), now, actorUserId);
+
+    /// <summary>The timeline entry for offering an interview: the link to pick a time was emailed, which the email's own entry follows.</summary>
+    public ApplicationEvent InterviewInvited(InterviewRequest interview, DateTimeOffset now, Guid? actorUserId, Guid? automationRunId = null) =>
+        NewEvent(ApplicationEventType.InterviewInvited, new ApplicationEventData(AutomationRunId: automationRunId, InterviewId: interview.Id), now, actorUserId);
+
+    /// <summary>The timeline entry for a booking, at the interview's time. A candidate's booking has no actor.</summary>
+    public ApplicationEvent InterviewBooked(InterviewRequest interview, DateTimeOffset now, Guid? actorUserId = null) =>
+        InterviewEntry(ApplicationEventType.InterviewBooked, interview, now, actorUserId);
+
+    /// <summary>The timeline entry for moving a booked interview, at its new time.</summary>
+    public ApplicationEvent InterviewRescheduled(InterviewRequest interview, DateTimeOffset now, Guid? actorUserId = null) =>
+        InterviewEntry(ApplicationEventType.InterviewRescheduled, interview, now, actorUserId);
+
+    /// <summary>The timeline entry for a cancellation, at the time the interview had if it was booked.</summary>
+    public ApplicationEvent InterviewCancelled(InterviewRequest interview, DateTimeOffset now, Guid? actorUserId = null) =>
+        InterviewEntry(ApplicationEventType.InterviewCancelled, interview, now, actorUserId);
+
+    private ApplicationEvent InterviewEntry(ApplicationEventType type, InterviewRequest interview, DateTimeOffset now, Guid? actorUserId)
+    {
+        ArgumentNullException.ThrowIfNull(interview);
+        return NewEvent(type, new ApplicationEventData(InterviewId: interview.Id, StartsAt: interview.StartsAt, EndsAt: interview.EndsAt), now, actorUserId);
+    }
 
     /// <summary>The longest tag, as the workflow validator allows it in an AddTag action.</summary>
     public const int MaxTagLength = 50;

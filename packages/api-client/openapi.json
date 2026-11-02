@@ -9330,6 +9330,61 @@
         ]
       }
     },
+    "/v1/interviewers": {
+      "get": {
+        "tags": [
+          "Interviews"
+        ],
+        "operationId": "ListInterviewers",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Interviewer"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/email-templates": {
       "get": {
         "tags": [
@@ -11018,7 +11073,11 @@
           "TaskCreated",
           "KeptInMind",
           "LeftTalentPool",
-          "InvitedToApply"
+          "InvitedToApply",
+          "InterviewInvited",
+          "InterviewBooked",
+          "InterviewRescheduled",
+          "InterviewCancelled"
         ]
       },
       "ApplicationFileSummary": {
@@ -11590,6 +11649,27 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "interviewId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "startsAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         },
         "description": "One entry of an application's timeline, oldest first. Members that do not apply to the type are null."
@@ -14432,6 +14512,38 @@
             }
           }
         }
+      },
+      "Interviewer": {
+        "required": [
+          "userId",
+          "displayName",
+          "calendarConnected",
+          "calendarProvider"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "calendarConnected": {
+            "type": "boolean"
+          },
+          "calendarProvider": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CalendarProvider"
+              }
+            ]
+          }
+        },
+        "description": "A member who can interview for a job: one who sees it (everyone who sees all jobs, and the members on its hiring team).\n`calendarConnected` is true when their calendar is connected and works here, so ScreenHire can read when they are\nbusy and put the interview in it; an interview cannot be offered with someone who has none. `calendarProvider`\nsays which calendar it is, and is null when `calendarConnected` is false."
       },
       "InvitationAcceptance": {
         "required": [
@@ -20364,6 +20476,9 @@
     },
     {
       "name": "Calendar"
+    },
+    {
+      "name": "Interviews"
     },
     {
       "name": "Email"

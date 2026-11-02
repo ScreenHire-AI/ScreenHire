@@ -57,4 +57,10 @@ export interface ApplicationTimelineEntry {
   otherJobId?: string | null;
   /** @nullable */
   otherApplicationId?: string | null;
+  /** @nullable */
+  interviewId?: string | null;
+  /** @nullable */
+  startsAt?: string | null;
+  /** @nullable */
+  endsAt?: string | null;
 }

@@ -4145,7 +4145,7 @@ export const GetApplicationTimelineParams = zod.object({
 
 export const GetApplicationTimelineResponseItem = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -4168,7 +4168,10 @@ export const GetApplicationTimelineResponseItem = zod.object({
   "taskId": zod.uuid().nullish(),
   "poolExit": zod.union([zod.null(),zod.union([zod.literal('Expired'),zod.literal('Removed'),zod.literal('CandidateAsked'),zod.literal('AddedToJob'),zod.literal('AppliedAgain'),zod.literal('BackInJob'),zod.literal('KeptFromAnotherJob'),zod.literal(null)])]).optional(),
   "otherJobId": zod.uuid().nullish(),
-  "otherApplicationId": zod.uuid().nullish()
+  "otherApplicationId": zod.uuid().nullish(),
+  "interviewId": zod.uuid().nullish(),
+  "startsAt": zod.iso.datetime({"offset":true}).nullish(),
+  "endsAt": zod.iso.datetime({"offset":true}).nullish()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 export const GetApplicationTimelineResponse = zod.array(GetApplicationTimelineResponseItem)
 
@@ -4183,7 +4186,7 @@ export const AddApplicationNoteBody = zod.object({
 
 export const AddApplicationNoteResponse = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -4206,7 +4209,10 @@ export const AddApplicationNoteResponse = zod.object({
   "taskId": zod.uuid().nullish(),
   "poolExit": zod.union([zod.null(),zod.union([zod.literal('Expired'),zod.literal('Removed'),zod.literal('CandidateAsked'),zod.literal('AddedToJob'),zod.literal('AppliedAgain'),zod.literal('BackInJob'),zod.literal('KeptFromAnotherJob'),zod.literal(null)])]).optional(),
   "otherJobId": zod.uuid().nullish(),
-  "otherApplicationId": zod.uuid().nullish()
+  "otherApplicationId": zod.uuid().nullish(),
+  "interviewId": zod.uuid().nullish(),
+  "startsAt": zod.iso.datetime({"offset":true}).nullish(),
+  "endsAt": zod.iso.datetime({"offset":true}).nullish()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 
 
@@ -7971,6 +7977,19 @@ export const StartCalendarConnectBody = zod.object({
 export const StartCalendarConnectResponse = zod.object({
   "authorizeUrl": zod.string()
 }).describe('Where to send the browser next: the provider\'s consent page (or the sandbox\'s).')
+
+
+export const ListInterviewersQueryParams = zod.object({
+  "jobId": zod.uuid()
+})
+
+export const ListInterviewersResponseItem = zod.object({
+  "userId": zod.uuid(),
+  "displayName": zod.string(),
+  "calendarConnected": zod.boolean(),
+  "calendarProvider": zod.union([zod.null(),zod.enum(['Google', 'Microsoft', 'Sandbox']).describe('Whose calendar a member connected. CalendarProvider.Sandbox is the local stand-in (Development and tests only).')])
+}).describe('A member who can interview for a job: one who sees it (everyone who sees all jobs, and the members on its hiring team).\n`calendarConnected` is true when their calendar is connected and works here, so ScreenHire can read when they are\nbusy and put the interview in it; an interview cannot be offered with someone who has none. `calendarProvider`\nsays which calendar it is, and is null when `calendarConnected` is false.')
+export const ListInterviewersResponse = zod.array(ListInterviewersResponseItem)
 
 
 export const listEmailTemplatesResponseTemplatesItemLastUpdatedCreatedDefault = false;

@@ -46,9 +46,6 @@ public interface ICalendarProvider
 /// <summary>What a code or refresh token exchange gave back. Times are UTC instants.</summary>
 public sealed record CalendarGrant(string AccessToken, string? RefreshToken, DateTimeOffset ExpiresAt, string? AccountEmail);
 
-/// <summary>A block of time a member is busy, as UTC instants.</summary>
-public sealed record BusyInterval(DateTimeOffset Start, DateTimeOffset End);
-
 /// <summary>
 /// An event to create. <see cref="IdempotencyId"/> is derived from stable ids (interview, member and revision), never the
 /// clock or a new <see cref="Guid"/>, so a redelivered message creates the event once. <see cref="InviteEmails"/> are

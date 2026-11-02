@@ -156,6 +156,12 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     /// <summary>What the local sandbox calendar received (see <see cref="CalendarSandboxEvent"/>).</summary>
     public DbSet<CalendarSandboxEvent> CalendarSandboxEvents => Set<CalendarSandboxEvent>();
 
+    /// <summary>An interview offered to a candidate, and booked once they pick a time (see <see cref="InterviewRequest"/>).</summary>
+    public DbSet<InterviewRequest> InterviewRequests => Set<InterviewRequest>();
+
+    /// <summary>The interviewers of an interview, one calendar event each (see <see cref="InterviewAttendee"/>).</summary>
+    public DbSet<InterviewAttendee> InterviewAttendees => Set<InterviewAttendee>();
+
     /// <summary>
     /// The cross-employer Signal Network (ADR-0005). Not tenant-owned; the application role has no access to the table,
     /// and nothing uses it while the network's feature flag is off.

@@ -179,6 +179,8 @@ public static class CalendarRegistration
         services.TryAddSingleton<MicrosoftCalendarProvider>();
         services.TryAddScoped<SandboxCalendarProvider>();
         services.TryAddScoped<CalendarAccess>();
+        services.TryAddScoped<InterviewAvailability>();
+        services.TryAddScoped<InterviewBooking>();
         services.TryAddSingleton<CalendarTokens>();
         services.TryAddSingleton<CalendarOAuthState>();
         return services;

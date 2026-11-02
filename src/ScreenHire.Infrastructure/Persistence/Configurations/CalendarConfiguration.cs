@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using ScreenHire.Domain.Applications;
+using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Domain.Scheduling;
 
@@ -45,5 +47,59 @@ internal sealed class CalendarSandboxEventConfiguration : IEntityTypeConfigurati
         builder.HasIndex(e => new { e.OrganizationId, e.UserId, e.ProviderEventId }).IsUnique();
         // The free/busy query.
         builder.HasIndex(e => new { e.OrganizationId, e.UserId, e.StartsAt });
+    }
+}
+
+internal sealed class InterviewRequestConfiguration : IEntityTypeConfiguration<InterviewRequest>
+{
+    public void Configure(EntityTypeBuilder<InterviewRequest> builder)
+    {
+        builder.Property(r => r.Status).HasConversion<string>().HasMaxLength(20);
+        builder.Property(r => r.TimeZone).HasMaxLength(InterviewRequest.MaxTimeZoneLength);
+        builder.Property(r => r.MeetingUrl).HasMaxLength(InterviewRequest.MaxMeetingUrlLength);
+        builder.Property(r => r.SourceKey).HasMaxLength(InterviewRequest.MaxSourceKeyLength);
+
+        // The request goes with its application (and so its job), like the other rows under an application.
+        builder.HasOne<JobApplication>().WithMany()
+            .HasForeignKey(r => new { r.OrganizationId, r.ApplicationId })
+            .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<Job>().WithMany()
+            .HasForeignKey(r => new { r.OrganizationId, r.JobId })
+            .HasPrincipalKey(j => new { j.OrganizationId, j.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasAlternateKey(r => new { r.OrganizationId, r.Id });
+        // One live interview per application. The index sees the stored status, so an Open request past its window is
+        // stored as Expired before a new one is made.
+        builder.HasIndex(r => new { r.OrganizationId, r.ApplicationId }).IsUnique().HasFilter("status IN ('Open', 'Booked')");
+        // A workflow action that runs twice finds its request.
+        builder.HasIndex(r => new { r.OrganizationId, r.ApplicationId, r.SourceKey }).IsUnique().HasFilter("source_key IS NOT NULL");
+        // The overlap check: confirmed bookings in a time range.
+        builder.HasIndex(r => new { r.OrganizationId, r.StartsAt }).HasFilter("status = 'Booked'");
+    }
+}
+
+internal sealed class InterviewAttendeeConfiguration : IEntityTypeConfiguration<InterviewAttendee>
+{
+    public void Configure(EntityTypeBuilder<InterviewAttendee> builder)
+    {
+        builder.Property(a => a.Provider).HasConversion<string>().HasMaxLength(20);
+        builder.Property(a => a.SyncStatus).HasConversion<string>().HasMaxLength(20);
+        builder.Property(a => a.ProviderEventId).HasMaxLength(InterviewAttendee.MaxEventIdLength);
+        builder.Property(a => a.SyncProblem).HasMaxLength(InterviewAttendee.MaxProblemLength);
+
+        builder.HasOne<JobApplication>().WithMany()
+            .HasForeignKey(a => new { a.OrganizationId, a.ApplicationId })
+            .HasPrincipalKey(x => new { x.OrganizationId, x.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<InterviewRequest>().WithMany()
+            .HasForeignKey(a => new { a.OrganizationId, a.InterviewId })
+            .HasPrincipalKey(r => new { r.OrganizationId, r.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(a => new { a.OrganizationId, a.InterviewId, a.UserId }).IsUnique();
+        // The overlap check: one interviewer's interviews.
+        builder.HasIndex(a => new { a.OrganizationId, a.UserId });
     }
 }

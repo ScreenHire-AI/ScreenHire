@@ -92,6 +92,7 @@ import type {
   HiringTemplateVersionDetail,
   HistoryPage,
   HttpValidationProblemDetails,
+  Interviewer,
   InvitationAcceptance,
   InvitationPreviewRequest,
   InvitationRequest,
@@ -109,6 +110,7 @@ import type {
   KeepInMindRequest,
   KeptInMind,
   LastUpdate,
+  ListInterviewersParams,
   ListJobBoardJobsParams,
   ListTasksParams,
   ListWebhookDeliveriesParams,
@@ -17639,6 +17641,111 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return createMutation(() => ({ ...getStartCalendarConnectMutationOptions(options?.()) }), queryClient);
     }
+
+export type listInterviewersResponse200 = {
+  data: Interviewer[]
+  status: 200
+}
+
+export type listInterviewersResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listInterviewersResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listInterviewersResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listInterviewersResponseSuccess = (listInterviewersResponse200) & {
+  headers: Headers;
+};
+export type listInterviewersResponseError = (listInterviewersResponse401 | listInterviewersResponse403 | listInterviewersResponse404) & {
+  headers: Headers;
+};
+
+export const getListInterviewersUrl = (params: ListInterviewersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/interviewers?${stringifiedParams}` : `/v1/interviewers`
+}
+
+export const listInterviewers = async (params: ListInterviewersParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<listInterviewersResponseSuccess> => {
+
+  return apiQueryFetch<listInterviewersResponseSuccess>(getListInterviewersUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListInterviewersQueryKey = (params?: ListInterviewersParams,) => {
+    return [
+    'v1','interviewers', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListInterviewersQueryOptions = <TData = Awaited<ReturnType<typeof listInterviewers>>, TError = ErrorType<void | ProblemDetails>>(params: ListInterviewersParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listInterviewers>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListInterviewersQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listInterviewers>>> = ({ signal }) => listInterviewers(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listInterviewers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListInterviewersQueryResult = NonNullable<Awaited<ReturnType<typeof listInterviewers>>>
+export type ListInterviewersQueryError = ErrorType<void | ProblemDetails>
+
+
+
+export function createListInterviewers<TData = Awaited<ReturnType<typeof listInterviewers>>, TError = ErrorType<void | ProblemDetails>>(
+ params: () =>  ListInterviewersParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listInterviewers>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListInterviewersQueryOptions(params(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
 
 export type listEmailTemplatesResponse200 = {
   data: EmailTemplateList

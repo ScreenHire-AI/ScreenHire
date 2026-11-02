@@ -132,6 +132,7 @@ app.MapTemplateUsageEndpoints();
 app.MapWebhookEndpoints();
 app.MapSlackEndpoints();
 app.MapCalendarEndpoints();
+app.MapInterviewEndpoints();
 app.MapEmailEndpoints();
 app.MapTalentPoolEndpoints();
 app.MapSchemaEndpoints();
