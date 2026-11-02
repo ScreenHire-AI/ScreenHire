@@ -30,6 +30,7 @@ import type {
   ApiMeta,
   ApplicationDetail,
   ApplicationEmailDraft,
+  ApplicationInterview,
   ApplicationNoteDetail,
   ApplicationSummary,
   ApplicationTaskEntry,
@@ -82,6 +83,7 @@ import type {
   GetOrganizationHistoryParams,
   GetOrganizationTalentPoolSettingsHistoryParams,
   GetOrganizationVerificationSettingsHistoryParams,
+  GetPublicInterviewParams,
   GetRoleHistoryParams,
   GetScorecardTemplateHistoryParams,
   GetTeamHistoryParams,
@@ -136,6 +138,8 @@ import type {
   PublicApplicationForm,
   PublicApplicationReceipt,
   PublicApplicationRequest,
+  PublicInterview,
+  PublicInterviewChoice,
   PublicJob,
   PublicJobBoard,
   PublicOrganization,
@@ -148,6 +152,7 @@ import type {
   RequestScorecardRequest,
   RoleCatalogue,
   SandboxBoardListing,
+  ScheduleInterviewRequest,
   ScorecardEntry,
   ScorecardTemplateDetail,
   ScorecardTemplateSummary,
@@ -3128,6 +3133,464 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getSavePublicQuestionnaireDraftMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getPublicInterviewResponse200 = {
+  data: PublicInterview
+  status: 200
+}
+
+export type getPublicInterviewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicInterviewResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getPublicInterviewResponseSuccess = (getPublicInterviewResponse200) & {
+  headers: Headers;
+};
+export type getPublicInterviewResponseError = (getPublicInterviewResponse404 | getPublicInterviewResponse429) & {
+  headers: Headers;
+};
+
+export const getGetPublicInterviewUrl = (organizationSlug: string,
+    token: string,
+    params?: GetPublicInterviewParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/public/organizations/${organizationSlug}/interviews/${token}?${stringifiedParams}` : `/v1/public/organizations/${organizationSlug}/interviews/${token}`
+}
+
+export const getPublicInterview = async (organizationSlug: string,
+    token: string,
+    params?: GetPublicInterviewParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getPublicInterviewResponseSuccess> => {
+
+  return apiQueryFetch<getPublicInterviewResponseSuccess>(getGetPublicInterviewUrl(organizationSlug,token,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicInterviewQueryKey = (organizationSlug: string,
+    token: string,
+    params?: GetPublicInterviewParams,) => {
+    return [
+    'v1','public','organizations',organizationSlug,'interviews',token, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetPublicInterviewQueryOptions = <TData = Awaited<ReturnType<typeof getPublicInterview>>, TError = ErrorType<void>>(organizationSlug: string,
+    token: string,
+    params?: GetPublicInterviewParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getPublicInterview>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicInterviewQueryKey(organizationSlug,token,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicInterview>>> = ({ signal }) => getPublicInterview(organizationSlug,token,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: organizationSlug !== null && organizationSlug !== undefined && token !== null && token !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getPublicInterview>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPublicInterviewQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicInterview>>>
+export type GetPublicInterviewQueryError = ErrorType<void>
+
+
+
+export function createGetPublicInterview<TData = Awaited<ReturnType<typeof getPublicInterview>>, TError = ErrorType<void>>(
+ organizationSlug: () =>  string,
+    token: () =>  string,
+    params?: () =>  GetPublicInterviewParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getPublicInterview>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetPublicInterviewQueryOptions(organizationSlug(),
+    token(),
+    params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type bookPublicInterviewResponse204 = {
+  data: void
+  status: 204
+}
+
+export type bookPublicInterviewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type bookPublicInterviewResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type bookPublicInterviewResponse410 = {
+  data: ProblemDetails
+  status: 410
+}
+
+export type bookPublicInterviewResponse429 = {
+  data: void
+  status: 429
+}
+
+export type bookPublicInterviewResponse503 = {
+  data: ProblemDetails
+  status: 503
+}
+
+export type bookPublicInterviewResponseSuccess = (bookPublicInterviewResponse204) & {
+  headers: Headers;
+};
+export type bookPublicInterviewResponseError = (bookPublicInterviewResponse404 | bookPublicInterviewResponse409 | bookPublicInterviewResponse410 | bookPublicInterviewResponse429 | bookPublicInterviewResponse503) & {
+  headers: Headers;
+};
+
+export const getBookPublicInterviewUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/interviews/${token}/book`
+}
+
+export const bookPublicInterview = async (organizationSlug: string,
+    token: string,
+    publicInterviewChoice: PublicInterviewChoice, options?: Parameters<typeof apiQueryFetch>[1]): Promise<bookPublicInterviewResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<bookPublicInterviewResponseSuccess>(getBookPublicInterviewUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicInterviewChoice)
+  }
+);}
+
+
+
+
+
+export const getBookPublicInterviewMutationKey = () => ['bookPublicInterview'] as const;
+
+export const getBookPublicInterviewMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof bookPublicInterview>>, TError,BookPublicInterviewMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof bookPublicInterview>>, TError,BookPublicInterviewMutationVariables, TContext> => {
+
+const mutationKey = getBookPublicInterviewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bookPublicInterview>>, BookPublicInterviewMutationVariables> = (props) => {
+          const {organizationSlug,token,data} = props ?? {};
+
+          return  bookPublicInterview(organizationSlug,token,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BookPublicInterviewMutationResult = NonNullable<Awaited<ReturnType<typeof bookPublicInterview>>>
+    export type BookPublicInterviewMutationBody = PublicInterviewChoice
+    export type BookPublicInterviewMutationError = ErrorType<void | ProblemDetails>
+    export type BookPublicInterviewMutationVariables = {organizationSlug: string;token: string;data: PublicInterviewChoice}
+
+    export const createBookPublicInterview = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof bookPublicInterview>>, TError,BookPublicInterviewMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof bookPublicInterview>>,
+        TError,
+        BookPublicInterviewMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getBookPublicInterviewMutationOptions(options?.()) }), queryClient);
+    }
+
+export type reschedulePublicInterviewResponse204 = {
+  data: void
+  status: 204
+}
+
+export type reschedulePublicInterviewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type reschedulePublicInterviewResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type reschedulePublicInterviewResponse410 = {
+  data: ProblemDetails
+  status: 410
+}
+
+export type reschedulePublicInterviewResponse429 = {
+  data: void
+  status: 429
+}
+
+export type reschedulePublicInterviewResponse503 = {
+  data: ProblemDetails
+  status: 503
+}
+
+export type reschedulePublicInterviewResponseSuccess = (reschedulePublicInterviewResponse204) & {
+  headers: Headers;
+};
+export type reschedulePublicInterviewResponseError = (reschedulePublicInterviewResponse404 | reschedulePublicInterviewResponse409 | reschedulePublicInterviewResponse410 | reschedulePublicInterviewResponse429 | reschedulePublicInterviewResponse503) & {
+  headers: Headers;
+};
+
+export const getReschedulePublicInterviewUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/interviews/${token}/reschedule`
+}
+
+export const reschedulePublicInterview = async (organizationSlug: string,
+    token: string,
+    publicInterviewChoice: PublicInterviewChoice, options?: Parameters<typeof apiQueryFetch>[1]): Promise<reschedulePublicInterviewResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<reschedulePublicInterviewResponseSuccess>(getReschedulePublicInterviewUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicInterviewChoice)
+  }
+);}
+
+
+
+
+
+export const getReschedulePublicInterviewMutationKey = () => ['reschedulePublicInterview'] as const;
+
+export const getReschedulePublicInterviewMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof reschedulePublicInterview>>, TError,ReschedulePublicInterviewMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof reschedulePublicInterview>>, TError,ReschedulePublicInterviewMutationVariables, TContext> => {
+
+const mutationKey = getReschedulePublicInterviewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reschedulePublicInterview>>, ReschedulePublicInterviewMutationVariables> = (props) => {
+          const {organizationSlug,token,data} = props ?? {};
+
+          return  reschedulePublicInterview(organizationSlug,token,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReschedulePublicInterviewMutationResult = NonNullable<Awaited<ReturnType<typeof reschedulePublicInterview>>>
+    export type ReschedulePublicInterviewMutationBody = PublicInterviewChoice
+    export type ReschedulePublicInterviewMutationError = ErrorType<void | ProblemDetails>
+    export type ReschedulePublicInterviewMutationVariables = {organizationSlug: string;token: string;data: PublicInterviewChoice}
+
+    export const createReschedulePublicInterview = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof reschedulePublicInterview>>, TError,ReschedulePublicInterviewMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof reschedulePublicInterview>>,
+        TError,
+        ReschedulePublicInterviewMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getReschedulePublicInterviewMutationOptions(options?.()) }), queryClient);
+    }
+
+export type cancelPublicInterviewResponse204 = {
+  data: void
+  status: 204
+}
+
+export type cancelPublicInterviewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type cancelPublicInterviewResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type cancelPublicInterviewResponse410 = {
+  data: ProblemDetails
+  status: 410
+}
+
+export type cancelPublicInterviewResponse429 = {
+  data: void
+  status: 429
+}
+
+export type cancelPublicInterviewResponseSuccess = (cancelPublicInterviewResponse204) & {
+  headers: Headers;
+};
+export type cancelPublicInterviewResponseError = (cancelPublicInterviewResponse404 | cancelPublicInterviewResponse409 | cancelPublicInterviewResponse410 | cancelPublicInterviewResponse429) & {
+  headers: Headers;
+};
+
+export const getCancelPublicInterviewUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/interviews/${token}/cancel`
+}
+
+export const cancelPublicInterview = async (organizationSlug: string,
+    token: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<cancelPublicInterviewResponseSuccess> => {
+
+  return apiQueryFetch<cancelPublicInterviewResponseSuccess>(getCancelPublicInterviewUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCancelPublicInterviewMutationKey = () => ['cancelPublicInterview'] as const;
+
+export const getCancelPublicInterviewMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof cancelPublicInterview>>, TError,CancelPublicInterviewMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof cancelPublicInterview>>, TError,CancelPublicInterviewMutationVariables, TContext> => {
+
+const mutationKey = getCancelPublicInterviewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelPublicInterview>>, CancelPublicInterviewMutationVariables> = (props) => {
+          const {organizationSlug,token} = props ?? {};
+
+          return  cancelPublicInterview(organizationSlug,token,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelPublicInterviewMutationResult = NonNullable<Awaited<ReturnType<typeof cancelPublicInterview>>>
+
+    export type CancelPublicInterviewMutationError = ErrorType<void | ProblemDetails>
+    export type CancelPublicInterviewMutationVariables = {organizationSlug: string;token: string}
+
+    export const createCancelPublicInterview = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof cancelPublicInterview>>, TError,CancelPublicInterviewMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof cancelPublicInterview>>,
+        TError,
+        CancelPublicInterviewMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getCancelPublicInterviewMutationOptions(options?.()) }), queryClient);
     }
 
 export type getPublicTalentPoolStatusResponse200 = {
@@ -17867,6 +18330,324 @@ export function createListInterviewers<TData = Awaited<ReturnType<typeof listInt
 
 
 
+
+export type scheduleInterviewResponse201 = {
+  data: ApplicationInterview
+  status: 201
+}
+
+export type scheduleInterviewResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type scheduleInterviewResponse401 = {
+  data: void
+  status: 401
+}
+
+export type scheduleInterviewResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type scheduleInterviewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type scheduleInterviewResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type scheduleInterviewResponse422 = {
+  data: ProblemDetails
+  status: 422
+}
+
+export type scheduleInterviewResponseSuccess = (scheduleInterviewResponse201) & {
+  headers: Headers;
+};
+export type scheduleInterviewResponseError = (scheduleInterviewResponse400 | scheduleInterviewResponse401 | scheduleInterviewResponse403 | scheduleInterviewResponse404 | scheduleInterviewResponse409 | scheduleInterviewResponse422) & {
+  headers: Headers;
+};
+
+export const getScheduleInterviewUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/interviews`
+}
+
+export const scheduleInterview = async (applicationId: string,
+    scheduleInterviewRequest: ScheduleInterviewRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<scheduleInterviewResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<scheduleInterviewResponseSuccess>(getScheduleInterviewUrl(applicationId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(scheduleInterviewRequest)
+  }
+);}
+
+
+
+
+
+export const getScheduleInterviewMutationKey = () => ['scheduleInterview'] as const;
+
+export const getScheduleInterviewMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof scheduleInterview>>, TError,ScheduleInterviewMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof scheduleInterview>>, TError,ScheduleInterviewMutationVariables, TContext> => {
+
+const mutationKey = getScheduleInterviewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof scheduleInterview>>, ScheduleInterviewMutationVariables> = (props) => {
+          const {applicationId,data} = props ?? {};
+
+          return  scheduleInterview(applicationId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ScheduleInterviewMutationResult = NonNullable<Awaited<ReturnType<typeof scheduleInterview>>>
+    export type ScheduleInterviewMutationBody = ScheduleInterviewRequest
+    export type ScheduleInterviewMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type ScheduleInterviewMutationVariables = {applicationId: string;data: ScheduleInterviewRequest}
+
+    export const createScheduleInterview = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof scheduleInterview>>, TError,ScheduleInterviewMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof scheduleInterview>>,
+        TError,
+        ScheduleInterviewMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getScheduleInterviewMutationOptions(options?.()) }), queryClient);
+    }
+
+export type listApplicationInterviewsResponse200 = {
+  data: ApplicationInterview[]
+  status: 200
+}
+
+export type listApplicationInterviewsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listApplicationInterviewsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listApplicationInterviewsResponseSuccess = (listApplicationInterviewsResponse200) & {
+  headers: Headers;
+};
+export type listApplicationInterviewsResponseError = (listApplicationInterviewsResponse401 | listApplicationInterviewsResponse404) & {
+  headers: Headers;
+};
+
+export const getListApplicationInterviewsUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/interviews`
+}
+
+export const listApplicationInterviews = async (applicationId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<listApplicationInterviewsResponseSuccess> => {
+
+  return apiQueryFetch<listApplicationInterviewsResponseSuccess>(getListApplicationInterviewsUrl(applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListApplicationInterviewsQueryKey = (applicationId: string,) => {
+    return [
+    'v1','applications',applicationId,'interviews'
+    ] as const;
+    }
+
+
+export const getListApplicationInterviewsQueryOptions = <TData = Awaited<ReturnType<typeof listApplicationInterviews>>, TError = ErrorType<void>>(applicationId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listApplicationInterviews>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListApplicationInterviewsQueryKey(applicationId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listApplicationInterviews>>> = ({ signal }) => listApplicationInterviews(applicationId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: applicationId !== null && applicationId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listApplicationInterviews>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListApplicationInterviewsQueryResult = NonNullable<Awaited<ReturnType<typeof listApplicationInterviews>>>
+export type ListApplicationInterviewsQueryError = ErrorType<void>
+
+
+
+export function createListApplicationInterviews<TData = Awaited<ReturnType<typeof listApplicationInterviews>>, TError = ErrorType<void>>(
+ applicationId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listApplicationInterviews>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListApplicationInterviewsQueryOptions(applicationId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type cancelInterviewResponse200 = {
+  data: ApplicationInterview
+  status: 200
+}
+
+export type cancelInterviewResponse401 = {
+  data: void
+  status: 401
+}
+
+export type cancelInterviewResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type cancelInterviewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type cancelInterviewResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type cancelInterviewResponseSuccess = (cancelInterviewResponse200) & {
+  headers: Headers;
+};
+export type cancelInterviewResponseError = (cancelInterviewResponse401 | cancelInterviewResponse403 | cancelInterviewResponse404 | cancelInterviewResponse409) & {
+  headers: Headers;
+};
+
+export const getCancelInterviewUrl = (interviewId: string,) => {
+
+
+
+
+  return `/v1/interviews/${interviewId}/cancel`
+}
+
+export const cancelInterview = async (interviewId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<cancelInterviewResponseSuccess> => {
+
+  return apiQueryFetch<cancelInterviewResponseSuccess>(getCancelInterviewUrl(interviewId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCancelInterviewMutationKey = () => ['cancelInterview'] as const;
+
+export const getCancelInterviewMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof cancelInterview>>, TError,CancelInterviewMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof cancelInterview>>, TError,CancelInterviewMutationVariables, TContext> => {
+
+const mutationKey = getCancelInterviewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelInterview>>, CancelInterviewMutationVariables> = (props) => {
+          const {interviewId} = props ?? {};
+
+          return  cancelInterview(interviewId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelInterviewMutationResult = NonNullable<Awaited<ReturnType<typeof cancelInterview>>>
+
+    export type CancelInterviewMutationError = ErrorType<void | ProblemDetails>
+    export type CancelInterviewMutationVariables = {interviewId: string}
+
+    export const createCancelInterview = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof cancelInterview>>, TError,CancelInterviewMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof cancelInterview>>,
+        TError,
+        CancelInterviewMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getCancelInterviewMutationOptions(options?.()) }), queryClient);
+    }
 
 export type listEmailTemplatesResponse200 = {
   data: EmailTemplateList

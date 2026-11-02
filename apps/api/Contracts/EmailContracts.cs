@@ -22,8 +22,9 @@ public sealed record EmailTemplateList(bool SendingEnabled, IReadOnlyList<EmailT
 /// belongs to one request), with the same limits. <c>updatedAt</c> is null for a built-in in ScreenHire's wording, and
 /// <c>lastUpdated</c> says who changed it last, or ScreenHire for a built-in nobody has. <c>archived</c>: the
 /// organization took its own template out of the pickers; automations that name it keep sending it.
-/// <c>invitationOnly</c>: only a person's Invite to apply from the talent pool sends it, with the job's link and the
-/// candidate's own link to stop being kept; it is never sent as an ordinary email, and no automation names it.
+/// <c>invitationOnly</c>: only its own flow sends it, with links made for one candidate: Invite to apply from the talent
+/// pool (the job's link and the candidate's own link to stop being kept), or scheduling an interview (the link to pick,
+/// change or cancel the time). It is never sent as an ordinary email, and no automation names it.
 /// </remarks>
 public sealed record EmailTemplateEntry(
     string Id, string Name, bool BuiltIn, bool Edited, bool RejectOnly, string Subject, string Body, DateTimeOffset? UpdatedAt,
@@ -32,7 +33,7 @@ public sealed record EmailTemplateEntry(
 /// <summary>
 /// A variable a template may use as <c>{{ name }}</c>. <c>rejectOnly</c>: only the rejection email has it.
 /// <c>questionnaireOnly</c>: only the follow-up questions email has it. <c>invitationOnly</c>: only the talent pool
-/// invitation has it.
+/// invitation or an interview email has it.
 /// </summary>
 public sealed record EmailTemplateVariableEntry(string Name, string Label, bool RejectOnly, bool QuestionnaireOnly = false, bool InvitationOnly = false);
 
@@ -104,7 +105,7 @@ internal static class EmailMappings
         new(template.Id, template.Name, template.BuiltIn, template.Edited, template.Id == EmailTemplateIds.ApplicationRejected,
             template.Content.Subject, template.Content.Body, template.UpdatedAt,
             lastChange is null && template.BuiltIn && !template.Edited ? LastUpdate.ByScreenHire(null) : LastUpdate.FromChange(lastChange, template.UpdatedAt),
-            template.Id == EmailTemplateIds.QuestionnaireRequest, template.Archived, template.Id == EmailTemplateIds.TalentPoolInvitation);
+            template.Id == EmailTemplateIds.QuestionnaireRequest, template.Archived, EmailTemplateIds.IsInvitationOnly(template.Id));
 
     public static EmailPreview ToPreview(this EmailMessage message) => new(message.Subject, message.HtmlBody ?? "", message.TextBody);
 
@@ -188,6 +189,8 @@ internal sealed class SendEmailsRequestValidator : AbstractValidator<SendEmailsR
             .WithMessage("The follow-up questions email goes only with a SendQuestionnaire action, which makes its link.")
             .Must(id => id != EmailTemplateIds.TalentPoolInvitation)
             .WithMessage("The invitation to apply goes only with Invite to apply, from the talent pool.")
+            .Must(id => id is null || !EmailTemplateIds.IsInterview(id))
+            .WithMessage("The interview emails go only with scheduling an interview, which makes their links.")
             .When(r => r.TemplateId is not null);
     }
 }

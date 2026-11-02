@@ -108,6 +108,7 @@ app.MapPublicJobEndpoints();
 app.MapPublicApplicationEndpoints();
 app.MapPublicApplicationDraftEndpoints();
 app.MapPublicQuestionnaireEndpoints();
+app.MapPublicInterviewEndpoints();
 app.MapPublicTalentPoolEndpoints();
 app.MapPublicTelemetryEndpoints();
 app.MapJobEndpoints();

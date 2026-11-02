@@ -9,6 +9,7 @@ using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Realtime;
 using ScreenHire.Domain.History;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.Scheduling;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -346,6 +347,15 @@ internal static class TeamEndpoints
         await db.SlackAccountLinks.Where(l => l.UserId == member.UserId).ExecuteDeleteAsync(cancellationToken);
         // So does their calendar: its tokens are for their own use, and nothing is booked on a calendar of someone who left.
         await db.CalendarConnections.Where(c => c.UserId == member.UserId).ExecuteDeleteAsync(cancellationToken);
+        // Their place on interviews still to come stays visible, marked as not on a calendar, so the recruiter can see it.
+        var now = time.GetUtcNow();
+        var upcoming = await db.InterviewAttendees
+            .Where(a => a.UserId == member.UserId)
+            .Join(db.InterviewRequests, a => new { a.OrganizationId, a.InterviewId }, r => new { r.OrganizationId, InterviewId = r.Id }, (a, r) => new { Attendee = a, Interview = r })
+            .Where(x => x.Interview.Status == InterviewStatus.Booked && x.Interview.StartsAt > now)
+            .Select(x => x.Attendee)
+            .ToListAsync(cancellationToken);
+        upcoming.ForEach(a => a.MarkFailed("They left the organization, so this interview is not on their calendar."));
         db.MembershipEvents.Add(new MembershipEvent
         {
             OrganizationId = member.OrganizationId,

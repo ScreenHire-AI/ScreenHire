@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Interview scheduling on team calendars"
-description: "Members connect their own Google, Outlook or sandbox calendar from the account menu: the OAuth round trip kept apart from sign-in, tokens under Data Protection for each member, the ICalendarProvider seam with a Postgres-backed sandbox, token refresh under an advisory lock, and the configuration that hides a provider until its client id and secret are set. Interview requests: the slot finder in the interview's time zone, the offered times, and the booking transaction that never double-books an interviewer."
+description: "Members connect their own Google, Outlook or sandbox calendar from the account menu: the OAuth round trip kept apart from sign-in, tokens under Data Protection for each member, the ICalendarProvider seam with a Postgres-backed sandbox, token refresh under an advisory lock, and the configuration that hides a provider until its client id and secret are set. Interview requests: the slot finder in the interview's time zone, the offered times, and the booking transaction that never double-books an interviewer. Offering, booking, moving and cancelling an interview: the staff and candidate routes with their problem codes, and the worker that writes one calendar event per interviewer and emails the candidate."
 tags: [scheduling, calendar, integrations, oauth]
 sources:
   - resource: src/ScreenHire.Domain/Scheduling/CalendarConnection.cs
@@ -22,6 +22,12 @@ sources:
   - resource: src/ScreenHire.Application/Scheduling/InterviewLinks.cs
   - resource: src/ScreenHire.Application/Scheduling/InterviewMessages.cs
   - resource: apps/api/Endpoints/InterviewEndpoints.cs
+  - resource: apps/api/Contracts/InterviewContracts.cs
+  - resource: apps/api/Endpoints/PublicInterviewEndpoints.cs
+  - resource: src/ScreenHire.Application/Scheduling/InterviewHandlers.cs
+  - resource: src/ScreenHire.Application/Scheduling/InterviewText.cs
+  - resource: src/ScreenHire.Application/Scheduling/InterviewLocks.cs
+  - resource: tests/ScreenHire.IntegrationTests/Scheduling/InterviewJourneyTests.cs
   - resource: tests/ScreenHire.IntegrationTests/Scheduling/InterviewBookingTests.cs
   - resource: apps/dashboard/src/lib/components/calendar-account-sheet.svelte
   - resource: apps/dashboard/src/lib/calendar.ts
@@ -31,9 +37,10 @@ sources:
 # Interview scheduling on team calendars
 
 ScreenHire schedules interviews on the calendars the team already uses, through the free Google Calendar and Microsoft
-Graph APIs. This page describes the parts that exist so far: a member connecting and disconnecting their own calendar, and the
-interview request with its slot finder and booking transaction. The candidate's page, the workers that write events and
-the workflow action build on them and are described here as they land.
+Graph APIs. This page describes the parts that exist so far: a member connecting and disconnecting their own calendar, the interview
+request with its slot finder and booking transaction, the routes that offer, book, move and cancel an interview, the
+worker that writes the events and emails the candidate. The candidate's page and the workflow action build on them and are
+described here as they land.
 
 ## Connecting a calendar
 
@@ -136,6 +143,63 @@ candidate. A job the caller cannot see is a 404.
 `InterviewLinks` signs the careers page link (`/interviews/{token}`) with Data Protection under the purpose
 `ScreenHire.Interview.Link.v1`. One token serves the whole life of the request, valid until the window ends plus 30 days;
 the request's status is what closes it.
+
+## Offering an interview
+
+All three routes need a signed-in person, never an API key, and take the permission that emails candidates. A host with no
+email sender or no careers site address (`ScreenHire:Domains`) answers 404, as the talent pool invitation does, because
+the candidate could not be sent the link.
+
+| Route | What it does |
+|---|---|
+| `POST /v1/applications/{applicationId}/interviews` | `{interviewerUserIds, durationMinutes, windowStart, windowEnd, timeZone, dayStart?, dayEnd?}` creates the request and its attendees, adds an `InterviewInvited` timeline entry and queues `SendInterviewInvitation`. 201 with the interview. 400 names the field that is wrong, 409 when an Open (not past its window) or Booked interview exists, 422 names the interviewers with no working calendar (`interviewerUserIds` on the problem). |
+| `GET /v1/applications/{applicationId}/interviews` | Every interview of the application, newest first, with status, time, window, zone, length, meeting link and each interviewer's sync status. Visible to anyone who sees the application. |
+| `POST /v1/interviews/{interviewId}/cancel` | Cancels an Open or Booked interview. A booked one queues `CancelInterviewEvents`. 409 when it is already cancelled or has expired. |
+
+These routes run for a member who may see only some jobs, so they never call `InterviewAvailability` or `InterviewBooking`
+(those refuse such a context). The interviewers must be members who see the job, the first is the organizer, and an
+Open request past its window is stored as Expired and saved before the new row is inserted, because the partial unique
+index sees the stored status. A team cancellation takes the interviewers' advisory locks first, as a booking does, so a
+cancellation and a booking at the same moment cannot both win.
+
+`status` is the effective status: an Open request past its window reads `Expired`. Removing a member also marks their
+attendee rows on booked interviews that have not started `Failed` with a plain problem, and they stay visible.
+
+## The candidate's routes
+
+`/v1/public/organizations/{organizationSlug}/interviews/{token}` is anonymous and rate limited like the apply flow. A token
+for another organization, or one that is forged, damaged or past its own limit, is a 404.
+
+| Route | What it does |
+|---|---|
+| `GET ?tz=` | State (`Open`, `Booked`, `Cancelled`, `Expired`), employer, job title, the booked time, the zone, the length, the offered times as UTC instants (for an Open interview, and for a Booked one the candidate can still change), `canChange` and `minNoticeHours`. `slotsUnavailable` is true when a calendar cannot be read. It names no interviewer. |
+| `POST /book` `{start}` | Open to Booked. 204. |
+| `POST /reschedule` `{start}` | Moves a Booked interview. 204. |
+| `POST /cancel` | Cancels an Open or Booked interview. 204. |
+
+A change that cannot happen is a problem whose `type` (also its `code` member) says why: 410 `cancelled` or `expired`; 409
+`already_booked`, `not_booked`, `slot_taken` (the time is not offered, or another booking got it first) and `too_late`
+(the interview starts inside the minimum notice); 503 `calendar_unavailable`. Booking and moving run in one transaction
+that holds the interviewers' locks and the outbox: the request and attendees, the timeline entry
+(`InterviewBooked` or `InterviewRescheduled`, no actor), `CreateInterviewEvents` or `UpdateInterviewEvents` with the
+revision, and `InterviewChanged` commit together or not at all. A first booking also raises the `InterviewScheduled`
+automation trigger (`RunAutomations`, keyed on the interview), which no automation can use until the validator accepts it.
+
+## The worker
+
+`SendInterviewInvitation` issues the link in the worker, sends `interview-invitation` and keeps a copy that hides the link.
+The timeline entry of the email has the send's id, so a redelivery sends nothing twice.
+
+`CreateInterviewEvents`, `UpdateInterviewEvents` and `CancelInterviewEvents` write one event per interviewer on their own
+calendar, so it lands natively whichever provider each uses. The organizer's event invites the candidate by address and
+asks for a meeting link; the other copies carry that link in their text and invite nobody. The title is
+`Interview: {candidate} - {job}` and the body holds the job, the candidate and a link to the application, nothing else.
+Event ids derive from the interview and the member, so creating twice finds the first. A message does nothing when the
+request has a newer revision or is no longer in the state the message is about (`InterviewText.IsCurrent`). A member with
+no usable calendar, or a calendar that refuses the event for good, is marked `Failed` with a short problem and the others
+go on; a calendar that is only down throws, so Wolverine retries and the events already made are found again. Then the
+candidate gets `interview-confirmation` (or `interview-cancelled`), whose timeline entry has an id derived from the interview
+and revision, and `InterviewChanged` tells open dashboards.
 
 ## Tenancy
 
