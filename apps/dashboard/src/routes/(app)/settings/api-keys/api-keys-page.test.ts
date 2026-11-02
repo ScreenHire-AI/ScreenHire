@@ -199,10 +199,11 @@ describe('API keys page', () => {
     await expectNoAxeViolations();
   });
 
-  it('says nothing of the scope on a key without it or a revoked one', async () => {
+  it('says nothing of the scope on a key without it, and says a revoked key had it without saying it opens anything', async () => {
     renderPage([syncKey, key('k7', 'Old auditor', { scopes: ['Read', 'VerificationRead'], revokedAt: '2026-10-10T09:00:00Z' })]);
     await screen.findAllByText('Payroll sync');
 
+    expect(screen.getAllByText('Had Verification read.').length).toBe(2);
     expect(screen.queryByText(/^Verification read\. Opens/)).not.toBeInTheDocument();
   });
 

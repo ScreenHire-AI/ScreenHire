@@ -90,7 +90,11 @@
   const access = (scopes: readonly ApiKeyScope[]) => (scopes.includes('Write') ? 'Read and write' : 'Read only');
   // What the Verification read scope opens, in the create dialog and on each live key that has it (ADR-0021).
   const verificationOpens = 'Opens verification levels, reasons and evidence.';
-  const opensVerification = (key: ApiKeySummary) => !key.revokedAt && key.scopes.includes('VerificationRead');
+  // A revoked key opens nothing now, and the list still says it could, for anyone auditing what the keys could read.
+  const verificationLine = (key: ApiKeySummary) => {
+    if (!key.scopes.includes('VerificationRead')) return null;
+    return key.revokedAt ? 'Had Verification read.' : `Verification read. ${verificationOpens}`;
+  };
 
   // The table sorts (L2), keys by name first.
   const features = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: { basic: sortFn_basic, alphanumeric: sortFn_alphanumeric } });
@@ -225,7 +229,7 @@
                     <Badge variant="muted" class="font-mono">{key.prefix}…</Badge>
                     <Badge variant="muted">{access(key.scopes)}</Badge>
                   </span>
-                  {#if opensVerification(key)}<p class="text-caption text-muted-foreground">Verification read. {verificationOpens}</p>{/if}
+                  {#if verificationLine(key)}<p class="text-caption text-muted-foreground">{verificationLine(key)}</p>{/if}
                 </div>
                 {#if !key.revokedAt}{@render keyMenu(key)}{/if}
               </li>
@@ -249,7 +253,7 @@
                     <Table.Cell class="px-4.5">{@render status(key)}</Table.Cell>
                     <Table.Cell class="w-full max-w-0">
                       <TruncatedText text={key.name} class="font-semibold" />
-                      {#if opensVerification(key)}<TruncatedText text={`Verification read. ${verificationOpens}`} class="text-caption text-muted-foreground" />{/if}
+                      {#if verificationLine(key)}<TruncatedText text={verificationLine(key) ?? ''} class="text-caption text-muted-foreground" />{/if}
                     </Table.Cell>
                     <Table.Cell class="text-muted-foreground">{key.prefix}…</Table.Cell>
                     <Table.Cell>{access(key.scopes)}</Table.Cell>
