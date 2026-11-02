@@ -77,7 +77,8 @@ subsystem.
   `anthropic-api-key` secret) goes to the worker. `ScreenHire:Slack:*` (real Slack with `ClientId` and the
   `slack-client-secret` parameter, or `Sandbox:Enabled` for the local sandbox workspace; off in `pnpm dev`, on in the
   test stacks) goes to the API and worker alike; see [`docs/architecture/slack.md`](docs/architecture/slack.md).
-  `ScreenHire:Email:*` (Mailpit sends unless `SendGrid:Enabled=true` with the `sendgrid-api-key` secret; `email-reply-key` and
+  `ScreenHire:Email:*` (Mailpit sends unless `SendGrid:Enabled=true` with the `sendgrid-api-key` secret; `ReplyDomain` is the host
+  replies arrive on and `SendGrid:EventWebhookPublicKey` checks SendGrid's signed events; `email-reply-key` and
   `sendgrid-inbound-secret` are generated parameters; `Sandbox:Enabled` is the local fake for replies and sending domains,
   on in `pnpm dev` and the test stacks) goes to the API and worker alike; see
   [`docs/architecture/email.md`](docs/architecture/email.md). `ScreenHire:PersistData` (default `true`) keeps Postgres, Azurite and

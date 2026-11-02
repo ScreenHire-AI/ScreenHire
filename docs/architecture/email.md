@@ -50,6 +50,10 @@ sources:
   - resource: apps/dashboard/src/routes/(app)/settings/sending-domain/+page.svelte
   - resource: apps/dashboard/src/lib/components/candidate/received-email.svelte
   - resource: apps/dashboard/src/lib/email-issue.ts
+  - resource: apps/dashboard/src/lib/received-email.ts
+  - resource: apps/dashboard/src/lib/sending-domain.ts
+  - resource: apps/api/Email/AttachmentFiles.cs
+  - resource: src/ScreenHire.Infrastructure/Email/TransactionalEmail.cs
 ---
 # Email to candidates
 
