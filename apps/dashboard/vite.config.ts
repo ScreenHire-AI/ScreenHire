@@ -33,6 +33,29 @@ export default defineConfig({
       compilerOptions: { runes: true },
     }),
   ],
+  // Vite's dependency scan finds nothing in these routes, so without this list the first page load discovers these
+  // packages and bundles them inside the dev server, which keeps the memory (docs/process/dev-tooling.md, "What a preview
+  // stack commits"). scripts/prebundle.mjs bundles them in a process that exits instead. A package missing here still
+  // works: the page load bundles it in-process and the log says "dependencies optimized".
+  optimizeDeps: {
+    include: [
+      '@screenhire/realtime > @microsoft/signalr',
+      '@tanstack/svelte-query',
+      '@tanstack/svelte-table',
+      '@tanstack/svelte-virtual',
+      '@tiptap/core',
+      '@tiptap/extension-list',
+      '@tiptap/starter-kit',
+      '@xyflow/svelte',
+      'bits-ui',
+      'svelte-dnd-action',
+      'sveltekit-superforms',
+      'sveltekit-superforms/adapters',
+      'tailwind-merge',
+      'tailwind-variants',
+      'zod',
+    ],
+  },
   server: { port, strictPort: true, proxy },
   // `vite preview` is for a quick local look at a build. The AppHost's Frontends=Built serves build/ from Caddy instead.
   preview: { port, strictPort: true, proxy },
