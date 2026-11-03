@@ -17,6 +17,7 @@ internal sealed class JobApplicationConfiguration : IEntityTypeConfiguration<Job
         builder.Property(a => a.AiUseDetails).HasMaxLength(2000);
         builder.Property(a => a.Source).HasConversion<string>().HasMaxLength(20);
         builder.Property(a => a.SourceSite).HasMaxLength(EmbedOrigins.MaxLength);
+        builder.Property(a => a.SourceBoard).HasMaxLength(40);
         builder.Property(a => a.Answers).HasJsonColumn();
         builder.Property(a => a.PrivacyNoticeVersion).HasMaxLength(40);
         builder.Property(a => a.BotCheck).HasConversion<string>().HasMaxLength(20);
@@ -207,5 +208,48 @@ internal sealed class ApplicationNoteMentionConfiguration : IEntityTypeConfigura
     {
         // A person is mentioned once per note, however often the text names them.
         builder.HasIndex(m => new { m.OrganizationId, m.NoteId, m.UserId }).IsUnique();
+    }
+}
+
+internal sealed class InboundEmailConfiguration : IEntityTypeConfiguration<InboundEmail>
+{
+    public void Configure(EntityTypeBuilder<InboundEmail> builder)
+    {
+        builder.Property(e => e.MessageId).HasMaxLength(998);
+        builder.Property(e => e.FromAddress).HasMaxLength(320);
+        builder.Property(e => e.FromName).HasMaxLength(200);
+        builder.Property(e => e.Subject).HasMaxLength(InboundEmail.MaxSubjectLength);
+
+        builder.HasOne<JobApplication>().WithMany()
+            .HasForeignKey(e => new { e.OrganizationId, e.ApplicationId })
+            .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        // Target of the attachments' composite tenant foreign key.
+        builder.HasAlternateKey(e => new { e.OrganizationId, e.Id });
+        builder.HasIndex(e => new { e.OrganizationId, e.ApplicationId });
+        // A post delivered twice finds the first copy by the message's own id. Nulls are distinct: a message without an id is stored as it comes.
+        builder.HasIndex(e => new { e.OrganizationId, e.MessageId }).IsUnique();
+    }
+}
+
+internal sealed class InboundEmailAttachmentConfiguration : IEntityTypeConfiguration<InboundEmailAttachment>
+{
+    public void Configure(EntityTypeBuilder<InboundEmailAttachment> builder)
+    {
+        builder.Property(f => f.BlobName).HasMaxLength(400);
+        builder.Property(f => f.FileName).HasMaxLength(200);
+        builder.Property(f => f.ContentType).HasMaxLength(100);
+        builder.Property(f => f.Sha256).HasMaxLength(64);
+        builder.Property(f => f.ScanStatus).HasConversion<string>().HasMaxLength(20);
+
+        builder.HasOne<InboundEmail>().WithMany()
+            .HasForeignKey(f => new { f.OrganizationId, f.InboundEmailId })
+            .HasPrincipalKey(e => new { e.OrganizationId, e.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<JobApplication>().WithMany()
+            .HasForeignKey(f => new { f.OrganizationId, f.ApplicationId })
+            .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(f => new { f.OrganizationId, f.InboundEmailId });
     }
 }

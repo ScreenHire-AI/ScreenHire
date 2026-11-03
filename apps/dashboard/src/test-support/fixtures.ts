@@ -7,6 +7,8 @@ import type {
   OrganizationRole,
   Permission,
   RoleCatalogue,
+  SavedViewSummary,
+  ViewList,
   WorkflowStage,
 } from '@screenhire/api-client';
 
@@ -19,15 +21,15 @@ const recruiterPermissions: Permission[] = [
 ];
 
 export const ownerPermissions: Permission[] = [
-  'ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'DeleteAnyNote', 'CreateTasks', 'CompleteTasks',
+  'ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'DeleteAnyNote', 'EditAnyView', 'CreateTasks', 'CompleteTasks',
   'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates',
-  'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageIntegrations', 'ManageTeam', 'ManageOwners',
+  'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageIntegrations', 'ManageTeam', 'ManageOwners', 'GrantVerificationAccess',
 ];
 
 /** What each built-in role has, as the API's catalogue says (RolePermissions.cs). */
 export const builtInPermissions: Record<Exclude<OrganizationRole, 'Custom'>, Permission[]> = {
   Owner: ownerPermissions,
-  Admin: ownerPermissions.filter((permission) => permission !== 'ManageOwners'),
+  Admin: ownerPermissions.filter((permission) => permission !== 'ManageOwners' && permission !== 'GrantVerificationAccess'),
   Recruiter: recruiterPermissions,
   Viewer: ['ViewHiring'],
 };
@@ -74,7 +76,7 @@ const byScreenHire = { at: null, by: 'ScreenHire' } as const;
 /** Part of the API's permission catalogue (GET /v1/organization/roles): every built-in role, the Interviewer, five permissions. */
 export const roleCatalogue: RoleCatalogue = {
   roles: [
-    { role: 'Owner', customRoleId: null, name: 'Owner', description: 'Everything, including making and removing other Owners.', permissions: ['ViewHiring', 'MoveCandidates', 'FillInScorecards', 'ManageTeam', 'ManageOwners'], people: 2, lastUpdated: byScreenHire },
+    { role: 'Owner', customRoleId: null, name: 'Owner', description: 'Everything, including making and removing other Owners.', permissions: ['ViewHiring', 'MoveCandidates', 'FillInScorecards', 'ManageTeam', 'ManageOwners', 'GrantVerificationAccess'], people: 2, lastUpdated: byScreenHire },
     { role: 'Admin', customRoleId: null, name: 'Admin', description: 'Everything a Recruiter does, plus settings and the team.', permissions: ['ViewHiring', 'MoveCandidates', 'FillInScorecards', 'ManageTeam'], people: 1, lastUpdated: byScreenHire },
     { role: 'Recruiter', customRoleId: null, name: 'Recruiter', description: 'Works the jobs.', permissions: ['ViewHiring', 'MoveCandidates', 'FillInScorecards'], people: 1, lastUpdated: byScreenHire },
     { role: 'Viewer', customRoleId: null, name: 'Viewer', description: 'Sees jobs and candidates and changes nothing.', permissions: ['ViewHiring'], people: 0, lastUpdated: byScreenHire },
@@ -94,6 +96,7 @@ export const roleCatalogue: RoleCatalogue = {
     { permission: 'FillInScorecards', group: 'Hiring', name: 'Fill in scorecards', description: 'Score a candidate at a stage.', ownerOnly: false, everyRole: false },
     { permission: 'ManageTeam', group: 'Organization', name: 'Manage the team', description: 'Invite people, change roles and remove members, except Owners, and make roles.', ownerOnly: false, everyRole: false },
     { permission: 'ManageOwners', group: 'Organization', name: 'Manage Owners', description: 'Make someone an Owner, or change or remove an Owner.', ownerOnly: true, everyRole: false },
+    { permission: 'GrantVerificationAccess', group: 'Organization', name: 'Give a key verification access', description: 'Give an API key the Verification read scope, so an assistant can read verification results.', ownerOnly: true, everyRole: false },
   ],
 };
 
@@ -162,6 +165,35 @@ export const applications: ApplicationSummary[] = [
   application(1, 'Jordan Lee', stages[1]!, '2026-10-19T12:00:00Z'),
   application(2, 'Sam Taylor', stages[0]!, '2026-10-17T12:00:00Z'),
 ];
+
+/** A view someone saved on the Candidates page: private to the signed-in user, who can change it. */
+export function savedView({ filters, ...overrides }: Partial<SavedViewSummary> = {}): SavedViewSummary {
+  return {
+    id: '01a157d4-0000-7000-8000-0000000003aa',
+    name: 'Referrals in screening',
+    scope: 'Candidates',
+    jobId: null,
+    shared: false,
+    mine: true,
+    canEdit: true,
+    filters: {
+      baseView: null,
+      jobIds: [],
+      stages: [],
+      authenticity: null,
+      aiAssistance: null,
+      tag: null,
+      sortColumn: 'applied',
+      sortDescending: true,
+      ...filters,
+    },
+    updatedAt: '2026-10-20T11:00:00Z',
+    ...overrides,
+  };
+}
+
+/** The views list `GET /v1/views` returns. */
+export const viewList = (views: SavedViewSummary[] = [], hiddenBuiltIns: string[] = []): ViewList => ({ views, hiddenBuiltIns });
 
 export function board(id: string, name: string, overrides: Partial<BoardSummary> = {}): BoardSummary {
   return {

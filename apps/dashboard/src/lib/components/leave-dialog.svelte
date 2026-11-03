@@ -1,5 +1,5 @@
 <script lang="ts">
-  import LogOutIcon from '@lucide/svelte/icons/log-out';
+  import LogOutIcon from '~icons/lucide/log-out';
   import { beforeNavigate, goto } from '$app/navigation';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as Dialog from '#lib/components/ui/dialog/index.js';

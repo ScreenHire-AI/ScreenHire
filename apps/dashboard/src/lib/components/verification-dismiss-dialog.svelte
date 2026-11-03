@@ -1,5 +1,5 @@
 <script lang="ts">
-  import CircleSlashIcon from '@lucide/svelte/icons/circle-slash';
+  import CircleSlashIcon from '~icons/lucide/circle-slash';
   import { dismissVerificationAssessment, DismissReason } from '@screenhire/api-client';
   import { DismissVerificationAssessmentBody } from '@screenhire/api-client/zod';
   import { defaults, superForm } from 'sveltekit-superforms';

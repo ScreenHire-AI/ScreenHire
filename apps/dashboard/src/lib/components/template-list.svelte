@@ -24,8 +24,8 @@
 </script>
 
 <script lang="ts">
-  import FileStackIcon from '@lucide/svelte/icons/file-stack';
-  import PlusIcon from '@lucide/svelte/icons/plus';
+  import FileStackIcon from '~icons/lucide/file-stack';
+  import PlusIcon from '~icons/lucide/plus';
   import type { TeamMember } from '@screenhire/api-client';
   import {
     createColumnHelper,

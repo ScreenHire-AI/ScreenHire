@@ -31,6 +31,26 @@ public sealed class BrandImageTests
     }
 
     [Fact]
+    public void An_image_is_marked_saved_once_and_the_first_save_stays()
+    {
+        var image = new BrandImage
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = Guid.NewGuid(),
+            Kind = BrandImageKind.Logo,
+            BlobName = "org/upload/Logo/logo.png",
+            ContentType = "image/png",
+            UploadedAt = new DateTimeOffset(2026, 11, 1, 9, 0, 0, TimeSpan.Zero),
+        };
+        image.SavedAt.Should().BeNull("an upload nobody saved is the clean-up's to remove");
+
+        image.MarkSaved(new DateTimeOffset(2026, 11, 1, 10, 0, 0, TimeSpan.Zero));
+        image.MarkSaved(new DateTimeOffset(2026, 11, 5, 10, 0, 0, TimeSpan.Zero));
+
+        image.SavedAt.Should().Be(new DateTimeOffset(2026, 11, 1, 10, 0, 0, TimeSpan.Zero), "saving again, or replacing the logo later, changes nothing");
+    }
+
+    [Fact]
     public void A_truncated_jpeg_has_no_size()
     {
         // Cut inside the frame segment, after its height and before its width.
@@ -65,6 +85,16 @@ public sealed class BrandImageTests
         var clean = new BrandImage { Id = Guid.NewGuid(), BlobName = "y", ContentType = "image/jpeg", Kind = BrandImageKind.Logo };
         clean.RecordScan(MalwareScanStatus.NotScanned, DateTimeOffset.UnixEpoch);
         clean.IsServable.Should().BeTrue("no scanner is configured, as applicant files are offered");
+    }
+
+    [Fact]
+    public void It_keeps_the_name_it_was_uploaded_with_as_the_last_part_of_its_blob_name()
+    {
+        var image = new BrandImage { Id = Guid.NewGuid(), BlobName = $"{Guid.NewGuid()}/{Guid.NewGuid()}/Logo/acme-logo.png", ContentType = "image/png" };
+        var bare = new BrandImage { Id = Guid.NewGuid(), BlobName = "x", ContentType = "image/png" };
+
+        image.FileName.Should().Be("acme-logo.png");
+        bare.FileName.Should().Be("x");
     }
 
     [Fact]

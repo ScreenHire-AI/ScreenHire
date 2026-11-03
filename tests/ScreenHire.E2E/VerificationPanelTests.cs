@@ -52,9 +52,9 @@ public sealed class VerificationPanelTests(E2EFixture fixture) : BrowserTest(fix
             }
         }
 
-        // The duplicates check never revisits an earlier application: the later one carries the signal
-        // (DuplicateAnalyzer). So the farm's second member applies only once every check has run on the first, and the
-        // test never depends on which the worker reaches first.
+        // The later member carries the duplicate signal from its own first check, and the earlier one gets it from a
+        // re-check (RecheckApplicationDuplicates). A re-check that reaches the earlier application before its own first
+        // check has nothing to add, so the farm's second member applies only once every check has run on the first.
         await SettledAsync(scene.Slug, await Fixture.ApplyAsync(scene.Slug, scene.JobId, farmFirst, Ct));
         await Fixture.ApplyAsync(scene.Slug, scene.JobId, farmSecond, Ct);
 
@@ -63,23 +63,23 @@ public sealed class VerificationPanelTests(E2EFixture fixture) : BrowserTest(fix
         // submissions answer only the resume question, which makes 20 seconds a plausible time to complete the form.
         await Expect(Chip(genuine.FullName, "authenticity")).ToContainTextAsync("Authenticity: No concerns", Assessed);
         await Expect(Chip(bot.FullName, "authenticity")).ToContainTextAsync("Authenticity: Verification suggested, 6 reasons", Assessed);
-        await Expect(Chip(farmFirst.FullName, "authenticity")).ToContainTextAsync("Authenticity: No concerns", Assessed);
+        await Expect(Chip(farmFirst.FullName, "authenticity")).ToContainTextAsync("Authenticity: Verification suggested", Assessed);
         await Expect(Chip(farmSecond.FullName, "authenticity")).ToContainTextAsync("Authenticity: Verification suggested", Assessed);
         await Expect(Chip(bot.FullName, "aiAssistance")).ToContainTextAsync("AI assistance: No signs of AI help");
         (await Page.EvaluateAsync<bool>("() => window.__screenhireNoReload === true")).Should().BeTrue("the chips updated in place");
 
         var legend = Page.GetByRole(AriaRole.Group, new() { Name = "Authenticity" });
-        await Expect(legend.GetByRole(AriaRole.Button, new() { Name = "No concerns 2" })).ToBeVisibleAsync();
-        await Expect(legend.GetByRole(AriaRole.Button, new() { Name = "Verification suggested 2" })).ToBeVisibleAsync();
+        await Expect(legend.GetByRole(AriaRole.Button, new() { Name = "No concerns 1" })).ToBeVisibleAsync();
+        await Expect(legend.GetByRole(AriaRole.Button, new() { Name = "Verification suggested 3" })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-verification-job-light");
 
         // The legend filters the table to one level, and a second press shows everyone again.
         var table = Page.GetByRole(AriaRole.Table, new() { Name = $"Candidates for {scene.Title}" });
-        await legend.GetByRole(AriaRole.Button, new() { Name = "Verification suggested 2" }).ClickAsync();
-        await Expect(CandidateLinks(table)).ToHaveCountAsync(2);
+        await legend.GetByRole(AriaRole.Button, new() { Name = "Verification suggested 3" }).ClickAsync();
+        await Expect(CandidateLinks(table)).ToHaveCountAsync(3);
         await Expect(table.GetByRole(AriaRole.Link, new() { Name = genuine.FullName })).ToHaveCountAsync(0);
-        await legend.GetByRole(AriaRole.Button, new() { Name = "Verification suggested 2" }).ClickAsync();
+        await legend.GetByRole(AriaRole.Button, new() { Name = "Verification suggested 3" }).ClickAsync();
         await Expect(CandidateLinks(table)).ToHaveCountAsync(4);
 
         // The bot's Verification tab: reasons, evidence, the next step and the AI policy, and nothing that decides.
@@ -185,12 +185,13 @@ public sealed class VerificationPanelTests(E2EFixture fixture) : BrowserTest(fix
         await SaveScreenshotAsync(Page, "dashboard-verification-panel-dark");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Switch to light theme" }).ClickAsync();
 
-        // "To review" now holds the farm's second member, which carries the duplicate; the dismissed bot, the genuine
-        // applicant and the farm's first member are not in it.
+        // "To review" now holds both farm members, which carry the duplicate; the dismissed bot and the genuine
+        // applicant are not in it.
         await Page.GetByRole(AriaRole.Link, new() { NameRegex = new Regex("^To review") }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("To review");
         var queue = Page.GetByRole(AriaRole.Table, new() { Name = "Candidates" });
-        await Expect(CandidateLinks(queue)).ToHaveCountAsync(1);
+        await Expect(CandidateLinks(queue)).ToHaveCountAsync(2);
+        await Expect(queue.GetByRole(AriaRole.Link, new() { Name = farmFirst.FullName })).ToBeVisibleAsync();
         await Expect(queue.GetByRole(AriaRole.Link, new() { Name = farmSecond.FullName })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
 

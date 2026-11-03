@@ -79,5 +79,5 @@ dotnet test --project tests/ScreenHire.IntegrationTests --filter-class "*Realtim
 
 ## 5. Done when
 
-- The contract test, the realtime Vitest suite and the new integration test pass; `pnpm verify` passes.
+- The contract test, the realtime Vitest suite and the new integration test pass; `/verify` passes.
 - `docs/architecture/realtime.md` still holds. Update its tests table if you added a test class.

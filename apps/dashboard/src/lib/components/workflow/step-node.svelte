@@ -12,8 +12,8 @@
 </script>
 
 <script lang="ts">
-  import PlusIcon from '@lucide/svelte/icons/plus';
-  import Trash2Icon from '@lucide/svelte/icons/trash-2';
+  import PlusIcon from '~icons/lucide/plus';
+  import Trash2Icon from '~icons/lucide/trash-2';
   import { Handle, Position, type NodeProps } from '@xyflow/svelte';
   import IconButton from '#lib/components/icon-button.svelte';
   import ProblemIcon from '#lib/components/problem-icon.svelte';

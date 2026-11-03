@@ -1,5 +1,5 @@
 <script lang="ts">
-  import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
+  import CircleAlertIcon from '~icons/lucide/circle-alert';
   import { cn } from '#lib/utils.js';
 
   // The icon before a problem in words: a failed action, a form error, a builder's problem to fix. It sits in the verify

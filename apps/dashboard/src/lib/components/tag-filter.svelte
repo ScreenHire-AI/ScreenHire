@@ -1,5 +1,5 @@
 <script lang="ts">
-  import TagIcon from '@lucide/svelte/icons/tag';
+  import TagIcon from '~icons/lucide/tag';
   import { buttonVariants } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';

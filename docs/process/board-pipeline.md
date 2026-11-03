@@ -5,6 +5,7 @@ description: "How a Kangentic task moves through Executing, Code Review, Testing
 tags: [kangentic, pipeline, process]
 sources:
   - resource: kangentic.json
+  - resource: .github/workflows/ci.yml
   - resource: scripts/guard-processes.mjs
   - resource: scripts/start-docker.mjs
 ---
@@ -31,8 +32,8 @@ when its condition holds, alone, with nothing after it.
 | Column | Agent | What starts the work | Exit lines |
 |---|---|---|---|
 | To Do | — | — | You (or a workflow) move the task on |
-| Planning | Opus, plan mode | Spawns on entry | Kangentic approves the plan (`planApproval: automatic`) → Executing. **Long, complex tasks go through it; simple ones skip it:** their brief is the plan, and each is saved with `routeStart: "Executing"`. Plan mode ignores allow rules and passes only MCP tools marked read-only, so every Aspire MCP call waits for a person, and a workflow task stuck in Planning can be neither moved nor rerouted. |
-| Executing | Opus, auto mode | Spawns on entry with the brief | `Implementation: complete`, then `Findings: applied`; or `Blocked: dependency not on main` |
+| Planning | Sonnet, plan mode | Spawns on entry | Kangentic approves the plan (`planApproval: automatic`) → Executing; or `Blocked: dependency not on main`. **Long, complex tasks go through it; simple ones skip it:** their brief is the plan, and each is saved with `routeStart: "Executing"`. Plan mode ignores allow rules and passes only MCP tools marked read-only, so every Aspire MCP call waits for a person, and a workflow task stuck in Planning can be neither moved nor rerouted. |
+| Executing | Sonnet, auto mode | Spawns on entry with the brief | `Implementation: complete`, then `Findings: applied`; or `Blocked: dependency not on main` |
 | Code Review | Opus, auto mode, **isolated session, new every time** | `/task-review <base>` | `Verdict: Ready` / `Verdict: Blocked` |
 | Testing | Sonnet, auto mode | `/pull-request` | `PR: ready to merge` / `PR: blocked` |
 | Merge | Sonnet, auto mode | `/merge-pull-request` | `PR: merged` / `PR: blocked` |
@@ -40,7 +41,8 @@ when its condition holds, alone, with nothing after it.
 
 ### What each column does
 
-- **Executing** implements the brief, adds the tests, and runs the gate (`pnpm verify`). Its first instruction
+- **Executing** implements the brief, adds the tests, and runs `/verify`: `pnpm verify:fast` and the tests the task
+  added or changed, by class or file. The whole suite runs in CI, not here (ADR-0020). Its first instruction
   ([unattended-runs](../../.claude/rules/unattended-runs.md)) is to fetch `origin/main` and confirm that the tasks it
   depends on have landed.
 - **Code Review** ([`task-review`](../../.claude/skills/task-review/SKILL.md)) runs in a fresh conversation that never
@@ -50,13 +52,18 @@ when its condition holds, alone, with nothing after it.
   `fix(review): …`, `test(review): …` or `docs(review): …`, and sends back only work that is task-sized or needs a
   decision.
 - **Testing** ([`pull-request`](../../.claude/skills/pull-request/SKILL.md)) commits, merges `origin/main` into the
-  branch, runs the full gate with up to three fix rounds, pushes to a public `<type>/<slug>` branch, and opens a PR
-  linked to the card. It never merges. When the branch changes the marketing build, Testing also runs the Lighthouse
-  budgets (`pnpm verify:lighthouse`). Only this column runs them, and only one run measures at a time on the machine
-  ([testing.md](testing.md#why-lighthouse-runs-once-and-one-at-a-time)).
-- **Merge** ([`merge-pull-request`](../../.claude/skills/merge-pull-request/SKILL.md)) re-integrates `main` and re-runs
-  the gate if `main` moved, squash-merges the PR, confirms the merge commit is on `origin/main`, resets the worktree to
-  `origin/main`, and fast-forwards the root checkout when it is on `main`.
+  branch, syncs the docs, runs `/verify`, then pushes once to a public `<type>/<slug>` branch and opens a PR linked to
+  the card. Opening the PR starts CI ([testing.md](testing.md#continuous-integration)), and Testing watches its
+  `Gate` check. A failed run gets up to three fix rounds, each one push with every fix from that run. A failure in code
+  the branch did not touch that also fails on `main` is fixed in the branch; one that does not is rerun once
+  (`gh run rerun --failed`) to tell a flake from a defect. It reports CI's report-only Lighthouse result in the PR body
+  and never merges.
+- **Merge** ([`merge-pull-request`](../../.claude/skills/merge-pull-request/SKILL.md)) requires `Gate` to be green on
+  the PR's head and the PR to be mergeable, then squash-merges with `--match-head-commit`. It does not run CI again
+  when `main` has moved: the PR run already tested the head merged with `main`, and CI on every push to `main` is the
+  backstop. Only a conflict sends it back: merge `origin/main`, `pnpm verify:fast`, push, one CI run. Then it confirms
+  the merge commit is on `origin/main`, resets the worktree to `origin/main`, and fast-forwards the root checkout
+  when it is on `main`.
 - **Done** removes the worktree and starts every task waiting on this one. Kangentic cuts new worktrees from
   `origin/main`, which is why `PR: merged` must mean the code is really there.
 
@@ -64,9 +71,10 @@ when its condition holds, alone, with nothing after it.
 
 | Column | Last line | Automation | Effect |
 |---|---|---|---|
-| Executing | `Implementation: complete` | Apply findings | Does **not** move the task. Sends the agent a message asking it to apply any findings or follow-ups from its last message, re-run checks and commit. |
+| Executing | `Implementation: complete` | Apply findings | Does **not** move the task. Sends the agent a message asking it to apply any findings or follow-ups from its last message, re-run checks and commit. It skips a finding already filed as a task on the board, and never deletes or moves a task. |
 | Executing | `Findings: applied` | On to Code Review (max 4) | Moves the task to Code Review. |
 | Executing | `Blocked: dependency not on main` | Dependency missing | Desktop notification. The task stays in Executing. |
+| Planning | `Blocked: dependency not on main` | Dependency missing | Desktop notification. The task stays in Planning. Checked in Kangentic's source, where the turn-end runner has no plan-mode gate. Not yet seen on a real run, because Kangentic reads `kangentic.json` from the root checkout. |
 | Code Review | `Verdict: Ready` | On to Testing (max 3) | Moves the task to Testing. |
 | Code Review | `Verdict: Blocked` | Back for revisions (max 3) | Moves the task back to Executing with the review's numbered steps. The implementer does them and ends on `Findings: applied`, which brings the task back to Code Review. |
 | Code Review | `Verdict: Blocked`, with the 3 returns used up | Review stuck | Desktop notification. The task stays in Code Review. |
@@ -108,10 +116,10 @@ All four notifications leave the task where it is, with its worktree and session
 
 | Notification | Meaning | Unblock |
 |---|---|---|
-| **Blocked on a dependency: #N title** | Executing found that a task this one waits for is not on `origin/main` (its PR is unmerged, or its code is missing). The agent wrote nothing on a guess. | Get the dependency to Done first: check its own column and notifications. Then tell this task's agent to `git fetch origin main`, merge it, and carry on with the brief. |
+| **Blocked on a dependency: #N title** | Executing or Planning found that a task this one waits for is not on `origin/main` (its PR is unmerged, or its code is missing). The agent wrote nothing on a guess. | Get the dependency to Done first: check its own column and notifications. Then tell this task's agent to `git fetch origin main`, merge it, and carry on with the brief. |
 | **Review blocked: #N title** | Code Review sent the task back 3 times and still finds blocking work, so the review loop is exhausted. | Read the numbered steps. Either do them yourself in the worktree and move the card to Testing, or settle the disputed decision in the brief and send the task back to Executing by hand. By now Executing's "On to Code Review" row has used all 4 runs (the first entry plus 3 returns), so `Findings: applied` will not move it again: move the card to Code Review yourself when the work is done. |
-| **Testing blocked: #N title** | `/pull-request` could not finish. Common causes: the gate is still red after 3 fix rounds, `gh` is not authenticated, a merge conflict needs a product decision, Docker is down and `pnpm docker:start` could not start it, or Playwright's Chromium is not installed (`pnpm e2e:install`). | Fix the named cause (for example `gh auth login`, `pnpm docker:start`, or decide the conflict), then ask the agent to run `/pull-request` again. It reuses the existing PR and branch. |
-| **Merge blocked: #N title** | `/merge-pull-request` could not land the PR. Common causes: the re-gate failed after `main` moved, `main` moved more than 3 times during the merge, uncommitted files were found before the realign, or `gh` failed. | Fix the cause, then ask the agent to run `/merge-pull-request` again (if the PR is already merged, see [Troubleshooting](#troubleshooting) instead). Do not merge the PR on GitHub by hand and leave the card: Done is what removes the worktree and starts the dependents. If you did merge by hand, move the card to Done yourself. |
+| **Testing blocked: #N title** | `/pull-request` could not finish. Common causes: CI's `Gate` is still red after 3 fix rounds, CI made no progress across two 10-minute watches, the local checks failed 3 times, `gh` is not authenticated, a merge conflict needs a product decision, or someone else pushed to the PR branch. Running a branch's own integration or end-to-end tests also needs Docker (`pnpm docker:start`) and Chromium (`pnpm e2e:install`). | Fix the named cause (for example `gh auth login`, `pnpm docker:start`, or decide the conflict), then ask the agent to run `/pull-request` again. It reuses the existing PR and branch. |
+| **Merge blocked: #N title** | `/merge-pull-request` could not land the PR. Common causes: `Gate` is red on the head after 2 fix rounds, the PR conflicted with `main` more than 3 times, uncommitted files were found before the realign, or `gh` failed. | Fix the cause, then ask the agent to run `/merge-pull-request` again (if the PR is already merged, see [Troubleshooting](#troubleshooting) instead). Do not merge the PR on GitHub by hand and leave the card: Done is what removes the worktree and starts the dependents. If you did merge by hand, move the card to Done yourself. |
 
 If a root checkout fast-forward fails during Merge, the task still reaches Done. The final message reports it
 prominently (branch, ahead/behind, local commits). Sort out the root checkout yourself; the agents never stash, reset
@@ -123,10 +131,10 @@ After pausing the workflow, check this first. Run the commands in the task's wor
 
 | Column | Notification | First thing to check |
 |---|---|---|
-| Executing | Blocked on a dependency | The dependency's card. If it is not in Done, the problem is there: unblock that task first. If it is in Done, run `git fetch origin main` and `git log --oneline origin/main -- <a file the dependency adds>`. A result means the dependency did land: tell this task's agent to merge `origin/main` and carry on. An empty result means its card reached Done without its code on `main` (moved by hand, or a bad merge), so check the dependency's PR with `gh pr view <pr> --json state,mergeCommit`. |
+| Executing or Planning | Blocked on a dependency | The dependency's card. If it is not in Done, the problem is there: unblock that task first. If it is in Done, run `git fetch origin main` and `git log --oneline origin/main -- <a file the dependency adds>`. A result means the dependency did land: tell this task's agent to merge `origin/main` and carry on. An empty result means its card reached Done without its code on `main` (moved by hand, or a bad merge), so check the dependency's PR with `gh pr view <pr> --json state,mergeCommit`. |
 | Code Review | Review blocked | Whether the numbered steps repeat from one return to the next (earlier verdicts are in the Executing session, in the "Code Review sent this back" messages). The same step three times is a disagreement between the brief and the reviewer, not unfinished code, so settle it in the brief. Different steps each time mean the work is still moving: do the remaining steps yourself. |
-| Testing | Testing blocked | The environment, before the code: `gh auth status` and `docker info` (if Docker is down, `pnpm docker:start`). Either one failing explains the block on its own. If both pass, read the last message for the first failing gate step, or for a merge conflict that needs a decision. |
-| Merge | Merge blocked | `git status`, then `gh pr view <pr> --json state,mergeCommit`. Uncommitted files stop the realign, and Done deletes the worktree, so commit them or move them out first; never discard them. A PR that is already `MERGED` means the block came after the merge: ask the agent to carry on from "Confirm it landed" in [`merge-pull-request`](../../.claude/skills/merge-pull-request/SKILL.md), not to re-run the whole skill. An open PR means it stopped before or during the merge (re-gate, `main` moving, `gh`): read the reason in the last message. A closed, unmerged PR needs reopening first. |
+| Testing | Testing blocked | `gh auth status`, then `gh pr checks <pr>` and the last message: which CI job failed and what each round tried (`gh run view <run-id> --log-failed` shows it again). If the local checks failed instead, `docker info` (`pnpm docker:start`) for a branch with integration or end-to-end tests. A merge conflict that needs a decision is named in the message. |
+| Merge | Merge blocked | `git status`, then `gh pr view <pr> --json state,mergeCommit`. Uncommitted files stop the realign, and Done deletes the worktree, so commit them or move them out first; never discard them. A PR that is already `MERGED` means the block came after the merge: ask the agent to carry on from "Confirm it landed" in [`merge-pull-request`](../../.claude/skills/merge-pull-request/SKILL.md), not to re-run the whole skill. An open PR means it stopped before or during the merge (a red or pending `Gate`, a conflict, `gh`): read the reason in the last message. A closed, unmerged PR needs reopening first. |
 
 No notification at all, but an idle agent? That is the [silent stall](#the-silent-stall): read the last line of its
 final message.
@@ -172,6 +180,26 @@ DCP 0.26.5, and only Aspire 17 (in preview) moves to 0.27. [microsoft/aspire#205
 milestone with no backport yet. When the pinned Aspire ships DCP 0.27.0 or
 later (`dcp version` in `~/.aspire/versions/<version>/dcp/`), delete the fixture's pre-stop and this section.
 
+Kangentic's project Stop script (`stopScript` in `kangentic.json`) runs `dotnet aspire stop` for a parked task's stack,
+so it goes through DCP's stop with no pre-stop. That is on purpose. The fixture can stop the app's processes by identity
+because it holds each resource's PID and start time; a script would have to parse `dotnet aspire describe` for them and
+repeat the identity check, which is a second stopping path to keep right. The script replaces a `/preview stop` the
+agent would have run, so a stack still goes through DCP's stop about once. Checked by hand on 2026-11-01 with DCP
+0.26.5, not through a real pause: the script stopped this clone's isolated stack in under a second, left another
+worktree's stack running, and exited 0 with no stack up.
+
+Kangentic reads the setting from the project folder's `kangentic.json`, not the worktree's, so a change to the script
+takes effect once it is on `main` in the root checkout. After an idle or low-memory pause it runs the script only if
+the task left something running. A browser tab or the task's Browser pane connected to the stack holds that stop off,
+and Kangentic tries again about every five minutes. The offscreen browser an agent drove does not count: Kangentic
+closes it first. A move to Done or To Do, or a delete, runs the script with no connected check and a 30-second limit,
+and the reap ends what is left.
+
+The script is `cmd.exe` syntax, because Kangentic runs it through the platform shell and the board runs on Windows.
+Under `sh` the `set` does nothing, so the stop still runs but without the telemetry opt-out. Its `--apphost` path is
+relative to where Kangentic runs it: the task's worktree, or the project folder when the task has no worktree or the
+folder is gone. In that last case the script stops the root checkout's stack, not one the task started.
+
 ### Docker Desktop belongs to the machine, not to a task
 
 A process started from a task's shell carries the task's `KANGENTIC_TASK_ID` and works in its worktree, so Done keeps
@@ -179,25 +207,27 @@ it running and cannot delete the folder. `pnpm docker:start` (`scripts/start-doc
 the tag removed and Docker's own folder as its working directory, then waits up to 3 minutes for the engine. Agents
 use it whenever `docker info` fails, and the process guard refuses every other way of launching Docker Desktop.
 
-### A gate stopped with TaskStop keeps running
+### A check stopped with TaskStop keeps running
 
-On Windows TaskStop ends the Bash tool's shell but not the Git Bash `sh.exe` it started, so `pnpm verify` and its whole
-tree keep running, out of the session's reach and holding the worktree folder at Done. Agents let a running gate
-finish and run it again after further edits (`/verify`). Each step ends on its own. Lighthouse, which Testing runs
-after the gate, has a limit of 60 s per page and 5 minutes for the run, checks that its Chrome exited, and ends with
-`process.exit`.
+On Windows TaskStop ends the Bash tool's shell but not the Git Bash `sh.exe` it started, so `pnpm verify:fast`, a
+test run or `pnpm verify` keeps running with its whole tree, out of the session's reach and holding the worktree
+folder at Done. Agents let a running check finish and run it again after further edits (`/verify`). Each step ends
+on its own. A local Lighthouse run has a limit of 60 s per page and 5 minutes for the run, checks that its Chrome
+exited, and ends with `process.exit`.
 
 ## Where the rules live
 
 | What | Where |
 |---|---|
 | Columns, automations, outcome lines, models | [`kangentic.json`](../../kangentic.json) |
-| The gate (`/verify`): what runs, in what order, how to read failures | [`.claude/skills/verify/SKILL.md`](../../.claude/skills/verify/SKILL.md); scripts `verify`, `verify:dotnet`, `verify:contract`, `verify:test` in [`package.json`](../../package.json); `verify:lighthouse` there too, run by Testing only |
+| The test gate: CI's jobs and the `Gate` check | [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml); [testing.md](testing.md#continuous-integration) has the layout and how to read a failed run; [ADR-0020](../adr/0020-test-gate-on-github-actions.md) has why |
+| Local checks (`/verify`): the fast check, the branch's tests by class or file, `/verify full` | [`.claude/skills/verify/SKILL.md`](../../.claude/skills/verify/SKILL.md); scripts `verify:fast`, `verify`, `verify:dotnet`, `verify:contract`, `verify:test` and `verify:lighthouse` in [`package.json`](../../package.json) |
+| Stop script: ends a parked task's stack on an idle or low-memory pause (unless a client is connected) and before a task's reap; a Pause or Stop pressed by a person leaves it up | `stopScript` in [`kangentic.json`](../../kangentic.json). A machine can override it in the git-ignored `kangentic.local.json`. A Kangentic build older than the setting ignores the key and drops it the next time it writes the file, so restart Kangentic on a build that has it. |
 | Column skills | [`task-review`](../../.claude/skills/task-review/SKILL.md), [`pull-request`](../../.claude/skills/pull-request/SKILL.md), [`merge-pull-request`](../../.claude/skills/merge-pull-request/SKILL.md) |
 | Conflict playbook for integrating `main` (merge, not rebase; regenerate lockfile, API client and migrations) | [`.claude/rules/integration-conflicts.md`](../../.claude/rules/integration-conflicts.md) |
 | Unattended-run rules (never wait for a person, stay local, start from what is merged) | [`.claude/rules/unattended-runs.md`](../../.claude/rules/unattended-runs.md) |
 | Process guard: refuses killing processes by name, port or tree, stopping a PID started outside this worktree, Docker prunes and sub-command removals, stopping services, WSL or the machine, and launching Docker Desktop directly (use `pnpm docker:start`) | [`scripts/guard-processes.mjs`](../../scripts/guard-processes.mjs), wired as a `PreToolUse` hook in [`.claude/settings.json`](../../.claude/settings.json) |
-| Auto-mode allowances for the pipeline (push to the task branch, `gh pr merge`, local builds) | `autoMode` in [`.claude/settings.json`](../../.claude/settings.json) |
+| Auto-mode allowances for the pipeline (push to the task branch, `gh pr checks`, `gh run view`, `gh run rerun --failed`, `gh pr merge`, local builds) | `autoMode` in [`.claude/settings.json`](../../.claude/settings.json) |
 
 Agents may not edit `kangentic.json`, `.kangentic/`, `.claude/settings*.json`, the guard or the pipeline skills unless
 the task is about them. Changing the pipeline is a task of its own.

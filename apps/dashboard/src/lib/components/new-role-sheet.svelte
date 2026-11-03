@@ -1,5 +1,5 @@
 <script lang="ts">
-  import PlusIcon from '@lucide/svelte/icons/plus';
+  import PlusIcon from '~icons/lucide/plus';
   import { createRole, type Permission, type RoleSummary } from '@screenhire/api-client';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { defaults, superForm } from 'sveltekit-superforms';

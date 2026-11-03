@@ -600,7 +600,7 @@ internal static class JobEndpoints
             }
         }
 
-        if ((await EmailTemplateReferences.ValidateAsync(db, workflow, cancellationToken)).ToProblems("workflow") is { } problems)
+        if ((await TemplateReferences.ValidateAsync(db, workflow, cancellationToken)).ToProblems("workflow") is { } problems)
         {
             return TypedResults.ValidationProblem(problems);
         }
@@ -655,7 +655,7 @@ internal static class JobEndpoints
             return TypedResults.ValidationProblem(missingProblems);
         }
 
-        if ((await EmailTemplateReferences.ValidateAsync(db, copied, cancellationToken)).ToProblems("workflow") is { } problems)
+        if ((await TemplateReferences.ValidateAsync(db, copied, cancellationToken)).ToProblems("workflow") is { } problems)
         {
             return TypedResults.ValidationProblem(problems);
         }

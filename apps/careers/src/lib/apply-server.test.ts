@@ -92,6 +92,56 @@ describe('saving a draft again', () => {
   });
 });
 
+describe('the bot check on a first save', () => {
+  // Saving for the first time on the questions page, as sam@example.com with no draft yet.
+  const saveFirst = (extra: Record<string, string> = {}) =>
+    form({
+      organization: 'acme',
+      job: 'barista',
+      step: 'page-1',
+      pageQuestions: 'start',
+      'q:start': 'Monday',
+      intent: 'save',
+      state: JSON.stringify({ firstName: 'Sam', email: 'sam@example.com' }),
+      ...extra,
+    });
+  const bodyOf = (call: unknown[]) => JSON.parse((call[1] as RequestInit).body as string) as Record<string, unknown>;
+
+  it('sends the widget token with the request that emails the link', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(json(200, applicationForm)).mockResolvedValueOnce(json(201, { token, expiresAt }));
+    vi.stubGlobal('fetch', fetch);
+
+    const result = await applyStep(saveFirst({ 'cf-turnstile-response': 'widget-token' }), undefined);
+
+    expect(result.saved).toMatchObject({ emailed: true });
+    expect(bodyOf(fetch.mock.calls[1]!).botCheckToken).toBe('widget-token');
+  });
+
+  it('sends no token when the widget gave none, and saving again sends none either', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(json(200, applicationForm)).mockResolvedValueOnce(json(201, { token, expiresAt }));
+    vi.stubGlobal('fetch', fetch);
+    await applyStep(saveFirst(), undefined);
+    expect(bodyOf(fetch.mock.calls[1]!).botCheckToken).toBeNull();
+
+    const again = vi.fn().mockResolvedValueOnce(json(200, applicationForm)).mockResolvedValueOnce(json(200, { token, expiresAt }));
+    vi.stubGlobal('fetch', again);
+    await applyStep(saveAgain(), undefined);
+    expect(bodyOf(again.mock.calls[1]!)).not.toHaveProperty('botCheckToken');
+  });
+
+  it('says no link was emailed and offers sending the application when the check is refused', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(json(200, applicationForm)).mockResolvedValueOnce(json(403, { title: 'Security check not passed' }));
+    vi.stubGlobal('fetch', fetch);
+
+    const result = await applyStep(saveFirst(), undefined);
+
+    expect(result.saved).toBeUndefined();
+    expect(result.state.draft).toBeNull();
+    expect(result.formError).toContain('no link was emailed');
+    expect(result.formError).toContain('send your application now');
+  });
+});
+
 describe('time on each page', () => {
   const details = (accommodation: boolean) =>
     form({
@@ -151,5 +201,37 @@ describe('the site the careers page is embedded in', () => {
     await applyStep(send(), undefined, null, new Date(), 'https://removed.example.org');
 
     expect(sent(fetch).embedOrigin).toBeNull();
+  });
+});
+
+describe('the job board that sent the candidate', () => {
+  const listed = { ...applicationForm, organization: { embedOrigins: [] } } as unknown as PublicApplicationForm;
+  const send = () =>
+    form({
+      organization: 'acme',
+      job: 'barista',
+      step: 'review',
+      state: JSON.stringify({ firstName: 'Sam', email: 'sam@example.com' }),
+    });
+  const sent = (fetch: ReturnType<typeof vi.fn>) => JSON.parse((fetch.mock.calls[1]![1] as RequestInit).body as string);
+
+  it('goes with the application as its source', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(json(200, listed)).mockResolvedValueOnce(json(201, { applicationId: 'x' }));
+    vi.stubGlobal('fetch', fetch);
+
+    const result = await applyStep(send(), undefined, null, new Date(), null, 'talent');
+
+    expect(result.outcome).toBe('submitted');
+    expect(sent(fetch).source).toBe('talent');
+  });
+
+  it('is left out when the address names no board or something that is not a board id', async () => {
+    const fetch = vi.fn().mockResolvedValue(json(200, listed));
+    vi.stubGlobal('fetch', fetch);
+    fetch.mockResolvedValueOnce(json(200, listed)).mockResolvedValueOnce(json(201, { applicationId: 'x' }));
+
+    await applyStep(send(), undefined, null, new Date(), null, 'Not A Board!');
+
+    expect(sent(fetch).source).toBeNull();
   });
 });

@@ -1,9 +1,9 @@
 <script lang="ts">
-  import HashIcon from '@lucide/svelte/icons/hash';
-  import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
-  import SaveIcon from '@lucide/svelte/icons/save';
-  import SendIcon from '@lucide/svelte/icons/send';
-  import UnplugIcon from '@lucide/svelte/icons/unplug';
+  import HashIcon from '~icons/lucide/hash';
+  import RefreshCwIcon from '~icons/lucide/refresh-cw';
+  import SaveIcon from '~icons/lucide/save';
+  import SendIcon from '~icons/lucide/send';
+  import UnplugIcon from '~icons/lucide/unplug';
   import { type HttpValidationProblemDetails, SlackChannelEvent } from '@screenhire/api-client';
   import {
     ApiError,
@@ -198,19 +198,12 @@
         <Panel title="Workspace">
           <QueryError message={describeError(slack.error, 'Could not load Slack')} onretry={() => slack.refetch()} inset />
         </Panel>
-      {:else if !current}
+      {:else if !current || !current.available}
+        <!-- Where no Slack app is set up this page does not exist (A3): the Settings layout leaves it, so nothing but the
+             loading state is drawn on the way out. -->
         <Panel title="Workspace">
           <div aria-hidden="true" class="flex flex-col gap-4"><Skeleton class="h-6 w-full max-w-96" /><Skeleton class="h-10 w-40" /></div>
           <p class="sr-only" role="status">Loading Slack…</p>
-        </Panel>
-      {:else if !current.available}
-        <Panel title="Workspace">
-          <Empty.Root>
-            <Empty.Header>
-              <Empty.Title>Slack is not set up here</Empty.Title>
-              <Empty.Description>Slack needs a Slack app set up where ScreenHire is hosted. It cannot be set up from this page.</Empty.Description>
-            </Empty.Header>
-          </Empty.Root>
         </Panel>
       {:else if !connected || !settings}
         <Panel title="Workspace">

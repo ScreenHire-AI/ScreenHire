@@ -9,5 +9,13 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- Missing XML comments are not errors; public API docs are added where they help. -->
     <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- Every bin folder copies each package's localized resources (cs, de, es, fr...): about 1,100 files and 77 MB per
+         worktree that nothing reads. -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- Seven bin folders hold the same package DLLs (Playwright's node.exe alone is 94 MB). Hardlinks make the copies
+         free; a build never writes into them. MSBuild falls back to a copy where a link is not possible. -->
+    <CreateHardLinksForCopyLocalIfPossible>true</CreateHardLinksForCopyLocalIfPossible>
+    <CreateHardLinksForCopyFilesToOutputDirectoryIfPossible>true</CreateHardLinksForCopyFilesToOutputDirectoryIfPossible>
+    <CreateHardLinksForPublishFilesIfPossible>true</CreateHardLinksForPublishFilesIfPossible>
   </PropertyGroup>
 </Project>

@@ -2,13 +2,14 @@
   import type { Snippet } from 'svelte';
   import { page } from '$app/state';
   import { visibleSettingsSections } from '#lib/settings.js';
+  import { getShell } from '#lib/shell.js';
 
   // The Settings menu (design system section 11): Settings is one sidebar item, and its pages share this menu. From `lg`
   // the menu is a 200px column on the left of the page's content, under the header band; below `lg` it is one row above
   // the content that scrolls sideways and never wraps (F5), and brings the current entry into view. It is a surface, like
   // any panel (S3). The page's content goes in `children`. A record under a settings page (a webhook endpoint) is a
   // detail page, which has no menu. It lists only the pages the person's role may use, as the sidebar does, in their
-  // groups: from `lg` each group's name heads it as a caption, as Saved views does in the sidebar; in the row below `lg`
+  // groups: from `lg` each group's name heads it as a caption, as Views does in the sidebar; in the row below `lg`
   // a thin rule parts the groups and the names are for screen readers only.
   let {
     children,
@@ -19,7 +20,8 @@
     current?: string;
   } = $props();
 
-  const sections = $derived(visibleSettingsSections(page.data?.user));
+  const shell = getShell();
+  const sections = $derived(visibleSettingsSections(page.data?.user, shell?.features()));
   const groups = $derived(
     [...new Set(sections.map((section) => section.group))].map((group) => ({ group, sections: sections.filter((section) => section.group === group) })),
   );

@@ -3,9 +3,9 @@
   import { CompleteOnboardingBody } from '@screenhire/api-client/zod';
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
-  import LogOutIcon from '@lucide/svelte/icons/log-out';
-  import MailIcon from '@lucide/svelte/icons/mail';
-  import PlusIcon from '@lucide/svelte/icons/plus';
+  import LogOutIcon from '~icons/lucide/log-out';
+  import MailIcon from '~icons/lucide/mail';
+  import PlusIcon from '~icons/lucide/plus';
   import { goto } from '$app/navigation';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';

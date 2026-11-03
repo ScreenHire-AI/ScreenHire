@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SendIcon from '@lucide/svelte/icons/send';
+  import SendIcon from '~icons/lucide/send';
   import type { ScorecardTemplateSummary, TeamMember, WorkflowStage } from '@screenhire/api-client';
   import { createRequestScorecard } from '@screenhire/api-client/svelte-query';
   import { untrack } from 'svelte';

@@ -43,8 +43,6 @@ public sealed record PublicUploadSettings(long MaxBytes, string Origin);
 /// <c>sections</c> are the questionnaire's named pages, or null to split it into pages of <c>questionsPerPage</c>
 /// (apply-flow.md §7). <c>saveDraftEnabled</c> says whether the candidate can save the form to finish later: false when
 /// this deployment sends no email or has no careers host to link to.
-/// <c>talentPoolMonths</c> is how long the organization keeps a candidate's details for future roles if they say so,
-/// which the form's "Keep my details for future roles" box tells them.
 /// </summary>
 public sealed record PublicApplicationForm(
     PublicOrganization Organization,
@@ -56,8 +54,7 @@ public sealed record PublicApplicationForm(
     PublicTelemetrySettings Telemetry,
     IReadOnlyList<QuestionSection>? Sections,
     int QuestionsPerPage,
-    bool SaveDraftEnabled,
-    int TalentPoolMonths);
+    bool SaveDraftEnabled);
 
 /// <summary>Asks for a link to upload one file for a file question. <c>sizeBytes</c> is the size the candidate's device reports.</summary>
 public sealed record UploadRequest(string FileName, long SizeBytes);
@@ -89,12 +86,16 @@ public sealed record UploadedFile(Guid UploadId, string FileName, string Content
 /// sent, and drops where the job's device-check basis is <c>Off</c>, or <c>Consent</c> without
 /// <c>deviceCheckConsent</c>. The candidate's address comes from the connection (<c>X-Forwarded-For</c> from a trusted
 /// proxy). <c>keepForFutureRoles</c> is the candidate's own, optional "Keep my details for future roles": the
-/// organization may keep this application for the period the form showed and invite them to apply for other jobs.
+/// organization may keep this application until they ask or the team removes them,
+/// and invite them to apply for other jobs.
 /// <c>telemetrySessionToken</c> binds the form's telemetry to the application, and <c>telemetry</c> is the last
 /// page's snapshot, which travels with the form post rather than a beacon so it is stored before analysis starts; an
 /// invalid one is dropped, never a reason to refuse. <c>embedOrigin</c> is the organization's own site the careers page
 /// was embedded in (docs/architecture/careers-widget.md); it is kept as the application's <c>sourceSite</c> only when it
-/// is one of the organization's <c>embedOrigins</c>, and dropped otherwise, never a reason to refuse.
+/// is one of the organization's <c>embedOrigins</c>, and dropped otherwise, never a reason to refuse. <c>source</c> is the id of
+/// the job board whose link the candidate followed (the <c>src</c> parameter of the link a feed carries); it is kept as the
+/// application's <c>sourceBoard</c> only when it is a board that tags its links, and dropped otherwise, never a reason to
+/// refuse.
 /// </remarks>
 public sealed record PublicApplicationRequest(
     PublicCandidateInput Candidate,
@@ -113,7 +114,8 @@ public sealed record PublicApplicationRequest(
     string? TelemetrySessionToken = null,
     TelemetrySnapshotInput? Telemetry = null,
     bool KeepForFutureRoles = false,
-    string? EmbedOrigin = null);
+    string? EmbedOrigin = null,
+    string? Source = null);
 
 /// <summary>The active seconds on one page of the apply form (<c>details</c>, <c>page-2</c>, <c>review</c>).</summary>
 public sealed record PageTimeInput(string Page, int Seconds);
@@ -214,7 +216,8 @@ public sealed record PublicApplicationDraftRequest(
     IReadOnlyList<ApplicationAnswer>? Answers = null,
     bool AccommodationRequested = false,
     AiUseDeclaration AiUseDeclaration = AiUseDeclaration.NotProvided,
-    string? AiUseDetails = null);
+    string? AiUseDetails = null,
+    string? BotCheckToken = null);
 
 /// <summary>A saved draft: the token in its link, which the careers page keeps to save it again, and when it is deleted.</summary>
 public sealed record PublicApplicationDraftReceipt(string Token, DateTimeOffset ExpiresAt);
@@ -256,6 +259,7 @@ internal sealed class PublicApplicationDraftRequestValidator : AbstractValidator
         });
         RuleFor(r => r.AiUseDeclaration).IsInEnum();
         RuleFor(r => r.AiUseDetails).MaximumLength(2000);
+        RuleFor(r => r.BotCheckToken).MaximumLength(4096);
     }
 }
 

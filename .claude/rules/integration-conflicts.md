@@ -25,7 +25,8 @@ higher one. When both sides changed the same line for different reasons, combine
 
 1. `git diff --check` and a search for `<<<<<<<` must come back clean.
 2. `git commit --no-edit` to conclude the merge.
-3. Run `pnpm verify`. A merge that builds is not a merge that works.
+3. Run `/verify` (`pnpm verify:fast` and the branch's added or changed tests). A merge that builds is not a merge
+   that works, so the push that follows runs CI's whole suite on the merged code before anything lands.
 
 Never resolve wholesale with `-X ours` or `-X theirs`, and never abandon a merge without trying. If a conflict
 needs a product decision you cannot make with confidence, `git merge --abort`, explain the conflict, and end with the

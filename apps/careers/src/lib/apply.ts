@@ -17,7 +17,7 @@ import { DEFAULT_QUESTIONS_PER_PAGE, fieldId, fields, questionPages, RESUME_QUES
  * The version of "What we collect and why" (pages/[organization]/privacy.astro). Every application records the version
  * its candidate was shown before anything was collected. Change it whenever that page's substance changes.
  */
-export const NOTICE_VERSION = '2026-10-31.2';
+export const NOTICE_VERSION = '2026-11-02.1';
 
 // Field names and ids come from the shared question components (packages/ui), which render the question fields; the
 // error summary's links depend on them matching. The form asks for the resume first, on the details step.
@@ -83,8 +83,9 @@ export interface ApplyState {
   /** The candidate ticked the device check, where the job's basis asks for consent. */
   deviceCheckConsent: boolean;
   /**
-   * The candidate ticked "Keep my details for future roles": the employer may keep this application for the period the
-   * form shows and invite them to apply for other jobs (docs/architecture/talent-pool.md). Unticked unless they tick it.
+   * The candidate ticked "Keep my details for future roles": the employer may save them, keep their details until
+   * they ask or the team removes them, and invite them to apply for other jobs (docs/architecture/talent-pool.md).
+   * Unticked unless they tick it.
    */
   keepForFutureRoles: boolean;
 }
@@ -405,6 +406,8 @@ export function toRequest(
     automationMarkers?: string[];
     /** The organization's own site the careers page was embedded in, already checked against its list. */
     embedOrigin?: string | null;
+    /** The job board whose link brought the candidate, already checked for shape. */
+    source?: string | null;
   },
 ): PublicApplicationRequest {
   // The module never runs with the assistive-technology switch on; nothing it might have left is sent either, and no
@@ -442,6 +445,7 @@ export function toRequest(
     telemetrySessionToken: state.telemetrySession || null,
     telemetry: measured ? (checks.telemetry ?? null) : null,
     embedOrigin: checks.embedOrigin ?? null,
+    source: checks.source ?? null,
   };
 }
 

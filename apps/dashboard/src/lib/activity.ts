@@ -1,21 +1,27 @@
-import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
-import BookmarkIcon from '@lucide/svelte/icons/bookmark';
-import BookmarkXIcon from '@lucide/svelte/icons/bookmark-x';
-import ClipboardCheckIcon from '@lucide/svelte/icons/clipboard-check';
-import ClipboardListIcon from '@lucide/svelte/icons/clipboard-list';
-import InboxIcon from '@lucide/svelte/icons/inbox';
-import ListChecksIcon from '@lucide/svelte/icons/list-checks';
-import ListTodoIcon from '@lucide/svelte/icons/list-todo';
-import MailPlusIcon from '@lucide/svelte/icons/mail-plus';
-import PencilIcon from '@lucide/svelte/icons/pencil';
-import ScanSearchIcon from '@lucide/svelte/icons/scan-search';
-import SendIcon from '@lucide/svelte/icons/send';
-import StickyNoteIcon from '@lucide/svelte/icons/sticky-note';
-import TagIcon from '@lucide/svelte/icons/tag';
-import TagsIcon from '@lucide/svelte/icons/tags';
-import Trash2Icon from '@lucide/svelte/icons/trash-2';
+import ArrowRightIcon from '~icons/lucide/arrow-right';
+import BookmarkIcon from '~icons/lucide/bookmark';
+import BookmarkXIcon from '~icons/lucide/bookmark-x';
+import CalendarCheckIcon from '~icons/lucide/calendar-check';
+import CalendarClockIcon from '~icons/lucide/calendar-clock';
+import CalendarPlusIcon from '~icons/lucide/calendar-plus';
+import CalendarXIcon from '~icons/lucide/calendar-x';
+import ClipboardCheckIcon from '~icons/lucide/clipboard-check';
+import ClipboardListIcon from '~icons/lucide/clipboard-list';
+import InboxIcon from '~icons/lucide/inbox';
+import ListChecksIcon from '~icons/lucide/list-checks';
+import ListTodoIcon from '~icons/lucide/list-todo';
+import MailPlusIcon from '~icons/lucide/mail-plus';
+import PencilIcon from '~icons/lucide/pencil';
+import ReplyIcon from '~icons/lucide/reply';
+import ScanSearchIcon from '~icons/lucide/scan-search';
+import SendIcon from '~icons/lucide/send';
+import StickyNoteIcon from '~icons/lucide/sticky-note';
+import TagIcon from '~icons/lucide/tag';
+import TagsIcon from '~icons/lucide/tags';
+import Trash2Icon from '~icons/lucide/trash-2';
 import type { ApplicationEventType, ApplicationTimelineEntry, TalentPoolExit, TeamMember } from '@screenhire/api-client';
 import type { Component } from 'svelte';
+import { formatDateTime } from '#lib/dates.js';
 import { personName } from '#lib/team.js';
 
 /**
@@ -29,6 +35,7 @@ export const activityKinds = [
   { value: 'notes', label: 'Notes' },
   { value: 'emails', label: 'Emails' },
   { value: 'scorecards', label: 'Scorecards' },
+  { value: 'interviews', label: 'Interviews' },
   { value: 'stage', label: 'Stage and tags' },
 ] as const;
 
@@ -38,6 +45,7 @@ const kinds: Partial<Record<ApplicationEventType, ActivityKind>> = {
   NoteAdded: 'notes',
   NoteDeleted: 'notes',
   EmailSent: 'emails',
+  EmailReceived: 'emails',
   ScorecardSubmitted: 'scorecards',
   Submitted: 'stage',
   StageChanged: 'stage',
@@ -46,6 +54,10 @@ const kinds: Partial<Record<ApplicationEventType, ActivityKind>> = {
   KeptInMind: 'stage',
   LeftTalentPool: 'stage',
   InvitedToApply: 'emails',
+  InterviewInvited: 'interviews',
+  InterviewBooked: 'interviews',
+  InterviewRescheduled: 'interviews',
+  InterviewCancelled: 'interviews',
 };
 
 export const activityKind = (entry: Pick<ApplicationTimelineEntry, 'type'>): ActivityKind | undefined => kinds[entry.type];
@@ -57,7 +69,7 @@ export function visibleEntries(entries: readonly ApplicationTimelineEntry[]): Ap
 
 /** How many entries each kind holds, and all of them. */
 export function kindCounts(entries: readonly ApplicationTimelineEntry[]): Record<ActivityKind | 'all', number> {
-  const counts = { all: entries.length, notes: 0, emails: 0, scorecards: 0, stage: 0 };
+  const counts = { all: entries.length, notes: 0, emails: 0, scorecards: 0, interviews: 0, stage: 0 };
   for (const entry of entries) {
     const kind = activityKind(entry);
     if (kind) counts[kind] += 1;
@@ -76,31 +88,36 @@ export const eventIcons: Record<ApplicationEventType, Component> = {
   NoteDeleted: Trash2Icon,
   ScorecardSubmitted: ClipboardCheckIcon,
   EmailSent: SendIcon,
+  EmailReceived: ReplyIcon,
   QuestionnaireSent: ClipboardListIcon,
   QuestionnaireCompleted: ListChecksIcon,
   TaskCreated: ListTodoIcon,
   KeptInMind: BookmarkIcon,
   LeftTalentPool: BookmarkXIcon,
   InvitedToApply: MailPlusIcon,
+  InterviewInvited: CalendarPlusIcon,
+  InterviewBooked: CalendarCheckIcon,
+  InterviewRescheduled: CalendarClockIcon,
+  InterviewCancelled: CalendarXIcon,
 };
 
 /** What the screen knows that an entry names by id: stage names, follow-up questionnaire names and job titles. */
 export interface ActivityNames {
   stageName: (id: string | null | undefined) => string;
   followUpName: (requestId: string | null | undefined) => string;
-  /** Another job's title, for the talent pool's entries; "another job" when the reader cannot see it. */
+  /** Another job's title, for the saved candidates' entries; "another job" when the reader cannot see it. */
   jobName?: (id: string | null | undefined) => string;
 }
 
-/** Why a candidate left the talent pool, as Activity says it. */
+/** Why a candidate left saved candidates, as Activity says it. Expired is for old rows only: nothing expires now. */
 const poolExits: Record<NonNullable<TalentPoolExit>, (job: string) => string> = {
-  Expired: () => 'Left the talent pool: their permission ran out',
-  Removed: () => 'Took them out of the talent pool',
-  CandidateAsked: () => 'Took them out of the talent pool at their request',
-  AddedToJob: (job) => `Added them to ${job} from the talent pool`,
-  AppliedAgain: (job) => `Left the talent pool: applied for ${job}`,
-  BackInJob: () => 'Left the talent pool: back in this job',
-  KeptFromAnotherJob: (job) => `Left the talent pool here: kept in mind from ${job} instead`,
+  Expired: () => 'Left saved candidates: their permission ran out',
+  Removed: () => 'Removed them from saved candidates',
+  CandidateAsked: () => 'Removed them from saved candidates at their request',
+  AddedToJob: (job) => `Added them to ${job} from saved candidates`,
+  AppliedAgain: (job) => `Left saved candidates: applied for ${job}`,
+  BackInJob: () => 'Left saved candidates: back in this job',
+  KeptFromAnotherJob: (job) => `Left saved candidates here: saved from ${job} instead`,
 };
 
 /** What happened, in words: "Moved from Applied to Screening". */
@@ -130,6 +147,9 @@ export function describeEvent(entry: ApplicationTimelineEntry, names: ActivityNa
     case 'EmailSent':
       // The body is never kept on the timeline, only the subject the candidate received.
       return `Emailed "${entry.emailSubject ?? 'an update'}"`;
+    case 'EmailReceived':
+      // The candidate wrote, so nobody is named. The reply itself is in Messages.
+      return `Candidate replied "${entry.emailSubject ?? 'to an email'}"`;
     case 'QuestionnaireSent':
       return `Sent the "${names.followUpName(entry.questionnaireRequestId)}" questionnaire`;
     case 'QuestionnaireCompleted':
@@ -140,11 +160,21 @@ export function describeEvent(entry: ApplicationTimelineEntry, names: ActivityNa
       return 'Created a task';
     case 'KeptInMind':
       // Why shows under it, quoted, as a stage move's note does.
-      return 'Kept in mind: left the job without a rejection';
+      return 'Saved';
     case 'LeftTalentPool':
       return poolExits[entry.poolExit ?? 'Removed'](names.jobName?.(entry.otherJobId) ?? 'another job');
     case 'InvitedToApply':
       return `Invited to apply for ${names.jobName?.(entry.otherJobId) ?? 'another job'}`;
+    // The interview's current time is the header's one fact; an entry says which time it was about, in the reader's zone,
+    // because a move or a cancellation is history that the header no longer shows. No actor means the candidate did it.
+    case 'InterviewInvited':
+      return 'Invited to pick an interview time';
+    case 'InterviewBooked':
+      return entry.startsAt ? `Interview booked for ${formatDateTime(entry.startsAt)}` : 'Interview booked';
+    case 'InterviewRescheduled':
+      return entry.startsAt ? `Interview moved to ${formatDateTime(entry.startsAt)}` : 'Interview moved to another time';
+    case 'InterviewCancelled':
+      return entry.startsAt ? `Interview on ${formatDateTime(entry.startsAt)} cancelled` : 'Interview cancelled';
   }
 }
 

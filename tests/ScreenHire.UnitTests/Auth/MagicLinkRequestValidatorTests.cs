@@ -8,7 +8,7 @@ public sealed class MagicLinkRequestValidatorTests
 
     [Theory]
     [InlineData("avery@example.com")]
-    [InlineData("Avery.Quinn+jobs@example.co.uk")]
+    [InlineData("Avery.Quinn+jobs@mail.example.com")]
     [InlineData("  avery@example.com  ")] // surrounding spaces are trimmed before the link is sent
     public void A_single_address_is_accepted(string email) =>
         validator.Validate(new MagicLinkRequest(email)).IsValid.Should().BeTrue();

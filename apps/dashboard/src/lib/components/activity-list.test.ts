@@ -1,4 +1,4 @@
-import MessageSquareIcon from '@lucide/svelte/icons/message-square';
+import MessageSquareIcon from '~icons/lucide/message-square';
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';

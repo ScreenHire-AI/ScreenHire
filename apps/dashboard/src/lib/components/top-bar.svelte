@@ -1,9 +1,9 @@
 <script lang="ts">
-  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
-  import KeyboardIcon from '@lucide/svelte/icons/keyboard';
-  import MoonIcon from '@lucide/svelte/icons/moon';
-  import SearchIcon from '@lucide/svelte/icons/search';
-  import SunIcon from '@lucide/svelte/icons/sun';
+  import ArrowLeftIcon from '~icons/lucide/arrow-left';
+  import KeyboardIcon from '~icons/lucide/keyboard';
+  import MoonIcon from '~icons/lucide/moon';
+  import SearchIcon from '~icons/lucide/search';
+  import SunIcon from '~icons/lucide/sun';
   import LiveIndicator from '#lib/components/live-indicator.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -43,6 +43,9 @@
     {:else}
       <Sidebar.Trigger size="icon-lg" class="-ml-1.5" />
     {/if}
+  {:else}
+    <!-- A tablet's icon rail has no room for the Views menus or Show hidden views, so the full sidebar is a press away. -->
+    <Sidebar.Trigger size="icon-lg" class="-ml-1.5 lg:hidden" />
   {/if}
 
   <nav aria-label="Breadcrumb" class="min-w-0 flex-1">

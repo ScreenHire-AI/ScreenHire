@@ -444,11 +444,15 @@ public enum ConditionOperator
 /// <c>emailTemplate</c>: For <see cref="ActionType.SendEmail"/> and, optionally, <see cref="ActionType.Reject"/>.
 /// <c>tag</c>: For <see cref="ActionType.AddTag"/>.
 /// <c>reason</c>: For <see cref="ActionType.QueueForRejectionReview"/> and <see cref="ActionType.Reject"/>; the candidate sees a rejection's reason.
-/// <c>url</c>: For <see cref="ActionType.ScheduleInterview"/> and <see cref="ActionType.CallWebhook"/> (https only).
+/// <c>url</c>: For <see cref="ActionType.CallWebhook"/> (https only).
 /// <c>note</c>: For <see cref="ActionType.NotifyTeam"/> and <see cref="ActionType.CreateTask"/>.
 /// <c>assigneeUserId</c>: Optional for <see cref="ActionType.AssignReviewer"/>; empty means the job's default reviewer.
 /// <c>verificationProvider</c>: Optional for <see cref="ActionType.RequestVerification"/>.
 /// <c>questionnaireId</c>: For <see cref="ActionType.SendQuestionnaire"/>: the follow-up questionnaire to send.
+/// <c>interviewerUserIds</c>: For <see cref="ActionType.ScheduleInterview"/>: one to five members; the first is the organizer.
+/// <c>interviewMinutes</c>: For <see cref="ActionType.ScheduleInterview"/>: the interview's length, one of the lengths a request allows.
+/// <c>interviewWindowDays</c>: For <see cref="ActionType.ScheduleInterview"/>: how many days from the run the candidate has to pick a time (1 to 60).
+/// <c>interviewTimeZone</c>: For <see cref="ActionType.ScheduleInterview"/>: the IANA zone of the working hours and the candidate page's default.
 /// </remarks>
 public sealed record AutomationAction(
     ActionType Type,
@@ -460,7 +464,11 @@ public sealed record AutomationAction(
     string? Note = null,
     Guid? AssigneeUserId = null,
     string? VerificationProvider = null,
-    string? QuestionnaireId = null);
+    string? QuestionnaireId = null,
+    IReadOnlyList<Guid>? InterviewerUserIds = null,
+    int? InterviewMinutes = null,
+    int? InterviewWindowDays = null,
+    string? InterviewTimeZone = null);
 
 public enum ActionType
 {

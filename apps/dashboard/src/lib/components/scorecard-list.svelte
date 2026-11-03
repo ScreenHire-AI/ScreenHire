@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ClipboardCheckIcon from '@lucide/svelte/icons/clipboard-check';
+  import ClipboardCheckIcon from '~icons/lucide/clipboard-check';
   import type { ScorecardEntry, TeamMember } from '@screenhire/api-client';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import SummaryItem from '#lib/components/summary-item.svelte';

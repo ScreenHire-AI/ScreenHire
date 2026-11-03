@@ -10,6 +10,7 @@ subsystem.
 
 | Path | What |
 |---|---|
+| `.github` | GitHub Actions: `workflows/ci.yml` (the gate's suites on Linux) and the shared toolchain setup, `actions/setup` |
 | `apps/apphost` | .NET Aspire AppHost — runs the whole stack locally |
 | `apps/api` | ASP.NET Core minimal API (`Endpoints/*`, `Contracts/*`), the SignalR hub (`Realtime/*`, `/v1/hubs/events`) and the MCP server for AI assistants (`Mcp/*`, `/v1/mcp`, [`docs/architecture/mcp-server.md`](docs/architecture/mcp-server.md)); emits `packages/api-client/openapi.json` at build |
 | `apps/worker` | .NET worker: hosts the Wolverine handlers, durability agent and cron schedules |
@@ -24,6 +25,7 @@ subsystem.
 | `src/ScreenHire.Domain` | Domain model (no framework dependencies) |
 | `src/ScreenHire.Infrastructure` | EF Core (Postgres, snake_case), migrations |
 | `src/ScreenHire.ServiceDefaults` | Aspire service defaults: OpenTelemetry, health checks, service discovery, resilience |
+| `tools/lighthouse` | Lighthouse and chrome-launcher for `pnpm verify:lighthouse`, outside `pnpm-workspace.yaml` so a worktree's install skips their 73 packages; the script installs them on first use (`pnpm install --frozen-lockfile --ignore-workspace --dir tools/lighthouse`) |
 | `tests/` | xUnit v3 + AwesomeAssertions: `ScreenHire.UnitTests`, `ScreenHire.IntegrationTests` (Aspire), `ScreenHire.E2E` (Playwright), `ScreenHire.Testing` (shared AppHost fixture). Vitest lives next to the frontend code. See [`docs/process/testing.md`](docs/process/testing.md) |
 
 ## Commands
@@ -38,14 +40,15 @@ subsystem.
   with **Dev SSO** (the local mock provider; "Avery Quinn" owns the seeded Brightwater) or an email link; every email
   lands in **Mailpit**. No real provider accounts or secrets are needed. `pnpm dev` also seeds the demo data
   (`DevelopmentDemo`); the five-minute demo is [`docs/operations/local-demo.md`](docs/operations/local-demo.md).
-- **To look at the app, use `/preview`** (`/preview fresh` for a clean demo, `/preview stop`). It runs the stack
-  through the Aspire CLI (`dotnet aspire start`, `wait`, `describe`, `stop`), reports the URLs and logins and opens the
+- **To look at the app, use `/preview`** (`/preview fresh` for a clean demo, `/preview api` for the backend only,
+  `/preview keep` to keep a worktree's data, `/preview stop`; a worktree starts with no data volumes by default). It
+  runs the stack through the Aspire CLI (`dotnet aspire start`, `wait`, `describe`, `stop`), reports the URLs and logins and opens the
   dashboard in the task's browser pane; `/run` uses it too. Agents never `dotnet run` the AppHost. After a change to the
   API or worker, `dotnet aspire resource api rebuild` (or `worker`) rebuilds and restarts just that service.
 - **Parallel worktrees:** several Kangentic tasks may run at once. In a worktree `/preview` starts with
   `dotnet aspire start --isolated`, which gives every port, the Aspire dashboard's included, a random free number, so
-  stacks never collide and nothing needs reserving. Data volumes are already per-worktree; integration tests use no
-  volumes and random ports.
+  stacks never collide and nothing needs reserving. A worktree's stack starts with no data volumes (`/preview keep`
+  gives it per-worktree ones); integration tests use no volumes and random ports.
 - **Aspire MCP server:** `.mcp.json` runs `dotnet tool run aspire agent mcp`, which gives agents the running stack's
   resources, console and structured logs, traces and resource commands. Never run `aspire agent init`: it installs
   hooks and MCP settings into the machine-wide Claude Code and Copilot configuration. `.claude/settings.json` approves
@@ -54,11 +57,13 @@ subsystem.
 - **Never stop processes by name, port or process tree.** This machine also runs Kangentic (the board driving these
   tasks; its dev server owns :5173 and Electron owns other local ports). Stop only what you started — via the tool that
   started it, or a PID whose full command line you have checked points at this repo — and remove containers by exact
-  name after checking their Aspire labels. Never TaskStop a running `pnpm verify`: on Windows its tree keeps running.
+  name after checking their Aspire labels. Never TaskStop a running `pnpm verify:fast`, test run or `pnpm verify`:
+  on Windows its tree keeps running.
   Aspire's teardown on Windows can also kill an unrelated process whose launcher has exited; see "Processes on the
   dev machine" in [`docs/process/board-pipeline.md`](docs/process/board-pipeline.md).
 - Build / check: `pnpm build` (= `dotnet build ScreenHire.slnx` + `pnpm -r build`), `pnpm check` (svelte-check
-  `--fail-on-warnings`, astro check, tsc), `pnpm -r --if-present test` (Vitest), `dotnet test --solution
+  `--fail-on-warnings`, astro check, tsc), and, for the owner only (see "When to run tests locally" below),
+  `pnpm -r --if-present test` (Vitest) and `dotnet test --solution
   ScreenHire.slnx` (Microsoft Testing Platform via `global.json`: unit, Aspire integration and Playwright
   end-to-end; the last two boot the AppHost, so Docker must be running (`pnpm docker:start`), and the end-to-end
   tests serve the `pnpm -r build` output).
@@ -71,18 +76,36 @@ subsystem.
   `ScreenHire:Verification:Llm:*` (the consistency check's model: `Fake` in Development, `None`, or `Anthropic` with the
   `anthropic-api-key` secret) goes to the worker. `ScreenHire:Slack:*` (real Slack with `ClientId` and the
   `slack-client-secret` parameter, or `Sandbox:Enabled` for the local sandbox workspace; off in `pnpm dev`, on in the
-  test stacks) goes to the API and worker alike; see [`docs/architecture/slack.md`](docs/architecture/slack.md). `ScreenHire:PersistData` (default `true`) keeps Postgres, Azurite and
+  test stacks) goes to the API and worker alike; see [`docs/architecture/slack.md`](docs/architecture/slack.md).
+  `ScreenHire:Email:*` (Mailpit sends unless `SendGrid:Enabled=true` with the `sendgrid-api-key` secret; `ReplyDomain` is the host
+  replies arrive on and `SendGrid:EventWebhookPublicKey` checks SendGrid's signed events; `email-reply-key` and
+  `sendgrid-inbound-secret` are generated parameters; `Sandbox:Enabled` is the local fake for replies and sending domains,
+  on in `pnpm dev` and the test stacks) goes to the API and worker alike; see
+  [`docs/architecture/email.md`](docs/architecture/email.md). `ScreenHire:Calendar:*` (members' calendars for interview scheduling:
+  Google and Microsoft each need a `ClientId` and their `google-calendar-client-secret` / `microsoft-calendar-client-secret`
+  parameter, `Sandbox:Enabled` is the local sandbox calendar, on in `pnpm dev` and the test stacks) goes to the API and worker alike; see
+  [`docs/architecture/interview-scheduling.md`](docs/architecture/interview-scheduling.md). `ScreenHire:PersistData` (default `true`) keeps Postgres, Azurite and
   Mailpit data in per-worktree volumes; `false` starts with none, as the tests do. `ScreenHire:Demo` (default: on with `Dev`
   frontends only) seeds the local demo's data on Brightwater, and the API is healthy only once it is in. The header of `apps/apphost/AppHost.cs`
   describes every setting.
-- **The gate:** `pnpm verify` runs all of the above with warnings as errors, plus an API-contract drift check and
-  every test suite (unit, Vitest, Aspire integration, Playwright end-to-end; steps `verify:dotnet`, `verify:contract`
-  and `verify:test` run alone too). It is the only CI for now; see the `/verify` skill.
+- **The gate is CI** (ADR-0020): GitHub Actions (`.github/workflows/ci.yml`) runs every suite on Linux for each pull
+  request and push to `main`, behind one check, `Gate`
+  ([`docs/process/testing.md`](docs/process/testing.md#continuous-integration)). Testing waits for it and Merge
+  requires it on the PR's head. Locally, `pnpm verify:fast` (`verify:dotnet` with warnings as errors,
+  `verify:contract` for API-contract drift, `pnpm check`) plus the tests the branch added or changed is the check
+  every column runs (`/verify`). `pnpm verify` is the whole suite locally (`verify:fast`, `pnpm -r build`, Vitest
+  and `verify:test`): the owner's, through `/verify full`.
+- **When to run tests locally:** always fine: `pnpm verify:fast`, and test classes or files by name
+  (`dotnet test --project <project> --filter-class "*<Class>"`, `pnpm --filter <package> test <file>`) for tests you
+  added or changed, or one that directly covers code you changed. Never, unless the owner asks: `pnpm verify`,
+  `verify:test`, `dotnet test --solution`, a `dotnet test --project` with no filter, or `pnpm -r test`. CI runs
+  those.
 - Marketing budgets: `pnpm --filter @screenhire/marketing build` fails on more than 15 KB of JS per page or a broken
   internal link; `pnpm --filter @screenhire/marketing lighthouse [paths]` (= `verify:lighthouse`) checks mobile LCP
-  under 1.8 s and CLS under 0.05 on the build, headless, using Playwright's Chromium. It is not in `pnpm verify`: the
-  Testing column runs it once for a branch that changes the marketing build, and only one run measures at a time on
-  the machine (the next one waits).
+  under 1.8 s and CLS under 0.05 on the build, headless, using Playwright's Chromium (it installs `tools/lighthouse` on first use). CI's `Lighthouse (report-only)` job
+  runs it for a pull request that changes the marketing build, and `/pull-request` reports the result without
+  blocking on it until the budgets are calibrated on the runners. Locally, run it with paths while you work on a page;
+  only one run measures at a time on the machine (the next one waits).
 - After changing an endpoint or contract: `pnpm generate:api` and commit `openapi.json` + `src/generated`.
 - After changing code a doc describes: `node scripts/docs-bundle.mjs sources <file>` names the docs whose `sources:`
   list it (`/sync-docs`). A new or changed doc keeps its frontmatter and its line in the folder's `index.md` in step;
@@ -105,10 +128,10 @@ after it.
 
 | Column | Skill | Outcome lines |
 |---|---|---|
-| Executing | (the brief) | `Implementation: complete` when the brief is done and `pnpm verify` passes. The column then asks for a findings pass, which ends `Findings: applied` and moves the task to Code Review. |
+| Executing | (the brief) | `Implementation: complete` when the brief is done, `pnpm verify:fast` passes and the tests the task added or changed pass, run by class or file (`/verify`). The column then asks for a findings pass, which ends `Findings: applied` and moves the task to Code Review. |
 | Code Review | `/task-review` (isolated session) | `Verdict: Ready` → Testing; numbered steps + `Verdict: Blocked` → back to Executing (at most 3 times) |
-| Testing | `/pull-request` (plus Lighthouse for a marketing change) | `PR: ready to merge` → Merge; `PR: blocked` stays and notifies |
-| Merge | `/merge-pull-request` | `PR: merged` → Done (worktree removed, dependents start); `PR: blocked` stays and notifies |
+| Testing | `/pull-request` (one push, then CI's `Gate`; Lighthouse reported) | `PR: ready to merge` → Merge; `PR: blocked` stays and notifies |
+| Merge | `/merge-pull-request` (`Gate` green on the head; CI again only after a conflict) | `PR: merged` → Done (worktree removed, dependents start); `PR: blocked` stays and notifies |
 
 Unattended-run rules are in `.claude/rules/unattended-runs.md`, and the conflict playbook for integrating `main` is
 in `.claude/rules/integration-conflicts.md`. `scripts/guard-processes.mjs` is a PreToolUse hook that refuses
@@ -149,6 +172,8 @@ Procedures: `/add-dashboard-page`, `/add-careers-page`, `/add-marketing-page`.
   invalidate queries by API path (`#lib/realtime.ts`). Single-key shortcuts can be turned off (WCAG 2.1.4).
 - **shadcn-svelte:** components in `apps/dashboard/src/lib/components/ui` are our code; edit freely. Use `field` +
   superforms 3, not the `form` component; Sheet, not Drawer.
+- **Icons:** Lucide through `~icons/lucide/<name>` (unplugin-icons, design system section 14); never `@lucide/svelte`,
+  whose three files per icon were a fifth of every worktree's install.
 - **Tokens only:** colours, fonts, type sizes and radii come from `@screenhire/ui` (Tailwind classes like `bg-card`,
   `text-status-review`); never hard-code hex values or pixel font sizes. Status = its icon + colour + text label,
   always.
@@ -185,8 +210,9 @@ Detail: `.claude/rules/dotnet-api.md` and `.claude/rules/utc-timestamps.md`. Pro
 - Sign-in and tenancy (`docs/architecture/sign-in-and-tenancy.md`): every route needs a signed-in user unless it
   calls `.AllowAnonymous()`; cookie-authenticated POSTs need `.RequireAntiforgeryToken()`. Hiring API groups (jobs,
   applications, candidates, templates) use `.AllowApiKeys()`, which also accepts an organization API key (ADR-0011);
-  nothing else does. Tenant-owned entities implement `ITenantOwned` and get a row-level security policy in their
-  migration; a row under one job implements `IJobScoped` or `IApplicationScoped` and gets a restrictive `job_scope`
+  the verification read routes use `.AllowVerificationApiKeys()`, which accepts only a key with the `VerificationRead`
+  scope an Owner gave it (ADR-0021); nothing else accepts a key. Tenant-owned entities implement `ITenantOwned` and get
+  a row-level security policy in their migration; a row under one job implements `IJobScoped` or `IApplicationScoped` and gets a restrictive `job_scope`
   policy too, and an event that carries a `JobId` implements `IJobEvent` (ADR-0015). The API and worker connect as
   `screenhire_app` (bound by RLS); handlers never filter by organization themselves. Google, Microsoft and generic OIDC providers appear only when their client id and secret are in user
   secrets.

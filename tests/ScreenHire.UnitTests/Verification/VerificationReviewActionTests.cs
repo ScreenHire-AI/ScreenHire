@@ -16,6 +16,32 @@ public sealed class VerificationReviewActionTests
     private static readonly Guid Teammate = Guid.CreateVersion7();
 
     [Fact]
+    public void A_read_through_a_key_names_the_key_and_no_person()
+    {
+        var organizationId = Guid.CreateVersion7();
+        var applicationId = Guid.CreateVersion7();
+        var keyId = Guid.CreateVersion7();
+
+        var action = VerificationReviewAction.ReadByKey(organizationId, applicationId, keyId, Now);
+
+        action.Type.Should().Be(VerificationReviewActionType.ReadByKey);
+        action.ApiKeyId.Should().Be(keyId);
+        action.ActorUserId.Should().BeNull("a key has no acting user");
+        action.OrganizationId.Should().Be(organizationId);
+        action.ApplicationId.Should().Be(applicationId);
+        action.AssessmentId.Should().BeNull();
+        action.OccurredAt.Should().Be(Now);
+    }
+
+    [Fact]
+    public void A_read_through_a_key_is_not_an_explanation_and_decides_nothing()
+    {
+        var read = VerificationReviewAction.ReadByKey(Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), Now);
+
+        VerificationReviewAction.CurrentExplanations([read]).Should().BeEmpty();
+    }
+
+    [Fact]
     public void A_reason_of_a_raised_assessment_is_explained_with_its_reason_and_note()
     {
         var assessment = Assessment(nameof(AuthenticityLevel.ReviewSuggested), out var signalId);
@@ -82,6 +108,129 @@ public sealed class VerificationReviewActionTests
         current[(assessment.Id, first)].Should().BeSameAs(firstAgain, "explaining again after an undo counts");
         current.Should().NotContainKey((assessment.Id, second), "an undo clears the explanation");
         current.Should().NotContainKey((reassessed.Id, first), "a new assessment starts with nothing explained");
+    }
+
+    [Fact]
+    public void An_evidence_change_is_the_systems_entry_with_no_actor_and_a_trimmed_reason()
+    {
+        var organizationId = Guid.CreateVersion7();
+        var applicationId = Guid.CreateVersion7();
+        var assessmentId = Guid.CreateVersion7();
+
+        var action = VerificationReviewAction.EvidenceChanged(
+            organizationId, applicationId, assessmentId, "  New evidence: shares a device with another application. ", Now);
+
+        action.Type.Should().Be(VerificationReviewActionType.EvidenceChanged);
+        action.ActorUserId.Should().BeNull("the system wrote it, not a reviewer");
+        action.Note.Should().Be("New evidence: shares a device with another application.");
+        action.OrganizationId.Should().Be(organizationId);
+        action.ApplicationId.Should().Be(applicationId);
+        action.AssessmentId.Should().Be(assessmentId);
+        action.OccurredAt.Should().Be(Now);
+        action.SignalId.Should().BeNull();
+        action.DismissReason.Should().BeNull();
+        action.ExplainReason.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public void An_evidence_change_needs_a_reason(string? reason)
+    {
+        var act = () => VerificationReviewAction.EvidenceChanged(Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), reason!, Now);
+
+        act.Should().Throw<ArgumentException>().WithParameterName(nameof(reason));
+    }
+
+    [Fact]
+    public void An_evidence_change_never_changes_what_is_explained()
+    {
+        var assessment = Assessment(nameof(AuthenticityLevel.ReviewSuggested), out var signalId);
+        var explanation = VerificationReviewAction.Explain(assessment, signalId, ExplainReason.ExpectedForRole, null, Reviewer, Now);
+        // Written later than the explanation, for the same assessment: it must not clear or replace it.
+        var change = VerificationReviewAction.EvidenceChanged(
+            assessment.OrganizationId, assessment.ApplicationId, assessment.Id, "New evidence: shares a device.", Now.AddMinutes(5));
+
+        var current = VerificationReviewAction.CurrentExplanations([explanation, change]);
+
+        current.Should().ContainSingle().Which.Value.Should().BeSameAs(explanation);
+        VerificationReviewAction.CurrentExplanations([change]).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void An_evidence_change_can_be_neither_undone_nor_taken_as_an_explanation()
+    {
+        var change = VerificationReviewAction.EvidenceChanged(Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), "New evidence.", Now);
+
+        var undo = () => VerificationReviewAction.UndoExplanation(change, Reviewer, Now);
+
+        undo.Should().Throw<ArgumentException>().WithParameterName("explanation");
+    }
+
+    [Fact]
+    public void An_explanation_with_no_recorded_author_is_undone_by_nobody()
+    {
+        // The actor column is nullable now. A row without one must not read as "anyone may undo it".
+        var assessment = Assessment(nameof(AuthenticityLevel.ReviewSuggested), out var signalId);
+        var orphan = new VerificationReviewAction
+        {
+            OrganizationId = assessment.OrganizationId,
+            ApplicationId = assessment.ApplicationId,
+            AssessmentId = assessment.Id,
+            SignalId = signalId,
+            Type = VerificationReviewActionType.ReasonExplained,
+            ExplainReason = ExplainReason.ExpectedForRole,
+            ActorUserId = null,
+            OccurredAt = Now,
+        };
+
+        var undo = () => VerificationReviewAction.UndoExplanation(orphan, Reviewer, Now);
+
+        undo.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void A_dismissal_records_its_reviewer_reason_and_trimmed_note()
+    {
+        var assessment = Assessment(nameof(AuthenticityLevel.VerificationRecommended), out _);
+
+        var action = VerificationReviewAction.Dismiss(assessment, DismissReason.ExplainedByCandidate, "  Shared family phone. ", Reviewer, Now);
+
+        action.Type.Should().Be(VerificationReviewActionType.Dismissed);
+        action.ActorUserId.Should().Be(Reviewer);
+        action.DismissReason.Should().Be(DismissReason.ExplainedByCandidate);
+        action.Note.Should().Be("Shared family phone.");
+        action.AssessmentId.Should().Be(assessment.Id);
+    }
+
+    [Fact]
+    public void Dismissing_refuses_a_calm_assessment_and_other_without_a_note()
+    {
+        var calm = Assessment(nameof(AuthenticityLevel.NoConcerns), out _);
+        var raised = Assessment(nameof(AuthenticityLevel.ReviewSuggested), out _);
+
+        var onCalm = () => VerificationReviewAction.Dismiss(calm, DismissReason.FalsePositive, null, Reviewer, Now);
+        var otherWithoutNote = () => VerificationReviewAction.Dismiss(raised, DismissReason.Other, " ", Reviewer, Now);
+
+        onCalm.Should().Throw<InvalidOperationException>();
+        otherWithoutNote.Should().Throw<ArgumentException>().WithParameterName("note");
+    }
+
+    [Fact]
+    public void A_note_records_its_author_and_a_blank_note_is_refused()
+    {
+        var organizationId = Guid.CreateVersion7();
+        var applicationId = Guid.CreateVersion7();
+
+        var note = VerificationReviewAction.AddNote(organizationId, applicationId, null, "  Called the number. ", Reviewer, Now);
+        var blank = () => VerificationReviewAction.AddNote(organizationId, applicationId, null, " ", Reviewer, Now);
+
+        note.Type.Should().Be(VerificationReviewActionType.NoteAdded);
+        note.ActorUserId.Should().Be(Reviewer);
+        note.Note.Should().Be("Called the number.");
+        note.AssessmentId.Should().BeNull();
+        blank.Should().Throw<ArgumentException>();
     }
 
     [Fact]

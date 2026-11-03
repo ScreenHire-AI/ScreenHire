@@ -161,7 +161,8 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Interviewer");
         await Page.GetByRole(AriaRole.Checkbox, new() { NameRegex = new("^Add notes and tags") }).CheckAsync();
         await Page.GetByRole(AriaRole.Checkbox, new() { NameRegex = new("^Fill in scorecards") }).CheckAsync();
-        await Expect(Page.GetByText("Owner only. A custom role cannot have it.")).ToBeVisibleAsync();
+        // Managing Owners and giving a key verification access: both are Owner-only (ADR-0021).
+        await Expect(Page.GetByText("Owner only. A custom role cannot have it.")).ToHaveCountAsync(2);
         await ExpectNoAccessibilityViolationsAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
         await Expect(Page.GetByText("Saved.")).ToBeVisibleAsync();
@@ -203,18 +204,20 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GetByLabel("Second colour", new() { Exact = true }).FillAsync("E9DCC4");
         await Page.GetByRole(AriaRole.Radio, new() { Name = "Fraunces" }).CheckAsync();
 
-        // Each image goes straight to storage, is checked and scanned, and waits for Save.
-        await Page.GetByLabel("Logo", new() { Exact = true }).SetInputFilesAsync(new FilePayload { Name = "logo.png", MimeType = "image/png", Buffer = TestPng.Solid(400, 100) });
-        await Page.GetByLabel("Favicon", new() { Exact = true }).SetInputFilesAsync(new FilePayload { Name = "icon.png", MimeType = "image/png", Buffer = TestPng.Solid(64, 64) });
-        await Page.GetByLabel("Sharing image", new() { Exact = true })
+        // Each image goes straight to storage, is checked and scanned, and waits for Save. The file inputs are found by id:
+        // each tile is a labelled group with the same name as its input.
+        await Page.Locator("input#logo").SetInputFilesAsync(new FilePayload { Name = "logo.png", MimeType = "image/png", Buffer = TestPng.Solid(400, 100) });
+        await Page.Locator("input#favicon").SetInputFilesAsync(new FilePayload { Name = "icon.png", MimeType = "image/png", Buffer = TestPng.Solid(64, 64) });
+        await Page.Locator("input#sharing-image")
             .SetInputFilesAsync(new FilePayload { Name = "share.png", MimeType = "image/png", Buffer = TestPng.Solid(1200, 630) });
-        // Each shows its size once the worker has scanned it, a step the worker's queue answers.
+        // Each tile names its file and size as soon as it is checked, and Save waits for the worker's malware scan, a step
+        // the worker's queue answers.
         var scanned = new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 };
         await Expect(Page.GetByText("400 by 100 pixels")).ToBeVisibleAsync(scanned);
         await Expect(Page.GetByText("1200 by 630 pixels")).ToBeVisibleAsync(scanned);
         await Expect(Page.GetByText("64 by 64 pixels")).ToBeVisibleAsync(scanned);
         var save = Page.GetByRole(AriaRole.Button, new() { Name = "Save branding" });
-        await Expect(save).ToBeEnabledAsync();
+        await Expect(save).ToBeEnabledAsync(new LocatorAssertionsToBeEnabledOptions { Timeout = 30_000 });
         await save.ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Saved" })).ToHaveTextAsync("Saved.");
         await ExpectNoAccessibilityViolationsAsync();

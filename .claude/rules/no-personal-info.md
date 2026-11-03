@@ -20,8 +20,15 @@ Never commit, in code, tests, scripts, docs, commit messages or PR bodies:
 ## Enforcement
 
 - **Review.** `/task-review`'s security dimension flags personal data, secrets and real applicant data.
-- No mechanical test yet. A scan for home-directory paths other than `dev` and for email literals outside
-  `example.*` domains is a candidate.
+- **Test.** `PersonalInfoTests` (`tests/ScreenHire.UnitTests/Tooling/`, in `pnpm verify` and CI) scans every file
+  git would commit and fails on:
+  - a home-directory path whose user is not `dev`;
+  - an email address outside example.com, example.org, example.net, `.example`, `.test`, `.invalid` and
+    `.localhost`, other than GitHub's and Anthropic's noreply addresses;
+  - a token, private key, JWT, Azure storage key (other than Azurite's published one), or a password in a
+    connection string or a URL whose host is not reserved;
+  - the committer's own `git config` name or address, matched whole and read at run time.
+  Paths are exempt only in `PersonalInfoScan`, each with its reason: third-party data and lockfiles.
 
 ## Scope
 

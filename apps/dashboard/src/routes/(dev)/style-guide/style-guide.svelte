@@ -1,29 +1,29 @@
 <script lang="ts">
-  import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
-  import BotIcon from '@lucide/svelte/icons/bot';
-  import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
-  import CircleXIcon from '@lucide/svelte/icons/circle-x';
-  import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
-  import FileTextIcon from '@lucide/svelte/icons/file-text';
-  import GlobeIcon from '@lucide/svelte/icons/globe';
-  import HourglassIcon from '@lucide/svelte/icons/hourglass';
-  import InboxIcon from '@lucide/svelte/icons/inbox';
-  import KeyboardIcon from '@lucide/svelte/icons/keyboard';
-  import MailIcon from '@lucide/svelte/icons/mail';
-  import MessageSquareIcon from '@lucide/svelte/icons/message-square';
-  import MoonIcon from '@lucide/svelte/icons/moon';
-  import PencilIcon from '@lucide/svelte/icons/pencil';
-  import PhoneIcon from '@lucide/svelte/icons/phone';
-  import PlusIcon from '@lucide/svelte/icons/plus';
-  import SendIcon from '@lucide/svelte/icons/send';
-  import StarIcon from '@lucide/svelte/icons/star';
-  import SunIcon from '@lucide/svelte/icons/sun';
-  import TimerIcon from '@lucide/svelte/icons/timer';
-  import Trash2Icon from '@lucide/svelte/icons/trash-2';
-  import UserPlusIcon from '@lucide/svelte/icons/user-plus';
-  import UserRoundIcon from '@lucide/svelte/icons/user-round';
-  import UsersIcon from '@lucide/svelte/icons/users';
-  import type { ApplicationFileSummary, HistoryEntry, ScorecardEntry, SignalEvidence as Evidence, WorkflowStage } from '@screenhire/api-client';
+  import ArrowRightIcon from '~icons/lucide/arrow-right';
+  import BotIcon from '~icons/lucide/bot';
+  import ChevronDownIcon from '~icons/lucide/chevron-down';
+  import CircleXIcon from '~icons/lucide/circle-x';
+  import EllipsisIcon from '~icons/lucide/ellipsis';
+  import FileTextIcon from '~icons/lucide/file-text';
+  import GlobeIcon from '~icons/lucide/globe';
+  import HourglassIcon from '~icons/lucide/hourglass';
+  import InboxIcon from '~icons/lucide/inbox';
+  import KeyboardIcon from '~icons/lucide/keyboard';
+  import MailIcon from '~icons/lucide/mail';
+  import MessageSquareIcon from '~icons/lucide/message-square';
+  import MoonIcon from '~icons/lucide/moon';
+  import PencilIcon from '~icons/lucide/pencil';
+  import PhoneIcon from '~icons/lucide/phone';
+  import PlusIcon from '~icons/lucide/plus';
+  import SendIcon from '~icons/lucide/send';
+  import StarIcon from '~icons/lucide/star';
+  import SunIcon from '~icons/lucide/sun';
+  import TimerIcon from '~icons/lucide/timer';
+  import Trash2Icon from '~icons/lucide/trash-2';
+  import UserPlusIcon from '~icons/lucide/user-plus';
+  import UserRoundIcon from '~icons/lucide/user-round';
+  import UsersIcon from '~icons/lucide/users';
+  import type { ApplicationFileSummary, ApplicationInterview, HistoryEntry, ScorecardEntry, SignalEvidence as Evidence, WorkflowStage } from '@screenhire/api-client';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
@@ -41,6 +41,7 @@
   import DateRangeFilter from '#lib/components/date-range-filter.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import EmailPreview from '#lib/components/email-preview.svelte';
+  import CopyButton from '#lib/components/copy-button.svelte';
   import Fact from '#lib/components/fact.svelte';
   import FilterMenu from '#lib/components/filter-menu.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
@@ -48,11 +49,15 @@
   import HeaderBand from '#lib/components/header-band.svelte';
   import HistorySheet from '#lib/components/history-sheet.svelte';
   import IconButton from '#lib/components/icon-button.svelte';
+  import InterviewDetails from '#lib/components/candidate/interview-details.svelte';
+  import MiniCard from '#lib/components/mini-card.svelte';
   import VerificationChip from '#lib/components/verification-chip.svelte';
   import LastUpdated from '#lib/components/last-updated.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import LiveIndicator from '#lib/components/live-indicator.svelte';
   import MetricCard, { type MetricPoint } from '#lib/components/metric-card.svelte';
+  import ReportStat from '#lib/components/report-stat.svelte';
+  import WeekChart, { type WeekPoint } from '#lib/components/week-chart.svelte';
   import MultiFilterMenu from '#lib/components/multi-filter-menu.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
@@ -77,6 +82,7 @@
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import SignalEvidence from '#lib/components/signal-evidence.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
+  import PipelineTracker from '#lib/components/pipeline-tracker.svelte';
   import StepLine from '#lib/components/step-line.svelte';
   import StepMarkers, { type Step } from '#lib/components/step-markers.svelte';
   import SummaryBand from '#lib/components/summary-band.svelte';
@@ -103,11 +109,13 @@
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { formatDate, hour, day, minute } from '#lib/dates.js';
+  import type { Tracker, TrackerStep } from '#lib/pipeline-tracker.js';
   import { applyFormKinds, scorecardKinds } from '#lib/form-builder.js';
   import { aiAssistanceLevels, aiAssistanceOrder, authenticityLevels, authenticityOrder } from '#lib/verification.js';
   import { mentionToken, type PickedMention } from '#lib/mentions.js';
   import type { TrayItem } from '#lib/notifications.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
+  import { counted } from '#lib/reports.js';
   import { sections } from '#lib/shell.js';
   import type { StatusName } from '#lib/status.js';
   import EditPreviewDemo from './edit-preview-demo.svelte';
@@ -117,7 +125,9 @@
   import FormBuilderDemo from './form-builder-demo.svelte';
   import ReorderDemo from './reorder-demo.svelte';
   import SortTableDemo from './sort-table-demo.svelte';
+  import SaveViewDemo from './save-view-demo.svelte';
   import TaskCheckboxDemo from './task-checkbox-demo.svelte';
+  import UndoNoticeDemo from './undo-notice-demo.svelte';
 
   // Every component in design system section 11, in each state, for authors and reviewers to compare against. Pick a
   // width to see the section 8 sizes; the components respond to the frame, not the window. Development builds only.
@@ -140,6 +150,7 @@
 
   let shortcutsOpen = $state(false);
   let confirmOpen = $state(false);
+  let typedConfirmOpen = $state(false);
   let emailOpen = $state(true);
   let secretOpen = $state(false);
   const demoStages: WorkflowStage[] = [
@@ -161,6 +172,35 @@
 
   const now = Date.now();
   const ago = (milliseconds: number) => new Date(now - milliseconds).toISOString();
+
+  // An interview in each state the Interview panel draws (all times are made-up instants).
+  const interviewSample = (status: ApplicationInterview['status'], overrides: Partial<ApplicationInterview> = {}): ApplicationInterview => ({
+    id: `interview-${status}`,
+    status,
+    startsAt: null,
+    endsAt: null,
+    windowStart: '2026-11-03T05:00:00Z',
+    windowEnd: '2026-11-17T05:00:00Z',
+    timeZone: 'America/New_York',
+    durationMinutes: 30,
+    dayStart: '09:00',
+    dayEnd: '17:00',
+    meetingUrl: null,
+    interviewers: [
+      { userId: 'u1', displayName: 'Avery Quinn', isOrganizer: true, syncStatus: 'Synced', syncProblem: null },
+      { userId: 'u2', displayName: 'Robin Ashby', isOrganizer: false, syncStatus: 'Pending', syncProblem: null },
+    ],
+    createdAt: '2026-10-20T12:00:00Z',
+    createdByUserId: 'u1',
+    cancelledByCandidate: false,
+    ...overrides,
+  });
+  const interviewStates = [
+    interviewSample('Open'),
+    interviewSample('Booked', { startsAt: '2026-11-05T15:00:00Z', endsAt: '2026-11-05T15:30:00Z', meetingUrl: 'https://meet.example.org/abc-defg' }),
+    interviewSample('Cancelled', { startsAt: '2026-11-05T15:00:00Z', endsAt: '2026-11-05T15:30:00Z', cancelledByCandidate: true }),
+    interviewSample('Expired'),
+  ];
 
   // A record's tabs (section 11): counts in the count badge, and a state in the count where one fits (7/8).
   const candidateTabs: RecordTab[] = [
@@ -206,6 +246,22 @@
   ];
 
   // Twelve weeks of a metric, oldest first, for the metric cards.
+  const guideWeeks: WeekPoint[] = [
+    ['Sep 7', 6, 0],
+    ['Sep 14', 9, 1],
+    ['Sep 21', 7, 0],
+    ['Sep 28', 12, 2],
+    ['Oct 5', 10, 1],
+    ['Oct 12', 14, 3],
+    ['Oct 19', 8, 2],
+    ['Oct 26', 11, 1],
+  ].map(([label, applications, hires]) => ({
+    key: String(label),
+    label: String(label),
+    applications: Number(applications),
+    hires: Number(hires),
+    summary: `Week of ${label}, 2026: ${applications} applications, ${counted(Number(hires), 'hire', 'hires')}`,
+  }));
   const weeks = (values: number[]): MetricPoint[] =>
     values.map((value, index) => ({ label: `Week of ${formatDate(ago((values.length - 1 - index) * 7 * day))}`, value }));
 
@@ -240,6 +296,7 @@
     { status: 'unsafeFile', label: 'Unsafe file' },
     { status: 'ai', label: 'Some signs of AI help' },
     { status: 'waiting', label: 'Sent' },
+    { status: 'booked', label: 'Booked' },
     { status: 'working', label: 'Scanning' },
     { status: 'closed', label: 'Closed' },
     { status: 'draft', label: 'Draft' },
@@ -264,6 +321,38 @@
     { name: 'Phone screen', limit: '3-day limit' },
     { name: 'Interview', limit: '5-day limit' },
   ];
+
+  // A candidate's pipeline tracker, as `trackerFor` builds it from the job's stages and the application's history.
+  const trackerStep = (name: string, state: TrackerStep['state'], note?: string): TrackerStep => ({ id: name, name, state, note });
+  const trackerInPipeline: Tracker = {
+    steps: [
+      trackerStep('Applied', 'passed', 'Oct 20'),
+      trackerStep('Screening', 'current', 'Here 3 days'),
+      trackerStep('Interview', 'upcoming'),
+      trackerStep('Offer', 'upcoming'),
+      trackerStep('Hired', 'upcoming'),
+    ],
+    position: 2,
+    total: 5,
+  };
+  const trackerSaved: Tracker = {
+    steps: [
+      trackerStep('Applied', 'passed', 'Oct 20'),
+      trackerStep('Screening', 'passed', 'Oct 22'),
+      trackerStep('Interview', 'left', 'Saved Oct 31'),
+      trackerStep('Offer', 'upcoming'),
+      trackerStep('Hired', 'upcoming'),
+    ],
+    position: 3,
+    total: 5,
+    outcome: 'Saved',
+  };
+  const trackerUnplaced: Tracker = {
+    steps: ['Applied', 'Screening', 'Interview', 'Offer', 'Hired'].map((name) => trackerStep(name, 'upcoming')),
+    position: 0,
+    total: 5,
+    standing: 'Phone call, here 3 days',
+  };
 
   const people = [
     { id: '1', name: 'Jordan Ellis', status: 'review', label: 'Review suggested', stage: 'Screening', source: 'Careers page', at: ago(2 * hour) },
@@ -438,6 +527,32 @@
   <title>Style guide · ScreenHire</title>
 </svelte:head>
 
+<!-- A candidate header's three mini cards: Contact, Application, then Also applied to (or Rating once someone scored them). -->
+{#snippet candidateCards()}
+  <div class="@container">
+    <div class="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] gap-3">
+      <MiniCard title="Contact">
+        <div class="flex min-w-0 items-center gap-1">
+          <TruncatedText text="samuel.okonkwo@example.com" href="mailto:samuel.okonkwo@example.com" icon={MailIcon} underlined />
+          <CopyButton value="samuel.okonkwo@example.com" label="Copy email address" />
+        </div>
+        <div class="flex min-w-0 items-center gap-1">
+          <TruncatedText text="+1 555 0142" href="tel:+15550142" icon={PhoneIcon} underlined />
+          <CopyButton value="+1 555 0142" label="Copy phone number" />
+        </div>
+      </MiniCard>
+      <MiniCard title="Application">
+        <TruncatedText text="Senior product designer" href="#mini-card" underlined />
+        <p class="text-muted-foreground">Applied <RelativeTime at={ago(6 * day)} class="inline" /> via the careers page</p>
+      </MiniCard>
+      <MiniCard title="Also applied to">
+        <p class="text-muted-foreground">2 other jobs</p>
+        <a href="#mini-card" class="inline-flex min-h-6 w-fit items-center underline underline-offset-2 pointer-coarse:min-h-11">Candidate profile</a>
+      </MiniCard>
+    </div>
+  </div>
+{/snippet}
+
 <ShortcutsDialog bind:open={shortcutsOpen} />
 <SecretDialog bind:open={secretOpen} title="Your new API key" label="API key" value="shk_example_7Qm2vR8kLx4pN9wZ3cT6yB1dF5gH0jS" />
 
@@ -452,6 +567,16 @@
 >
   {#snippet icon()}<CircleXIcon aria-hidden="true" />{/snippet}
 </ConfirmDialog>
+
+<ConfirmDialog
+  bind:open={typedConfirmOpen}
+  title="Erase this candidate?"
+  description="This erases Jordan Ellis and all of their applications, files, answers, notes and verification data, for good."
+  confirmLabel="Erase candidate"
+  failure="Could not erase the candidate"
+  confirmText="Jordan Ellis"
+  onconfirm={async () => {}}
+/>
 
 <main class="flex min-h-screen flex-col">
   <HeaderBand title="Style guide">
@@ -481,20 +606,28 @@
       <Panel title="Header band">
         <div class="flex flex-col gap-4">
           <figure class="flex flex-col gap-2">
-            <figcaption class="text-caption text-muted-foreground">Detail: status, details, actions and facts</figcaption>
+            <figcaption class="text-caption text-muted-foreground">Candidate: the name and one status, actions, the pipeline tracker and mini cards</figcaption>
             <div class="overflow-hidden rounded-lg bg-secondary">
               <HeaderBand level={3} title="Samuel Okonkwo-Hartley">
-                {#snippet status()}<StatusBadge status="review" label="Review suggested" />{/snippet}
-                {#snippet details()}
-                  <TruncatedText text="samuel.okonkwo@example.com" href="mailto:samuel.okonkwo@example.com" icon={MailIcon} underlined class="text-muted-foreground" />
-                  <TruncatedText text="+1 555 0142" href="tel:+15550142" icon={PhoneIcon} underlined class="text-muted-foreground" />
-                {/snippet}
+                {#snippet status()}<StatusBadge status="verification" label="Verification suggested" />{/snippet}
                 {#snippet actions()}
-                  <Button variant="outline" size="lg"><ArrowRightIcon aria-hidden="true" />Move to stage</Button>
+                  <Button variant="outline" size="lg"><MailIcon aria-hidden="true" />Email</Button>
+                  <Button size="lg"><ArrowRightIcon aria-hidden="true" />Move to stage</Button>
                 {/snippet}
+                {#snippet summary()}
+                  <PipelineTracker tracker={trackerInPipeline} />
+                  {@render candidateCards()}
+                {/snippet}
+              </HeaderBand>
+            </div>
+          </figure>
+          <figure class="flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">Facts row, for a record without a pipeline</figcaption>
+            <div class="overflow-hidden rounded-lg bg-secondary">
+              <HeaderBand level={3} title="Q3 hiring report">
+                {#snippet status()}<StatusBadge status="done" label="Ready" />{/snippet}
                 {#snippet facts()}
                   <Fact label="Job">Senior product designer</Fact>
-                  <Fact label="Stage">Screening</Fact>
                   <Fact label="Applied"><RelativeTime at={ago(2 * hour)} /></Fact>
                   <Fact label="Source">Careers page</Fact>
                 {/snippet}
@@ -642,6 +775,12 @@
             </MoreMenu>
           </div>
         </Panel>
+        <Panel title="Save view button" class="flex-[1_1_320px]">
+          <SaveViewDemo />
+        </Panel>
+        <Panel title="Undo notice" class="flex-[1_1_320px]">
+          <UndoNoticeDemo />
+        </Panel>
         <Panel title="Picker" class="flex-[1_1_320px]">
           <Picker
             label="Add a person"
@@ -688,11 +827,49 @@
         </div>
       </Panel>
 
+      <Panel title="Pipeline tracker">
+        <div class="flex flex-col gap-5">
+          <figure class="flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">In the pipeline: passed with the date, current ringed with how long, later empty</figcaption>
+            <PipelineTracker tracker={trackerInPipeline} />
+          </figure>
+          <figure class="flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">Overdue stays beside the current stage</figcaption>
+            <PipelineTracker tracker={trackerInPipeline} overdueAt={ago(day)} />
+          </figure>
+          <figure class="flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">Left: the stage they left from is dark, with how and when</figcaption>
+            <PipelineTracker tracker={trackerSaved} />
+          </figure>
+          <figure class="flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">No stage to mark: their stage left the workflow, so a line says where they stand</figcaption>
+            <PipelineTracker tracker={trackerUnplaced} />
+          </figure>
+          <figure class="flex max-w-80 flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">Narrow: the current stage and its place</figcaption>
+            <PipelineTracker tracker={trackerInPipeline} />
+          </figure>
+        </div>
+      </Panel>
+
+      <Panel title="Mini card">
+        {@render candidateCards()}
+      </Panel>
+
+      <Panel title="Interview panel">
+        <div class="grid gap-6 @2xl:grid-cols-2 @5xl:grid-cols-4">
+          {#each interviewStates as interview (interview.id)}
+            <InterviewDetails {interview} />
+          {/each}
+        </div>
+      </Panel>
+
       <Panel title="Icon button">
         <div class="flex flex-wrap items-center gap-1">
           <IconButton label="More actions"><EllipsisIcon /></IconButton>
           <IconButton label="Edit"><PencilIcon /></IconButton>
           <IconButton label="Remove"><Trash2Icon /></IconButton>
+          <CopyButton value="samuel.okonkwo@example.com" label="Copy email address" />
         </div>
       </Panel>
 
@@ -737,6 +914,7 @@
         </Panel>
         <Panel title="Confirm dialog" class="flex-[1_1_320px]">
           <Button variant="outline" onclick={() => (confirmOpen = true)}>Close the job</Button>
+          <Button variant="outline" onclick={() => (typedConfirmOpen = true)}>Erase a candidate</Button>
         </Panel>
         <Panel title="Secret dialog" class="flex-[1_1_320px]">
           <Button variant="outline" onclick={() => (secretOpen = true)}>Show a new key</Button>
@@ -1082,6 +1260,18 @@
           />
         {/snippet}
       </ChartPanel>
+
+      <Panel title="Report stat" flush>
+        <SummaryBand>
+          <ReportStat icon={UsersIcon} title="Applications" value="40" change={{ text: '18 more than before', direction: 'up' }} />
+          <ReportStat icon={HourglassIcon} title="Reached interview" value="12" share="30% of applications" change={{ text: 'No change', direction: 'none' }} />
+          <ReportStat icon={TimerIcon} title="Median time to hire" value="21 days" change={{ text: '3 days faster', direction: 'down' }} />
+        </SummaryBand>
+      </Panel>
+
+      <Panel title="Week chart">
+        <WeekChart label="Week chart example" weeks={guideWeeks} />
+      </Panel>
 
 
       <div class="flex flex-wrap items-start gap-5">

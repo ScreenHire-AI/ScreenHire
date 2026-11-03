@@ -1,6 +1,9 @@
 <script lang="ts">
-  import SendIcon from '@lucide/svelte/icons/send';
+  import PaperclipIcon from '~icons/lucide/paperclip';
+  import ReplyIcon from '~icons/lucide/reply';
+  import SendIcon from '~icons/lucide/send';
   import type { CandidateEmailEntry, TeamMember } from '@screenhire/api-client';
+  import ReceivedEmail from '#lib/components/candidate/received-email.svelte';
   import SentEmail from '#lib/components/candidate/sent-email.svelte';
   import EmailComposer from '#lib/components/email-composer.svelte';
   import ExpandableRow from '#lib/components/expandable-row.svelte';
@@ -13,10 +16,10 @@
   import { actorText } from '#lib/activity.js';
   import { describeError } from '#lib/query.js';
 
-  // Every email to the candidate, about any of their applications, newest first (design system section 21), with the
-  // email composer on top for people who can send. Each row opens to the email exactly as it went. Emails sent before
-  // ScreenHire kept each one have only their subject. Candidates cannot reply into ScreenHire yet, so this tab says
-  // nothing about replies.
+  // Every email to the candidate and every reply from them, about any of their applications, newest first (design system
+  // section 21), with the email composer on top for people who can send. Each row opens to the email exactly as it went or
+  // arrived. Emails sent before ScreenHire kept each one have only their subject. A reply has the arrow and who it is from;
+  // a file that came with it shows as a count.
   let {
     emails,
     error,
@@ -82,19 +85,27 @@
           <li class="flex flex-col gap-3 py-2 first:pt-0 last:pb-0">
             <!-- One email open at a time. -->
             <ExpandableRow id={`email-${email.id}`} bind:expanded={() => open === email.id, (next) => (open = next ? email.id : undefined)}>
-              {#snippet icon()}<SendIcon />{/snippet}
+              {#snippet icon()}{#if email.direction === 'Received'}<ReplyIcon />{:else}<SendIcon />{/if}{/snippet}
               {#snippet summary()}
                 <span class="font-semibold break-words">{email.subject}</span>
                 <span class="flex min-w-0 flex-wrap items-center gap-x-2 text-caption text-muted-foreground">
-                  <span>{actorText(email, members, currentUserId) ?? 'Sent'}</span>
+                  <span>{email.direction === 'Received' ? `Reply from ${email.fromAddress ?? 'the candidate'}` : (actorText(email, members, currentUserId) ?? 'Sent')}</span>
                   <RelativeTime at={email.sentAt} />
                 </span>
               {/snippet}
               {#snippet trailing()}
+                {@const files = email.attachmentCount ?? 0}
+                {#if files > 0}
+                  <span class="inline-flex shrink-0 items-center gap-1 text-caption text-muted-foreground" role="img" aria-label={`${files} ${files === 1 ? 'file' : 'files'}`}>
+                    <PaperclipIcon aria-hidden="true" />{files}
+                  </span>
+                {/if}
                 {#if manyJobs}<Badge variant="muted" class="hidden shrink-0 @md:inline-flex">{email.jobTitle}</Badge>{/if}
               {/snippet}
               {#if manyJobs}<p class="text-muted-foreground @md:hidden">{email.jobTitle}</p>{/if}
-              {#if email.kept}
+              {#if email.direction === 'Received'}
+                <ReceivedEmail replyId={email.id} />
+              {:else if email.kept}
                 <SentEmail emailId={email.id} />
               {:else}
                 <p class="text-muted-foreground">Only the subject was kept: this email went out before ScreenHire kept a copy of each one.</p>

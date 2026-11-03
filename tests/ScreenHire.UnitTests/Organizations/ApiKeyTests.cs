@@ -10,6 +10,10 @@ public sealed class ApiKeyTests
     [InlineData(new[] { ApiKeyScope.Write }, ApiKeyScope.Read, true)] // Write includes reading
     [InlineData(new[] { ApiKeyScope.Read, ApiKeyScope.Write }, ApiKeyScope.Write, true)]
     [InlineData(new ApiKeyScope[0], ApiKeyScope.Read, false)]
+    [InlineData(new[] { ApiKeyScope.Read, ApiKeyScope.Write }, ApiKeyScope.VerificationRead, false)] // Write does not include verification
+    [InlineData(new[] { ApiKeyScope.Read, ApiKeyScope.VerificationRead }, ApiKeyScope.VerificationRead, true)]
+    [InlineData(new[] { ApiKeyScope.Read, ApiKeyScope.VerificationRead }, ApiKeyScope.Write, false)] // and verification does not include writing
+    [InlineData(new[] { ApiKeyScope.VerificationRead }, ApiKeyScope.Read, false)] // nor reading
     public void A_key_allows_what_its_scopes_grant(ApiKeyScope[] scopes, ApiKeyScope wanted, bool allowed) =>
         ApiKey.Allows(scopes, wanted).Should().Be(allowed);
 

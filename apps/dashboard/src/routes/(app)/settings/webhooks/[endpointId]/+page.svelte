@@ -1,11 +1,11 @@
 <script lang="ts">
-  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
-  import KeyRoundIcon from '@lucide/svelte/icons/key-round';
-  import PencilIcon from '@lucide/svelte/icons/pencil';
-  import PowerIcon from '@lucide/svelte/icons/power';
-  import PowerOffIcon from '@lucide/svelte/icons/power-off';
-  import RotateCcwIcon from '@lucide/svelte/icons/rotate-ccw';
-  import Trash2Icon from '@lucide/svelte/icons/trash-2';
+  import ArrowLeftIcon from '~icons/lucide/arrow-left';
+  import KeyRoundIcon from '~icons/lucide/key-round';
+  import PencilIcon from '~icons/lucide/pencil';
+  import PowerIcon from '~icons/lucide/power';
+  import PowerOffIcon from '~icons/lucide/power-off';
+  import RotateCcwIcon from '~icons/lucide/rotate-ccw';
+  import Trash2Icon from '~icons/lucide/trash-2';
   import type { WebhookDeliveryEntry, WebhookEndpointEntry } from '@screenhire/api-client';
   import {
     ApiError,

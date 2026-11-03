@@ -85,7 +85,7 @@ stopping at the first failure:
 | Anything else (`.claude/**`, `docs/**`, `*.md`, `kangentic.json`, ...) | none |
 
 With `full`, run `pnpm verify` instead, with `run_in_background`, and wait for the notification. If
-`apps/marketing/**`, `packages/ui/**` or `pnpm-lock.yaml` changed, run `pnpm verify:lighthouse` after it, the same way.
+`apps/marketing/**`, `packages/ui/**`, `pnpm-lock.yaml` or `tools/lighthouse/**` changed, run `pnpm verify:lighthouse` after it, the same way.
 
 On a failure, fix it, commit the fix (`fix: ...`), and run the failing check again. If it is not a quick fix, stop
 with the error and the ahead report from step 4.

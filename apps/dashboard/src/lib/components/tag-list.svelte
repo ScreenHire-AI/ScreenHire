@@ -4,8 +4,8 @@
 </script>
 
 <script lang="ts">
-  import PlusIcon from '@lucide/svelte/icons/plus';
-  import XIcon from '@lucide/svelte/icons/x';
+  import PlusIcon from '~icons/lucide/plus';
+  import XIcon from '~icons/lucide/x';
   import FailureText from '#lib/components/failure-text.svelte';
   import IconButton from '#lib/components/icon-button.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
+  import ArrowLeftIcon from '~icons/lucide/arrow-left';
   import { page } from '$app/state';
   import BrandBar from '#lib/components/brand-bar.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';

@@ -24,10 +24,16 @@ public sealed class SmtpEmailSender(IOptions<SmtpEmailOptions> options) : IEmail
 {
     public async Task SendAsync(EmailMessage message, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(message);
         var settings = options.Value;
         var mime = new MimeMessage();
-        mime.From.Add(MailboxAddress.Parse(settings.From));
+        mime.From.Add(MailboxAddress.Parse(message.From ?? settings.From));
         mime.To.Add(MailboxAddress.Parse(message.To));
+        if (message.ReplyTo is { Length: > 0 } replyTo)
+        {
+            mime.ReplyTo.Add(MailboxAddress.Parse(replyTo));
+        }
+
         mime.Subject = message.Subject;
         mime.Body = new BodyBuilder { TextBody = message.TextBody, HtmlBody = message.HtmlBody }.ToMessageBody();
 

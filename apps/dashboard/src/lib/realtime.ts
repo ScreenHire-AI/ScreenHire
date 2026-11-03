@@ -7,7 +7,9 @@ import {
   type RealtimeEvent,
 } from '@screenhire/realtime';
 import type { QueryClient } from '@tanstack/svelte-query';
+import { emailTemplatesPath } from '#lib/email.js';
 import { invalidatePath } from '#lib/query.js';
+import { scorecardTemplatesPath, templateUsagePath } from '#lib/templates.js';
 
 /** API paths whose queries live events make stale; `invalidatePath` covers every query under each. */
 export const jobsPath = '/v1/jobs';
@@ -18,6 +20,7 @@ export const tasksPath = '/v1/tasks';
 export const membersPath = '/v1/organization/members';
 export const talentPoolPath = '/v1/talent-pool';
 export const reportsPath = '/v1/reports';
+export const viewsPath = '/v1/views';
 
 /**
  * Which queries each tenant event makes stale, as API paths. Add a line when a page shows what an event changes.
@@ -31,29 +34,41 @@ export const reportsPath = '/v1/reports';
  * (`lastActivityAt`), which anything the candidate or the team does moves: a note and its edits and deletion, a sent
  * email (ApplicationEmailed), answers to a follow-up questionnaire (QuestionnaireAnswered), a task, an automation run.
  * So those refetch the lists too, the job's own table (under `/v1/jobs`) and a candidate's applications included.
+ * A candidate's reply (CandidateReplied) is a new line in Activity and Messages and moves the list's last activity, like a
+ * sent email. The flag on an address (CandidateEmailStatusChanged) changes the candidate shown beside every application.
  * TeammateMentioned refreshes nothing: the note's own event does, and the shell turns the mention into a card for the
- * person mentioned. Reports count applications by when they arrived and the stages they reached, so arriving and
- * moving refresh them.
+ * person mentioned. Reports count applications by when they arrived and the stages they reached, and list the open jobs
+ * a person sees, so arriving, moving, a job opening or closing, a changed workflow and a changed hiring team refresh them.
  */
 export const invalidations: InvalidationMap = {
-  JobPublished: [jobsPath],
-  JobClosed: [jobsPath],
+  // Reports list the open jobs, so opening and closing one refreshes them.
+  JobPublished: [jobsPath, reportsPath],
+  JobClosed: [jobsPath, reportsPath],
   JobPostingsChanged: [jobsPath],
   // A changed time limit changes when applications fall overdue (slaDueAt), so the lists refetch too.
-  JobWorkflowChanged: [jobsPath, applicationsPath, candidatesPath],
+  JobWorkflowChanged: [jobsPath, applicationsPath, candidatesPath, reportsPath],
   // A job's team (`/v1/jobs/{id}/hiring-team`), the Team page's job counts, and for someone just added, the job itself.
-  HiringTeamChanged: [jobsPath, membersPath],
+  HiringTeamChanged: [jobsPath, membersPath, reportsPath],
   HiringTemplateVersionPublished: [jobsPath, templatesPath],
+  // Any template edit, of the three kinds: the Templates page, the pickers on a new job, the email composer and an
+  // application's scorecard library read them, and the usage list shows where each is used. Events are mapped by
+  // type, not by kind, so all of them refetch.
+  TemplateChanged: [templatesPath, emailTemplatesPath, scorecardTemplatesPath, templateUsagePath],
   ApplicationSubmitted: [jobsPath, applicationsPath, candidatesPath, reportsPath],
   ApplicationMoved: [jobsPath, applicationsPath, candidatesPath, reportsPath],
   // The application's Activity, the candidate's Messages (every email to them) and every list's last activity.
-  ApplicationEmailed: [jobsPath, applicationsPath, candidatesPath],
+  ApplicationEmailed: [jobsPath, applicationsPath, candidatesPath, talentPoolPath],
+  CandidateReplied: [jobsPath, applicationsPath, candidatesPath, talentPoolPath],
+  CandidateEmailStatusChanged: [applicationsPath, candidatesPath],
+  // An interview offered, booked, moved or cancelled: the application's interviews (`/v1/applications/{id}/interviews`),
+  // its Activity and every list's last activity.
+  InterviewChanged: [jobsPath, applicationsPath, candidatesPath],
   ApplicationNoteAdded: [jobsPath, applicationsPath, candidatesPath],
   ApplicationNoteEdited: [jobsPath, applicationsPath, candidatesPath],
   ApplicationNoteDeleted: [jobsPath, applicationsPath, candidatesPath],
   ApplicationTagsChanged: [jobsPath, applicationsPath, candidatesPath],
   // A scorecard changes the candidate's rating in the lists; a finished review task can show it to its reviewer.
-  ScorecardSubmitted: [jobsPath, applicationsPath, candidatesPath],
+  ScorecardSubmitted: [jobsPath, applicationsPath, candidatesPath, talentPoolPath],
   QuestionnaireAnswered: [jobsPath, applicationsPath, candidatesPath],
   ApplicationTaskCreated: [jobsPath, applicationsPath, candidatesPath, tasksPath],
   ApplicationTaskCompleted: [jobsPath, applicationsPath, candidatesPath, tasksPath],
@@ -63,6 +78,10 @@ export const invalidations: InvalidationMap = {
   // Keeping someone in mind ends their application in every list; leaving the pool, or an invitation, changes the pool
   // and the kept application's page.
   TalentPoolChanged: [talentPoolPath, jobsPath, applicationsPath, candidatesPath],
+  // An erased candidate leaves every list, the pool and the job tables, and an open page of theirs finds nothing.
+  CandidateErased: [talentPoolPath, jobsPath, applicationsPath, candidatesPath, tasksPath, reportsPath],
+  // A teammate's shared view appears in the sidebar, and a rename or a delete reaches everyone who sees it.
+  ViewsChanged: [viewsPath],
 };
 
 export interface LiveUpdates {

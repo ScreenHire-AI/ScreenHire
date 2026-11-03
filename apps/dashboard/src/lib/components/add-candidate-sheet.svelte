@@ -8,7 +8,7 @@
 </script>
 
 <script lang="ts">
-  import UserPlusIcon from '@lucide/svelte/icons/user-plus';
+  import UserPlusIcon from '~icons/lucide/user-plus';
   import type { HttpValidationProblemDetails, JobSummary } from '@screenhire/api-client';
   import { ApiError, createCreateApplication, createCreateResumeUpload, createListJobs } from '@screenhire/api-client/svelte-query';
   import { defaults, superForm } from 'sveltekit-superforms';

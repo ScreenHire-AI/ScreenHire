@@ -1,10 +1,10 @@
 <script lang="ts">
-  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
-  import PencilIcon from '@lucide/svelte/icons/pencil';
-  import SendIcon from '@lucide/svelte/icons/send';
-  import UserPlusIcon from '@lucide/svelte/icons/user-plus';
-  import UsersRoundIcon from '@lucide/svelte/icons/users-round';
-  import WorkflowIcon from '@lucide/svelte/icons/workflow';
+  import ArrowLeftIcon from '~icons/lucide/arrow-left';
+  import PencilIcon from '~icons/lucide/pencil';
+  import SendIcon from '~icons/lucide/send';
+  import UserPlusIcon from '~icons/lucide/user-plus';
+  import UsersRoundIcon from '~icons/lucide/users-round';
+  import WorkflowIcon from '~icons/lucide/workflow';
   import {
     ApiError,
     createGetJob,
@@ -27,6 +27,7 @@
   import HistorySheet from '#lib/components/history-sheet.svelte';
   import HiringTeamSheet from '#lib/components/hiring-team-sheet.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
+  import JobEmbedPanel from '#lib/components/job-embed-panel.svelte';
   import JobPipeline from '#lib/components/job-pipeline.svelte';
   import LastUpdated from '#lib/components/last-updated.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
@@ -295,6 +296,7 @@
           {/each}
           <JobPipeline
             bind:view
+            jobId={params.jobId}
             jobTitle={detail.title}
             {stages}
             applications={all}
@@ -304,9 +306,12 @@
             {moves}
           />
         </Tabs.Content>
-        <Tabs.Content value="postings">
+        <Tabs.Content value="postings" class="flex flex-col gap-4">
           {#if boards.data}
             <DistributionPanel job={detail} boards={boards.data.data} />
+            {#if detail.status === 'Open'}
+              <JobEmbedPanel slug={detail.slug} />
+            {/if}
           {:else if boards.isError}
             <Panel title="Postings">
               <QueryError message={describeError(boards.error, 'Could not load the job boards')} onretry={() => boards.refetch()} inset />

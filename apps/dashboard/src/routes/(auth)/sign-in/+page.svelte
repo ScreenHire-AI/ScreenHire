@@ -1,6 +1,6 @@
 <script lang="ts">
-  import LogInIcon from '@lucide/svelte/icons/log-in';
-  import MailIcon from '@lucide/svelte/icons/mail';
+  import LogInIcon from '~icons/lucide/log-in';
+  import MailIcon from '~icons/lucide/mail';
   import { getChallengeProviderUrl, requestMagicLink } from '@screenhire/api-client';
   import { RequestMagicLinkBody } from '@screenhire/api-client/zod';
   import { defaults, superForm } from 'sveltekit-superforms';

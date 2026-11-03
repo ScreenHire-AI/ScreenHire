@@ -1,7 +1,7 @@
 <script lang="ts">
-  import CopyIcon from '@lucide/svelte/icons/copy';
-  import PlusIcon from '@lucide/svelte/icons/plus';
-  import Trash2Icon from '@lucide/svelte/icons/trash-2';
+  import CopyIcon from '~icons/lucide/copy';
+  import PlusIcon from '~icons/lucide/plus';
+  import Trash2Icon from '~icons/lucide/trash-2';
   import type { RoleSummary } from '@screenhire/api-client';
   import { createDeleteRole, createListRoles } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';

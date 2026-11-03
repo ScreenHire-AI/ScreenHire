@@ -346,6 +346,13 @@ public static class DefinitionChanges
                     // Only the part of a webhook's address that history leaves out changed: say so, without it.
                     lines.Add(ChangeLine.Of("changed the webhook address of ", b.Name));
                 }
+
+                if (left.GetValueOrDefault("Then") == right.GetValueOrDefault("Then")
+                    && !Interviewers(a).SequenceEqual(Interviewers(b)))
+                {
+                    // The summary counts interviewers, so swapping one for another leaves it as it was: say so, without names.
+                    lines.Add(ChangeLine.Of("changed the interviewers of ", b.Name));
+                }
             });
         if (Reordered(before.Automations, after.Automations, a => a.Id))
         {
@@ -430,7 +437,7 @@ public static class DefinitionChanges
             ActionType.AddTag => action.Tag,
             ActionType.NotifyTeam or ActionType.CreateTask => action.Note,
             ActionType.CallWebhook => Host(action.Url),
-            ActionType.ScheduleInterview => action.Url,
+            ActionType.ScheduleInterview => Interview(action),
             ActionType.QueueForRejectionReview => action.Reason,
             _ => null,
         };
@@ -442,9 +449,40 @@ public static class DefinitionChanges
         return value is { Length: > 0 } ? $"{label}: {value}" : label;
     }
 
+    // How many interviewers, how long, how many days the candidate has and in which zone. Ids and names stay out: history
+    // keeps every line for good, and who interviews is on the automation itself.
+    private static string Interview(AutomationAction action)
+    {
+        var parts = new List<string>();
+        if (action.InterviewerUserIds is { Count: > 0 } interviewers)
+        {
+            parts.Add(interviewers.Count == 1 ? "1 interviewer" : $"{interviewers.Count.ToString(CultureInfo.InvariantCulture)} interviewers");
+        }
+
+        if (action.InterviewMinutes is { } minutes)
+        {
+            parts.Add($"{minutes.ToString(CultureInfo.InvariantCulture)} minutes");
+        }
+
+        if (action.InterviewWindowDays is { } days)
+        {
+            parts.Add(days == 1 ? "1 day to pick" : $"{days.ToString(CultureInfo.InvariantCulture)} days to pick");
+        }
+
+        if (action.InterviewTimeZone is { Length: > 0 } zone)
+        {
+            parts.Add(zone);
+        }
+
+        return Join(parts);
+    }
+
     // A webhook's address is often its secret (a token in the path or the query), and history keeps every line for
-    // good, so it records the host alone. A booking link is sent to candidates, so it is recorded whole.
+    // good, so it records the host alone.
     private static string? Host(string? url) => Uri.TryCreate(url, UriKind.Absolute, out var uri) ? uri.Host : null;
+
+    private static IEnumerable<Guid> Interviewers(Automation automation) =>
+        automation.Actions.Where(a => a.Type == ActionType.ScheduleInterview).SelectMany(a => a.InterviewerUserIds ?? []);
 
     private static IEnumerable<string> WebhookUrls(Automation automation) =>
         automation.Actions.Where(a => a.Type == ActionType.CallWebhook).Select(a => a.Url ?? "");

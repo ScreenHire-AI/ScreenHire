@@ -1,13 +1,15 @@
 <script lang="ts">
-  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
+  import ArrowLeftIcon from '~icons/lucide/arrow-left';
   import HeaderBand from '#lib/components/header-band.svelte';
   import Panel from '#lib/components/panel.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
+  import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { can, seesAllJobs } from '#lib/permissions.js';
   import { settingsSectionOf, visibleSettingsSections } from '#lib/settings.js';
+  import { getShell } from '#lib/shell.js';
   import type { LayoutProps } from './$types';
 
   // Each settings page needs the permission its changes need (the API's RequirePermission, ADR-0014). The sidebar offers
@@ -19,16 +21,28 @@
   const roleAllows = $derived(section ? can(data.user, section.permission) : visibleSettingsSections(data.user).length > 0);
   // API keys and webhooks reach every job, so a person on Only jobs they're on cannot use them whatever their role says.
   const jobsAllow = $derived(!section?.allJobs || seesAllJobs(data.user));
-  const allowed = $derived(roleAllows && jobsAllow);
+  const permitted = $derived(roleAllows && jobsAllow);
+  // Slack's page exists only where a Slack app is set up (A3): an address to it elsewhere goes to the first page the person
+  // may use, once the shell has heard that Slack is off. While that loads nothing is drawn or decided for someone who may
+  // use the page; anyone else already has their answer, and without an organization the shell never asks.
+  const shell = getShell();
+  const features = $derived(shell?.features() ?? {});
+  const hidden = $derived(Boolean(section?.feature) && features[section!.feature!] === false);
+  const waiting = $derived(permitted && Boolean(section?.feature) && features[section!.feature!] === undefined);
+  const pending = $derived(hidden || waiting);
+  const allowed = $derived(permitted && !pending);
+  $effect(() => {
+    if (hidden) void goto(visibleSettingsSections(data.user, features)[0]?.href ?? '/', { replaceState: true });
+  });
 </script>
 
 <svelte:head>
-  {#if !allowed}<title>Settings · ScreenHire</title>{/if}
+  {#if !allowed && !pending}<title>Settings · ScreenHire</title>{/if}
 </svelte:head>
 
 {#if allowed}
   {@render children()}
-{:else}
+{:else if !pending}
   <TopBar crumbs={[{ label: 'Settings' }]} />
 
   <main class="flex flex-col">

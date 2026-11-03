@@ -1,6 +1,6 @@
 <script lang="ts">
-  import BracesIcon from '@lucide/svelte/icons/braces';
-  import SendIcon from '@lucide/svelte/icons/send';
+  import BracesIcon from '~icons/lucide/braces';
+  import SendIcon from '~icons/lucide/send';
   import type { EmailPreview as Preview, HttpValidationProblemDetails } from '@screenhire/api-client';
   import { ApiError, createListEmailTemplates, createPreviewApplicationEmail, createSendEmails } from '@screenhire/api-client/svelte-query';
   import { tick, untrack } from 'svelte';

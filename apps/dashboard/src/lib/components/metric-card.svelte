@@ -8,9 +8,9 @@
 
 <script lang="ts">
   // Every Lucide icon has this one component type.
-  import type LucideIcon from '@lucide/svelte/icons/circle';
-  import TrendingDownIcon from '@lucide/svelte/icons/trending-down';
-  import TrendingUpIcon from '@lucide/svelte/icons/trending-up';
+  import type LucideIcon from '~icons/lucide/circle';
+  import TrendingDownIcon from '~icons/lucide/trending-down';
+  import TrendingUpIcon from '~icons/lucide/trending-up';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import * as Card from '#lib/components/ui/card/index.js';
   import { cn } from '#lib/utils.js';

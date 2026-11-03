@@ -33,7 +33,7 @@ internal static class SecuritySchemes
                 Type = SecuritySchemeType.Http,
                 Scheme = "bearer",
                 BearerFormat = "shk_...",
-                Description = "An organization API key, created by an owner or admin. Works on jobs, applications, candidates and templates.",
+                Description = "An organization API key, created by an owner or admin. Works on jobs, applications, candidates and templates, and, with the VerificationRead scope an owner gives it, on verification results.",
             };
             return Task.CompletedTask;
         });
@@ -49,7 +49,8 @@ internal static class SecuritySchemes
             // Two requirements are alternatives: either one authenticates the request.
             operation.Security ??= [];
             operation.Security.Add(Requirement(Session, context.Document));
-            if (metadata.OfType<IAuthorizeData>().Any(a => a.Policy == ApiKeyAuthentication.HiringApiPolicy))
+            if (metadata.OfType<IAuthorizeData>().Any(a =>
+                a.Policy is ApiKeyAuthentication.HiringApiPolicy or ApiKeyAuthentication.VerificationApiPolicy))
             {
                 operation.Security.Add(Requirement(ApiKey, context.Document));
             }

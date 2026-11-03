@@ -89,6 +89,9 @@ function logEntry(overrides: Partial<VerificationReviewEntry>): VerificationRevi
     signalId: 'signal-NET_DATACENTER_IP',
     signalTitle: "Sent from a hosting provider's network",
     explainReason: 'ExpectedForRole',
+    apiKeyId: null,
+    apiKeyName: null,
+    keyCreatedByName: null,
     ...overrides,
   };
 }
@@ -134,13 +137,13 @@ describe('verification panel', () => {
     const network = checks.find((check) => check.dataset.check === 'Network')!;
     const identity = checks.find((check) => check.dataset.check === 'Identity')!;
     expect(network).toHaveTextContent('1 signal');
-    expect(network.querySelector('svg.lucide-triangle-alert')).toBeInTheDocument();
+    expect(network.querySelector('svg[data-icon="triangle-alert"]')).toBeInTheDocument();
     // Its reason sits under it and does not repeat the check's name.
     const reason = network.querySelector('[data-signal="NET_DATACENTER_IP"] summary')!;
     expect(reason).not.toHaveTextContent('Network');
-    expect(reason.querySelector('svg.lucide-chevron-down')).toBeInTheDocument();
+    expect(reason.querySelector('svg[data-icon="chevron-down"]')).toBeInTheDocument();
     expect(identity).toHaveTextContent('Nothing found');
-    expect(identity.querySelector('svg.lucide-triangle-alert')).not.toBeInTheDocument();
+    expect(identity.querySelector('svg[data-icon="triangle-alert"]')).not.toBeInTheDocument();
     // There is no second list of the same reasons.
     expect(authenticity.querySelectorAll('[data-signal="NET_DATACENTER_IP"]')).toHaveLength(1);
   });
@@ -271,7 +274,7 @@ describe('verification panel', () => {
         dismissal: { actionId: 'a1', reason: 'VerifiedOutsideScreenHire', note: 'Video call on Monday.', actorUserId: user.id, actorName: 'Avery Quinn', dismissedAt: '2026-10-20T11:00:00Z' },
       },
       reviewLog: [
-        { id: 'a1', type: 'Dismissed', assessmentKind: 'Authenticity', assessmentId: authenticityAssessmentId, dismissReason: 'VerifiedOutsideScreenHire', note: 'Video call on Monday.', actorUserId: user.id, actorName: 'Avery Quinn', occurredAt: '2026-10-20T11:00:00Z', signalId: null, signalTitle: null, explainReason: null },
+        { id: 'a1', type: 'Dismissed', assessmentKind: 'Authenticity', assessmentId: authenticityAssessmentId, dismissReason: 'VerifiedOutsideScreenHire', note: 'Video call on Monday.', actorUserId: user.id, actorName: 'Avery Quinn', occurredAt: '2026-10-20T11:00:00Z', signalId: null, signalTitle: null, explainReason: null, apiKeyId: null, apiKeyName: null, keyCreatedByName: null },
       ],
     };
     const sent = serve(botVerification(), {
@@ -531,7 +534,7 @@ describe('verification panel', () => {
   it('adds a note to the review log', async () => {
     const noted: ApplicationVerification = {
       ...botVerification(),
-      reviewLog: [{ id: 'n1', type: 'NoteAdded', assessmentKind: null, assessmentId: null, dismissReason: null, note: 'Asked for references.', actorUserId: 'someone-else', actorName: 'Jordan Park', occurredAt: '2026-10-20T11:00:00Z', signalId: null, signalTitle: null, explainReason: null }],
+      reviewLog: [{ id: 'n1', type: 'NoteAdded', assessmentKind: null, assessmentId: null, dismissReason: null, note: 'Asked for references.', actorUserId: 'someone-else', actorName: 'Jordan Park', occurredAt: '2026-10-20T11:00:00Z', signalId: null, signalTitle: null, explainReason: null, apiKeyId: null, apiKeyName: null, keyCreatedByName: null }],
     };
     const sent = serve(botVerification(), { [`POST ${base}/notes`]: () => ({ status: 200, body: noted, next: noted }) });
     renderPanel();
@@ -545,6 +548,29 @@ describe('verification panel', () => {
     const log = screen.getByRole('region', { name: 'Review log' });
     await within(log).findByText('"Asked for references."');
     expect(log).toHaveTextContent('Note by Jordan Park');
+  });
+
+  it('shows a read through an API key by the key, with who made it, and folds a run of reads into one line', async () => {
+    const read = (id: string, keyId: string, keyName: string, occurredAt: string) =>
+      logEntry({ id, type: 'ReadByKey', assessmentKind: null, assessmentId: null, explainReason: null, signalId: null, signalTitle: null, actorUserId: null, actorName: null, apiKeyId: keyId, apiKeyName: keyName, keyCreatedByName: 'Avery Quinn', occurredAt });
+    serve({
+      ...botVerification(),
+      reviewLog: [
+        logEntry({ id: 'p1', type: 'NoteAdded', explainReason: null, signalId: null, signalTitle: null, note: 'Asked for references.', occurredAt: '2026-10-20T09:00:00Z' }),
+        read('r1', 'key-1', 'Auditor', '2026-10-20T10:00:00Z'),
+        read('r2', 'key-1', 'Auditor', '2026-10-20T10:05:00Z'),
+        read('r3', 'key-1', 'Auditor', '2026-10-20T10:10:00Z'),
+        read('r4', 'key-2', 'Export', '2026-10-20T11:00:00Z'),
+      ],
+    });
+    renderPanel();
+
+    const log = await screen.findByRole('region', { name: 'Review log' });
+    await within(log).findByText('Read through the API key Auditor, 3 times');
+    expect(within(log).getByText('Read through the API key Export')).toBeInTheDocument();
+    expect(log).toHaveTextContent('key made by Avery Quinn');
+    expect(log).toHaveTextContent('Note on authenticity by you');
+    expect(within(log).queryByRole('button', { name: /reject/i })).not.toBeInTheDocument();
   });
 
   it('has nothing to dismiss when there are no concerns', async () => {

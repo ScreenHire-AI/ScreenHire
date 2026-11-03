@@ -71,5 +71,5 @@ rank fast pages, so both ship about zero kilobytes of JavaScript. The procedures
 - After a build, `find apps/marketing/dist -name '*.js'` prints nothing, and `apps/careers/dist/client` holds only the
   apply page's island, telemetry and frame-sizing chunks unless the PR adds an island on purpose.
 - `pnpm --filter @screenhire/marketing build` fails on more than 15 KB of JS per page or a broken internal link, and
-  `pnpm --filter @screenhire/marketing lighthouse` checks mobile LCP and CLS. The build runs in `pnpm verify`;
-  Lighthouse runs once per marketing change in the Testing column (`/pull-request`).
+  `pnpm --filter @screenhire/marketing lighthouse` checks mobile LCP and CLS. The build runs in CI;
+  Lighthouse runs in CI's report-only `lighthouse` job for a marketing change, and `/pull-request` reports it.

@@ -2,10 +2,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScreenHire.Application.Automations;
 using ScreenHire.Application.Messaging;
+using ScreenHire.Application.Scheduling;
 using ScreenHire.Application.Slack;
 using ScreenHire.Application.Webhooks;
 using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Domain.Scheduling;
 using ScreenHire.Infrastructure.Persistence;
 using Wolverine;
 
@@ -32,8 +34,11 @@ public static partial class ApplicationMovedHandler
     public static async Task<OutgoingMessages> Handle(
         ApplicationMoved message, ScreenHireDbContext db, SlackAccess slack, TimeProvider time, ILogger<ApplicationMoved> logger, CancellationToken cancellationToken)
     {
-        var application = await db.Applications.AsNoTracking().SingleOrDefaultAsync(a => a.Id == message.ApplicationId, cancellationToken)
-            ?? throw new InvalidOperationException($"Application {message.ApplicationId} is not visible to organization {message.OrganizationId}.");
+        // An application erased since the move has nothing left to run, tell or post about: done, not failed.
+        if (await db.Applications.AsNoTracking().SingleOrDefaultAsync(a => a.Id == message.ApplicationId, cancellationToken) is not { } application)
+        {
+            return [];
+        }
 
         LogMoved(logger, message.ApplicationId, message.FromStageId, message.ToStageId);
         var causedByRunId = await db.ApplicationEvents.AsNoTracking()
@@ -50,6 +55,14 @@ public static partial class ApplicationMovedHandler
             onlyAutomationId: null,
             cancellationToken);
         outgoing.Add(WebhookEvents.From(message));
+        // An interview offered or booked on an application that has now ended is cancelled. The handler checks the stage, so
+        // a move that did not end it, or a move back, cancels nothing; this only asks for the check when there is an interview.
+        if (await db.InterviewRequests.AsNoTracking().AnyAsync(
+                r => r.ApplicationId == message.ApplicationId && (r.Status == InterviewStatus.Open || r.Status == InterviewStatus.Booked), cancellationToken))
+        {
+            outgoing.Add(new EndApplicationInterviews(message.OrganizationId, message.ApplicationId, message.EventId));
+        }
+
         if (SlackEvents.From(message, slack) is { } post)
         {
             outgoing.Add(post);

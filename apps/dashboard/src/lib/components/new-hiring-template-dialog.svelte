@@ -1,5 +1,5 @@
 <script lang="ts">
-  import PlusIcon from '@lucide/svelte/icons/plus';
+  import PlusIcon from '~icons/lucide/plus';
   import type { HttpValidationProblemDetails } from '@screenhire/api-client';
   import { ApiError, createCreateHiringTemplate, createListHiringTemplates } from '@screenhire/api-client/svelte-query';
   import { CreateHiringTemplateBody } from '@screenhire/api-client/zod';

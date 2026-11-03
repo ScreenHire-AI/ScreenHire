@@ -1,7 +1,7 @@
 <script lang="ts">
-  import CheckIcon from '@lucide/svelte/icons/check';
-  import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
-  import XIcon from '@lucide/svelte/icons/x';
+  import CheckIcon from '~icons/lucide/check';
+  import ChevronDownIcon from '~icons/lucide/chevron-down';
+  import XIcon from '~icons/lucide/x';
   import type { FilterOption } from '#lib/components/filter-menu.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { buttonVariants } from '#lib/components/ui/button/index.js';

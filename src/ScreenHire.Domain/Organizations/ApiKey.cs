@@ -55,4 +55,10 @@ public enum ApiKeyScope
 
     /// <summary>Change them too. Includes <see cref="Read"/>.</summary>
     Write,
+
+    /// <summary>
+    /// Read an application's verification results and list candidates by level (ADR-0021). Only an Owner can give a key
+    /// this scope. It includes nothing else, and no other scope includes it. The names are stored, so do not rename it.
+    /// </summary>
+    VerificationRead,
 }

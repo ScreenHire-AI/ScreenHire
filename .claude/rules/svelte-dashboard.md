@@ -52,7 +52,9 @@ new route is the `/add-dashboard-page` skill.
 - shadcn-svelte components in `src/lib/components/ui` are our code: edit them freely, and keep ScreenHire variants
   there (the `clear`, `review`, `verify`, `ai`, `neutral`, `quiet`, `muted` and `count` badge variants). Add new ones with
   `pnpm exec svelte-kit sync` then `pnpm dlx shadcn-svelte@1.7.0 add <name> --yes --no-deps-install` from
-  `apps/dashboard`, then change only what the tokens rule below needs (`card` came in this way). Use `field` with
+  `apps/dashboard`, then change only what the tokens rule below needs (`card` came in this way). The generated files import icons from
+  `@lucide/svelte/icons/<name>`: change each to `~icons/lucide/<name>` (design system section 14), and the dashboard
+  does not depend on `@lucide/svelte`. Use `field` with
   superforms 3 for forms, not the `form` component; use Sheet, not Drawer.
 - Tokens only. Colours, fonts, type sizes and radii come from `@screenhire/ui` through Tailwind classes (`bg-card`,
   `text-muted-foreground`, `text-status-review`). Never a hex value, never `rgb(...)`, never a Tailwind palette
@@ -80,8 +82,11 @@ new route is the `/add-dashboard-page` skill.
   `extraColumns`, right after Candidate (status first, T2); build them with `candidateColumns` from `#lib/candidate-table.ts`. The
   verification chips are `verificationColumns` (`#lib/verification-columns.ts`). The table sorts (a column with an accessor gets
   a header button and `aria-sort`, through `SortHeader`) but never filters: pages filter the rows they pass in (stage, saved view,
-  `VerificationFilter`, search with `matchesSearch`), so the count and "select all" match what is shown. Saved views are
-  the list in `#lib/saved-views.ts`.
+  `VerificationFilter`, search with `matchesSearch`), so the count and "select all" match what is shown. The built-in
+  views are the list in `#lib/saved-views.ts`; the views people save live on the server (`createListViews()`,
+  `docs/architecture/saved-views.md`), and `#lib/view-filters.ts` is where a table's filters become a view and back, so the
+  pages and the sidebar's counts agree. A table that offers Save view owns its `TableSortState` (`createTableSort`), so a
+  view can set the sort.
 - Every TanStack table sorts the same way (design system L2): `SortHeader` draws each header, and `createTableSort`
   with `tableSortOptions` (`#lib/table-sort.svelte.ts`) gives it one sorted column, the table's default, two states
   per column, and the person's choice remembered per table through `preferences` (in the browser). `SortMenu` is the

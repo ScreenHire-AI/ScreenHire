@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ClipboardCheckIcon from '@lucide/svelte/icons/clipboard-check';
+  import ClipboardCheckIcon from '~icons/lucide/clipboard-check';
   import type { Recommendation, ScorecardAnswerInput, ScorecardQuestion } from '@screenhire/api-client';
   import { ApiError, createGetScorecardTemplate, createSubmitScorecard } from '@screenhire/api-client/svelte-query';
   import { untrack } from 'svelte';

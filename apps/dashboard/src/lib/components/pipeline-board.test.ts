@@ -106,8 +106,8 @@ describe('pipeline board', () => {
     expect(screen.queryByRole('listitem', { name: /^Jordan Lee,/ })).toBeNull();
   });
 
-  it('draws a candidate kept in mind in no stage column, and counts them in Closed (docs/architecture/talent-pool.md)', async () => {
-    // Jordan Lee was in Screening when the team kept them in mind: the stage is where they stood, not where they are.
+  it('draws a saved candidate in no stage column, and counts them in Closed (docs/architecture/talent-pool.md)', async () => {
+    // Jordan Lee was in Screening when the team saved them: the stage is where they stood, not where they are.
     const rows = [applications[0]!, { ...applications[1]!, keptInMindAt: '2026-10-20T11:00:00Z' }, applications[2]!];
     stubApi({ rows });
     renderBoard(withEnds);
@@ -120,7 +120,7 @@ describe('pipeline board', () => {
     expect(within(closed).getByRole('heading').textContent?.replace(/\s+/g, ' ').trim()).toBe('Closed 1');
   });
 
-  it('adds a kept candidate to Closed beside those who were hired or rejected, in a row of their own so the rows add up', async () => {
+  it('adds a saved candidate to Closed beside those who were hired or rejected, in a row of their own so the rows add up', async () => {
     const rows = [
       { ...applications[0]!, stage: { id: 'hired', name: 'Hired', kind: 'Hired' as const } },
       { ...applications[1]!, keptInMindAt: '2026-10-20T11:00:00Z' },
@@ -132,7 +132,72 @@ describe('pipeline board', () => {
     await screen.findByRole('list', { name: 'Applied stage' });
     const closed = screen.getByRole('region', { name: /^Closed/ });
     expect(within(closed).getByRole('heading').textContent?.replace(/\s+/g, ' ').trim()).toBe('Closed 2');
-    expect(closed.querySelector('[data-kept-in-mind]')).toHaveTextContent(/^Kept in mind\s*1$/);
+    expect(closed.querySelector('[data-kept-in-mind]')).toHaveTextContent(/^Saved\s*1$/);
+  });
+
+  describe('Closed rows (A9)', () => {
+    const closedRows = () => [
+      applications[0]!,
+      { ...applications[1]!, stage: { id: 'hired', name: 'Hired', kind: 'Hired' as const } },
+      { ...applications[2]!, stage: { id: 'rejected', name: 'Rejected', kind: 'Rejected' as const } },
+    ];
+
+    it('starts every row collapsed, a button with a chevron where it holds someone', async () => {
+      stubApi({ rows: closedRows() });
+      renderBoard(withEnds);
+
+      await screen.findByRole('list', { name: 'Applied stage' });
+      const closed = screen.getByRole('region', { name: /^Closed/ });
+      const hired = within(closed).getByRole('button', { name: /^Hired/ });
+      expect(hired).toHaveAttribute('aria-expanded', 'false');
+      expect(hired.querySelector('svg[data-icon="chevron-down"]')).toBeInTheDocument();
+      expect(within(closed).getByRole('button', { name: /^Rejected/ })).toHaveAttribute('aria-expanded', 'false');
+      // A row with nobody in it has nothing to open, so it is no button and has no chevron.
+      expect(within(closed).queryByRole('button', { name: /^Withdrawn/ })).toBeNull();
+      expect(within(closed).getByText('Withdrawn').closest('[data-closed-stage]')!.querySelector('svg')).toBeNull();
+      expect(within(closed).queryByRole('link')).toBeNull();
+    });
+
+    it("opens to the row's candidates, whose cards link to the candidate, and closes again", async () => {
+      stubApi({ rows: closedRows() });
+      renderBoard(withEnds);
+
+      await screen.findByRole('list', { name: 'Applied stage' });
+      const closed = screen.getByRole('region', { name: /^Closed/ });
+      const hired = within(closed).getByRole('button', { name: /^Hired/ });
+      await fireEvent.click(hired);
+
+      expect(hired).toHaveAttribute('aria-expanded', 'true');
+      const list = within(closed).getByRole('list', { name: 'Hired candidates' });
+      expect(within(list).getAllByRole('listitem').map((item) => item.getAttribute('aria-label'))).toEqual([`${applications[1]!.candidateName}, Hired`]);
+      const link = within(list).getByRole('link', { name: applications[1]!.candidateName });
+      expect(link).toHaveAttribute('href', `/applications/${applications[1]!.id}`);
+      // The link is the card's only control, so it covers the whole card.
+      expect(link).toHaveClass('after:absolute', 'after:inset-0');
+      // Only the row that was opened.
+      expect(within(closed).queryByRole('list', { name: 'Rejected candidates' })).toBeNull();
+
+      await fireEvent.click(hired);
+      expect(hired).toHaveAttribute('aria-expanded', 'false');
+      expect(within(closed).queryByRole('list', { name: 'Hired candidates' })).toBeNull();
+    });
+
+    it('opens the Saved row to the candidates the team saved', async () => {
+      const kept = { ...applications[1]!, keptInMindAt: '2026-10-20T11:00:00Z' };
+      stubApi({ rows: [applications[0]!, kept, applications[2]!] });
+      renderBoard(withEnds);
+
+      await screen.findByRole('list', { name: 'Applied stage' });
+      const closed = screen.getByRole('region', { name: /^Closed/ });
+      const row = within(closed).getByRole('button', { name: /^Saved/ });
+      expect(row).toHaveAttribute('aria-expanded', 'false');
+      await fireEvent.click(row);
+
+      expect(within(within(closed).getByRole('list', { name: 'Saved candidates' })).getByRole('link', { name: kept.candidateName })).toHaveAttribute(
+        'href',
+        `/applications/${kept.id}`,
+      );
+    });
   });
 
   it('says nothing on a calm card, and shows only what needs a look (section 21)', async () => {

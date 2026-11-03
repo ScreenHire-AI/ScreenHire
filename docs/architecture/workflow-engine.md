@@ -54,6 +54,7 @@ sources:
   - resource: apps/api/Hiring/RatingReads.cs
   - resource: apps/api/Hiring/ScorecardReferences.cs
   - resource: apps/api/Hiring/TemplateReferences.cs
+  - resource: apps/api/Hiring/InterviewerReferences.cs
   - resource: apps/api/Endpoints/WebhookEndpoints.cs
   - resource: apps/api/Endpoints/PublicQuestionnaireEndpoints.cs
   - resource: apps/dashboard/src/lib/workflow.ts
@@ -138,7 +139,7 @@ builder's "time limit") measures the hiring team's delay, never the candidate: s
 |---|---|
 | **Triggers** | `ApplicationSubmitted`, `StageEntered(stage)`, `StageExited(stage)`, `QuestionnaireCompleted(questionnaire)`, `VerificationAssessed`, `VerificationCompleted`, `ReviewerDecision`, `TimeElapsed(since: stageEntered, duration)`, `SlaBreached(stage?)`, `CandidateReplied`, `InterviewScheduled`, `Manual` |
 | **Conditions** | Expression over application facts: answers (`answers.work_authorization == "yes"`), tags, source board, location, verification levels (`verification.authenticity >= ReviewSuggested`), a reviewer's recommendation, time in stage. Combinators `all/any/not`. |
-| **Actions** | `SendEmail(template)`, `SendQuestionnaire(questionnaire)`, `RequestVerification(provider)`, `MoveToStage(stage)`, `AddTag`, `AssignReviewer`, `NotifyTeam`, `ScheduleInterview(link)`, `CreateTask`, `CallWebhook(url)`, `QueueForRejectionReview(reason)`, `Reject(reason, emailTemplate)` |
+| **Actions** | `SendEmail(template)`, `SendQuestionnaire(questionnaire)`, `RequestVerification(provider)`, `MoveToStage(stage)`, `AddTag`, `AssignReviewer`, `NotifyTeam`, `ScheduleInterview(interviewers, length, days, zone)`, `CreateTask`, `CallWebhook(url)`, `QueueForRejectionReview(reason)`, `Reject(reason, emailTemplate)` |
 
 ### Guardrails enforced by the engine (product-legal policy, see ADR-0004)
 1. **Verification-derived conditions can never drive `Reject`.** Any automation whose condition references `verification.*`
@@ -150,9 +151,13 @@ builder's "time limit") measures the hiring team's delay, never the candidate: s
 3. **Every automated action is audit-logged** with the definition version, trigger event, evaluated facts and result.
 4. Accommodation: if the candidate requested accommodation, automations referencing timing/telemetry facts are skipped.
    `SlaBreached` is the exception, and the reason is section 8.
-5. **Keep in mind is a person's action only** ([talent pool](talent-pool.md)): no automation action keeps a candidate in
-   mind, so no condition, verification or otherwise, can take someone out of a job that way. An application kept in mind
+5. **Save candidate is a person's action only** ([saved candidates](talent-pool.md)): no automation action saves a
+   candidate, so no condition, verification or otherwise, can take someone out of a job that way. A saved application
    has ended like one in a Hired, Rejected or Withdrawn stage: actions skip it and its stage's timers do nothing.
+6. **Offering an interview is a candidate-facing outcome, so a signal never drives it.** `ScheduleInterview` is outside
+   the signal-safe actions and the `SlaBreached` list: the validator refuses it in an automation that uses a
+   verification signal, directly or at one remove, and in one a passed time limit drives. The `InterviewScheduled`
+   trigger fires when the candidate books, and it carries no verification data.
 
 ## 3. Execution model
 
@@ -403,7 +408,13 @@ The data model and API from the jobs and templates task, and the engine that run
   application is when the action runs, which no definition can know. Only an automation whose
   every condition is a knockout question equal to its disqualifying answer, with `allowAutoReject` set, may `Reject`,
   and it must give the candidate a reason. Accommodation status and the AI-use declaration are not facts. Publishing a
-  template version validates it again, so a draft saved under older rules cannot go live.
+  template version validates it again, so a draft saved under older rules cannot go live. A `ScheduleInterview` action
+  needs `interviewerUserIds` (one to five different members), `interviewMinutes` (one of the lengths an interview
+  request allows), `interviewWindowDays` (1 to 60) and `interviewTimeZone` (an IANA id the host knows), and no
+  other action takes them. The validator has no database, so it checks that shape only. Where there is a database,
+  saving a workflow, a template draft or a job's workflow, and publishing a template, also check that each interviewer is
+  a member of the organization (`InterviewerReferences`, reported at `automations[i].actions[j].interviewerUserIds`).
+  Members only, not who sees which job, because a template is organization-wide; the run checks the rest.
 - **What the validator cannot check:** a question's meaning, a scorecard question's included. It refuses scorecard
   questions, guidance and options that name personality, emotion, honesty and the like (whole words, so "data
   verification" passes), but that is a backstop: a scorecard asks about the job, and the builder's note and review of
@@ -445,7 +456,8 @@ The data model and API from the jobs and templates task, and the engine that run
   tasks (`ApplicationActivity`), read in the list's own query.
 - **Events** through the outbox: `JobPublished` (with the job version), `JobClosed`, `ApplicationSubmitted`,
   `ApplicationMoved` (both carrying the timeline event id, the engine's idempotency key) and
-  `HiringTemplateVersionPublished`.
+  `HiringTemplateVersionPublished`, and `TemplateChanged` for any other edit of a hiring, email or scorecard template
+  ([realtime](realtime.md)).
 
 ## 8. The engine (v1)
 
@@ -516,7 +528,7 @@ one email. A webhook happens before the commit; a crash in between can repeat on
 
 | Action | What v1 does |
 |---|---|
-| `SendEmail` | Renders one of the organization's email templates to the candidate, in its current wording: a built-in (`application-received`, `stage-change`) or one of its own, named by id ([email.md](email.md)). Queues the email with the action's commit; the worker sends it and adds an `EmailSent` timeline entry linked to the run. Skipped when email is not configured; fails when the template was deleted. The rejection email is not available here: it says a candidate is out, so only `Reject` sends it. `stage-change` says "moved to the next step", so it is refused at save on entering a rejected or withdrawn stage and skipped when the application is in one by the time it sends. |
+| `SendEmail` | Renders one of the organization's email templates to the candidate, in its current wording: a built-in (`application-received`, `stage-change`) or one of its own, named by id ([email.md](email.md)). Queues the email with the action's commit; the worker sends it and adds an `EmailSent` timeline entry linked to the run. Skipped when email is not configured and when the candidate's address bounced or marked an email as spam ([email.md](email.md), "Bounces and complaints"); fails when the template was deleted. The rejection email is not available here: it says a candidate is out, so only `Reject` sends it. `stage-change` says "moved to the next step", so it is refused at save on entering a rejected or withdrawn stage and skipped when the application is in one by the time it sends. |
 | `MoveToStage` | Moves the application and links the timeline entry to the run, which fires the next stage's triggers. Never moves an application out of a terminal stage. |
 | `AddTag` | Adds a tag (a `TagAdded` timeline entry). Conditions read tags as `application.tags`. |
 | `AssignReviewer` | Creates a `Review` task, for the named member or the whole team. It is done when its member submits any scorecard for the application (anyone, for the whole team), never by ticking it. The builder offers the members whose role fills in scorecards (a Viewer could not do the review) or "Anyone on the team". Saving a workflow checks only that a member is named; the run checks they still belong to the organization, and fails the action if not. A member who already gave a scorecard at the stage the candidate is in has done the review, so the run skips the action rather than leave a task nobody can finish. |
@@ -526,7 +538,8 @@ one email. A webhook happens before the commit; a crash in between can repeat on
 | `Reject` | Only for an opted-in knockout automation. Sends `application-rejected`, in the organization's wording, with the reason (the wording must use it). ScreenHire adds the sentence that says the decision was automatic and that a person reviews it on request, which no wording can remove. It then moves to the rejected stage. It re-validates the workflow first. Without email, with the opt-in gone, with a workflow that no longer validates or that changed version since the conditions were checked, it queues a rejection review instead: the candidate must be told why. |
 | `CallWebhook` | Posts ids only, with the action key as `Idempotency-Key`, to public addresses only (no loopback, private or link-local targets, checked at connect time; loopback only where `ScreenHire:Webhooks:AllowLoopback` is on, in the local stack and the tests). Signed: `ScreenHire-Signature: t={unix seconds},v1={hex}`, HMAC-SHA256 of `{t}.{body}` under the organization's key: hex HMAC-SHA256 of `webhook-signing:{organizationId}` under `ScreenHire:Webhooks:SigningKey` (`WebhookSignature.OrganizationKey`; the AppHost generates the platform key locally). A receiver is given its organization's key only, so it cannot sign for another organization. Never through a proxy, which would resolve the target past the address check. Without a key the action fails as an issue instead of sending something unverifiable. No HTTP retries of its own: Wolverine retries the action. |
 | `SendQuestionnaire` | Emails the candidate a link to one of the workflow's follow-up questionnaires on the careers site, through the built-in `questionnaire-request` email, whose wording must use `{{ questionnaireLink }}` ([email.md](email.md)). One request per application and questionnaire (`questionnaire_requests`, unique): the first send creates it, a later one sends a fresh link to the same request while it is unanswered, and once it is answered nothing is sent. A `QuestionnaireSent` timeline entry links each send to the run. Skipped without email, as `SendEmail` is, and for an application that has ended; fails when the questionnaire left the workflow or the careers site address (`ScreenHire:Domains`) is not set up, and in either case before the request changes. Not open to signal-driven automations. |
-| `RequestVerification`, `ScheduleInterview` | Refused at save. Verification is phase 2; scheduling does not exist. Triggers `VerificationCompleted`, `CandidateReplied` and `InterviewScheduled` are refused for the same reason. |
+| `ScheduleInterview` | Offers the candidate an interview ([interview-scheduling.md](interview-scheduling.md), ADR-0024): an Open `InterviewRequest` with the action's interviewers (the first is the organizer), length and time zone, and a window that starts when the action runs and lasts the action's days, 09:00 to 17:00 on weekdays. It adds an `InterviewInvited` timeline entry linked to the run and queues `SendInterviewInvitation` in the action's transaction, so the email leaves only if the action commits. Nothing is on a calendar until the candidate picks a time. **Skipped** (a plain detail, not a failure) when email or the careers site address is not set up, when the application has ended, or when the candidate has an interview Open (not past its window) or Booked; an Open request past its window is stored as Expired first, as the staff route does. **Failed** before anything is written when an interviewer is no longer a member, can no longer see the job (not on a hiring team that excludes them), or has no working calendar connected, or when the saved settings no longer pass the interview rules. The request carries the action's key (`SourceKey`, unique per application), so running the action again finds the request and skips without a second email. Not open to signal-driven or `SlaBreached` automations. |
+| `RequestVerification` | Refused at save. Verification is phase 2. Triggers `VerificationCompleted` and `CandidateReplied` are refused for the same reason (the second needs reply tracking). |
 
 **Loops and depth.** A run records the chain of automations whose actions led to it. An automation already in its own
 chain is a loop, and a chain of `AutomationEvaluator.MaxDepth` (10) stops there; either way the run is `Blocked` and
@@ -543,7 +556,9 @@ as for anyone (above), and the validator keeps timing facts out of its condition
 after every retry goes to the dead-letter table, and the error policy's last step (`AutomationFailures`) publishes
 `AutomationActionFailed`, which marks the action and its run failed. `AutomationRunFinished` (completed, failed or
 blocked) and `TeamNotified` reach the organization's dashboards; quiet outcomes raise nothing, so a skip for an
-accommodation never reaches anyone's browser. `GET /v1/applications/{id}/automation-runs` and `.../tasks` show the rest.
+accommodation never reaches anyone's browser. A run, an action or a failure notice that arrives after its application
+was erased ([candidates](candidates.md#erasure)) finds nothing and finishes without error, so it never reaches the
+dead-letter table. `GET /v1/applications/{id}/automation-runs` and `.../tasks` show the rest.
 
 **Tasks, notes and tags by hand.** The tasks automations make are the dashboard's My tasks: `GET /v1/tasks` lists open
 tasks assigned to the signed-in person, oldest first; `scope=Team` lists the ones assigned to nobody in particular,
@@ -751,4 +766,4 @@ evaluator for one trigger and lists each triggered automation's outcome, rule re
 - Approval steps (mid-market): model as a stage kind or a cross-cutting action? (Leaning: `RequestApproval` action +
   `ApprovalCompleted` trigger.)
 - Agency mode: templates scoped per client company.
-- Interview scheduling: build vs integrate (Cal.com self-host / Nylas / Cronofy).
+- Interview scheduling: resolved. It is built on the Google and Microsoft calendar APIs, and `ScheduleInterview` and `InterviewScheduled` are in the engine ([interview-scheduling.md](interview-scheduling.md), ADR-0024).

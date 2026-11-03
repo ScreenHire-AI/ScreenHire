@@ -10,7 +10,7 @@
 </script>
 
 <script lang="ts">
-  import CheckIcon from '@lucide/svelte/icons/check';
+  import CheckIcon from '~icons/lucide/check';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import StepMarker from './step-marker.svelte';
 

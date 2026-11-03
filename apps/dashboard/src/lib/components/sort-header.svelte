@@ -1,7 +1,7 @@
 <script lang="ts" generics="TFeatures extends TableFeatures, TData extends RowData">
-  import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
-  import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
-  import ChevronsUpDownIcon from '@lucide/svelte/icons/chevrons-up-down';
+  import ArrowDownIcon from '~icons/lucide/arrow-down';
+  import ArrowUpIcon from '~icons/lucide/arrow-up';
+  import ChevronsUpDownIcon from '~icons/lucide/chevrons-up-down';
   import { FlexRender, type Column_RowSorting, type Header, type RowData, type TableFeatures } from '@tanstack/svelte-table';
   import type { ClassValue } from 'svelte/elements';
   import { cn } from '#lib/utils.js';

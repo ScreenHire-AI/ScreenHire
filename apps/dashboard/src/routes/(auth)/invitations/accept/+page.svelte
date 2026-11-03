@@ -1,6 +1,6 @@
 <script lang="ts">
-  import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
-  import UserPlusIcon from '@lucide/svelte/icons/user-plus';
+  import ArrowRightIcon from '~icons/lucide/arrow-right';
+  import UserPlusIcon from '~icons/lucide/user-plus';
   import { acceptInvitation } from '@screenhire/api-client';
   import { tick } from 'svelte';
   import { goto } from '$app/navigation';

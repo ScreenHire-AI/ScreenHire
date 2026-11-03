@@ -2,9 +2,9 @@
   import { createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import type { DefinitionError, HiringWorkflow, StageKind } from '@screenhire/api-client';
   import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
-  import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
-  import PlusIcon from '@lucide/svelte/icons/plus';
-  import Trash2Icon from '@lucide/svelte/icons/trash-2';
+  import ArrowRightIcon from '~icons/lucide/arrow-right';
+  import PlusIcon from '~icons/lucide/plus';
+  import Trash2Icon from '~icons/lucide/trash-2';
   import Hint from '#lib/components/hint.svelte';
   import IconButton from '#lib/components/icon-button.svelte';
   import Panel from '#lib/components/panel.svelte';

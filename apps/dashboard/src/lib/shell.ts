@@ -1,11 +1,12 @@
-import BookmarkIcon from '@lucide/svelte/icons/bookmark';
-import BriefcaseIcon from '@lucide/svelte/icons/briefcase';
-import ChartBarIcon from '@lucide/svelte/icons/chart-bar';
-import LayoutTemplateIcon from '@lucide/svelte/icons/layout-template';
-import ListTodoIcon from '@lucide/svelte/icons/list-todo';
-import UsersIcon from '@lucide/svelte/icons/users';
+import BookmarkIcon from '~icons/lucide/bookmark';
+import BriefcaseIcon from '~icons/lucide/briefcase';
+import ChartBarIcon from '~icons/lucide/chart-bar';
+import LayoutTemplateIcon from '~icons/lucide/layout-template';
+import ListTodoIcon from '~icons/lucide/list-todo';
+import UsersIcon from '~icons/lucide/users';
 import type { ConnectionStatus } from '@screenhire/realtime';
 import { getContext, setContext } from 'svelte';
+import type { SettingsFeatures } from '#lib/settings.js';
 
 /** What the signed-in shell offers the pages inside it. */
 export interface Shell {
@@ -15,8 +16,12 @@ export interface Shell {
   openShortcuts(): void;
   /** Opens the Notifications sheet: which teammates' changes show as toasts. */
   openNotifications(): void;
+  /** Opens the Calendar sheet from the account menu, for a page that needs the person's calendar connected. */
+  openCalendar(): void;
   /** The hub connection's state, for the top bar's Live indicator. */
   live(): ConnectionStatus;
+  /** Which optional features this installation has (Slack today); a feature not heard from yet is missing, and counts as off. */
+  features(): SettingsFeatures;
 }
 
 const key = Symbol('shell');
@@ -44,8 +49,8 @@ export const sections: readonly {
     icon: UsersIcon,
     matches: (path) => path.startsWith('/candidates') || path.startsWith('/applications/'),
   },
-  // The candidates the team kept in mind for future roles (docs/architecture/talent-pool.md).
-  { label: 'Talent pool', href: '/talent-pool', key: 'p', icon: BookmarkIcon, matches: (path) => path.startsWith('/talent-pool') },
+  // The candidates the team saved, until they remove them or the candidate asks to stop (docs/architecture/talent-pool.md).
+  { label: 'Saved candidates', href: '/saved', key: 's', icon: BookmarkIcon, matches: (path) => path.startsWith('/saved') },
   { label: 'Templates', href: '/templates', key: 't', icon: LayoutTemplateIcon, matches: (path) => path.startsWith('/templates') },
   { label: 'My tasks', href: '/tasks', key: 'm', icon: ListTodoIcon, matches: (path) => path.startsWith('/tasks') },
   { label: 'Reports', href: '/reports', key: 'r', icon: ChartBarIcon, matches: (path) => path.startsWith('/reports') },

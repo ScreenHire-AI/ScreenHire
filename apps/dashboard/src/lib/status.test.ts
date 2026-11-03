@@ -9,6 +9,7 @@ describe('status catalogue', () => {
 
     expect(map).toEqual({
       done: 'clear circle-check',
+      booked: 'clear calendar-check',
       open: 'clear door-open',
       review: 'review eye',
       overdue: 'review clock-alert',
@@ -21,6 +22,7 @@ describe('status catalogue', () => {
       closed: 'neutral door-closed',
       draft: 'neutral file-pen-line',
       archived: 'neutral archive',
+      saved: 'neutral bookmark',
       notInEffect: 'neutral circle-minus',
     });
   });

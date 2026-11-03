@@ -41,6 +41,24 @@
 //                               slack-client-secret parameter has the app's secret; Sandbox:Enabled=true is the local
 //                               sandbox workspace instead (Development only; the test stacks turn it on). The secret
 //                               comes from that parameter, never from these keys.
+//   Calendar:*                  member calendars for interview scheduling (ScreenHire.Application CalendarOptions,
+//                               docs/architecture/interview-scheduling.md), forwarded to the API and the worker. A
+//                               provider is on only when both its client id (Google:ClientId, Microsoft:ClientId) and
+//                               its secret are set; the secrets come from the google-calendar-client-secret and
+//                               microsoft-calendar-client-secret parameters, never from these keys. Sandbox:Enabled=true
+//                               is the local sandbox calendar (Development only; appsettings.Development.json and the
+//                               test stacks turn it on). Interviews:MinNoticeHours and Interviews:StepMinutes tune
+//                               the slots offered.
+//   Email:*                     email settings (ScreenHire.Infrastructure EmailOptions, docs/architecture/email.md),
+//                               forwarded to the API and the worker. Mailpit sends unless SendGrid:Enabled=true, which
+//                               makes the secret parameter sendgrid-api-key required (never from these keys) and sends
+//                               through SendGrid; sendgrid-inbound-secret (generated locally; the tests pin it with
+//                               --Parameters:sendgrid-inbound-secret) is the password of the inbound webhook;
+//                               SendGrid:EventWebhookPublicKey is its signed
+//                               event webhook's public key. ReplyDomain is the host replies arrive on. Sandbox:Enabled=true
+//                               is the local fake for inbound replies and sending domains (Development only; the test
+//                               stacks and appsettings.Development.json turn it on). email-reply-key signs reply addresses
+//                               and is generated locally.
 // Avoid :5173 — Kangentic's own dev server uses it on this machine.
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
@@ -82,8 +100,12 @@ var appDatabase = builder.AddConnectionString("screenhire-app", ReferenceExpress
     $"Database={database.Resource.DatabaseName};Username=screenhire_app;Password={appRolePassword}"));
 
 // Azurite locally; Azure Blob Storage in production (ADR-0007).
+// Every image in this file is named with its tag, Azurite's and Mailpit's included (the tags their integrations default
+// to), because CI pulls them before the tests start: .github/workflows/ci.yml lists the same images, and
+// CiWorkflowTests fails when the two lists differ. Bump these tags with the Aspire and Community Toolkit packages.
 var storage = builder.AddAzureStorage("storage").RunAsEmulator(emulator =>
 {
+    emulator.WithImage("azure-storage/azurite", "3.35.0").WithImageRegistry("mcr.microsoft.com");
     if (persistData)
     {
         emulator.WithDataVolume();
@@ -95,6 +117,7 @@ var blobs = storage.AddBlobs("blobs");
 // web UI is pinned like the apps (Ports:Mailpit, default 8025, Mailpit's usual port) so the local guide can link it; SMTP
 // stays random, since only the API and worker use it, through Aspire's reference.
 var mailpit = builder.AddMailPit("mailpit", httpPort: PortFor("Mailpit", 8025))
+    .WithImage("axllent/mailpit", "v1.31.2")
     // Mailpit looks up each SMTP client's reverse DNS by default, which takes ~10 s per connection under Docker Desktop.
     .WithEnvironment("MP_SMTP_DISABLE_RDNS", "true");
 if (persistData)
@@ -186,6 +209,40 @@ foreach (var (key, value) in settings.GetSection("Webhooks").AsEnumerable(makePa
     }
 }
 
+// Candidate email (docs/architecture/email.md): the settings, the key reply addresses are signed with, and, with SendGrid
+// on, its API key and the secret its inbound webhook sends. Generated locally like the other keys; production sets its own.
+foreach (var (key, value) in settings.GetSection("Email").AsEnumerable(makePathsRelative: true))
+{
+    // The keys are secrets: they go through the parameters below, never as plain configuration.
+    if (value is not null && !key.Equals("SendGrid:ApiKey", StringComparison.OrdinalIgnoreCase)
+        && !key.Equals("SendGrid:InboundSecret", StringComparison.OrdinalIgnoreCase)
+        && !key.Equals("ReplyKey", StringComparison.OrdinalIgnoreCase))
+    {
+        var name = $"ScreenHire__Email__{key.Replace(":", "__", StringComparison.Ordinal)}";
+        api.WithEnvironment(name, value);
+        worker.WithEnvironment(name, value);
+    }
+}
+
+var emailReplyKey = builder.AddParameter("email-reply-key", new GenerateParameterDefault { MinLength = 32, Special = false }, secret: true);
+api.WithEnvironment("ScreenHire__Email__ReplyKey", emailReplyKey);
+worker.WithEnvironment("ScreenHire__Email__ReplyKey", emailReplyKey);
+
+// The password of the URL SendGrid posts replies to. Generated locally, so the route exists but nobody can guess its
+// credentials; the tests pin it to post a reply the way SendGrid does. Production sets its own and gives SendGrid the URL.
+var sendGridInboundSecret = builder.AddParameter(
+    "sendgrid-inbound-secret", new GenerateParameterDefault { MinLength = 32, Special = false }, secret: true);
+api.WithEnvironment("ScreenHire__Email__SendGrid__InboundSecret", sendGridInboundSecret);
+
+if (string.Equals(settings["Email:SendGrid:Enabled"], "true", StringComparison.OrdinalIgnoreCase))
+{
+    // Set with `dotnet user-secrets set Parameters:sendgrid-api-key "<key>"` in apps/apphost or by the deployment's secret
+    // store. Asked for only in SendGrid mode.
+    var sendGridKey = builder.AddParameter("sendgrid-api-key", secret: true);
+    api.WithEnvironment("ScreenHire__Email__SendGrid__ApiKey", sendGridKey);
+    worker.WithEnvironment("ScreenHire__Email__SendGrid__ApiKey", sendGridKey);
+}
+
 foreach (var (key, value) in settings.GetSection("CareersEmbedding").AsEnumerable(makePathsRelative: true))
 {
     if (value is not null)
@@ -213,6 +270,31 @@ if (!string.IsNullOrWhiteSpace(settings["Slack:ClientId"]))
     var slackSecret = builder.AddParameter("slack-client-secret", secret: true);
     api.WithEnvironment("ScreenHire__Slack__ClientSecret", slackSecret);
     worker.WithEnvironment("ScreenHire__Slack__ClientSecret", slackSecret);
+}
+
+foreach (var (key, value) in settings.GetSection("Calendar").AsEnumerable(makePathsRelative: true))
+{
+    // The client secrets are secrets: they go through the parameters below, never as plain configuration.
+    if (value is not null && !key.EndsWith("ClientSecret", StringComparison.OrdinalIgnoreCase))
+    {
+        var name = $"ScreenHire__Calendar__{key.Replace(":", "__", StringComparison.Ordinal)}";
+        api.WithEnvironment(name, value);
+        worker.WithEnvironment(name, value);
+    }
+}
+
+// The calendar apps' client secrets (docs/architecture/interview-scheduling.md), each only once its client id is set: a
+// secret parameter, set with `dotnet user-secrets set Parameters:google-calendar-client-secret "<secret>"` (or
+// microsoft-calendar-client-secret) in apps/apphost or by the deployment's secret store. Both hosts get it, so both work
+// out the same providers from the same settings. With no client id nothing asks for a secret.
+foreach (var (provider, parameter) in new[] { ("Google", "google-calendar-client-secret"), ("Microsoft", "microsoft-calendar-client-secret") })
+{
+    if (!string.IsNullOrWhiteSpace(settings[$"Calendar:{provider}:ClientId"]))
+    {
+        var calendarSecret = builder.AddParameter(parameter, secret: true);
+        api.WithEnvironment($"ScreenHire__Calendar__{provider}__ClientSecret", calendarSecret);
+        worker.WithEnvironment($"ScreenHire__Calendar__{provider}__ClientSecret", calendarSecret);
+    }
 }
 
 // The real Indexing API's service account key (job-distribution.md section 5), only in Google mode: a secret parameter,

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import MenuIcon from '@lucide/svelte/icons/menu';
-	import PanelLeftIcon from '@lucide/svelte/icons/panel-left';
+	import MenuIcon from '~icons/lucide/menu';
+	import PanelLeftIcon from '~icons/lucide/panel-left';
 	import { Button } from "#lib/components/ui/button/index.js";
 	import * as Tooltip from "#lib/components/ui/tooltip/index.js";
 	import { cn } from "#lib/utils.js";

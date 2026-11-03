@@ -1,8 +1,11 @@
 <script lang="ts">
   import { getApplication, listAutomationRuns, listTeamMembers } from '@screenhire/api-client';
   import {
+    createGetCalendar,
     createGetSlack,
     createListApplications,
+    createListJobs,
+    createListViews,
     getGetApplicationQueryOptions,
     getGetHiringTemplateQueryOptions,
     getGetNotificationSettingsQueryOptions,
@@ -19,17 +22,21 @@
   import CommandPalette from '#lib/components/command-palette.svelte';
   import NotificationSettingsSheet from '#lib/components/notification-settings-sheet.svelte';
   import NotificationTray from '#lib/components/notification-tray.svelte';
+  import UndoNotice from '#lib/components/undo-notice.svelte';
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { preferences } from '#lib/preferences.svelte.js';
-  import { mentionNotification, mentionNotificationId, Notifications, teamNotification } from '#lib/notifications.svelte.js';
+  import { mentionNotification, mentionNotificationId, Notifications, replyNotification, teamNotification } from '#lib/notifications.svelte.js';
   import { createQueryClient } from '#lib/query.js';
   import { startLiveUpdates } from '#lib/realtime.js';
-  import { savedViews } from '#lib/saved-views.js';
+  import { sidebarViews } from '#lib/sidebar-views.js';
+  import { slackFeature } from '#lib/settings.js';
   import { sections, setShell } from '#lib/shell.js';
   import { createChordHandler } from '#lib/shortcuts.js';
   import { defaultNotificationSettings } from '#lib/teammate-changes.js';
   import { TeammateToasts } from '#lib/teammate-toasts.js';
+  import { UndoOffer } from '#lib/undo.svelte.js';
+  import { createViewActions } from '#lib/views.svelte.js';
   import type { LayoutProps } from './$types';
 
   let { data, children }: LayoutProps = $props();
@@ -79,7 +86,22 @@
       void notifyMention(event.data.applicationId, event.data.noteId, event.data.authorUserId);
     }
     if (event.type === 'ApplicationNoteDeleted') notifications.dismiss(mentionNotificationId(event.data.noteId));
+    // A candidate's reply shows a card to the person who sent the email it answers, or, when an automation sent it, to everyone
+    // the event reaches (the members who see the job). An automatic answer (out of office) shows none.
+    if (event.type === 'CandidateReplied' && !event.data.autoReply && (!event.data.senderUserId || event.data.senderUserId === data.user?.id)) {
+      void notifyReply(event.data.applicationId, event.data.inboundEmailId, Boolean(event.data.senderUserId));
+    }
   });
+
+  async function notifyReply(applicationId: string, inboundEmailId: string, answersYou: boolean) {
+    try {
+      const application = await getApplication(applicationId);
+      if (application.status !== 200) return;
+      notifications.add(replyNotification(inboundEmailId, application.data, answersYou));
+    } catch {
+      // As for NotifyTeam: the reply stays in Messages, and the email went out either way.
+    }
+  }
 
   async function notifyTeam(applicationId: string, runId: string) {
     try {
@@ -116,6 +138,8 @@
   let paletteOpen = $state(false);
   let shortcutsOpen = $state(false);
   let notificationsOpen = $state(false);
+  // The Calendar sheet lives in the account menu (AppSidebar); a page that needs a calendar opens it through the shell.
+  let calendarOpen = $state(false);
   let announcement = $state('');
   setShell({
     openPalette: () => (paletteOpen = true),
@@ -125,7 +149,9 @@
       announcement = '';
       notificationsOpen = true;
     },
+    openCalendar: () => (calendarOpen = true),
     live: () => live.connection.status,
+    features: () => ({ slack: slackFeature(slack.data?.data, slack.isError) }),
   });
 
   const chords = createChordHandler(Object.fromEntries(sections.map((section) => [section.key, section.href])), (href) => void goto(href));
@@ -142,16 +168,27 @@
     }
   }
 
-  // Saved-view counts come from the same list the candidates page shows, so they agree and update live.
+  // The Views list: the built-in views and the saved ones, each with its count from the same list the candidates page
+  // shows, so they agree and update live. A deleted view's Undo is offered in the notice below the page.
   const applications = createListApplications();
-  const viewCounts = $derived(
-    Object.fromEntries(
-      savedViews.map((view) => [view.id, applications.data?.data.filter((application) => view.matches(application, clock.now)).length]),
-    ),
+  const savedViewList = createListViews();
+  const jobList = createListJobs();
+  const undo = new UndoOffer();
+  const viewActions = createViewActions({ undo, hiddenBuiltIns: () => savedViewList.data?.data.hiddenBuiltIns ?? [] });
+  const views = $derived(
+    sidebarViews({
+      saved: savedViewList.data?.data.views ?? [],
+      hiddenBuiltIns: savedViewList.data?.data.hiddenBuiltIns ?? [],
+      applications: applications.data?.data,
+      now: clock.now,
+      jobTitles: Object.fromEntries((jobList.data?.data ?? []).map((job) => [job.id, job.title])),
+    }),
   );
 
   // Slack, for the Slack account item in each person's menu (docs/architecture/slack.md); it changes rarely.
   const slack = createGetSlack(() => ({ query: { enabled: Boolean(data.user?.organization), staleTime: 60_000 } }));
+  // The person's calendar, for the Calendar item in their menu (docs/architecture/interview-scheduling.md); it changes rarely.
+  const calendar = createGetCalendar(() => ({ query: { enabled: Boolean(data.user?.organization), staleTime: 60_000 } }));
 
   // Tailwind's lg: from there up the sidebar is full; below it, the rail (md) or the phone sheet.
   const laptop = new MediaQuery('min-width: 1024px');
@@ -162,12 +199,13 @@
 
 <!-- The full sidebar from lg, the icon rail at md, and a sheet behind the menu button on phones (design system section 8). -->
 <Sidebar.Provider open={laptop.current}>
-  <AppSidebar user={data.user} {viewCounts} slack={slack.data?.data} />
+  <AppSidebar user={data.user} {views} {viewActions} slack={slack.data?.data} calendar={calendar.data?.data} bind:calendarOpen />
   <Sidebar.Inset class="min-w-0">
     {@render children()}
   </Sidebar.Inset>
 </Sidebar.Provider>
 
+<UndoNotice offer={undo} />
 <NotificationTray items={notifications.items} ondismiss={(id) => notifications.dismiss(id)} onhold={(reason, held) => notifications.hold(reason, held)} />
 <!-- A save re-reads the settings, so Close automatically applies to the toasts already showing, not only the next. -->
 <NotificationSettingsSheet

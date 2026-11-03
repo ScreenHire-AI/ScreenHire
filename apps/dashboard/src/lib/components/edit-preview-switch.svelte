@@ -1,7 +1,7 @@
 <script lang="ts">
-  import AppWindowIcon from '@lucide/svelte/icons/app-window';
-  import EyeIcon from '@lucide/svelte/icons/eye';
-  import PencilIcon from '@lucide/svelte/icons/pencil';
+  import AppWindowIcon from '~icons/lucide/app-window';
+  import EyeIcon from '~icons/lucide/eye';
+  import PencilIcon from '~icons/lucide/pencil';
   import IconButton from '#lib/components/icon-button.svelte';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import { cn } from '#lib/utils.js';

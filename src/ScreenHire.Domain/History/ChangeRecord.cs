@@ -30,8 +30,18 @@ public enum ChangeSubjectKind
 
     /// <summary>The organization's API keys, on Settings, API keys: each key created and revoked.</summary>
     ApiKeys,
-    /// <summary>The organization's talent pool settings, on Settings, Talent pool.</summary>
+
+    /// <summary>
+    /// The organization's talent pool settings (how long permission for future roles lasted). The setting is gone and
+    /// nothing writes this any more; the value stays so history written earlier still reads.
+    /// </summary>
     TalentPoolSettings,
+
+    /// <summary>A saved candidate's note, on the Saved candidates page. The subject is the saved entry.</summary>
+    TalentPoolEntry,
+
+    /// <summary>The organization's sending domain, on Settings, Sending domain: added, verified, no longer verified and removed.</summary>
+    SendingDomain,
 }
 
 /// <summary>

@@ -1,6 +1,62 @@
 # Log
 
+## 2026-11-02
+
+**Interview scheduling runs on the Google Calendar and Microsoft Graph APIs** ([ADR-0024](adr/0024-interview-scheduling-on-calendar-apis.md)).
+The owner's decision recorded on 2026-10-31 is built. Members connect their own calendar from the account menu, a
+candidate books from an emailed link with no account, and each interviewer gets the event in their own calendar. The
+workflow engine now accepts the `ScheduleInterview` action and the `InterviewScheduled` trigger, never from a
+verification signal or a passed time limit. [Interview scheduling](architecture/interview-scheduling.md) describes it;
+the roadmap's item 4 moved to done, and [local demo](operations/local-demo.md) shows how to try the sandbox calendar.
+**A candidate's header is the name, a pipeline tracker and three mini cards.** The meta line is gone. The first line is the
+name and one status badge (Verification suggested while they are in the pipeline, Saved, Rejected, Withdrawn or Hired once
+they left), with Email and Move to stage on the right, or Message and Invite to another job for a saved candidate. A
+tracker of dots replaces the stage pill, and Contact, Application and Also applied to (or Rating) are mini cards. The
+tracker's dots are the one exception to square steps. See ADR-0023 and design system sections 7, 11 and 21.
+
+**The talent pool is now Saved candidates, with no expiry.** The owner renamed it: Keep in mind is Save candidate, the
+status is Saved, and the page is Saved candidates at `/saved` (G then S; `/talent-pool` redirects). A saved candidate has
+no end date. They stay until the team removes them or they use the stop link in an invitation, so the permission period,
+its setting (`/v1/organization/talent-pool-settings`), the daily expiry sweep and the `future_roles_consent_months`
+column are gone. A permission that had already run out stays ended: the migration withdraws it and takes anyone still saved
+on it off the list. The apply form's "Keep my details for future roles" box stays, with new wording and a new notice
+version, `2026-11-02.1`; application reads carry `allowsFutureRoles` in place of `futureRolesUntil`. The list gained
+Rating (with the reviewer gate), Last contacted (the newest email to the candidate, or reply from them, over the applications the
+reader sees), a Message button, and a note the team can edit, with History. Code and wire names keep
+the old words (`KeptInMind`, `/v1/talent-pool`). Because nothing expires a saved candidate, a legal review of keeping
+details without an end date is an owner action ([status](status.md#owner-actions)), and record retention matters more
+([saved candidates](architecture/talent-pool.md)). Earlier entries below keep their old words.
+
+**Hardening from the last workflow's follow-ups.** Saving a draft application needs the bot check to pass; the
+verification ruleset moved to `2026-11-02.1` for the automation analyzer's version 2 (an analyzer that changes what its
+signals mean now moves it); `TemplateChanged` refreshes open dashboards after any template edit; brand images nobody
+saved are removed after a day; a job has its own embed snippet; and the database got trigram indexes, a foreign key from
+a review action to its signal and a backfill of `change_records.created`. See [realtime](architecture/realtime.md),
+[branding](architecture/branding.md), [careers widget](architecture/careers-widget.md) and
+[testing](process/testing.md) for the details.
+
+**Verification read, an API key scope only an Owner can give** ([ADR-0021](adr/0021-verification-read-scope-for-api-keys.md)).
+This is the owner's decision that the MCP server sees verification results. An Owner can add a third scope,
+Verification read, when creating a key (a new Owner-only permission, so no Admin or custom role can). A key with it
+reads an application's verification and lists applications by level, over HTTP and as two MCP tools; every read adds
+a "Read through the API key" line to the application's review log; a key without it sees exactly what it did. A level
+is still never a reason to reject: the tools and the server instructions say so, and nothing here dismisses, notes or
+moves anyone. The MCP server also gains read tools for the hiring report and the saved candidates (today's talent
+pool; the rename and rating work for saved candidates is its own task).
+
+**One candidate across jobs** ([candidates](architecture/candidates.md)). A candidate's page at `/candidates/{id}` lists
+every application they made and their history across them; each application's header links to it as Also applied to.
+A later application that shares a detail with an earlier one re-checks the earlier one's duplicates, and the review log
+says why ([verification engine](architecture/verification-engine.md) section 10.2). An Owner or Admin can erase a
+candidate with their name typed to confirm, leaving a line in the team log with no personal data. Erasing also deletes
+their replies' attachments and the history of their saved notes, which sit outside the candidate's cascade.
+
 ## 2026-10-31
+
+**The test gate runs on GitHub Actions** ([ADR-0020](adr/0020-test-gate-on-github-actions.md)). Agents run
+`pnpm verify:fast` and the tests their branch added or changed; the whole suite runs in CI behind the `Gate` check.
+[Board pipeline](process/board-pipeline.md), [testing](process/testing.md) and [dev tooling](process/dev-tooling.md)
+describe the new Testing and Merge columns: one push, one CI run, and a merge that relies on that run.
 
 **Owner review of the second workflow's build.** Settings has three named groups (Organization, Hiring, Integrations);
 Organization's page is General, and a new Careers site page holds the careers address, the apply form's questions per

@@ -13,7 +13,9 @@ using ScreenHire.Domain.History;
 using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.Scheduling;
 using ScreenHire.Domain.Slack;
+using ScreenHire.Domain.Views;
 using ScreenHire.Domain.TalentPool;
 using ScreenHire.Domain.Webhooks;
 using ScreenHire.Infrastructure.Identity;
@@ -39,9 +41,12 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     /// </summary>
     public const string JobScopeFilter = "JobScope";
 
+    private readonly DbContextOptions<ScreenHireDbContext> options;
+
     public ScreenHireDbContext(DbContextOptions<ScreenHireDbContext> options, ITenantContext tenant)
         : base(options)
     {
+        this.options = options;
         Tenant = tenant;
         // Even a one-row SaveChanges runs in a transaction, so TenantSessionInterceptor can set the row-level security
         // settings as a separate command ahead of the batch.
@@ -49,6 +54,12 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     }
 
     public ITenantContext Tenant { get; }
+
+    /// <summary>
+    /// A new context for the same tenant on a connection of its own, for a write that must outlive this context's
+    /// transaction (a rotated calendar token). The caller disposes it.
+    /// </summary>
+    public ScreenHireDbContext CreateIndependent() => new(options, Tenant);
 
     public DbSet<Organization> Organizations => Set<Organization>();
 
@@ -81,6 +92,14 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     public DbSet<ApplicationNote> ApplicationNotes => Set<ApplicationNote>();
 
     public DbSet<ApplicationEmail> ApplicationEmails => Set<ApplicationEmail>();
+
+    /// <summary>A candidate's replies to the emails sent them, and their attachments.</summary>
+    public DbSet<InboundEmail> InboundEmails => Set<InboundEmail>();
+
+    public DbSet<InboundEmailAttachment> InboundEmailAttachments => Set<InboundEmailAttachment>();
+
+    /// <summary>The organization's own domain that candidate email is sent from.</summary>
+    public DbSet<SendingDomain> SendingDomains => Set<SendingDomain>();
 
     public DbSet<ApplicationNoteMention> ApplicationNoteMentions => Set<ApplicationNoteMention>();
 
@@ -126,6 +145,8 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<EmailTemplate> EmailTemplates => Set<EmailTemplate>();
 
+    public DbSet<SavedFilterView> SavedFilterViews => Set<SavedFilterView>();
+
     public DbSet<ScorecardTemplate> ScorecardTemplates => Set<ScorecardTemplate>();
 
     /// <summary>Every change to the configuration people edit (<c>ChangeHistoryInterceptor</c>); append-only.</summary>
@@ -146,6 +167,21 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     /// <summary>What the local sandbox workspace received (see <see cref="SlackSandboxMessage"/>).</summary>
     public DbSet<SlackSandboxMessage> SlackSandboxMessages => Set<SlackSandboxMessage>();
 
+    /// <summary>A member's connected calendar, one each (docs/architecture/interview-scheduling.md).</summary>
+    public DbSet<CalendarConnection> CalendarConnections => Set<CalendarConnection>();
+
+    /// <summary>Busy time in the local sandbox calendar (see <see cref="CalendarSandboxBusy"/>).</summary>
+    public DbSet<CalendarSandboxBusy> CalendarSandboxBusy => Set<CalendarSandboxBusy>();
+
+    /// <summary>What the local sandbox calendar received (see <see cref="CalendarSandboxEvent"/>).</summary>
+    public DbSet<CalendarSandboxEvent> CalendarSandboxEvents => Set<CalendarSandboxEvent>();
+
+    /// <summary>An interview offered to a candidate, and booked once they pick a time (see <see cref="InterviewRequest"/>).</summary>
+    public DbSet<InterviewRequest> InterviewRequests => Set<InterviewRequest>();
+
+    /// <summary>The interviewers of an interview, one calendar event each (see <see cref="InterviewAttendee"/>).</summary>
+    public DbSet<InterviewAttendee> InterviewAttendees => Set<InterviewAttendee>();
+
     /// <summary>
     /// The cross-employer Signal Network (ADR-0005). Not tenant-owned; the application role has no access to the table,
     /// and nothing uses it while the network's feature flag is off.
@@ -159,8 +195,6 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     public DbSet<ApplicationDraft> ApplicationDrafts => Set<ApplicationDraft>();
 
     public DbSet<TalentPoolEntry> TalentPoolEntries => Set<TalentPoolEntry>();
-
-    public DbSet<TalentPoolSettings> TalentPoolSettings => Set<TalentPoolSettings>();
 
     /// <summary>
     /// The ASP.NET Core Data Protection key ring the API and the worker share (<see cref="DataProtectionRegistration"/>).
@@ -182,6 +216,9 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
+        // Trigram indexes for the search box (CandidateConfiguration, JobConfiguration).
+        builder.HasPostgresExtension("pg_trgm");
 
         builder.Entity<ApplicationUser>().ToTable("users");
         builder.Entity<IdentityUserClaim<Guid>>().ToTable("user_claims");

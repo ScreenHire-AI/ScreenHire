@@ -1,6 +1,6 @@
 <script lang="ts">
   // Every Lucide icon has this one component type.
-  import type LucideIcon from '@lucide/svelte/icons/circle';
+  import type LucideIcon from '~icons/lucide/circle';
   import type { Snippet } from 'svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';

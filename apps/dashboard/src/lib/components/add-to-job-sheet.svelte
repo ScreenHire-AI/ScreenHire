@@ -1,5 +1,5 @@
 <script lang="ts">
-  import UserPlusIcon from '@lucide/svelte/icons/user-plus';
+  import UserPlusIcon from '~icons/lucide/user-plus';
   import type { TalentPoolMember } from '@screenhire/api-client';
   import { createAddFromTalentPool, createListJobs } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
@@ -15,8 +15,8 @@
   import { cn } from '#lib/utils.js';
 
   // Add to a job (docs/architecture/talent-pool.md), in a sheet: each person gets an application on the job, in its first
-  // stage, and leaves the talent pool. The new application keeps the permission they gave, and the candidate's page
-  // links it to the one they were kept from. One person goes straight to their new application.
+  // stage, and leaves saved candidates. The new application keeps the permission they gave, and the candidate's page
+  // links it to the one they were saved from. One person goes straight to their new application.
   let {
     open = $bindable(false),
     people,
@@ -71,7 +71,7 @@
         await goto(`/applications/${applicationIds[0]}`);
         return;
       }
-      ondone?.(`Added ${applicationIds.length}.${skipped > 0 ? ` ${skipped} skipped: already applied or no longer in the pool.` : ''}`);
+      ondone?.(`Added ${applicationIds.length}.${skipped > 0 ? ` ${skipped} skipped: already applied or no longer saved.` : ''}`);
     } catch (error) {
       failure = describeError(error, 'Could not add them to the job');
     }
@@ -82,7 +82,7 @@
   <Sheet.Content side="right" class="w-full overflow-y-auto">
     <Sheet.Header>
       <Sheet.Title>{title}</Sheet.Title>
-      <Sheet.Description>They start in the job's first stage and leave the talent pool.</Sheet.Description>
+      <Sheet.Description>They start in the job's first stage and leave saved candidates.</Sheet.Description>
     </Sheet.Header>
     <form novalidate class="flex flex-col gap-4 px-4 pb-4" {onsubmit}>
       {#if targets.length === 0}

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
+  import ArrowRightIcon from '~icons/lucide/arrow-right';
   import type { WorkflowStage } from '@screenhire/api-client';
   import { untrack } from 'svelte';
   import FailureText from '#lib/components/failure-text.svelte';

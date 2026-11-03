@@ -36,6 +36,7 @@ import {
 } from './apply';
 import { fileProblem, type UploadRef } from '@screenhire/ui/questions/files';
 import { embedOrigin } from './embed';
+import { sourceBoard } from './source';
 import { parseFingerprint, parseMarkers, parseSnapshot } from './telemetry';
 
 /** The honeypot: a field people never see or reach, so only a bot fills it in. Its name avoids anything autofill knows. */
@@ -72,6 +73,8 @@ export const forwardedFor = (address: string | undefined): RequestInit | undefin
  * sent to the API, with the candidate's browser (`userAgent`), the time on each page and what the telemetry module left
  * in the form for the verification engine. `embed` is the site the careers page is embedded in, from the step form's
  * address; it goes with the application only while it is on the organization's list (docs/architecture/careers-widget.md).
+ * `source` is the job board whose link brought the candidate (`src=` on the address); only its shape is checked here, and
+ * the API keeps it when it is a board that tags its links.
  */
 export async function applyStep(
   form: FormData,
@@ -79,6 +82,7 @@ export async function applyStep(
   userAgent?: string | null,
   now: Date = new Date(),
   embed: string | null = null,
+  source: string | null = null,
 ): Promise<ApplyResult> {
   const organization = text(form, 'organization');
   const jobSlug = text(form, 'job');
@@ -119,7 +123,7 @@ export async function applyStep(
   }
 
   if (intent === 'save' && definition.saveDraftEnabled) {
-    return saveDraft(organization, definition.job.id, step, state, questions, forwarded);
+    return saveDraft(organization, definition.job.id, step, state, questions, text(form, TURNSTILE_FIELD) || null, forwarded);
   }
 
   // An upload's own problem ("larger than 10 MB") says more than the step's "Add a file." for the same field.
@@ -144,6 +148,7 @@ export async function applyStep(
     deviceFingerprint: parseFingerprint(form.get('deviceFingerprint')),
     automationMarkers: parseMarkers(form.get('automationMarkers')),
     embedOrigin: embedOrigin(embed, definition.organization.embedOrigins),
+    source: sourceBoard(source),
   });
   const submitted = await submitPublicApplication(organization, definition.job.id, request, forwarded);
   switch (submitted.status) {
@@ -172,7 +177,9 @@ export async function applyStep(
 /**
  * Keeps what the candidate typed as a draft to finish later (apply-flow.md §7). The draft in the state is saved again
  * while the email is the one its link went to; otherwise a new draft is made and the API emails its link. Either way
- * the candidate stays on the step, with a notice that says where the link went.
+ * the candidate stays on the step, with a notice that says where the link went. A new draft emails a link to the address
+ * typed, so it carries the bot check's token; saving again sends no email and needs none. The API refuses a failed
+ * check, and sending the application stays open to someone who cannot pass it.
  */
 async function saveDraft(
   organization: string,
@@ -180,6 +187,7 @@ async function saveDraft(
   step: Step,
   state: ApplyState,
   questions: readonly PublicQuestion[],
+  botCheckToken: string | null,
   forwarded: RequestInit | undefined,
 ): Promise<ApplyResult> {
   const body = toDraftRequest(state, questions);
@@ -201,7 +209,7 @@ async function saveDraft(
     }
   }
 
-  const created = await createPublicApplicationDraft(organization, jobId, body, forwarded);
+  const created = await createPublicApplicationDraft(organization, jobId, { ...body, botCheckToken }, forwarded);
   switch (created.status) {
     case 201:
       return {
@@ -209,6 +217,13 @@ async function saveDraft(
         state: { ...state, draft: { token: created.data.token, email: state.email } },
         errors: {},
         saved: { email: state.email, expiresAt: created.data.expiresAt, emailed: true },
+      };
+    case 403:
+      return {
+        step,
+        state,
+        errors: {},
+        formError: 'Our bot check did not finish, so no link was emailed. Wait a moment and try again, or send your application now.',
       };
     case 410:
       return { step, state, errors: {}, outcome: 'closed' };

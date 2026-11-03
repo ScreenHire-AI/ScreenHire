@@ -30,6 +30,7 @@ import { fromDraft, longDate } from '../../../../lib/drafts';
 import { isToken } from '../../../../lib/questionnaire';
 import { answeredCount, describeSize, TextField } from '@screenhire/ui/questions';
 import { isOrigin, useEmbedding, withEmbed } from '../../../../lib/embed';
+import { withSource } from '../../../../lib/source';
 import { basePath } from '../../../../lib/host';
 
 const { organization, job: jobSlug } = Astro.params;
@@ -174,7 +175,7 @@ const answerText = (questionId: string): string => {
 
       <form
         method="POST"
-        action={withEmbed(actions.apply.toString(), embed)}
+        action={withSource(withEmbed(actions.apply.toString(), embed), Astro.url.searchParams.get('src'))}
         enctype="multipart/form-data"
         novalidate
         aria-labelledby="step-heading"
@@ -333,13 +334,14 @@ const answerText = (questionId: string): string => {
               multiline
             />
 
-            {/* The candidate's own choice, unticked unless they tick it (docs/architecture/talent-pool.md). */}
+            {/* The candidate's own choice, unticked unless they tick it. Only a candidate who ticked it can be saved, and a saved
+                candidate has no end date (docs/architecture/talent-pool.md). */}
             <label class="choice">
               <input type="checkbox" name="keepForFutureRoles" checked={state.keepForFutureRoles} aria-describedby="future-roles-hint" />
               <span class="flex flex-col">
                 <span class="text-sm font-semibold">Keep my details for future roles (optional)</span>
                 <span id="future-roles-hint" class="text-candidate-hint text-candidate-muted-foreground">
-                  {employer.name} keeps this application for {form!.talentPoolMonths} months and may invite you to apply for other
+                  {employer.name} keeps your details until you ask, or they remove them, and may invite you to apply for other
                   roles. Every invitation has a link to stop, and you can ask {employer.name} at any time.
                 </span>
               </span>
@@ -359,17 +361,21 @@ const answerText = (questionId: string): string => {
               <label for="leave-this-empty">Leave this field empty</label>
               <input id="leave-this-empty" type="text" name={HONEYPOT_FIELD} tabindex="-1" autocomplete="off" value="" />
             </div>
+          </>
+        )}
 
-            {form.turnstileSiteKey && (
-              <>
-                <div class="cf-turnstile" data-sitekey={form.turnstileSiteKey} />
-                <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
-              </>
-            )}
+        {/* Wherever a check can run, the candidate reads this first. */}
+        {(step === 'review' || (form.turnstileSiteKey && canSave)) && (
+          <p class="text-[13.5px] text-candidate-muted-foreground">
+            Our checks for bots and impersonation never reject you. A person at {employer.name} looks at anything they flag.
+          </p>
+        )}
 
-            <p class="text-[13.5px] text-candidate-muted-foreground">
-              Our checks for bots and impersonation never reject you. A person at {employer.name} looks at anything they flag.
-            </p>
+        {/* The final send and a first "Save and finish later" both need its token: saving emails a link to the address typed. */}
+        {form.turnstileSiteKey && (step === 'review' || canSave) && (
+          <>
+            <div class="cf-turnstile" data-sitekey={form.turnstileSiteKey} />
+            <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
           </>
         )}
 

@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, w
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { acquireLock, stopChrome, withTimeout } from './lighthouse.mjs';
+import { acquireLock, stopChrome, toolInstallCommand, withTimeout } from './lighthouse.mjs';
 
 /** What chrome-launcher's launch() returns, with a child process that exits only when `exitsOnKill` says so. */
 function fakeChrome({ exitsOnKill }) {
@@ -165,5 +165,29 @@ describe('acquireLock', () => {
 
     release();
     expect(JSON.parse(readFileSync(lock, 'utf8')).token).toBe('other');
+  });
+});
+
+describe('toolInstallCommand', () => {
+  it('installs frozen and outside the workspace, with no path that a shell could split', () => {
+    const { args } = toolInstallCommand({ npmExecPath: undefined, platform: 'linux' });
+    expect(args).toEqual(['install', '--frozen-lockfile', '--ignore-workspace']);
+  });
+
+  it('runs the pnpm that started the script with the current node, without a shell', () => {
+    const command = toolInstallCommand({ npmExecPath: '/home/dev/.pnpm/bin/pnpm.cjs', platform: 'win32' });
+    expect(command.command).toBe(process.execPath);
+    expect(command.args.slice(0, 2)).toEqual(['/home/dev/.pnpm/bin/pnpm.cjs', 'install']);
+    expect(command.shell).toBe(false);
+  });
+
+  it('ignores an npm_execpath that is not pnpm', () => {
+    const command = toolInstallCommand({ npmExecPath: '/usr/lib/node_modules/npm/bin/npm-cli.js', platform: 'linux' });
+    expect(command.command).toBe('pnpm');
+  });
+
+  it('needs a shell for the pnpm.cmd shim on Windows only', () => {
+    expect(toolInstallCommand({ npmExecPath: undefined, platform: 'win32' }).shell).toBe(true);
+    expect(toolInstallCommand({ npmExecPath: undefined, platform: 'linux' }).shell).toBe(false);
   });
 });

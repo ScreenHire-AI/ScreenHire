@@ -1,0 +1,4 @@
+<p>Hi {{ firstName }},</p>
+<p>{% if interviewTime != blank %}Your conversation about {{ jobTitle }} at {{ organizationName }} on {{ interviewTime }} is cancelled.{% else %}We cancelled the invitation to talk about {{ jobTitle }} at {{ organizationName }}.{% endif %}</p>
+<p>If you think this is a mistake, contact the hiring team at {{ organizationName }}.</p>
+<p>{{ organizationName }}</p>

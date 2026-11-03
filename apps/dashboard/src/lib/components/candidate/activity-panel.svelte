@@ -1,6 +1,6 @@
 <script lang="ts">
-  import PencilIcon from '@lucide/svelte/icons/pencil';
-  import Trash2Icon from '@lucide/svelte/icons/trash-2';
+  import PencilIcon from '~icons/lucide/pencil';
+  import Trash2Icon from '~icons/lucide/trash-2';
   import { deleteApplicationNote, type ApplicationTimelineEntry, type Permission, type TeamMember } from '@screenhire/api-client';
   import { ApiError } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';

@@ -356,9 +356,10 @@ internal sealed partial class DocsBundle
     }
 
     /// <summary>
-    /// Every <c>docs/...md</c> path cited in the root markdown, <c>.claude/</c>, the docs and the code (comments, skills,
-    /// rules, agents) exists, and a <c>#fragment</c> after it names a heading. A moved doc otherwise leaves each citation
-    /// pointing at nothing, and no link checker reads a backticked path or a source comment.
+    /// Every <c>docs/...md</c> path cited in the root markdown, <c>.claude/</c>, <c>.github/</c> (the CI workflow's
+    /// comments), the docs and the code (comments, skills, rules, agents) exists, and a <c>#fragment</c> after it names a
+    /// heading. A moved doc otherwise leaves each citation pointing at nothing, and no link checker reads a backticked
+    /// path or a source comment.
     /// </summary>
     private List<string> MissingCitations()
     {
@@ -402,6 +403,7 @@ internal sealed partial class DocsBundle
         !CitationExempt.Contains(file)
         && (file is "CLAUDE.md" or "README.md"
             || file.StartsWith(".claude/", StringComparison.Ordinal)
+            || file.StartsWith(".github/", StringComparison.Ordinal)
             || file.StartsWith("docs/", StringComparison.Ordinal)
             || file.StartsWith("apps/", StringComparison.Ordinal)
             || file.StartsWith("src/", StringComparison.Ordinal)

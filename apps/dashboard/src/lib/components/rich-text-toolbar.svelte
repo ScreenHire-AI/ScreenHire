@@ -12,13 +12,13 @@
 </script>
 
 <script lang="ts">
-  import BoldIcon from '@lucide/svelte/icons/bold';
-  import Heading2Icon from '@lucide/svelte/icons/heading-2';
-  import Heading3Icon from '@lucide/svelte/icons/heading-3';
-  import ItalicIcon from '@lucide/svelte/icons/italic';
-  import LinkIcon from '@lucide/svelte/icons/link';
-  import ListIcon from '@lucide/svelte/icons/list';
-  import ListOrderedIcon from '@lucide/svelte/icons/list-ordered';
+  import BoldIcon from '~icons/lucide/bold';
+  import Heading2Icon from '~icons/lucide/heading-2';
+  import Heading3Icon from '~icons/lucide/heading-3';
+  import ItalicIcon from '~icons/lucide/italic';
+  import LinkIcon from '~icons/lucide/link';
+  import ListIcon from '~icons/lucide/list';
+  import ListOrderedIcon from '~icons/lucide/list-ordered';
   import type { Editor } from '@tiptap/core';
   import { mergeProps } from 'bits-ui';
   import type { Component } from 'svelte';

@@ -5,7 +5,9 @@
 
 <script lang="ts">
   import type { ApplicationSummary, StageKind, WorkflowStage } from '@screenhire/api-client';
+  import ChevronDownIcon from '~icons/lucide/chevron-down';
   import { tick } from 'svelte';
+  import { SvelteSet } from 'svelte/reactivity';
   import { dndzone, TRIGGERS, type DndEvent } from 'svelte-dnd-action';
   import { goto } from '$app/navigation';
   import VerificationChip from '#lib/components/verification-chip.svelte';
@@ -20,10 +22,14 @@
   import type { Moves } from '#lib/moves.svelte.js';
   import { hasModifier } from '#lib/shortcuts.js';
   import { isOverdue } from '#lib/sla.js';
+  import StatusIcon from '#lib/components/status-icon.svelte';
+  import type { StatusName } from '#lib/status.js';
+  import { keptInMindLabel } from '#lib/talent-pool.js';
 
   // A job's candidates by stage (design system sections 5 and 21). A stage with candidates is a 296px column and an
   // empty one shrinks to 188px. The stages that end a candidacy share one 188px Closed column that counts each of them,
-  // so every stage fits a wide window; their candidates are in the table, under the Stage filter. The board scrolls
+  // so every stage fits a wide window; each of its rows opens in place to list those candidates (A9), and the table has
+  // them too, under the Stage filter. The board scrolls
   // inside itself, sideways and down each column, and never moves the page.
   let {
     applications,
@@ -41,11 +47,17 @@
   const terminalKinds = new Set<StageKind>(['Hired', 'Rejected', 'Withdrawn']);
   const openStages = $derived(stages.filter((stage) => !terminalKinds.has(stage.kind)));
   const closedStages = $derived(stages.filter((stage) => terminalKinds.has(stage.kind)));
-  // A candidate kept in mind has left the job (docs/architecture/talent-pool.md): their stage is where they stood, so
+  // A saved candidate has left the job (docs/architecture/talent-pool.md): their stage is where they stood, so
   // they count in Closed, never in that stage's column.
   const stillIn = $derived(applications.filter((application) => !application.keptInMindAt));
   const countIn = (stageId: string) => stillIn.filter((application) => application.stage.id === stageId).length;
   const closedCount = $derived(closedStages.reduce((sum, stage) => sum + countIn(stage.id), 0) + (applications.length - stillIn.length));
+
+  // Closed's rows start collapsed; the open ones are kept by key (a stage's id, or `kept` for Saved), so a move
+  // that redraws the board leaves them as the person set them.
+  const keptKey = 'kept';
+  const expandedClosed = new SvelteSet<string>();
+  const toggleClosed = (key: string) => (expandedClosed.has(key) ? expandedClosed.delete(key) : expandedClosed.add(key));
 
   function build(): Column[] {
     return openStages.map((stage) => ({ stage, cards: stillIn.filter((application) => application.stage.id === stage.id) }));
@@ -53,7 +65,7 @@
 
   // Rebuilt whenever the applications change; a drag reassigns it while the card is in flight.
   let columns = $derived<Column[]>(build());
-  // A closed stage's drop zone holds only the card in flight: its candidates are not drawn on the board.
+  // A closed stage's drop zone holds only the card in flight; its candidates are listed under its row when that is open.
   let landing = $derived<Record<string, Card[]>>(Object.fromEntries(closedStages.map((stage) => [stage.id, []])));
 
   function replaceCards(stageId: string, cards: Card[]) {
@@ -107,6 +119,59 @@
     transformDraggedElement: (element: HTMLElement | undefined) => element?.classList.add('shadow-raised'),
   };
 </script>
+
+<!-- One of Closed's rows (A9): the whole row is the button that opens its candidates in place, with the chevron that says so.
+     A row with nobody in it has nothing to open, so it has no chevron and is not a button. Opening shows plain cards that
+     link to the candidate, as the open columns' cards do; they are not draggable, because the menu on an open column's
+     card is the way to move someone. -->
+{#snippet closedRow(key: string, name: string, cards: readonly ApplicationSummary[], status?: StatusName)}
+  {@const open = expandedClosed.has(key)}
+  {#if cards.length === 0}
+    <span class="flex min-w-0 items-center gap-2 px-2 py-1.5 text-body text-muted-foreground">
+      {#if status}<StatusIcon {status} />{/if}
+      <span class="min-w-0 flex-1 break-words">{name}</span>
+      <span class="tabular-nums">0</span>
+    </span>
+  {:else}
+    <button
+      type="button"
+      data-closed-row={key}
+      aria-expanded={open}
+      aria-controls={open ? `closed-${key}` : undefined}
+      class="flex min-h-9 w-full min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-left text-body text-muted-foreground hover:bg-card focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:min-h-11"
+      onclick={() => toggleClosed(key)}
+    >
+      {#if status}<StatusIcon {status} />{/if}
+      <span class="min-w-0 flex-1 break-words">{name}</span>
+      <span class="tabular-nums">{cards.length}</span>
+      <ChevronDownIcon aria-hidden="true" class={['size-4 shrink-0 transition-transform', open && 'rotate-180']} />
+    </button>
+    {#if open}
+      <ul id={`closed-${key}`} aria-label={`${name} candidates`} class="flex flex-col gap-2 pt-1 pb-1">
+        {#each cards as card (card.id)}
+          <li
+            data-closed-card-id={card.id}
+            aria-label={`${card.candidateName}, ${name}`}
+            class="relative flex flex-col gap-2 rounded-lg border border-border-subtle bg-card p-3 shadow-surface"
+          >
+            <span class="flex min-w-0 items-center gap-2">
+              <span aria-hidden="true" class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-caption font-bold text-secondary-foreground"
+                >{initials(card.candidateName)}</span
+              >
+              <!-- This link is the card's only control, so its target is the whole card (F4). -->
+              <TruncatedText
+                href={`/applications/${card.id}`}
+                text={card.candidateName}
+                class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline"
+              />
+            </span>
+            <span class="truncate text-caption text-muted-foreground"><RelativeTime at={card.submittedAt} /></span>
+          </li>
+        {/each}
+      </ul>
+    {/if}
+  {/if}
+{/snippet}
 
 <!-- Each column is an inset (design system section 6). relative, here and on each column's list: the chips' sr-only
      labels are absolute, and without a positioned scroller they escape it, widen the page (F1) and give the board a
@@ -191,14 +256,11 @@
           Closed
           <Badge variant="count" class="bg-card">{closedCount}</Badge>
         </h3>
-        <div class="flex flex-col gap-1 px-2 pb-2">
+        <div class="flex min-h-0 flex-col gap-1 overflow-y-auto px-2 pb-2">
           {#each closedStages as stage (stage.id)}
             <!-- A drop target for a card leaving the pipeline; the menu on each card is the non-drag way (section 17). -->
             <div data-closed-stage={stage.id} tabindex="-1" class="flex flex-col rounded-md outline-offset-2">
-              <span class="flex min-w-0 items-center justify-between gap-2 px-2 py-1.5 text-body text-muted-foreground">
-                <TruncatedText text={stage.name} />
-                <span class="tabular-nums">{countIn(stage.id)}</span>
-              </span>
+              {@render closedRow(stage.id, stage.name, stillIn.filter((application) => application.stage.id === stage.id))}
               <ul
                 aria-label={`${stage.name} stage`}
                 class="flex min-h-2 flex-col gap-2"
@@ -212,12 +274,12 @@
               </ul>
             </div>
           {/each}
-          <!-- Kept in mind is a way out of the job too (talent-pool.md), so Closed's rows add up to its count. It takes no
-               drop: keeping someone in mind needs their permission and a note, which the candidate's menu asks for. -->
+          <!-- Saved is a way out of the job too (talent-pool.md), so Closed's rows add up to its count. It takes no
+               drop: saving someone needs their permission and a note, which the candidate's menu asks for. -->
           {#if applications.length > stillIn.length}
-            <span data-kept-in-mind class="flex min-w-0 items-center justify-between gap-2 px-2 py-1.5 text-body text-muted-foreground">
-              Kept in mind<span class="tabular-nums">{applications.length - stillIn.length}</span>
-            </span>
+            <div data-kept-in-mind class="flex flex-col rounded-md">
+              {@render closedRow(keptKey, keptInMindLabel, applications.filter((application) => application.keptInMindAt), 'saved')}
+            </div>
           {/if}
         </div>
       </section>

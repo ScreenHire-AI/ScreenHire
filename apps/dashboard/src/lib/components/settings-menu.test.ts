@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
 import type { CurrentUser } from '@screenhire/api-client';
 import { userAs } from '../../test-support/fixtures.js';
+import WithShell from '../../test-support/with-shell.svelte';
 import SettingsMenu from './settings-menu.svelte';
 
 const state = vi.hoisted(() => ({ user: undefined as CurrentUser | undefined }));
@@ -24,13 +25,13 @@ describe('settings menu', () => {
   });
 
   it('lists every settings page in order, in its named group, beside the page content, and marks the current one', async () => {
-    render(SettingsMenu, { props: { children: content } });
+    render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: { slack: true } } });
     const menu = screen.getByRole('navigation', { name: 'Settings' });
 
     const groups = within(menu).getAllByRole('list');
     expect(groups.map((group) => [group.getAttribute('aria-labelledby') && document.getElementById(group.getAttribute('aria-labelledby')!)?.textContent, within(group).getAllByRole('link').map((link) => link.textContent?.trim())])).toEqual([
       ['Organization', ['General', 'Team', 'Roles']],
-      ['Hiring', ['Careers site', 'Branding', 'Verification']],
+      ['Hiring', ['Careers site', 'Branding', 'Verification', 'Sending domain']],
       ['Integrations', ['Slack', 'MCP server', 'Webhooks', 'API keys']],
     ]);
     expect(within(menu).getByRole('link', { name: 'Team' })).toHaveAttribute('aria-current', 'page');
@@ -39,9 +40,22 @@ describe('settings menu', () => {
     await expectNoAxeViolations();
   });
 
+  it('leaves Slack out of the menu where no Slack app is set up, and while that is not yet known (A3)', () => {
+    for (const features of [{ slack: false }, {}]) {
+      const { unmount } = render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features } });
+      const labels = within(screen.getByRole('navigation', { name: 'Settings' }))
+        .getAllByRole('link')
+        .map((link) => link.textContent?.trim());
+
+      expect(labels).not.toContain('Slack');
+      expect(labels).toContain('MCP server');
+      unmount();
+    }
+  });
+
   it('lists only the pages the role may use', () => {
     state.user = userAs('Recruiter');
-    render(SettingsMenu, { props: { children: content } });
+    render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: { slack: true } } });
     const labels = within(screen.getByRole('navigation', { name: 'Settings' }))
       .queryAllByRole('link')
       .map((link) => link.textContent?.trim());
@@ -69,10 +83,10 @@ describe('settings menu', () => {
     const scrolledTo: number[] = [];
     Object.defineProperty(Element.prototype, 'scrollLeft', { configurable: true, get: () => 0, set: (value: number) => scrolledTo.push(value) });
     try {
-      render(SettingsMenu, { props: { children: content, current: '/settings/webhooks' } });
+      render(WithShell, { props: { component: SettingsMenu, props: { children: content, current: '/settings/webhooks' }, features: { slack: true } } });
 
-      // Webhooks is the ninth entry, at 800px: the row scrolls to 750 so it sits in the middle.
-      expect(scrolledTo).toEqual([750]);
+      // Webhooks is the tenth entry, at 900px: the row scrolls to 850 so it sits in the middle.
+      expect(scrolledTo).toEqual([850]);
     } finally {
       Object.defineProperty(HTMLElement.prototype, 'offsetLeft', offsetLeft);
       Object.defineProperty(HTMLElement.prototype, 'offsetWidth', offsetWidth);

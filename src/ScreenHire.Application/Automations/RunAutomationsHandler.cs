@@ -16,8 +16,11 @@ public static partial class RunAutomationsHandler
     public static async Task<OutgoingMessages> Handle(
         RunAutomations message, ScreenHireDbContext db, TimeProvider time, ILogger<RunAutomations> logger, CancellationToken cancellationToken)
     {
-        var application = await db.Applications.AsNoTracking().SingleOrDefaultAsync(a => a.Id == message.ApplicationId, cancellationToken)
-            ?? throw new InvalidOperationException($"Application {message.ApplicationId} is not visible to organization {message.OrganizationId}.");
+        // An application erased since the message was sent has nothing left to run: done, not failed.
+        if (await db.Applications.AsNoTracking().SingleOrDefaultAsync(a => a.Id == message.ApplicationId, cancellationToken) is not { } application)
+        {
+            return [];
+        }
 
         if (message.Trigger is TriggerType.TimeElapsed or TriggerType.SlaBreached)
         {

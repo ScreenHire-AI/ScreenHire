@@ -7,6 +7,7 @@ using ScreenHire.Api.Auth;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Demo;
+using ScreenHire.Api.Email;
 using ScreenHire.Api.Endpoints;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Api.Mcp;
@@ -14,6 +15,8 @@ using ScreenHire.Api.Realtime;
 using ScreenHire.Application.Automations;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Messaging;
+using ScreenHire.Application.Scheduling;
+using ScreenHire.Application.SendingDomains;
 using ScreenHire.Application.Slack;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
@@ -38,14 +41,20 @@ builder.AddScreenHireRealtime();
 
 builder.Services.AddSingleton<TimeProvider>(DatabasePrecisionTimeProvider.Instance);
 // Email templates render here for previews and test sends; every send to a candidate renders in the worker.
+// Erasing a candidate asks the duplicate check's directory who shared a detail with them, before their rows go.
+builder.Services.AddScoped<ScreenHire.Application.Verification.IApplicantDirectory, ScreenHire.Application.Verification.DatabaseApplicantDirectory>();
 builder.Services.AddSingleton<EmailTemplates>();
 builder.Services.AddSingleton<EmailTemplateStore>();
 builder.Services.AddSingleton<IValidator<CreateEmailTemplateRequest>, CreateEmailTemplateRequestValidator>();
+builder.Services.AddSingleton<IValidator<CreateViewRequest>, CreateViewRequestValidator>();
+builder.Services.AddSingleton<IValidator<UpdateViewRequest>, UpdateViewRequestValidator>();
+builder.Services.AddSingleton<IValidator<UpdateHiddenViewsRequest>, UpdateHiddenViewsRequestValidator>();
 builder.Services.AddSingleton<IValidator<UpdateEmailTemplateRequest>, UpdateEmailTemplateRequestValidator>();
 builder.Services.AddSingleton<IValidator<EmailTemplateDraft>, EmailTemplateDraftValidator>();
 builder.Services.AddSingleton<IValidator<ApplicationEmailDraft>, ApplicationEmailDraftValidator>();
 builder.Services.AddSingleton<IValidator<SendEmailsRequest>, SendEmailsRequestValidator>();
 builder.Services.AddSingleton<IValidator<KeepInMindRequest>, KeepInMindRequestValidator>();
+builder.Services.AddSingleton<IValidator<EditSavedNoteRequest>, EditSavedNoteRequestValidator>();
 builder.Services.AddSingleton<IValidator<InviteToApplyRequest>, InviteToApplyRequestValidator>();
 builder.Services.AddSingleton<IValidator<AddFromTalentPoolRequest>, AddFromTalentPoolRequestValidator>();
 if (builder.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("ScreenHire:Demo:Enabled"))
@@ -63,7 +72,8 @@ builder.Services.AddProblemDetails();
 // limit) is the caller's mistake: answer with its own status. Minimal APIs throw these in Development rather than answer.
 builder.Services.Configure<ExceptionHandlerOptions>(options => options.StatusCodeSelector = exception =>
     exception is BadHttpRequestException bad ? bad.StatusCode : StatusCodes.Status500InternalServerError);
-builder.Services.AddOpenApi(options => options.AddSchemaTransformer(DefinitionSchemas.LinkFromOpenApi).AddScreenHireSecuritySchemes());
+builder.Services.AddOpenApi(options => options.AddSchemaTransformer(DefinitionSchemas.LinkFromOpenApi).AddScreenHireSecuritySchemes()
+    .UseUnixLineEndings());
 builder.Services.AddHiringValidation();
 builder.AddJobDistribution();
 // Webhook subscriptions: the API shows each endpoint's secret once and checks URLs against the same address rule the
@@ -73,6 +83,13 @@ builder.Services.AddOptions<WebhookOptions>().BindConfiguration(WebhookOptions.S
 builder.Services.AddOptions<CareersEmbeddingOptions>().BindConfiguration(CareersEmbeddingOptions.Section);
 // Slack (docs/architecture/slack.md): connecting a workspace and linking accounts happen here; the worker posts.
 builder.Services.AddScreenHireSlack();
+
+// Replies, bounces and the organization's sending domain (docs/architecture/email.md, ADR-0022): SendGrid's webhooks, the
+// reply store, and the sending-domain provider, each hidden until configured, with a local sandbox for each.
+builder.Services.AddScreenHireEmailWebhooks();
+builder.Services.AddScreenHireSendingDomains();
+// Calendars (docs/architecture/interview-scheduling.md): members connect theirs here; the worker puts interviews in them.
+builder.Services.AddScreenHireCalendar();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     // Strict numbers keep OpenAPI integer/number types clean for the generated TypeScript client.
@@ -104,17 +121,20 @@ app.MapPublicJobEndpoints();
 app.MapPublicApplicationEndpoints();
 app.MapPublicApplicationDraftEndpoints();
 app.MapPublicQuestionnaireEndpoints();
+app.MapPublicInterviewEndpoints();
 app.MapPublicTalentPoolEndpoints();
 app.MapPublicTelemetryEndpoints();
 app.MapJobEndpoints();
 app.MapTemplateEndpoints();
 app.MapApplicationEndpoints();
+app.MapCandidateEndpoints();
 app.MapVerificationEndpoints();
 app.MapDistributionEndpoints();
 app.MapPublicDistributionEndpoints();
 app.MapOrganizationEndpoints();
 app.MapTeamEndpoints();
 app.MapNotificationSettingsEndpoints();
+app.MapViewEndpoints();
 app.MapHiringTeamEndpoints();
 app.MapRoleEndpoints();
 app.MapApiKeyEndpoints();
@@ -127,7 +147,11 @@ app.MapScorecardTemplateEndpoints();
 app.MapTemplateUsageEndpoints();
 app.MapWebhookEndpoints();
 app.MapSlackEndpoints();
+app.MapCalendarEndpoints();
+app.MapInterviewEndpoints();
 app.MapEmailEndpoints();
+app.MapEmailWebhookEndpoints();
+app.MapSendingDomainEndpoints();
 app.MapTalentPoolEndpoints();
 app.MapSchemaEndpoints();
 app.MapSearchEndpoints();
@@ -146,6 +170,7 @@ if (app.Environment.IsDevelopment())
     await ScreenHireMessaging.ProvisionStorageAsync(ownerConnectionString);
     await app.Services.GetRequiredService<ApplicantUploads>().ProvisionDevelopmentStorageAsync();
     await app.Services.GetRequiredService<BrandImageUploads>().ProvisionDevelopmentStorageAsync();
+    await app.Services.GetRequiredService<EmailAttachmentStore>().ProvisionDevelopmentStorageAsync();
 }
 
 await app.RunAsync();

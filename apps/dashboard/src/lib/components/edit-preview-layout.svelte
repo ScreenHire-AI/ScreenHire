@@ -1,5 +1,5 @@
 <script lang="ts">
-  import AppWindowIcon from '@lucide/svelte/icons/app-window';
+  import AppWindowIcon from '~icons/lucide/app-window';
   import type { Snippet } from 'svelte';
   import EditPreviewSwitch from '#lib/components/edit-preview-switch.svelte';
   import IconButton from '#lib/components/icon-button.svelte';

@@ -43,7 +43,7 @@ Your prompt gives a diff range (for example `origin/main...HEAD`) or `all`, and 
    | S6 | `max-w-page`, `page-wide` or another max-width on a page's content container (pages fill the window); a long paragraph with no 72ch measure |
    | F2 | fixed widths on content elements (not menus, graph nodes or board columns); no `@container` where a component's layout changes with its width |
    | T5 | dates formatted by hand or with a fixed locale (`toLocaleDateString('en-GB')`, format strings) |
-   | I1 | icons from anything but `@lucide/svelte`; text characters or emoji used as icons |
+   | I1 | icons from anything but Lucide through `~icons/lucide/<name>` (an `@lucide/svelte` import is wrong too); text characters or emoji used as icons |
    | L1 | `font-mono`, a pill or a `Badge` other than a status badge inside a table cell; a second line under a row's name |
    | A5 | a link (`<a>`, `href`) whose handler opens a sheet, menu or dialog; `goto(` in a button's handler |
 

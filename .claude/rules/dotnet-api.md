@@ -42,8 +42,9 @@ procedures are the `/add-endpoint` and `/add-migration` skills.
   unhandled exceptions become 500s through `UseExceptionHandler`. Never put exception text in a response.
 - Every route requires a signed-in user (a fallback policy) unless it calls `.AllowAnonymous()`. Public routes do;
   dashboard groups also say `.RequireAuthorization()`, for the reader. Hiring API groups say `.AllowApiKeys()`
-  instead, which also accepts an organization API key (ADR-0011). Cookie-authenticated mutations add
-  `.RequireAntiforgeryToken()`; it lets key requests through. `TenantResolutionMiddleware` sets the tenant after
+  instead, which also accepts an organization API key (ADR-0011); the verification read routes say
+  `.AllowVerificationApiKeys()`, which accepts only a key with the Owner-given `VerificationRead` scope (ADR-0021).
+  Cookie-authenticated mutations add `.RequireAntiforgeryToken()`; it lets key requests through. `TenantResolutionMiddleware` sets the tenant after
   authorization, so an authorization policy never sees `ITenantContext`; check the tenant and the permission in an
   endpoint filter: every route that changes data calls `.RequirePermission(Permission.X)`, never a role name
   (ADR-0014), and joins the route table in `RolePermissionsTests`. Details: `docs/architecture/sign-in-and-tenancy.md`

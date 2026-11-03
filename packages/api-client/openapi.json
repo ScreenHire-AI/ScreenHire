@@ -64,6 +64,16 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "410": {
             "description": "Gone",
             "content": {
@@ -1389,6 +1399,268 @@
           },
           "503": {
             "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/interviews/{token}": {
+      "get": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "GetPublicInterview",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicInterview"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/interviews/{token}/book": {
+      "post": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "BookPublicInterview",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicInterviewChoice"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/interviews/{token}/reschedule": {
+      "post": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "ReschedulePublicInterview",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicInterviewChoice"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/interviews/{token}/cancel": {
+      "post": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "CancelPublicInterview",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4189,6 +4461,116 @@
         ]
       }
     },
+    "/v1/candidates/{candidateId}/history": {
+      "get": {
+        "tags": [
+          "Candidates"
+        ],
+        "operationId": "GetCandidateHistory",
+        "parameters": [
+          {
+            "name": "candidateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CandidateHistoryEntry"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/candidates/{candidateId}/erase": {
+      "post": {
+        "tags": [
+          "Candidates"
+        ],
+        "operationId": "EraseCandidate",
+        "parameters": [
+          {
+            "name": "candidateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EraseCandidateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/applications/{applicationId}/verification": {
       "get": {
         "tags": [
@@ -4207,6 +4589,9 @@
           }
         ],
         "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
           "200": {
             "description": "OK",
             "content": {
@@ -4222,11 +4607,103 @@
           },
           "401": {
             "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           }
         },
         "security": [
           {
             "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/verification/applications": {
+      "get": {
+        "tags": [
+          "Verification"
+        ],
+        "operationId": "ListVerificationApplications",
+        "parameters": [
+          {
+            "name": "authenticity",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AuthenticityLevel"
+            }
+          },
+          {
+            "name": "aiAssistance",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AiAssistanceLevel"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "includeDismissed",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationMatches"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
           }
         ]
       }
@@ -5596,149 +6073,6 @@
         ]
       }
     },
-    "/v1/organization/talent-pool-settings": {
-      "get": {
-        "tags": [
-          "Organization"
-        ],
-        "operationId": "GetOrganizationTalentPoolSettings",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrganizationTalentPoolSettings"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      },
-      "put": {
-        "tags": [
-          "Organization"
-        ],
-        "operationId": "UpdateOrganizationTalentPoolSettings",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateTalentPoolSettingsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrganizationTalentPoolSettings"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      }
-    },
-    "/v1/organization/talent-pool-settings/history": {
-      "get": {
-        "tags": [
-          "Organization"
-        ],
-        "operationId": "GetOrganizationTalentPoolSettingsHistory",
-        "parameters": [
-          {
-            "name": "before",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HistoryPage"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      }
-    },
     "/v1/organization/members": {
       "get": {
         "tags": [
@@ -6382,6 +6716,318 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MemberNotificationSettings"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/views": {
+      "get": {
+        "tags": [
+          "Views"
+        ],
+        "operationId": "ListViews",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ViewList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Views"
+        ],
+        "operationId": "CreateView",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateViewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedViewSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/views/{viewId}": {
+      "patch": {
+        "tags": [
+          "Views"
+        ],
+        "operationId": "UpdateView",
+        "parameters": [
+          {
+            "name": "viewId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateViewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedViewSummary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Views"
+        ],
+        "operationId": "DeleteView",
+        "parameters": [
+          {
+            "name": "viewId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/views/{viewId}/restore": {
+      "post": {
+        "tags": [
+          "Views"
+        ],
+        "operationId": "RestoreView",
+        "parameters": [
+          {
+            "name": "viewId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedViewSummary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/views/hidden-built-ins": {
+      "put": {
+        "tags": [
+          "Views"
+        ],
+        "operationId": "UpdateHiddenViews",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateHiddenViewsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ViewList"
                 }
               }
             }
@@ -7679,6 +8325,30 @@
             }
           },
           {
+            "name": "previousFrom",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "previousTo",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "timeZone",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "UTC"
+            }
+          },
+          {
             "name": "jobId",
             "in": "query",
             "schema": {
@@ -7700,6 +8370,88 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/reports/hiring/funnel/{kind}/applications": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "operationId": "GetFunnelApplications",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/StageKind"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "400": {
             "description": "Bad Request",
@@ -9242,6 +9994,346 @@
         ]
       }
     },
+    "/v1/calendar": {
+      "get": {
+        "tags": [
+          "Calendar"
+        ],
+        "operationId": "GetCalendar",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Calendar"
+        ],
+        "operationId": "DisconnectCalendar",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/calendar/connect": {
+      "post": {
+        "tags": [
+          "Calendar"
+        ],
+        "operationId": "StartCalendarConnect",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartCalendarConnectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarAuthorization"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/interviewers": {
+      "get": {
+        "tags": [
+          "Interviews"
+        ],
+        "operationId": "ListInterviewers",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Interviewer"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/applications/{applicationId}/interviews": {
+      "post": {
+        "tags": [
+          "Interviews"
+        ],
+        "operationId": "ScheduleInterview",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleInterviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationInterview"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Interviews"
+        ],
+        "operationId": "ListApplicationInterviews",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApplicationInterview"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/interviews/{interviewId}/cancel": {
+      "post": {
+        "tags": [
+          "Interviews"
+        ],
+        "operationId": "CancelInterview",
+        "parameters": [
+          {
+            "name": "interviewId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationInterview"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/email-templates": {
       "get": {
         "tags": [
@@ -9940,6 +11032,99 @@
         ]
       }
     },
+    "/v1/replies/{replyId}": {
+      "get": {
+        "tags": [
+          "Email"
+        ],
+        "operationId": "GetReceivedEmail",
+        "parameters": [
+          {
+            "name": "replyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceivedEmail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/replies/{replyId}/attachments/{attachmentId}": {
+      "get": {
+        "tags": [
+          "Email"
+        ],
+        "operationId": "DownloadReplyAttachment",
+        "parameters": [
+          {
+            "name": "replyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "attachmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/candidates/{candidateId}/emails": {
       "get": {
         "tags": [
@@ -9985,10 +11170,311 @@
         ]
       }
     },
+    "/v1/candidates/{candidateId}/email-issue/clear": {
+      "post": {
+        "tags": [
+          "Email"
+        ],
+        "operationId": "ClearCandidateEmailIssue",
+        "parameters": [
+          {
+            "name": "candidateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateSummary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/sending-domain": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "GetOrganizationSendingDomain",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationSendingDomain"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "SetOrganizationSendingDomain",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetSendingDomainRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendingDomainDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "DeleteOrganizationSendingDomain",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/sending-domain/history": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "GetOrganizationSendingDomainHistory",
+        "parameters": [
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/sending-domain/check": {
+      "post": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "CheckOrganizationSendingDomain",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendingDomainDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/talent-pool": {
       "get": {
         "tags": [
-          "Talent pool"
+          "Saved candidates"
         ],
         "operationId": "ListTalentPool",
         "responses": {
@@ -10014,7 +11500,7 @@
       },
       "post": {
         "tags": [
-          "Talent pool"
+          "Saved candidates"
         ],
         "operationId": "KeepInMind",
         "requestBody": {
@@ -10079,10 +11565,143 @@
         ]
       }
     },
+    "/v1/talent-pool/{candidateId}/note": {
+      "put": {
+        "tags": [
+          "Saved candidates"
+        ],
+        "operationId": "EditSavedNote",
+        "parameters": [
+          {
+            "name": "candidateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditSavedNoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/talent-pool/{candidateId}/history": {
+      "get": {
+        "tags": [
+          "Saved candidates"
+        ],
+        "operationId": "GetSavedNoteHistory",
+        "parameters": [
+          {
+            "name": "candidateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/talent-pool/{candidateId}/remove": {
       "post": {
         "tags": [
-          "Talent pool"
+          "Saved candidates"
         ],
         "operationId": "RemoveFromTalentPool",
         "parameters": [
@@ -10137,7 +11756,7 @@
     "/v1/talent-pool/invitations/preview": {
       "post": {
         "tags": [
-          "Talent pool"
+          "Saved candidates"
         ],
         "operationId": "PreviewTalentPoolInvitation",
         "requestBody": {
@@ -10188,7 +11807,7 @@
     "/v1/talent-pool/invitations": {
       "post": {
         "tags": [
-          "Talent pool"
+          "Saved candidates"
         ],
         "operationId": "InviteToApply",
         "requestBody": {
@@ -10249,7 +11868,7 @@
     "/v1/talent-pool/applications": {
       "post": {
         "tags": [
-          "Talent pool"
+          "Saved candidates"
         ],
         "operationId": "AddFromTalentPool",
         "requestBody": {
@@ -10429,7 +12048,7 @@
             "type": "string"
           }
         },
-        "description": "A note from the hiring team on an application, kept on its timeline with the author and the time. Mention a member\r\nas `@[userId]`: they get a notification and an email that never quotes the note."
+        "description": "A note from the hiring team on an application, kept on its timeline with the author and the time. Mention a member\nas `@[userId]`: they get a notification and an email that never quotes the note."
       },
       "AddApplicationTagRequest": {
         "required": [
@@ -10462,7 +12081,7 @@
             "format": "int32"
           }
         },
-        "description": "The new applications, one per candidate added, and how many were skipped because they had already applied to the\r\njob. Each new application carries the candidate's permission for future roles from the one they were kept from."
+        "description": "The new applications, one per candidate added, and how many were skipped because they had already applied to the\njob. Each new application carries the candidate's permission for future roles from the one they were kept from."
       },
       "AddFromTalentPoolRequest": {
         "required": [
@@ -10483,7 +12102,7 @@
             "format": "uuid"
           }
         },
-        "description": "Adds these candidates from the talent pool to `jobId`, which must not be closed."
+        "description": "Adds these saved candidates to `jobId`, which must not be closed."
       },
       "AddVerificationNoteRequest": {
         "required": [
@@ -10632,7 +12251,8 @@
       "ApiKeyScope": {
         "enum": [
           "Read",
-          "Write"
+          "Write",
+          "VerificationRead"
         ],
         "description": "What an API key may do on the hiring API."
       },
@@ -10699,7 +12319,7 @@
             "format": "uuid"
           }
         },
-        "description": "An organization API key as listed: never the key itself, which only CreatedApiKey carries.\r\n`prefix` is the key's first characters. `permitsPerMinute` is null for the deployment's default.\r\n`lastUsedAt` is accurate to about a minute. `createdByUserId` is the member who created it, or null once their\r\naccount is deleted; removing a member offers to revoke the keys they created."
+        "description": "An organization API key as listed: never the key itself, which only CreatedApiKey carries.\n`prefix` is the key's first characters. `permitsPerMinute` is null for the deployment's default.\n`lastUsedAt` is accurate to about a minute. `createdByUserId` is the member who created it, or null once their\naccount is deleted; removing a member offers to revoke the keys they created."
       },
       "ApiMeta": {
         "required": [
@@ -10723,7 +12343,7 @@
             "type": "string"
           }
         },
-        "description": "What is serving this API: the product name, the build version, the hosting environment, and the API's public origin\r\n(`ScreenHire:Domains:ApiHost`), which the API reference (`/scalar`), the OpenAPI file and `/v1` sit under."
+        "description": "What is serving this API: the product name, the build version, the hosting environment, and the API's public origin\n(`ScreenHire:Domains:ApiHost`), which the API reference (`/scalar`), the OpenAPI file and `/v1` sit under."
       },
       "ApplicationAnswer": {
         "required": [
@@ -10750,7 +12370,7 @@
             }
           }
         },
-        "description": "One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\r\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\r\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`."
+        "description": "One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`."
       },
       "ApplicationDetail": {
         "required": [
@@ -10865,12 +12485,9 @@
             ],
             "format": "date-time"
           },
-          "futureRolesUntil": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
+          "allowsFutureRoles": {
+            "type": "boolean",
+            "default": false
           },
           "futureRolesGivenAt": {
             "type": [
@@ -10890,7 +12507,7 @@
             ]
           }
         },
-        "description": "One application: the candidate, the job, where it is in the job's workflow, its tags, the candidate's\r\ndeclarations, answers and files."
+        "description": "One application: the candidate, the job, where it is in the job's workflow, its tags, the candidate's\ndeclarations, answers and files."
       },
       "ApplicationEmailDraft": {
         "required": [
@@ -10930,7 +12547,12 @@
           "TaskCreated",
           "KeptInMind",
           "LeftTalentPool",
-          "InvitedToApply"
+          "InvitedToApply",
+          "InterviewInvited",
+          "InterviewBooked",
+          "InterviewRescheduled",
+          "InterviewCancelled",
+          "EmailReceived"
         ]
       },
       "ApplicationFileSummary": {
@@ -11038,7 +12660,98 @@
             }
           }
         },
-        "description": "A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\r\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\r\nworkflow changes."
+        "description": "A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\nworkflow changes."
+      },
+      "ApplicationInterview": {
+        "required": [
+          "id",
+          "status",
+          "startsAt",
+          "endsAt",
+          "windowStart",
+          "windowEnd",
+          "timeZone",
+          "durationMinutes",
+          "dayStart",
+          "dayEnd",
+          "meetingUrl",
+          "interviewers",
+          "createdAt",
+          "createdByUserId",
+          "cancelledByCandidate"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/InterviewStatus"
+          },
+          "startsAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "windowStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "windowEnd": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dayStart": {
+            "type": "string"
+          },
+          "dayEnd": {
+            "type": "string"
+          },
+          "meetingUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "interviewers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InterviewParticipant"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdByUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "cancelledByCandidate": {
+            "type": "boolean"
+          }
+        },
+        "description": "An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer's Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it."
       },
       "ApplicationNoteDetail": {
         "required": [
@@ -11113,7 +12826,7 @@
             "default": 0
           }
         },
-        "description": "The candidate's rating (ADR-0013 decision 13): one to five stars averaged from people's scorecards. Each rating answer\r\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\r\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\r\ndecimal. It is people's judgement of the work only: never verification results, AI signals or the stage. No automation\r\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\r\nthey give it, so it cannot anchor them."
+        "description": "The candidate's rating (ADR-0013 decision 13): one to five stars averaged from people's scorecards. Each rating answer\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\ndecimal. It is people's judgement of the work only: never verification results, AI signals or the stage. No automation\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\nthey give it, so it cannot anchor them."
       },
       "ApplicationSource": {
         "enum": [
@@ -11234,12 +12947,9 @@
             ],
             "format": "date-time"
           },
-          "futureRolesUntil": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
+          "allowsFutureRoles": {
+            "type": "boolean",
+            "default": false
           },
           "sourceSite": {
             "type": [
@@ -11248,7 +12958,7 @@
             ]
           }
         },
-        "description": "An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\r\napplication itself."
+        "description": "An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\napplication itself."
       },
       "ApplicationTaskEntry": {
         "required": [
@@ -11317,7 +13027,7 @@
             ]
           }
         },
-        "description": "Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\r\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\r\nticked off by hand."
+        "description": "Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand."
       },
       "ApplicationTaskKind": {
         "enum": [
@@ -11502,6 +13212,27 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "interviewId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "startsAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         },
         "description": "One entry of an application's timeline, oldest first. Members that do not apply to the type are null."
@@ -11565,7 +13296,7 @@
             ]
           }
         },
-        "description": "An application's verification: two separate assessments, each a categorical level with reason codes, the signals and\r\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\r\nor percentage anywhere in it, and nothing here decides anything: every action is a person's, and every action is in\r\n`reviewLog`."
+        "description": "An application's verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person's, and every action is in\n`reviewLog`."
       },
       "ApplyTemplateUpdateRequest": {
         "required": [
@@ -11583,7 +13314,7 @@
             "format": "int32"
           }
         },
-        "description": "Replaces a job's workflow with a published version of the template it came from (usually the newest, from\r\n`GET /v1/jobs/{jobId}/workflow/template-diff`). It replaces the job's own edits too, which the diff lists.\r\n`expectedWorkflowVersion` works as in UpdateJobWorkflowRequest."
+        "description": "Replaces a job's workflow with a published version of the template it came from (usually the newest, from\n`GET /v1/jobs/{jobId}/workflow/template-diff`). It replaces the job's own edits too, which the diff lists.\n`expectedWorkflowVersion` works as in UpdateJobWorkflowRequest."
       },
       "AuthenticityAssessmentView": {
         "required": [
@@ -11696,7 +13427,7 @@
             "default": false
           }
         },
-        "description": "Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\r\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\r\nsignal (ADR-0004)."
+        "description": "Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\nsignal (ADR-0004)."
       },
       "AutomationAction": {
         "required": [
@@ -11761,9 +13492,39 @@
               "null",
               "string"
             ]
+          },
+          "interviewerUserIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "interviewMinutes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "interviewWindowDays": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "interviewTimeZone": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\r\nthat each type has what it needs and nothing else."
+        "description": "One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else."
       },
       "AutomationActionEntry": {
         "required": [
@@ -11841,7 +13602,7 @@
             "default": false
           }
         },
-        "description": "One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\r\n`yes` and `no`, choice answers are option ids). Facts are\r\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\r\n`verification.result`, `application.tags`, `application.source`,\r\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\r\n`reviewer.recommendation`."
+        "description": "One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\n`yes` and `no`, choice answers are option ids). Facts are\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\n`verification.result`, `application.tags`, `application.source`,\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\n`reviewer.recommendation`."
       },
       "AutomationConditions": {
         "required": [
@@ -11860,7 +13621,7 @@
             }
           }
         },
-        "description": "Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a \"not\". One\r\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too."
+        "description": "Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a \"not\". One\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too."
       },
       "AutomationFacts": {
         "required": [
@@ -11919,7 +13680,7 @@
             ]
           }
         },
-        "description": "What an automation's conditions can see about one application at the moment its trigger fired: the facts snapshot\r\n(docs/architecture/workflow-engine.md §3). The engine stores it with every run, so a replay or an audit sees exactly\r\nwhat the conditions saw. A fact that is null or empty here is absent: ConditionOperator.Exists is false\r\nand every other test fails."
+        "description": "What an automation's conditions can see about one application at the moment its trigger fired: the facts snapshot\n(docs/architecture/workflow-engine.md §3). The engine stores it with every run, so a replay or an audit sees exactly\nwhat the conditions saw. A fact that is null or empty here is absent: ConditionOperator.Exists is false\nand every other test fails."
       },
       "AutomationIssue": {
         "required": [
@@ -11966,7 +13727,7 @@
             "format": "date-time"
           }
         },
-        "description": "An automation that did not do its job: blocked (a loop, the depth limit, a workflow that no longer validates) or\r\nfailed (an action failed after its retries). Newest first; the run has the full record."
+        "description": "An automation that did not do its job: blocked (a loop, the depth limit, a workflow that no longer validates) or\nfailed (an action failed after its retries). Newest first; the run has the full record."
       },
       "AutomationRunEntry": {
         "required": [
@@ -12086,7 +13847,7 @@
             ]
           }
         },
-        "description": "The audit record of one automation evaluated for one application (workflow-engine.md §2, guardrail 3): the trigger,\r\nthe facts its conditions saw, which rules held, and what each action did."
+        "description": "The audit record of one automation evaluated for one application (workflow-engine.md §2, guardrail 3): the trigger,\nthe facts its conditions saw, which rules held, and what each action did."
       },
       "AutomationRunStatus": {
         "enum": [
@@ -12255,7 +14016,7 @@
             ]
           }
         },
-        "description": "The contrast check of the colours asked about, each null when it was not asked: whether every pair the colour is\r\nused in reaches WCAG 2.2 AA, the text colour that goes on it, the pairs, and the nearest passing shade when it fails."
+        "description": "The contrast check of the colours asked about, each null when it was not asked: whether every pair the colour is\nused in reaches WCAG 2.2 AA, the text colour that goes on it, the pairs, and the nearest passing shade when it fails."
       },
       "BrandingImage": {
         "required": [
@@ -12266,6 +14027,7 @@
           "width",
           "height",
           "sizeBytes",
+          "fileName",
           "url"
         ],
         "type": "object",
@@ -12295,6 +14057,9 @@
             "type": "integer",
             "format": "int64"
           },
+          "fileName": {
+            "type": "string"
+          },
           "url": {
             "type": [
               "null",
@@ -12302,7 +14067,118 @@
             ]
           }
         },
-        "description": "An uploaded brand image. `scanStatus` is the malware scan's: a Pending or Infected image cannot be saved or\r\nserved. `url` is its public address on the careers board, null until it may be served."
+        "description": "An uploaded brand image. `scanStatus` is the malware scan's: a Pending or Infected image cannot be saved or\nserved. `url` is its public address on the careers board, null until it may be served. `fileName` is the\nname it was uploaded with."
+      },
+      "CalendarAccount": {
+        "required": [
+          "provider",
+          "providerName",
+          "accountEmail",
+          "connectedAt",
+          "problem"
+        ],
+        "type": "object",
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/CalendarProvider"
+          },
+          "providerName": {
+            "type": "string"
+          },
+          "accountEmail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "connectedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "problem": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CalendarProblem"
+              }
+            ]
+          }
+        },
+        "description": "The member's connected calendar. `accountEmail` is the calendar owner's address when the provider says it.\n`problem` is `NeedsReconnect` once the provider stopped accepting the connection."
+      },
+      "CalendarAuthorization": {
+        "required": [
+          "authorizeUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "authorizeUrl": {
+            "type": "string"
+          }
+        },
+        "description": "Where to send the browser next: the provider's consent page (or the sandbox's)."
+      },
+      "CalendarProblem": {
+        "enum": [
+          "NeedsReconnect",
+          null
+        ]
+      },
+      "CalendarProvider": {
+        "enum": [
+          "Google",
+          "Microsoft",
+          "Sandbox"
+        ],
+        "description": "Whose calendar a member connected. CalendarProvider.Sandbox is the local stand-in (Development and tests only)."
+      },
+      "CalendarProviderOption": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/CalendarProvider"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "description": "A calendar the member can connect: its id, and the name the sheet shows."
+      },
+      "CalendarStatus": {
+        "required": [
+          "sandbox",
+          "providers",
+          "connection"
+        ],
+        "type": "object",
+        "properties": {
+          "sandbox": {
+            "type": "boolean"
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CalendarProviderOption"
+            }
+          },
+          "connection": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CalendarAccount"
+              }
+            ]
+          }
+        },
+        "description": "The signed-in member's calendar (docs/architecture/interview-scheduling.md). `providers` are the calendars they\ncan connect here, empty when this ScreenHire has none configured. `connection` is their own, null until they\nconnect one. No token is ever in an answer."
       },
       "CandidateDetail": {
         "required": [
@@ -12409,9 +14285,76 @@
           },
           "kept": {
             "type": "boolean"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/EmailDirection"
+          },
+          "fromAddress": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "attachmentCount": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
           }
         },
-        "description": "One email to the candidate, for Messages: what went, when, and who or which automation sent it. `kept` is false\r\nfor an email sent before ScreenHire kept each email's copy: only its subject is known."
+        "description": "One email to the candidate, for Messages: what went, when, and who or which automation sent it. `kept` is false\nfor an email sent before ScreenHire kept each email's copy: only its subject is known."
+      },
+      "CandidateEmailIssue": {
+        "enum": [
+          "None",
+          "Bounced",
+          "SpamComplaint"
+        ],
+        "description": "Why ScreenHire no longer emails a candidate's address (reported by the email provider).",
+        "default": "None"
+      },
+      "CandidateHistoryEntry": {
+        "required": [
+          "applicationId",
+          "jobId",
+          "jobTitle",
+          "entry"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "entry": {
+            "$ref": "#/components/schemas/ApplicationTimelineEntry"
+          },
+          "fromStageName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "toStageName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "stageName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One entry of a candidate's history across all of their applications: an entry of one application's timeline, with the\napplication and job it belongs to, newest first. It leaves out verification output (the Verification tab holds that,\nADR-0004) and what a reviewer scored or recommended (a scorecard entry says one was submitted, nothing more)."
       },
       "CandidateInput": {
         "required": [
@@ -12484,6 +14427,13 @@
           },
           "stage": {
             "$ref": "#/components/schemas/ApplicationStage"
+          },
+          "keptInMindAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         },
         "description": "A candidate whose name or email matched, on one of their applications: the record to open."
@@ -12524,6 +14474,22 @@
             "type": "string"
           },
           "lastName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emailIssue": {
+            "$ref": "#/components/schemas/CandidateEmailIssue"
+          },
+          "emailIssueAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "emailIssueReason": {
             "type": [
               "null",
               "string"
@@ -12726,7 +14692,7 @@
             "format": "date-time"
           }
         },
-        "description": "The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\r\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans."
+        "description": "The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans."
       },
       "ContrastPairCheck": {
         "required": [
@@ -12816,7 +14782,7 @@
             "format": "int32"
           }
         },
-        "description": "Creates a key. `scopes` is `[\"Read\"]` or `[\"Read\", \"Write\"]`. `permitsPerMinute` lowers the\r\nkey's rate limit below the deployment's; null uses the deployment's."
+        "description": "Creates a key. `scopes` is `[\"Read\"]` or `[\"Read\", \"Write\"]`, with `\"VerificationRead\"` added to\nlet the key read verification results. Only an owner can add `VerificationRead`; every read through such a key is\nrecorded in the verification review log (ADR-0021). `permitsPerMinute` lowers the key's rate limit below the\ndeployment's; null uses the deployment's."
       },
       "CreateApplicationRequest": {
         "required": [
@@ -12848,7 +14814,7 @@
             "format": "uuid"
           }
         },
-        "description": "A recruiter adds an application by hand, for a candidate who applied another way. The candidate is matched by email\r\nwithin the organization and created if new. The public apply flow is the careers site's."
+        "description": "A recruiter adds an application by hand, for a candidate who applied another way. The candidate is matched by email\nwithin the organization and created if new. The public apply flow is the careers site's."
       },
       "CreateApplicationTaskRequest": {
         "required": [
@@ -12883,7 +14849,7 @@
             "type": "string"
           }
         },
-        "description": "A new key. `token` is shown this once and cannot be read again: send it as `Authorization: Bearer\r\n{token}`."
+        "description": "A new key. `token` is shown this once and cannot be read again: send it as `Authorization: Bearer\n{token}`."
       },
       "CreateEmailTemplateRequest": {
         "required": [
@@ -12938,7 +14904,7 @@
             "format": "uuid"
           }
         },
-        "description": "A new organization template, whose version 1 is a draft. Give a `definition`, or `copyFromVersionId` to\r\nstart from an existing version (a system template's, to customise it), or neither for a basic pipeline."
+        "description": "A new organization template, whose version 1 is a draft. Give a `definition`, or `copyFromVersionId` to\nstart from an existing version (a system template's, to customise it), or neither for a basic pipeline."
       },
       "CreateHiringTemplateVersionRequest": {
         "type": "object",
@@ -13046,7 +15012,7 @@
             "format": "date-time"
           }
         },
-        "description": "A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\r\nversion's workflow, and every field left out here takes the template's posting default. Without a slug, one is made\r\nfrom the title. The description is rich text as HTML, kept to the dashboard editor's elements (p, br, strong, em, h2,\r\nh3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text\r\nworks too: a blank line starts a paragraph and lines starting with \"- \" make a list."
+        "description": "A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\nversion's workflow, and every field left out here takes the template's posting default. Without a slug, one is made\nfrom the title. The description is rich text as HTML, kept to the dashboard editor's elements (p, br, strong, em, h2,\nh3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text\nworks too: a blank line starts a paragraph and lines starting with \"- \" make a list."
       },
       "CreateRoleRequest": {
         "required": [
@@ -13076,7 +15042,7 @@
             "format": "uuid"
           }
         },
-        "description": "Makes a custom role by copying a role: a built-in one (`copyFrom`) or a custom one (`copyFromRoleId`), never\r\nboth. Owner-only permissions are never copied."
+        "description": "Makes a custom role by copying a role: a built-in one (`copyFrom`) or a custom one (`copyFromRoleId`), never\nboth. Owner-only permissions are never copied."
       },
       "CreateScorecardTemplateRequest": {
         "required": [
@@ -13102,6 +15068,38 @@
           }
         },
         "description": "A new scorecard of the organization's own, optionally a copy of another (`copiedFrom`, by id)."
+      },
+      "CreateViewRequest": {
+        "required": [
+          "name",
+          "scope",
+          "jobId",
+          "shared",
+          "filters"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ViewScope"
+          },
+          "jobId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "shared": {
+            "type": "boolean"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/ViewFilters"
+          }
+        },
+        "description": "Saves the current filters and sort as a view; a job view names its job, a candidates view takes none."
       },
       "CreateWebhookEndpointRequest": {
         "required": [
@@ -13183,7 +15181,7 @@
             "type": "boolean"
           }
         },
-        "description": "The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\r\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\r\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\r\njobs they're on, who sees just the jobs whose hiring team they are on (ADR-0015)."
+        "description": "The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they're on, who sees just the jobs whose hiring team they are on (ADR-0015)."
       },
       "CurrentUser": {
         "required": [
@@ -13285,7 +15283,7 @@
           "Notice",
           "Consent"
         ],
-        "description": "On which footing the careers page may compute a device fingerprint (docs/research/legal.md, \"Device / browser\r\nfingerprint\"; verification-engine.md §3). ePrivacy Art. 5(3) needs consent for fingerprinting unless it is strictly\r\nnecessary, and data protection authorities differ on whether fraud prevention is, so the basis is configuration per\r\ncountry rather than code."
+        "description": "On which footing the careers page may compute a device fingerprint (docs/research/legal.md, \"Device / browser\nfingerprint\"; verification-engine.md §3). ePrivacy Art. 5(3) needs consent for fingerprinting unless it is strictly\nnecessary, and data protection authorities differ on whether fraud prevention is, so the basis is configuration per\ncountry rather than code."
       },
       "DismissReason": {
         "enum": [
@@ -13326,6 +15324,29 @@
         },
         "description": "The note's new text. Only its author edits a note; a mention the new text adds notifies only the person added."
       },
+      "EditSavedNoteRequest": {
+        "required": [
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Replaces a saved candidate's note. Blank clears it. The Activity entry from when they were saved keeps the first note."
+      },
+      "EmailDirection": {
+        "enum": [
+          "Sent",
+          "Received"
+        ],
+        "description": "Which way an email in Messages went.",
+        "default": "Sent"
+      },
       "EmailPreview": {
         "required": [
           "subject",
@@ -13362,7 +15383,7 @@
             "format": "int32"
           }
         },
-        "description": "How many emails were queued. `skipped` counts applications the email does not fit: the stage-change email to a\r\ncandidate whose application has ended. Each sent email appears in its application's activity."
+        "description": "How many emails were queued. `skipped` counts applications the email does not fit: the stage-change email to a\ncandidate whose application has ended, and a candidate whose address bounced or marked an email as spam. Each sent email appears in its application's activity."
       },
       "EmailTemplateDraft": {
         "required": [
@@ -13384,7 +15405,7 @@
             ]
           }
         },
-        "description": "Wording to render with the sample candidate, before it is saved. `templateId` is the template it is for, so\r\nthe rejection email's `reason` renders; leave it out for a new template."
+        "description": "Wording to render with the sample candidate, before it is saved. `templateId` is the template it is for, so\nthe rejection email's `reason` renders; leave it out for a new template."
       },
       "EmailTemplateEntry": {
         "required": [
@@ -13444,7 +15465,7 @@
             "default": false
           }
         },
-        "description": "One email template. Built-in templates have ScreenHire's ids and names; the organization may change their wording\r\n(`edited`) and restore it. Its own templates have a Guid id and its own name."
+        "description": "One email template. Built-in templates have ScreenHire's ids and names; the organization may change their wording\n(`edited`) and restore it. Its own templates have a Guid id and its own name."
       },
       "EmailTemplateList": {
         "required": [
@@ -13470,7 +15491,7 @@
             }
           }
         },
-        "description": "The organization's email templates and the variables they may use. `sendingEnabled` is false when this\r\ndeployment has no email sender: templates can still be edited, but nothing can be sent or tested."
+        "description": "The organization's email templates and the variables they may use. `sendingEnabled` is false when this\ndeployment has no email sender: templates can still be edited, but nothing can be sent or tested."
       },
       "EmailTemplateVariableEntry": {
         "required": [
@@ -13498,7 +15519,7 @@
             "default": false
           }
         },
-        "description": "A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.\r\n`questionnaireOnly`: only the follow-up questions email has it. `invitationOnly`: only the talent pool\r\ninvitation has it."
+        "description": "A variable a template may use as `{{ name }}`. `rejectOnly`: only the rejection email has it.\n`questionnaireOnly`: only the follow-up questions email has it. `invitationOnly`: only the saved candidates\ninvitation or an interview email has it."
       },
       "EmploymentType": {
         "enum": [
@@ -13508,6 +15529,18 @@
           "Temporary",
           "Internship"
         ]
+      },
+      "EraseCandidateRequest": {
+        "required": [
+          "confirmation"
+        ],
+        "type": "object",
+        "properties": {
+          "confirmation": {
+            "type": "string"
+          }
+        },
+        "description": "Erases a candidate. `confirmation` is the candidate's full name as the person typed it, compared ignoring case and\nsurrounding spaces, so an erasure is never one stray click."
       },
       "EvaluationOutcome": {
         "enum": [
@@ -13631,7 +15664,7 @@
             }
           }
         },
-        "description": "A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\r\naction: the candidate answers it on the careers site through a signed link. Completing it fires\r\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\r\nworks without JavaScript and takes no uploads."
+        "description": "A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads."
       },
       "FunnelStage": {
         "required": [
@@ -13672,9 +15705,13 @@
         "required": [
           "from",
           "to",
+          "headline",
+          "previous",
+          "weekly",
           "funnel",
           "timeToHire",
-          "sources"
+          "sources",
+          "openJobs"
         ],
         "type": "object",
         "properties": {
@@ -13685,6 +15722,25 @@
           "to": {
             "type": "string",
             "format": "date-time"
+          },
+          "headline": {
+            "$ref": "#/components/schemas/ReportHeadline"
+          },
+          "previous": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ReportHeadline"
+              }
+            ]
+          },
+          "weekly": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportWeek"
+            }
           },
           "funnel": {
             "type": "array",
@@ -13700,9 +15756,15 @@
             "items": {
               "$ref": "#/components/schemas/SourceCount"
             }
+          },
+          "openJobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportOpenJob"
+            }
           }
         },
-        "description": "The Reports page (docs/architecture/reports.md): the funnel, time to hire and sources for the jobs the person can see,\r\nbetween two instants. All three come from one snapshot, so their numbers agree. Nothing here reads verification\r\n(verification) results."
+        "description": "The Reports page (docs/architecture/reports.md): headline numbers, applications and hires by week, the funnel, time to\nhire, sources and open jobs for the jobs the person can see, between two instants. All of it comes from one snapshot,\nso the numbers agree. Nothing here reads verification (verification) results."
       },
       "HiringTeamMember": {
         "required": [
@@ -13736,7 +15798,7 @@
             "type": "boolean"
           }
         },
-        "description": "A person on a job's hiring team, or on a hiring template's default one (ADR-0015). `memberId` is their\r\nmembership's id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\r\njobs they're on sees this job through this list."
+        "description": "A person on a job's hiring team, or on a hiring template's default one (ADR-0015). `memberId` is their\nmembership's id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\njobs they're on sees this job through this list."
       },
       "HiringTeamRequest": {
         "required": [
@@ -13762,7 +15824,7 @@
             "format": "uuid"
           }
         },
-        "description": "Sets a hiring team to `memberIds`, the organization's member ids. For a job, `copyFromJobId` also brings\r\nover another job's team, which the caller must be able to see."
+        "description": "Sets a hiring team to `memberIds`, the organization's member ids. For a job, `copyFromJobId` also brings\nover another job's team, which the caller must be able to see."
       },
       "HiringTemplateDefinition": {
         "required": [
@@ -13919,7 +15981,7 @@
             "type": "boolean"
           }
         },
-        "description": "A hiring template in a list. System templates ship with the product and are read-only. An archived template\r\n(`archived`) is out of the pickers: no new job starts from it, and the jobs that did keep their copy."
+        "description": "A hiring template in a list. System templates ship with the product and are read-only. An archived template\n(`archived`) is out of the pickers: no new job starts from it, and the jobs that did keep their copy."
       },
       "HiringTemplateVersionDetail": {
         "required": [
@@ -13971,7 +16033,7 @@
             "format": "uuid"
           }
         },
-        "description": "One version of a hiring template with its full definition. The definition's JSON Schema is served at\r\n`/v1/schemas/hiring-template-definition.json`."
+        "description": "One version of a hiring template with its full definition. The definition's JSON Schema is served at\n`/v1/schemas/hiring-template-definition.json`."
       },
       "HiringTemplateVersionSummary": {
         "required": [
@@ -14044,7 +16106,7 @@
             }
           }
         },
-        "description": "What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\r\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.",
+        "description": "What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.",
         "externalDocs": {
           "description": "JSON Schema: Hiring workflow",
           "url": "/v1/schemas/hiring-workflow.json"
@@ -14078,7 +16140,7 @@
             "$ref": "#/components/schemas/ChangeValueKind"
           }
         },
-        "description": "A value before and after. Equal values did not change and show for context; a null `before` is new and a null\r\n`after` was removed. An `Instant` is ISO 8601, for the browser to format."
+        "description": "A value before and after. Equal values did not change and show for context; a null `before` is new and a null\n`after` was removed. An `Instant` is ISO 8601, for the browser to format."
       },
       "HistoryEntry": {
         "required": [
@@ -14149,7 +16211,7 @@
             }
           }
         },
-        "description": "One change in words, such as \"made Notes on the exercise optional\". `text` is the sentence; `parts` are its\r\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after."
+        "description": "One change in words, such as \"made Notes on the exercise optional\". `text` is the sentence; `parts` are its\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after."
       },
       "HistoryPage": {
         "required": [
@@ -14172,7 +16234,7 @@
             "format": "uuid"
           }
         },
-        "description": "One page of an object's history, newest first. `nextBefore` is the id of this page's last entry, to pass as\r\n`before` for the next page, or null after the last."
+        "description": "One page of an object's history, newest first. `nextBefore` is the id of this page's last entry, to pass as\n`before` for the next page, or null after the last."
       },
       "HistoryTextPart": {
         "required": [
@@ -14233,6 +16295,86 @@
             }
           }
         }
+      },
+      "Interviewer": {
+        "required": [
+          "userId",
+          "displayName",
+          "calendarConnected",
+          "calendarProvider"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "calendarConnected": {
+            "type": "boolean"
+          },
+          "calendarProvider": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CalendarProvider"
+              }
+            ]
+          }
+        },
+        "description": "A member who can interview for a job: one who sees it (everyone who sees all jobs, and the members on its hiring team).\n`calendarConnected` is true when their calendar is connected and works here, so ScreenHire can read when they are\nbusy and put the interview in it; an interview cannot be offered with someone who has none. `calendarProvider`\nsays which calendar it is, and is null when `calendarConnected` is false."
+      },
+      "InterviewParticipant": {
+        "required": [
+          "userId",
+          "displayName",
+          "isOrganizer",
+          "syncStatus",
+          "syncProblem"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "isOrganizer": {
+            "type": "boolean"
+          },
+          "syncStatus": {
+            "$ref": "#/components/schemas/InterviewSyncStatus"
+          },
+          "syncProblem": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One interviewer on an interview and the state of their calendar event. `syncStatus` is `Pending` (not on the\ncalendar yet, or being changed), `Synced` or `Failed`; `syncProblem` says why in plain words when it\nfailed. `displayName` is \"Former member\" for someone who left the organization."
+      },
+      "InterviewStatus": {
+        "enum": [
+          "Open",
+          "Booked",
+          "Cancelled",
+          "Expired"
+        ]
+      },
+      "InterviewSyncStatus": {
+        "enum": [
+          "Pending",
+          "Synced",
+          "Failed"
+        ],
+        "description": "Where one interviewer's calendar event stands."
       },
       "InvitationAcceptance": {
         "required": [
@@ -14302,7 +16444,7 @@
             ]
           }
         },
-        "description": "Invites a person by email to join the organization with a role: a built-in one, or Custom with its id. They join with\r\n`jobAccess`, All when it is left out."
+        "description": "Invites a person by email to join the organization with a role: a built-in one, or Custom with its id. They join with\n`jobAccess`, All when it is left out."
       },
       "InvitationsQueued": {
         "required": [
@@ -14320,7 +16462,7 @@
             "format": "int32"
           }
         },
-        "description": "How many invitations were queued, and how many candidates were skipped: no longer in the pool, or already applied to\r\nthe job. Each sent invitation appears in Messages and in the Activity of the application they were kept from."
+        "description": "How many invitations were queued, and how many candidates were skipped: no longer in the pool, or already applied to\nthe job. Each sent invitation appears in Messages and in the Activity of the application they were kept from."
       },
       "InviteToApplyRequest": {
         "required": [
@@ -14341,14 +16483,14 @@
             "format": "uuid"
           }
         },
-        "description": "Invites these candidates from the talent pool to apply for `jobId`, an open job."
+        "description": "Invites these saved candidates to apply for `jobId`, an open job."
       },
       "JobAccess": {
         "enum": [
           "All",
           "HiringTeamOnly"
         ],
-        "description": "Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\r\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation."
+        "description": "Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation."
       },
       "JobBoardDepartment": {
         "required": [
@@ -14462,7 +16604,7 @@
             ]
           }
         },
-        "description": "A job in the public job-board API, in Greenhouse's snake_case shape so tools built for Greenhouse boards read it.\r\n`content` is the description as sanitized HTML (Greenhouse escapes it; we do not), present with\r\n`?content=true` and on a single job. Ids are our job ids (UUIDs), not Greenhouse's integers."
+        "description": "A job in the public job-board API, in Greenhouse's snake_case shape so tools built for Greenhouse boards read it.\n`content` is the description as sanitized HTML (Greenhouse escapes it; we do not), present with\n`?content=true` and on a single job. Ids are our job ids (UUIDs), not Greenhouse's integers."
       },
       "JobBoardJobList": {
         "required": [
@@ -14730,7 +16872,7 @@
             ]
           }
         },
-        "description": "A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\r\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it."
+        "description": "A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it."
       },
       "JobPostingStatus": {
         "required": [
@@ -14963,7 +17105,7 @@
             "format": "date-time"
           }
         },
-        "description": "The posting content of a job at one moment: everything a careers page, a feed or a job board shows. A\r\nJobVersion freezes one. Equality compares the content, list members included."
+        "description": "The posting content of a job at one moment: everything a careers page, a feed or a job board shows. A\nJobVersion freezes one. Equality compares the content, list members included."
       },
       "JobStatus": {
         "enum": [
@@ -15079,7 +17221,7 @@
             }
           }
         },
-        "description": "How the job's workflow differs from the newest published version of the template it came from. Empty\r\n`changes` with `updateAvailable` false: the job is up to date."
+        "description": "How the job's workflow differs from the newest published version of the template it came from. Empty\n`changes` with `updateAvailable` false: the job is up to date."
       },
       "JobTemplateSource": {
         "required": [
@@ -15222,7 +17364,7 @@
             ]
           }
         },
-        "description": "Keeps the candidates of these applications in mind: each leaves its job without a rejection and joins the talent pool.\r\n`note` says why, once for all of them. Only an open application whose candidate gave permission for future roles\r\non its form can be kept."
+        "description": "Saves the candidates of these applications: each leaves its job without a rejection and joins the saved candidates.\n`note` says why, once for all of them. Only an open application whose candidate gave permission for future roles\non its form can be saved."
       },
       "KeptInMind": {
         "required": [
@@ -15245,7 +17387,7 @@
             "format": "int32"
           }
         },
-        "description": "What happened: `kept` joined the pool; `notAllowed` have no permission for future roles (they never gave it,\r\nit ran out or they took it back); `alreadyEnded` were hired, rejected, withdrawn or kept in mind already."
+        "description": "What happened: `kept` were saved; `notAllowed` have no permission for future roles (they never gave it or\nthey took it back); `alreadyEnded` were hired, rejected, withdrawn or saved already."
       },
       "Knockout": {
         "required": [
@@ -15263,7 +17405,7 @@
             ]
           }
         },
-        "description": "Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\r\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\r\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2)."
+        "description": "Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2)."
       },
       "LastUpdate": {
         "required": [
@@ -15328,7 +17470,7 @@
             "type": "string"
           }
         },
-        "description": "Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\r\nones the provider reported serving, not the configured names."
+        "description": "Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\nones the provider reported serving, not the configured names."
       },
       "MagicLinkRequest": {
         "required": [
@@ -15426,7 +17568,7 @@
             }
           }
         },
-        "description": "The signed-in member's settings for teammates' changes as toasts, in their current organization. `toasts` turns\r\nthem on or off; `closeToasts` closes each after a few seconds, and off keeps it until dismissed; `off` lists\r\nthe kinds of change that do not toast. Everything starts on."
+        "description": "The signed-in member's settings for teammates' changes as toasts, in their current organization. `toasts` turns\nthem on or off; `closeToasts` closes each after a few seconds, and off keeps it until dismissed; `off` lists\nthe kinds of change that do not toast. Everything starts on."
       },
       "MembershipEventKind": {
         "enum": [
@@ -15440,7 +17582,8 @@
           "RoleDeleted",
           "JobAccessChanged",
           "AddedToHiringTeam",
-          "RemovedFromHiringTeam"
+          "RemovedFromHiringTeam",
+          "CandidateErased"
         ]
       },
       "MembershipLogEntry": {
@@ -15599,7 +17742,7 @@
             "format": "uuid"
           }
         },
-        "description": "One entry in the organization's membership log. `actorUserId` made the change, or `actorApiKeyId` when an\r\nAPI key did; `memberUserId` is who it is\r\nabout (null for an invitation not accepted yet and for a change to a role itself). `previousRole` and\r\n`role` are set where the kind has them, with the custom role's id and its name at the time; for RoleCreated,\r\nRoleUpdated and RoleDeleted, `customRoleId` and `roleName` are the role, and a rename keeps the old name in\r\n`previousRoleName`. JobAccessChanged sets `previousJobAccess` and `jobAccess`; an invitation and a\r\njoin set `jobAccess`. AddedToHiringTeam and RemovedFromHiringTeam name a job (`jobId`, with its title now)\r\nor a hiring template's default team (`hiringTemplateId`, with its name now). A reader who sees only their own\r\njobs gets no entries about the others."
+        "description": "One entry in the organization's membership log. `actorUserId` made the change, or `actorApiKeyId` when an\nAPI key did; `memberUserId` is who it is\nabout (null for an invitation not accepted yet and for a change to a role itself). `previousRole` and\n`role` are set where the kind has them, with the custom role's id and its name at the time; for RoleCreated,\nRoleUpdated and RoleDeleted, `customRoleId` and `roleName` are the role, and a rename keeps the old name in\n`previousRoleName`. JobAccessChanged sets `previousJobAccess` and `jobAccess`; an invitation and a\njoin set `jobAccess`. AddedToHiringTeam and RemovedFromHiringTeam name a job (`jobId`, with its title now)\nor a hiring template's default team (`hiringTemplateId`, with its name now). A reader who sees only their own\njobs gets no entries about the others."
       },
       "MoveApplicationRequest": {
         "required": [
@@ -15617,7 +17760,7 @@
             ]
           }
         },
-        "description": "Moves an application to another stage of its job's workflow. Only people move applications here. The optional\r\n`note` is kept on the move's timeline entry."
+        "description": "Moves an application to another stage of its job's workflow. Only people move applications here. The optional\n`note` is kept on the move's timeline entry."
       },
       "MyOrganization": {
         "required": [
@@ -15649,7 +17792,7 @@
             ]
           }
         },
-        "description": "One of the signed-in user's organizations, for the organization switcher, with their role there. `roleName` is\r\nnull for a custom role in an organization other than the one they work in: row-level security keeps its roles from\r\nthem until they switch."
+        "description": "One of the signed-in user's organizations, for the organization switcher, with their role there. `roleName` is\nnull for a custom role in an organization other than the one they work in: row-level security keeps its roles from\nthem until they switch."
       },
       "OnboardingRequest": {
         "required": [
@@ -15735,7 +17878,7 @@
             "$ref": "#/components/schemas/LastUpdate"
           }
         },
-        "description": "The organization's branding (docs/architecture/branding.md): the brand colour (buttons and links), the second colour\r\n(the header band of its careers pages and emails), the heading font and the images in use, each null for\r\nScreenHire's default. `lastUpdated` is the branding's last change (\"by ScreenHire\" while it is all the\r\ndefault); its history is `/branding/history`."
+        "description": "The organization's branding (docs/architecture/branding.md): the brand colour (buttons and links), the second colour\n(the header band of its careers pages and emails), the heading font and the images in use, each null for\nScreenHire's default. `lastUpdated` is the branding's last change (\"by ScreenHire\" while it is all the\ndefault); its history is `/branding/history`."
       },
       "OrganizationProfile": {
         "required": [
@@ -15785,7 +17928,7 @@
             }
           }
         },
-        "description": "The signed-in user's organization. `slug` names its careers pages and public API routes and does not change after\r\nonboarding; `careersUrl` is its careers board on the configured careers domain, where `{careersUrl}/embed.js`\r\nis the embeddable widget's script. `questionsPerPage` is how many questions candidates see on each page of a\r\nquestionnaire that has no sections. `embedOrigins` are the sites allowed to show the careers pages in a frame\r\n(origins such as `https://www.example.com`, in the order they were added). `lastUpdated` is the last change\r\nto the name, the questions per page or the sites, or when the organization was made; its history is\r\n`/v1/organization/history`."
+        "description": "The signed-in user's organization. `slug` names its careers pages and public API routes and does not change after\nonboarding; `careersUrl` is its careers board on the configured careers domain, where `{careersUrl}/embed.js`\nis the embeddable widget's script. `questionsPerPage` is how many questions candidates see on each page of a\nquestionnaire that has no sections. `embedOrigins` are the sites allowed to show the careers pages in a frame\n(origins such as `https://www.example.com`, in the order they were added). `lastUpdated` is the last change\nto the name, the questions per page or the sites, or when the organization was made; its history is\n`/v1/organization/history`."
       },
       "OrganizationRole": {
         "enum": [
@@ -15795,34 +17938,44 @@
           "Viewer",
           "Custom"
         ],
-        "description": "The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\r\n(CustomRole). Stored as text."
+        "description": "The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text."
       },
-      "OrganizationTalentPoolSettings": {
+      "OrganizationSendingDomain": {
         "required": [
-          "permissionMonths",
-          "minMonths",
-          "maxMonths",
-          "lastUpdated"
+          "available",
+          "sandbox",
+          "domain"
         ],
         "type": "object",
         "properties": {
-          "permissionMonths": {
-            "type": "integer",
-            "format": "int32"
+          "available": {
+            "type": "boolean"
           },
-          "minMonths": {
-            "type": "integer",
-            "format": "int32"
+          "sandbox": {
+            "type": "boolean"
           },
-          "maxMonths": {
-            "type": "integer",
-            "format": "int32"
+          "domain": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SendingDomainDetail"
+              }
+            ]
           },
           "lastUpdated": {
-            "$ref": "#/components/schemas/LastUpdate"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LastUpdate"
+              }
+            ]
           }
         },
-        "description": "The organization's talent pool settings (docs/architecture/talent-pool.md). `permissionMonths` is how long a\r\ncandidate's permission to keep their details for future roles lasts from when they gave it: 12 by default, from\r\n`minMonths` to `maxMonths`. A permission ends at the shorter of the period when it was given and this one.\r\n`lastUpdated` is the settings' last change (\"by ScreenHire\" while they are the default); their history is\r\n`/talent-pool-settings/history`."
+        "description": "The organization's sending domain (Settings, Sending domain). `available` is false when this deployment has no email\nprovider: the page says so and offers nothing. `sandbox` says the records are made up for a local run. `domain`\nis null until one is added. `lastUpdated` is the newest change to it (added, verified, no longer verified), null with\nno domain; its History is `GET /v1/organization/sending-domain/history`."
       },
       "OrganizationVerificationSettings": {
         "required": [
@@ -15851,7 +18004,7 @@
             "$ref": "#/components/schemas/LastUpdate"
           }
         },
-        "description": "The organization's verification settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the\r\nresume, answers and any LinkedIn export to the deployment's model provider; it is off until an admin turns it on.\r\n`monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment's default.\r\n`tokensUsedThisMonth` is what the check has used so far this month. `lastUpdated` is the settings' last\r\nchange (\"by ScreenHire\" while they are the defaults); their history is `/verification-settings/history`."
+        "description": "The organization's verification settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the\nresume, answers and any LinkedIn export to the deployment's model provider; it is off until an admin turns it on.\n`monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment's default.\n`tokensUsedThisMonth` is what the check has used so far this month. `lastUpdated` is the settings' last\nchange (\"by ScreenHire\" while they are the defaults); their history is `/verification-settings/history`."
       },
       "PageTelemetryInput": {
         "required": [
@@ -15872,7 +18025,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "Page-level counts: times the page was hidden, and automation markers from a fixed list (`webdriver`,\r\n`headless`, ...)."
+        "description": "Page-level counts: times the page was hidden, and automation markers from a fixed list (`webdriver`,\n`headless`, ...)."
       },
       "PageTimeInput": {
         "required": [
@@ -15959,9 +18112,12 @@
           "ManageOwners",
           "DeleteAnyNote",
           "CreateTasks",
-          "ManageIntegrations"
+          "ManageIntegrations",
+          "EraseCandidates",
+          "EditAnyView",
+          "GrantVerificationAccess"
         ],
-        "description": "Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\r\nRolePermissions."
+        "description": "Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions."
       },
       "PermissionGroup": {
         "enum": [
@@ -16001,7 +18157,7 @@
             "type": "boolean"
           }
         },
-        "description": "A permission in the order the Roles page lists it: its group, its name and one line on what it covers.\r\n`ownerOnly` ones never go into a custom role; `everyRole` ones are in every role."
+        "description": "A permission in the order the Roles page lists it: its group, its name and one line on what it covers.\n`ownerOnly` ones never go into a custom role; `everyRole` ones are in every role."
       },
       "PostingDefaults": {
         "type": "object",
@@ -16171,7 +18327,7 @@
             "format": "date-time"
           }
         },
-        "description": "A saved draft as the careers apply page fills the form from it. `jobSlug` is the job it belongs to; the page\r\nrefuses a draft for another job."
+        "description": "A saved draft as the careers apply page fills the form from it. `jobSlug` is the job it belongs to; the page\nrefuses a draft for another job."
       },
       "PublicApplicationDraftReceipt": {
         "required": [
@@ -16220,9 +18376,15 @@
               "null",
               "string"
             ]
+          },
+          "botCheckToken": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "What a candidate saves of the apply form to finish later (ApplicationDraft): their details, their\r\nanswers to the non-file questions, the assistive-technology switch and the AI-use answer. Nothing is required yet\r\nbeyond the first name and the email the link goes to."
+        "description": "What a candidate saves of the apply form to finish later (ApplicationDraft): their details, their\nanswers to the non-file questions, the assistive-technology switch and the AI-use answer. Nothing is required yet\nbeyond the first name and the email the link goes to."
       },
       "PublicApplicationForm": {
         "required": [
@@ -16235,8 +18397,7 @@
           "telemetry",
           "sections",
           "questionsPerPage",
-          "saveDraftEnabled",
-          "talentPoolMonths"
+          "saveDraftEnabled"
         ],
         "type": "object",
         "properties": {
@@ -16282,13 +18443,9 @@
           },
           "saveDraftEnabled": {
             "type": "boolean"
-          },
-          "talentPoolMonths": {
-            "type": "integer",
-            "format": "int32"
           }
         },
-        "description": "Everything the careers apply page needs for one open job. The resume question comes first\r\n(ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured.\r\n`telemetry` is a new telemetry session for the form; the page keeps the first one it gets.\r\n`sections` are the questionnaire's named pages, or null to split it into pages of `questionsPerPage`\r\n(apply-flow.md §7). `saveDraftEnabled` says whether the candidate can save the form to finish later: false when\r\nthis deployment sends no email or has no careers host to link to.\r\n`talentPoolMonths` is how long the organization keeps a candidate's details for future roles if they say so,\r\nwhich the form's \"Keep my details for future roles\" box tells them."
+        "description": "Everything the careers apply page needs for one open job. The resume question comes first\n(ApplicationForm). `turnstileSiteKey` is null unless the bot challenge is configured.\n`telemetry` is a new telemetry session for the form; the page keeps the first one it gets.\n`sections` are the questionnaire's named pages, or null to split it into pages of `questionsPerPage`\n(apply-flow.md §7). `saveDraftEnabled` says whether the candidate can save the form to finish later: false when\nthis deployment sends no email or has no careers host to link to."
       },
       "PublicApplicationReceipt": {
         "required": [
@@ -16412,9 +18569,15 @@
               "null",
               "string"
             ]
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "A candidate's application from the careers page. The candidate is matched by email within the organization and\r\ncreated if new; an existing candidate's details are never changed by a public submission."
+        "description": "A candidate's application from the careers page. The candidate is matched by email within the organization and\ncreated if new; an existing candidate's details are never changed by a public submission."
       },
       "PublicBrandImage": {
         "required": [
@@ -16519,7 +18682,7 @@
             ]
           }
         },
-        "description": "An organization's branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\r\nfor ScreenHire's default. `colors` come from the brand colour; `header` is the band in the second colour,\r\nwith white or ink text on it; image `url`s are absolute addresses on the careers board."
+        "description": "An organization's branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\nfor ScreenHire's default. `colors` come from the brand colour; `header` is the band in the second colour,\nwith white or ink text on it; image `url`s are absolute addresses on the careers board."
       },
       "PublicCandidateInput": {
         "required": [
@@ -16564,6 +18727,98 @@
           }
         },
         "description": "The header band: its fill, the second colour, and the white or ink text on it. Both `#rrggbb`."
+      },
+      "PublicInterview": {
+        "required": [
+          "organization",
+          "jobTitle",
+          "state",
+          "startsAt",
+          "endsAt",
+          "timeZone",
+          "defaultTimeZone",
+          "durationMinutes",
+          "slots",
+          "slotsUnavailable",
+          "canChange",
+          "minNoticeHours"
+        ],
+        "type": "object",
+        "properties": {
+          "organization": {
+            "$ref": "#/components/schemas/PublicOrganization"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/PublicInterviewState"
+          },
+          "startsAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "defaultTimeZone": {
+            "type": "string"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "slotsUnavailable": {
+            "type": "boolean"
+          },
+          "canChange": {
+            "type": "boolean"
+          },
+          "minNoticeHours": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "The interview as the candidate's page shows it. `slots` are the start times offered, as UTC instants in order, each\n`durationMinutes` long: for an Open interview, and for a Booked one the candidate may still change. The page writes\nthem in `timeZone` (the `tz` asked for when it is a zone the server knows, otherwise `defaultTimeZone`,\nthe zone the team chose). `slotsUnavailable` is true when the team's calendars could not be read just now, so no\ntimes are offered; trying again later may work. `minNoticeHours` is how long before the start the candidate can\nstill move or cancel. Nothing about the interviewers, and nothing from verification."
+      },
+      "PublicInterviewChoice": {
+        "required": [
+          "start"
+        ],
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "The start time the candidate picked, one of the offered `slots`."
+      },
+      "PublicInterviewState": {
+        "enum": [
+          "Open",
+          "Booked",
+          "Cancelled",
+          "Expired"
+        ],
+        "description": "Where a candidate's interview stands on the careers page."
       },
       "PublicJob": {
         "required": [
@@ -16721,7 +18976,7 @@
             }
           }
         },
-        "description": "The public careers listing for one organization. `url` is the board's careers page; `branding` is its\r\nbranding, each part null for ScreenHire's; `embedOrigins` are the sites allowed to show it in a frame."
+        "description": "The public careers listing for one organization. `url` is the board's careers page; `branding` is its\nbranding, each part null for ScreenHire's; `embedOrigins` are the sites allowed to show it in a frame."
       },
       "PublicOrganization": {
         "required": [
@@ -16748,7 +19003,7 @@
             }
           }
         },
-        "description": "An organization as its careers pages show it, with its branding (each part null for ScreenHire's) and\r\n`embedOrigins`, the sites allowed to show the careers pages in a frame, which the pages send in their\r\n`frame-ancestors` header (empty: none but the careers pages themselves)."
+        "description": "An organization as its careers pages show it, with its branding (each part null for ScreenHire's) and\n`embedOrigins`, the sites allowed to show the careers pages in a frame, which the pages send in their\n`frame-ancestors` header (empty: none but the careers pages themselves)."
       },
       "PublicPalette": {
         "required": [
@@ -16772,7 +19027,7 @@
             "type": "string"
           }
         },
-        "description": "The careers-page colours from the brand colour (docs/design/design-system.md section 18): `brand` fills,\r\n`onBrand` is text on it, `brandText` is links on the page and `brandUi` is borders and focus rings.\r\nA colour saved since the contrast check passes as it is, so all three are the colour itself; an older one is darkened\r\nuntil it passes. All `#rrggbb`."
+        "description": "The careers-page colours from the brand colour (docs/design/design-system.md section 18): `brand` fills,\n`onBrand` is text on it, `brandText` is links on the page and `brandUi` is borders and focus rings.\nA colour saved since the contrast check passes as it is, so all three are the colour itself; an older one is darkened\nuntil it passes. All `#rrggbb`."
       },
       "PublicQuestion": {
         "required": [
@@ -16847,7 +19102,7 @@
             }
           }
         },
-        "description": "One question of a job's application form, as a candidate sees it. Knockout settings stay on the server: the form\r\naccepts every answer, and a person reviews what follows from it."
+        "description": "One question of a job's application form, as a candidate sees it. Knockout settings stay on the server: the form\naccepts every answer, and a person reviews what follows from it."
       },
       "PublicQuestionnaire": {
         "required": [
@@ -16900,7 +19155,7 @@
             }
           }
         },
-        "description": "A follow-up questionnaire as its careers page shows it, through the signed link in the candidate's email.\r\n`questions`, `sections` and `draft` are listed only while the link is `Open`; knockout settings stay\r\non the server. `sections` are its named pages, or null to split it into pages of `questionsPerPage`.\r\n`draft` holds the answers the candidate saved to finish later, empty when there are none."
+        "description": "A follow-up questionnaire as its careers page shows it, through the signed link in the candidate's email.\n`questions`, `sections` and `draft` are listed only while the link is `Open`; knockout settings stay\non the server. `sections` are its named pages, or null to split it into pages of `questionsPerPage`.\n`draft` holds the answers the candidate saved to finish later, empty when there are none."
       },
       "PublicQuestionnaireAnswers": {
         "required": [
@@ -16924,7 +19179,7 @@
           "Expired",
           "Closed"
         ],
-        "description": "Whether a follow-up questionnaire's link can still be answered: `Answered` once the candidate sent their answers,\r\n`Expired` after the link's time ran out, `Closed` when the questionnaire, the job or the application is no\r\nlonger open."
+        "description": "Whether a follow-up questionnaire's link can still be answered: `Answered` once the candidate sent their answers,\n`Expired` after the link's time ran out, `Closed` when the questionnaire, the job or the application is no\nlonger open."
       },
       "PublicTalentPoolStatus": {
         "required": [
@@ -16940,7 +19195,7 @@
             "type": "boolean"
           }
         },
-        "description": "The page a candidate opens from the link in an invitation to stop being kept. `kept`: the organization still\r\nkeeps their details for future roles; false once they stopped it, or it ran out."
+        "description": "The page a candidate opens from the link in an invitation to stop being kept. `kept`: the organization still\nkeeps their details for future roles; false once they stopped it."
       },
       "PublicTelemetrySettings": {
         "required": [
@@ -16956,7 +19211,7 @@
             "$ref": "#/components/schemas/DeviceCheckBasis"
           }
         },
-        "description": "What the careers page's telemetry module may do on this form (verification-engine.md §3): `sessionToken` binds its\r\nsnapshots to one way through the form, and `deviceCheck` is the footing for the device fingerprint where the job\r\nis (`Off`, `Notice`, or `Consent`, which needs the candidate's tick)."
+        "description": "What the careers page's telemetry module may do on this form (verification-engine.md §3): `sessionToken` binds its\nsnapshots to one way through the form, and `deviceCheck` is the footing for the device fingerprint where the job\nis (`Off`, `Notice`, or `Consent`, which needs the candidate's tick)."
       },
       "PublicUploadSettings": {
         "required": [
@@ -16988,7 +19243,7 @@
             }
           }
         },
-        "description": "Publishing a job: optionally, the boards to post it to. Left out, the first publish posts to every board in\r\n`GET /v1/boards` and a later one updates the boards the job is already on. Naming a board the job was taken\r\ndown from posts it again."
+        "description": "Publishing a job: optionally, the boards to post it to. Left out, the first publish posts to every board in\n`GET /v1/boards` and a later one updates the boards the job is already on. Naming a board the job was taken\ndown from posts it again."
       },
       "Question": {
         "required": [
@@ -17067,7 +19322,7 @@
             }
           }
         },
-        "description": "One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\r\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\r\nfor QuestionType.Number, int? Question.MaxLength for the text types and\r\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File."
+        "description": "One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File."
       },
       "Questionnaire": {
         "required": [
@@ -17153,7 +19408,94 @@
           "Rated",
           "AfterYourScorecard"
         ],
-        "description": "`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\r\nreader has a review to give first."
+        "description": "`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\nreader has a review to give first."
+      },
+      "ReceivedAttachment": {
+        "required": [
+          "id",
+          "fileName",
+          "contentType",
+          "sizeBytes",
+          "scanStatus"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "scanStatus": {
+            "$ref": "#/components/schemas/MalwareScanStatus"
+          }
+        },
+        "description": "A file that came with a reply. It can be downloaded once `scanStatus` is `Clean` or `NotScanned`; while it is\n`Pending` the download answers 409, and an `Infected` file is never offered."
+      },
+      "ReceivedEmail": {
+        "required": [
+          "id",
+          "applicationId",
+          "fromAddress",
+          "fromName",
+          "subject",
+          "html",
+          "text",
+          "receivedAt",
+          "autoReply",
+          "attachments"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fromAddress": {
+            "type": "string"
+          },
+          "fromName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "subject": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "autoReply": {
+            "type": "boolean"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceivedAttachment"
+            }
+          }
+        },
+        "description": "A candidate's reply as it arrived: who it is from, the subject, the sanitized HTML part (may be empty) and the plain-text\npart, and the files that came with it. `autoReply` marks an out-of-office or other automatic answer."
       },
       "Recommendation": {
         "enum": [
@@ -17172,7 +19514,103 @@
             "default": false
           }
         },
-        "description": "Takes the candidate out of the talent pool. `candidateAsked`: they asked to be removed, so their permission for\r\nfuture roles is withdrawn too, and they cannot be kept again until they give it on a new application."
+        "description": "Takes the candidate out of the saved candidates. `candidateAsked`: they asked to be removed, so their permission for\nfuture roles is withdrawn too, and they cannot be saved again until they give it on a new application."
+      },
+      "ReportHeadline": {
+        "required": [
+          "applications",
+          "reachedInterview",
+          "offers",
+          "hires",
+          "medianDaysToHire"
+        ],
+        "type": "object",
+        "properties": {
+          "applications": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reachedInterview": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "offers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hires": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "medianDaysToHire": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        },
+        "description": "The headline numbers of one range."
+      },
+      "ReportOpenJob": {
+        "required": [
+          "jobId",
+          "title",
+          "applications",
+          "inInterview",
+          "daysOpen",
+          "hires"
+        ],
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "applications": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "inInterview": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "daysOpen": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hires": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "An open job: applications in the range, applications in an Interview stage now, days open and hires in the range."
+      },
+      "ReportWeek": {
+        "required": [
+          "weekStart",
+          "applications",
+          "hires"
+        ],
+        "type": "object",
+        "properties": {
+          "weekStart": {
+            "type": "string",
+            "format": "date"
+          },
+          "applications": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hires": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "One Monday-start week: applications submitted in it and hires made in it, both inside the range."
       },
       "RequestScorecardRequest": {
         "required": [
@@ -17195,7 +19633,7 @@
             ]
           }
         },
-        "description": "Ask a teammate for a scorecard: a Scorecard task assigned to them, done when they submit that scorecard for the\r\napplication."
+        "description": "Ask a teammate for a scorecard: a Scorecard task assigned to them, done when they submit that scorecard for the\napplication."
       },
       "RoleCatalogue": {
         "required": [
@@ -17217,7 +19655,7 @@
             }
           }
         },
-        "description": "The organization's roles and what each can do: the four built-in ones, most access first, then its custom roles by\r\nname, with every permission in the catalogue (RolePermissions)."
+        "description": "The organization's roles and what each can do: the four built-in ones, most access first, then its custom roles by\nname, with every permission in the catalogue (RolePermissions)."
       },
       "RoleSummary": {
         "required": [
@@ -17261,7 +19699,7 @@
             "$ref": "#/components/schemas/LastUpdate"
           }
         },
-        "description": "A role: built-in (`customRoleId` null), or Custom with its id. `description` is one line on what it is\r\nfor, generated from its permissions for a custom role. `people` counts the members who have it. A built-in role\r\nis last updated by ScreenHire."
+        "description": "A role: built-in (`customRoleId` null), or Custom with its id. `description` is one line on what it is\nfor, generated from its permissions for a custom role. `people` counts the members who have it. A built-in role\nis last updated by ScreenHire."
       },
       "RuleResult": {
         "required": [
@@ -17369,6 +19807,109 @@
         },
         "description": "One listing on the local sandbox board, as the board itself would show it."
       },
+      "SavedViewSummary": {
+        "required": [
+          "id",
+          "name",
+          "scope",
+          "jobId",
+          "shared",
+          "mine",
+          "canEdit",
+          "filters",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ViewScope"
+          },
+          "jobId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "shared": {
+            "type": "boolean"
+          },
+          "mine": {
+            "type": "boolean"
+          },
+          "canEdit": {
+            "type": "boolean"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/ViewFilters"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "A saved view as the signed-in member sees it: their own, and the team's shared ones. `mine` is whether they saved\nit; `canEdit` whether they may rename, share or delete it (its owner, or a role that edits anyone's views)."
+      },
+      "ScheduleInterviewRequest": {
+        "required": [
+          "interviewerUserIds",
+          "durationMinutes",
+          "windowStart",
+          "windowEnd",
+          "timeZone"
+        ],
+        "type": "object",
+        "properties": {
+          "interviewerUserIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "windowStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "windowEnd": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "timeZone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "dayStart": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "dayEnd": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Offers an application's candidate an interview. `interviewerUserIds` are one to five members who see the job; the\nfirst is the organizer, whose calendar event invites the candidate and makes the meeting link. `durationMinutes`\nis 15, 30, 45, 60, 90 or 120. The candidate picks a start that fits inside `windowStart` and `windowEnd`\n(at most 90 days) within the working hours `dayStart` and `dayEnd` (`HH:mm`, default 09:00 and 17:00,\nweekdays only) in `timeZone` (an IANA id such as `Europe/London`), which is also the zone the candidate's page\nfirst shows."
+      },
       "Scorecard": {
         "required": [
           "name",
@@ -17386,7 +19927,7 @@
             }
           }
         },
-        "description": "A job's copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\r\nRecommendation and a note, which every scorecard has. Submitting one raises the\r\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\r\nRating questions average into the candidate's rating (ADR-0013, `RatingRule`); nothing else on a scorecard\r\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\r\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\r\nname those."
+        "description": "A job's copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate's rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those."
       },
       "ScorecardAnswerEntry": {
         "required": [
@@ -17437,7 +19978,7 @@
             }
           }
         },
-        "description": "A question as the reviewer was asked it, and their answer. `value` is \"yes\" or \"no\" for the yes-or-no kinds, an\r\noption id for a choice and the text for the text kinds; `values` are a multi-choice answer's option ids;\r\n`rating` is the number picked on a 1 to 5 or 1 to 10 scale. All empty means it was not answered."
+        "description": "A question as the reviewer was asked it, and their answer. `value` is \"yes\" or \"no\" for the yes-or-no kinds, an\noption id for a choice and the text for the text kinds; `values` are a multi-choice answer's option ids;\n`rating` is the number picked on a 1 to 5 or 1 to 10 scale. All empty means it was not answered."
       },
       "ScorecardAnswerInput": {
         "required": [
@@ -17471,7 +20012,7 @@
             "format": "int32"
           }
         },
-        "description": "The answer to one question: `value` for the yes-or-no kinds (\"yes\" or \"no\"), a choice (an option id) and the\r\ntext kinds, `values` for a multi-choice (option ids) and `rating` for a number scale."
+        "description": "The answer to one question: `value` for the yes-or-no kinds (\"yes\" or \"no\"), a choice (an option id) and the\ntext kinds, `values` for a multi-choice (option ids) and `rating` for a number scale."
       },
       "ScorecardEntry": {
         "required": [
@@ -17555,7 +20096,7 @@
             ]
           }
         },
-        "description": "One reviewer's scorecard, given while the application was in a stage: an answer to each question as it was asked, and\r\nan overall recommendation.\r\nIts rating answers make the candidate's rating (`ApplicationRating`, ADR-0013); nothing else on it does."
+        "description": "One reviewer's scorecard, given while the application was in a stage: an answer to each question as it was asked, and\nan overall recommendation.\nIts rating answers make the candidate's rating (`ApplicationRating`, ADR-0013); nothing else on it does."
       },
       "ScorecardQuestion": {
         "required": [
@@ -17607,7 +20148,7 @@
           "Rating10",
           "RatingYesNo"
         ],
-        "description": "A scorecard question's answer kind. The General kinds share QuestionType's names. The Rating kinds are\r\nthe ones the candidate's rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\r\nScorecardQuestionType.RatingYesNo (yes or no)."
+        "description": "A scorecard question's answer kind. The General kinds share QuestionType's names. The Rating kinds are\nthe ones the candidate's rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no)."
       },
       "ScorecardRating": {
         "required": [
@@ -17714,7 +20255,7 @@
             "type": "boolean"
           }
         },
-        "description": "A scorecard in the organization's library: a built-in (`builtIn`, ScreenHire's and read only) or one of its own.\r\nA hiring template's stage names it by `id` (`scorecardTemplateId`); a job keeps its own copy."
+        "description": "A scorecard in the organization's library: a built-in (`builtIn`, ScreenHire's and read only) or one of its own.\nA hiring template's stage names it by `id` (`scorecardTemplateId`); a job keeps its own copy."
       },
       "SearchResults": {
         "required": [
@@ -17736,7 +20277,7 @@
             }
           }
         },
-        "description": "What a search found among the candidates and jobs the reader sees: candidates by name or email, one hit per\r\napplication, and jobs by title. Each list is short and starts with names or titles that begin with the search."
+        "description": "What a search found among the candidates and jobs the reader sees: candidates by name or email, one hit per\napplication, and jobs by title. Each list is short and starts with names or titles that begin with the search."
       },
       "SendEmailsRequest": {
         "required": [
@@ -17770,7 +20311,129 @@
             ]
           }
         },
-        "description": "An email to the candidates of these applications, one each, rendered for each candidate. Give the wording\r\n(`subject` and `body`, Liquid over the general variables), a `templateId` to send the template as it\r\nstands, or both: then the wording goes, changed for this send only, and the template id records where it started.\r\nA blank email has wording and no template id."
+        "description": "An email to the candidates of these applications, one each, rendered for each candidate. Give the wording\n(`subject` and `body`, Liquid over the general variables), a `templateId` to send the template as it\nstands, or both: then the wording goes, changed for this send only, and the template id records where it started.\nA blank email has wording and no template id."
+      },
+      "SendingDomainDetail": {
+        "required": [
+          "domain",
+          "status",
+          "fromAddress",
+          "replyHost",
+          "records",
+          "createdAt",
+          "lastCheckedAt",
+          "verifiedAt",
+          "providerMessage"
+        ],
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SendingDomainStatus"
+          },
+          "fromAddress": {
+            "type": "string"
+          },
+          "replyHost": {
+            "type": "string"
+          },
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SendingDomainRecordEntry"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastCheckedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "verifiedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "providerMessage": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "A sending domain and what is left to do. `status` is Verified only once the email provider confirms the records,\nand only then does mail come from `fromAddress`; until then it keeps ScreenHire's address."
+      },
+      "SendingDomainRecordEntry": {
+        "required": [
+          "purpose",
+          "type",
+          "host",
+          "value",
+          "priority",
+          "state",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "purpose": {
+            "$ref": "#/components/schemas/SendingDomainRecordPurpose"
+          },
+          "type": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "priority": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "state": {
+            "$ref": "#/components/schemas/SendingDomainRecordState"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "description": "One DNS record to add at the domain's DNS host, why it is needed, and what the last check found."
+      },
+      "SendingDomainRecordPurpose": {
+        "enum": [
+          "Dkim",
+          "ReturnPath",
+          "Replies"
+        ],
+        "description": "Why a record is on the list."
+      },
+      "SendingDomainRecordState": {
+        "enum": [
+          "NotChecked",
+          "Matches",
+          "Differs",
+          "Missing"
+        ],
+        "description": "What the last DNS lookup found for a record."
+      },
+      "SendingDomainStatus": {
+        "enum": [
+          "Pending",
+          "Verified"
+        ]
       },
       "SentEmail": {
         "required": [
@@ -17818,6 +20481,18 @@
         },
         "description": "An email exactly as it went to the candidate: the address, the subject, the HTML part and the plain-text part."
       },
+      "SetSendingDomainRequest": {
+        "required": [
+          "domain"
+        ],
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string"
+          }
+        },
+        "description": "The domain to send from, such as `example.com`. Replaces the organization's current one."
+      },
       "SignalCategory": {
         "enum": [
           "Network",
@@ -17827,7 +20502,7 @@
           "Document",
           "Content"
         ],
-        "description": "Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\r\nsource, such as a corporate VPN, cannot raise a level by itself."
+        "description": "Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\nsource, such as a corporate VPN, cannot raise a level by itself."
       },
       "SignalConfidence": {
         "enum": [
@@ -17924,7 +20599,7 @@
             }
           }
         },
-        "description": "One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\r\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\r\nA metric is a measurement (seconds, a count), never a likelihood or a score."
+        "description": "One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score."
       },
       "SignalWeight": {
         "enum": [
@@ -18047,7 +20722,7 @@
             }
           }
         },
-        "description": "\"Test this workflow\" (workflow-engine.md §4): run a sample application through a workflow and see which automations\r\na trigger would fire. Nothing is saved or sent. `facts` is the sample application's snapshot; leave members out\r\nfor facts it does not have."
+        "description": "\"Test this workflow\" (workflow-engine.md §4): run a sample application through a workflow and see which automations\na trigger would fire. Nothing is saved or sent. `facts` is the sample application's snapshot; leave members out\nfor facts it does not have."
       },
       "SlackAccount": {
         "required": [
@@ -18083,7 +20758,7 @@
             ]
           }
         },
-        "description": "The member's linked Slack account: its name, and whether mentions and tasks given to them arrive as direct\r\nmessages. `problem` is `CannotMessage` when Slack refused the last one."
+        "description": "The member's linked Slack account: its name, and whether mentions and tasks given to them arrive as direct\nmessages. `problem` is `CannotMessage` when Slack refused the last one."
       },
       "SlackAuthorization": {
         "required": [
@@ -18208,7 +20883,7 @@
             "format": "date-time"
           }
         },
-        "description": "The workspace's settings: the channel (null until picked), the events posted there, who connected it and when,\r\nand why posting stopped working, if it did."
+        "description": "The workspace's settings: the channel (null until picked), the events posted there, who connected it and when,\nand why posting stopped working, if it did."
       },
       "SlackStatus": {
         "required": [
@@ -18257,7 +20932,7 @@
             ]
           }
         },
-        "description": "Slack for the signed-in member (docs/architecture/slack.md). `available` is false when this ScreenHire has no\r\nSlack app, and then nothing else is set. `workspace` is null until someone connects one. `account` is the\r\nmember's own link. `settings` is there only for someone who manages integrations and sees every job. The bot\r\ntoken is never in any answer."
+        "description": "Slack for the signed-in member (docs/architecture/slack.md). `available` is false when this ScreenHire has no\nSlack app, and then nothing else is set. `workspace` is null until someone connects one. `account` is the\nmember's own link. `settings` is there only for someone who manages integrations and sees every job. The bot\ntoken is never in any answer."
       },
       "SlackTestResult": {
         "required": [
@@ -18300,14 +20975,18 @@
       },
       "SourceCount": {
         "required": [
-          "source",
+          "key",
+          "name",
           "applications",
           "hires"
         ],
         "type": "object",
         "properties": {
-          "source": {
-            "$ref": "#/components/schemas/ApplicationSource"
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
           },
           "applications": {
             "type": "integer",
@@ -18319,6 +20998,28 @@
           }
         },
         "description": "Applications submitted in the range from one source, and how many of them are hired now."
+      },
+      "StageDays": {
+        "required": [
+          "kind",
+          "medianDays",
+          "hires"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/StageKind"
+          },
+          "medianDays": {
+            "type": "number",
+            "format": "double"
+          },
+          "hires": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "The median days the hires made in the range spent in one stage kind, and how many of them were in it."
       },
       "StageKind": {
         "enum": [
@@ -18333,6 +21034,25 @@
           "Withdrawn",
           "Custom"
         ]
+      },
+      "StartCalendarConnectRequest": {
+        "required": [
+          "provider",
+          "returnUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/CalendarProvider"
+          },
+          "returnUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Connects the member's calendar. `returnUrl`: the dashboard path to come back to, a local path only."
       },
       "StartSlackLinkRequest": {
         "required": [
@@ -18385,7 +21105,7 @@
             ]
           }
         },
-        "description": "A reviewer's scorecard. Name one of two: `stageId`, a stage the application has reached whose workflow stage\r\nhas a scorecard (the job's own copy), or `scorecardTemplateId`, a library scorecard given at the stage the\r\napplication is in now. Each reviewer gives one per stage and scorecard: the same submission again returns the stored\r\none, a different one is a 409."
+        "description": "A reviewer's scorecard. Name one of two: `stageId`, a stage the application has reached whose workflow stage\nhas a scorecard (the job's own copy), or `scorecardTemplateId`, a library scorecard given at the stage the\napplication is in now. Each reviewer gives one per stage and scorecard: the same submission again returns the stored\none, a different one is a 409."
       },
       "SwitchOrganizationRequest": {
         "required": [
@@ -18414,15 +21134,10 @@
       },
       "TalentPoolList": {
         "required": [
-          "permissionMonths",
           "people"
         ],
         "type": "object",
         "properties": {
-          "permissionMonths": {
-            "type": "integer",
-            "format": "int32"
-          },
           "people": {
             "type": "array",
             "items": {
@@ -18430,7 +21145,7 @@
             }
           }
         },
-        "description": "The organization's talent pool (docs/architecture/talent-pool.md): the candidates the team kept in mind, whose\r\npermission for future roles still holds. `permissionMonths` is the organization's period now."
+        "description": "The organization's saved candidates (docs/architecture/talent-pool.md): the candidates the team saved, whose permission\nfor future roles still holds. They stay until the team removes them or the candidate asks to stop."
       },
       "TalentPoolMember": {
         "required": [
@@ -18441,10 +21156,12 @@
           "jobId",
           "jobTitle",
           "note",
+          "noteUpdated",
           "tags",
           "keptAt",
           "keptByUserId",
-          "permissionEndsAt",
+          "rating",
+          "lastContactedAt",
           "lastInvitedJobId",
           "lastInvitedJobTitle",
           "lastInvitedAt",
@@ -18479,6 +21196,16 @@
               "string"
             ]
           },
+          "noteUpdated": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LastUpdate"
+              }
+            ]
+          },
           "tags": {
             "type": "array",
             "items": {
@@ -18496,8 +21223,14 @@
             ],
             "format": "uuid"
           },
-          "permissionEndsAt": {
-            "type": "string",
+          "rating": {
+            "$ref": "#/components/schemas/ApplicationRating"
+          },
+          "lastContactedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
             "format": "date-time"
           },
           "lastInvitedJobId": {
@@ -18528,7 +21261,7 @@
             }
           }
         },
-        "description": "One candidate in the talent pool."
+        "description": "One saved candidate."
       },
       "TaskListItem": {
         "required": [
@@ -18618,7 +21351,7 @@
           "Team",
           "Everyone"
         ],
-        "description": "Whose tasks a list shows: the signed-in person's (assigned to them), the team's (assigned to nobody in particular),\r\nor everyone's (every task the person can see)."
+        "description": "Whose tasks a list shows: the signed-in person's (assigned to them), the team's (assigned to nobody in particular),\nor everyone's (every task the person can see)."
       },
       "TaskStatusFilter": {
         "enum": [
@@ -18685,7 +21418,7 @@
             "format": "int32"
           }
         },
-        "description": "A member of the signed-in user's organization. `id` is the membership's id, which the member routes take.\r\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\r\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\r\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees."
+        "description": "A member of the signed-in user's organization. `id` is the membership's id, which the member routes take.\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees."
       },
       "TelemetrySnapshotInput": {
         "required": [
@@ -18719,7 +21452,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "One cumulative snapshot of one page view's form telemetry: session aggregates only (CLAUDE.md non-negotiable 4), never\r\nkeystrokes, key values, timings per key or field content. Unknown members are refused, so nothing else can travel in\r\nit."
+        "description": "One cumulative snapshot of one page view's form telemetry: session aggregates only (CLAUDE.md non-negotiable 4), never\nkeystrokes, key values, timings per key or field content. Unknown members are refused, so nothing else can travel in\nit."
       },
       "TemplateUsageList": {
         "required": [
@@ -18779,7 +21512,7 @@
             "type": "boolean"
           }
         },
-        "description": "Where one template is used and when it was last used. `templateId` is the id its own list gives it.\r\n`usedBy` lists every user, so its length is the count: jobs that are not closed for a hiring template, hiring\r\ntemplates for a scorecard, automations for an email. `lastUsedAt`: when a job last started from it, a stage last\r\nused it or an email last went out from it; null when never. `notUsedRecently`: nothing used it in the last 180\r\ndays, and the team has had it longer than that."
+        "description": "Where one template is used and when it was last used. `templateId` is the id its own list gives it.\n`usedBy` lists every user, so its length is the count: jobs that are not closed for a hiring template, hiring\ntemplates for a scorecard, automations for an email. `lastUsedAt`: when a job last started from it, a stage last\nused it or an email last went out from it; null when never. `notUsedRecently`: nothing used it in the last 180\ndays, and the team has had it longer than that."
       },
       "TemplateVersionStatus": {
         "enum": [
@@ -18801,22 +21534,16 @@
       },
       "TimeToHire": {
         "required": [
-          "medianDays",
-          "hires",
+          "stages",
           "jobs"
         ],
         "type": "object",
         "properties": {
-          "medianDays": {
-            "type": [
-              "null",
-              "number"
-            ],
-            "format": "double"
-          },
-          "hires": {
-            "type": "integer",
-            "format": "int32"
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StageDays"
+            }
           },
           "jobs": {
             "type": "array",
@@ -18838,7 +21565,7 @@
           "Tasks",
           "Templates"
         ],
-        "description": "A kind of teammate's change a member can turn off. The first six are about a candidate on a job whose hiring team\r\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\r\nlast, published by someone else. Stored and sent as text."
+        "description": "A kind of teammate's change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. Stored and sent as text."
       },
       "TriggerType": {
         "enum": [
@@ -18906,7 +21633,7 @@
             "format": "uuid"
           }
         },
-        "description": "Replaces the whole branding. Colours are `#rrggbb` and must pass the contrast check\r\n(`/branding/contrast`); each image id is one of the organization's uploads of that kind that passed its scan.\r\nNull is ScreenHire's default, or no image."
+        "description": "Replaces the whole branding. Colours are `#rrggbb` and must pass the contrast check\n(`/branding/contrast`); each image id is one of the organization's uploads of that kind that passed its scan.\nNull is ScreenHire's default, or no image."
       },
       "UpdateCareersEmbeddingRequest": {
         "required": [
@@ -18921,7 +21648,7 @@
             }
           }
         },
-        "description": "Replaces the sites allowed to embed the careers pages, at most 20. Each is an https site's address; a bare name gets\r\nhttps and a page's address keeps only its site, so `www.example.com/careers` saves as\r\n`https://www.example.com`. Duplicates are dropped and the order is kept. An empty list lets no other site frame\r\nthe careers pages."
+        "description": "Replaces the sites allowed to embed the careers pages, at most 20. Each is an https site's address; a bare name gets\nhttps and a page's address keeps only its site, so `www.example.com/careers` saves as\n`https://www.example.com`. Duplicates are dropped and the order is kept. An empty list lets no other site frame\nthe careers pages."
       },
       "UpdateEmailTemplateRequest": {
         "required": [
@@ -18943,7 +21670,22 @@
             ]
           }
         },
-        "description": "New wording for a template. `name` renames the organization's own template; leave it out for a built-in,\r\nwhose name is ScreenHire's."
+        "description": "New wording for a template. `name` renames the organization's own template; leave it out for a built-in,\nwhose name is ScreenHire's."
+      },
+      "UpdateHiddenViewsRequest": {
+        "required": [
+          "hiddenBuiltIns"
+        ],
+        "type": "object",
+        "properties": {
+          "hiddenBuiltIns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Replaces the built-in views the member hides; each id once."
       },
       "UpdateHiringTemplateRequest": {
         "required": [
@@ -19046,7 +21788,7 @@
             "format": "date-time"
           }
         },
-        "description": "Replaces a job's posting content. A published job keeps its slug; a closed job cannot change. The description is rich\r\ntext, as on CreateJobRequest."
+        "description": "Replaces a job's posting content. A published job keeps its slug; a closed job cannot change. The description is rich\ntext, as on CreateJobRequest."
       },
       "UpdateJobWorkflowRequest": {
         "required": [
@@ -19063,7 +21805,7 @@
             "format": "int32"
           }
         },
-        "description": "Replaces a job's workflow with the recruiter's edit of it: the job's own copy, tailored. `expectedWorkflowVersion`\r\nis the `workflowVersion` the edit started from; if someone saved in between, the request is refused (409) rather\r\nthan overwriting their change. A stage that still holds applications cannot be removed."
+        "description": "Replaces a job's workflow with the recruiter's edit of it: the job's own copy, tailored. `expectedWorkflowVersion`\nis the `workflowVersion` the edit started from; if someone saved in between, the request is refused (409) rather\nthan overwriting their change. A stage that still holds applications cannot be removed."
       },
       "UpdateNotificationSettingsRequest": {
         "required": [
@@ -19105,7 +21847,7 @@
             "format": "int32"
           }
         },
-        "description": "Renames the organization and, when given, sets its questions per page (1 to 50); null keeps it. Its slug, and so its\r\ncareers address, stays as it is."
+        "description": "Renames the organization and, when given, sets its questions per page (1 to 50); null keeps it. Its slug, and so its\ncareers address, stays as it is."
       },
       "UpdateRoleRequest": {
         "required": [
@@ -19183,19 +21925,6 @@
         },
         "description": "The channel to post to, by its id from the channel list, and the events posted there (none is allowed)."
       },
-      "UpdateTalentPoolSettingsRequest": {
-        "required": [
-          "permissionMonths"
-        ],
-        "type": "object",
-        "properties": {
-          "permissionMonths": {
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "description": "Sets how long a candidate's permission for future roles lasts, in whole months from 6 to 24."
-      },
       "UpdateVerificationSettingsRequest": {
         "required": [
           "llmConsistencyCheck"
@@ -19214,6 +21943,28 @@
           }
         },
         "description": "Turns the LLM consistency check on or off and sets its monthly token budget (null for the deployment's default)."
+      },
+      "UpdateViewRequest": {
+        "required": [
+          "name",
+          "shared"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "shared": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        },
+        "description": "Renames a view, shares it or makes it private; a member left out stays as it is."
       },
       "UpdateWebhookEndpointRequest": {
         "required": [
@@ -19244,7 +21995,7 @@
             ]
           }
         },
-        "description": "Replaces an endpoint's settings. A body without `enabled` keeps the endpoint on or off as it is. Turning it\r\nback on clears an automatic disable and its failure count; deliveries skipped while it was off stay skipped and can\r\nbe replayed."
+        "description": "Replaces an endpoint's settings. A body without `enabled` keeps the endpoint on or off as it is. Turning it\nback on clears an automatic disable and its failure count; deliveries skipped while it was off stay skipped and can\nbe replayed."
       },
       "UploadedFile": {
         "required": [
@@ -19326,7 +22077,7 @@
             "format": "int64"
           }
         },
-        "description": "Where and how to upload one file, and until when: send its bytes with `method` to `uploadUrl` with\r\n`headers`, then refer to it by `uploadId`."
+        "description": "Where and how to upload one file, and until when: send its bytes with `method` to `uploadUrl` with\n`headers`, then refer to it by `uploadId`."
       },
       "UsageItem": {
         "required": [
@@ -19359,7 +22110,7 @@
             ]
           }
         },
-        "description": "One thing that uses a template. `id` is the job's or the hiring template's id; for an automation it is the job\r\nor template the automation belongs to, and `automationId` and `automationName` name the automation."
+        "description": "One thing that uses a template. `id` is the job's or the hiring template's id; for an automation it is the job\nor template the automation belongs to, and `automationId` and `automationName` name the automation."
       },
       "UsageKind": {
         "enum": [
@@ -19449,6 +22200,65 @@
         },
         "description": "A reviewer set an assessment aside. `actorName` is the reviewer's display name, when they have one."
       },
+      "VerificationMatch": {
+        "required": [
+          "applicationId",
+          "jobId",
+          "jobTitle",
+          "candidateId",
+          "candidateName",
+          "appliedAt",
+          "verification"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "candidateName": {
+            "type": "string"
+          },
+          "appliedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "verification": {
+            "$ref": "#/components/schemas/VerificationSummary"
+          }
+        },
+        "description": "One application in VerificationMatches."
+      },
+      "VerificationMatches": {
+        "required": [
+          "items",
+          "hasMore"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VerificationMatch"
+            }
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "description": "Applications whose current verification matches a level filter, for a key with the Verification read scope. Each is a\npointer to read in full (`GET /v1/applications/{id}/verification`), not a ranking: the order is newest first and a\nlevel is evidence for a person to review, never a reason to reject on its own (ADR-0004)."
+      },
       "VerificationPolicy": {
         "required": [
           "aiUse"
@@ -19507,7 +22317,9 @@
           "Dismissed",
           "NoteAdded",
           "ReasonExplained",
-          "ExplanationUndone"
+          "ExplanationUndone",
+          "ReadByKey",
+          "EvidenceChanged"
         ]
       },
       "VerificationReviewEntry": {
@@ -19523,7 +22335,10 @@
           "occurredAt",
           "signalId",
           "signalTitle",
-          "explainReason"
+          "explainReason",
+          "apiKeyId",
+          "apiKeyName",
+          "keyCreatedByName"
         ],
         "type": "object",
         "properties": {
@@ -19568,7 +22383,10 @@
             ]
           },
           "actorUserId": {
-            "type": "string",
+            "type": [
+              "null",
+              "string"
+            ],
             "format": "uuid"
           },
           "actorName": {
@@ -19602,6 +22420,25 @@
               {
                 "$ref": "#/components/schemas/ExplainReason"
               }
+            ]
+          },
+          "apiKeyId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "apiKeyName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "keyCreatedByName": {
+            "type": [
+              "null",
+              "string"
             ]
           }
         },
@@ -19708,7 +22545,7 @@
             ]
           }
         },
-        "description": "One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\r\nnot numbers."
+        "description": "One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers."
       },
       "VerificationStatus": {
         "enum": [
@@ -19752,7 +22589,98 @@
             "type": "boolean"
           }
         },
-        "description": "The verification chips for an application in a list: each current level and its reason codes (shown as \"3 reasons\"), and\r\nwhether a reviewer dismissed it. Null on the summary until the application is assessed."
+        "description": "The verification chips for an application in a list: each current level and its reason codes (shown as \"3 reasons\"), and\nwhether a reviewer dismissed it. Null on the summary until the application is assessed."
+      },
+      "ViewFilters": {
+        "required": [
+          "baseView",
+          "jobIds",
+          "stages",
+          "authenticity",
+          "aiAssistance",
+          "tag",
+          "sortColumn",
+          "sortDescending"
+        ],
+        "type": "object",
+        "properties": {
+          "baseView": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "jobIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "authenticity": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "aiAssistance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tag": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sortColumn": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sortDescending": {
+            "type": "boolean"
+          }
+        },
+        "description": "What a view filters and how it sorts. `baseView` is a built-in view this one narrows; `jobIds` and\n`stages` pick jobs and stages (stage names on the Candidates page, stage ids on a job's table); `authenticity`\nis an authenticity level name or `Pending`; `aiAssistance` an AI assistance level name; `sortColumn` the\nsorted column, or none for the table's own order. Search text is not saved."
+      },
+      "ViewList": {
+        "required": [
+          "views",
+          "hiddenBuiltIns"
+        ],
+        "type": "object",
+        "properties": {
+          "views": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SavedViewSummary"
+            }
+          },
+          "hiddenBuiltIns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "The views the member sees, oldest first, and the ids of the built-in views they hid."
+      },
+      "ViewScope": {
+        "enum": [
+          "Candidates",
+          "Job"
+        ],
+        "description": "Which table a view filters: the Candidates page, or one job's candidates."
       },
       "WebhookDeliveryEntry": {
         "required": [
@@ -19839,7 +22767,7 @@
             "type": "string"
           }
         },
-        "description": "One delivery in an endpoint's log. string WebhookDeliveryEntry.Payload is the exact body sent; Guid? WebhookDeliveryEntry.ReplayOfId is set on\r\na replay. string? WebhookDeliveryEntry.LastError is our description of the last failed attempt, never the receiver's response."
+        "description": "One delivery in an endpoint's log. string WebhookDeliveryEntry.Payload is the exact body sent; Guid? WebhookDeliveryEntry.ReplayOfId is set on\na replay. string? WebhookDeliveryEntry.LastError is our description of the last failed attempt, never the receiver's response."
       },
       "WebhookDeliveryStatus": {
         "enum": [
@@ -19917,7 +22845,7 @@
             "format": "date-time"
           }
         },
-        "description": "One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\r\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did."
+        "description": "One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did."
       },
       "WebhookEndpointWithSecret": {
         "required": [
@@ -19933,7 +22861,7 @@
             "type": "string"
           }
         },
-        "description": "An endpoint with its signing secret, returned only when the secret is new (create, rotate). Store it now: the API\r\ncannot show it again. Check each delivery's `ScreenHire-Signature: t={unix seconds},v1={hex}`, the hex\r\nHMAC-SHA256 of `{t}.{raw body}` keyed with this secret."
+        "description": "An endpoint with its signing secret, returned only when the secret is new (create, rotate). Store it now: the API\ncannot show it again. Check each delivery's `ScreenHire-Signature: t={unix seconds},v1={hex}`, the hex\nHMAC-SHA256 of `{t}.{raw body}` keyed with this secret."
       },
       "WorkflowChange": {
         "required": [
@@ -20046,7 +22974,7 @@
             }
           }
         },
-        "description": "The validator's verdict, guardrails included. 200 either way: a workflow with problems is a normal answer here, and\r\neach problem has a JSON path such as `automations[0].actions[0]` the builder can point at."
+        "description": "The validator's verdict, guardrails included. 200 either way: a workflow with problems is a normal answer here, and\neach problem has a JSON path such as `automations[0].actions[0]` the builder can point at."
       },
       "WorkplaceType": {
         "enum": [
@@ -20065,7 +22993,7 @@
       },
       "apiKey": {
         "type": "http",
-        "description": "An organization API key, created by an owner or admin. Works on jobs, applications, candidates and templates.",
+        "description": "An organization API key, created by an owner or admin. Works on jobs, applications, candidates and templates, and, with the VerificationRead scope an owner gives it, on verification results.",
         "scheme": "bearer",
         "bearerFormat": "shk_..."
       }
@@ -20121,6 +23049,9 @@
       "name": "Notifications"
     },
     {
+      "name": "Views"
+    },
+    {
       "name": "Hiring teams"
     },
     {
@@ -20145,10 +23076,16 @@
       "name": "Slack"
     },
     {
+      "name": "Calendar"
+    },
+    {
+      "name": "Interviews"
+    },
+    {
       "name": "Email"
     },
     {
-      "name": "Talent pool"
+      "name": "Saved candidates"
     },
     {
       "name": "Schemas"

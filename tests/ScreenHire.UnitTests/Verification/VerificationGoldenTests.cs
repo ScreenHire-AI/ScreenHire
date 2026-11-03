@@ -86,6 +86,42 @@ public sealed class VerificationGoldenTests
     }
 
     [Fact]
+    public async Task The_first_farm_member_gets_the_duplicate_signal_when_its_check_is_repeated_after_the_others_applied()
+    {
+        // The pipeline's re-check runs the duplicates analyzer again over the earlier application once a later one matches
+        // it. Its comparison of old and new findings needs the database, so this covers the analyzer half: member 1 saw
+        // nothing when it applied, sees both other members now, and a second look finds the same thing.
+        var harness = new VerificationHarness();
+        var members = new List<HarnessResult>();
+        foreach (var applicant in SyntheticApplicants.ApplicationFarm)
+        {
+            members.Add(await harness.SubmitAsync(applicant));
+        }
+
+        members[0].Signals.Should().NotContain(s => s.Code == SignalCatalogue.DuplicateInOrganization, "nobody had applied before member 1");
+        var duplicates = harness.Analyzers().OfType<DuplicateAnalyzer>().Single();
+
+        var again = await duplicates.AnalyzeAsync(harness.Contexts[0], TestContext.Current.CancellationToken);
+        var third = await duplicates.AnalyzeAsync(harness.Contexts[0], TestContext.Current.CancellationToken);
+
+        again.RelatedApplicationIds.Should().BeEquivalentTo([harness.Contexts[1].Application.Id, harness.Contexts[2].Application.Id]);
+        var signal = again.Signals.Should().ContainSingle().Subject;
+        signal.Code.Should().Be(SignalCatalogue.DuplicateInOrganization);
+        signal.Weight.Should().Be(SignalWeight.High);
+        var rows = VerificationPipeline.ToSignals(again.Signals, harness.Contexts[0].Application, Guid.CreateVersion7(), duplicates, VerificationHarness.Start, revision: 2);
+        rows.Single().Explanation.Should().Be(
+            "This application and 2 other applications to your organization came from different candidates but share an email address, a phone number, a device and an identical resume file.");
+        rows.Single().SourceRevision.Should().Be(2);
+        var repeated = VerificationPipeline.ToSignals(third.Signals, harness.Contexts[0].Application, Guid.CreateVersion7(), duplicates, VerificationHarness.Start, revision: 3);
+        repeated.Select(s => s.Explanation).Should().Equal(rows.Select(s => s.Explanation), "nothing new means nothing to record");
+
+        // The latest member already saw the other two when it applied, so its repeat reports the same findings.
+        var last = await duplicates.AnalyzeAsync(harness.Contexts[2], TestContext.Current.CancellationToken);
+        last.Signals.Should().ContainSingle().Which.Weight.Should().Be(SignalWeight.High);
+        last.RelatedApplicationIds.Should().HaveCount(2);
+    }
+
+    [Fact]
     public async Task An_accommodation_leaves_no_timing_signal_for_a_fast_form()
     {
         var harness = new VerificationHarness();

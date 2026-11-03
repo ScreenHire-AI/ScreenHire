@@ -1,5 +1,5 @@
 <script lang="ts">
-  import KeyRoundIcon from '@lucide/svelte/icons/key-round';
+  import KeyRoundIcon from '~icons/lucide/key-round';
   import type { HistoryDetail, HistoryEntry, TeamMember } from '@screenhire/api-client';
   import { SvelteSet } from 'svelte/reactivity';
   import LogoMark from '#lib/components/logo-mark.svelte';

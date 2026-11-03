@@ -1,8 +1,8 @@
 <script lang="ts">
-  import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
-  import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
-  import RotateCcwIcon from '@lucide/svelte/icons/rotate-ccw';
-  import SaveIcon from '@lucide/svelte/icons/save';
+  import ArrowLeftIcon from '~icons/lucide/arrow-left';
+  import RefreshCwIcon from '~icons/lucide/refresh-cw';
+  import RotateCcwIcon from '~icons/lucide/rotate-ccw';
+  import SaveIcon from '~icons/lucide/save';
   import type { WorkflowChangeKind } from '@screenhire/api-client';
   import {
     ApiError,

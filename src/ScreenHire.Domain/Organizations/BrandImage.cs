@@ -51,10 +51,23 @@ public sealed class BrandImage : ITenantOwned
     public Guid? UploadedByUserId { get; init; }
 
     /// <summary>
+    /// When someone first saved this image into the organization's branding, or null while nobody has. An upload that
+    /// stays null for a day is abandoned and the worker removes it. Once set it stays set: a replaced logo is still
+    /// linked from emails already sent, so a saved image is never removed.
+    /// </summary>
+    public DateTimeOffset? SavedAt { get; private set; }
+
+    /// <summary>
     /// Clean, or not scanned because no scanner is configured, as applicant files are offered (docs/architecture/branding.md).
     /// A pending or infected image is never served or saved.
     /// </summary>
     public bool IsServable => ScanStatus is MalwareScanStatus.Clean or MalwareScanStatus.NotScanned;
+
+    /// <summary>
+    /// The name the file was uploaded with, as the upload stored it: the last segment of <see cref="BlobName"/>
+    /// (<c>{organizationId}/{uploadId}/{kind}/{fileName}</c>), so no column holds it twice.
+    /// </summary>
+    public string FileName => BlobName[(BlobName.LastIndexOf('/') + 1)..];
 
     /// <summary>The file extension its public address ends with.</summary>
     public string Extension => ContentType == "image/png" ? "png" : "jpg";
@@ -68,6 +81,9 @@ public sealed class BrandImage : ITenantOwned
         ArgumentNullException.ThrowIfNull(careersBoardUrl);
         return $"{careersBoardUrl.TrimEnd('/')}/brand/images/{Id:D}.{Extension}";
     }
+
+    /// <summary>Records that the image was saved into the branding, the first time only.</summary>
+    public void MarkSaved(DateTimeOffset now) => SavedAt ??= now;
 
     /// <summary>Records a scan's result, once; a second result changes nothing and returns false.</summary>
     public bool RecordScan(MalwareScanStatus status, DateTimeOffset now)

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ListTodoIcon from '@lucide/svelte/icons/list-todo';
+  import ListTodoIcon from '~icons/lucide/list-todo';
   import type { TaskListItem, TaskScope, TaskStatusFilter } from '@screenhire/api-client';
   import { createListTasks, createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import { page } from '$app/state';

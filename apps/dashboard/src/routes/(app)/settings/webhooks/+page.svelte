@@ -1,7 +1,7 @@
 <script lang="ts">
-  import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
-  import PlusIcon from '@lucide/svelte/icons/plus';
-  import WebhookIcon from '@lucide/svelte/icons/webhook';
+  import ExternalLinkIcon from '~icons/lucide/external-link';
+  import PlusIcon from '~icons/lucide/plus';
+  import WebhookIcon from '~icons/lucide/webhook';
   import type { WebhookEndpointEntry } from '@screenhire/api-client';
   import { createGetMeta, createListWebhookEndpoints, createListWebhookEventTypes } from '@screenhire/api-client/svelte-query';
   import {

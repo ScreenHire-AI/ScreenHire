@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SaveIcon from '@lucide/svelte/icons/save';
+  import SaveIcon from '~icons/lucide/save';
   import type { HttpValidationProblemDetails, WebhookEndpointEntry } from '@screenhire/api-client';
   import { ApiError, createListWebhookEventTypes } from '@screenhire/api-client/svelte-query';
   import { untrack } from 'svelte';

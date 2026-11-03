@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
+  import ChevronDownIcon from '~icons/lucide/chevron-down';
   import type { Snippet } from 'svelte';
   import { cn } from '#lib/utils.js';
 

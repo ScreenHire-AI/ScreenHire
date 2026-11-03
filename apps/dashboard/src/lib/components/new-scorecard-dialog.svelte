@@ -1,5 +1,5 @@
 <script lang="ts">
-  import PlusIcon from '@lucide/svelte/icons/plus';
+  import PlusIcon from '~icons/lucide/plus';
   import type { HttpValidationProblemDetails, ScorecardQuestion } from '@screenhire/api-client';
   import { ApiError, createCreateScorecardTemplate, createListScorecardTemplates, getGetScorecardTemplateQueryOptions } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';

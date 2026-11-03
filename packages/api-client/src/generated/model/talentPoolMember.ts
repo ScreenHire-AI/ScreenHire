@@ -4,9 +4,11 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { ApplicationRating } from './applicationRating.ts';
+import type { LastUpdate } from './lastUpdate.ts';
 
 /**
- * One candidate in the talent pool.
+ * One saved candidate.
  */
 export interface TalentPoolMember {
   candidateId: string;
@@ -17,11 +19,14 @@ export interface TalentPoolMember {
   jobTitle: string;
   /** @nullable */
   note: string | null;
+  noteUpdated: null | LastUpdate;
   tags: string[];
   keptAt: string;
   /** @nullable */
   keptByUserId: string | null;
-  permissionEndsAt: string;
+  rating: ApplicationRating;
+  /** @nullable */
+  lastContactedAt: string | null;
   /** @nullable */
   lastInvitedJobId: string | null;
   /** @nullable */

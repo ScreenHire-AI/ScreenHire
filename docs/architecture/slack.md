@@ -22,6 +22,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/slack-account-sheet.svelte
   - resource: apps/dashboard/src/lib/slack.ts
   - resource: tests/ScreenHire.E2E/SlackTests.cs
+  - resource: tests/ScreenHire.Testing/SlackSandbox.cs
 ---
 # Connecting to Slack
 
@@ -43,7 +44,7 @@ sandbox workspace in place of Slack, so no test needs Slack or the internet.
 | Off | neither | none: `GET /v1/slack` says `available: false` and every other Slack route is a 404 |
 
 The client id is plain configuration; the secret comes from the `slack-client-secret` parameter, which the AppHost adds
-only once a client id is set. `pnpm dev` has neither, so Settings > Slack says Slack is not set up here. To try it
+only once a client id is set. `pnpm dev` has neither, so Slack has no page and no Settings menu entry (design system A3), and an address to it goes to the first Settings page. To try it
 locally, turn the sandbox on (see [local demo](../operations/local-demo.md)). The test stacks turn it on, and the
 `DevelopmentDemoFixture` stack leaves it off, so both states are tested.
 
@@ -187,7 +188,7 @@ with the workspace), `slack_messages` and `slack_sandbox_messages`.
 | `Slack/*Tests` (unit) | the wording and escaping, error codes, the Web API client against a stub handler, the token and state protection, the modes and the sandbox gate |
 | `Slack/SlackTests` (integration) | the install and link round trips through the sandbox, the state and cookie checks, permissions, channel validation, a post for each event and none when it is off, one post for a replayed event, recorded problems, direct messages and when they are not sent, disconnecting, tenant isolation |
 | `DevelopmentDemoTests` (integration) | with Slack off, `available` is false and the routes are 404s |
-| `SlackTests` (end to end) | connecting the sandbox from the page, picking a channel, linking from the menu as an Owner and as a Recruiter, disconnecting through the dialog |
+| `SlackTests` (end to end) | connecting the sandbox from the page, picking a channel, linking from the menu as an Owner and as a Recruiter, disconnecting through the dialog; Send test message and a published job each reach #hiring, read back from the sandbox workspace through `SlackSandbox` (`GET /v1/slack/sandbox/messages`), not taken from the page's word |
 
 ## Not built
 

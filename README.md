@@ -43,10 +43,20 @@ providers, the LLM check, job boards and IP data all have local stand-ins.
 The demo script, logins, what is faked and how to reset the data: [`docs/operations/local-demo.md`](docs/operations/local-demo.md).
 What is built and what the owner still has to do before real use: [MVP status](docs/status.md).
 
-Tests and the gate: `pnpm e2e:install` once per machine, then `pnpm verify`
-([`docs/process/testing.md`](docs/process/testing.md)).
+Tests and the gate: GitHub Actions runs every suite on Linux for every pull request, and its `Gate` check is the
+gate ([`.github/workflows/ci.yml`](.github/workflows/ci.yml), [`docs/process/testing.md`](docs/process/testing.md)).
+Locally, `pnpm verify:fast` runs the build, contract and type checks; `pnpm verify` runs every suite on your machine
+(`pnpm e2e:install` once per machine first).
 
 ## Stack
 
 ASP.NET Core (.NET 10) · PostgreSQL · .NET Aspire · Astro 7 · SvelteKit 3 + Svelte 5 · shadcn-svelte · Tailwind 4 ·
 Orval · Azure (Container Apps, PostgreSQL Flexible Server, Blob Storage) behind Cloudflare.
+
+## Licence
+
+The source is available under the GNU Affero General Public License v3.0 only ([`LICENSE`](LICENSE)). If you run a
+modified version as a network service, the licence requires you to offer its source to that service's users.
+
+The project does not accept contributions from outside ([`CONTRIBUTING.md`](CONTRIBUTING.md)). To report a
+vulnerability, use GitHub's private vulnerability reporting, never a public issue ([`SECURITY.md`](SECURITY.md)).

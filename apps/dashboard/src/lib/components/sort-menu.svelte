@@ -1,7 +1,7 @@
 <script lang="ts" generics="TFeatures extends TableFeatures, TData extends RowData">
-  import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
-  import ArrowUpDownIcon from '@lucide/svelte/icons/arrow-up-down';
-  import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
+  import ArrowDownIcon from '~icons/lucide/arrow-down';
+  import ArrowUpDownIcon from '~icons/lucide/arrow-up-down';
+  import ArrowUpIcon from '~icons/lucide/arrow-up';
   import type { Column_Core, Column_RowSorting, RowData, Table, TableFeatures } from '@tanstack/svelte-table';
   import { buttonVariants } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';

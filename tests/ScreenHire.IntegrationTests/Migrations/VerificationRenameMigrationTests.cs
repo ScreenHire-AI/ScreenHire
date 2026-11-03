@@ -1,6 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -21,86 +19,67 @@ public sealed class VerificationRenameMigrationTests(AppHostFixture fixture)
     public async Task Rows_written_before_the_rename_survive_it_with_their_names_rewritten_and_come_back_when_it_is_undone()
     {
         var ct = TestContext.Current.CancellationToken;
-        var owner = await fixture.GetOwnerConnectionStringAsync(ct);
-        var scratch = $"rename_{Guid.NewGuid():N}"[..24];
-        await ExecuteAsync(owner, $"CREATE DATABASE {scratch}", ct);
-        var connectionString = new NpgsqlConnectionStringBuilder(owner) { Database = scratch, Pooling = false }.ConnectionString;
-        try
-        {
-            await using (var db = Context(connectionString))
-            {
-                await db.GetService<IMigrator>().MigrateAsync(Before, ct);
-            }
+        await using var scratch = await ScratchDatabase.CreateAsync(fixture, ct);
+        var connectionString = scratch.ConnectionString;
+        await scratch.MigrateAsync(Before, ct);
 
-            var organizationId = Guid.CreateVersion7();
-            // The owner is a superuser here, which row-level security does not bind.
-            await ExecuteAsync(connectionString, $"""
-                INSERT INTO organizations (id, name, slug, created_at, embed_origins, home_region, indeed_eligible, is_trial, questions_per_page, signal_network_opt_in)
-                VALUES ('{organizationId}', 'Rename Studio', 'rename-{organizationId:N}', now(), ARRAY[]::text[], 'EU', false, false, 0, false);
-                INSERT INTO integrity_settings (organization_id, llm_consistency_check_enabled, updated_at) VALUES ('{organizationId}', true, now());
-                INSERT INTO custom_roles (id, organization_id, name, normalized_name, copied_from, permissions, created_at, updated_at)
-                VALUES ('{Guid.CreateVersion7()}', '{organizationId}', 'Screener', 'SCREENER', 'Reviewer', ARRAY['ViewHiring', 'ReviewIntegrity'], now(), now());
-                INSERT INTO webhook_endpoints (id, organization_id, url, events, enabled, secret_version, consecutive_failures, created_at, updated_at, secret_rotated_at)
-                VALUES ('{Guid.CreateVersion7()}', '{organizationId}', 'https://hooks.example.org/in', ARRAY['application.submitted', 'integrity.assessed'], true, 1, 0, now(), now(), now());
-                INSERT INTO change_records (id, organization_id, subject_kind, subject_id, created, lines, occurred_at)
-                VALUES ('{Guid.CreateVersion7()}', '{organizationId}', 'IntegritySettings', '{organizationId}', true, '[]', now());
-                """, ct);
+        var organizationId = Guid.CreateVersion7();
+        // The owner is a superuser here, which row-level security does not bind.
+        await ExecuteAsync(connectionString, $"""
+            INSERT INTO organizations (id, name, slug, created_at, embed_origins, home_region, indeed_eligible, is_trial, questions_per_page, signal_network_opt_in)
+            VALUES ('{organizationId}', 'Rename Studio', 'rename-{organizationId:N}', now(), ARRAY[]::text[], 'EU', false, false, 0, false);
+            INSERT INTO integrity_settings (organization_id, llm_consistency_check_enabled, updated_at) VALUES ('{organizationId}', true, now());
+            INSERT INTO custom_roles (id, organization_id, name, normalized_name, copied_from, permissions, created_at, updated_at)
+            VALUES ('{Guid.CreateVersion7()}', '{organizationId}', 'Screener', 'SCREENER', 'Reviewer', ARRAY['ViewHiring', 'ReviewIntegrity'], now(), now());
+            INSERT INTO webhook_endpoints (id, organization_id, url, events, enabled, secret_version, consecutive_failures, created_at, updated_at, secret_rotated_at)
+            VALUES ('{Guid.CreateVersion7()}', '{organizationId}', 'https://hooks.example.org/in', ARRAY['application.submitted', 'integrity.assessed'], true, 1, 0, now(), now(), now());
+            INSERT INTO change_records (id, organization_id, subject_kind, subject_id, created, lines, occurred_at)
+            VALUES ('{Guid.CreateVersion7()}', '{organizationId}', 'IntegritySettings', '{organizationId}', true, '[]', now());
+            """, ct);
 
-            await using (var db = Context(connectionString))
-            {
-                await db.GetService<IMigrator>().MigrateAsync(Rename, ct);
-            }
+        await scratch.MigrateAsync(Rename, ct);
 
-            (await ScalarAsync<bool>(connectionString, $"SELECT llm_consistency_check_enabled FROM verification_settings WHERE organization_id = '{organizationId}'", ct))
-                .Should().BeTrue("the settings row moved with its table");
-            (await ScalarAsync<string[]>(connectionString, $"SELECT permissions FROM custom_roles WHERE organization_id = '{organizationId}'", ct))
-                .Should().Equal("ViewHiring", "ReviewVerification");
-            (await ScalarAsync<string[]>(connectionString, $"SELECT events FROM webhook_endpoints WHERE organization_id = '{organizationId}'", ct))
-                .Should().Equal("application.submitted", "verification.assessed");
-            (await ScalarAsync<string>(connectionString, $"SELECT subject_kind FROM change_records WHERE organization_id = '{organizationId}'", ct))
-                .Should().Be("VerificationSettings");
-            (await ScalarAsync<long>(connectionString, "SELECT count(*) FROM hiring_template_versions WHERE definition::text LIKE '%integrity.%' OR definition::text LIKE '%IntegrityAssessed%' OR definition::text LIKE '%integrityPolicy%'", ct))
-                .Should().Be(0, "every system template version reads the renamed policy, trigger and facts");
-            (await ScalarAsync<int>(connectionString, "SELECT latest_published_version FROM hiring_templates WHERE id = '0199e8a0-0000-7000-8000-000000000001'", ct))
-                .Should().Be(5);
-            (await ScalarAsync<long>(connectionString, "SELECT count(*) FROM pg_policies WHERE schemaname = 'public' AND tablename LIKE 'verification_%'", ct))
-                .Should().BeGreaterThanOrEqualTo(9, "five tenant_isolation policies and four job_scope policies follow their tables");
-            (await ScalarAsync<long>(connectionString, "SELECT count(*) FROM pg_policies WHERE schemaname = 'public' AND tablename LIKE 'verification_%' AND policyname = 'job_scope' AND permissive = 'RESTRICTIVE'", ct))
-                .Should().Be(4, "job_scope stays restrictive on the four rows under one application");
-            (await ScalarAsync<bool>(connectionString, "SELECT has_table_privilege('screenhire_app', 'verification_review_actions', 'UPDATE') OR has_table_privilege('screenhire_app', 'verification_review_actions', 'DELETE') OR has_table_privilege('screenhire_app', 'verification_settings', 'DELETE')", ct))
-                .Should().BeFalse("the revoked grants follow their tables");
-            (await ScalarAsync<bool>(connectionString, "SELECT has_table_privilege('screenhire_app', 'verification_review_actions', 'INSERT') AND has_table_privilege('screenhire_app', 'verification_settings', 'UPDATE')", ct))
-                .Should().BeTrue("the grants that were kept follow their tables too");
-            (await IntegrityNamesAsync(connectionString, ct)).Should().BeEmpty();
-            (await UnforcedAsync(connectionString, ct)).Should().BeEmpty("FORCE comes back on every table the migration lifted it from");
+        (await ScalarAsync<bool>(connectionString, $"SELECT llm_consistency_check_enabled FROM verification_settings WHERE organization_id = '{organizationId}'", ct))
+            .Should().BeTrue("the settings row moved with its table");
+        (await ScalarAsync<string[]>(connectionString, $"SELECT permissions FROM custom_roles WHERE organization_id = '{organizationId}'", ct))
+            .Should().Equal("ViewHiring", "ReviewVerification");
+        (await ScalarAsync<string[]>(connectionString, $"SELECT events FROM webhook_endpoints WHERE organization_id = '{organizationId}'", ct))
+            .Should().Equal("application.submitted", "verification.assessed");
+        (await ScalarAsync<string>(connectionString, $"SELECT subject_kind FROM change_records WHERE organization_id = '{organizationId}'", ct))
+            .Should().Be("VerificationSettings");
+        (await ScalarAsync<long>(connectionString, "SELECT count(*) FROM hiring_template_versions WHERE definition::text LIKE '%integrity.%' OR definition::text LIKE '%IntegrityAssessed%' OR definition::text LIKE '%integrityPolicy%'", ct))
+            .Should().Be(0, "every system template version reads the renamed policy, trigger and facts");
+        (await ScalarAsync<int>(connectionString, "SELECT latest_published_version FROM hiring_templates WHERE id = '0199e8a0-0000-7000-8000-000000000001'", ct))
+            .Should().Be(5);
+        (await ScalarAsync<long>(connectionString, "SELECT count(*) FROM pg_policies WHERE schemaname = 'public' AND tablename LIKE 'verification_%'", ct))
+            .Should().BeGreaterThanOrEqualTo(9, "five tenant_isolation policies and four job_scope policies follow their tables");
+        (await ScalarAsync<long>(connectionString, "SELECT count(*) FROM pg_policies WHERE schemaname = 'public' AND tablename LIKE 'verification_%' AND policyname = 'job_scope' AND permissive = 'RESTRICTIVE'", ct))
+            .Should().Be(4, "job_scope stays restrictive on the four rows under one application");
+        (await ScalarAsync<bool>(connectionString, "SELECT has_table_privilege('screenhire_app', 'verification_review_actions', 'UPDATE') OR has_table_privilege('screenhire_app', 'verification_review_actions', 'DELETE') OR has_table_privilege('screenhire_app', 'verification_settings', 'DELETE')", ct))
+            .Should().BeFalse("the revoked grants follow their tables");
+        (await ScalarAsync<bool>(connectionString, "SELECT has_table_privilege('screenhire_app', 'verification_review_actions', 'INSERT') AND has_table_privilege('screenhire_app', 'verification_settings', 'UPDATE')", ct))
+            .Should().BeTrue("the grants that were kept follow their tables too");
+        (await IntegrityNamesAsync(connectionString, ct)).Should().BeEmpty();
+        (await UnforcedAsync(connectionString, ct)).Should().BeEmpty("FORCE comes back on every table the migration lifted it from");
 
-            await using (var db = Context(connectionString))
-            {
-                await db.GetService<IMigrator>().MigrateAsync(Before, ct);
-            }
+        await scratch.MigrateAsync(Before, ct);
 
-            (await ScalarAsync<bool>(connectionString, $"SELECT llm_consistency_check_enabled FROM integrity_settings WHERE organization_id = '{organizationId}'", ct))
-                .Should().BeTrue("undoing the rename keeps the data too");
-            (await ScalarAsync<string[]>(connectionString, $"SELECT permissions FROM custom_roles WHERE organization_id = '{organizationId}'", ct))
-                .Should().Equal("ViewHiring", "ReviewIntegrity");
-            (await ScalarAsync<string[]>(connectionString, $"SELECT events FROM webhook_endpoints WHERE organization_id = '{organizationId}'", ct))
-                .Should().Equal("application.submitted", "integrity.assessed");
-            (await ScalarAsync<int>(connectionString, "SELECT latest_published_version FROM hiring_templates WHERE id = '0199e8a0-0000-7000-8000-000000000001'", ct))
-                .Should().Be(4);
-            (await ScalarAsync<long>(connectionString, "SELECT count(*) FROM hiring_template_versions WHERE id = '0199e8a0-0000-7000-8000-000000000105'", ct))
-                .Should().Be(0, "version 5 exists only after the rename");
-            (await ScalarAsync<long>(connectionString, "SELECT count(*) FROM hiring_template_versions WHERE definition::text LIKE '%verificationPolicy%' OR definition::text LIKE '%VerificationAssessed%' OR definition::text LIKE '%\"verification.authenticity\"%' OR definition::text LIKE '%\"verification.aiAssistance\"%'", ct))
-                .Should().Be(0, "undoing the rename gives every definition its old policy, trigger and facts");
-            (await ScalarAsync<string>(connectionString, "SELECT definition #>> '{workflow,automations,1,trigger,type}' FROM hiring_template_versions WHERE id = '0199e8a0-0000-7000-8000-000000000104'", ct))
-                .Should().Be("IntegrityAssessed");
-            (await ScalarAsync<long>(connectionString, "SELECT count(*) FROM pg_class WHERE relname LIKE 'verification_%'", ct)).Should().Be(0);
-            (await UnforcedAsync(connectionString, ct)).Should().BeEmpty("undoing the rename restores FORCE too");
-        }
-        finally
-        {
-            NpgsqlConnection.ClearAllPools();
-            await ExecuteAsync(owner, $"DROP DATABASE IF EXISTS {scratch} WITH (FORCE)", CancellationToken.None);
-        }
+        (await ScalarAsync<bool>(connectionString, $"SELECT llm_consistency_check_enabled FROM integrity_settings WHERE organization_id = '{organizationId}'", ct))
+            .Should().BeTrue("undoing the rename keeps the data too");
+        (await ScalarAsync<string[]>(connectionString, $"SELECT permissions FROM custom_roles WHERE organization_id = '{organizationId}'", ct))
+            .Should().Equal("ViewHiring", "ReviewIntegrity");
+        (await ScalarAsync<string[]>(connectionString, $"SELECT events FROM webhook_endpoints WHERE organization_id = '{organizationId}'", ct))
+            .Should().Equal("application.submitted", "integrity.assessed");
+        (await ScalarAsync<int>(connectionString, "SELECT latest_published_version FROM hiring_templates WHERE id = '0199e8a0-0000-7000-8000-000000000001'", ct))
+            .Should().Be(4);
+        (await ScalarAsync<long>(connectionString, "SELECT count(*) FROM hiring_template_versions WHERE id = '0199e8a0-0000-7000-8000-000000000105'", ct))
+            .Should().Be(0, "version 5 exists only after the rename");
+        (await ScalarAsync<long>(connectionString, "SELECT count(*) FROM hiring_template_versions WHERE definition::text LIKE '%verificationPolicy%' OR definition::text LIKE '%VerificationAssessed%' OR definition::text LIKE '%\"verification.authenticity\"%' OR definition::text LIKE '%\"verification.aiAssistance\"%'", ct))
+            .Should().Be(0, "undoing the rename gives every definition its old policy, trigger and facts");
+        (await ScalarAsync<string>(connectionString, "SELECT definition #>> '{workflow,automations,1,trigger,type}' FROM hiring_template_versions WHERE id = '0199e8a0-0000-7000-8000-000000000104'", ct))
+            .Should().Be("IntegrityAssessed");
+        (await ScalarAsync<long>(connectionString, "SELECT count(*) FROM pg_class WHERE relname LIKE 'verification_%'", ct)).Should().Be(0);
+        (await UnforcedAsync(connectionString, ct)).Should().BeEmpty("undoing the rename restores FORCE too");
     }
 
     [Fact]

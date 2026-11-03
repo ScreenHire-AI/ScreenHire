@@ -10,6 +10,7 @@ sources:
   - resource: apps/apphost/DevSso/config.json
   - resource: src/ScreenHire.Infrastructure/Persistence/DevelopmentDataSeeder.cs
   - resource: .claude/skills/preview/SKILL.md
+  - resource: kangentic.json
 ---
 # Run ScreenHire locally and demo it
 
@@ -33,8 +34,8 @@ In Claude Code, run **`/preview`** ([the skill](../../.claude/skills/preview/SKI
 packages, starts the stack in the background with the Aspire CLI (`dotnet aspire start`; in a Kangentic worktree with
 `--isolated`, which gives it random free ports), waits until the demo data is in, and reports the URLs, the logins and
 the Aspire dashboard's link. In a Kangentic task it also signs in as Avery Quinn in the task's browser pane.
-`/preview fresh` starts a clean demo and `/preview stop` stops it. The Aspire CLI is a repo-local tool: run
-`dotnet tool restore` once. Without Claude Code:
+`/preview fresh` starts a clean demo, `/preview api` starts the backend only and `/preview stop` stops it. The Aspire
+CLI is a repo-local tool: run `dotnet tool restore` once. Without Claude Code:
 
 ```bash
 pnpm install   # once, and again after pulling changes to any package.json
@@ -53,11 +54,25 @@ Aspire dashboard. Attach a debugger to the `ScreenHire.Api` or `ScreenHire.Worke
 your IDE. After a change to the AppHost itself, start it again; this clone's running stack is replaced.
 
 Stop with Ctrl+C (or `/preview stop`, which is `dotnet aspire stop`). Aspire then removes the containers it started. The database, uploaded files and
-Mailpit's inbox stay in Docker volumes (one set per clone or worktree), so the next start has the same candidates, the
-same emails and anything you changed.
+Mailpit's inbox stay in Docker volumes (one set per clone, or per worktree started with `/preview keep`), so the next
+start has the same candidates, the same emails and anything you changed.
+
+In a Kangentic task a stack also ends by itself. The project's Stop script (`stopScript` in `kangentic.json`) runs
+`dotnet aspire stop` for that clone when the task pauses after the idle timeout or for low memory, unless a browser tab
+or the task's Browser pane is connected to the stack. A Pause or Stop pressed by a person leaves the stack up. A move to
+Done or To Do, or a delete, stops it whether or not a browser is connected. After a pause, the next agent is told what
+stopped and starts it again with `/preview` when it needs the app; a worktree without `keep` reseeds the demo. The
+details are in [Processes on the dev machine](../process/board-pipeline.md#processes-on-the-dev-machine).
 
 ### Start over
 
+- **A worktree starts clean:** in a Kangentic worktree `/preview` starts with no volumes, so the demo reseeds on each
+  start (the API was healthy 25 s after the start command on 2026-11-01) and the worktree leaves nothing behind. Kept
+  data had left 123 volumes, about 3 GB, by that date. `/preview keep` keeps this worktree's data instead.
+- **Backend only:** `/preview api` starts no frontends. Measured on 2026-11-01, one run each with no data volumes: 5
+  processes and 1,219 MB, healthy after 31 s, against 8 processes and 2,272 MB, healthy after 25 s, for the full stack.
+  Those are working set. Commit, which Kangentic's low-memory pause reads, is a different number: the dashboard's Vite
+  alone held 3.2 GB of it after a page load on a cold cache, before the pre-bundle moved that to a process that exits; see [what a preview stack commits](../process/dev-tooling.md#what-a-preview-stack-commits).
 - **A clean demo, keeping your data:** `/preview fresh`, or
   `dotnet aspire start --apphost apps/apphost/ScreenHire.AppHost.csproj -- --ScreenHire:PersistData=false` (add
   `--isolated` before `--` in a worktree). It runs with no volumes at all and deletes nothing; the next normal start has
@@ -117,7 +132,7 @@ numbers are made up.
 | Senior .NET Engineer | Open, from the "Software engineer" template | Every board | The synthetic applicants: Robin Ashby (genuine), Sam Okafor (used AI and said so, through a VPN), Jordan Vale (a bot) and a three-person application farm, all in Applied. Joel Mensah, a genuine candidate, is in Technical exercise with a note, and his Activity has two notes from the team: Jordan Ellis mentions Avery Quinn, and Avery mentions Jordan in a note she then edited. His Messages tab has the "Interview invitation" email Avery changed for him alone, with a sentence about his billing ledger answer that the template does not have. Its Interview stage uses Brightwater's own "Technical interview" scorecard, which asks every answer kind |
 | Senior Product Designer | Open, with the demo's designer questionnaire | Every board | Three candidates in Applied, Screening and Interview. Jordan Ellis scored Priya Natarajan's interview, and Avery Quinn has a review to give on her, so signed in as Avery her rating reads "Rating after your scorecard" (Jordan sees it) |
 | Frontend Engineer (Svelte) | Open, with the demo's frontend questionnaire | Careers page and sandbox board only | Three candidates in Screening, Interview and Offer (with a note). Hannah Okoro is rated 4.2 from Avery's and Jordan's interview scorecards and Eli Thompson 3.5 from Jordan's screening one; the Rating column sorts them |
-| Support Engineer | Closed, from Brightwater's own template | Removed everywhere | Six candidates who went through the stages over the weeks before the demo: three Hired (Ruth Mwangi added by a recruiter), one Rejected, one Withdrawn, the recruiter's notes on most, and Grace Adeyemi, the runner-up, kept in mind for future roles, so the Talent pool has her with the note saying why. Priya Natarajan and Hannah Okoro also allowed it, so Keep in mind shows in their Move to stage. Its careers page answers "This job has closed" |
+| Support Engineer | Closed, from Brightwater's own template | Removed everywhere | Six candidates who went through the stages over the weeks before the demo: three Hired (Ruth Mwangi added by a recruiter, Sam Brennan through an Adzuna link), one Rejected (through a Talent.com link), one Withdrawn (through the careers page embedded in the company's own site), so Reports' Sources panel has more than one source, the recruiter's notes on most, and Grace Adeyemi, the runner-up, saved for future roles, so Saved candidates has her with the note saying why (the note can be edited there, and shows its History). Priya Natarajan and Hannah Okoro also allowed it, so Save candidate shows in their Move to stage. Its careers page answers "This job has closed" |
 | Backend Engineer (Payments) | Draft, from Brightwater's own template | None | Ready to publish during the demo |
 | Customer Success Lead | Draft, with the demo's customer success questionnaire | None | No template, an on-site job in Manchester |
 
@@ -194,10 +209,24 @@ hire and both sources numbers to show (Last 90 days covers all of it; each panel
 Rating column on Frontend Engineer and a candidate's stars, which open to each scorecard; Joel Mensah's Messages (open the changed interview email as it went, or email him from the box at the top: start from a template, change it, and Preview shows it with his first name), his notes (type @ in the note box to mention a teammate; the mention emails are in
 Mailpit and never quote the note; Avery's own note offers Edit and Delete in its menu), a resume opened full window
 from the details rail's View, Support Engineer for a closed job and its candidates' activity with the recruiter's notes,
-the Talent pool (Grace Adeyemi, kept from Support Engineer: Invite to apply sends the invitation to Mailpit with the
+Saved candidates (Grace Adeyemi, saved from Support Engineer, with no end date: the page shows Rating and Last contacted (Never until an email goes, so the invitation sets it), Message opens the email composer, Edit note changes the note and shows its History, and Invite to apply sends the invitation to Mailpit with the
 job's link and her link to stop being kept, which opens on the careers site), the Templates page (below) and its builder (questions, automations and the guardrail that refuses a
 verification-driven rejection), the workflow graph and "Simulate", Ctrl K for the command palette, the dark theme, and a
 second browser window on the same job to show live updates.
+
+Replies, as Avery: send an email to a candidate from the box on their Messages tab, then open it in Mailpit and copy its
+Reply-To address (`reply+...@reply.localhost`). There is no SendGrid here, so deliver the reply with the sandbox route, on the API's
+address from the Aspire dashboard (http://localhost:5080 when the ports are pinned):
+
+```
+curl -X POST http://localhost:5080/v1/dev/inbound-email -H "Content-Type: application/json" \
+  -d '{"to":"<the Reply-To address>","from":"<the candidate's address>","subject":"Re: your email","text":"Thursday works for me."}'
+```
+
+The reply shows on the candidate's Messages tab and in Activity, and a card appears in Avery's tray. Reporting a bounce needs
+SendGrid's signature, so it is covered by the integration tests, not this walk-through. Settings > **Sending domain** takes any
+domain you own (example.org will do): the page lists made-up records, Check records says they are missing until
+`POST /v1/dev/sending-domains/publish` with `{"domain":"example.org"}`, and the next check verifies the domain.
 
 Templates, as Avery: **Templates** in the sidebar, one tab per kind, each filtered by All, In use, Not used in 6 months
 and Archived.
@@ -241,7 +270,7 @@ Settings is one item at the bottom of the sidebar; its pages share the Settings 
 - **Team**, **Organization** (rename; the careers address stays), **Verification** (the consistency check, off until
   turned on; the Fake model answers locally) and **Webhooks** (add an endpoint, see its signing secret once, then its
   delivery log with replay).
-- **Slack.** With no Slack app it says "Slack is not set up here", as `pnpm dev` starts. To try it, turn on the local
+- **Slack.** With no Slack app Settings has no Slack page, as `pnpm dev` starts. To try it, turn on the local
   sandbox workspace before starting: `dotnet user-secrets set ScreenHire:Slack:Sandbox:Enabled true --project apps/apphost`
   (or `ScreenHire__Slack__Sandbox__Enabled=true` in the environment of `dotnet aspire start`; `dotnet user-secrets
   remove ScreenHire:Slack:Sandbox:Enabled --project apps/apphost` turns it off again). **Add to Slack** comes straight
@@ -249,6 +278,16 @@ Settings is one item at the bottom of the sidebar; its pages share the Settings 
   sidebar, then has **Slack account**, which links Avery's own account. Submit an application on the careers page, or
   mention Avery in a note, and open http://localhost:5080/v1/slack/sandbox/messages in the signed-in browser to read
   what the sandbox received ([Slack](../architecture/slack.md)).
+- **Interview scheduling.** The sandbox calendar is on in `pnpm dev`, so Avery's account menu has **Calendar**. Open it,
+  press **Connect Sandbox calendar** and the browser comes straight back connected. Open a candidate who is still in the
+  hiring process, such as Robin Ashby, and press **Schedule interview** beside Email: Avery is ticked as the interviewer
+  (Jordan and Robin show "No calendar connected" until they connect theirs, which the same menu does when you sign in as
+  them), choose a length and the days, and **Send invitation**. Mailpit and the candidate's Messages tab hold "Pick a time to talk with Brightwater Studio
+  about ..." with a link to http://localhost:4322/brightwater/interviews/... Open it in a private window: the page needs no script,
+  lists the free times by day in a time zone you can change, and books one with a radio and a button. Back in the
+  dashboard the header has an Interview card, the Overview's Interview panel lists the interviewer and the meeting link on
+  `meet.example.org`, and Mailpit holds "Your interview with Brightwater Studio is set", whose link moves or cancels the time. To have a workflow offer the interview, add a **Schedule an interview** action on a stage
+  ([interview scheduling](../architecture/interview-scheduling.md)).
 
 ## What is faked locally
 
@@ -262,6 +301,8 @@ Settings is one item at the bottom of the sidebar; its pages share the Settings 
 | IP intelligence | Development's fixed ranges for the RFC 5737 documentation addresses the synthetic applicants use | `ScreenHire:Verification:Network` (worker) |
 | Bot challenge (Turnstile) | Not configured, so recorded as "not checked"; the honeypot still works | `ScreenHire:Turnstile` |
 | Malware scanning | `NoMalwareScanner`, which records every file as "not scanned" | `IMalwareScanner` |
+| Email provider | Mailpit sends; no SendGrid. Replies come through the sandbox route `/v1/dev/inbound-email`, and a sending domain verifies once `/v1/dev/sending-domains/publish` publishes it | `ScreenHire:Email` |
+| Google and Outlook calendars | The sandbox calendar, on in `pnpm dev`, whose provider buttons are hidden unless the real client ids and secrets are set; busy time lives in Postgres and the meeting link is on `meet.example.org` | `ScreenHire:Calendar` |
 | Slack | Off, so Settings > Slack says it is not set up; the sandbox workspace when turned on, whose messages `/v1/slack/sandbox/messages` lists | `ScreenHire:Slack` |
 
 The [MVP status](../status.md#owner-actions) lists what each of these needs before real use.

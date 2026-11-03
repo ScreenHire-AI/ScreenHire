@@ -174,9 +174,47 @@ public sealed class VerificationAnalyzerTests
             Signal(SignalCatalogue.DisposableEmail, "identity", 1),
         };
 
-        var current = VerificationPipeline.Current(signals, [("automation", 1), ("automation", 2), ("identity", 1)]);
+        var current = VerificationPipeline.Current(signals, [("automation", 1, 1), ("automation", 2, 1), ("identity", 1, 1)]);
 
         current.Should().Equal(signals[2], signals[3]);
+    }
+
+    [Fact]
+    public void A_later_revision_of_a_run_speaks_for_its_analyzer_and_the_earlier_revision_stays_stored()
+    {
+        // The duplicate check run again because another application now shares a detail: revision 2 replaces revision 1 in
+        // the assessment without counting one observation twice, and a revision 3 that found nothing leaves no signal.
+        VerificationSignal Signal(string source, int revision) =>
+            new() { Code = SignalCatalogue.DuplicateInOrganization, Source = source, SourceVersion = 1, SourceRevision = revision, Explanation = "x" };
+        var first = Signal("duplicates", 1);
+        var second = Signal("duplicates", 2);
+        var other = Signal("identity", 1);
+
+        VerificationPipeline.Current([first, second, other], [("duplicates", 1, 1), ("duplicates", 1, 2), ("identity", 1, 1)])
+            .Should().Equal(second, other);
+        VerificationPipeline.Current([first, second, other], [("duplicates", 1, 1), ("duplicates", 1, 2), ("duplicates", 1, 3), ("identity", 1, 1)])
+            .Should().Equal(other);
+    }
+
+    [Fact]
+    public void A_newer_version_beats_a_higher_revision_of_an_older_version()
+    {
+        // Version 1 was re-run three times, then the analyzer changed to version 2: its first run speaks for it.
+        VerificationSignal Signal(int version, int revision) =>
+            new() { Code = SignalCatalogue.DuplicateInOrganization, Source = "duplicates", SourceVersion = version, SourceRevision = revision, Explanation = $"v{version}r{revision}" };
+        var oldRevisionThree = Signal(1, 3);
+        var newVersion = Signal(2, 1);
+
+        VerificationPipeline.Current([oldRevisionThree, newVersion], [("duplicates", 1, 3), ("duplicates", 2, 1)])
+            .Should().Equal(newVersion);
+    }
+
+    [Fact]
+    public void Signals_of_an_analyzer_with_no_run_are_kept()
+    {
+        var signal = new VerificationSignal { Code = SignalCatalogue.Honeypot, Source = "automation", SourceVersion = 1, Explanation = "x" };
+
+        VerificationPipeline.Current([signal], [("identity", 1, 1)]).Should().Equal(signal);
     }
 
     [Fact]

@@ -86,7 +86,9 @@ public sealed class PublicApplicationTests(AppHostFixture fixture)
         file.BlobName.Should().StartWith($"{organization.Id}/{job.Id}/resume/{uploadId}/");
 
         // ApplicationSubmitted is found by the timeline entry only it carries; the worker handles it as the tenant.
-        var submittedEventId = await db.ApplicationEvents.Where(e => e.ApplicationId == applicationId).Select(e => e.Id).SingleAsync(Ct);
+        // By its type: the worker's VerificationAssessed entry can land on the same timeline before this read.
+        var submittedEventId = await db.ApplicationEvents
+            .Where(e => e.ApplicationId == applicationId && e.Type == ApplicationEventType.Submitted).Select(e => e.Id).SingleAsync(Ct);
         var store = await WolverineStore.ForAppHostAsync(fixture, Ct);
         await WolverineStore.WaitUntilAsync(
             async () => await store.CountHandledAsync(submittedEventId.ToString(), Ct) == 1, "the worker to handle ApplicationSubmitted", Ct);

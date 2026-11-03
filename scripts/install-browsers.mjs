@@ -24,7 +24,10 @@ function run(command, args) {
   }
 }
 
-run('dotnet', ['build', project, '--nologo', '-v', 'quiet']);
+// --no-build: the project is built already (CI builds it once, with its own flags, before installing the browser).
+if (!process.argv.includes('--no-build')) {
+  run('dotnet', ['build', project, '--nologo', '-v', 'quiet']);
+}
 
 const driver = join(project, 'bin', 'Debug', 'net10.0', '.playwright');
 const node = join(driver, 'node', `${process.platform}_${process.arch}`, process.platform === 'win32' ? 'node.exe' : 'node');

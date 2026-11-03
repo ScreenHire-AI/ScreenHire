@@ -19,6 +19,18 @@ export const formatDate = (iso: string) => date.format(new Date(iso));
 export const formatDateTime = (iso: string) => dateTime.format(new Date(iso));
 
 /**
+ * The date an instant falls on in another IANA zone, not the browser's: `Oct 20, 2026`. For a day someone chose in that
+ * zone, such as an interview's window. A zone the browser does not know reads in the browser's own.
+ */
+export function formatDateIn(iso: string, zone: string): string {
+  try {
+    return new Intl.DateTimeFormat(locales, { dateStyle: 'medium', timeZone: zone }).format(new Date(iso));
+  } catch {
+    return formatDate(iso);
+  }
+}
+
+/**
  * Time until an instant, in its largest whole unit and the browser's locale: `20s`, `5m`, `4h`, `1d` narrow, or
  * `20 seconds`, `1 day` long.
  */
@@ -78,7 +90,13 @@ export function dayLabel(iso: string, now: number): string {
     return word.charAt(0).toLocaleUpperCase(locales) + word.slice(1);
   }
 
-  return at.getFullYear() === today.getFullYear() ? monthDay.format(at) : date.format(at);
+  return shortDate(iso, now);
+}
+
+/** A date for a tracker's caption: `Oct 31`, with the year only for another year (`Oct 31, 2025`). */
+export function shortDate(iso: string, now: number): string {
+  const at = new Date(iso);
+  return at.getFullYear() === new Date(now).getFullYear() ? monthDay.format(at) : date.format(at);
 }
 
 /** Time ago in text: `now`, `5 minutes ago`, `yesterday`; the date once it is more than a week old. */

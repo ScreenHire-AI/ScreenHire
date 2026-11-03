@@ -9,9 +9,11 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.Automations;
+using ScreenHire.Application.Branding;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Distribution.GoogleIndexing;
 using ScreenHire.Application.Verification;
+using ScreenHire.Application.Verification.Content;
 using ScreenHire.Application.Jobs;
 using ScreenHire.Application.Slack;
 using ScreenHire.Application.TalentPool;
@@ -19,6 +21,7 @@ using ScreenHire.Application.Webhooks;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine;
+using Wolverine.Configuration;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.ErrorHandling;
 using Wolverine.Postgresql;
@@ -193,6 +196,7 @@ public static class ScreenHireMessaging
 
         // Integrations the handlers use, each with a local adapter until a real one is registered first (CLAUDE.md).
         opts.Services.TryAddSingleton<IMalwareScanner, NoMalwareScanner>();
+        opts.Services.TryAddSingleton<IBrandImageStore, NoBrandImageStore>();
         opts.Services.AddScreenHireVerification();
 
         UsePostgres(opts, connectionString, settings);
@@ -205,6 +209,20 @@ public static class ScreenHireMessaging
         // survive a restart. Every handler that takes the DbContext runs in one EF Core transaction with its outbox.
         opts.Policies.UseDurableLocalQueues();
         opts.Policies.AutoApplyTransactions();
+
+        // Analyses of one application run one at a time; different applications still run side by side, up to five at once
+        // per message type (two that hash to one slot wait for each other). The submission
+        // and each content stage as it lands all ask for one, often within milliseconds, and two at once both inserted
+        // the same analyzer run: the second failed on the unique index and waited out a retry (1 s, then 5 s) before
+        // finding the run there, which delayed the assessment people watch arrive live. Wolverine's partitioned
+        // processing orders them by application instead. The consistency check races the same way on its own row.
+        opts.MessagePartitioning
+            .ByMessage<AnalyzeApplicationVerification>(message => message.ApplicationId.ToString())
+            .ByMessage<CheckApplicationConsistency>(message => message.ApplicationId.ToString())
+            .ByMessage<RecheckApplicationDuplicates>(message => message.ApplicationId.ToString());
+        opts.LocalQueueFor<RecheckApplicationDuplicates>().PartitionProcessingByGroupId(PartitionSlots.Five);
+        opts.LocalQueueFor<AnalyzeApplicationVerification>().PartitionProcessingByGroupId(PartitionSlots.Five);
+        opts.LocalQueueFor<CheckApplicationConsistency>().PartitionProcessingByGroupId(PartitionSlots.Five);
 
         // A message about one organization's data runs as that organization: the tenant filter and row-level security
         // then scope the handler's queries, exactly as they scope a signed-in request.
@@ -263,10 +281,10 @@ public static class ScreenHireMessaging
         opts.Schedules.ScheduleRecurring<PurgeExpiredWebhookDeliveries>("37 3 * * *");
         // Answers saved to finish later, 30 days after their first save (docs/architecture/apply-flow.md section 7).
         opts.Schedules.ScheduleRecurring<PurgeExpiredApplicationDrafts>("7 4 * * *");
+        // Brand images nobody saved into the branding, a day after the upload (docs/architecture/branding.md section 4).
+        opts.Schedules.ScheduleRecurring<PurgeExpiredBrandImageUploads>("27 3 * * *");
         // Records that Slack messages went, and the sandbox's messages, past their retention, daily (docs/architecture/slack.md).
         opts.Schedules.ScheduleRecurring<PurgeExpiredSlackMessages>("57 3 * * *");
-        // People whose permission for future roles ran out leave the talent pool, daily (docs/architecture/talent-pool.md).
-        opts.Schedules.ScheduleRecurring<ExpireTalentPool>("47 3 * * *");
         // Job distribution (docs/architecture/job-distribution.md): the reconciliation sweep, and the Indexing API queue.
         opts.Schedules.ScheduleRecurring<ReconcileJobPostings>("*/5 * * * *");
         opts.Schedules.ScheduleRecurring<DispatchIndexingNotifications>("* * * * *");

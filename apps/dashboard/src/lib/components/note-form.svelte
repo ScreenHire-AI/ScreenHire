@@ -1,5 +1,5 @@
 <script lang="ts">
-  import AtSignIcon from '@lucide/svelte/icons/at-sign';
+  import AtSignIcon from '~icons/lucide/at-sign';
   import { addApplicationNote, editApplicationNote, type TeamMember } from '@screenhire/api-client';
   import { onMount } from 'svelte';
   import { defaults, superForm } from 'sveltekit-superforms';

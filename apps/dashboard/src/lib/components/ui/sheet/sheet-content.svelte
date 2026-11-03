@@ -4,7 +4,7 @@
 
 <script lang="ts">
 	import { Dialog as SheetPrimitive } from "bits-ui";
-	import XIcon from '@lucide/svelte/icons/x';
+	import XIcon from '~icons/lucide/x';
 	import * as Tooltip from "#lib/components/ui/tooltip/index.js";
 	import IconButton from "#lib/components/icon-button.svelte";
 	import { cn, type WithoutChildrenOrChild } from "#lib/utils.js";

@@ -103,7 +103,7 @@ public sealed class QuestionnaireLinks(IDataProtectionProvider dataProtection, I
 public static class QuestionnaireLinkRegistration
 {
     /// <summary>
-    /// The link signers (follow-up questionnaires and the talent pool's link to stop being kept), the careers settings
+    /// The link signers (follow-up questionnaires, the talent pool's link to stop being kept and the interview page's link), the careers settings
     /// they build URLs from, and the email header (<see cref="Branding.EmailHeaders"/>), which links the logo on the
     /// careers board. The API and the worker both need them. Data
     /// Protection is added too, so any host that runs the automation handlers can resolve the signer; the API and the
@@ -116,6 +116,7 @@ public static class QuestionnaireLinkRegistration
         services.AddOptions<CareersSiteOptions>().BindConfiguration(CareersSiteOptions.Section);
         services.TryAddSingleton<QuestionnaireLinks>();
         services.TryAddSingleton<TalentPool.TalentPoolLinks>();
+        services.TryAddSingleton<Scheduling.InterviewLinks>();
         services.TryAddSingleton<Branding.EmailHeaders>();
         return services;
     }

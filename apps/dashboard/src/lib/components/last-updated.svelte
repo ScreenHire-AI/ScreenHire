@@ -1,5 +1,5 @@
 <script lang="ts">
-  import HistoryIcon from '@lucide/svelte/icons/history';
+  import HistoryIcon from '~icons/lucide/history';
   import type { LastUpdate, TeamMember } from '@screenhire/api-client';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import { Button } from '#lib/components/ui/button/index.js';

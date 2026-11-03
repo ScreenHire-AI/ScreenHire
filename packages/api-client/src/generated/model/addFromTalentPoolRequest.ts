@@ -6,7 +6,7 @@
  */
 
 /**
- * Adds these candidates from the talent pool to `jobId`, which must not be closed.
+ * Adds these saved candidates to `jobId`, which must not be closed.
  */
 export interface AddFromTalentPoolRequest {
   candidateIds: string[];

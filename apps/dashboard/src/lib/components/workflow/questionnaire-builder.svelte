@@ -14,7 +14,7 @@
   import type { DefinitionError, HiringWorkflow, QuestionType } from '@screenhire/api-client';
   import { createGetOrganization } from '@screenhire/api-client/svelte-query';
   import { DEFAULT_QUESTIONS_PER_PAGE } from '@screenhire/ui/questions/model';
-  import PlusIcon from '@lucide/svelte/icons/plus';
+  import PlusIcon from '~icons/lucide/plus';
   import EditPreviewLayout from '#lib/components/edit-preview-layout.svelte';
   import FormBuilder from '#lib/components/form-builder.svelte';
   import Hint from '#lib/components/hint.svelte';

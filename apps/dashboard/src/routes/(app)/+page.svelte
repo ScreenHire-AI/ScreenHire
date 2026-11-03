@@ -1,6 +1,6 @@
 <script lang="ts">
-  import BriefcaseIcon from '@lucide/svelte/icons/briefcase';
-  import PlusIcon from '@lucide/svelte/icons/plus';
+  import BriefcaseIcon from '~icons/lucide/briefcase';
+  import PlusIcon from '~icons/lucide/plus';
   import type { JobStatus, JobSummary } from '@screenhire/api-client';
   import { createListJobs, createPublishJob } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';

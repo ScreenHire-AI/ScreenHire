@@ -1,13 +1,14 @@
 ---
 type: Design
 title: "Careers apply flow"
-description: "The candidate apply page: the notice before any collection, steps that work without JavaScript with one section of questions a page, direct-to-storage resume uploads, the public submission endpoint, per-tenant branding stylesheets under the content security policy, tenant careers hosts, saving the form to finish later through an emailed link, and the follow-up questionnaire page a signed link opens."
+description: "The candidate apply page: the notice before any collection, steps that work without JavaScript with one section of questions a page, direct-to-storage resume uploads, the public submission endpoint, per-tenant branding stylesheets under the content security policy, tenant careers hosts, saving the form to finish later through an emailed link, the follow-up questionnaire page a signed link opens, and the interview page where a candidate picks, moves or cancels a time."
 tags: [careers, apply, astro]
 sources:
   - resource: apps/careers/src/pages/[organization]/jobs/[job]/apply.astro
   - resource: apps/careers/src/pages/[organization]/uploads.ts
   - resource: apps/careers/src/lib/apply.ts
   - resource: apps/careers/src/lib/apply-server.ts
+  - resource: apps/careers/src/lib/source.ts
   - resource: apps/careers/src/lib/brand.ts
   - resource: apps/careers/src/lib/host.ts
   - resource: apps/careers/src/middleware.ts
@@ -15,6 +16,9 @@ sources:
   - resource: apps/careers/src/pages/[organization]/questionnaires/[token].astro
   - resource: apps/careers/src/pages/[organization]/questionnaires/sent.astro
   - resource: apps/careers/src/lib/questionnaire.ts
+  - resource: apps/careers/src/pages/[organization]/interviews/[token].astro
+  - resource: apps/careers/src/lib/interview.ts
+  - resource: apps/careers/src/components/Notice.astro
   - resource: apps/api/Endpoints/PublicApplicationEndpoints.cs
   - resource: apps/api/Applications/ApplicantUploads.cs
   - resource: src/ScreenHire.Domain/Organizations/BrandPalette.cs
@@ -52,7 +56,9 @@ never calls the API.
 | `/telemetry?job={id}` | Relay for the telemetry module's beacons to the API (verification-engine.md §10.2, "Form telemetry"). |
 | `/questionnaires/{token}` | A follow-up questionnaire, opened from the signed link a SendQuestionnaire automation emailed (section 8). |
 | `/questionnaires/sent` | Where answered follow-up questions land, after a POST-redirect-GET, with no token in the address. |
+| `/interviews/{token}` | A candidate's interview, opened from the signed link an interview invitation or confirmation emailed: pick a time, then see it, move it or cancel it (section 8.1). |
 | `/talent-pool/{token}` | Where a candidate stops the employer keeping their details for future roles, from the signed link in a talent pool invitation ([talent pool](talent-pool.md)). One native form, no JavaScript, `no-store`, `noindex` and `no-referrer`. |
+| `/talent-pool/{token}` | Where a candidate stops the employer keeping their details for future roles, from the signed link in an invitation to apply ([saved candidates](talent-pool.md)). One native form, no JavaScript, `no-store`, `noindex` and `no-referrer`. |
 | `/talent-pool/stopped` | Where stopping lands, after a POST-redirect-GET, with no token in the address. |
 
 Each step is a native `<form method="POST" enctype="multipart/form-data">` posted to the `apply` Astro Action
@@ -84,12 +90,21 @@ until then (section 3).
 What this build records with an application (`JobApplication`): the answers, the files, the switch
 (`AccommodationRequested`, which later turns telemetry and typing signals off and is never a signal itself), the
 AI-use declaration and details, `PrivacyNoticeVersion`, `Source = CareersSite` (with `SourceSite`, the organization's
-own site, when the form was in the embeddable widget: [careers widget](careers-widget.md)), and two automation signals
-for the verification engine:
+own site, when the form was in the embeddable widget: [careers widget](careers-widget.md)), `SourceBoard`, the job board whose
+link brought the candidate (below; like `SourceSite` it tags the link they followed, is stored after the notice and is never a verification signal, so the notice version did not change), and two automation signals for the verification engine:
 
 - `HoneypotFilled` (`AUTO_HONEYPOT`): an off-screen field that only bots fill;
 - `BotCheck` (`AUTO_TURNSTILE_FAIL`): Cloudflare Turnstile's result when `ScreenHire:Turnstile:SiteKey` and `SecretKey`
   are set, otherwise `NotChecked`. Off locally and in tests.
+
+`SourceBoard` is a hint for the Reports page's Sources panel, not a signal. A feed or sandbox board links to a job as
+`/{slug}/jobs/{job}?src={boardId}` (`BoardUrls.Tag`); the job page's Apply link and the apply form's address keep `src`
+(`withSource` in `apps/careers/src/lib/source.ts`, which checks only its shape), and the apply action sends it as
+`source`. `SubmitPublicApplication` stores it as `JobApplication.SourceBoard` only when it is one of `BoardUrls.TaggedBoards`,
+and drops anything else without refusing the application. Nothing is read or stored at browsing time: the value is
+recorded with the application, after the notice. A saved draft's link does not carry `src`, so an application finished from
+a draft counts as the careers page. The automation fact `application.source` and the verification checks do not read it.
+
 
 Neither refuses a submission (CLAUDE.md non-negotiable 2), and knockout answers are stored like any other.
 
@@ -104,14 +119,14 @@ organization and never stores it as sent, and keeps it only on the job's device-
 fingerprint is kept only when it is ticked. The observation and the telemetry are deleted after 30 days. The notice and
 the privacy page say all of this, and that the employer may email a follow-up questionnaire whose page keeps the
 answers only, that a saved draft keeps the details and answers only, for 30 days, and that an application through
-the form on the employer's own website notes which website (`NOTICE_VERSION` `2026-10-31.2`).
+the form on the employer's own website notes which website (`NOTICE_VERSION` `2026-11-02.1`).
 
 The review step also asks, optionally and unticked, "Keep my details for future roles", with one line saying the
-employer keeps the application for its talent pool period (`talentPoolMonths` on the application form, 12 months by
-default) and may invite them to apply for other roles, and that every invitation has a link to stop. The careers server
-sends `keepForFutureRoles`; the API records the permission, with that period, on the application only, never on the
-candidate ([talent pool](talent-pool.md)). The privacy page's "Future roles" section says the same
-(notice version `2026-10-30.1`).
+employer keeps their details until they ask, or the employer removes them, and may invite them to apply for other
+roles, and that every invitation has a link to stop. There is no period: the application form carries no number of
+months. The careers server sends `keepForFutureRoles`; the API records the permission on the application only, never on
+the candidate ([saved candidates](talent-pool.md)). The privacy page's "Future roles" section says the same (notice
+version `2026-11-02.1`, bumped when the period was removed).
 
 ## 3. Uploads
 
@@ -237,10 +252,19 @@ busy moment never mails a second link. The API (`PublicApplicationDraftEndpoints
   organization (a per-address advisory lock, as for sign-in links); the sixth save is a 429. The answer is the same
   whether or not the address applied before. If the email cannot be sent, the draft is deleted and the request fails,
   so a draft never sits without its link or counts against the cap.
-- Accepted limits. Saving a draft takes no bot check, so anyone can make the API email a link to an address they
-  type: the per-address cap and the per-network rate limit bound it, and the email says to ignore it if you did not
-  start the application. The sixth save's 429 tells the caller that address has saved several drafts in that
-  organization today, which says nothing about whether it applied.
+- Bot check. The first save of a draft is the one public route that emails a link to an address the visitor typed, so
+  it needs Turnstile's check to pass, which a submission does not (`BotCheck` above): the careers form sends the
+  widget's token (`botCheckToken`) with the save, and `PublicApplicationDraftEndpoints.BotCheckProblemAsync` answers a
+  failed check with a 403 before anything is looked up or sent. Only a failed check refuses. A check that was not run,
+  because no keys are configured or Cloudflare was unreachable, goes on, as it does on a submission. The widget shows on
+  every step that offers Save and finish later, not only on the review step. Saving a draft again sends no email and
+  needs no token, and sending the application never needs one, so a candidate who cannot pass the check (JavaScript off,
+  a strict privacy tool) applies as before; the 403's message says so. The notice that the checks never reject anyone shows
+  wherever the check runs, on the review step and on any step that offers Save. This is a limit on mail the form can trigger,
+  not a verdict on the candidate: no signal is written, and nothing about a draft reaches verification.
+- Accepted limits. The check, the per-address cap and the per-network rate limit bound what anyone can make the API
+  email, and the email says to ignore it if you did not start the application. The sixth save's 429 tells the caller
+  that address has saved several drafts in that organization today, which says nothing about whether it applied.
 - The token is Data Protection under its own purpose (`ScreenHire.ApplicationDraft.Link.v1`), naming the organization
   and the draft, like follow-up links. A draft is found by its token, never by its email, so nobody who knows an
   address can replace the answers saved under it. The careers page keeps the token in its state, so saving again
@@ -292,6 +316,35 @@ answers" on the last page.
   expired" with what to do (410), one whose questionnaire, job or application has ended "These questions are no longer
   open" (410), and an unknown or forged one "We could not find these questions" (404). A problem with an answer comes
   back on the same page with what was typed, as on the apply form.
+
+### 8.1 Interviews
+
+An interview the team offered ([interview scheduling](interview-scheduling.md)) has one link, `/interviews/{token}`, for its
+whole life. The page asks the API for the interview (`GET .../interviews/{token}?tz=`) and shows what state it is in:
+
+- **Open.** The heading names the job and the length, then a time zone `<select>` in a plain GET form (the interview's own
+  zone first, then a short list of common ones and the zone being shown; "Show times in this zone" reloads with `?tz=`),
+  then the offered times. The careers server writes every time with `Intl.DateTimeFormat` in that zone, so no script is
+  needed: a fieldset per local day, a radio per start time ("10:00 AM"), and "Book this time", posted to the
+  `interviewBook` action. One screen shows at most five days that have times; "Show later times" and "Back to the first
+  times" are plain links (`?from=` a local day), so a 90-day window never becomes a thousand radios. No times, or a
+  calendar that cannot be read, gets a calm notice that says to try again later or reply to the email.
+- **Booked.** The time with its day, year, range and the zone's name, and "The video link is in your calendar invitation"
+  (the page never shows a link of its own). While the candidate can still change it, "Pick another time" opens the
+  picker (`?change=1`, posting to `interviewReschedule`). "Cancel this interview" is a `details` element that opens one line
+  on what happens and a "Yes, cancel it" button posting to `interviewCancel`, so a stray tap ends nothing and no script is
+  needed. Inside the minimum notice the page says changes close that many hours before the start and to reply to the email.
+- **Cancelled or expired.** "This interview is cancelled" or "This link has expired" (410), the employer's name and a
+  sentence that says to reply to the email or contact the team. No contact details are invented. An unknown or forged
+  link says "We could not find this interview" (404); an unknown employer has no page, as on the questionnaire page.
+  A rate-limited call says to wait a minute (429), not that the link is unknown.
+
+Each action redirects (303) to the page's own address with one outcome word (`?outcome=booked`, `rescheduled`, `cancelled`,
+`slot-taken`, `too-late` and so on), the zone and the picker, so a refresh never posts twice and the address never carries
+the posted time. The page shows a notice for the outcomes it knows, always an icon and words. The 409 and 410 problems map
+by their `type` code (`src/lib/interview.ts`). Like the questionnaire page it sends `Cache-Control: no-store`, `noindex`
+and `no-referrer`, ships no script, and collects the choice and nothing else: no telemetry, no device check, and nothing
+about verification.
 
 ## 9. Owner actions before production
 

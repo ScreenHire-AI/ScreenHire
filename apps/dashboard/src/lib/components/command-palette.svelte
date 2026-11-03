@@ -13,6 +13,7 @@
   import { signOutAndRedirect } from '#lib/session.js';
   import { visibleSettingsSections } from '#lib/settings.js';
   import { getShell, sections } from '#lib/shell.js';
+  import { keptInMindLabel } from '#lib/talent-pool.js';
 
   // Ctrl K / ⌘K: jump to a section, a job or a candidate, or run an action. Jobs and candidates come from the server's
   // search (`GET /v1/search`: names and emails, job titles), so it finds what no list has loaded, within the jobs the
@@ -78,9 +79,9 @@
         </Command.Item>
       {/each}
     </Command.Group>
-    {#if visibleSettingsSections(page.data?.user).length > 0}
+    {#if visibleSettingsSections(page.data?.user, shell?.features()).length > 0}
       <Command.Group heading="Settings">
-        {#each visibleSettingsSections(page.data?.user) as setting (setting.href)}
+        {#each visibleSettingsSections(page.data?.user, shell?.features()) as setting (setting.href)}
           <Command.Item value={`Settings ${setting.label}`} onSelect={() => run(() => goto(setting.href))}>{setting.label}</Command.Item>
         {/each}
       </Command.Group>
@@ -107,7 +108,11 @@
             <span class="ml-auto flex min-w-0 items-center gap-2">
               <!-- An option cannot hold a tooltip, so a long title wraps rather than being cut (F5). -->
               <span class="min-w-0 text-right text-caption break-words text-muted-foreground">{hit.jobTitle}</span>
-              <Badge variant="muted">{hit.stage.name}</Badge>
+              {#if hit.keptInMindAt}
+                <StatusBadge status="saved" label={keptInMindLabel} quiet />
+              {:else}
+                <Badge variant="muted">{hit.stage.name}</Badge>
+              {/if}
             </span>
           </Command.Item>
         {/each}

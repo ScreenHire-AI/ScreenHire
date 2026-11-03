@@ -1,6 +1,6 @@
 <script lang="ts">
-  import SaveIcon from '@lucide/svelte/icons/save';
-  import CheckIcon from '@lucide/svelte/icons/check';
+  import SaveIcon from '~icons/lucide/save';
+  import CheckIcon from '~icons/lucide/check';
   import type { JobAccess, PermissionSummary, RoleSummary, TeamMember } from '@screenhire/api-client';
   import { createChangeMemberJobAccess, createChangeMemberRole, createListMemberJobs } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';

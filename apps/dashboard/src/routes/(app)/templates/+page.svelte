@@ -1,10 +1,10 @@
 <script lang="ts">
-  import FolderArchiveIcon from '@lucide/svelte/icons/folder-archive';
-  import ArchiveRestoreIcon from '@lucide/svelte/icons/archive-restore';
-  import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
-  import CopyIcon from '@lucide/svelte/icons/copy';
-  import PlusIcon from '@lucide/svelte/icons/plus';
-  import RotateCcwIcon from '@lucide/svelte/icons/rotate-ccw';
+  import FolderArchiveIcon from '~icons/lucide/folder-archive';
+  import ArchiveRestoreIcon from '~icons/lucide/archive-restore';
+  import ChevronDownIcon from '~icons/lucide/chevron-down';
+  import CopyIcon from '~icons/lucide/copy';
+  import PlusIcon from '~icons/lucide/plus';
+  import RotateCcwIcon from '~icons/lucide/rotate-ccw';
   import type { EmailTemplateEntry, HiringTemplateSummary, ScorecardTemplateSummary, TemplateUse } from '@screenhire/api-client';
   import {
     createArchiveEmailTemplate,

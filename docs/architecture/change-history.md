@@ -36,7 +36,11 @@ words (design system T6). This doc is how that is recorded and read. History cov
 templates, email templates, scorecard templates, jobs, custom roles and the organization's settings today: its name,
 its branding and its verification settings, each with a history of its own (`/v1/organization/history`,
 `/branding/history`, `/verification-settings/history`). The Team page and the API keys page have one history each: the
-team's members, roles, job access and invitations, and every key created and revoked. Built-in roles never change, so
+team's members, roles, job access and invitations, and every key created and revoked. A saved candidate's note has one
+history per saved entry ([saved candidates](talent-pool.md)); the sending domain has one too
+(`/v1/organization/sending-domain/history`): added, verified, no longer verified and removed, and nothing for a check that
+only refreshes its records. The retired talent pool settings (the permission period) keep the `TalentPoolSettings` kind so
+their old rows still read, and nothing writes it now. Built-in roles never change, so
 they have no history. A webhook
 endpoint has none either: its row holds the signing secret, which the allow-list keeps out (Secrets, below), so its page
 shows when it was added and when its secret was last rotated instead. It never holds
@@ -49,7 +53,7 @@ One `change_records` row (`ChangeRecord`) per object per save:
 
 | Column | Holds |
 |---|---|
-| `subject_kind`, `subject_id` | The object: `HiringTemplate`, `EmailTemplate`, `ScorecardTemplate`, `Job`, `Role`, `Organization`, `Branding`, `VerificationSettings`, `Team` or `ApiKeys`, and its id (the organization's id for the last five). A built-in email template's id is its built-in id (`stage-change`), because restoring deletes its row and the next edit adds a new one. A template version belongs to its template |
+| `subject_kind`, `subject_id` | The object: `HiringTemplate`, `EmailTemplate`, `ScorecardTemplate`, `Job`, `Role`, `Organization`, `Branding`, `VerificationSettings`, `SendingDomain`, `Team`, `ApiKeys` or `TalentPoolEntry` (and the retired `TalentPoolSettings`), and its id (the organization's id for the settings kinds, the sending domain, the team and the keys; the saved entry's own id for `TalentPoolEntry`). A built-in email template's id is its built-in id (`stage-change`), because restoring deletes its row and the next edit adds a new one. A template version belongs to its template |
 | `actor_user_id`, `actor_api_key_id` | The member who made it, or the organization API key. Neither means ScreenHire: the worker, an automation, the demo's setup |
 | `occurred_at` | From `TimeProvider`, when the save ran |
 | `created` | Whether the save created the object: its first line says so, and Last updated says Created until a later change |
@@ -63,12 +67,15 @@ former teammate" once their account is gone, so no name is ever stored in the ta
 was said: a later rename of a question leaves the old lines naming it as it was. An invited address is stored as
 written, since nobody has an account yet, and the invitation row keeps the same address.
 
-Objects that existed before history was recorded start their history at their first edit; nothing is back-filled.
+Objects that existed before history was recorded start their history at their first edit; no record is invented for them.
 Their Last updated falls back to the row's own times with nobody named: Created at `created_at` when `updated_at` is
 empty or the same, else Updated at `updated_at` (`LastUpdate.From`). A row people only ever change, never create (the
 verification settings, the branding, an edited built-in email template), falls back to Updated
 (`LastUpdate.FromChange`). The Team and API keys pages fall back to Created when the organization was. Records written
-before the `created` column read as updates.
+before the `created` column were marked afterwards by migration `HardenFromWorkflowFollowUps`: a record of a kind that
+sets `created` whose first line is a creation's own words ("created the template", "created the job", "created the
+role from", "created the scorecard", "created the team") got `created = true`, run as the owner because the application
+role cannot update this table. An API key's "created the key" line is left alone, since keys never set `created`.
 
 ## How it is written
 
@@ -144,7 +151,8 @@ the webhook address of" the automation, with no values (`DefinitionChanges`).
 
 `change_records` is tenant-owned (`ITenantOwned`, the `Tenant` query filter) with forced row-level security and the
 `tenant_isolation` policy (migration `AddChangeHistory`). It is append-only: `screenhire_app` has no `UPDATE` or
-`DELETE` on it. It has no foreign key to users or API keys, so a removed member or a revoked key keeps their record.
+`DELETE` on it. The one exception is `erase_saved_note_history`, a function that runs with the owner's rights: erasing a
+candidate removes the history of saved notes, whose text is about them ([candidates](candidates.md#erasure)). It has no foreign key to users or API keys, so a removed member or a revoked key keeps their record.
 
 ## API
 
@@ -164,6 +172,10 @@ the webhook address of" the automation, with no values (`DefinitionChanges`).
   - `GET /v1/organization/roles/{roleId}/history` (any member, as the role routes are)
   - `GET /v1/organization/team/history` (Manage the team, because it names invited addresses)
   - `GET /v1/organization/api-keys/history` (Manage API keys; signed-in members only, as the key routes are)
+  - `GET /v1/talent-pool/{candidateId}/history` (any member who can see the saved candidate's entry). The route takes the
+    candidate's id but reads the history of the candidate's current entry, whose own id is the subject: saving them again
+    replaces the entry and starts a fresh note and History, so a member on Only jobs they're on never reads edits made
+    under a job they cannot see
 
   Each route first checks that the caller can see the object, so another organization's id is a 404.
 - `GET /v1/organization/team/last-update` and `GET /v1/organization/api-keys/last-update` return the `LastUpdate` of

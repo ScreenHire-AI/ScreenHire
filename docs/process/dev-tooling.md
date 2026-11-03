@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: "Claude Code tooling"
-description: "Every skill, agent and rule in .claude/ and when to use each, commands that were never run, why pnpm's global virtual store was not adopted for worktree installs, and how to add a new skill, agent or rule."
+description: "Every skill, agent and rule in .claude/ and when to use each, commands that were never run, why pnpm's global virtual store was not adopted for worktree installs, where a new task's start-up time goes and what would cut it, what a preview stack commits in memory and why working set hides it, and how to add a new skill, agent or rule."
 tags: [claude-code, skills, agents, rules]
 sources:
   - resource: .claude/skills/add-careers-page/SKILL.md
@@ -20,6 +20,10 @@ sources:
   - resource: .claude/skills/task-review/SKILL.md
   - resource: .claude/skills/task-review/visual-probe.js
   - resource: .claude/skills/verify/SKILL.md
+  - resource: apps/dashboard/package.json
+  - resource: apps/dashboard/scripts/prebundle.mjs
+  - resource: apps/dashboard/vite.config.ts
+  - resource: Directory.Build.props
   - resource: .claude/agents/design-review.md
   - resource: .claude/agents/doc-auditor.md
   - resource: .claude/agents/verification-guardrails.md
@@ -62,12 +66,12 @@ A skill is a procedure, run with `/<name>` or loaded by Claude Code when the tas
 | [`add-marketing-page`](../../.claude/skills/add-marketing-page/SKILL.md) | adding a marketing, pricing, legal or content page | static Astro page through `BaseLayout` and `Seo.astro`, JSON-LD, sitemap and `llms.txt`, no client JS |
 | [`commit`](../../.claude/skills/commit/SKILL.md) | saving work mid-task | a local conventional commit; no push, no gate |
 | [`merge-back`](../../.claude/skills/merge-back/SKILL.md) | the owner lands a small tooling, config or docs change from the root checkout | commit, rebase onto `origin/main`, path-scoped checks (or `full` for `pnpm verify`), push to `main` with no PR; only when the owner asks, and it refuses inside a task worktree |
-| [`preview`](../../.claude/skills/preview/SKILL.md) | looking at the app, or checking a change in it (`/run` uses it) | starts the stack through the Aspire CLI (`dotnet aspire start --isolated` in a worktree), waits with `aspire wait` until the demo data is in, reports URLs and logins from `aspire describe`, signs in as Avery Quinn in the task's browser pane, rebuilds one service after a code change; `fresh` for a clean demo, `stop` for `aspire stop` |
+| [`preview`](../../.claude/skills/preview/SKILL.md) | looking at the app, or checking a change in it (`/run` uses it) | starts the stack through the Aspire CLI (`dotnet aspire start --isolated` in a worktree), waits with `aspire wait` until the demo data is in, reports URLs and logins from `aspire describe`, signs in as Avery Quinn in the task's browser pane, rebuilds one service after a code change; `fresh` for a clean demo (the default in a worktree, so it leaves no volumes; `keep` persists them), `api` for the backend only, `stop` for `aspire stop`; Kangentic's Stop script ends a parked task's stack |
 | [`sync-docs`](../../.claude/skills/sync-docs/SKILL.md) | a change touches commands, AppHost resources, projects, `.claude/` or `docs/` | owns the source-to-doc anchor table, maps a changed file to its docs with `node scripts/docs-bundle.mjs sources`, runs `doc-auditor`, fixes drifted docs and prose |
-| [`verify`](../../.claude/skills/verify/SKILL.md) | before calling implementation done, and inside the Testing and Merge columns | the local gate, `pnpm verify` |
-| [`task-review`](../../.claude/skills/task-review/SKILL.md) | the Code Review column runs it | independent review with the agents below; for a dashboard change it starts `/preview`, screenshots `/style-guide` and the changed pages at 1440, 768 and 390px, measures them with [`visual-probe.js`](../../.claude/skills/task-review/visual-probe.js) and hands both to `design-review`, then stops the stack; fixes findings; `Verdict: Ready` or `Verdict: Blocked` |
-| [`pull-request`](../../.claude/skills/pull-request/SKILL.md) | the Testing column runs it | commit, integrate `main`, gate (plus Lighthouse for a marketing change), push, open and link the PR |
-| [`merge-pull-request`](../../.claude/skills/merge-pull-request/SKILL.md) | the Merge column runs it | re-gate if `main` moved, squash-merge, confirm, realign |
+| [`verify`](../../.claude/skills/verify/SKILL.md) | before every commit, before calling implementation done, and inside Code Review and Testing | the local checks: `pnpm verify:fast` and the tests the branch added or changed, by class or file; `/verify full` runs `pnpm verify` for the owner |
+| [`task-review`](../../.claude/skills/task-review/SKILL.md) | the Code Review column runs it | independent review with the agents below; for a dashboard change it starts `/preview`, screenshots `/style-guide` and the changed pages at 1440, 768 and 390px, measures them with [`visual-probe.js`](../../.claude/skills/task-review/visual-probe.js) and hands both to `design-review`, then stops the stack; fixes findings and proves the fixes with `/verify` and the covering test classes by name; `Verdict: Ready` or `Verdict: Blocked` |
+| [`pull-request`](../../.claude/skills/pull-request/SKILL.md) | the Testing column runs it | commit, merge `main`, `/sync-docs`, `/verify`, one push, open and link the PR, watch CI's `Gate` with up to three fix rounds (one push each), report the Lighthouse result |
+| [`merge-pull-request`](../../.claude/skills/merge-pull-request/SKILL.md) | the Merge column runs it | require `Gate` green on the PR's head and the PR mergeable, squash-merge with `--match-head-commit` (CI again only after a conflict), confirm, realign |
 
 The last four are the board pipeline ([board-pipeline.md](board-pipeline.md)). Change them only in a task about the
 pipeline.
@@ -101,7 +105,7 @@ convention; the rule holds the detail.
 | [`writing-style`](../../.claude/rules/writing-style.md) | always | prose without model tells: no em-dashes or curly quotes, plain words, short sentences |
 | [`no-personal-info`](../../.claude/rules/no-personal-info.md) | always | no personal paths, emails, secrets or real applicant data in committed files |
 | [`cli-features-over-custom-layers`](../../.claude/rules/cli-features-over-custom-layers.md) | always | use Aspire, ASP.NET Core, EF Core, Orval and Claude Code features before writing a layer; no model-name lists |
-| [`dotnet-api`](../../.claude/rules/dotnet-api.md) | `apps/api`, `apps/worker`, `apps/apphost`, `src`, `tests` | backend conventions: endpoints, contracts, errors, data, tenancy, background work, integrations |
+| [`dotnet-api`](../../.claude/rules/dotnet-api.md) | `apps/api`, `apps/worker`, `apps/apphost`, `src`, `tests`, `Directory.Packages.props` | backend conventions: endpoints, contracts, errors, data, tenancy, background work, integrations |
 | [`utc-timestamps`](../../.claude/rules/utc-timestamps.md) | `src`, `apps/api`, `apps/worker` | `DateTimeOffset` in UTC from `TimeProvider`, `timestamp with time zone` |
 | [`svelte-dashboard`](../../.claude/rules/svelte-dashboard.md) | `apps/dashboard`, `packages/ui` | Svelte 5 runes, SvelteKit 3 imports, generated client, shadcn-svelte, tokens, status marks, accessibility; points to the design system for how screens look |
 | [`astro-public`](../../.claude/rules/astro-public.md) | `apps/careers`, `apps/marketing` | about 0 KB JS (one upload island), forms that work without JS, strict CSP, SEO and JSON-LD, domains as configuration, notice before collection |
@@ -116,6 +120,8 @@ Every command in these files was run once when they were written (October 2026),
 |---|---|---|
 | `dotnet ef migrations remove`, `dotnet ef database update` | `add-migration`, `migration-safety` (as forbidden) | both connect to whatever Postgres answers on `localhost:5432`, which on a shared machine is not this worktree's |
 | `dotnet aspire start` without `--isolated`, in the root checkout | `preview` | agents run it from a worktree, with `--isolated`; the root checkout belongs to the owner, who runs it there and whose own stack may be running |
+| `gh run rerun <run-id> --failed` | `pull-request` | it starts CI jobs again; it runs the first time a pull request's CI fails in code its branch did not touch |
+| `merge-pull-request` Step 2 (merge `origin/main` into a conflicting PR, `pnpm verify:fast`, push, one CI run) | `merge-pull-request` | it needs a PR that conflicts with `main`; the steps are `/pull-request`'s Steps 2 and 7, which were run |
 | `git rebase origin/main` and its conflict steps (`git diff --name-only --diff-filter=U`, `git checkout --ours`, `git rebase --continue`), `git push origin HEAD:main` | `merge-back` | they move `main`, so they run only when the owner asks for a merge back |
 
 The unit, Vitest and end-to-end commands (`dotnet test --project tests/ScreenHire.UnitTests --filter-class ...`,
@@ -177,3 +183,106 @@ and a pnpm release reuses filled `links` entries without linking every package a
 
 Follow [`skill-authoring`](../../.claude/rules/skill-authoring.md): run every command once, word not-yet-merged
 dependencies by what exists, and add a row here in the same change.
+
+## Where a new task's start-up time goes
+
+Measured on 2026-10-31 from Kangentic's log for task #80, which started when its dependency reached Done. It took
+43 s from that Done to Claude's `SessionStart`, and every step waited for the one before it:
+
+| Step | Time |
+|---|---|
+| Done until Kangentic's git queue starts (cause not found) | 4.2 s |
+| Resolve the base branch, `git fetch` | 2.2 s |
+| `git worktree add`, long paths and sparse-checkout settings | 1.4 s |
+| `pnpm install --frozen-lockfile` (the post-worktree script) | 27.0 s |
+| Kangentic's spawn until "Trust ensured", then Claude's start until `SessionStart` | 7.8 s |
+
+The install is the cost. It links about 55,000 files into 712 packages. A cold install in a throwaway worktree took
+19.9 and 25.4 s, and a no-op install 2.6 s. The board's 27 s ran beside Kangentic deleting the finished task's
+`node_modules`, which took 32 s. None of pnpm's flags helped: `--prefer-offline` took 20.3 to 20.7 s, hardlinks
+(`package-import-method`) 19.3 to 19.8 s, `--ignore-scripts` 19.7 s and higher network concurrency 20.6 s. Resolution
+and the network are not the cost.
+
+What would help, filed as tasks:
+- In Kangentic (#955 to #957 on its board): start the agent while the install runs and hold its first prompt until
+  the install ends; keep a finished task's cleanup out of its dependents' installs; investigate a spare worktree that
+  is already installed.
+- Here (#81, done): `lighthouse` alone reached 73 packages, about 8,300 files, that nothing else needs. It now lives in
+  `tools/lighthouse`, outside the workspace, and `pnpm verify:lighthouse` installs it on first use. A cold install in a
+  throwaway worktree went from 23.0 s, 55,089 files and 714 packages to 18.0 s, 44,092 files and 640 packages (one
+  run each, 2026-11-01). The dashboard's icons then moved from `@lucide/svelte` (three files per icon, 8,164 files) to
+  `unplugin-icons` with `@iconify-json/lucide` (one JSON file): a clean install with `--ignore-scripts` took 16.5 s and
+  44,093 files before, 12.3 s and 35,929 files after (same day, one run each).
+- The same task set `SatelliteResourceLanguages` to `en` and hardlinks for copy-local files in `Directory.Build.props`. Seven
+  bin folders held the same package DLLs (Playwright's `node.exe` alone is 94 MB) and about 1,100 localized resource
+  files, 77 MB, that nothing reads; a worktree's bin was about 895 MB. The saving is a finder's estimate, not a timed
+  build.
+
+Things that look like levers but are not (all measured on 2026-11-01, one run each, so a gain under a second is inside the noise):
+- Superforms installs every validator library it has an adapter for (`typebox`, `effect`, `class-validator` and
+  more), although the dashboard uses only `zod4`. `sveltekit-superforms/adapters` imports them all statically, so
+  leaving them out with pnpm's `ignoredOptionalDependencies` would break the dashboard build.
+- Kangentic's `linkNodeModules` links only the root `node_modules`, from the root checkout's lockfile, so the
+  `apps/*` and `packages/*` folders would still install. Keep it off.
+- pnpm's global virtual store (`enableGlobalVirtualStore`, pnpm 10.34) on Windows: the first install took 28 s, and a
+  second fresh worktree 28 s again with the shared links already there, against 18 s for the normal install.
+- Skipping `verify:dotnet` and `verify:contract` in `/verify` when no .NET input changed: 19 of the last 20 merged
+  pull requests changed one, so the rule would have skipped the build once.
+- CI's analyzer and OpenAPI flags on a local test build (`-p:RunAnalyzers=false -p:EnforceCodeStyleInBuild=false
+  -p:OpenApiGenerateDocuments=false`): a warm build of `tests/ScreenHire.UnitTests` took 7.1 to 7.7 s without them and
+  4.6 to 5.1 s with them. The saving is 2.5 s, so `/verify` does not carry the flags.
+- Root `pnpm.overrides` for `aria-query` (5.3.2), `yaml` (2.9.1) and `@opentelemetry/api` (`-`, an optional peer nothing
+  imports): the checks, the builds and 199 dashboard tests passed, and it removed 1,138 of 38,220 files, about 3%, about
+  0.5 s. Three permanent pins for that were reverted.
+- Moving `orval` to `tools/orval` like Lighthouse: 2,320 files, about 1 s, and an install step inside `verify:contract`,
+  which every column runs.
+
+`.kangentic/config.json` also lists `.claude/settings.local.json` in `copyFiles`, but Kangentic skips `.claude/` entries,
+so a new worktree does not get that file.
+
+## What a preview stack commits
+
+Kangentic's low-memory pause reads commit (private bytes), not working set, and working set hides most of it. Measured
+on 2026-11-01 in a worktree with no data volumes, one run each, as the private bytes (`PrivateMemorySize64`) of every
+process whose command line names the worktree and of their descendants. That is a wider count than the local demo
+guide's 5 and 8 processes, so its process counts and working set do not match this table's. The containers run in
+Docker's VM and are not counted. The worker's commit swings between samples (251 to 897 MB across them), so read the
+totals to within a few hundred MB.
+
+A real session is the number to read. "Browsed" means signed in as Avery Quinn with `/`, the Senior .NET Engineer job
+and `/style-guide` loaded in a browser, sampled 20 s later. "Curl" means four requests to `/` and `/sign-in`, sampled 60 s
+later, which never load the app's modules.
+
+| Run | Load | Dashboard `vite dev` commit | Resident | Whole stack commit |
+|---|---|---|---|---|
+| Cold cache, `vite dev` as it was | Browsed | 3,185 MB | 1,306 MB | 6,456 MB (13 processes) |
+| Cold cache, `prebundle.mjs` without `optimizeDeps.include` | Browsed | 3,308 MB | 1,390 MB | 6,271 MB |
+| Cold cache, `prebundle.mjs` with `optimizeDeps.include` (now) | Browsed | 576 MB | 313 MB | 3,845 MB |
+| Warm cache, dashboard restarted | Browsed | 573 MB | 308 MB | 3,805 MB |
+| Cold cache, `vite dev` as it was | Curl | 1,201 MB | 352 MB | 4,035 MB |
+| Warm cache, dashboard restarted | Curl | 349 MB | 182 MB | 3,198 MB |
+| Cold cache, `vite optimize && vite dev` | Curl | 1,162 MB | 354 MB | 4,028 MB |
+| Cold cache, `prebundle.mjs` without `optimizeDeps.include` | Curl | 344 MB | 184 MB | 2,956 MB |
+| `/preview api`, backend only | None | not started | not started | 1,353 MB (10 processes; working set 2,005 MB) |
+
+A cold cache costs the dashboard about 2.6 GB of commit that the process keeps for its whole life, the shape Kangentic's
+#873 found in its own dev server. A worktree always starts cold. The cause is the in-process dependency pre-bundle, and
+it happens twice. The log of a cold start says "Forced re-optimization of dependencies". Then Vite's dependency scan
+reports "no dependencies found" in these routes, so the first page load discovers 15 packages and bundles them in the
+dev server ("optimized dependencies changed. reloading"). Careers (1,064 MB) and marketing (788 MB) hold more commit
+than their working set (346 and 286 MB) in the same way, and were not investigated.
+
+`vite optimize` is the native way to pre-bundle in a process that exits, and it does not work here. It calls
+`optimizeDeps` alone, but vite-plugin-svelte checks in its `buildStart` hook, which only a dev server runs, whether
+Svelte's settings changed since the cache was written. With no `_svelte_metadata.json` it forces a second, in-process
+optimization when the real server starts.
+
+So `apps/dashboard/scripts/prebundle.mjs` starts a Vite server in middleware mode, which runs those hooks and opens no
+port, waits until each dependency is written, and closes. The wait is on each dependency's `processing` promise, because
+`createServer` returns once the SSR run is done and closing then discards a client run that is still going. The 15
+packages are in `optimizeDeps.include` in `apps/dashboard/vite.config.ts`, so that run covers them. A package a page
+starts importing joins that list: without it the page still works, the first load bundles it in-process, and the log
+says "dependencies optimized". The dashboard's `dev` script runs the pre-bundle first. It takes about 5 s on a cold cache
+and 2 s on a warm one. It always exits 0: if it fails, it warns and `vite dev` bundles in-process as before. The
+`/preview` figures in [the local demo guide](../operations/local-demo.md#start-over) are working set; the commit above is
+beside them.

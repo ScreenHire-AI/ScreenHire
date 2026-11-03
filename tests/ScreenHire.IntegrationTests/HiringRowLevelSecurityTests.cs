@@ -180,6 +180,31 @@ public sealed class HiringRowLevelSecurityTests(AppHostFixture fixture)
         (await outside.ApplicationScorecards.IgnoreQueryFilters().CountAsync(Ct)).Should().Be(0, "row-level security hides it even without the query filter");
     }
 
+    // The library scorecard's tenant_isolation policy (migration AddScorecardTemplates), as the application role. The test
+    // database's owner is a superuser, which row-level security never binds, so only this role proves the policy holds.
+    [Fact]
+    public async Task Library_scorecards_belong_to_their_organization_and_the_database_refuses_one_written_for_another()
+    {
+        var organization = await fixture.CreateOrganizationAsync(cancellationToken: Ct);
+        var other = await fixture.CreateOrganizationAsync(cancellationToken: Ct);
+        var id = Guid.CreateVersion7();
+        const string insert = "INSERT INTO scorecard_templates (id, organization_id, name, questions, created_at, updated_at) VALUES (@id, @organization, 'Phone screen', '[]'::jsonb, now(), now())";
+        const string rename = "UPDATE scorecard_templates SET name = 'Renamed' WHERE id = @id";
+
+        (await ExecuteAsync(organization.Id, insert, ("id", id), ("organization", organization.Id))).Should().Be(1);
+        (await ExecuteAsync(organization.Id, rename, ("id", id))).Should().Be(1, "a library scorecard is edited in place by its own organization");
+        (await ExecuteAsync(other.Id, rename, ("id", id))).Should().Be(0, "another organization cannot see it, so it cannot change it");
+        (await ExecuteAsync(other.Id, "DELETE FROM scorecard_templates WHERE id = @id", ("id", id))).Should().Be(0);
+
+        var forged = () => ExecuteAsync(other.Id, insert, ("id", Guid.CreateVersion7()), ("organization", organization.Id));
+        (await forged.Should().ThrowAsync<PostgresException>("a row written for another organization fails the policy's check"))
+            .Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
+
+        (await CountAsync("scorecard_templates", organization.Id)).Should().Be(1);
+        (await CountAsync("scorecard_templates", other.Id)).Should().Be(0);
+        (await CountAsync("scorecard_templates", tenant: null)).Should().Be(0, "with no tenant set the role sees no rows");
+    }
+
     // A note and its mentions belong to their organization; the application role edits and deletes them (the note keeps
     // its latest text only), and another organization sees neither, even without the query filter.
     [Fact]
@@ -495,6 +520,23 @@ public sealed class HiringRowLevelSecurityTests(AppHostFixture fixture)
         renamedByOther.Should().Be(0, "row-level security hides the key from another organization");
         renamedByOwner.Should().Be(1);
         (await delete.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
+    }
+
+    // Rows a table shows the application role for one tenant, or with none set.
+    private async Task<long> CountAsync(string table, Guid? tenant)
+    {
+        await using var connection = new NpgsqlConnection(await fixture.GetAppConnectionStringAsync(Ct));
+        await connection.OpenAsync(Ct);
+        await using var transaction = await connection.BeginTransactionAsync(Ct);
+        if (tenant is { } organizationId)
+        {
+            await using var setTenant = new NpgsqlCommand("SELECT set_config('app.tenant_id', @tenant, true), set_config('app.job_scope', 'all', true)", connection, transaction);
+            setTenant.Parameters.AddWithValue("tenant", organizationId.ToString());
+            await setTenant.ExecuteNonQueryAsync(Ct);
+        }
+
+        await using var command = new NpgsqlCommand($"SELECT count(*) FROM {table}", connection, transaction);
+        return (long)(await command.ExecuteScalarAsync(Ct))!;
     }
 
     private async Task<ScreenHireDbContext> ContextAsync(Guid organizationId)

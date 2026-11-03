@@ -19,9 +19,9 @@
 </script>
 
 <script lang="ts">
-  import CheckIcon from '@lucide/svelte/icons/check';
-  import ListTodoIcon from '@lucide/svelte/icons/list-todo';
-  import Undo2Icon from '@lucide/svelte/icons/undo-2';
+  import CheckIcon from '~icons/lucide/check';
+  import ListTodoIcon from '~icons/lucide/list-todo';
+  import Undo2Icon from '~icons/lucide/undo-2';
   import type { TeamMember } from '@screenhire/api-client';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';

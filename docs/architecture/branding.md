@@ -22,6 +22,8 @@ sources:
   - resource: packages/ui/src/heading-fonts.ts
   - resource: apps/dashboard/src/routes/(app)/settings/branding/+page.svelte
   - resource: apps/dashboard/src/lib/brand-images.svelte.ts
+  - resource: src/ScreenHire.Application/Branding/BrandImageCleanup.cs
+  - resource: apps/worker/BlobBrandImageStore.cs
 ---
 # Employer branding
 
@@ -36,9 +38,12 @@ design system, section 18.
 `Organization` holds `BrandColor`, `SecondColor` (both `#rrggbb`), `HeadingFont` (an enum, null for Bricolage
 Grotesque) and the three images in use, `LogoImageId`, `FaviconImageId` and `SharingImageId`. Each id names a
 `BrandImage`, a tenant-owned row (`brand_images`, row-level security) with the blob's name, its type, size, pixel size
-and malware scan status. The image columns are not foreign keys: Postgres checks a foreign key without row-level
+and malware scan status. The upload's file name is not a column: it is the last part of the blob name, and the API
+returns it as `fileName` so the Branding tile can name the file. The image columns are not foreign keys: Postgres checks a foreign key without row-level
 security, so a key would accept another organization's image. The branding save looks each id up within the tenant
-instead, and brand images are never deleted, because emails already sent point at them.
+instead. An image that was saved into the branding is never deleted, because emails already sent point at it, even after
+a newer logo replaces it: `BrandImage.SavedAt` records the first save and never clears (section 4 has the clean-up of
+the ones nobody saved).
 
 `PUT /v1/organization/branding` replaces the whole branding in one save, so History records one change with a line
 per part ("changed the heading font to **Fraunces**", "replaced the logo"; `SettingsChanges.Branding`). Branding was
@@ -96,6 +101,18 @@ The page asks `GET /v1/organization/branding/images/{id}` each second while the 
 save refuses an image still being scanned or one the scan blocked. As for applicant files, Clean and NotScanned (no
 scanner configured, as locally) are servable; Pending and Infected never are.
 
+An upload nobody saves is removed a day later. `PurgeExpiredBrandImageUploads` runs daily (03:27 UTC) and fans out one
+`PurgeOrganizationBrandImageUploads(OrganizationId, Cutoff)` per organization, as the draft sweep does
+(`DraftRetention.cs`). For its organization it deletes each `BrandImage` with no `SavedAt` made on or before the cutoff,
+the row first and only while it is still unsaved (so an owner saving at that moment keeps both), then its blob; it also
+deletes blobs under `{organization}/` older than the cutoff that have no row, which are uploads nobody verified. This
+is the worker's only write to storage: `IBrandImageStore` (a blob implementation in the worker, a no-op where no
+storage is configured) lists and deletes in the brand images container and never reads or writes an image. Every image
+uploaded before `SavedAt` existed was marked saved by its migration, because nothing recorded which old uploads had
+been in use. Azurite has no lifecycle rules, which is why a Wolverine schedule does this and not a storage rule. A branding save
+that names an upload the sweep removed a moment earlier is refused like any missing image, with a validation problem on
+that slot (not a 500).
+
 ## 5. Serving
 
 `GET /v1/public/organizations/{slug}/branding/images/{id}` streams a servable image of that organization, anonymous,
@@ -127,8 +144,9 @@ part has no header. Kept copies hold the HTML as it went.
 
 - Create the private `brand-images` container in production storage (Development creates it at start).
 - Add the dashboard's origin to the storage account's CORS rule for PUT, beside the careers origin.
+- Give the worker's identity in production storage permission to list and delete blobs in the `brand-images` container
+  (Storage Blob Data Contributor on that container). Until then the daily clean-up fails and retries, and no image is lost.
 
 ## Not built
 
-- Cleanup of uploads nobody saved. Only Owners and Admins upload, and each is a small file.
 - A demo logo for Brightwater: the seed keeps its brand colour only.

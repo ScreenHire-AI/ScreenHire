@@ -178,6 +178,26 @@ Wolverine delivers at least once. Three layers keep a handler's effect exactly o
 
 Never generate the key from the clock or a fresh `Guid` at publish time; it must be the same on every retry.
 
+## Ordering
+
+Messages run in parallel, on the worker queue and on the durable local queues alike, so two handlers can work on one
+row at once. Where that races, the worker orders the messages instead of retrying the loser: Wolverine's partitioned
+processing (`MessagePartitioning.ByMessage<T>` with `PartitionProcessingByGroupId`, in
+`ScreenHireMessaging.ConfigureHandler`) runs messages with the same group id one at a time and different groups side
+by side.
+
+| Message | Group id | Why |
+|---|---|---|
+| `AnalyzeApplicationVerification` | the application | The submission and each content stage as it lands ask for an analysis within milliseconds of each other. Two at once inserted the same analyzer run, and the second failed on the unique index, then waited out a retry (1 s, then 5 s) before finding the run. One integration run logged 434 such failures, and each delayed the assessment people watch arrive live |
+| `CheckApplicationConsistency` | the application | Two checks of one application inserted the same consistency check row |
+| `RecheckApplicationDuplicates` | the application | A later application's duplicate check and an erasure can both ask for a re-check of one earlier application, and two would both write the next revision of its duplicate run. It has an idempotency key from the pair of applications and why it was sent, a match or an erasure, so a redelivery does nothing and an erasure is never taken for the match that came before it |
+
+Ordering is per worker process: the worker is one process, and these messages travel on its local queues. Each queue
+has five slots (`PartitionSlots.Five`), so at most five applications are analyzed at once, and two applications whose
+ids hash to one slot wait for each other. Raise the slot count if a slow consistency check starts to queue.
+`EraseApplicantFiles` (the erased candidate's blob names, deleted by the worker, idempotent) and `CandidateErased` (an
+`ITenantEvent`, ids and a time) go out in the erase request's transaction. `VerificationOrderingTests` sends six analyses of one application at once and fails on any handler failure.
+
 ## Failures
 
 Every handler in the worker runs under one policy (`ApplyErrorPolicy`):
@@ -206,8 +226,9 @@ nothing.
   engine's retention sweep, `PurgeExpiredVerificationData`, runs daily and fans out one tenant message per organization;
   `PurgeExpiredWebhookDeliveries` does the same for webhook delivery logs, `PurgeExpiredApplicationDrafts` for answers
   saved to finish later ([apply-flow.md](apply-flow.md) §7), `PurgeExpiredSlackMessages` for the records that Slack
-  messages went ([slack.md](slack.md)), and `ExpireTalentPool` for the people whose
-  permission for future roles ran out ([talent pool](talent-pool.md)).
+  messages went ([slack.md](slack.md)), `PurgeExpiredBrandImageUploads` for brand images nobody saved, a day after the
+  upload, with their blobs ([branding.md](branding.md) §4). Saved candidates have no sweep: they have no end date
+  ([saved candidates](talent-pool.md)).
   A schedule faster than every five seconds is refused.
 - **Job distribution** ([job-distribution.md](job-distribution.md) §5) uses both. A push board's answer schedules
   `ReconcileJobPosting` for the time the board gave, as a cascading message (`OutgoingMessages.Schedule`). Two

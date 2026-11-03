@@ -58,11 +58,14 @@ public sealed class ScorecardTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(scorecards).ToContainTextAsync("Testing");
         var rating = Page.GetByRole(AriaRole.Button, new() { Name = "Rated 4.7 out of 5 from 1 scorecard" });
         await Expect(rating).ToBeVisibleAsync();
+        // A filled star is filled: its class is on the svg, and the path inside carries fill="none" as an attribute.
+        await Expect(rating.Locator("svg.fill-current path").First).Not.ToHaveCSSAsync("fill", "none");
         await rating.ClickAsync();
         await Expect(Page.GetByText("From 1 scorecard", new() { Exact = true })).ToBeVisibleAsync();
         await Page.Keyboard.PressAsync("Escape");
-        // The automation's move shows in the header's stage and in Activity.
-        await Expect(Page.Locator("[data-slot='header-band'] dl")).ToContainTextAsync("Offer", new() { Timeout = 30_000 });
+        // The automation's move shows on the header's pipeline tracker, where the current stage is marked, and in Activity.
+        await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Pipeline", Exact = true }).Locator("[aria-current='step']"))
+            .ToContainTextAsync("Offer", new() { Timeout = 30_000 });
         await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Activity") }).ClickAsync();
         var activity = Region("Activity");
         await Expect(activity).ToContainTextAsync("Scorecard for Interview by you");

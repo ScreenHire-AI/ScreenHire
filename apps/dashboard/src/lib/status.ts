@@ -1,17 +1,19 @@
-import ArchiveIcon from '@lucide/svelte/icons/archive';
-import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
-import CircleMinusIcon from '@lucide/svelte/icons/circle-minus';
-import ClockAlertIcon from '@lucide/svelte/icons/clock-alert';
-import Clock4Icon from '@lucide/svelte/icons/clock-4';
-import DoorClosedIcon from '@lucide/svelte/icons/door-closed';
-import DoorOpenIcon from '@lucide/svelte/icons/door-open';
-import EyeIcon from '@lucide/svelte/icons/eye';
-import FilePenLineIcon from '@lucide/svelte/icons/file-pen-line';
-import IdCardIcon from '@lucide/svelte/icons/id-card';
-import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
-import ShieldXIcon from '@lucide/svelte/icons/shield-x';
-import SparklesIcon from '@lucide/svelte/icons/sparkles';
-import WrenchIcon from '@lucide/svelte/icons/wrench';
+import ArchiveIcon from '~icons/lucide/archive';
+import BookmarkIcon from '~icons/lucide/bookmark';
+import CalendarCheckIcon from '~icons/lucide/calendar-check';
+import CircleCheckIcon from '~icons/lucide/circle-check';
+import CircleMinusIcon from '~icons/lucide/circle-minus';
+import ClockAlertIcon from '~icons/lucide/clock-alert';
+import Clock4Icon from '~icons/lucide/clock-4';
+import DoorClosedIcon from '~icons/lucide/door-closed';
+import DoorOpenIcon from '~icons/lucide/door-open';
+import EyeIcon from '~icons/lucide/eye';
+import FilePenLineIcon from '~icons/lucide/file-pen-line';
+import IdCardIcon from '~icons/lucide/id-card';
+import LoaderCircleIcon from '~icons/lucide/loader-circle';
+import ShieldXIcon from '~icons/lucide/shield-x';
+import SparklesIcon from '~icons/lucide/sparkles';
+import WrenchIcon from '~icons/lucide/wrench';
 import type { LucideIcon } from '#lib/shell.js';
 
 /**
@@ -37,6 +39,8 @@ const view = (tone: StatusTone, iconName: string, icon: LucideIcon): StatusView 
 export const statuses = {
   /** No concerns, No problems found, Delivering, Delivered, Done, Active. */
   done: view('clear', 'circle-check', CircleCheckIcon),
+  /** Booked, an interview the candidate picked a time for. */
+  booked: view('clear', 'calendar-check', CalendarCheckIcon),
   /** Open, a job taking applications; Live, a job showing on a board. */
   open: view('clear', 'door-open', DoorOpenIcon),
   /** Review suggested. */
@@ -51,7 +55,7 @@ export const statuses = {
   unsafeFile: view('verify', 'shield-x', ShieldXIcon),
   /** No signs, Some signs or Strong signs of AI help: information, never a warning. */
   ai: view('ai', 'sparkles', SparklesIcon),
-  /** Sent, Queued, Removing: waiting on someone else. */
+  /** Sent, Queued, Removing, Waiting for the candidate (an interview offered): waiting on someone else. */
   waiting: view('neutral', 'clock-4', Clock4Icon),
   /** Scanning, Checks pending: ScreenHire at work. */
   working: view('neutral', 'loader-circle', LoaderCircleIcon),
@@ -61,7 +65,9 @@ export const statuses = {
   draft: view('neutral', 'file-pen-line', FilePenLineIcon),
   /** Archived, a template taken out of the pickers until someone restores it. */
   archived: view('neutral', 'archive', ArchiveIcon),
-  /** Not posted, Removed, Off, Skipped, Revoked: not in effect. */
+  /** Saved, a candidate who left the job without a rejection, kept for future roles. */
+  saved: view('neutral', 'bookmark', BookmarkIcon),
+  /** Not posted, Removed, Off, Skipped, Revoked, Cancelled and Expired (an interview that ended): not in effect. */
   notInEffect: view('neutral', 'circle-minus', CircleMinusIcon),
 } as const satisfies Record<string, StatusView>;
 

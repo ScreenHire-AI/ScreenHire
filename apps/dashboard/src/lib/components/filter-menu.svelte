@@ -8,7 +8,7 @@
 </script>
 
 <script lang="ts">
-  import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
+  import ChevronDownIcon from '~icons/lucide/chevron-down';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { buttonVariants } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
