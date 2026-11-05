@@ -126,8 +126,9 @@ Authors check their screens against this list, and the `design-review` agent rep
 - **A8** An editor whose result someone else sees (a questionnaire, a scorecard, an email template, a careers page)
   shows the result beside the editor where both fit at their real sizes (the 688px editor and the result, about
   1,312px of content, so from roughly a 1,600px window), the preview staying in view while the editor scrolls.
-  Narrower, an Edit / Preview switch at the top, with a pencil and an eye, shows one at a time. Preview shows the
-  result at its real size and adds no sentence about itself; a window icon pops it out, beside the switch or in the
+  Narrower, an Edit / Preview switch at the top, with a pencil and an eye, shows one at a time, above the editor's
+  688px column (S6). A read-only view keeps the switch and names its first choice for what it shows, Questions with a
+  list icon, because nothing there can be edited (E3). Preview shows the result at its real size and adds no sentence about itself; a window icon pops it out, beside the switch or in the
   preview's header, and the window follows the edits. Container queries choose the layout, so the first paint is
   already right (S8). The email composer keeps the switch and has no window: it is one email in a sheet, not wording
   others reuse.
@@ -137,6 +138,8 @@ Authors check their screens against this list, and the `design-review` agent rep
 - **A10** Anything that can be pressed shows the hand cursor, and a disabled control shows not-allowed. That covers
   buttons, tabs, switches, checkboxes, menu items and options, whichever component draws them. It is one rule in the
   base layer of `packages/ui/src/theme.css`, so no component sets a cursor. A new kind of control joins that rule.
+- **A11** An action says how far it reaches: what changes for others says who or what it touches, on its button or in
+  its notice ("Published version 2. Jobs created from now on start from it.").
 
 **Words and type**
 
@@ -230,7 +233,7 @@ Authors check their screens against this list, and the `design-review` agent rep
   updated, newest first; people, keys and endpoints by name; a job's candidates with those needing attention first. A
   table with a natural order (roles, by access) keeps it until someone sorts. The dashboard remembers each person's
   sort. On a phone a Sort chip beside the filters offers the same choices. A fixed grid, such as the permissions
-  table, does not sort.
+  table, does not sort. An action repeated on every row goes in the row's menu, never a button on each row.
 
 **Verification and access** (the `verification-guardrails` agent owns the first)
 
@@ -563,7 +566,7 @@ in a development build, shows every component in each state, and its test fails 
 | Week chart | `WeekChart` | Applications and hires by week as paired columns from one baseline, Applications in `chart-2` and Hires in `chart-1`, with a legend above and a readout line of its own above the columns, so reading a week never moves them. One tab stop: pointing at or tapping a week, or the arrow, Home and End keys, reads that week out (politely, to screen readers). Past about a year the columns keep a minimum width and the chart scrolls sideways inside its card. Its panel has the table view |
 | File row and file viewer | `FileRow`; `FileViewer` on shadcn `Dialog`; `FileFrame` | A page shows a file row: type icon, name, size, View and Download, or the scan status when a file is withheld. View opens the file in a full-window dialog with Close and Download, never a new tab. Untrusted files render isolated in a sandboxed frame; it draws PDFs, and other types keep Download only |
 | Edit / Preview switch | `EditPreviewLayout` (the editor and its preview side by side where both fit, else `EditPreviewSwitch`: a `Toggle` group and an icon button); `PreviewFrame`; `#lib/preview-window.svelte.ts` | A8: a pencil and an eye; the window icon (`app-window`, "Open in a new window") pops the preview out, and the window follows each edit over a same-origin `BroadcastChannel`. A candidate page previews in a phone, tablet or desktop frame at its real size. A read-only view of what an editor makes (a closed job's questionnaire) keeps the same switch, so content and preview never share the screen there either, and its first choice is Questions with a list icon, because nothing there can be edited (E3). Alone in its container the edit pane keeps the 688px form column (S6); side by side it is the grid's first column |
-| Count button | `CountButton`: outline `Button` and `Sheet` | A count in a header ("2 hiring templates") that opens a sheet listing each item as a link, with search past 10 (T4). With nothing to list it is plain text, worded as its list column words it ("None") |
+| Count button | `CountButton`: outline `Button` and `Sheet` | A count in a header ("2 hiring templates") that opens a sheet listing each item as a link, with search past 10 (T4). With nothing to list it is plain text ("None"): a header fact is never blank, though the list's column is (L1) |
 | Sort header | `SortHeader` in the TanStack table header; `SortMenu` on phones; `#lib/table-sort.svelte.ts` | L2: the header text and `chevrons-up-down`, which turns into `arrow-up` or `arrow-down` on the sorted column; `aria-sort` on that header; a second click reverses. Each table opens on its default (a job's candidates on Stage, those needing attention first: overdue, the longest first, then pipeline order; candidates across jobs on Applied, newest first), and each person's sort is remembered per table in the browser (`preferences`), so it does not follow them to another browser. The Sort chip offers the same choices on a phone, above the list items |
 | Built in badge | `BuiltInBadge` on `Badge` muted variant | After the name of a template or role ScreenHire supplies; nothing marks your own (W6) |
 | Reorder grip | `ReorderList` and `ReorderGrip` on svelte-dnd-action | A7: a drag handle whose click (or Enter) opens Move up, Move down, Move to top and Move to bottom, leaving out moves that do not apply; Space picks the item up and the arrow keys move it. Each list has its own drag zone, so lists on one page never trade items |
@@ -803,17 +806,17 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   flagged address puts a status beside the name, a notice at the top of the tab and Allow email again, and takes the
   composer and the Email button away ([email](../architecture/email.md)).
 - **Templates:** one page with a tab per kind (Hiring, Scorecards, Emails). Each row says where it is used, and each
-  editor has the Edit / Preview switch. A job keeps the
-  copy of a template it started with. A built-in the team edited offers Reset to original in its menu.
+  editor has the Edit / Preview switch. A job keeps the copy of a template it started with. A built-in the team edited
+  offers Reset to original in its menu.
   Built: the tab is in the address (`?tab=scorecards`), each with the count of templates that are not archived. The
-  table panel's header is its title (Hiring templates) and the search, with no sentence about the tab (W9). The filters are All, In use (something uses
-  it now), Not used in 6 months (no job started from it, no stage used it and no email went out from it in 180 days,
-  and the team has had it longer than that) and Archived, each with its count. The first two can overlap. Columns:
-  Name with Built in, then for hiring What it is for, for scorecards Questions, for emails the Subject with each
-  variable as a muted word; Used by (jobs that are not closed, hiring templates, automations), blank while nothing uses
-  it; Last used, or Last sent; for hiring Version, the published number, blank until one is published, and Draft, the
-  version being drafted; Last updated. On a phone each list item ends with the same row menu. The row menu holds Duplicate, which
-  makes "<name> (copy)" as the team's own and opens it, Archive or Restore for the team's own, and Reset to original
+  table panel's header is its title (Hiring templates) and the search, with no sentence about the tab (W9). The
+  filters are All, In use (something uses it now), Not used in 6 months (no job started from it, no stage used it and
+  no email went out from it in 180 days, and the team has had it longer than that) and Archived, each with its count.
+  The first two can overlap. Columns: Name with Built in, then for hiring What it is for, for scorecards Questions,
+  for emails the Subject with each variable as a muted word; Used by (jobs that are not closed, hiring templates,
+  automations), blank while nothing uses it; Last used, or Last sent; for hiring Version, the published number, blank
+  until one is published, and Draft, the version being drafted; Last updated. On a phone each list item ends with the
+  same row menu. The row menu holds Duplicate, which makes "<name> (copy)" as the team's own and opens it, Archive or Restore for the team's own, and Reset to original
   for an edited built-in email, which confirms. The built-in rejection and follow-up questions emails have no
   Duplicate: their variables only their own actions fill. Archive does not confirm: Restore on the same screen undoes
   it (section 10). An archived template leaves the pickers and reads only until restored; jobs keep their copy, and
@@ -823,7 +826,7 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   scorecard reads only, says why and offers Copy (E3), with no History. Built-in emails stay editable in place. A
   publish or save says how far it reaches in the notice beside it ("Published version 2. Jobs created from now on
   start from it."). In the hiring template's Pipeline tab each stage's Edit automations, Choose scorecard and Remove
-  stage are its row's More menu, not a button pair repeated down the list. An empty Emails tab offers New template as a
+  stage are its row's More menu (L2). An empty Emails tab offers New template as a
   link to the new-email page. A pop-out preview window with no editor behind it (a reload, an editor that closed) says
   so in one line instead of loading for ever.
 - **Settings:** one sidebar item with its own menu (section 11). Careers branding becomes Branding, and email
