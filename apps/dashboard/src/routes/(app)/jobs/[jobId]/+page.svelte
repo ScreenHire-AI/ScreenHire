@@ -136,6 +136,9 @@
     }
   }
 
+  const openedLast = $derived(
+    !!detail?.publishedAt && !!detail.lastUpdated.at && Math.abs(Date.parse(detail.lastUpdated.at) - Date.parse(detail.publishedAt)) < 60_000,
+  );
   const notFound = $derived(job.error instanceof ApiError && job.error.status === 404);
 </script>
 
@@ -225,7 +228,7 @@
                 {#if canAdd}
                   <DropdownMenu.Item onSelect={() => (addChosen = true)}><UserPlusIcon aria-hidden="true" />Add candidate</DropdownMenu.Item>
                 {/if}
-                <DropdownMenu.Item onSelect={() => (teamChosen = true)}><UsersRoundIcon aria-hidden="true" />Hiring team</DropdownMenu.Item>
+                <DropdownMenu.Item onSelect={() => (teamChosen = true)}><UsersRoundIcon aria-hidden="true" />Edit hiring team</DropdownMenu.Item>
               {/if}
               {#if detail.status === 'Open'}
                 {#if sidebar.isMobile}<DropdownMenu.Separator />{/if}
@@ -239,7 +242,8 @@
           <Fact label="Type">{employmentLabel(detail.employmentType)}</Fact>
           {#if detail.salary}<Fact label="Salary">{formatSalary(detail.salary)}</Fact>{/if}
           {#if detail.status === 'Open' && detail.publishedAt}
-            <Fact label="Opened"><RelativeTime at={detail.publishedAt} /></Fact>
+            <!-- Opening the job is the last change until someone edits it, and Last updated says so: said once (W7). -->
+            {#if !openedLast}<Fact label="Opened"><RelativeTime at={detail.publishedAt} /></Fact>{/if}
           {:else if detail.status === 'Closed' && detail.closedAt}
             <Fact label="Closed"><RelativeTime at={detail.closedAt} /></Fact>
           {:else if !detail.lastUpdated.created}

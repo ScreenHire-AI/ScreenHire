@@ -62,7 +62,7 @@
     return all.filter(
       (job) =>
         (!statusFilter || job.status === statusFilter) &&
-        (!words || [job.title, job.department ?? '', job.location].some((text) => text.toLowerCase().includes(words))),
+        (!words || [job.title, job.location].some((text) => text.toLowerCase().includes(words))),
     );
   });
   const filtering = $derived(Boolean(statusFilter || search.trim()));

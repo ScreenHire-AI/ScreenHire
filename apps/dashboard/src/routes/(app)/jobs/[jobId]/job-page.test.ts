@@ -115,6 +115,14 @@ describe('job page', () => {
     await waitFor(() => expect(saved).toEqual([{ memberIds: [], copyFromJobId: null }]));
   });
 
+  it('keeps Opened once someone has changed the job since it opened', async () => {
+    stub({ ...job, lastUpdated: { at: '2026-10-20T12:00:00Z', by: 'ScreenHire' } } as JobDetail);
+
+    await screen.findByRole('heading', { level: 1 });
+    const band = document.querySelector<HTMLElement>('[data-slot=header-band]')!;
+    expect(within(band).getAllByRole('term').map((term) => term.textContent)).toEqual(['Location', 'Type', 'Salary', 'Opened', 'Last updated']);
+  });
+
   it('heads the page with the title, its status beside it and a labelled facts row', async () => {
     stub(job);
 
@@ -122,7 +130,8 @@ describe('job page', () => {
     const band = document.querySelector<HTMLElement>('[data-slot=header-band]')!;
     expect(within(band).getByText('Open')).toBeInTheDocument();
     const facts = within(band).getAllByRole('term').map((term) => term.textContent);
-    expect(facts).toEqual(['Location', 'Type', 'Salary', 'Opened', 'Last updated']);
+    // This fixture's last change is its opening, which Last updated says, so Opened is left out (W7).
+    expect(facts).toEqual(['Location', 'Type', 'Salary', 'Last updated']);
     expect(within(band).getByRole('link', { name: 'Edit details' })).toHaveAttribute('href', `/jobs/${jobId}/edit`);
     expect(within(band).getByRole('link', { name: 'Edit workflow' })).toHaveAttribute('href', `/jobs/${jobId}/workflow`);
     expect(within(band).queryByRole('button', { name: /^Publish/ })).not.toBeInTheDocument();
@@ -306,7 +315,7 @@ describe('job page', () => {
     expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual([
       'Edit details',
       'Edit workflow',
-      'Hiring team',
+      'Edit hiring team',
       'Close & remove everywhere',
     ]);
     const band = document.querySelector<HTMLElement>('[data-slot=header-band]')!;

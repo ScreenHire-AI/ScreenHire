@@ -98,7 +98,7 @@ describe('jobs page', () => {
     );
   });
 
-  it('filters by status and by a search of title, department and location', async () => {
+  it('filters by status and by a search of the title and location, the columns a person sees', async () => {
     vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json([...jobs, closed]) })));
     renderPage();
     await dataRows();
