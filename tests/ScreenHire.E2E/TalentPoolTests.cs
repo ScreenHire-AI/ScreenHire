@@ -156,7 +156,7 @@ public sealed partial class TalentPoolTests(E2EFixture fixture) : BrowserTest(fi
         await Page.GetByRole(AriaRole.Button, new() { Name = "Stop keeping my details" }).ClickAsync();
 
         await Expect(Page).ToHaveURLAsync(new Regex("/talent-pool/stopped$"));
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Done");
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToContainTextAsync("no longer keeps your details");
         Page.Url.Should().NotContain(stopLink.Groups["token"].Value, "the confirmation's address carries no token");
         await ExpectNoAccessibilityViolationsAsync();
 

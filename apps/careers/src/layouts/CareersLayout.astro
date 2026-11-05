@@ -81,17 +81,16 @@ const home = withEmbed(base || '/', embed);
             )
           }
         </a>
-        <a href={home} class="shrink-0 text-sm font-semibold text-candidate-header-foreground">All jobs</a>
+        <a href={home} class="inline-flex min-h-11 shrink-0 items-center text-candidate-body font-semibold text-candidate-header-foreground">All jobs</a>
       </div>
     </header>
     <main class="mx-auto w-full max-w-3xl flex-1 px-5 py-8">
       <slot />
     </main>
-    <footer class="flex flex-col items-center gap-1 py-6 text-center text-[13px] text-candidate-muted-foreground">
+    <footer class="flex flex-col items-center gap-1 px-5 py-6 text-center text-candidate-hint text-candidate-muted-foreground">
       <p>A person at {organizationName} reviews every application.</p>
-      <p class="font-mono text-[11px]">
-        POWERED BY SCREENHIRE · <a href={withEmbed(`${base}/privacy`, embed)} class="text-candidate-muted-foreground underline">WHAT WE COLLECT AND WHY</a>
-      </p>
+      <p>Powered by ScreenHire</p>
+      <a href={withEmbed(`${base}/privacy`, embed)} class="inline-flex min-h-11 items-center text-candidate-muted-foreground underline">What we collect and why</a>
     </footer>
     {embed && <EmbedFrame />}
   </body>

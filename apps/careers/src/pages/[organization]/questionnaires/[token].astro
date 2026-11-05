@@ -6,6 +6,7 @@
 // the answers to finish later through the same link (apply-flow.md §8). An expired, answered or closed link says so.
 import { actions } from 'astro:actions';
 import ErrorSummary from '../../../components/ErrorSummary.astro';
+import Notice from '../../../components/Notice.astro';
 import CareersLayout from '../../../layouts/CareersLayout.astro';
 import { getPublicOrganization, getPublicQuestionnaire } from '../../../lib/api';
 import { fields, pagesFor } from '../../../lib/apply';
@@ -63,7 +64,7 @@ const heading = {
   open: questionnaire?.name ?? '',
 }[status];
 const message = {
-  'not-found': 'The link may be incomplete. Open it again from the email you received.',
+  'not-found': `The link may be incomplete. Open it again from the email you received. If it still does not work, contact the hiring team at ${employer.name}.`,
   answered: `Your answers are with ${employer.name}. You do not need to do anything else.`,
   expired: `Links to these questions expire. If you still want to answer, contact the hiring team at ${employer.name} for a new link.`,
   closed: `${employer.name} is no longer asking these questions, so there is nothing more to do.`,
@@ -123,15 +124,10 @@ const message = {
           <ErrorSummary errors={errors} formError={formError} />
 
           {result?.data?.saved && (
-            <div role="status" class="rounded-2xl border border-candidate-border bg-candidate-surface px-4 py-3.5 text-sm">
-              <p class="font-bold">Saved. Open the link in your email to finish.</p>
-              <p class="mt-1 text-candidate-muted-foreground">It opens these answers again while the link works. You can also carry on now.</p>
-            </div>
+            <Notice kind="success" message="Saved. Open the link in your email to finish." detail="It opens these answers again while the link works. You can also carry on now." />
           )}
           {resumed && (
-            <div role="status" class="rounded-2xl border border-candidate-border bg-candidate-surface px-4 py-3.5 text-sm">
-              <p class="font-bold">Welcome back. Your saved answers are filled in.</p>
-            </div>
+            <Notice kind="success" message="Welcome back. Your saved answers are filled in." />
           )}
 
           {(page?.questions ?? []).map((question) => (
@@ -140,15 +136,16 @@ const message = {
 
           <p class="text-candidate-hint text-candidate-muted-foreground">We send only your answers, nothing about your device.</p>
 
-          <div class="mt-2 flex flex-col gap-3 sm:flex-row">
-            {/* First in the document, so pressing Enter in a field moves forward rather than back. */}
+          {/* The same row as the apply form: the primary button first in the document, so pressing Enter in a field moves
+              forward rather than back, and on a wide screen at the right with Back beside it and Save at the left. */}
+          <div class="mt-2 flex flex-col gap-3 sm:flex-row-reverse sm:justify-end">
             <button type="submit" name="intent" value="next" class="button-primary">{last ? 'Send answers' : 'Continue'}</button>
             {previous && (
               <button type="submit" name="intent" value={`go:${previous}`} class="button-secondary">
                 Back
               </button>
             )}
-            <button type="submit" name="intent" value="save" class="button-secondary sm:ml-auto">Save and finish later</button>
+            <button type="submit" name="intent" value="save" class="button-secondary sm:mr-auto">Save and finish later</button>
           </div>
         </form>
 

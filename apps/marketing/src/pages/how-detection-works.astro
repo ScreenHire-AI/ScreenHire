@@ -91,7 +91,6 @@ const faqs: Faq[] = [
 
 <BaseLayout title={title} description={description} breadcrumbs={[{ name: label, path }]} jsonLd={[faqPage(faqs)]}>
   <PageHeader
-    kicker="How detection works"
     title="Evidence, not verdicts."
     lead="ScreenHire looks for signs that an application came from a bot, an impersonator or a copy-paste operation. It shows your team what it saw and why it matters, then gets out of the way. A person decides."
   />
@@ -139,7 +138,7 @@ const faqs: Faq[] = [
       {
         timeline.map((step, index) => (
           <li class="flex flex-col gap-1.5 border-t-2 border-foreground pt-3">
-            <span class="font-mono text-xs text-muted-foreground">STEP 0{index + 1}</span>
+            <span class="kicker">Step {index + 1}</span>
             <span class="font-bold">{step.phase}</span>
             <span class="text-[15px] text-secondary-foreground">{step.collected}</span>
           </li>

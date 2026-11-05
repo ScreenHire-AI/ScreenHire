@@ -3,6 +3,7 @@
 // employer keeping their details for future roles. One native form posted to the `talentPool` action, so it works with
 // JavaScript off and ships no script. The link is the candidate's alone: never cached, indexed or sent on.
 import { actions } from 'astro:actions';
+import Notice from '../../../components/Notice.astro';
 import CareersLayout from '../../../layouts/CareersLayout.astro';
 import { getPublicOrganization, getPublicTalentPoolStatus } from '../../../lib/api';
 import { basePath } from '../../../lib/host';
@@ -49,7 +50,7 @@ const heading = {
 
   {status === 'not-found' && (
     <p class="mt-3 text-candidate-body text-candidate-muted-foreground">
-      The link may be incomplete. Open it again from the email you received.
+      The link may be incomplete. Open it again from the email you received. If it still does not work, contact the hiring team at {employer.name}.
     </p>
   )}
 
@@ -67,7 +68,7 @@ const heading = {
         You said {employer.name} could keep your details for future roles. If you stop it, they will no longer invite you
         to apply for other roles. Any application you have open stays as it is.
       </p>
-      {formError && <p role="alert" class="text-sm font-semibold text-destructive">{formError}</p>}
+      {formError && <Notice kind="problem" message={formError} />}
       <div class="mt-2 flex flex-col gap-3 sm:flex-row">
         <button type="submit" class="button-primary">Stop keeping my details</button>
       </div>

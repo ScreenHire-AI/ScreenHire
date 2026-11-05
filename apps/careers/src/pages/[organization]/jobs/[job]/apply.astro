@@ -7,12 +7,14 @@
 // `?draft=` link fills the form from answers the candidate saved to finish later (§7).
 import { actions } from 'astro:actions';
 import ErrorSummary from '../../../../components/ErrorSummary.astro';
+import JobFacts from '../../../../components/JobFacts.astro';
 import JobUnavailable from '../../../../components/JobUnavailable.astro';
+import Notice from '../../../../components/Notice.astro';
 import PrivacyNotice from '../../../../components/PrivacyNotice.astro';
 import QuestionField from '../../../../components/QuestionField.astro';
 import StepIndicator from '../../../../components/StepIndicator.astro';
 import CareersLayout from '../../../../layouts/CareersLayout.astro';
-import { formatSalary, getPublicApplicationDraft, getPublicApplicationForm, getPublicOrganization, label } from '../../../../lib/api';
+import { getPublicApplicationDraft, getPublicApplicationForm, getPublicOrganization } from '../../../../lib/api';
 import {
   emptyState,
   fieldId,
@@ -105,7 +107,6 @@ if (form) {
 }
 
 const job = form?.job;
-const salary = job ? formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency) : null;
 const policy = form?.aiUsePolicy ?? 'Allowed';
 const aiIntro = {
   Allowed: "Used AI to help write? That's fine for this role. You can tell us at the end.",
@@ -163,11 +164,7 @@ const answerText = (questionId: string): string => {
     >
       <div class="flex flex-col gap-2.5">
         <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{job.title}</h1>
-        <p class="flex flex-wrap gap-x-3 gap-y-1 font-mono text-[11.5px] text-candidate-chip-foreground">
-          <span>{job.location.toUpperCase()}</span>
-          <span>{label(job.employmentType).toUpperCase()}</span>
-          {salary && <span>{salary}</span>}
-        </p>
+        <JobFacts job={job} />
         <StepIndicator step={steps.indexOf(step) + 1} steps={steps.length} answered={answered} total={questions.length} />
       </div>
 
@@ -191,37 +188,38 @@ const answerText = (questionId: string): string => {
         <input type="hidden" name="state" value={JSON.stringify(state)} />
         <input type="hidden" name="pageQuestions" value={shownQuestions.map((q) => q.id).join(',')} />
 
-        {page ? (
-          <h2 id="step-heading" class="font-display text-xl leading-tight font-bold">{page.name ?? 'Questions'}</h2>
-        ) : (
-          <h2 id="step-heading" class="sr-only">{step === 'details' ? 'Your details' : 'Review and send'}</h2>
-        )}
+        {/* Every step names itself, so "Step 2 of 3" is never the only clue to where the candidate is. */}
+        <div class="flex flex-col gap-1">
+          <h2 id="step-heading" class="font-display text-xl leading-tight font-bold">
+            {page ? (page.name ?? 'Questions') : step === 'details' ? 'Your details' : 'Review and send'}
+          </h2>
+          {step === 'review' && (
+            <p class="text-candidate-body text-candidate-muted-foreground">
+              Check your answers. {employer.name} receives them when you send.
+            </p>
+          )}
+        </div>
 
         {saved && (
-          <div role="status" class="rounded-2xl border border-candidate-border bg-candidate-surface px-4 py-3.5 text-sm">
-            <p class="font-bold">
-              {saved.emailed
-                ? `Saved. We emailed a link to ${saved.email} to finish by ${longDate(saved.expiresAt)}.`
-                : `Saved. The link we emailed to ${saved.email} opens these answers until ${longDate(saved.expiresAt)}.`}
-            </p>
-            <p class="mt-1 text-candidate-muted-foreground">Files are not kept, so attach them again when you come back. You can also carry on now.</p>
-          </div>
+          <Notice
+            kind="success"
+            message={saved.emailed
+              ? `Saved. We emailed a link to ${saved.email} to finish by ${longDate(saved.expiresAt)}.`
+              : `Saved. The link we emailed to ${saved.email} opens these answers until ${longDate(saved.expiresAt)}.`}
+            detail="Files are not kept, so attach them again when you come back. You can also carry on now."
+          />
         )}
         {draft && step === 'details' && (
-          <div role="status" class="rounded-2xl border border-candidate-border bg-candidate-surface px-4 py-3.5 text-sm">
-            <p class="font-bold">Welcome back. Your saved answers are filled in.</p>
-            <p class="mt-1 text-candidate-muted-foreground">Attach your files again. We keep your answers until {longDate(draft.expiresAt)}.</p>
-          </div>
+          <Notice kind="success" message="Welcome back. Your saved answers are filled in." detail={`Attach your files again. We keep your answers until ${longDate(draft.expiresAt)}.`} />
         )}
         {draftProblem && (
-          <div role="status" class="rounded-2xl border border-candidate-border bg-candidate-surface px-4 py-3.5 text-sm">
-            <p class="font-bold">{draftProblem === 'expired' ? 'This link has expired' : 'We could not find your saved answers'}</p>
-            <p class="mt-1 text-candidate-muted-foreground">
-              {draftProblem === 'expired'
-                ? 'Saved answers are kept for 30 days. You can start a new application below.'
-                : 'The link may be incomplete, or the answers were sent or deleted. You can start a new application below.'}
-            </p>
-          </div>
+          <Notice
+            kind="info"
+            message={draftProblem === 'expired' ? 'This link has expired' : 'We could not find your saved answers'}
+            detail={draftProblem === 'expired'
+              ? 'Saved answers are kept for 30 days. You can start a new application below.'
+              : 'The link may be incomplete, or the answers were sent or deleted. You can start a new application below.'}
+          />
         )}
 
         <ErrorSummary errors={errors} formError={formError} />
@@ -234,13 +232,13 @@ const answerText = (questionId: string): string => {
                 <input type="checkbox" name="deviceCheckConsent" checked={state.deviceCheckConsent} aria-describedby="device-check-hint" />
                 <span class="flex flex-col">
                   <span class="text-sm font-semibold">Check this device for repeat applications (optional)</span>
-                  <span id="device-check-hint" class="text-[13px] text-candidate-muted-foreground">
+                  <span id="device-check-hint" class="text-candidate-hint text-candidate-muted-foreground">
                     We turn your browser's settings into a one-way code, so a person can see when one device sends many applications. Deleted after 30 days.
                   </span>
                 </span>
               </label>
             )}
-            <p class="text-[13.5px] text-candidate-muted-foreground">{aiIntro}</p>
+            <p class="text-candidate-hint text-candidate-muted-foreground">{aiIntro}</p>
             <TextField name="firstName" label="First name" value={state.firstName} error={errors.firstName} required autocomplete="given-name" maxlength={MAX_NAME} />
             <TextField name="lastName" label="Last name" value={state.lastName} error={errors.lastName} autocomplete="family-name" maxlength={MAX_NAME} />
             <TextField name="email" label="Email" type="email" inputmode="email" value={state.email} error={errors.email} required autocomplete="email" maxlength={MAX_EMAIL} />
@@ -307,7 +305,7 @@ const answerText = (questionId: string): string => {
                 Did you use AI tools for this application?
                 {policy === 'Allowed' && <span class="font-medium text-candidate-muted-foreground"> (optional)</span>}
               </legend>
-              <p id="ai-hint" class="-mt-1 text-[13px] text-candidate-muted-foreground">
+              <p id="ai-hint" class="-mt-1 text-candidate-hint text-candidate-muted-foreground">
                 {policy === 'NotAllowed'
                   ? `${employer.name} asks for applications written without AI tools. Tell us either way. A person reads your answer.`
                   : policy === 'AllowedWithDisclosure'
@@ -366,7 +364,7 @@ const answerText = (questionId: string): string => {
 
         {/* Wherever a check can run, the candidate reads this first. */}
         {(step === 'review' || (form.turnstileSiteKey && canSave)) && (
-          <p class="text-[13.5px] text-candidate-muted-foreground">
+          <p class="text-candidate-hint text-candidate-muted-foreground">
             Our checks for bots and impersonation never reject you. A person at {employer.name} looks at anything they flag.
           </p>
         )}

@@ -222,7 +222,7 @@ describe('validation', () => {
     expect(validateDetails({ ...emptyState(), email: 'not-an-email' }, questions)).toEqual({
       firstName: 'Enter your first name.',
       email: 'Enter an email address like name@example.com.',
-      [fields.file('resume')]: 'Add a file.',
+      [fields.file('resume')]: 'Add a file for "resume".',
     });
     expect(validateDetails({ ...emptyState(), firstName: 'Casey', email: 'casey@example.com', files: { resume: upload } }, questions)).toEqual({});
   });
