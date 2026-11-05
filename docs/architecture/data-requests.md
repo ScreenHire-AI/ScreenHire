@@ -112,6 +112,10 @@ the copy and writes the blob; the API only issues the link.
 `IssueReadLinkAsync(blobName, fileName)`. The worker's `BlobDataExportStore` writes and deletes and refuses read links
 (`NotSupportedException`). The API's `DataExportStore` issues read links and refuses the other two. `NoDataExportStore`
 (a host with no storage) deletes nothing, returns no link, and throws from `SaveAsync` so a copy is never marked sent without a blob.
+The message then retries and reaches the dead letter table, and the request stays open with no error on the page.
+
+Erasing a candidate deletes the blob of each of their copy requests by its deterministic name, whether or not the row records
+one. A build that wrote the file and then failed, on the email for instance, rolled the row back and left the file.
 
 ### Rate limit and events
 
@@ -139,8 +143,9 @@ Mutations require the antiforgery token. The routes are in the `RolePermissionsT
 ### The copy
 
 `BuildDataCopy(OrganizationId, RequestId)` is an `ITenantMessage` with an idempotency key (`copy:{requestId}`) and a
-`[Deduplicated]` handler. The handler returns quietly when the request is gone, not open, not a Copy, or has no candidate.
-Otherwise it loads the candidate's data in a handful of queries (`DataExportLoader`), builds one JSON document with
+`[Deduplicated]` handler. It first locks the candidate's row and then the request's, the order erasure uses, so an erasure or
+a decline in progress finishes before it reads and one that arrives later waits for the file. The handler returns quietly when
+the request is gone, not open, not a Copy, or has no candidate. Otherwise it loads the candidate's data in a handful of queries (`DataExportLoader`), builds one JSON document with
 `CandidateDataExport` (camel case, indented), writes it to the blob `{organizationId:N}/{requestId:N}.json` in the
 `data-exports` container (the same name every time, so a redelivery replaces the file), calls `DataRequest.CopySent` with an
 expiry of `ExportLifetime`, adds a `DataRequestCopySent` entry to the team log (no actor) and emails the candidate the

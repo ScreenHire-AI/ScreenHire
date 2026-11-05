@@ -84,7 +84,9 @@ subsystem.
   [`docs/architecture/email.md`](docs/architecture/email.md). `ScreenHire:Calendar:*` (members' calendars for interview scheduling:
   Google and Microsoft each need a `ClientId` and their `google-calendar-client-secret` / `microsoft-calendar-client-secret`
   parameter, `Sandbox:Enabled` is the local sandbox calendar, on in `pnpm dev` and the test stacks) goes to the API and worker alike; see
-  [`docs/architecture/interview-scheduling.md`](docs/architecture/interview-scheduling.md). `ScreenHire:PersistData` (default `true`) keeps Postgres, Azurite and
+  [`docs/architecture/interview-scheduling.md`](docs/architecture/interview-scheduling.md). `ScreenHire:DataRequests:*` (due days, link and copy lifetimes,
+  the rate limit, the copies' container) and `ScreenHire:Retention:*` (`BatchSize`) go to the API and worker alike; see
+  [`docs/architecture/data-requests.md`](docs/architecture/data-requests.md). `ScreenHire:PersistData` (default `true`) keeps Postgres, Azurite and
   Mailpit data in per-worktree volumes; `false` starts with none, as the tests do. `ScreenHire:Demo` (default: on with `Dev`
   frontends only) seeds the local demo's data on Brightwater, and the API is healthy only once it is in. The header of `apps/apphost/AppHost.cs`
   describes every setting.
