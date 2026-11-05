@@ -285,6 +285,15 @@ jobs:
             echo "::error::infra/ differs from what the AppHost's publish model generates. Regenerate it (docs/operations/deploy.md) and commit."
             exit 1
           fi
+      # What this runner generated, so a difference between operating systems is fixed by copying it, not by guessing.
+      - name: Upload the generated Bicep
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: infra-generated
+          path: ${{ runner.temp }}/infra
+          retention-days: 7
+          if-no-files-found: ignore
 
   # The marketing budgets (mobile LCP under 1.8 s, CLS under 0.05), only when the change touches what the marketing
   # build outputs or measures it (apps/marketing, packages/ui, pnpm-lock.yaml, tools/lighthouse). Report-only and not in

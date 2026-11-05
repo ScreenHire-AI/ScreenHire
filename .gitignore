@@ -34,3 +34,6 @@ Thumbs.db
 
 # Azure Developer CLI environments: they hold subscription and tenant ids and deployment values.
 .azure/
+
+# The deployment's parameter values (docs/operations/deploy.md, step 2): passwords, keys and the real hosts. Never committed.
+apps/apphost/appsettings.Production.json

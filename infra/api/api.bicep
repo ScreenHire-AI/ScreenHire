@@ -130,7 +130,7 @@ resource api 'Microsoft.App/containerApps@2025-10-02-preview' = {
             }
             {
               name: 'ASPNETCORE_FORWARDEDHEADERS_ENABLED'
-              value: 'true'
+              value: 'false'
             }
             {
               name: 'HTTP_PORTS'

@@ -139,6 +139,9 @@ internal static class AzurePublish
             .WithReference(blobs)
             .WithReference(vault)
             .WithRoleAssignments(vault, VaultRoles)
+            // The API reads X-Forwarded-For once, itself, from the proxies it is told to trust (AuthenticationSetup). This switch
+            // makes ASP.NET Core read forwarded headers a second time, from any sender, before that.
+            .WithEnvironment("ASPNETCORE_FORWARDEDHEADERS_ENABLED", "false")
             .WithExternalHttpEndpoints()
             .WithHttpProbe(ProbeType.Liveness, "/alive")
             .WithHttpProbe(ProbeType.Readiness, "/health")

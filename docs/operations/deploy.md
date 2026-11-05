@@ -56,8 +56,11 @@ rm -rf infra
 dotnet aspire publish --apphost apps/apphost/ScreenHire.AppHost.csproj --output-path infra --non-interactive
 ```
 
-- `azure.yaml` is the `azd` project file. The steps below use the Aspire CLI, whose pipeline has a step that provisions
-  infrastructure alone, which the migration needs. `azd provision`, then the migration, then `azd deploy` has the same order.
+- `azure.yaml` is the `azd` project file the ADR names. The steps below use the Aspire CLI instead, because its pipeline has a
+  step that provisions infrastructure alone, which the migration needs, and because `infra/` is the Aspire CLI's own layout
+  (`main.bicep` with one module per resource), not the templates `azd` generates. Nothing has shown that `azd` can deploy from this
+  `infra/` folder. If you want `azd`, move `infra/` aside and let it generate its own from the AppHost, then keep the same order:
+  provision, run the migrator, deploy.
 - `apps/migrator` creates the schema as the database owner. It is the only thing that holds that login.
 - `apps/careers/Dockerfile` builds the careers image from the repository root.
 - `apps/dashboard/functions/v1/[[path]].js` forwards the dashboard's `/v1` calls to the API on Cloudflare.
@@ -68,11 +71,21 @@ An app started outside Development stops at once, with one message naming every 
 (`ProductionSettings`). A provider with no configuration stays hidden: that is how SendGrid, Slack, the calendars, Google and
 Microsoft sign-in, Turnstile, Google Indexing and the language model are optional.
 
-Set a parameter with user secrets on the AppHost, which the Aspire CLI reads:
+Every parameter goes in one file, `apps/apphost/appsettings.Production.json`, which git ignores. The Aspire CLI runs the AppHost
+as Production, and a Production host does not read user secrets, so that file (or an environment variable named
+`Parameters__<name>`, set with `env 'Parameters__domains-app-host=app.example.org' dotnet aspire ...` because a shell cannot export
+a name with a hyphen) is where they come from. This was tried: a value in the file is read, and one in user secrets is not.
 
-```bash
-dotnet user-secrets set "Parameters:domains-app-host" "app.example.org" --project apps/apphost
+```json
+{
+  "Parameters": {
+    "domains-app-host": "app.example.org",
+    "postgres-admin-password": "<generated>"
+  }
+}
 ```
+
+The file holds passwords. Keep it out of backups and delete it when the deployment is done, or keep the values in a password manager.
 
 | Parameter | What it is | Required |
 |---|---|---|
@@ -175,7 +188,7 @@ Do not commit `budget.json` with a real address.
 
 ### 2. Set the parameters
 
-Set every required parameter from the tables above with `dotnet user-secrets set ... --project apps/apphost`. Include
+Put every required parameter from the tables above in `apps/apphost/appsettings.Production.json`. Include
 `auth-trusted-proxies`. You do not know the ingress addresses yet, so set it to a placeholder network now and correct it in
 step 9, then redeploy.
 
@@ -360,6 +373,15 @@ That is the last resort. It loses everything written since that time.
 - Handlers compile when the worker starts (Wolverine's dynamic mode). Measured against a real database on a development machine: ready in
   12 seconds, 198 MB peak, under the 0.5 GiB limit. At 0.25 vCPU expect a slower start. If it ever runs out of memory, give the
   worker 1 GiB before looking at static code generation.
+- Container Apps also sets its own ASP.NET Core Data Protection (`autoConfigureDataProtection` in the generated API and worker
+  modules). The apps register their own key ring, in Postgres and wrapped by the Key Vault key, and that registration should win, but
+  it could not be run here. After the first deploy, check that a questionnaire link the worker emails opens on the API.
+- `ScreenHire:DataProtection:AllowUnprotectedKeys=true` lets a Production host start without the Key Vault key. It exists for the
+  integration test stack that runs the API as Production. Never set it in a deployment.
+- The Azure definition does not map every setting in the owner-action list, on purpose: `ScreenHire:Verification:Network:Ip2AsnFile`
+  and `TorExitListFile` need a file mounted into the worker, generic `ScreenHire:Auth:Oidc:*` providers are not parameters (add
+  them as environment variables of the API in `AzurePublish.cs` when a customer needs one), and
+  `ScreenHire:ApiKeys:PermitsPerMinute` keeps its default, which is right for one API replica.
 - Do not add a one-day lifecycle rule to the uploads container. The owner action in [apply flow](../architecture/apply-flow.md)
   asks for one for unclaimed uploads, but nothing marks a claimed blob, so an age rule would also delete every submitted resume.
   Unclaimed uploads are not cleaned up today. That needs a scheduled job like the one for brand images, and the privacy
