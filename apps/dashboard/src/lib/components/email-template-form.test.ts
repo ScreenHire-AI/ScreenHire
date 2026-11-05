@@ -69,11 +69,9 @@ afterEach(() => {
 });
 
 describe('email template form', () => {
-  it('shows the wording and the email side by side where both fit, else one at a time, and the preview follows the wording (A8)', async () => {
+  it('shows the wording or the email, one at a time, and the preview follows the wording (A8)', async () => {
     const { previews } = renderForm();
     const pane = screen.getByRole('region', { name: 'Preview' }).closest('[data-preview-pane]');
-    // Container queries put the panes side by side in a wide container; jsdom has none, so this is the narrow layout.
-    expect(pane).toHaveClass('@[82rem]/editor:flex');
     expect(inHiddenPane(pane)).toBe(true);
     await waitFor(() => expect(previews).toHaveLength(1));
     expect(previews[0]).toEqual({ subject: 'An update on {{ jobTitle }}', body: 'Hi {{ candidateName }},', templateId: 'stage-change' });

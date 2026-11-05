@@ -31,7 +31,7 @@ describe('settings menu', () => {
     const groups = within(menu).getAllByRole('list');
     expect(groups.map((group) => [group.getAttribute('aria-labelledby') && document.getElementById(group.getAttribute('aria-labelledby')!)?.textContent, within(group).getAllByRole('link').map((link) => link.textContent?.trim())])).toEqual([
       ['Organization', ['General', 'Team', 'Roles', 'Data requests']],
-      ['Hiring', ['Careers site', 'Branding', 'Verification', 'Sending domain']],
+      ['Hiring', ['Careers site', 'Branding', 'Verification', 'Email domain']],
       ['Integrations', ['Slack', 'MCP server', 'Webhooks', 'API keys']],
     ]);
     expect(within(menu).getByRole('link', { name: 'Team' })).toHaveAttribute('aria-current', 'page');

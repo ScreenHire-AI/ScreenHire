@@ -55,7 +55,7 @@ describe('candidates page', () => {
 
     expect(within(header).getByRole('searchbox', { name: 'Search candidates' })).toBeInTheDocument();
     const filters = panel.querySelector<HTMLElement>('[data-filters]')!;
-    expect(within(filters).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Job: All', 'Stage: All', 'Verification: All', 'Tag: All']);
+    expect(within(filters).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Job: All', 'Stage: All', 'Verification: All', 'Tag: All', 'Save view']);
 
     await fireEvent.input(within(header).getByRole('searchbox', { name: 'Search candidates' }), { target: { value: 'jordan' } });
 
@@ -241,12 +241,12 @@ describe('candidates page views', () => {
     await fireEvent.click(within(await screen.findByRole('menu')).getByRole('menuitemradio', { name: 'Referral' }));
   };
 
-  it('offers Save view at the end of the filter row only once the filters differ from the view it is on', async () => {
+  it('keeps Save view at the end of the filter row, working only once the filters differ from the view it is on', async () => {
     stubViews([]);
     render(WithQueryClient, { props: { component: Page, props: {} } });
     const panel = await screen.findByRole('region', { name: 'Applications' });
     await screen.findByRole('link', { name: 'Casey Morgan' });
-    expect(filterRow(panel).queryByRole('button', { name: 'Save view' })).toBeNull();
+    expect(filterRow(panel).getByRole('button', { name: 'Save view' })).toBeDisabled();
 
     await pickTag(panel);
 
@@ -352,7 +352,7 @@ describe('candidates page views', () => {
     expect(await within(dialog).findByText('You already have a view with this name here.')).toBeInTheDocument();
   });
 
-  it('opens a saved view with its filters and sort on the page, and offers Save view only when they change', async () => {
+  it('opens a saved view with its filters and sort on the page, and enables Save view only when they change', async () => {
     appPage.url = new URL(`http://dashboard.test/candidates?view=${view.id}`);
     stubViews([view]);
     render(WithQueryClient, { props: { component: Page, props: {} } });
@@ -362,13 +362,13 @@ describe('candidates page views', () => {
     const panel = screen.getByRole('region', { name: 'Applications' });
     expect(filterRow(panel).getByRole('button', { name: /^Tag: Referral/ })).toBeInTheDocument();
     expect(within(panel).getByRole('columnheader', { name: /Candidate/ })).toHaveAttribute('aria-sort', 'ascending');
-    expect(filterRow(panel).queryByRole('button', { name: 'Save view' })).toBeNull();
+    expect(filterRow(panel).getByRole('button', { name: 'Save view' })).toBeDisabled();
     expect(document.title).toBe('Referrals in screening · ScreenHire');
 
     await fireEvent.pointerDown(filterRow(panel).getByRole('button', { name: /^Tag: Referral/ }), { button: 0, pointerType: 'mouse' });
     await fireEvent.click(within(await screen.findByRole('menu')).getByRole('menuitemradio', { name: 'Any tag' }));
 
-    expect(await filterRow(panel).findByRole('button', { name: 'Save view' })).toBeInTheDocument();
+    await waitFor(() => expect(filterRow(panel).getByRole('button', { name: 'Save view' })).toBeEnabled());
   });
 
   it('shows every candidate and says so when the view in the address is gone', async () => {
@@ -379,6 +379,6 @@ describe('candidates page views', () => {
     expect(await screen.findByText('That view is no longer there, so this shows every candidate.')).toBeInTheDocument();
     await waitFor(() => expect(names()).toHaveLength(applications.length));
     expect(screen.getByRole('heading', { level: 1, name: 'Candidates' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Save view' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Save view' })).toBeDisabled();
   });
 });

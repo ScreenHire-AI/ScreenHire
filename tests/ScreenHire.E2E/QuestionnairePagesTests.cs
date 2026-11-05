@@ -103,7 +103,7 @@ public sealed partial class QuestionnairePagesTests(E2EFixture fixture) : Browse
         await WithoutJavaScriptAsync();
         await GoToAsync("careers", $"/{organization.Slug}/jobs/{job.Slug}/apply?draft={link.Groups["token"].Value}");
         await Expect(Page.GetByText("Welcome back. Your saved answers are filled in.")).ToBeVisibleAsync();
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "How we keep this fair" })).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "How we review applications" })).ToBeVisibleAsync();
         await Expect(Page.GetByLabel("Email")).ToHaveValueAsync(email.ToLowerInvariant());
         await ExpectNoAccessibilityViolationsAsync();
         // Files are not kept: the resume is attached again.

@@ -241,7 +241,7 @@ describe('job pipeline', () => {
 
     expect(screen.queryByRole('table')).toBeNull();
     const toolbar = screen.getByRole('button', { name: 'Sort' }).parentElement!;
-    expect(within(toolbar).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Stage: All', 'Authenticity: All', 'Sort']);
+    expect(within(toolbar).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Stage: All', 'Authenticity: All', 'Save view', 'Sort']);
   });
 
   it('keeps every move on a filtered board to one card: no ticks and no selection bar (ADR-0004)', async () => {
@@ -296,11 +296,11 @@ describe('job pipeline views', () => {
     return fetchStub;
   };
 
-  it('offers Save view at the end of the filter row once the filters differ, and saves it for this job', async () => {
+  it('keeps Save view at the end of the filter row, working once the filters differ, and saves it for this job', async () => {
     const created = savedView({ id: '01a157d4-0000-7000-8000-0000000003bb', scope: 'Job', jobId: 'job-1', name: 'Pending checks' });
     const fetchStub = stubViews([], { 'POST /v1/views': () => Response.json(created, { status: 201 }) });
     renderPipeline();
-    expect(within(filters()).queryByRole('button', { name: 'Save view' })).toBeNull();
+    expect(within(filters()).getByRole('button', { name: 'Save view' })).toBeDisabled();
 
     await fireEvent.click(within(filters()).getByRole('button', { name: /^Checks pending/ }));
 
@@ -351,7 +351,7 @@ describe('job pipeline views', () => {
     expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent?.trim())).toEqual(stages.map((stage) => stage.name));
   });
 
-  it('opens a saved view of this job with its stage and sort on the table, and offers Save view only when they change', async () => {
+  it('opens a saved view of this job with its stage and sort on the table, and enables Save view only when they change', async () => {
     appPage.url = new URL(`http://dashboard.test/jobs/job-1?tab=candidates&view=${view.id}`);
     stubViews([view]);
     renderPipeline();
@@ -362,11 +362,11 @@ describe('job pipeline views', () => {
       'aria-sort',
       'ascending',
     );
-    expect(within(filters()).queryByRole('button', { name: 'Save view' })).toBeNull();
+    expect(within(filters()).getByRole('button', { name: 'Save view' })).toBeDisabled();
 
     await fireEvent.click(within(filters()).getByRole('button', { name: /^Checks pending/ }));
 
-    expect(await within(filters()).findByRole('button', { name: 'Save view' })).toBeInTheDocument();
+    await waitFor(() => expect(within(filters()).getByRole('button', { name: 'Save view' })).toBeEnabled());
   });
 
   it('clears the view when the address leaves it, and says so when the view is gone', async () => {
@@ -376,6 +376,6 @@ describe('job pipeline views', () => {
 
     expect(await screen.findByText('That view is no longer there, so this shows every candidate.')).toBeInTheDocument();
     expect(names()).toHaveLength(applications.length);
-    expect(within(filters()).queryByRole('button', { name: 'Save view' })).toBeNull();
+    expect(within(filters()).getByRole('button', { name: 'Save view' })).toBeDisabled();
   });
 });

@@ -121,8 +121,8 @@ describe('the Views list in the sidebar', () => {
 
     expect(within(main()).queryByRole('button', { name: /Show hidden views/ })).toBeNull();
     const menu = await open('Overdue');
-    expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Hide']);
-    await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Hide' }));
+    expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Hide from sidebar']);
+    await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Hide from sidebar' }));
     expect(viewActions.setHidden).toHaveBeenCalledWith('overdue', true);
     unmount();
 
@@ -137,7 +137,7 @@ describe('the Views list in the sidebar', () => {
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(within(main()).getByRole('link', { name: /^Overdue/ })).toBeInTheDocument();
     const shown = await open('Overdue');
-    await fireEvent.click(within(shown).getByRole('menuitem', { name: 'Show in list' }));
+    await fireEvent.click(within(shown).getByRole('menuitem', { name: 'Show in sidebar' }));
     expect(viewActions.setHidden).toHaveBeenLastCalledWith('overdue', false);
   });
 

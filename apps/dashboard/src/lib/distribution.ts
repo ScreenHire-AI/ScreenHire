@@ -1,5 +1,5 @@
 import type { BoardSummary, JobPostingStatus, JobStatus } from '@screenhire/api-client';
-import { eta, timeUntil } from '#lib/dates.js';
+import { timeUntil } from '#lib/dates.js';
 import type { StatusName } from '#lib/status.js';
 
 export interface PostingView {
@@ -10,19 +10,12 @@ export interface PostingView {
   status: StatusName;
   /** The state: `Live`, `Queued`. */
   label: string;
-  /** The board's estimate, for a fact pill: `~20s`, `Overdue`; null when the board gives none. */
-  eta: string | null;
   /** The state in a sentence, for screen readers and the tooltip, including what is still uncertain. */
   detail: string;
 }
 
 /** What the person can do on one board now. Closing the whole job is the header's job, not a board's. */
 export type BoardAction = 'post' | 'retry' | 'takeDown' | null;
-
-function etaOf(expectedBy: string | null, now: number): string | null {
-  if (!expectedBy) return null;
-  return Date.parse(expectedBy) > now ? eta(expectedBy, now) : 'Overdue';
-}
 
 function estimateSentence(expectedBy: string | null, now: number, what: string): string {
   if (!expectedBy) return ` The board gives no estimate for when it ${what}.`;
@@ -38,18 +31,17 @@ function estimateSentence(expectedBy: string | null, now: number, what: string):
  */
 export function describePosting(posting: JobPostingStatus | undefined, now: number): PostingView {
   if (!posting) {
-    return { status: 'notInEffect', label: 'Not posted', eta: null, detail: 'Not posted to this board.' };
+    return { status: 'notInEffect', label: 'Not posted', detail: 'Not posted to this board.' };
   }
 
   const { state, expectedBy, confirmsLive, confirmsRemoval } = posting;
   switch (state) {
     case 'Live':
-      return { status: 'open', label: 'Live', eta: null, detail: 'Live: the board confirmed the job shows.' };
+      return { status: 'open', label: 'Live', detail: 'Live: the board confirmed the job shows.' };
     case 'Queued':
       return {
         status: 'waiting',
         label: 'Queued',
-        eta: etaOf(expectedBy, now),
         detail: `Queued: waiting to be sent to the board.${estimateSentence(expectedBy, now, 'takes it')}`,
       };
     case 'Submitted':
@@ -57,13 +49,11 @@ export function describePosting(posting: JobPostingStatus | undefined, now: numb
         ? {
             status: 'waiting',
             label: 'Submitted',
-            eta: etaOf(expectedBy, now),
             detail: `Submitted: the board took it and has not confirmed it shows yet.${estimateSentence(expectedBy, now, 'shows it')}`,
           }
         : {
             status: 'waiting',
             label: 'Sent',
-            eta: etaOf(expectedBy, now),
             detail: `Sent: this board never confirms when a job shows.${estimateSentence(expectedBy, now, 'picks it up')}`,
           };
     case 'Closing':
@@ -71,36 +61,31 @@ export function describePosting(posting: JobPostingStatus | undefined, now: numb
         ? {
             status: 'waiting',
             label: 'Removing',
-            eta: etaOf(expectedBy, now),
             detail: `Removing: the board has not confirmed the job is gone yet.${estimateSentence(expectedBy, now, 'removes it')}`,
           }
         : {
             status: 'waiting',
             label: 'Removal requested',
-            eta: etaOf(expectedBy, now),
             detail: `Removal requested: this board never confirms removal, so the job may still show until it refreshes.${estimateSentence(expectedBy, now, 'refreshes')}`,
           };
     case 'Closed':
-      return { status: 'notInEffect', label: 'Removed', eta: null, detail: 'Removed: the board confirmed the job is gone, or it never reached the board.' };
+      return { status: 'notInEffect', label: 'Removed', detail: 'Removed: the board confirmed the job is gone, or it never reached the board.' };
     case 'Rejected':
       return {
         status: 'needsFixes',
         label: 'Needs fixes',
-        eta: null,
         detail: `Rejected by the board${posting.lastError ? `: ${posting.lastError}` : '.'}`,
       };
     case 'Error':
       return {
         status: 'needsFixes',
         label: 'Error',
-        eta: null,
         detail: `The board did not answer${posting.lastError ? `: ${posting.lastError}` : '.'} Retry to send it again.`,
       };
     case 'Draft':
       return {
         status: 'needsFixes',
         label: 'Needs fixes',
-        eta: null,
         detail: `Not sent: ${posting.issues.length > 0 ? posting.issues.join(' ') : 'the board found problems with the job.'}`,
       };
   }

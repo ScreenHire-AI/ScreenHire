@@ -1,5 +1,5 @@
 ---
-// "What we collect and why": the full notice behind "How we keep this fair" (CLAUDE.md non-negotiable 4,
+// "What we collect and why": the full notice behind "How we review applications" (CLAUDE.md non-negotiable 4,
 // docs/research/legal.md). It describes what this build collects, and nothing it does not. When its substance changes,
 // change NOTICE_VERSION in lib/apply.ts too: every application records the version its candidate was shown.
 import CareersLayout from '../../layouts/CareersLayout.astro';
@@ -74,26 +74,16 @@ const sections = [
       </p>
       <ul>
         <li>what you enter: your name, email, phone number, answers and the files you upload;</li>
+        <li>the network (IP) address and browser you sent it from;</li>
+        <li>information about how the form was used, unless you switch on the assistive technology option;</li>
         <li>
-          the network (IP) address and browser you sent it from, and, unless you switch on the assistive technology option,
-          how long each page of the form was open;
+          a device code, where the job allows it (in some countries only if you tick the box for it): a one-way code made
+          from your browser's settings;
         </li>
-        <li>
-          counts of how you filled in the form, unless you switch on the assistive technology option: for each field, how
-          many characters you typed and how many you pasted, how often you pasted, how many times you came back to it, how
-          long you spent in it and whether your browser filled it in for you; and how many times you left the page;
-        </li>
-        <li>
-          a device code, where the job allows it (in some countries only if you tick the box for it): your browser's
-          settings, such as its language, screen size and time zone, turned into a one-way code;
-        </li>
-        <li>signs of automation software that your browser reports about itself;</li>
+        <li>technical signals your browser reports about itself;</li>
         <li>whether you switched on the assistive technology option;</li>
         <li>your answer about AI tools, and anything you tell us about how you used them;</li>
-        <li>
-          what our checks read from your files and answers: the text, any hidden text, the tool that made each file, a
-          fingerprint of each written answer, and the result of any comparison;
-        </li>
+        <li>what our checks read from your files and answers, and their results;</li>
         <li>
           if you apply through the form on {employer.name}'s own website, which website that was (the form is still ours,
           and works the same);
@@ -101,8 +91,8 @@ const sections = [
         <li>which version of this notice you were shown.</li>
       </ul>
       <p class="mt-2">
-        We delete the network address, browser, the time on each page, the counts and the device code within 30 days, and the counts
-        from a form you never send within a day. What we keep from them is coarse: the network's operator and country,
+        We delete the network address, browser, information about how the form was used and the device code within 30 days,
+        and that information from a form you never send within a day. What we keep from them is coarse: the network's operator and country,
         never your address or a location more precise than a country.
       </p>
     </section>
@@ -111,8 +101,7 @@ const sections = [
       <h2 id="saving">If you save to finish later</h2>
       <p class="mt-2">
         You can save the form and come back to it. We keep your name, email, phone number and answers, whether you switched
-        on the assistive technology option and your answer about AI tools under your email address, and email you a link that only works for you. We never keep your files, the counts of how you typed or the
-        time you spent: attach your files again when you come back. Nobody at {employer.name} sees what you saved until you
+        on the assistive technology option and your answer about AI tools under your email address, and email you a link that only works for you. We never keep your files or information about how the form was used: attach your files again when you come back. Nobody at {employer.name} sees what you saved until you
         send it. We delete it when you send your application, or 30 days after you first saved it.
       </p>
     </section>
@@ -121,7 +110,7 @@ const sections = [
       <h2 id="after">After you apply</h2>
       <p class="mt-2">
         {employer.name} may email you a link to a few more questions. The link works for 14 days and only for you. That
-        page keeps your answers and nothing else: no counts of how you typed, no device code and no checks of your network.
+        page keeps your answers and nothing else: no information about how the form was used, no device code and no checks.
         You can save your answers there to finish later through the same link; we delete them when you send them, or 30
         days after you first saved them.
       </p>
@@ -141,41 +130,25 @@ const sections = [
     <section aria-labelledby="checks">
       <h2 id="checks">What we check, and what we never do</h2>
       <p class="mt-2">
-        We check applications for signs of bots and impersonation, because they crowd out real candidates. The form has a
-        hidden field that only automated software fills in, and the site may ask your browser to complete a bot challenge
-        from Cloudflare, which then sees your network address and browser. Files are checked to be the type they say they
-        are.
+        We check every application for signs of bots and impersonation, because they crowd out real candidates. The checks
+        use the information listed under <a href="#applying">When you apply</a>: how the application arrived, whether its
+        details hold up, and whether they repeat on other applications to {employer.name}. Each check is one piece of
+        evidence. None of them is a judgement on its own.
       </p>
       <p class="mt-2">
-        We also look at how the application arrived. We check whether the network belongs to a hosting provider, a VPN or
-        Tor, and whether its country matches your phone number's. We check whether your email domain is a throwaway service
-        or cannot receive mail, and whether your phone number is valid. We note if the form was finished faster than a
-        person could. And we check whether the same email, phone number, file or device code appears on other applications
-        to {employer.name}. The device code is made differently for every employer, so it never matches across them. Each
-        check is one piece of evidence. None of them is a judgement on its own.
+        The site may ask your browser to complete a bot challenge from Cloudflare, which then sees your network address and
+        browser. The device code is made differently for every employer, so it never matches across them.
       </p>
       <p class="mt-2">
-        The counts of how the form was filled in show, for example, that most of a long answer was pasted, or that you
-        left the page and came back to one answer many times. They never raise a concern on their own, because dictation,
-        screen readers and autofill look the same. We never record what you type, which keys you press or the time between
-        them, and we never see what you copied or where you went when you left the page.
-      </p>
-      <p class="mt-2">
-        We read the files you upload and your written answers. In a file, we look for text people cannot see, such as
-        white or very small text, and for what the file says about the tool that made it. We check whether a written
-        answer is nearly identical to another applicant's answer to {employer.name} from the last 180 days.
-      </p>
-      <p class="mt-2">
-        If {employer.name} has turned it on, an AI model from our provider compares the facts in your resume, your answers
-        and any LinkedIn profile export you upload, such as job titles, dates and qualifications, and shows where they
-        differ by quoting both. It is never asked whether you used AI to write them. Our provider is not allowed to use
+        If {employer.name} has turned it on, an AI model from our provider compares the facts across what you send and shows
+        a person where they differ. It is never asked whether you used AI to write them. Our provider is not allowed to use
         your information to train its models. A person decides what any difference means, and there is often an ordinary
         explanation.
       </p>
       <ul class="mt-2">
         <li>Our checks for bots and impersonation never reject you. A person at {employer.name} looks at anything they flag.</li>
         <li>We never give you a score or a percentage, and never guess at your feelings, honesty or personality.</li>
-        <li>We never look at your other tabs or apps, and never use your camera or microphone.</li>
+        <li>We never record which keys you press, and never use your camera or microphone.</li>
         <li>We never look up your social media profiles. We only use what you give us.</li>
       </ul>
     </section>
@@ -183,10 +156,8 @@ const sections = [
     <section aria-labelledby="assistive">
       <h2 id="assistive">Assistive technology</h2>
       <p class="mt-2">
-        Dictation, screen readers, switch access and autofill can look like copying and pasting. If you use them, switch
-        on the assistive technology option at the start of the form. We then turn off any checks on how you type or paste,
-        and on how long the form took.
-        Using the option is never held against you.
+        If you use dictation, a screen reader, switch access or autofill, switch on the assistive technology option at the
+        start of the form. We then turn off the checks on how the form is used. Using the option is never held against you.
       </p>
     </section>
 

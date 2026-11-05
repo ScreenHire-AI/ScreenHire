@@ -6,7 +6,7 @@ tags: [adr, design, candidate, dashboard]
 ---
 # ADR-0023: A candidate's header is the name, a pipeline tracker and three mini cards
 
-- **Status:** Accepted (2026-11-02)
+- **Status:** Accepted (2026-11-02), decision 3 amended by ADR-0025
 - **Deciders:** Owner
 - **Amends:** ADR-0017 decision 13 (a record's header is a meta line of icons and values) for a candidate; the stage pill
 - **Builds on:** ADR-0004 (evidence, not verdicts), ADR-0010 (steps are square markers), ADR-0013 (the rating)

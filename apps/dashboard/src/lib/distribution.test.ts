@@ -51,28 +51,29 @@ describe('isCustomized', () => {
 });
 
 describe('describePosting', () => {
-  const cases: [JobPostingStatus['state'], Partial<JobPostingStatus>, string, string | null, string][] = [
-    ['Live', {}, 'Live', null, 'open'],
-    ['Queued', { expectedBy: later(20_000) }, 'Queued', '~20s', 'waiting'],
-    ['Submitted', { expectedBy: later(90_000) }, 'Submitted', '~2m', 'waiting'],
-    ['Submitted', { confirmsLive: false, expectedBy: later(86_400_000) }, 'Sent', '~1d', 'waiting'],
-    ['Submitted', { confirmsLive: false }, 'Sent', null, 'waiting'],
-    ['Closing', { expectedBy: later(30_000) }, 'Removing', '~30s', 'waiting'],
-    ['Closing', { confirmsRemoval: false }, 'Removal requested', null, 'waiting'],
-    ['Closed', {}, 'Removed', null, 'notInEffect'],
-    ['Rejected', { lastError: 'Title too long.' }, 'Needs fixes', null, 'needsFixes'],
-    ['Error', {}, 'Error', null, 'needsFixes'],
-    ['Draft', { issues: ['The description needs 100 characters.'] }, 'Needs fixes', null, 'needsFixes'],
+  const cases: [JobPostingStatus['state'], Partial<JobPostingStatus>, string, string][] = [
+    ['Live', {}, 'Live', 'open'],
+    ['Queued', { expectedBy: later(20_000) }, 'Queued', 'waiting'],
+    ['Submitted', { expectedBy: later(90_000) }, 'Submitted', 'waiting'],
+    ['Submitted', { confirmsLive: false, expectedBy: later(86_400_000) }, 'Sent', 'waiting'],
+    ['Submitted', { confirmsLive: false }, 'Sent', 'waiting'],
+    ['Closing', { expectedBy: later(30_000) }, 'Removing', 'waiting'],
+    ['Closing', { confirmsRemoval: false }, 'Removal requested', 'waiting'],
+    ['Closed', {}, 'Removed', 'notInEffect'],
+    ['Rejected', { lastError: 'Title too long.' }, 'Needs fixes', 'needsFixes'],
+    ['Error', {}, 'Error', 'needsFixes'],
+    ['Draft', { issues: ['The description needs 100 characters.'] }, 'Needs fixes', 'needsFixes'],
   ];
 
-  it.each(cases)('%s %o reads %s, estimate %s, as a %s status', (state, overrides, label, eta, status) => {
+  it.each(cases)('%s %o reads %s, as a %s status', (state, overrides, label, status) => {
     const view = describePosting(posting('board', 'Board', { state, ...overrides }), now);
 
-    expect(view).toMatchObject({ label, eta, status });
+    expect(view).toMatchObject({ label, status });
   });
 
-  it('says an estimate has passed instead of counting below zero', () => {
-    expect(describePosting(posting('sandbox', 'Sandbox', { state: 'Queued', expectedBy: later(-5_000) }), now).eta).toBe('Overdue');
+  it("gives the board's estimate in a sentence, or says it has passed instead of counting below zero", () => {
+    expect(describePosting(posting('sandbox', 'Sandbox', { state: 'Queued', expectedBy: later(20_000) }), now).detail).toContain('Expected in 20 seconds.');
+    expect(describePosting(posting('sandbox', 'Sandbox', { state: 'Queued', expectedBy: later(-5_000) }), now).detail).toContain("The board's estimate has passed");
   });
 
   it("explains a refusal with the board's reason and fixes with the board's issues", () => {

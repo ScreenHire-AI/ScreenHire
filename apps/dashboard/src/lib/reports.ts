@@ -27,6 +27,8 @@ export const counted = (value: number, one: string, many: string) => `${countTex
 
 /** How a number moved against the previous period, in words, with the way the arrow points. */
 export interface Change {
+  /** The amount alone, for the pill: `18`, `3 days`. */
+  short: string;
   text: string;
   direction: 'up' | 'down' | 'none';
 }
@@ -41,11 +43,11 @@ export function changeText(current: number | null, previous: number | null | und
   const now = kind === 'days' ? Math.round(current) : current;
   const before = kind === 'days' ? Math.round(previous) : previous;
   const difference = now - before;
-  if (difference === 0) return { text: 'No change', direction: 'none' };
+  if (difference === 0) return { text: 'No change', short: 'No change', direction: 'none' };
   const amount = Math.abs(difference);
   const direction = difference > 0 ? 'up' : 'down';
-  if (kind === 'days') return { text: `${daysText(amount)} ${difference > 0 ? 'slower' : 'faster'}`, direction };
-  return { text: `${countText(amount)} ${difference > 0 ? 'more' : 'fewer'} than before`, direction };
+  if (kind === 'days') return { text: `${daysText(amount)} ${difference > 0 ? 'slower' : 'faster'}`, short: daysText(amount), direction };
+  return { text: `${countText(amount)} ${difference > 0 ? 'more' : 'fewer'} than before`, short: countText(amount), direction };
 }
 
 /** The share of applications that were hired: `18%`; null with no applications. */

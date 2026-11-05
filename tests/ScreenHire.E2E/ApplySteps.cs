@@ -19,7 +19,7 @@ internal static class ApplySteps
     public static async Task ApplyAsync(IFrame frame, string email, bool javaScript, string appliedUrl, Func<Task> checkAccessibility)
     {
         // The notice comes before anything is asked for.
-        var notice = frame.GetByRole(AriaRole.Region, new() { Name = "How we keep this fair" });
+        var notice = frame.GetByRole(AriaRole.Region, new() { Name = "How we review applications" });
         await Expect(notice).ToBeVisibleAsync();
         (await notice.BoundingBoxAsync())!.Y.Should().BeLessThan((await frame.GetByLabel("First name").BoundingBoxAsync())!.Y);
         await checkAccessibility();

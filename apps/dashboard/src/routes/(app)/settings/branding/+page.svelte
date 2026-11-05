@@ -289,7 +289,7 @@
           </form>
         {/snippet}
 
-        {#snippet preview(popout)}
+        {#snippet preview()}
           <Panel title="Preview">
             {#snippet actions()}
               {#if organization.data}
@@ -297,7 +297,6 @@
                   <ExternalLinkIcon aria-hidden="true" />View<span class="sr-only"> careers page (opens in a new tab)</span>
                 </Button>
               {/if}
-              {@render popout()}
             {/snippet}
             <BrandingPreview {draft} />
           </Panel>

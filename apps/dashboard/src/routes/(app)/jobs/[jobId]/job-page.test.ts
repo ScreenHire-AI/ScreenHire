@@ -208,6 +208,14 @@ describe('job page', () => {
     await waitFor(() => expect(document.querySelector('[data-slot=notice]')).toHaveTextContent("Sandbox board refused this job's posting. Sandbox board: Title too long."));
   });
 
+  it('keeps the notice on Job postings, with no link to the page it is on', async () => {
+    onPostingsTab();
+    stub({ ...job, postings: [posting('careers', 'Careers page'), posting('sandbox', 'Sandbox board', { state: 'Draft', issues: ['Sandbox board needs a city.'] })] });
+
+    await waitFor(() => expect(document.querySelector('[data-slot=notice]')).toHaveTextContent('Sandbox board did not take this job. Sandbox board needs a city.'));
+    expect(within(document.querySelector<HTMLElement>('[data-slot=notice]')!).queryByRole('link')).toBeNull();
+  });
+
   it('shows no notice for a job that is not open, or whose postings are fine', async () => {
     stub(job);
 

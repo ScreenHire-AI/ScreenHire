@@ -306,7 +306,10 @@
 
       <!-- The work area first, filling the window (S6), with no side column beside the table or the board (S7). -->
       <div class={['flex w-full flex-col gap-4 px-4 py-6 md:px-6', boardFills && 'min-h-0 flex-1']}>
-        <!-- Above the tabs, because it is about the job, not one view of it. -->
+        <!-- Above the tabs, because they are about the job, not one view of it. On Job postings the fix is on this page. -->
+        {#each problems as problem (problem.kind)}
+          <Notice href={tab === 'postings' ? undefined : '?tab=postings'} link="Fix on Job postings">{problem.text}</Notice>
+        {/each}
         {#if updatable}
           <Notice>
             Your changes are live on the careers page, not yet on the job boards.
@@ -316,9 +319,6 @@
           </Notice>
         {/if}
         <Tabs.Content value="candidates" class={['flex flex-col gap-4', boardFills && 'min-h-0']}>
-          {#each problems as problem (problem.kind)}
-            <Notice href="?tab=postings" link="Fix on Job postings">{problem.text}</Notice>
-          {/each}
           <JobPipeline
             bind:view
             jobId={params.jobId}

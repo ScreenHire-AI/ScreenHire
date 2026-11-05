@@ -16,6 +16,8 @@ const allowedDomains = (process.env.CAREERS_ALLOWED_DOMAINS ?? '')
 // Tenant careers pages render on demand: jobs change constantly and teardown needs an immediate 410 (ADR-0003).
 export default defineConfig({
   output: 'server',
+  // Its bar sits over the bottom of every page in development, on top of what people are checking.
+  devToolbar: { enabled: false },
   adapter: node({ mode: 'standalone' }),
   server: { port: Number(process.env.PORT ?? 4322) },
   // Svelte only for islands that need behaviour HTML cannot give: the direct-to-storage file upload.

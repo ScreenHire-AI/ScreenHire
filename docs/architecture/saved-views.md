@@ -107,7 +107,7 @@ nothing: nobody else's list changes.
 - **Opening a view.** `/candidates?view=<id>` and `/jobs/<id>?tab=candidates&view=<id>`. The page puts the view's filters and
   sort on the table, without changing the sort the person remembers for that table. A view that is gone shows every
   candidate and says so.
-- **Save view.** Once the filters or sort differ from the view the table is on (`differsFromView`), a Save view button ends
+- **Save view.** A Save view button is always in the filter row, disabled with the reason in its tooltip until the filters or sort differ from the view the table is on (`differsFromView`). It ends
   the filter row, outside the part that scrolls, so it is in view at any width. Its dialog asks for a name and Share with the
   team, off by default. The new view opens.
 - **Counts.** The sidebar counts the rows each view picks with `viewMatcher`, from the same applications list the pages show.

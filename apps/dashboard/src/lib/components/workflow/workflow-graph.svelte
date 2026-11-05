@@ -84,6 +84,7 @@
     bind:edges
     {nodeTypes}
     {initialViewport}
+    proOptions={{ hideAttribution: true }}
     colorMode={preferences.theme}
     panOnScroll
     nodesDraggable={false}

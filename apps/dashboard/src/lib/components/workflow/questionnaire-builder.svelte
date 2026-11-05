@@ -100,8 +100,8 @@
     <Button variant="outline" onclick={addFollowUp}><PlusIcon aria-hidden="true" />Add follow-up questionnaire</Button>
   {/snippet}
 
-  {#snippet preview(popout)}
-    <Panel title="Preview" actions={popout}>
+  {#snippet preview()}
+    <Panel title="Preview">
       <PreviewFrame>
         <QuestionnairePreview {questions} {sections} {questionsPerPage} followUp={!!current} />
       </PreviewFrame>

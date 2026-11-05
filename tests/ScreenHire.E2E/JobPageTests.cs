@@ -134,12 +134,15 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
         // A plain button shows the hand as a link does (A10): the browser's default for a button is the arrow.
         await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "History" })).ToHaveCSSAsync("cursor", "pointer");
 
-        // The notice links to the fix: the Job postings tab, where the board's row says what is wrong.
+        // The notice links to the fix: the Job postings tab, where the notice stays and the row's menu holds the fixes.
         await notice.GetByRole(AriaRole.Link, new() { Name = "Fix on Job postings" }).ClickAsync();
         await Expect(postingsTab).ToHaveAttributeAsync("aria-selected", "true");
         var adzuna = Page.GetByRole(AriaRole.Region, new() { Name = "Job postings" }).Locator("[data-board='adzuna']");
-        await Expect(adzuna.Locator("[data-posting-problem]")).ToContainTextAsync("Adzuna needs a description of at least 100 characters.");
-        await Expect(adzuna.GetByRole(AriaRole.Link, new() { Name = "Edit details" })).ToBeVisibleAsync();
+        await Expect(notice).ToContainTextAsync("Adzuna needs a description of at least 100 characters.");
+        await Expect(notice.GetByRole(AriaRole.Link)).ToHaveCountAsync(0);
+        await adzuna.GetByRole(AriaRole.Button, new() { Name = "Actions for Adzuna" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Menuitem, new() { Name = "Edit details for every board" })).ToBeVisibleAsync();
+        await Page.Keyboard.PressAsync("Escape");
         await ExpectNoAccessibilityViolationsAsync();
 
         // The tab is in the address, so a reload keeps it.
@@ -184,9 +187,10 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Job postings") }).ClickAsync();
         var adzuna = Page.GetByRole(AriaRole.Region, new() { Name = "Job postings" }).Locator("[data-board='adzuna']");
 
-        // The words under the row say what each fix reaches.
-        await Expect(adzuna.Locator("[data-posting-fixes]")).ToContainTextAsync("Edit details changes every board. Customize changes only Adzuna");
-        await adzuna.GetByRole(AriaRole.Button, new() { Name = "Customize", Exact = true }).ClickAsync();
+        // The row's menu holds both fixes, each saying how far it reaches.
+        await adzuna.GetByRole(AriaRole.Button, new() { Name = "Actions for Adzuna" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Menuitem, new() { Name = "Edit details for every board" })).ToBeVisibleAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Customize for Adzuna" }).ClickAsync();
         var sheet = Page.GetByRole(AriaRole.Dialog, new() { NameRegex = new("^Customize for Adzuna") });
         var description = sheet.GetByRole(AriaRole.Textbox, new() { Name = "Description" });
         await description.ClickAsync();
@@ -201,7 +205,7 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
 
         await Expect(sheet).ToBeHiddenAsync();
         await Expect(adzuna.GetByText("Customized", new() { Exact = true })).ToBeVisibleAsync();
-        await Expect(adzuna.Locator("[data-posting-problem]")).ToHaveCountAsync(0);
+        await Expect(adzuna.Locator("[data-posting-state]")).Not.ToContainTextAsync("Needs fixes");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-job-customized-posting-light");
     }

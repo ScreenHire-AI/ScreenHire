@@ -62,9 +62,6 @@ export function timeSince(iso: string, now: number): string {
   return new Intl.NumberFormat(locales, { style: 'unit', unit, unitDisplay: 'long' }).format(amount);
 }
 
-/** A board's estimate, for a fact pill: `~20s`, `~1d`. */
-export const eta = (iso: string, now: number) => `~${timeUntil(iso, now)}`;
-
 const monthDay = new Intl.DateTimeFormat(locales, { month: 'short', day: 'numeric' });
 
 /** The local day an instant falls on, as a key for grouping: `2026-10-25`. */

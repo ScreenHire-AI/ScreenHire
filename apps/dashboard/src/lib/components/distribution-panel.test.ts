@@ -19,8 +19,7 @@ function renderPanel(job: PanelJob, props: Record<string, unknown> = {}) {
 
 const item = (boardId: string) => document.querySelector<HTMLElement>(`[data-board="${boardId}"]`)!;
 const stateOf = (boardId: string) => item(boardId).querySelector('[data-posting-state]')?.textContent?.trim();
-const etaOf = (boardId: string) => item(boardId).querySelector('[data-posting-eta]')?.textContent?.trim();
-const cellsOf = (boardId: string) => [...item(boardId).querySelectorAll('tr:first-child td')].map((cell) => cell.textContent?.trim());
+const cellsOf = (boardId: string) => [...item(boardId).querySelectorAll('td')].map((cell) => cell.textContent?.trim());
 const menuFor = (boardId: string) => within(item(boardId)).queryByRole('button', { name: /^Actions for / });
 async function openMenu(name: string) {
   // bits-ui opens a menu on pointerdown.
@@ -48,10 +47,10 @@ describe('distribution panel', () => {
 
     expect(stateOf('careers')).toBe('Live');
     expect(stateOf('adzuna')).toBe('Sent');
-    expect(etaOf('adzuna')).toBe('~4h');
+    // The estimate is in the status's tooltip and for screen readers, never a value in the row.
+    expect(item('adzuna')).toHaveTextContent('Expected in 4 hours.');
+    expect(item('adzuna')).not.toHaveTextContent('~4h');
     expect(stateOf('sandbox')).toBe('Queued');
-    expect(etaOf('sandbox')).toBe('~20s');
-    expect(etaOf('careers')).toBeUndefined();
     expect(item('careers').querySelector('[data-status-icon]')).toHaveAttribute('data-status-icon', 'door-open');
     // Waiting on the board is grey: nobody needs to act (T3).
     expect(item('sandbox').querySelector('[data-status-icon]')).toHaveAttribute('data-status-icon', 'clock-4');
@@ -112,7 +111,7 @@ describe('distribution panel', () => {
     expect(choices).toEqual(['Status', 'Board', 'Posted', 'Last updated']);
   });
 
-  it('says in words what is wrong with a posting that needs fixes, and where its issues are fixed (E2)', () => {
+  it('keeps one row per board whatever a posting needs, with what is wrong for screen readers and in the tooltip', () => {
     renderPanel({
       id: jobId,
       status: 'Open',
@@ -122,40 +121,31 @@ describe('distribution panel', () => {
       ],
     });
 
-    expect(item('careers').querySelector('[data-posting-problem]')).toHaveTextContent('Not sent: Adzuna needs a description of at least 100 characters.');
-    expect(within(item('careers')).getByRole('link', { name: 'Edit details' })).toHaveAttribute('href', `/jobs/${jobId}/edit`);
-    expect(item('sandbox').querySelector('[data-posting-problem]')).toHaveTextContent('Rejected by the board: Title too long.');
+    expect(screen.getByRole('table').querySelectorAll('tbody tr')).toHaveLength(boards.length);
+    expect(item('careers')).toHaveTextContent('Not sent: Adzuna needs a description of at least 100 characters.');
+    expect(item('sandbox')).toHaveTextContent('Rejected by the board: Title too long.');
   });
 
-  it('says what each fix reaches under a posting the job can fix: Edit details every board, Customize only this one', () => {
-    renderPanel({
-      id: jobId,
-      status: 'Open',
-      postings: [posting('adzuna', 'Adzuna feed', { state: 'Draft', issues: ['Adzuna needs a description of at least 100 characters.'] }), posting('sandbox', 'Sandbox board', { state: 'Rejected', lastError: 'Title too long.' })],
-    });
+  it('puts both fixes in the row menu, each saying how far it reaches', async () => {
+    renderPanel({ id: jobId, status: 'Open', postings: [posting('adzuna', 'Adzuna feed', { state: 'Draft', issues: ['Adzuna needs a description of at least 100 characters.'] })] });
 
-    for (const [boardId, name] of [['adzuna', 'Adzuna feed'], ['sandbox', 'Sandbox board']] as const) {
-      const words = item(boardId).querySelector('[data-posting-fixes]')!;
-      expect(words).toHaveTextContent(`Edit details changes every board. Customize changes only ${name}.`);
-      expect(within(item(boardId)).getByRole('link', { name: 'Edit details' })).toHaveAttribute('href', `/jobs/${jobId}/edit`);
-      expect(within(item(boardId)).getByRole('button', { name: 'Customize' })).toBeInTheDocument();
-    }
+    const menu = await openMenu('Adzuna feed');
+    expect(within(menu).getByRole('menuitem', { name: 'Customize for Adzuna feed' })).toBeInTheDocument();
+    expect(within(menu).getByRole('menuitem', { name: 'Edit details for every board' })).toHaveAttribute('href', `/jobs/${jobId}/edit`);
   });
 
   it('offers only Edit details on the Careers page, which is never customized', async () => {
     renderPanel({ id: jobId, status: 'Open', postings: [posting('careers', 'Careers page', { state: 'Draft', issues: ['Add a city.'] })] });
 
-    expect(item('careers').querySelector('[data-posting-fixes]')).toHaveTextContent(/^Edit details changes every board\.$/);
-    expect(within(item('careers')).queryByRole('button', { name: 'Customize' })).toBeNull();
     const menu = await openMenu('Careers page');
-    expect(within(menu).getByRole('menuitem', { name: 'Edit details' })).toBeInTheDocument();
-    expect(within(menu).queryByRole('menuitem', { name: 'Customize' })).toBeNull();
+    expect(within(menu).getByRole('menuitem', { name: 'Edit details for every board' })).toBeInTheDocument();
+    expect(within(menu).queryByRole('menuitem', { name: /^Customize/ })).toBeNull();
   });
 
   it('offers Customize in the menu of every other board while the job is open', async () => {
     renderPanel({ id: jobId, status: 'Open', postings: [posting('adzuna', 'Adzuna feed', { state: 'Submitted' }), posting('sandbox', 'Sandbox board')] });
 
-    expect(within(await openMenu('Sandbox board')).getByRole('menuitem', { name: 'Customize' })).toBeInTheDocument();
+    expect(within(await openMenu('Sandbox board')).getByRole('menuitem', { name: 'Customize for Sandbox board' })).toBeInTheDocument();
   });
 
   it('offers no Customize on a board that is removing the job, which saving would post again', () => {
@@ -182,11 +172,11 @@ describe('distribution panel', () => {
       postings: [posting('adzuna', 'Adzuna feed', { state: 'Submitted', customizedTitle: true, jobChangedSinceCustomized: true })],
     });
 
-    expect(item('adzuna').querySelector('[data-posting-changed]')).toHaveTextContent('The job changed since this was customized.');
-    expect(within(item('adzuna')).getAllByText('Customized')).toHaveLength(1);
+    expect(within(item('adzuna')).getByText('Job changed')).toBeInTheDocument();
+    expect(within(item('adzuna')).queryByText('Customized')).toBeNull();
   });
 
-  it("opens the Customize sheet with the board's text from its menu, and from the words under a row", async () => {
+  it("opens the Customize sheet with the board's text from its menu", async () => {
     const customization = {
       boardId: 'adzuna',
       boardName: 'Adzuna feed',
@@ -197,7 +187,7 @@ describe('distribution panel', () => {
     vi.stubGlobal('fetch', vi.fn(apiStub({ [`GET /v1/jobs/${jobId}/postings/adzuna/customization`]: () => Response.json(customization) })));
     renderPanel({ id: jobId, status: 'Open', postings: [posting('adzuna', 'Adzuna feed', { state: 'Draft', issues: ['Adzuna needs a description of at least 100 characters.'] })] });
 
-    await fireEvent.click(within(item('adzuna')).getByRole('button', { name: 'Customize' }));
+    await fireEvent.click(within(await openMenu('Adzuna feed')).getByRole('menuitem', { name: 'Customize for Adzuna feed' }));
 
     const sheet = await screen.findByRole('dialog', { name: 'Customize for Adzuna feed' });
     await waitFor(() => expect(within(sheet).getByLabelText('Title')).toHaveValue('Senior engineer (remote)'));
@@ -235,7 +225,7 @@ describe('distribution panel', () => {
     renderPanel({ id: jobId, status: 'Open', postings: [posting('sandbox', 'Sandbox board', { state: 'Draft', issues: ['Sandbox board needs a city.'] })] });
 
     const menu = await openMenu('Sandbox board');
-    expect(within(menu).getByRole('menuitem', { name: 'Edit details' })).toHaveAttribute('href', `/jobs/${jobId}/edit`);
+    expect(within(menu).getByRole('menuitem', { name: 'Edit details for every board' })).toHaveAttribute('href', `/jobs/${jobId}/edit`);
     expect(within(menu).getByRole('menuitem', { name: 'Retry' })).toBeInTheDocument();
   });
 

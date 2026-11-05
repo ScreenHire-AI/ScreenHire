@@ -277,11 +277,11 @@ permissions (`RolePermissions.Summarize`), so it always says what the role allow
 
 The dashboard follows the same permissions (`apps/dashboard/src/lib/permissions.ts`). **Settings** is one sidebar item
 for anyone whose role has a settings permission; it opens the Settings menu (Organization, Team, Roles, Branding,
-Verification, Sending domain, API keys and Webhooks, under `/settings/*`; email templates are on the Templates page, and their old
+Verification, Email domain, API keys and Webhooks, under `/settings/*`; email templates are on the Templates page, and their old
 `/settings/email-templates` addresses redirect there), each page
 behind its permission (`settingsSections` in `apps/dashboard/src/lib/settings.ts`), and the command palette lists the
 same pages. Slack's page and entry are left out wherever `GET /v1/slack` says Slack is not `available` (a feature on its
-settings row, `SettingsFeatures`), and so is Sending domain's wherever `GET /v1/organization/sending-domain` says
+settings row, `SettingsFeatures`), and so is Email domain's wherever `GET /v1/organization/sending-domain` says
 there is no email provider (shown until that answer says so, and kept when the request fails), and an address to either goes to the first page the person may use. The settings layout tells anyone who opens another page by its address that their role cannot change it.
 Hiring controls show by the permission their route needs: an Interviewer sees Add note and Fill scorecard but no Move.
 The Team page offers only what `TeamPolicy` allows (`settings.ts` mirrors it): an Admin sees no Owner role and no actions

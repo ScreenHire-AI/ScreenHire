@@ -395,7 +395,7 @@
         >
           {#if view.builtIn}
             <DropdownMenu.Item onSelect={() => void run(actions.setHidden(view.key, !hiddenRow))}>
-              {#if hiddenRow}<EyeIcon aria-hidden="true" />Show in list{:else}<EyeOffIcon aria-hidden="true" />Hide{/if}
+              {#if hiddenRow}<EyeIcon aria-hidden="true" />Show in sidebar{:else}<EyeOffIcon aria-hidden="true" />Hide from sidebar{/if}
             </DropdownMenu.Item>
           {:else if saved}
             <DropdownMenu.Item onSelect={() => (renameQueued = saved)}><PencilIcon aria-hidden="true" />Rename</DropdownMenu.Item>

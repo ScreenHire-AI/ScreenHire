@@ -66,16 +66,10 @@
   --xy-controls-button-color-hover: var(--foreground);
   --xy-controls-button-border-color: var(--border);
   --xy-controls-box-shadow: none;
-  --xy-attribution-background-color: var(--card);
 }
 
 /* More specific than Svelte Flow's own rules, whose stylesheet loads after this one. Its labels are 10px there; the
    floor is 12px (design system section 4.1). */
-.svelte-flow .svelte-flow__attribution a {
-  color: var(--muted-foreground);
-}
-
-.svelte-flow .svelte-flow__attribution,
 .svelte-flow .svelte-flow__edge-label,
 .svelte-flow .svelte-flow__edge-text {
   @apply text-caption;
