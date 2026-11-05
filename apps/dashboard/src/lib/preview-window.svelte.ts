@@ -60,26 +60,41 @@ export class PreviewSource<T> {
   }
 }
 
-/** The preview window's side: the latest value, and whether the editor has closed. */
+/** How long a window waits for its editor's first value before it says there is no editor (a reload, an editor that closed). */
+export const previewWaitMs = 3000;
+
+/** The preview window's side: the latest value, whether the editor has closed, and whether there never was one to hear. */
 export class PreviewSink<T> {
   value = $state.raw<T>();
   closed = $state(false);
+  /** No editor answered: the address has no channel, or the editor behind it is gone. The window says so instead of loading for ever. */
+  orphaned = $state(false);
 
   readonly #channel: BroadcastChannel | undefined;
 
   constructor(id: string | null) {
-    if (!id) return;
+    if (!id) {
+      this.orphaned = true;
+      return;
+    }
     this.#channel = new BroadcastChannel(channelName(id));
     this.#channel.onmessage = (event: MessageEvent<PreviewMessage<T>>) => {
       if (event.data?.type === 'value') {
         this.value = event.data.value;
         this.closed = false;
+        this.orphaned = false;
       } else if (event.data?.type === 'closed') {
         this.closed = true;
       }
     };
     this.#channel.postMessage({ type: 'hello' } satisfies PreviewMessage<T>);
-    $effect(() => () => this.#channel?.close());
+    const waiting = setTimeout(() => {
+      if (this.value === undefined && !this.closed) this.orphaned = true;
+    }, previewWaitMs);
+    $effect(() => () => {
+      clearTimeout(waiting);
+      this.#channel?.close();
+    });
   }
 }
 

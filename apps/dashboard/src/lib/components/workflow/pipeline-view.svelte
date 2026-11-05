@@ -3,15 +3,18 @@
   import type { DefinitionError, HiringWorkflow, StageKind } from '@screenhire/api-client';
   import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
   import ArrowRightIcon from '~icons/lucide/arrow-right';
+  import ClipboardListIcon from '~icons/lucide/clipboard-list';
   import PlusIcon from '~icons/lucide/plus';
   import Trash2Icon from '~icons/lucide/trash-2';
+  import ZapIcon from '~icons/lucide/zap';
   import Hint from '#lib/components/hint.svelte';
-  import IconButton from '#lib/components/icon-button.svelte';
+  import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import ProblemIcon from '#lib/components/problem-icon.svelte';
   import ReorderList from '#lib/components/reorder-list.svelte';
   import StepMarker from '#lib/components/step-marker.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
+  import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import {
     emailTemplateNames,
@@ -31,7 +34,9 @@
 
   // The default builder view (workflow-engine.md §4): the stages in order, each with the automations that fire on it,
   // then a panel for the automations that belong to no one stage, full width under the stages (S7). Stages reorder with
-  // a grip (A7): drag it, open its Move menu, or press Space and the arrow keys (WCAG 2.5.7).
+  // a grip (A7): drag it, open its Move menu, or press Space and the arrow keys (WCAG 2.5.7). What each stage offers
+  // beyond its fields (Edit automations, Choose scorecard, Remove stage) is its row's menu, not a button repeated on
+  // every row.
   let {
     workflow = $bindable(),
     errors,
@@ -78,11 +83,6 @@
       <ProblemIcon class="size-3.5 self-center" />{problems} {problems === 1 ? 'problem' : 'problems'} to fix
     </p>
   {/if}
-{/snippet}
-
-<!-- 36px in a stage's row, 32px in a panel header (section 5). -->
-{#snippet automationsButton(stageId: string | null, name: string, size: 'default' | 'lg')}
-  <Button variant="outline" {size} onclick={() => onopen(stageId)}>Edit automations <span class="sr-only">for {name}</span></Button>
 {/snippet}
 
 <div class="flex flex-col gap-5">
@@ -137,7 +137,15 @@
                 </label>
               {:else}<span class="hidden @xl:block"></span>{/if}
               <div class="flex shrink-0 justify-end">
-                <IconButton label={`Remove ${stage.name}`} onclick={() => (workflow.stages = removeAt(workflow.stages, index))}><Trash2Icon /></IconButton>
+                <MoreMenu label={`Actions for ${stage.name}`} size="icon-lg" quiet>
+                  <DropdownMenu.Item onSelect={() => onopen(stage.id)}><ZapIcon aria-hidden="true" />Edit automations</DropdownMenu.Item>
+                  <!-- A stage that ends the application has no scorecard (A3); one left from another kind still shows, to remove. -->
+                  {#if !isTerminal(stage.kind) || stage.scorecard || stage.scorecardTemplateId}
+                    <DropdownMenu.Item onSelect={() => onscorecard(index)}><ClipboardListIcon aria-hidden="true" />Choose scorecard</DropdownMenu.Item>
+                  {/if}
+                  <!-- Nothing changes until Save, so removing a stage from the draft does not confirm (section 10). -->
+                  <DropdownMenu.Item onSelect={() => (workflow.stages = removeAt(workflow.stages, index))}><Trash2Icon aria-hidden="true" />Remove stage</DropdownMenu.Item>
+                </MoreMenu>
               </div>
             </div>
             <FieldErrors id={`stage-${index}-errors`} messages={stageErrors} />
@@ -145,13 +153,6 @@
             {#if (stage.scorecard || stage.scorecardTemplateId) && !isTerminal(stage.kind)}
               <p class="text-muted-foreground">Scorecard: <ScorecardName {stage} /></p>
             {/if}
-            <div class="flex flex-wrap gap-2">
-              {@render automationsButton(stage.id, stage.name, 'lg')}
-              <!-- A stage that ends the application has no scorecard (A3); one left from another kind still shows, to remove. -->
-              {#if !isTerminal(stage.kind) || stage.scorecard || stage.scorecardTemplateId}
-                <Button variant="outline" size="lg" onclick={() => onscorecard(index)}>Choose scorecard <span class="sr-only">for {stage.name}</span></Button>
-              {/if}
-            </div>
           </div>
         </div>
       {/snippet}
@@ -159,7 +160,7 @@
   </Panel>
 
   <Panel title="Whole workflow" count={inLane(null).length}>
-    {#snippet actions()}{@render automationsButton(null, 'the whole workflow', 'default')}{/snippet}
+    {#snippet actions()}<Button variant="outline" onclick={() => onopen(null)}>Edit automations <span class="sr-only">for the whole workflow</span></Button>{/snippet}
     <div class="flex flex-col gap-2">
       {@render summaries(null)}
       {#if inLane(null).length === 0}<p class="text-muted-foreground">None yet.</p>{/if}

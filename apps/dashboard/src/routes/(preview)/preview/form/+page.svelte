@@ -2,6 +2,7 @@
   import { page } from '$app/state';
   import QuestionnairePreview from '#lib/components/workflow/questionnaire-preview.svelte';
   import type { FormPreview } from '#lib/components/workflow/questionnaire-builder.svelte';
+  import PreviewPending from '#lib/components/preview-pending.svelte';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { createPreviewSink } from '#lib/preview-window.svelte.js';
 
@@ -13,7 +14,7 @@
 </script>
 
 <svelte:head>
-  <title>Preview · ScreenHire</title>
+  <title>Form preview · ScreenHire</title>
 </svelte:head>
 
 <main class="min-h-screen bg-candidate-background">
@@ -32,10 +33,13 @@
     </div>
   {:else}
     <!-- Until the editor's first message: the form's shape (E1). -->
-    <div class="mx-auto flex max-w-form flex-col gap-4 p-4" aria-hidden="true">
-      <Skeleton class="h-16 w-full" />
-      <Skeleton class="h-16 w-full" />
+    <div class="mx-auto max-w-form p-4">
+      <PreviewPending orphaned={sink.orphaned}>
+        <div class="flex flex-col gap-4" aria-hidden="true">
+          <Skeleton class="h-16 w-full" />
+          <Skeleton class="h-16 w-full" />
+        </div>
+      </PreviewPending>
     </div>
-    <p role="status" class="sr-only">Loading the preview</p>
   {/if}
 </main>

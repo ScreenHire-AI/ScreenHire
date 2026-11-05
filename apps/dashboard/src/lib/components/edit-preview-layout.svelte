@@ -41,7 +41,8 @@
     <EditPreviewSwitch bind:mode {onpopout} class="@[82rem]/editor:hidden" />
   </div>
   <div class="flex min-w-0 flex-col @[82rem]/editor:grid @[82rem]/editor:grid-cols-[minmax(0,43rem)_minmax(0,1fr)] @[82rem]/editor:items-start @[82rem]/editor:gap-6">
-    <div class={['min-w-0 flex-col gap-5', mode === 'edit' ? 'flex' : 'hidden @[82rem]/editor:flex']} data-edit-pane>
+    <!-- A form keeps its 688px column when it has the window to itself (S6); side by side the grid column is that wide already. -->
+    <div class={['min-w-0 max-w-form flex-col gap-5 @[82rem]/editor:max-w-none', mode === 'edit' ? 'flex' : 'hidden @[82rem]/editor:flex']} data-edit-pane>
       {@render editor()}
     </div>
     <div
