@@ -1,6 +1,5 @@
 <script lang="ts">
   import ArrowLeftIcon from '~icons/lucide/arrow-left';
-  import CalendarIcon from '~icons/lucide/calendar';
   import MailIcon from '~icons/lucide/mail';
   import PhoneIcon from '~icons/lucide/phone';
   import Trash2Icon from '~icons/lucide/trash-2';
@@ -11,28 +10,34 @@
     createListJobs,
     createListTeamMembers,
   } from '@screenhire/api-client/svelte-query';
+  import type { ApplicationSummary } from '@screenhire/api-client';
+  import { createSortedRowModel, createTable, rowSortingFeature, sortFn_alphanumeric, sortFn_basic, tableFeatures, type ColumnDef } from '@tanstack/svelte-table';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import EraseCandidateDialog from '#lib/components/erase-candidate-dialog.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
-  import MetaItem from '#lib/components/meta-item.svelte';
+  import ListItem from '#lib/components/list-item.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import NoteText from '#lib/components/note-text.svelte';
   import Notice from '#lib/components/notice.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
-  import RelativeTime from '#lib/components/relative-time.svelte';
+  import SortHeader from '#lib/components/sort-header.svelte';
+  import SortMenu from '#lib/components/sort-menu.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
+  import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { askedToBeRemovedAt, historyItems, inTimeOrder, progressOf } from '#lib/candidate-profile.js';
+  import * as Table from '#lib/components/ui/table/index.js';
+  import { askedToBeRemovedAt, historyItems, progressOf } from '#lib/candidate-profile.js';
   import { formatDate } from '#lib/dates.js';
+  import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import { can, seesAllJobs } from '#lib/permissions.js';
   import { describeError } from '#lib/query.js';
   import type { PageProps } from './$types';
@@ -48,14 +53,41 @@
   const team = createListTeamMembers();
   const jobs = createListJobs();
   const detail = $derived(candidate.data?.data);
-  const applications = $derived(detail ? inTimeOrder(detail.applications) : []);
+  // The job is named on History's lines only when the candidate has more than one application, so a lone application's job
+  // is not repeated on every line (W7).
+  const severalJobs = $derived((detail?.applications.length ?? 0) > 1);
   const currentUserId = $derived(page.data.user?.id);
   const jobName = (id: string | null | undefined) => jobs.data?.data.find((job) => job.id === id)?.title ?? 'another job';
-  const items = $derived(history.data ? historyItems(history.data.data, team.data?.data, currentUserId, jobName) : undefined);
+  const items = $derived(history.data ? historyItems(history.data.data, team.data?.data, currentUserId, jobName, severalJobs) : undefined);
   const asked = $derived(askedToBeRemovedAt(history.data?.data));
   // The API needs the permission and a person who sees every job, because erasing reaches every application.
   const mayErase = $derived(can(page.data.user, 'EraseCandidates') && seesAllJobs(page.data.user));
   const notFound = $derived(candidate.error instanceof ApiError && candidate.error.status === 404);
+
+  // The applications are a table (L1, L2): one row each, with the dates in their own columns. It opens oldest first, the
+  // order they were made in; a column header sorts it. A phone gets list items with a Sort chip.
+  const features = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: { basic: sortFn_basic, alphanumeric: sortFn_alphanumeric } });
+  const progress = (application: ApplicationSummary) => progressOf(application, history.data?.data);
+  // `any`: one list mixes columns of different value types.
+  const columns: ColumnDef<typeof features, ApplicationSummary, any>[] = [
+    { id: 'job', header: 'Job', accessorFn: (application) => application.jobTitle, sortFn: 'alphanumeric' },
+    { id: 'stage', header: 'Stage', accessorFn: (application) => progress(application).outcome, sortFn: 'alphanumeric' },
+    { id: 'applied', header: 'Applied', accessorFn: (application) => Date.parse(application.submittedAt), sortFn: 'basic' },
+    { id: 'reached', header: 'Got as far as', accessorFn: (application) => progress(application).reached ?? '', sortFn: 'alphanumeric' },
+    { id: 'ended', header: 'Ended', accessorFn: (application) => { const ended = progress(application).endedAt; return ended ? Date.parse(ended) : undefined; }, sortFn: 'basic', sortDescFirst: true, sortUndefined: 'last' },
+  ];
+  const sort = createTableSort('candidate-applications', { id: 'applied', desc: false }, ['job', 'stage', 'applied', 'reached', 'ended']);
+  const table = createTable({
+    ...tableSortOptions(() => sort),
+    features,
+    columns,
+    get data() {
+      return detail?.applications ?? [];
+    },
+    getRowId: (application) => application.id,
+  });
+  const sortedApplications = $derived(table.getRowModel().rows.map((row) => row.original));
+  const sidebar = Sidebar.useSidebar();
 
   let eraseOpen = $state(false);
   // The dialog opens once the More menu has closed, so focus can go back to the menu's button.
@@ -119,11 +151,6 @@
           </MoreMenu>
         {/if}
       {/snippet}
-      {#snippet meta()}
-        {#if applications.length > 0}
-          <MetaItem label="First applied" icon={CalendarIcon}><span>First applied <RelativeTime at={applications[0].submittedAt} class="inline text-foreground" /></span></MetaItem>
-        {/if}
-      {/snippet}
     </HeaderBand>
 
     <div class="@container flex w-full flex-col gap-5 px-4 py-5 md:px-6 md:py-6">
@@ -136,27 +163,49 @@
       {/if}
 
       <div class="grid items-start gap-5 @5xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <Panel title="Applications" count={applications.length}>
-          <ol aria-label="Applications, oldest first" class="flex flex-col divide-y divide-border-subtle">
-            {#each applications as application (application.id)}
-              {@const progress = progressOf(application, history.data?.data)}
-              <li class="flex min-w-0 flex-col gap-1.5 py-3 first:pt-0 last:pb-0">
-                <div class="flex min-w-0 items-center gap-3">
-                  <span class="flex min-w-0 flex-1"><TruncatedText text={application.jobTitle} href={`/applications/${application.id}`} underlined class="min-h-6 pointer-coarse:-my-3.5 pointer-coarse:py-3.5" /></span>
-                  <Badge variant="muted">{progress.outcome}</Badge>
-                </div>
-                <dl class="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-1 text-muted-foreground">
-                  <MetaItem label="Applied"><span>Applied <DateText at={application.submittedAt} /></span></MetaItem>
-                  {#if progress.reached}
-                    <MetaItem label="How far it got"><span>Got as far as {progress.reached}</span></MetaItem>
-                  {/if}
-                  {#if progress.endedAt}
-                    <MetaItem label="How it ended"><span>Ended <DateText at={progress.endedAt} /></span></MetaItem>
-                  {/if}
-                </dl>
-              </li>
-            {/each}
-          </ol>
+        <Panel title="Applications" count={detail.applications.length} flush>
+          {#if sidebar.isMobile}
+            <div class="flex justify-end border-b border-border-subtle px-4 py-2"><SortMenu {table} /></div>
+            <ul aria-label="Applications">
+              {#each sortedApplications as application (application.id)}
+                {@const how = progress(application)}
+                <ListItem href={`/applications/${application.id}`} title={application.jobTitle}>
+                  {#snippet meta()}<DateText at={application.submittedAt} />{/snippet}
+                  {#snippet facts()}
+                    <Badge variant="muted">{how.outcome}</Badge>
+                    {#if how.reached}<span class="text-muted-foreground">Got as far as {how.reached}</span>{/if}
+                  {/snippet}
+                </ListItem>
+              {/each}
+            </ul>
+          {:else}
+            <div class="overflow-x-auto">
+              <Table.Root aria-label="Applications">
+                <Table.Header>
+                  {#each table.getHeaderGroups() as group (group.id)}
+                    <Table.Row class="bg-muted hover:bg-muted">
+                      {#each group.headers as header (header.id)}<SortHeader {header} class="px-3 first:pl-4.5" />{/each}
+                    </Table.Row>
+                  {/each}
+                </Table.Header>
+                <Table.Body>
+                  {#each sortedApplications as application (application.id)}
+                    {@const how = progress(application)}
+                    <!-- The whole row opens the application (design system section 9). -->
+                    <Table.Row class="group relative h-12 hover:bg-muted">
+                      <Table.Cell class="max-w-64 pl-4.5">
+                        <span class="flex min-w-0"><TruncatedText text={application.jobTitle} href={`/applications/${application.id}`} class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline" /></span>
+                      </Table.Cell>
+                      <Table.Cell class="whitespace-nowrap">{how.outcome}</Table.Cell>
+                      <Table.Cell class="whitespace-nowrap text-muted-foreground"><span class="relative"><DateText at={application.submittedAt} /></span></Table.Cell>
+                      <Table.Cell class="max-w-48"><span class="flex min-w-0"><TruncatedText text={how.reached ?? ''} /></span></Table.Cell>
+                      <Table.Cell class="whitespace-nowrap text-muted-foreground"><span class="relative">{#if how.endedAt}<DateText at={how.endedAt} />{/if}</span></Table.Cell>
+                    </Table.Row>
+                  {/each}
+                </Table.Body>
+              </Table.Root>
+            </div>
+          {/if}
         </Panel>
 
         <Panel title="History" count={items?.length}>

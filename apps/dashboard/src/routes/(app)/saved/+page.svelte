@@ -45,8 +45,8 @@
 
   // Saved candidates (docs/architecture/talent-pool.md) on the list template: the people the team saved, with their
   // rating (the reviewer gate shows "After yours" until you give your scorecard), the note saying why, their tags, the job
-  // they were saved from, when, and when the team last emailed them. Message emails one from the Last contacted cell, and
-  // the note opens a sheet to edit it, with its History. From here the team invites someone to apply for another job or
+  // they were saved from, when, and when the team last emailed them. Message is in the row's menu, with the other actions
+  // that repeat down the list, and the note opens a sheet to edit it, with its History. From here the team invites someone to apply for another job or
   // adds them to one. No Verification column or filter: saved candidates never become a list picked by level (ADR-0004).
   // TalentPoolChanged, ApplicationEmailed and ScorecardSubmitted refetch it live.
   const queryClient = useQueryClient();
@@ -90,7 +90,7 @@
   const filtering = $derived(Boolean(search.trim()) || tagFilter.length > 0 || jobFilter.length > 0);
 
   // The table sorts (L2) and opens on people by name. Rating sorts by its number, highest first; people with no number
-  // ("Not rated yet", "After yours") stay last either way (as #lib/rating-column.ts, typed for this list). Last contacted
+  // (blank, "After yours") stay last either way (as #lib/rating-column.ts, typed for this list). Last contacted
   // puts the newest first, and people nobody has emailed last.
   const features = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: { basic: sortFn_basic, alphanumeric: sortFn_alphanumeric } });
   // `any`: one list mixes columns of different value types.
@@ -252,7 +252,7 @@
           <Empty.Description>
             {filtering
               ? 'Nobody in saved candidates matches these filters.'
-              : 'Nobody has been saved yet.'}
+              : 'Nobody has been saved yet. Open a candidate and choose Save candidate in Move to stage.'}
           </Empty.Description>
           {#if filtering}
             <Button variant="outline" size="lg" onclick={() => ((search = ''), (tagFilter = []), (jobFilter = []))}>Clear filters</Button>
@@ -265,7 +265,7 @@
             <!-- The row's menu is the phone's only way to invite, add or remove: the record page has none of them. -->
             <ListItem href={href(person)} title={person.candidateName}>
               {#snippet actions()}
-                {#if mayInvite || mayAdd || mayRemove}{@render personMenu(person, true)}{/if}
+                {#if mayInvite || mayAdd || mayRemove}{@render personMenu(person)}{/if}
               {/snippet}
               {#snippet facts()}
                 <Badge variant="muted">{person.jobTitle}</Badge>
@@ -329,7 +329,8 @@
                               {#if person.note}
                                 <span class="block min-w-0 truncate">{person.note}</span>
                               {:else}
-                                <span class="text-muted-foreground">Add a note</span>
+                                <!-- No note: the cell is blank (L1), and still the button that adds one. -->
+                                <span class="sr-only">Add a note</span>
                               {/if}
                               <!-- The visible text stays inside the button's name (WCAG 2.5.3); this says whose note it is. -->
                               <span class="sr-only">. Edit note for {person.candidateName}</span>
@@ -349,18 +350,14 @@
                   </Table.Cell>
                   <Table.Cell class="max-w-48"><span class="flex min-w-0"><TruncatedText text={person.jobTitle} /></span></Table.Cell>
                   <Table.Cell class="whitespace-nowrap text-muted-foreground"><span class="relative"><DateText at={person.keptAt} /></span></Table.Cell>
-                  <Table.Cell class="whitespace-nowrap">
-                    <span class="relative flex items-center gap-2">
+                  <!-- "Never" is a value that means something (L1), so it keeps its word, where an empty cell would not. -->
+                  <Table.Cell class="whitespace-nowrap text-muted-foreground">
+                    <span class="relative">
                       {#if person.lastContactedAt}
                         <DateText at={person.lastContactedAt} />
                       {:else}
-                        <span class="text-muted-foreground" aria-hidden="true">Never</span>
+                        <span aria-hidden="true">Never</span>
                         <span class="sr-only">Never contacted</span>
-                      {/if}
-                      {#if mayInvite}
-                        <Button variant="outline" size="sm" aria-label={`Message ${person.candidateName}`} onclick={() => open('message', [person])}>
-                          <MailIcon aria-hidden="true" />Message
-                        </Button>
                       {/if}
                     </span>
                   </Table.Cell>
@@ -377,7 +374,7 @@
   </div>
 </main>
 
-{#snippet personMenu(person: TalentPoolMember, phone = false)}
+{#snippet personMenu(person: TalentPoolMember)}
   <MoreMenu label={`Actions for ${person.candidateName}`} size="icon" quiet onclosed={onMenuClosed}>
     {#if mayInvite}
       <DropdownMenu.Item onSelect={() => (chosen = { person, action: 'invite' })}><SendIcon aria-hidden="true" />Invite to apply</DropdownMenu.Item>
@@ -385,8 +382,7 @@
     {#if mayAdd}
       <DropdownMenu.Item onSelect={() => (chosen = { person, action: 'add' })}><UserPlusIcon aria-hidden="true" />Add to a job</DropdownMenu.Item>
     {/if}
-    <!-- The table has Message beside Last contacted; a phone's list item has only its menu. -->
-    {#if phone && mayInvite}
+    {#if mayInvite}
       <DropdownMenu.Item onSelect={() => (chosen = { person, action: 'message' })}><MailIcon aria-hidden="true" />Message</DropdownMenu.Item>
     {/if}
     {#if mayEditNote}
@@ -408,7 +404,7 @@
 <ConfirmDialog
   bind:open={removeOpen}
   title={`Remove ${removing?.candidateName ?? ''} from saved candidates?`}
-  description="Their application stays as it is. You cannot save them again on it unless they still allow it."
+  description="Their application stays. You can save them again only if they still allow it."
   cancelLabel="Keep them"
   confirmLabel="Remove"
   failure="Could not remove them"
@@ -417,6 +413,6 @@
   {#snippet icon()}<BookmarkXIcon aria-hidden="true" />{/snippet}
   <label class="flex items-center gap-2 pointer-coarse:min-h-11">
     <input type="checkbox" bind:checked={candidateAsked} class="size-4 shrink-0 accent-primary" />
-    They asked to be removed: stop keeping their details
+    They asked to be removed, so stop keeping their details
   </label>
 </ConfirmDialog>

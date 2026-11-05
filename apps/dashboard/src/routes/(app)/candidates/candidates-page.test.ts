@@ -54,7 +54,7 @@ describe('candidates page', () => {
 
     expect(within(header).getByRole('searchbox', { name: 'Search candidates' })).toBeInTheDocument();
     const filters = panel.querySelector<HTMLElement>('[data-filters]')!;
-    expect(within(filters).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Job: All', 'Stage: All', 'Verification: all', 'Tag: all']);
+    expect(within(filters).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Job: All', 'Stage: All', 'Verification: All', 'Tag: All']);
 
     await fireEvent.input(within(header).getByRole('searchbox', { name: 'Search candidates' }), { target: { value: 'jordan' } });
 
@@ -67,7 +67,7 @@ describe('candidates page', () => {
     const panel = await screen.findByRole('region', { name: 'Applications' });
     await screen.findByRole('link', { name: 'Casey Morgan' });
 
-    const trigger = within(panel.querySelector<HTMLElement>('[data-filters]')!).getByRole('button', { name: /^Tag: all/ });
+    const trigger = within(panel.querySelector<HTMLElement>('[data-filters]')!).getByRole('button', { name: /^Tag: All/ });
     await fireEvent.pointerDown(trigger, { button: 0, pointerType: 'mouse' });
     const menu = await screen.findByRole('menu');
     expect(within(menu).getAllByRole('menuitemradio').map((item) => item.textContent?.trim())).toEqual(['Any tag', 'Referral']);

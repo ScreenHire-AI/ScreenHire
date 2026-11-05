@@ -53,7 +53,8 @@ function renderPage(routes: Parameters<typeof apiStub>[0] = {}) {
   return fetch;
 }
 
-const rows = (panel: HTMLElement) => within(within(panel).getByRole('list', { name: 'Open tasks' })).getAllByRole('listitem');
+// The body's rows, without the header row.
+const rows = (panel: HTMLElement) => within(within(panel).getByRole('table', { name: 'Open tasks' })).getAllByRole('row').slice(1);
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -74,17 +75,23 @@ describe('my tasks page', () => {
     expect(within(own[0]!).getByRole('link', { name: 'Review this application.' })).toHaveAttribute('href', '/applications/01a157d4-0000-7000-8000-000000000410');
     expect(own[0]).toHaveTextContent('Jordan Lee');
     expect(own[0]).toHaveTextContent('Review');
-    await waitFor(() => expect(own[0]).toHaveTextContent('For you'));
+    // Mine already says whose they are, so there is no For column (W7).
+    expect(within(panel).queryByRole('columnheader', { name: 'For' })).not.toBeInTheDocument();
     expect(within(own[0]!).queryByRole('checkbox')).not.toBeInTheDocument();
 
     await fireEvent.click(within(whose).getByRole('button', { name: /^For the team/ }));
     const team = rows(panel);
     expect(team).toHaveLength(1);
     expect(team[0]).toHaveTextContent('To-do');
-    expect(team[0]).toHaveTextContent('For the team');
+    expect(within(panel).queryByRole('columnheader', { name: 'For' })).not.toBeInTheDocument();
 
     await fireEvent.click(within(whose).getByRole('button', { name: /^Everyone's/ }));
     expect(rows(panel)).toHaveLength(3);
+    // Everyone's is the one list where whose task it is varies, so it has the column.
+    expect(within(panel).getByRole('columnheader', { name: /^For/ })).toBeInTheDocument();
+    await waitFor(() => expect(rows(panel)[1]).toHaveTextContent('You'));
+    expect(rows(panel)[0]).toHaveTextContent('The team');
+    expect(rows(panel)[2]).toHaveTextContent('Robin Ashby');
   });
 
   it('links a requested scorecard to the Scorecards tab with its sheet open, and every other task to the candidate', async () => {
@@ -120,7 +127,10 @@ describe('my tasks page', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     await fireEvent.click(screen.getByRole('button', { name: /^Everyone's/ }));
     const panel = await screen.findByRole('region', { name: 'Tasks' });
-    expect(await within(panel).findByText(/by Robin Ashby/)).toBeInTheDocument();
+    // Who finished it and when are columns of their own, with the date and not a time ago (T5).
+    expect(await within(panel).findByText('Robin Ashby')).toBeInTheDocument();
+    expect(within(panel).getByRole('columnheader', { name: /^Done by/ })).toBeInTheDocument();
+    expect(within(panel).getByText('Oct 20, 2026', { selector: 'time[datetime="2026-10-20T11:00:00Z"]' })).toBeInTheDocument();
     expect(within(panel).queryByRole('checkbox')).not.toBeInTheDocument();
 
     await fireEvent.click(screen.getByRole('button', { name: /^Mine/ }));
@@ -139,5 +149,20 @@ describe('my tasks page', () => {
     for (const scope of ['Mine', 'Team', 'Everyone']) {
       expect(fetch.mock.calls.some(([called]) => String(called) === `/v1/tasks?status=Completed&scope=${scope}`)).toBe(true);
     }
+  });
+
+  it('sorts by a column and says which way, opening on the task that has waited longest (L2)', async () => {
+    renderPage();
+    const panel = await screen.findByRole('region', { name: 'Tasks' });
+    await fireEvent.click(within(screen.getByRole('group', { name: 'Whose' })).getByRole('button', { name: /^Everyone's/ }));
+
+    expect(within(panel).getByRole('columnheader', { name: /^Created/ })).toHaveAttribute('aria-sort', 'ascending');
+    expect(rows(panel)[0]).toHaveTextContent('Call the references.');
+
+    await fireEvent.click(within(panel).getByRole('button', { name: /^Candidate/ }));
+    expect(within(panel).getByRole('columnheader', { name: /^Candidate/ })).toHaveAttribute('aria-sort', 'ascending');
+    expect(rows(panel)[0]).toHaveTextContent('Alex Reed');
+    await fireEvent.click(within(panel).getByRole('button', { name: /^Candidate/ }));
+    expect(rows(panel)[0]).toHaveTextContent('Jordan Lee');
   });
 });
