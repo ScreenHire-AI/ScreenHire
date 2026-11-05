@@ -80,6 +80,9 @@ describe('Calendar account sheet', () => {
 
     expect(await screen.findByText(/no longer accepts ScreenHire/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Connect again' })).toBeInTheDocument();
+    // The status follows the problem: a refused calendar never reads Connected.
+    expect(screen.getByText('Needs connecting again')).toBeInTheDocument();
+    expect(screen.queryByText('Connected')).toBeNull();
   });
 
   it('shows why the last round trip failed', async () => {
