@@ -139,11 +139,15 @@
   footer={limit !== undefined && allHref && visible && visible.length > limit ? allLink : undefined}
 >
   <div class="flex flex-col gap-4">
+    {#if editable}
+      <NoteForm {applicationId} members={mentionable ?? members ?? []} {currentUserId} ondone={refresh} />
+    {/if}
     {#if limit === undefined}
-      <!-- One line that scrolls inside the panel rather than wrapping (F5). -->
+      <!-- The note box opens the panel and the filters narrow the list under it. One line that scrolls inside the panel rather than wrapping (F5). -->
       <div class="-m-1 overflow-x-auto p-1">
         <div role="group" aria-label="Show" class="flex w-max gap-1">
-          <Toggle size="lg" bind:pressed={() => filter === 'all', () => (filter = 'all')}>All <Badge variant="count">{counts.all}</Badge></Toggle>
+          <!-- All has no count: the Activity tab already shows it (W7). -->
+          <Toggle size="lg" bind:pressed={() => filter === 'all', () => (filter = 'all')}>All</Toggle>
           {#each activityKinds as kind (kind.value)}
             <Toggle size="lg" bind:pressed={() => filter === kind.value, () => (filter = filter === kind.value ? 'all' : kind.value)}>
               {kind.label} <Badge variant="count">{counts[kind.value]}</Badge>
@@ -151,9 +155,6 @@
           {/each}
         </div>
       </div>
-    {/if}
-    {#if editable}
-      <NoteForm {applicationId} members={mentionable ?? members ?? []} {currentUserId} ondone={refresh} />
     {/if}
     {#if error}
       <QueryError message={describeError(error, 'Could not load the activity')} {onretry} inset />

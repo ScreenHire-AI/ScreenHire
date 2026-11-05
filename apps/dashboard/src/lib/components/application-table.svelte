@@ -365,7 +365,8 @@
        stays while a filter leaves nothing to list, so the filter can still change. The filters scroll rather than wrap
        (F5), and the Sort chip stays in view at the end. -->
   <div class="flex items-center gap-2 border-b border-border-subtle px-4 py-2">
-    <div class="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">{@render filters?.()}</div>
+    <!-- The filters keep their size and the row scrolls: shrunk to fit, a filter's label is cut to one letter (F5). -->
+    <div class="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto *:shrink-0">{@render filters?.()}</div>
     {@render filterAction?.()}
     <SortMenu {table} class="shrink-0" />
   </div>

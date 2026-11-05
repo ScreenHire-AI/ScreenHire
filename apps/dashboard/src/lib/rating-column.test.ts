@@ -30,6 +30,15 @@ describe('rating column', () => {
     expect(ratingCells()).toEqual(['3.7 (2) from 2 scorecards', '4.1 (3) from 3 scorecards', 'Not rated yet']);
   });
 
+  it('leaves the cell of an unrated candidate blank, its words for screen readers only (L1)', () => {
+    const rows = [{ ...applications[0]!, rating: { state: 'NotRated' as const, scorecards: 0 } }];
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications: rows, extraColumns: [ratingColumn] } } });
+
+    const words = screen.getByText('Not rated yet');
+    expect(words).toHaveClass('sr-only');
+    expect(words.closest('td')!.textContent).toBe('Not rated yet');
+  });
+
   it('never shows a number to a reviewer with a scorecard to give', () => {
     const rows = [{ ...applications[0]!, rating: { state: 'AfterYourScorecard' as const, scorecards: 0 } }];
     render(WithTooltips, { props: { component: ApplicationTable, props: { applications: rows, extraColumns: [ratingColumn] } } });

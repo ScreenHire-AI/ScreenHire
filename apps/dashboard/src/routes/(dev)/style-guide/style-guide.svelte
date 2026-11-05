@@ -570,7 +570,7 @@
 
 <ConfirmDialog
   bind:open={typedConfirmOpen}
-  title="Erase this candidate?"
+  title="Erase Jordan Ellis?"
   description="This erases Jordan Ellis and all of their applications, files, answers, notes and verification data, for good."
   confirmLabel="Erase candidate"
   failure="Could not erase the candidate"
@@ -1357,7 +1357,7 @@
               <dd><Rating rating={{ state: 'Rated', value: 3.7, scorecards: 2 }} /></dd>
             </div>
             <div class="flex flex-wrap items-center gap-3">
-              <dt class="text-muted-foreground">None yet</dt>
+              <dt class="text-muted-foreground">None yet, blank</dt>
               <dd><Rating rating={{ state: 'NotRated', scorecards: 0 }} /></dd>
             </div>
             <div class="flex flex-wrap items-center gap-3">

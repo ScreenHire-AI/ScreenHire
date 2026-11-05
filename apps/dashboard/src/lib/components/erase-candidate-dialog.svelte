@@ -35,7 +35,7 @@
 
 <ConfirmDialog
   bind:open
-  title="Erase this candidate?"
+  title={`Erase ${candidateName}?`}
   description={`This erases ${candidateName} and all of their applications, files, answers, notes and verification data, for good. ScreenHire keeps only a line in the team log that someone was erased, with no details.`}
   confirmLabel="Erase candidate"
   failure="Could not erase the candidate"
