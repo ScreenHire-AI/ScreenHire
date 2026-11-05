@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Data requests and record retention"
-description: "Candidates' requests for a copy of their data or for its erasure, the rows and settings behind them, the shared erasure service, and the retention rule that deletes ended applications; the data model, erasure and the candidate's side of the API are built; the careers pages, the team page, the copy export and the schedule follow."
+description: "Candidates' requests for a copy of their data or for its erasure, the rows and settings behind them, the shared erasure service, and the retention rule that deletes ended applications; the data model, erasure, the candidate's side of the API, the team's routes, the copy export and the retention schedule are built; the careers pages and the dashboard page follow."
 tags: [privacy, erasure, retention, candidates]
 sources:
   - resource: src/ScreenHire.Domain/Privacy/DataRequest.cs
@@ -18,6 +18,13 @@ sources:
   - resource: src/ScreenHire.Application/Privacy/DataRequestLinks.cs
   - resource: src/ScreenHire.Application/Privacy/DataRequestEvents.cs
   - resource: src/ScreenHire.Application/Privacy/SendDataRequestLink.cs
+  - resource: src/ScreenHire.Application/Privacy/BuildDataCopy.cs
+  - resource: src/ScreenHire.Application/Privacy/CandidateDataExport.cs
+  - resource: src/ScreenHire.Application/Privacy/PurgeEndedApplications.cs
+  - resource: src/ScreenHire.Application/Privacy/NotifyDataRequestReceived.cs
+  - resource: apps/api/Endpoints/DataRequestEndpoints.cs
+  - resource: apps/api/Endpoints/RetentionEndpoints.cs
+  - resource: apps/api/Contracts/DataRequestContracts.cs
 ---
 # Data requests and record retention
 
@@ -101,7 +108,81 @@ The routes share the `data-requests` rate limit policy: a fixed window per visit
 `DataRequestChanged` (request id) are `ITenantEvent`s with Zod schemas in `packages/realtime`; the dashboard does not map
 either yet.
 
+## The team's side
+
+`/v1/data-requests` (people only, no API keys, not in the MCP server). Every route needs `Permission.EraseCandidates` and a
+person who sees every job; a member on Only jobs they're on gets a 404, as on the erase route. Another organization's
+request, or an unknown id, is a 404.
+
+| Route | What it does |
+|---|---|
+| `GET ""` (`ListDataRequests`) | Every open request and those answered in the last 90 days, earliest due date first, with `openCount`. Each item has the kind, status, `receivedAt`, `dueAt`, `overdue`, `resolvedAt`, `copySentAt`, `declineReason` and the candidate (`id`, `name`, `email`) while they exist; `candidate` is null after an erasure. |
+| `POST {id}/send-copy` (`SendDataRequestCopy`) | An open Copy request only (else 409). Publishes `BuildDataCopy` and answers 202. The request stays open until the worker has built the file. |
+| `POST {id}/erase` (`EraseDataRequest`) | An open Erasure request only (else 409). Body `{ confirmation }`, the candidate's full name, ignoring case and spaces (else a validation problem). Same explicit transaction, row lock and `CandidateErasure.EraseCandidateAsync` as the erase route, with the request's id on the tombstone. The service completes this request and the candidate's other open ones. |
+| `POST {id}/decline` (`DeclineDataRequest`) | An open request only (else 409). Body `{ reason }`, 1 to 500 characters once trimmed. Sets Declined, adds a `DataRequestDeclined` entry to the team log (the actor and the request id, never the reason), publishes `SendDataRequestDeclined` and `DataRequestChanged`. |
+
+Mutations require the antiforgery token. The routes are in the `RolePermissionsTests` table. The team log's entries carry
+`dataRequestId` and, for `RetentionApplied`, `itemCount`.
+
+### The copy
+
+`BuildDataCopy(OrganizationId, RequestId)` is an `ITenantMessage` with an idempotency key (`copy:{requestId}`) and a
+`[Deduplicated]` handler. The handler returns quietly when the request is gone, not open, not a Copy, or has no candidate.
+Otherwise it loads the candidate's data in a handful of queries (`DataExportLoader`), builds one JSON document with
+`CandidateDataExport` (camel case, indented), writes it to the blob `{organizationId:N}/{requestId:N}.json` in the
+`data-exports` container (the same name every time, so a redelivery replaces the file), calls `DataRequest.CopySent` with an
+expiry of `ExportLifetime`, adds a `DataRequestCopySent` entry to the team log (no actor) and emails the candidate the
+download link. The email is skipped, with a log line, when the address is flagged or the host has no email sender or careers
+address; the file is kept. Only a first `CopySent` sends the email.
+
+The file holds:
+
+- the candidate's name, address, phone and the date they first applied;
+- for each application: the job title, when it was submitted, its current stage, the privacy notice version, whether the
+  candidate asked to be kept for future roles, their answers (each with its question's label from the job's form, a choice
+  with its option's label, or the question's id when the form no longer has it), the names of the files they uploaded, the
+  emails the organization sent, the replies received with their attachments' names, and the team's notes;
+- the note on the candidate's saved entry, if there is one.
+
+It leaves out verification output and scorecards (ADR-0004; a legal review item), tasks, the timeline and every internal id.
+A note's author is shown as "Team member" and an `@` mention of a colleague as "@Team member". Files are listed by name, never
+included.
+
+`PurgeExpiredDataExports` runs daily at 03:47 UTC and fans out `PurgeOrganizationDataExports(OrganizationId, Now)`, which
+deletes each expired copy's blob through `IDataExportStore.DeleteAsync`, clears the request's export columns and raises
+`DataRequestChanged`. The candidate's download route already refuses a copy past `ExportExpiresAt`, so the sweep is cleanup.
+
+### Messages to the candidate and the team
+
+`SendDataRequestDeclined(OrganizationId, RequestId)` carries ids only. Its handler reads the reason from the request and mails it
+in ScreenHire's words around the team's, with no statement about the law. It skips quietly when the candidate is gone, the
+request is not Declined, the address is flagged or there is no email sender. A stable key (`declined:{requestId}`) keeps it to
+one email.
+
+`DataRequestReceived` also has a worker handler. It emails each member who holds Erase candidates and sees every job: "A candidate
+asked {organization} for a copy of their data" or "to erase their data", with a link to Settings > Data requests built from the
+dashboard host (`ScreenHire:Domains:AppHost`). It carries no name or address. Delivery is at least once, so a crash between a
+send and the commit can repeat a notification.
+
+## Retention
+
+`GET /v1/organization/data-retention` (`GetOrganizationRetention`) returns `months` (null is off), `lastUpdated` (the usual
+shape, "by ScreenHire" while it is the default) and `lastRun` (`at`, `applicationsRemoved`), read from the newest
+`RetentionApplied` entry of the team log. `PUT` (`UpdateOrganizationRetention`, antiforgery) takes `{ months }` from 1 to 120 or
+null, upserts the row and records the change in the settings history; two first saves at once end with the last one applied.
+`GET .../preview?months=N` (`PreviewOrganizationRetention`) returns `{ applications, candidates }` from `RetentionSelection`
+with the same cutoff the run would use. `GET .../history` (`GetOrganizationRetentionHistory`) pages the settings history. All
+four need Erase candidates and a person who sees every job.
+
+`PurgeEndedApplications` runs daily at 04:12 UTC and fans out `PurgeOrganizationEndedApplications(OrganizationId, Now)`. Each
+handler reads its own setting and does nothing when it is off. Otherwise it runs `RetentionSelection.FindAsync` (the worker's
+tenant has no user, so it sees every job), takes up to `BatchSize` application ids, and calls
+`CandidateErasure.EraseApplicationsAsync` inside the handler's transaction. It returns the erasure's messages (files, calendar
+events, duplicate checks and one `CandidateErased` event per candidate left with nothing) and, while more are waiting, itself
+again. It adds a `RetentionApplied` entry with the count when the count is above zero, and nothing about the people. A rerun finds
+nothing. When a run takes several batches, "Last run" shows the latest batch's count. Applications removed from a candidate who
+keeps another application raise no event of their own; the list refetches when the dashboard next focuses.
+
 ## Not built yet
 
-The careers pages, the Data requests page and its admin routes, the copy export, and the retention schedule and its
-settings routes.
+The careers pages and the dashboard's Data requests page.

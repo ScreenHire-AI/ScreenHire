@@ -21,6 +21,9 @@ public sealed partial class ErasedApplicationHandlersTests
         "src/ScreenHire.Application/Automations/ExecuteAutomationActionHandler.cs",
         "src/ScreenHire.Application/Automations/AutomationFailures.cs",
         "src/ScreenHire.Application/Privacy/SendDataRequestLink.cs",
+        "src/ScreenHire.Application/Privacy/BuildDataCopy.cs",
+        "src/ScreenHire.Application/Privacy/PurgeEndedApplications.cs",
+        "src/ScreenHire.Application/Privacy/NotifyDataRequestReceived.cs",
     ];
 
     [Fact]

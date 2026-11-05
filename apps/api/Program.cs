@@ -135,6 +135,8 @@ app.MapJobEndpoints();
 app.MapTemplateEndpoints();
 app.MapApplicationEndpoints();
 app.MapCandidateEndpoints();
+app.MapDataRequestEndpoints();
+app.MapRetentionEndpoints();
 app.MapVerificationEndpoints();
 app.MapDistributionEndpoints();
 app.MapPublicDistributionEndpoints();

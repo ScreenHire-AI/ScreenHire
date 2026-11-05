@@ -51,6 +51,8 @@ import type {
   CreatedApiKey,
   CurrentUser,
   CustomRoleDetail,
+  DataRequestList,
+  DeclineDataRequestRequest,
   DismissVerificationAssessmentRequest,
   EditApplicationNoteRequest,
   EditSavedNoteRequest,
@@ -60,6 +62,7 @@ import type {
   EmailTemplateList,
   EmailsQueued,
   EraseCandidateRequest,
+  EraseDataRequestRequest,
   ExplainVerificationReasonRequest,
   GetApiKeysHistoryParams,
   GetEmailTemplateHistoryParams,
@@ -69,6 +72,7 @@ import type {
   GetJobHistoryParams,
   GetOrganizationBrandingHistoryParams,
   GetOrganizationHistoryParams,
+  GetOrganizationRetentionHistoryParams,
   GetOrganizationSendingDomainHistoryParams,
   GetOrganizationVerificationSettingsHistoryParams,
   GetPublicInterviewParams,
@@ -118,9 +122,11 @@ import type {
   OnboardingRequest,
   OrganizationBranding,
   OrganizationProfile,
+  OrganizationRetention,
   OrganizationSendingDomain,
   OrganizationVerificationSettings,
   PendingInvitation,
+  PreviewOrganizationRetentionParams,
   ProblemDetails,
   PublicApplicationDraft,
   PublicApplicationDraftReceipt,
@@ -147,6 +153,7 @@ import type {
   RemoveApplicationTagParams,
   RemoveFromTalentPoolRequest,
   RequestScorecardRequest,
+  RetentionPreview,
   RoleCatalogue,
   SandboxBoardListing,
   SavedViewSummary,
@@ -188,6 +195,7 @@ import type {
   UpdateJobWorkflowRequest,
   UpdateNotificationSettingsRequest,
   UpdateOrganizationRequest,
+  UpdateRetentionRequest,
   UpdateRoleRequest,
   UpdateScorecardTemplateRequest,
   UpdateSlackAccountRequest,
@@ -5056,6 +5064,504 @@ return apiFetch<eraseCandidateResponse>(getEraseCandidateUrl(candidateId),
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(eraseCandidateRequest)
+  }
+);}
+
+
+
+export type listDataRequestsResponse200 = {
+  data: DataRequestList
+  status: 200
+}
+
+export type listDataRequestsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listDataRequestsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listDataRequestsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listDataRequestsResponseSuccess = (listDataRequestsResponse200) & {
+  headers: Headers;
+};
+export type listDataRequestsResponseError = (listDataRequestsResponse401 | listDataRequestsResponse403 | listDataRequestsResponse404) & {
+  headers: Headers;
+};
+
+export type listDataRequestsResponse = (listDataRequestsResponseSuccess | listDataRequestsResponseError)
+
+export const getListDataRequestsUrl = () => {
+
+
+
+
+  return `/v1/data-requests`
+}
+
+export const listDataRequests = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listDataRequestsResponse> => {
+
+  return apiFetch<listDataRequestsResponse>(getListDataRequestsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type sendDataRequestCopyResponse202 = {
+  data: void
+  status: 202
+}
+
+export type sendDataRequestCopyResponse401 = {
+  data: void
+  status: 401
+}
+
+export type sendDataRequestCopyResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type sendDataRequestCopyResponse404 = {
+  data: void
+  status: 404
+}
+
+export type sendDataRequestCopyResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type sendDataRequestCopyResponseSuccess = (sendDataRequestCopyResponse202) & {
+  headers: Headers;
+};
+export type sendDataRequestCopyResponseError = (sendDataRequestCopyResponse401 | sendDataRequestCopyResponse403 | sendDataRequestCopyResponse404 | sendDataRequestCopyResponse409) & {
+  headers: Headers;
+};
+
+export type sendDataRequestCopyResponse = (sendDataRequestCopyResponseSuccess | sendDataRequestCopyResponseError)
+
+export const getSendDataRequestCopyUrl = (id: string,) => {
+
+
+
+
+  return `/v1/data-requests/${id}/send-copy`
+}
+
+export const sendDataRequestCopy = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<sendDataRequestCopyResponse> => {
+
+  return apiFetch<sendDataRequestCopyResponse>(getSendDataRequestCopyUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type eraseDataRequestResponse204 = {
+  data: void
+  status: 204
+}
+
+export type eraseDataRequestResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type eraseDataRequestResponse401 = {
+  data: void
+  status: 401
+}
+
+export type eraseDataRequestResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type eraseDataRequestResponse404 = {
+  data: void
+  status: 404
+}
+
+export type eraseDataRequestResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type eraseDataRequestResponseSuccess = (eraseDataRequestResponse204) & {
+  headers: Headers;
+};
+export type eraseDataRequestResponseError = (eraseDataRequestResponse400 | eraseDataRequestResponse401 | eraseDataRequestResponse403 | eraseDataRequestResponse404 | eraseDataRequestResponse409) & {
+  headers: Headers;
+};
+
+export type eraseDataRequestResponse = (eraseDataRequestResponseSuccess | eraseDataRequestResponseError)
+
+export const getEraseDataRequestUrl = (id: string,) => {
+
+
+
+
+  return `/v1/data-requests/${id}/erase`
+}
+
+export const eraseDataRequest = async (id: string,
+    eraseDataRequestRequest: EraseDataRequestRequest, options?: Parameters<typeof apiFetch>[1]): Promise<eraseDataRequestResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<eraseDataRequestResponse>(getEraseDataRequestUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(eraseDataRequestRequest)
+  }
+);}
+
+
+
+export type declineDataRequestResponse204 = {
+  data: void
+  status: 204
+}
+
+export type declineDataRequestResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type declineDataRequestResponse401 = {
+  data: void
+  status: 401
+}
+
+export type declineDataRequestResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type declineDataRequestResponse404 = {
+  data: void
+  status: 404
+}
+
+export type declineDataRequestResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type declineDataRequestResponseSuccess = (declineDataRequestResponse204) & {
+  headers: Headers;
+};
+export type declineDataRequestResponseError = (declineDataRequestResponse400 | declineDataRequestResponse401 | declineDataRequestResponse403 | declineDataRequestResponse404 | declineDataRequestResponse409) & {
+  headers: Headers;
+};
+
+export type declineDataRequestResponse = (declineDataRequestResponseSuccess | declineDataRequestResponseError)
+
+export const getDeclineDataRequestUrl = (id: string,) => {
+
+
+
+
+  return `/v1/data-requests/${id}/decline`
+}
+
+export const declineDataRequest = async (id: string,
+    declineDataRequestRequest: DeclineDataRequestRequest, options?: Parameters<typeof apiFetch>[1]): Promise<declineDataRequestResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<declineDataRequestResponse>(getDeclineDataRequestUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(declineDataRequestRequest)
+  }
+);}
+
+
+
+export type getOrganizationRetentionResponse200 = {
+  data: OrganizationRetention
+  status: 200
+}
+
+export type getOrganizationRetentionResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationRetentionResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getOrganizationRetentionResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getOrganizationRetentionResponseSuccess = (getOrganizationRetentionResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationRetentionResponseError = (getOrganizationRetentionResponse401 | getOrganizationRetentionResponse403 | getOrganizationRetentionResponse404) & {
+  headers: Headers;
+};
+
+export type getOrganizationRetentionResponse = (getOrganizationRetentionResponseSuccess | getOrganizationRetentionResponseError)
+
+export const getGetOrganizationRetentionUrl = () => {
+
+
+
+
+  return `/v1/organization/data-retention`
+}
+
+export const getOrganizationRetention = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationRetentionResponse> => {
+
+  return apiFetch<getOrganizationRetentionResponse>(getGetOrganizationRetentionUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type updateOrganizationRetentionResponse200 = {
+  data: OrganizationRetention
+  status: 200
+}
+
+export type updateOrganizationRetentionResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateOrganizationRetentionResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateOrganizationRetentionResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateOrganizationRetentionResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateOrganizationRetentionResponseSuccess = (updateOrganizationRetentionResponse200) & {
+  headers: Headers;
+};
+export type updateOrganizationRetentionResponseError = (updateOrganizationRetentionResponse400 | updateOrganizationRetentionResponse401 | updateOrganizationRetentionResponse403 | updateOrganizationRetentionResponse404) & {
+  headers: Headers;
+};
+
+export type updateOrganizationRetentionResponse = (updateOrganizationRetentionResponseSuccess | updateOrganizationRetentionResponseError)
+
+export const getUpdateOrganizationRetentionUrl = () => {
+
+
+
+
+  return `/v1/organization/data-retention`
+}
+
+export const updateOrganizationRetention = async (updateRetentionRequest: UpdateRetentionRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateOrganizationRetentionResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateOrganizationRetentionResponse>(getUpdateOrganizationRetentionUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateRetentionRequest)
+  }
+);}
+
+
+
+export type getOrganizationRetentionHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getOrganizationRetentionHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getOrganizationRetentionHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationRetentionHistoryResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getOrganizationRetentionHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getOrganizationRetentionHistoryResponseSuccess = (getOrganizationRetentionHistoryResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationRetentionHistoryResponseError = (getOrganizationRetentionHistoryResponse400 | getOrganizationRetentionHistoryResponse401 | getOrganizationRetentionHistoryResponse403 | getOrganizationRetentionHistoryResponse404) & {
+  headers: Headers;
+};
+
+export type getOrganizationRetentionHistoryResponse = (getOrganizationRetentionHistoryResponseSuccess | getOrganizationRetentionHistoryResponseError)
+
+export const getGetOrganizationRetentionHistoryUrl = (params?: GetOrganizationRetentionHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/data-retention/history?${stringifiedParams}` : `/v1/organization/data-retention/history`
+}
+
+export const getOrganizationRetentionHistory = async (params?: GetOrganizationRetentionHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationRetentionHistoryResponse> => {
+
+  return apiFetch<getOrganizationRetentionHistoryResponse>(getGetOrganizationRetentionHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type previewOrganizationRetentionResponse200 = {
+  data: RetentionPreview
+  status: 200
+}
+
+export type previewOrganizationRetentionResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type previewOrganizationRetentionResponse401 = {
+  data: void
+  status: 401
+}
+
+export type previewOrganizationRetentionResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type previewOrganizationRetentionResponse404 = {
+  data: void
+  status: 404
+}
+
+export type previewOrganizationRetentionResponseSuccess = (previewOrganizationRetentionResponse200) & {
+  headers: Headers;
+};
+export type previewOrganizationRetentionResponseError = (previewOrganizationRetentionResponse400 | previewOrganizationRetentionResponse401 | previewOrganizationRetentionResponse403 | previewOrganizationRetentionResponse404) & {
+  headers: Headers;
+};
+
+export type previewOrganizationRetentionResponse = (previewOrganizationRetentionResponseSuccess | previewOrganizationRetentionResponseError)
+
+export const getPreviewOrganizationRetentionUrl = (params?: PreviewOrganizationRetentionParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/data-retention/preview?${stringifiedParams}` : `/v1/organization/data-retention/preview`
+}
+
+export const previewOrganizationRetention = async (params?: PreviewOrganizationRetentionParams, options?: Parameters<typeof apiFetch>[1]): Promise<previewOrganizationRetentionResponse> => {
+
+  return apiFetch<previewOrganizationRetentionResponse>(getPreviewOrganizationRetentionUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
   }
 );}
 

@@ -290,6 +290,10 @@ public static class ScreenHireMessaging
         opts.Schedules.ScheduleRecurring<PurgeExpiredBrandImageUploads>("27 3 * * *");
         // Records that Slack messages went, and the sandbox's messages, past their retention, daily (docs/architecture/slack.md).
         opts.Schedules.ScheduleRecurring<PurgeExpiredSlackMessages>("57 3 * * *");
+        // Copies of candidates' data past their download window, daily (docs/architecture/data-requests.md).
+        opts.Schedules.ScheduleRecurring<PurgeExpiredDataExports>("47 3 * * *");
+        // Ended applications past each organization's retention period, daily; off for an organization until it sets a period.
+        opts.Schedules.ScheduleRecurring<PurgeEndedApplications>("12 4 * * *");
         // Job distribution (docs/architecture/job-distribution.md): the reconciliation sweep, and the Indexing API queue.
         opts.Schedules.ScheduleRecurring<ReconcileJobPostings>("*/5 * * * *");
         opts.Schedules.ScheduleRecurring<DispatchIndexingNotifications>("* * * * *");

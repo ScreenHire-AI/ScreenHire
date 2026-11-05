@@ -18,6 +18,8 @@ internal static class DataRequestSetup
     {
         services.AddSingleton<IValidator<PublicDataRequestLinkRequest>, PublicDataRequestLinkRequestValidator>();
         services.AddSingleton<IValidator<PublicDataRequestChoice>, PublicDataRequestChoiceValidator>();
+        services.AddSingleton<IValidator<DeclineDataRequestRequest>, DeclineDataRequestRequestValidator>();
+        services.AddSingleton<IValidator<UpdateRetentionRequest>, UpdateRetentionRequestValidator>();
         services.TryAddSingleton<IDataExportStore, DataExportStore>();
 
         // Per visitor address, like the apply flow: the careers server forwards it in X-Forwarded-For, which ForwardedHeaders
