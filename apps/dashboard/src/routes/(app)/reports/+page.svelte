@@ -363,7 +363,20 @@
             />
           </div>
 
-          <div class="grid items-start gap-5 @5xl:grid-cols-2">
+          <ChartPanel
+            title="Open jobs"
+            tableId="reports-open-jobs"
+            columns={openJobColumns}
+            rows={data.openJobs}
+            rowKey={(job) => job.jobId}
+            defaultSort={{ id: 'applications', desc: true }}
+            {busy}
+          >
+            {#snippet empty()}{@render nothing('No open jobs', false)}{/snippet}
+          </ChartPanel>
+
+          <!-- Side by side where each still reads well, so neither stretches across a wide monitor. -->
+          <div class="grid gap-5 @7xl:grid-cols-2">
             <ChartPanel
               title="Applications and hires by week"
               basis="Applications that arrived and hires made in each week of these dates."
@@ -372,7 +385,6 @@
               rows={data.weekly}
               rowKey={(week) => week.weekStart}
               {busy}
-              class="@5xl:col-span-2"
             >
               {#snippet chart()}<WeekChart label="Applications and hires by week" weeks={weekPoints} />{/snippet}
             </ChartPanel>
@@ -385,12 +397,13 @@
               rows={data.funnel}
               rowKey={(stage) => stage.kind}
               {busy}
-              class="@5xl:col-span-2"
             >
               {#snippet chart()}<BarChart label="Hiring funnel" series={[{ label: 'Applications', tone: 'chart-1' }]} rows={funnelRows} />{/snippet}
               {#snippet empty()}{@render nothing('No applications in these dates', true)}{/snippet}
             </ChartPanel>
+          </div>
 
+          <div class="grid items-start gap-5 @5xl:grid-cols-2">
             <ChartPanel
               title="Time to hire"
               basis="Median days hires spent in each stage, and from applying to being hired by job, for hires made in these dates."
@@ -440,19 +453,6 @@
                 />
               {/snippet}
               {#snippet empty()}{@render nothing('No applications in these dates', false)}{/snippet}
-            </ChartPanel>
-
-            <ChartPanel
-              title="Open jobs"
-              tableId="reports-open-jobs"
-              columns={openJobColumns}
-              rows={data.openJobs}
-              rowKey={(job) => job.jobId}
-              defaultSort={{ id: 'applications', desc: true }}
-              {busy}
-              class="@5xl:col-span-2"
-            >
-              {#snippet empty()}{@render nothing('No open jobs', false)}{/snippet}
             </ChartPanel>
           </div>
         </div>

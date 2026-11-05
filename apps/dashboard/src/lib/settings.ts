@@ -71,7 +71,7 @@ export const settingsSections: readonly {
   { label: 'Careers site', href: '/settings/careers-site', icon: GlobeIcon, permission: 'EditSettings', group: 'Hiring' },
   { label: 'Branding', href: '/settings/branding', icon: PaletteIcon, permission: 'EditSettings', group: 'Hiring' },
   { label: 'Verification', href: '/settings/verification', icon: ShieldCheckIcon, permission: 'EditSettings', group: 'Hiring' },
-  { label: 'Sending domain', href: '/settings/sending-domain', icon: MailCheckIcon, permission: 'EditSettings', group: 'Hiring', feature: 'sendingDomain' },
+  { label: 'Email domain', href: '/settings/sending-domain', icon: MailCheckIcon, permission: 'EditSettings', group: 'Hiring', feature: 'sendingDomain' },
   // A channel post reaches everyone in the channel, whatever jobs they see, so Slack needs all jobs too. Each person links
   // their own account from their menu (SlackAccountSheet), not here.
   { label: 'Slack', href: '/settings/slack', icon: HashIcon, permission: 'ManageIntegrations', group: 'Integrations', allJobs: true, feature: 'slack' },

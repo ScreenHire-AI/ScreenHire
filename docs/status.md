@@ -138,7 +138,7 @@ brackets.
   and `auth-trusted-proxies` parameters, which need the real ingress addresses (#11); keep access logs for 30 days or less (#11).
   Wolverine's static code generation was measured and is not needed at the planned size (the worker starts in 12 s and peaks at
   198 MB without it).
-- **Legal and policy.** A legal review of the law tracker before publishing (#6); the analytics decision, with a privacy
+- **Legal and policy.** A legal review of the notice on the job and apply pages and the privacy page, which say that applications are checked and what is collected but no longer how each check works; a legal review of the law tracker before publishing (#6); the analytics decision, with a privacy
   page and the ePrivacy position per market (#6); a legal review before any typing-rhythm signal (#18); a check of the
   device-check defaults per jurisdiction (notice outside the EU and EEA, consent inside) (#18). A legal review of saved candidates:
   keeping their details until the candidate asks or the team removes them, with no expiry, including permissions given
@@ -153,7 +153,7 @@ brackets.
   closed job, counted from when it ended; saved candidates are never removed); and of the careers privacy page wording and
   the decline email per market. Erasure sends no confirmation, because the address is erased with the candidate (the data
   requests task).
-- **Product.** Set prices and job limits in `apps/marketing/src/lib/pricing.ts` (#6). Move jobs still on "Software
+- **Product.** Subscribe to Svelte Flow Pro before charging anyone. The workflow graph hides Svelte Flow's attribution, which its MIT licence allows, and its makers ask a business earning from it to subscribe first. Set prices and job limits in `apps/marketing/src/lib/pricing.ts` (#6). Move jobs still on "Software
   engineer" version 1 to version 2 (#13).
 
 ## Known gaps

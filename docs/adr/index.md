@@ -26,6 +26,8 @@ Architecture decision records, oldest first. A changed decision is a new or amen
 * [ADR-0022: Email goes through SendGrid bought on the Azure Marketplace, and candidates can reply](0022-sendgrid-through-azure-marketplace.md) - SendGrid, bought through the Azure Marketplace, sends candidate email, receives replies with Inbound Parse and reports bounces; a reply address that names the send and is signed; the company's own sending domain verified by the provider; ACS Email stays a possible sender behind IEmailSender; amends the Email row of ADR-0007.
 * [ADR-0023: A candidate's header is the name, a pipeline tracker and three mini cards](0023-candidate-header-tracker-and-mini-cards.md) - A candidate's header drops the meta line: the first line is the name and one status badge, a pipeline tracker of dots replaces the stage pill, and Contact, Application and Also applied to (or Rating) become mini cards; Rejected, Withdrawn and Hired get a status of their own, and the tracker's dots are the one exception to square steps.
 * [ADR-0024: Interview scheduling runs on the Google Calendar and Microsoft Graph APIs](0024-interview-scheduling-on-calendar-apis.md) - Interviews are scheduled on members' own calendars through the free Google Calendar and Microsoft Graph APIs behind one provider interface and a Postgres-backed sandbox: calendar OAuth kept apart from sign-in with free/busy and event scopes only, encrypted per-member tokens, a no-account booking link on the careers site, one event per interviewer, double-booking prevented by advisory locks, lazy expiry, and why Cal.com, Nylas, Cronofy and a calendar of our own were rejected.
+* [ADR-0025: The pipeline tracker is a bar of stages](0025-pipeline-tracker-is-a-bar-of-stages.md) - The pipeline tracker in a candidate's header is a bordered bar of stages with the current stage as a solid block, in place of a row of dots, so a person's stage is the first thing read.
+* [ADR-0026: Editors switch to their preview](0026-editors-switch-to-their-preview.md) - An editor and its preview no longer share the screen: every editor uses the Edit / Preview switch at every width, so the editor has the room and the preview is one press away.
 
 ## Status
 
@@ -40,4 +42,5 @@ Architecture decision records, oldest first. A changed decision is a new or amen
 | 0009 | Accepted, amended by 0010 and 0018 |
 | 0010 | Accepted, amended by 0013 |
 | 0013 | Accepted, amended by 0016 and 0017 |
-| 0017 | Accepted, decision 13 amended by 0023 for a candidate's header, decision 16 amended by 0019 |
+| 0017 | Accepted, decision 13 amended by 0023 for a candidate's header, decision 16 amended by 0019, decision 17 amended by 0026 |
+| 0023 | Accepted, decision 3 amended by 0025 |

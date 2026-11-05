@@ -121,11 +121,11 @@ describe('visibleSettingsSections', () => {
     expect(visibleSettingsSections(owner, { slack: true }).map((section) => section.label)).toContain('Slack');
   });
 
-  it('hides Sending domain, page and menu entry, where the installation has no email provider (A3)', () => {
+  it('hides Email domain, page and menu entry, where the installation has no email provider (A3)', () => {
     const owner = userAs('Owner');
 
-    expect(labels(owner)).toContain('Sending domain');
-    expect(visibleSettingsSections(owner, { sendingDomain: false }).map((section) => section.label)).not.toContain('Sending domain');
+    expect(labels(owner)).toContain('Email domain');
+    expect(visibleSettingsSections(owner, { sendingDomain: false }).map((section) => section.label)).not.toContain('Email domain');
   });
 
   it('shows Recruiters, Viewers and an Interviewer none', () => {

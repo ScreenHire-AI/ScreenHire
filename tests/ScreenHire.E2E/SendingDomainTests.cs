@@ -3,7 +3,7 @@ using System.Net;
 namespace ScreenHire.E2E;
 
 /// <summary>
-/// Settings > Sending domain in a real browser, against the local sandbox provider (docs/architecture/email.md): an Owner adds
+/// Settings > Email domain in a real browser, against the local sandbox provider (docs/architecture/email.md): an Owner adds
 /// the company's domain, sees the DNS records ScreenHire lists and what each check found, publishes the records in the
 /// sandbox's stand-in for DNS, checks again until the domain is verified, and removes it through the More menu and its dialog.
 /// A Recruiter has no Settings. Each test signs in as a new owner of a new organization with a domain of its own.
@@ -24,7 +24,7 @@ public sealed class SendingDomainTests(E2EFixture fixture) : BrowserTest(fixture
         await Page.SetViewportSizeAsync(1440, 1000);
         await SignInAsync(Page, owner);
         await GoToAsync("dashboard", "/settings/sending-domain");
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Sending domain");
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Email domain");
         await ExpectNoAccessibilityViolationsAsync();
 
         // A domain a mail provider owns is refused with a message under the field.
@@ -60,8 +60,8 @@ public sealed class SendingDomainTests(E2EFixture fixture) : BrowserTest(fixture
 
         // Removing is in the More menu, behind a dialog; afterwards the page offers to add a domain again.
         await band.GetByRole(AriaRole.Button, new() { Name = "More actions" }).ClickAsync();
-        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Remove sending domain" }).ClickAsync();
-        var dialog = Page.GetByRole(AriaRole.Dialog, new() { Name = "Remove the sending domain?" });
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Remove email domain" }).ClickAsync();
+        var dialog = Page.GetByRole(AriaRole.Dialog, new() { Name = "Remove the email domain?" });
         await Expect(dialog).ToBeVisibleAsync();
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Remove domain" }).ClickAsync();
         await Expect(dialog).ToHaveCountAsync(0);

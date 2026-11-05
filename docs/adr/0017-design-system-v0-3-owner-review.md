@@ -66,7 +66,7 @@ could.
     configuration keys and tables keep "integrity" until a rename task changes them before launch, while no
     integration depends on them yet. The authenticity level "Verification suggested" keeps its name: under the
     Verification tab it reads as what the tab suggests.
-17. **An editor and its preview share the screen where both fit** (A8 amended). Scorecard templates, email templates
+17. **An editor and its preview share the screen where both fit** (A8 amended, reversed by ADR-0026). Scorecard templates, email templates
     and questionnaires show the result beside the editor from about a 1,600px window, so a wide screen is not half
     empty and an edit shows at once; narrower, the Edit / Preview switch stays. An empty table cell is blank, its
     word for screen readers only (L1).

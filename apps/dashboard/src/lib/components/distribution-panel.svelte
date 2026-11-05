@@ -32,9 +32,7 @@
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
-  import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
-  import { formatDateTime } from '#lib/dates.js';
   import {
     boardAction,
     boardRows,
@@ -199,14 +197,10 @@
             </tr>
           {/each}
         </thead>
-        {#each rows as row (row.id)}
-          {@const view = describePosting(row.original.posting, now)}
-          {@const fixes = needsDetailFixes(job.status, row.original.posting)}
-          {@const customizable = canCustomize(job.status, row.original.board, row.original.posting)}
-          {@const jobMoved = customizable && !!row.original.posting?.jobChangedSinceCustomized}
-          <!-- One body per board, so a posting's problem stays with its row whichever way the table sorts. -->
-          <tbody data-board={row.id} class="border-b border-border-subtle last:border-b-0 hover:bg-muted">
-            <tr class="h-12">
+        <tbody>
+          {#each rows as row (row.id)}
+            <!-- A row keeps one height (L1): a problem is the notice above the tabs, its fixes are in the row's menu. -->
+            <tr data-board={row.id} class="h-12 border-b border-border-subtle last:border-b-0 hover:bg-muted">
               {#each row.getAllCells() as cell (cell.id)}
                 <td
                   class={[
@@ -222,45 +216,8 @@
                 </td>
               {/each}
             </tr>
-            <!-- What is wrong, in words, under the board's name (E2). A calm state's meaning is in its tooltip and for
-                 screen readers. A posting the job's own details can fix says what each fix reaches: Edit details changes
-                 every board, Customize only this one. A customized board whose job moved on says so. -->
-            {#if needsAttention(view.status) || jobMoved}
-              <tr>
-                <!-- On a phone the words take the full width, where the status column would leave them 212px (F1). -->
-                <td class="max-md:hidden"></td>
-                <td colspan={row.getAllCells().length - 1} class="px-3 pb-3 text-body text-muted-foreground max-md:px-4">
-                  <div class="flex flex-col gap-2">
-                    {#if needsAttention(view.status)}
-                      <p data-posting-problem>{view.detail}</p>
-                    {/if}
-                    <!-- Edit details goes to another page, so it is a link; Customize opens a sheet, so it is a button (A5, A6). -->
-                    {#if fixes}
-                      <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
-                        <p data-posting-fixes>
-                          <a href={`/jobs/${job.id}/edit`} class="font-semibold text-primary underline underline-offset-2">Edit details</a> changes every board.{customizable
-                            ? ` Customize changes only ${row.original.name}.`
-                            : ''}
-                        </p>
-                        {#if customizable}
-                          <Button type="button" variant="outline" size="sm" onclick={() => openCustomize({ boardId: row.original.boardId, name: row.original.name })}>
-                            <SlidersIcon aria-hidden="true" />Customize
-                          </Button>
-                        {/if}
-                      </div>
-                    {/if}
-                    {#if jobMoved}
-                      <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
-                        <p data-posting-changed>The job changed since this was customized.</p>
-                        <Button type="button" variant="outline" size="sm" onclick={() => openCustomize({ boardId: row.original.boardId, name: row.original.name })}>Review the changes</Button>
-                      </div>
-                    {/if}
-                  </div>
-                </td>
-              </tr>
-            {/if}
-          </tbody>
-        {/each}
+          {/each}
+        </tbody>
       </table>
     </div>
   {/if}
@@ -276,24 +233,15 @@
 
 {#snippet statusCell(row: BoardRow)}
   {@const view = describePosting(row.posting, now)}
-  <!-- Status first, then the board's estimate as plain text (T2, L1). The badge's tooltip says what the state means. -->
-  <span class="flex items-center gap-2">
-    <Hint content={view.detail}>
-      {#snippet children({ props })}
-        <span {...props} data-posting-state class="inline-flex rounded-full">
-          <StatusBadge status={view.status} label={view.label} quiet={!needsAttention(view.status)} />
-        </span>
-      {/snippet}
-    </Hint>
-    <!-- The estimate's exact time is in its tooltip (T5). -->
-    {#if view.eta && row.posting?.expectedBy}
-      {@const expected = row.posting.expectedBy}
-      <Hint content={formatDateTime(expected)}>
-        {#snippet children({ props })}<span {...props} data-posting-eta class="text-muted-foreground tabular-nums">{view.eta}</span>{/snippet}
-      </Hint>
-    {/if}
-  </span>
-  {#if !needsAttention(view.status)}<span class="sr-only">{view.detail}</span>{/if}
+  <!-- The tooltip says what the state means, with the board's estimate (T2). -->
+  <Hint content={view.detail}>
+    {#snippet children({ props })}
+      <span {...props} data-posting-state class="inline-flex rounded-full">
+        <StatusBadge status={view.status} label={view.label} quiet={!needsAttention(view.status)} />
+      </span>
+    {/snippet}
+  </Hint>
+  <span class="sr-only">{view.detail}</span>
 {/snippet}
 
 {#snippet boardCell(row: BoardRow)}
@@ -301,7 +249,13 @@
   <!-- The board's name, with at most one badge after it (L1). -->
   <span class="flex min-w-0 items-center gap-2">
     <TruncatedText text={row.name} class="font-semibold" />
-    {#if isCustomized(row.posting)}<Badge variant="muted" class="shrink-0">Customized</Badge>{/if}
+    {#if canCustomize(job.status, row.board, row.posting) && row.posting?.jobChangedSinceCustomized}
+      <Hint content="The job changed since this board was customized.">
+        {#snippet children({ props })}<span {...props} class="inline-flex shrink-0 rounded-full"><Badge variant="muted">Job changed</Badge></span>{/snippet}
+      </Hint>
+    {:else if isCustomized(row.posting)}
+      <Badge variant="muted" class="shrink-0">Customized</Badge>
+    {/if}
   </span>
   {#if posted && row.posting}
     <span class="flex flex-col text-caption text-muted-foreground md:hidden">
@@ -348,13 +302,13 @@
         <!-- Stays open, so the item can say the copy worked. -->
         <DropdownMenu.Item closeOnSelect={false} onSelect={() => copyLink(url)}><CopyIcon aria-hidden="true" />{copied ?? 'Copy link'}</DropdownMenu.Item>
       {/if}
+      {#if customizable}
+        <DropdownMenu.Item onSelect={() => (chosen = { boardId: row.boardId, name: row.name })}><SlidersIcon aria-hidden="true" />Customize for {row.name}</DropdownMenu.Item>
+      {/if}
       {#if fixable}
         <DropdownMenu.Item>
-          {#snippet child({ props })}<a {...props} href={`/jobs/${job.id}/edit`}><PencilIcon aria-hidden="true" />Edit details</a>{/snippet}
+          {#snippet child({ props })}<a {...props} href={`/jobs/${job.id}/edit`}><PencilIcon aria-hidden="true" />Edit details for every board</a>{/snippet}
         </DropdownMenu.Item>
-      {/if}
-      {#if customizable}
-        <DropdownMenu.Item onSelect={() => (chosen = { boardId: row.boardId, name: row.name })}><SlidersIcon aria-hidden="true" />Customize</DropdownMenu.Item>
       {/if}
       {#if (url || fixable || customizable) && (action || locked)}<DropdownMenu.Separator />{/if}
       {#if action}

@@ -209,7 +209,7 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         await Expect(page.GetByRole(AriaRole.Main)).ToContainTextAsync("£70k–£90k"); // the salary set in the dashboard
         await page.GetByRole(AriaRole.Link, new() { Name = "Apply for this role" }).ClickAsync();
 
-        await Expect(page.GetByRole(AriaRole.Region, new() { Name = "How we keep this fair" })).ToBeVisibleAsync();
+        await Expect(page.GetByRole(AriaRole.Region, new() { Name = "How we review applications" })).ToBeVisibleAsync();
         await page.GetByLabel("First name").FillAsync(applicant.FirstName);
         await page.GetByLabel("Last name").FillAsync(applicant.LastName);
         await page.GetByLabel("Email").FillAsync(email);

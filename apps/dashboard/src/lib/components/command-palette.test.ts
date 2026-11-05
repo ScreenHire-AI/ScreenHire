@@ -118,7 +118,9 @@ describe('command palette', () => {
     // "sen" is not in "General settings" or "Saved candidates"; the old fuzzy match listed them all above the job.
     expect(names.some((name) => name.startsWith('General'))).toBe(false);
     expect(names.some((name) => name.startsWith('Saved candidates'))).toBe(false);
-    expect(names.some((name) => name.startsWith('Sending domain'))).toBe(true);
+
+    await fireEvent.input(input, { target: { value: 'domain' } });
+    await within(palette).findByRole('option', { name: /^Email domain/ });
   });
 
   it('says so when the search fails, and still offers the actions', async () => {

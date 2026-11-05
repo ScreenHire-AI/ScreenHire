@@ -2,6 +2,21 @@
 
 ## 2026-11-05
 
+**Design rule S9: design for how many there could be.** Tabs and toggles are for sets that cannot grow. Anything that can
+grow is a list, table or grid that takes more with no redesign.
+
+**The owner's review of the fourth build.** The pipeline tracker is a bar of stages (ADR-0025). Reports opens with Open jobs
+and sets the weekly chart beside the funnel on a wide page. A table row keeps one height (L1). Record retention is a plain
+choice, and says deletion happens at the next nightly run, which is when it always happened. Sending domain is now Email
+domain, with its steps before anyone starts. The apply notice and privacy page say that applications are checked and what
+is collected, not how a check works. Every editor now uses the Edit / Preview switch at every width (ADR-0026). The dashboard's
+Save view button stays in the filter row, disabled with its reason until there is something to save, and every native
+dropdown has one arrow with room around it. The workflow graph hides Svelte Flow's attribution while nothing is sold.
+
+**An edit to an open job can now reach the boards.** Saving changed the careers page and left every board on the version
+it had, with no way to send the new one from the dashboard: the only publish button was on drafts. The job page now says
+so in a notice with Update boards, which publishes with no boards named. Customize still changes one board.
+
 **The Azure definition and a deploy runbook exist, and nothing is deployed.** `apps/apphost/AzurePublish.cs` is the publish model;
 `dotnet aspire publish` writes it to `infra/`, and a CI job fails when the two differ. [Deploy ScreenHire to Azure](operations/deploy.md)
 has the order, the commands and the settings. A new `apps/migrator` creates the schema as the database owner, so the API and worker

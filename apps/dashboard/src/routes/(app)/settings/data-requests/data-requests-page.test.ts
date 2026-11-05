@@ -309,16 +309,17 @@ describe('Data requests page: answering a request', () => {
 });
 
 describe('Data requests page: record retention', () => {
-  const switchName = 'Delete ended applications';
-  // The panel is a skeleton until the setting loads, so wait for its switch.
-  const retentionPanel = async () => (await screen.findByRole('switch', { name: switchName })).closest('section') as HTMLElement;
-  const switchIn = (panel: HTMLElement) => within(panel).getByRole('switch', { name: switchName });
+  const deleteName = /^Delete them after a set time/;
+  // The panel is a skeleton until the setting loads, so wait for its choice.
+  const retentionPanel = async () => (await screen.findByRole('radio', { name: deleteName })).closest('section') as HTMLElement;
+  const deleteIn = (panel: HTMLElement) => within(panel).getByRole('radio', { name: deleteName });
+  const keepIn = (panel: HTMLElement) => within(panel).getByRole('radio', { name: /^Keep them/ });
 
   it('is off by default, with no months field, and says what ended means and that it has not run', async () => {
     renderPage([]);
     const panel = await retentionPanel();
 
-    expect(switchIn(panel)).toHaveAttribute('aria-checked', 'false');
+    expect(keepIn(panel)).toBeChecked();
     expect(within(panel).queryByLabelText('Keep for (months)')).not.toBeInTheDocument();
     expect(within(panel).getByText(/Ended means hired, rejected or withdrawn, or a closed job, counted from when it ended\./)).toBeInTheDocument();
     expect(within(panel).getByText('Has not run yet.')).toBeInTheDocument();
@@ -336,7 +337,7 @@ describe('Data requests page: record retention', () => {
     renderPage([], { retention: retentionOn(12), previews: { 12: { applications: 0, candidates: 0 } } });
     const panel = await retentionPanel();
 
-    await waitFor(() => expect(switchIn(panel)).toHaveAttribute('aria-checked', 'true'));
+    await waitFor(() => expect(deleteIn(panel)).toBeChecked());
     expect(within(panel).getByLabelText('Keep for (months)')).toHaveValue(12);
     const fact = await waitFor(() => {
       const found = panel.querySelector('[data-last-updated]');
@@ -352,10 +353,10 @@ describe('Data requests page: record retention', () => {
     const fetchMock = renderPage([], { previews: { 6: { applications: 14, candidates: 11 } } });
     const panel = await retentionPanel();
 
-    await fireEvent.click(switchIn(panel));
+    await fireEvent.click(deleteIn(panel));
     await fireEvent.input(within(panel).getByLabelText('Keep for (months)'), { target: { value: '6' } });
 
-    expect(await within(panel).findByText('Saving this removes 14 applications from 11 candidates now. Saved candidates are never removed.', {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(await within(panel).findByText('The next nightly run deletes 14 applications from 11 candidates, for good.', {}, { timeout: 3000 })).toBeInTheDocument();
     expect(posts(fetchMock)).toHaveLength(0);
     await expectNoAxeViolations();
   });
@@ -364,20 +365,20 @@ describe('Data requests page: record retention', () => {
     renderPage([], { previews: { 6: { applications: 0, candidates: 0 }, 7: { applications: 1, candidates: 1 } } });
     const panel = await retentionPanel();
 
-    await fireEvent.click(switchIn(panel));
+    await fireEvent.click(deleteIn(panel));
     const months = within(panel).getByLabelText('Keep for (months)');
     await fireEvent.input(months, { target: { value: '6' } });
-    expect(await within(panel).findByText('Nothing would be removed now.', {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(await within(panel).findByText('Nothing to delete at the next nightly run.', {}, { timeout: 3000 })).toBeInTheDocument();
 
     await fireEvent.input(months, { target: { value: '7' } });
-    expect(await within(panel).findByText('Saving this removes 1 application from 1 candidate now. Saved candidates are never removed.', {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(await within(panel).findByText('The next nightly run deletes 1 application from 1 candidate, for good.', {}, { timeout: 3000 })).toBeInTheDocument();
   });
 
   it('says it could not count when the dry run fails, and still lets the person save', async () => {
     renderPage([], { routes: { 'GET /v1/organization/data-retention/preview?months=6': () => Response.json({ detail: 'Counting failed.' }, { status: 500 }) } });
     const panel = await retentionPanel();
 
-    await fireEvent.click(switchIn(panel));
+    await fireEvent.click(deleteIn(panel));
     await fireEvent.input(within(panel).getByLabelText('Keep for (months)'), { target: { value: '6' } });
 
     expect(await within(panel).findByText(/Counting failed|Could not count what this would remove/, {}, { timeout: 5000 })).toBeInTheDocument();
@@ -396,16 +397,16 @@ describe('Data requests page: record retention', () => {
       },
     });
     const panel = await retentionPanel();
-    await fireEvent.click(switchIn(panel));
+    await fireEvent.click(deleteIn(panel));
     await fireEvent.input(within(panel).getByLabelText('Keep for (months)'), { target: { value: '6' } });
-    await within(panel).findByText(/Saving this removes 14 applications/, {}, { timeout: 3000 });
+    await within(panel).findByText(/The next nightly run deletes 14 applications/, {}, { timeout: 3000 });
 
     await fireEvent.click(within(panel).getByRole('button', { name: 'Save' }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Delete ended applications after 6 months?' });
-    expect(dialog).toHaveTextContent('Saving removes 14 applications from 11 candidates now, for good');
+    expect(dialog).toHaveTextContent('The next nightly run deletes 14 applications from 11 candidates, for good');
     expect(posts(fetchMock)).toHaveLength(0);
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save and delete' }));
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save setting' }));
 
     await waitFor(() => expect(bodies).toEqual([{ months: 6 }]));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
@@ -424,9 +425,9 @@ describe('Data requests page: record retention', () => {
       },
     });
     const panel = await retentionPanel();
-    await fireEvent.click(switchIn(panel));
+    await fireEvent.click(deleteIn(panel));
     await fireEvent.input(within(panel).getByLabelText('Keep for (months)'), { target: { value: '6' } });
-    await within(panel).findByText('Nothing would be removed now.', {}, { timeout: 3000 });
+    await within(panel).findByText('Nothing to delete at the next nightly run.', {}, { timeout: 3000 });
 
     await fireEvent.click(within(panel).getByRole('button', { name: 'Save' }));
 
@@ -451,7 +452,7 @@ describe('Data requests page: record retention', () => {
     const months = within(panel).getByLabelText('Keep for (months)');
 
     await fireEvent.input(months, { target: { value: '6' } });
-    await within(panel).findByText(/Saving this removes 5 applications from 4 candidates now/, {}, { timeout: 3000 });
+    await within(panel).findByText(/The next nightly run deletes 5 applications from 4 candidates/, {}, { timeout: 3000 });
     await fireEvent.click(within(panel).getByRole('button', { name: 'Save' }));
     const dialog = await screen.findByRole('dialog', { name: 'Delete ended applications after 6 months?' });
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Keep them' }));
@@ -459,7 +460,7 @@ describe('Data requests page: record retention', () => {
     expect(bodies).toEqual([]);
 
     await fireEvent.input(months, { target: { value: '24' } });
-    await within(panel).findByText(/Saving this removes 9 applications from 8 candidates now/, {}, { timeout: 3000 });
+    await within(panel).findByText(/The next nightly run deletes 9 applications from 8 candidates/, {}, { timeout: 3000 });
     await fireEvent.click(within(panel).getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(bodies).toEqual([{ months: 24 }]));
@@ -479,9 +480,9 @@ describe('Data requests page: record retention', () => {
       },
     });
     const panel = await retentionPanel();
-    await waitFor(() => expect(switchIn(panel)).toHaveAttribute('aria-checked', 'true'));
+    await waitFor(() => expect(deleteIn(panel)).toBeChecked());
 
-    await fireEvent.click(switchIn(panel));
+    await fireEvent.click(keepIn(panel));
     await fireEvent.click(within(panel).getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(bodies).toEqual([{ months: null }]));
@@ -492,7 +493,7 @@ describe('Data requests page: record retention', () => {
   it.each(['', '0', '121', '2.5'])('asks for a whole number of months from 1 to 120 when the field holds "%s", and sends nothing', async (value) => {
     const fetchMock = renderPage();
     const panel = await retentionPanel();
-    await fireEvent.click(switchIn(panel));
+    await fireEvent.click(deleteIn(panel));
     await fireEvent.input(within(panel).getByLabelText('Keep for (months)'), { target: { value } });
 
     await fireEvent.click(within(panel).getByRole('button', { name: 'Save' }));

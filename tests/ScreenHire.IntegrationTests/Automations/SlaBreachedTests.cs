@@ -39,8 +39,10 @@ public sealed class SlaBreachedTests(AppHostFixture fixture)
         (await recruiter.PostAsync($"/v1/applications/{application}/move", new JsonObject { ["toStageId"] = "screening" })).Expect(HttpStatusCode.OK);
         var timeline = (await recruiter.GetAsync($"/v1/applications/{application}/timeline")).Body;
         var submittedId = timeline[0].GetProperty("id").GetGuid();
-        var entryId = timeline[1].GetProperty("id").GetGuid();
-        var due = timeline[1].GetProperty("occurredAt").GetDateTimeOffset().AddDays(3);
+        // By type, not position: the worker can record an event between the submission and the move.
+        var entry = timeline.EnumerateArray().Single(e => e.GetProperty("type").GetString() == "StageChanged");
+        var entryId = entry.GetProperty("id").GetGuid();
+        var due = entry.GetProperty("occurredAt").GetDateTimeOffset().AddDays(3);
 
         // The application and the lists say when it falls overdue; the timer waits for the same instant.
         (await recruiter.GetAsync($"/v1/applications/{application}")).At("slaDueAt").GetDateTimeOffset().Should().Be(due);

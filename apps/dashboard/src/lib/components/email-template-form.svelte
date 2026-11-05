@@ -3,7 +3,7 @@
   import SendIcon from '~icons/lucide/send';
   import type { EmailPreview as Preview, EmailTemplateEntry, EmailTemplateVariableEntry, HttpValidationProblemDetails } from '@screenhire/api-client';
   import { ApiError, createPreviewEmailTemplate, createSendTestEmail } from '@screenhire/api-client/svelte-query';
-  import { tick, untrack, type Snippet } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
@@ -289,13 +289,12 @@
     {/if}
   </Panel>
 {/snippet}
-{#snippet result(popout: Snippet)}
+{#snippet result()}
   <Panel title="Preview">
     {#snippet actions()}
       {#if sendingEnabled && editable}
         <Button type="button" variant="outline" onclick={sendTest} disabled={blank || test.isPending}><SendIcon aria-hidden="true" />Send me a test</Button>
       {/if}
-      {@render popout()}
   {/snippet}
     <div class="flex flex-col gap-3">
       {#if blank}

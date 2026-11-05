@@ -24,6 +24,7 @@
   import Notice from '#lib/components/notice.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import StepLine from '#lib/components/step-line.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
@@ -41,7 +42,7 @@
   import { describeError, invalidatePath } from '#lib/query.js';
   import { domainStatus, recordName, recordStatus } from '#lib/sending-domain.js';
 
-  // Settings > Sending domain (docs/architecture/email.md), on the settings template: the company's own domain that
+  // Settings > Email domain (docs/architecture/email.md), on the settings template: the company's own domain that
   // candidate email comes from. ScreenHire lists the DNS records the email provider needs, looks each one up on request, and
   // switches the From address only once the provider has confirmed the domain, so nothing goes out unauthenticated in the
   // company's name. Removing the domain goes back to ScreenHire's address; it confirms (A2). Who added, verified or removed it
@@ -103,31 +104,38 @@
 
   async function removeDomain() {
     await remove.mutateAsync();
-    announcement = 'The sending domain is removed. Mail comes from ScreenHire again.';
+    announcement = 'The email domain is removed. Mail comes from ScreenHire again.';
   }
 
   const problem = $derived(domain && domain.status !== 'Verified' ? domain.providerMessage : undefined);
+
+  const setupSteps = [
+    'Enter the domain your company uses for email.',
+    'Add the DNS records we give you where your domain is managed, or send them to whoever manages it.',
+    'Press Check records. Changes can take a few hours to show.',
+    "Once they pass, email comes from hiring@ your domain. Until then it comes from ScreenHire's address, so nothing stops working.",
+  ];
 </script>
 
 <svelte:head>
-  <title>Sending domain · ScreenHire</title>
+  <title>Email domain · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Sending domain' }]} />
+<TopBar crumbs={[{ label: 'Settings' }, { label: 'Email domain' }]} />
 
 <main class="flex flex-col">
-  <HeaderBand title="Sending domain">
+  <HeaderBand title="Email domain">
     {#snippet status()}
       {#if domain}<StatusBadge {...domainStatus(domain)} />{/if}
     {/snippet}
     {#snippet actions()}
       {#if domain}
         {#if current?.lastUpdated}
-          <HistoryFact value={current.lastUpdated} name="Sending domain" page={(before) => getGetOrganizationSendingDomainHistoryQueryOptions({ before })} />
+          <HistoryFact value={current.lastUpdated} name="Email domain" page={(before) => getGetOrganizationSendingDomainHistoryQueryOptions({ before })} />
         {/if}
         <Button variant="outline" disabled={check.isPending} onclick={checkRecords}><RefreshCwIcon aria-hidden="true" />Check records</Button>
         <MoreMenu label="More actions" onclosed={onMenuClosed}>
-          <DropdownMenu.Item variant="destructive" onSelect={() => (chosen = 'remove')}><Trash2Icon aria-hidden="true" />Remove sending domain</DropdownMenu.Item>
+          <DropdownMenu.Item variant="destructive" onSelect={() => (chosen = 'remove')}><Trash2Icon aria-hidden="true" />Remove email domain</DropdownMenu.Item>
         </MoreMenu>
       {/if}
     {/snippet}
@@ -138,12 +146,12 @@
       <p role="status" class="sr-only">{announcement}</p>
       {#if sendingDomain.isError && !current}
         <Panel title="Domain">
-          <QueryError message={describeError(sendingDomain.error, 'Could not load the sending domain')} onretry={() => sendingDomain.refetch()} inset />
+          <QueryError message={describeError(sendingDomain.error, 'Could not load the email domain')} onretry={() => sendingDomain.refetch()} inset />
         </Panel>
       {:else if !current}
         <Panel title="Domain">
           <div aria-hidden="true" class="flex flex-col gap-4"><Skeleton class="h-6 w-full max-w-96" /><Skeleton class="h-10 w-40" /></div>
-          <p class="sr-only" role="status">Loading the sending domain…</p>
+          <p class="sr-only" role="status">Loading the email domain…</p>
         </Panel>
       {:else if !current.available}
         <Panel title="Domain">
@@ -155,8 +163,17 @@
           </Empty.Root>
         </Panel>
       {:else if !domain}
+        <!-- This one starts work outside ScreenHire, so it says what happens before anyone types (W9). -->
+        <Panel title="How it works">
+          <div class="flex flex-col gap-4">
+            <p class="max-w-measure">Email to candidates comes from your own domain instead of ScreenHire's address, so candidates know who wrote to them.</p>
+            <StepLine items={setupSteps} label="Steps to set up your domain" key={(step) => step}>
+              {#snippet children(step)}<p class="max-w-measure">{step}</p>{/snippet}
+            </StepLine>
+          </div>
+        </Panel>
         <form method="POST" use:enhance novalidate aria-label="Add a domain">
-          <Panel title="Domain">
+          <Panel title="Your domain">
             <div class="flex flex-col gap-5">
               <Field.Field data-invalid={$errors.domain ? true : undefined}>
                 <Field.Label for="sending-domain">Domain</Field.Label>
@@ -169,7 +186,7 @@
                   aria-describedby="sending-domain-hint"
                   bind:value={$form.domain}
                 />
-                <Field.Description id="sending-domain-hint">Email comes from hiring@ this domain once its DNS records pass.</Field.Description>
+                <Field.Description id="sending-domain-hint">The domain your company's email uses, with no www or https.</Field.Description>
                 <Field.Error id="sending-domain-error" errors={$errors.domain?.map((message) => ({ message }))} />
               </Field.Field>
             </div>
@@ -198,6 +215,11 @@
 
         <Panel title="DNS records" count={domain.records.length}>
           <div class="flex flex-col gap-5">
+            {#if domain.status !== 'Verified'}
+              <p class="max-w-measure">
+                Add these records where your domain is managed, or send them to whoever manages it. Then press Check records. Changes can take a few hours to show.
+              </p>
+            {/if}
             <ul class="flex flex-col divide-y divide-border">
               {#each domain.records as record (record.type + record.host)}
                 {@const found = recordStatus(record.state)}
@@ -230,7 +252,7 @@
 
 <ConfirmDialog
   bind:open={removeOpen}
-  title="Remove the sending domain?"
+  title="Remove the email domain?"
   description="Email to candidates comes from ScreenHire's address again, and replies still reach ScreenHire. You can add the domain again later."
   cancelLabel="Keep it"
   confirmLabel="Remove domain"

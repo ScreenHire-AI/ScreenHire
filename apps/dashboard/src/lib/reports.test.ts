@@ -43,16 +43,16 @@ describe('report words', () => {
 
 describe('a headline number against the previous period', () => {
   it('says how many more or fewer, with the arrow following the number', () => {
-    expect(changeText(40, 22)).toEqual({ text: '18 more than before', direction: 'up' });
-    expect(changeText(1, 5)).toEqual({ text: '4 fewer than before', direction: 'down' });
-    expect(changeText(1284, 4)).toEqual({ text: '1,280 more than before', direction: 'up' });
-    expect(changeText(7, 7)).toEqual({ text: 'No change', direction: 'none' });
+    expect(changeText(40, 22)).toEqual({ text: '18 more than before', short: '18', direction: 'up' });
+    expect(changeText(1, 5)).toEqual({ text: '4 fewer than before', short: '4', direction: 'down' });
+    expect(changeText(1284, 4)).toEqual({ text: '1,280 more than before', short: '1,280', direction: 'up' });
+    expect(changeText(7, 7)).toEqual({ text: 'No change', short: 'No change', direction: 'none' });
   });
 
   it('reads a median in days as faster or slower', () => {
-    expect(changeText(14, 17, 'days')).toEqual({ text: '3 days faster', direction: 'down' });
-    expect(changeText(15, 14, 'days')).toEqual({ text: '1 day slower', direction: 'up' });
-    expect(changeText(14.4, 13.6, 'days')).toEqual({ text: 'No change', direction: 'none' });
+    expect(changeText(14, 17, 'days')).toEqual({ text: '3 days faster', short: '3 days', direction: 'down' });
+    expect(changeText(15, 14, 'days')).toEqual({ text: '1 day slower', short: '1 day', direction: 'up' });
+    expect(changeText(14.4, 13.6, 'days')).toEqual({ text: 'No change', short: 'No change', direction: 'none' });
   });
 
   it('says nothing when there is nothing to compare', () => {

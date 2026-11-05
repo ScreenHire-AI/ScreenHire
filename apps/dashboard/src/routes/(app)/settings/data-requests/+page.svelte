@@ -29,6 +29,7 @@
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
+  import ChoiceCard from '#lib/components/choice-card.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
@@ -54,7 +55,6 @@
   import { Input } from '#lib/components/ui/input/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { Switch } from '#lib/components/ui/switch/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
   import { Textarea } from '#lib/components/ui/textarea/index.js';
   import { formatDate } from '#lib/dates.js';
@@ -238,9 +238,10 @@
       saved = '';
       if (!submitted.valid || !retentionData) return;
       const months = submitted.data.enabled ? submitted.data.months : null;
-      // Turning it on, or shortening it, deletes records now. Say how many and ask first; turning it off deletes nothing.
-      const deletesNow = months !== null && (savedMonths === null || months < savedMonths);
-      if (deletesNow && !(counts && counts.applications === 0)) {
+      // Turning it on, or shortening it, deletes records at the next nightly run. Say how many and ask first; turning it off
+      // deletes nothing.
+      const deletes = months !== null && (savedMonths === null || months < savedMonths);
+      if (deletes && !(counts && counts.applications === 0)) {
         pendingMonths = months;
         confirmOpen = true;
         return;
@@ -272,6 +273,16 @@
     }
   });
 
+  // The two outcomes as a choice: a switch on "Delete" read as an action, when it is a rule the nightly run follows.
+  const retentionChoice = {
+    get value() {
+      return $form.enabled ? ('delete' as const) : ('keep' as const);
+    },
+    set value(choice: 'keep' | 'delete') {
+      $form.enabled = choice === 'delete';
+    },
+  };
+
   const validMonths = $derived(
     $form.enabled && typeof $form.months === 'number' && Number.isInteger($form.months) && $form.months >= 1 && $form.months <= 120 ? $form.months : undefined,
   );
@@ -297,10 +308,8 @@
   const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
   const removal = (found: { applications: number; candidates: number }) =>
     `${plural(found.applications, 'application', 'applications')} from ${plural(found.candidates, 'candidate', 'candidates')}`;
-  const previewSentence = (found: { applications: number; candidates: number }) => {
-    if (found.applications === 0) return 'Nothing would be removed now.';
-    return `${validMonths === savedMonths ? 'The next run removes' : 'Saving this removes'} ${removal(found)}${validMonths === savedMonths ? '' : ' now'}. Saved candidates are never removed.`;
-  };
+  const previewSentence = (found: { applications: number; candidates: number }) =>
+    found.applications === 0 ? 'Nothing to delete at the next nightly run.' : `The next nightly run deletes ${removal(found)}, for good.`;
 
   async function confirmRetention() {
     await saveRetention(pendingMonths);
@@ -416,12 +425,21 @@
               </div>
             {/snippet}
             <div class="flex max-w-form flex-col gap-5">
-              <div class="flex items-start gap-4">
-                <div class="flex min-w-0 flex-1 flex-col gap-1">
-                  <Field.Label for="retention-enabled">Delete ended applications</Field.Label>
-                  <Field.Description id="retention-enabled-hint">Ended means hired, rejected or withdrawn, or a closed job, counted from when it ended.</Field.Description>
+              <div class="flex flex-col gap-2">
+                <div class="flex flex-col gap-1">
+                  <p id="retention-choice-label" class="font-semibold">Ended applications</p>
+                  <Field.Description id="retention-choice-hint">Ended means hired, rejected or withdrawn, or a closed job, counted from when it ended.</Field.Description>
                 </div>
-                <Switch id="retention-enabled" bind:checked={$form.enabled} aria-describedby="retention-enabled-hint" class="mt-1" />
+                <div role="radiogroup" aria-labelledby="retention-choice-label" aria-describedby="retention-choice-hint" class="flex flex-col gap-2">
+                  <ChoiceCard name="retention" value="keep" bind:group={retentionChoice.value} title="Keep them" description="Nothing is deleted unless someone erases a candidate." />
+                  <ChoiceCard
+                    name="retention"
+                    value="delete"
+                    bind:group={retentionChoice.value}
+                    title="Delete them after a set time"
+                    description="Checked every night, and that includes applications that have already ended. Saved candidates are never deleted."
+                  />
+                </div>
               </div>
               {#if $form.enabled}
                 <Field.Field data-invalid={$errors.months ? true : undefined}>
@@ -537,10 +555,10 @@
   bind:open={confirmOpen}
   title={`Delete ended applications after ${pendingMonths ?? ''} months?`}
   description={counts && counts.applications > 0
-    ? `Saving removes ${removal(counts)} now, for good, and each day after as more applications end. Saved candidates are never removed.`
-    : 'Saving removes every application that ended longer ago than this, for good, and each day after as more applications end. Saved candidates are never removed.'}
+    ? `The next nightly run deletes ${removal(counts)}, for good, and more each night as applications end. Saved candidates are never deleted.`
+    : 'The next nightly run deletes every application that ended longer ago than this, for good, and more each night as applications end. Saved candidates are never deleted.'}
   cancelLabel="Keep them"
-  confirmLabel="Save and delete"
+  confirmLabel="Save setting"
   failure="Could not save the setting"
   onconfirm={confirmRetention}
 >

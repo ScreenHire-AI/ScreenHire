@@ -17,7 +17,7 @@
   import { Input } from '#lib/components/ui/input/index.js';
   import { createPreviewSource } from '#lib/preview-window.svelte.js';
 
-  // An editor whose result a candidate sees (A8): side by side where both fit, else Edit and Preview swap in place; the
+  // An editor whose result a candidate sees (A8): one at a time, with Edit and Preview swap in place; the
   // window icon opens the preview in a second window that follows each edit. Nothing is saved.
   let mode = $state<'edit' | 'preview'>('edit');
   let questions = $state(demoQuestions.map((question) => ({ ...question })));
@@ -37,8 +37,8 @@
       </div>
     </Panel>
   {/snippet}
-  {#snippet preview(popout)}
-    <Panel title="Preview" actions={popout}>
+  {#snippet preview()}
+    <Panel title="Preview">
       <PreviewFrame>
         <QuestionnairePreview {questions} followUp />
       </PreviewFrame>

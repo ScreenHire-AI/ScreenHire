@@ -48,7 +48,7 @@ never calls the API.
 
 | Path (under `/{organization}`, or `/` on a tenant host) | What it is |
 |---|---|
-| `/jobs/{job}` | The job, the "How we keep this fair" notice and an Apply link. 410 once the job closes, 404 if unknown. |
+| `/jobs/{job}` | The job, the "How we review applications" notice and an Apply link. 410 once the job closes, 404 if unknown. |
 | `/jobs/{job}/apply` | The form: **details** (notice, assistive-technology switch, first name, last name (optional), email, phone, resume), one **page** per section of the job's questionnaire (none when it has no questions beyond the resume; §7), **review** (summary, AI-use declaration, the optional "Keep my details for future roles" box, send). `?draft={token}` fills it from a saved draft. |
 | `/jobs/{job}/applied` | The confirmation, after a POST-redirect-GET. The same page whether the application is new or the email had already applied, so the form never reveals who applied. |
 | `/privacy` | "What we collect and why", the full notice. Its version (`NOTICE_VERSION` in `src/lib/apply.ts`) is recorded on every application. |
@@ -123,7 +123,7 @@ organization and never stores it as sent, and keeps it only on the job's device-
 fingerprint is kept only when it is ticked. The observation and the telemetry are deleted after 30 days. The notice and
 the privacy page say all of this, and that the employer may email a follow-up questionnaire whose page keeps the
 answers only, that a saved draft keeps the details and answers only, for 30 days, and that an application through
-the form on the employer's own website notes which website. `NOTICE_VERSION` is `2026-11-05.1`, bumped when the privacy page's "Your choices" section began to link to the data request page.
+the form on the employer's own website notes which website. `NOTICE_VERSION` is `2026-11-05.2`, bumped when the notice on the job and apply pages and the privacy page were cut to say that applications are checked and what is collected, not how a check works. The owner wants them only as descriptive as the law requires, so a check's rules stay out of anything a candidate reads.
 
 The review step also asks, optionally and unticked, "Keep my details for future roles", with one line saying the
 employer keeps their details until they ask, or the employer removes them, and may invite them to apply for other

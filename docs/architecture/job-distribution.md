@@ -186,6 +186,9 @@ publish answer that arrives after a close is a no-op. `JobPostingTests` covers t
   boards an organization may use. A posting's `viewUrl` is where a person can see it: the job's own page on the hosted
   careers page while it is up, null everywhere else, because a board that reads our feed never says where its listing
   landed.
+- **Edits:** saving an open job changes the careers page at once and sets `hasUnpublishedChanges`. The job page then
+  offers Update boards, a publish with no `boards`: a new version goes to every board the job is on, and a refused
+  posting is checked again. Boards it was taken down from stay down.
 
 ### Per-board customization
 

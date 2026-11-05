@@ -43,6 +43,8 @@ const font = (name, cssVariable, family, fallback) => ({
 
 export default defineConfig({
   site,
+  // Its bar sits over the bottom of every page in development, on top of what people are checking.
+  devToolbar: { enabled: false },
   // Directory-style URLs with a trailing slash everywhere, so canonical, og:url, hreflang and the sitemap agree.
   trailingSlash: 'always',
   integrations: [

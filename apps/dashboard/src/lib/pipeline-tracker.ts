@@ -10,7 +10,7 @@ import { isTerminal } from '#lib/workflow.js';
  * only, never Verification output (ADR-0004).
  */
 
-/** Passed: filled, with the date they reached it. Current: ringed, "Here 3 days". Left: dark, "Saved Oct 31". */
+/** Passed: tinted, with the date they reached it. Current: solid, "Here 3 days". Left: solid and dark, "Saved Oct 31". */
 export type TrackerState = 'passed' | 'current' | 'upcoming' | 'left';
 
 export interface TrackerStep {

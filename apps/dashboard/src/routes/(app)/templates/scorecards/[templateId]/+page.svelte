@@ -69,7 +69,7 @@
 
   // One library scorecard in its editor (design system sections 7 and 21, builder): the header band with Used by (the
   // hiring templates whose stages name it, T4), its questions and rating questions, and Last updated with History (T6);
-  // then the editor and its preview (A8): side by side where both fit, else the Edit / Preview switch. Edit is the form
+  // then the editor and its preview (A8): one at a time, with the Edit / Preview switch. Edit is the form
   // builder with the rating kinds; Preview is the scorecard as a reviewer fills it in, at its real size, and pops out
   // into a window that follows the edits. A built-in reads only,
   // says why, and offers Copy scorecard (E3); so does an archived one, with Restore, and so does every scorecard for a
@@ -351,9 +351,9 @@
             </Panel>
           {/if}
         {/snippet}
-        {#snippet preview(popout)}
+        {#snippet preview()}
           <!-- The scorecard as a reviewer fills it in, at the sheet's width, in an inset like a candidate page's preview. -->
-          <Panel title="Preview" actions={popout}>
+          <Panel title="Preview">
             <div class="flex justify-center rounded-lg bg-secondary p-4"><ScorecardPreview {questions} /></div>
           </Panel>
         {/snippet}

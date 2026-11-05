@@ -1,7 +1,7 @@
 import type { JobPostingStatus } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import { board, now, posting } from '../test-support/fixtures.js';
-import { boardAction, boardRows, canCustomize, describePosting, isCustomized, needsDetailFixes, postedAt, postedCount, postingProblems } from './distribution.js';
+import { boardAction, boardRows, canCustomize, describePosting, isCustomized, needsDetailFixes, postedAt, postedCount, postingProblems, updatableBoards } from './distribution.js';
 
 const later = (ms: number) => new Date(now + ms).toISOString();
 
@@ -51,28 +51,29 @@ describe('isCustomized', () => {
 });
 
 describe('describePosting', () => {
-  const cases: [JobPostingStatus['state'], Partial<JobPostingStatus>, string, string | null, string][] = [
-    ['Live', {}, 'Live', null, 'open'],
-    ['Queued', { expectedBy: later(20_000) }, 'Queued', '~20s', 'waiting'],
-    ['Submitted', { expectedBy: later(90_000) }, 'Submitted', '~2m', 'waiting'],
-    ['Submitted', { confirmsLive: false, expectedBy: later(86_400_000) }, 'Sent', '~1d', 'waiting'],
-    ['Submitted', { confirmsLive: false }, 'Sent', null, 'waiting'],
-    ['Closing', { expectedBy: later(30_000) }, 'Removing', '~30s', 'waiting'],
-    ['Closing', { confirmsRemoval: false }, 'Removal requested', null, 'waiting'],
-    ['Closed', {}, 'Removed', null, 'notInEffect'],
-    ['Rejected', { lastError: 'Title too long.' }, 'Needs fixes', null, 'needsFixes'],
-    ['Error', {}, 'Error', null, 'needsFixes'],
-    ['Draft', { issues: ['The description needs 100 characters.'] }, 'Needs fixes', null, 'needsFixes'],
+  const cases: [JobPostingStatus['state'], Partial<JobPostingStatus>, string, string][] = [
+    ['Live', {}, 'Live', 'open'],
+    ['Queued', { expectedBy: later(20_000) }, 'Queued', 'waiting'],
+    ['Submitted', { expectedBy: later(90_000) }, 'Submitted', 'waiting'],
+    ['Submitted', { confirmsLive: false, expectedBy: later(86_400_000) }, 'Sent', 'waiting'],
+    ['Submitted', { confirmsLive: false }, 'Sent', 'waiting'],
+    ['Closing', { expectedBy: later(30_000) }, 'Removing', 'waiting'],
+    ['Closing', { confirmsRemoval: false }, 'Removal requested', 'waiting'],
+    ['Closed', {}, 'Removed', 'notInEffect'],
+    ['Rejected', { lastError: 'Title too long.' }, 'Needs fixes', 'needsFixes'],
+    ['Error', {}, 'Error', 'needsFixes'],
+    ['Draft', { issues: ['The description needs 100 characters.'] }, 'Needs fixes', 'needsFixes'],
   ];
 
-  it.each(cases)('%s %o reads %s, estimate %s, as a %s status', (state, overrides, label, eta, status) => {
+  it.each(cases)('%s %o reads %s, as a %s status', (state, overrides, label, status) => {
     const view = describePosting(posting('board', 'Board', { state, ...overrides }), now);
 
-    expect(view).toMatchObject({ label, eta, status });
+    expect(view).toMatchObject({ label, status });
   });
 
-  it('says an estimate has passed instead of counting below zero', () => {
-    expect(describePosting(posting('sandbox', 'Sandbox', { state: 'Queued', expectedBy: later(-5_000) }), now).eta).toBe('Overdue');
+  it("gives the board's estimate in a sentence, or says it has passed instead of counting below zero", () => {
+    expect(describePosting(posting('sandbox', 'Sandbox', { state: 'Queued', expectedBy: later(20_000) }), now).detail).toContain('Expected in 20 seconds.');
+    expect(describePosting(posting('sandbox', 'Sandbox', { state: 'Queued', expectedBy: later(-5_000) }), now).detail).toContain("The board's estimate has passed");
   });
 
   it("explains a refusal with the board's reason and fixes with the board's issues", () => {
@@ -132,6 +133,20 @@ describe('postedAt', () => {
     expect(postedAt(posting('careers', 'Careers page', { submittedAt: null, liveAt: '2026-11-03T09:00:00Z' }))).toBe('2026-11-03T09:00:00Z');
     expect(postedAt(posting('adzuna', 'Adzuna', { submittedAt: null, liveAt: null }))).toBeUndefined();
     expect(postedAt(undefined)).toBeUndefined();
+  });
+});
+
+describe('updatableBoards', () => {
+  it('counts the boards a new version would reach, refused ones too, and not the careers page or a board taken down', () => {
+    const boards = ['careers', 'adzuna', 'jooble', 'talent', 'sandbox'].map((id) => board(id, id));
+    const rows = boardRows(boards, [
+      posting('careers', 'careers', { mode: 'Hosted' }),
+      posting('adzuna', 'adzuna', { state: 'Draft', issues: ['Too short.'] }),
+      posting('jooble', 'jooble', { state: 'Submitted', confirmsLive: false }),
+      posting('talent', 'talent', { state: 'Closed' }),
+    ]);
+
+    expect(updatableBoards(rows)).toBe(2);
   });
 });
 

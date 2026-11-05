@@ -18,7 +18,7 @@ const inPipeline = tracker(['passed', 'current', 'upcoming', 'upcoming', 'upcomi
 const show = (value: Tracker, overdueAt?: string) => render(WithTooltips, { props: { component: PipelineTracker, props: { tracker: value, overdueAt } } });
 
 describe('pipeline tracker', () => {
-  it('lists every stage in order, each with a dot, and marks the current one as the current step', async () => {
+  it('lists every stage in order, and marks the current one as the current step', async () => {
     const { container } = show(inPipeline);
 
     const items = within(screen.getByRole('list', { name: 'Pipeline' })).getAllByRole('listitem');
@@ -26,7 +26,6 @@ describe('pipeline tracker', () => {
     expect(items.map((item) => item.getAttribute('data-state'))).toEqual(['passed', 'current', 'upcoming', 'upcoming', 'upcoming']);
     expect(items[1]).toHaveAttribute('aria-current', 'step');
     expect(items.filter((item) => item.hasAttribute('aria-current'))).toHaveLength(1);
-    expect(container.querySelectorAll('li > span:first-child > span.rounded-full')).toHaveLength(5);
     await expectNoAxeViolations(container);
   });
 
@@ -39,24 +38,26 @@ describe('pipeline tracker', () => {
     expect(items[2]).toHaveTextContent(/^Interview, step 3 of 5$/);
   });
 
-  it('fills the passed stages, rings the current one and leaves later ones empty', () => {
+  it('makes the current stage the solid block, tints the passed ones with a check and leaves later ones plain', () => {
     const { container } = show(inPipeline);
 
-    const dots = [...container.querySelectorAll('li > span:first-child > span.rounded-full')];
-    expect(dots[0]).toHaveClass('bg-primary');
-    expect(dots[1]).toHaveClass('bg-card', 'border-primary', 'outline-2');
-    expect(dots[2]).toHaveClass('bg-card', 'border-muted-foreground');
-    expect(dots[2]).not.toHaveClass('bg-primary');
+    const stages = [...container.querySelectorAll('li')];
+    expect(stages[0]).toHaveClass('bg-accent');
+    expect(stages[0]!.querySelector('svg')).not.toBeNull();
+    expect(stages[1]).toHaveClass('bg-primary', 'text-primary-foreground');
+    expect(stages[1]!.querySelector('svg')).toBeNull();
+    expect(stages[2]).not.toHaveClass('bg-primary');
+    expect(stages[2]).not.toHaveClass('bg-accent');
   });
 
-  it('draws the stage they left from as a dark dot with how they left', () => {
+  it('draws the stage they left from solid and dark, with how they left', () => {
     const saved = tracker(['passed', 'passed', 'left', 'upcoming', 'upcoming'], ['Oct 20', 'Oct 22', 'Saved Oct 31'], 'Saved');
-    const { container } = show(saved);
+    show(saved);
 
     const items = screen.getAllByRole('listitem');
     expect(items[2]).toHaveTextContent(/^Interview, step 3 of 5.*Saved Oct 31$/);
     expect(items[2]).not.toHaveAttribute('aria-current');
-    expect(container.querySelectorAll('li')[2]!.querySelector('span.rounded-full')).toHaveClass('bg-foreground');
+    expect(items[2]).toHaveClass('bg-foreground', 'text-background');
   });
 
   it('keeps every stage for screen readers but shows only the current one, with "2 of 5", in a narrow container', () => {

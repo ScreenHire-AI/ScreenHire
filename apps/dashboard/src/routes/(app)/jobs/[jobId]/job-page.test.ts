@@ -208,6 +208,14 @@ describe('job page', () => {
     await waitFor(() => expect(document.querySelector('[data-slot=notice]')).toHaveTextContent("Sandbox board refused this job's posting. Sandbox board: Title too long."));
   });
 
+  it('keeps the notice on Job postings, with no link to the page it is on', async () => {
+    onPostingsTab();
+    stub({ ...job, postings: [posting('careers', 'Careers page'), posting('sandbox', 'Sandbox board', { state: 'Draft', issues: ['Sandbox board needs a city.'] })] });
+
+    await waitFor(() => expect(document.querySelector('[data-slot=notice]')).toHaveTextContent('Sandbox board did not take this job. Sandbox board needs a city.'));
+    expect(within(document.querySelector<HTMLElement>('[data-slot=notice]')!).queryByRole('link')).toBeNull();
+  });
+
   it('shows no notice for a job that is not open, or whose postings are fine', async () => {
     stub(job);
 
@@ -273,11 +281,60 @@ describe('job page', () => {
   });
 
   it('says what saving the details did above the tabs, whichever one is open', async () => {
-    page.state = { saved: 'Saved. The careers page shows it now. Boards that already have the job keep what they were sent.' };
+    page.state = { saved: 'Saved. The careers page shows it now.' };
     stub(job);
 
     await screen.findByRole('region', { name: 'Pipeline' });
     expect(screen.getAllByRole('status').some((status) => status.textContent?.includes('Saved. The careers page shows it now'))).toBe(true);
+  });
+
+  describe('an edit the boards do not have yet', () => {
+    const edited = { ...job, hasUnpublishedChanges: true, postings: [posting('careers', 'Careers page', { mode: 'Hosted' }), posting('sandbox', 'Sandbox board')] };
+    const noticeText = 'Your changes are live on the careers page, not yet on the job boards.';
+
+    it('says so on whichever tab is open, and Update boards sends the new version to the boards it is on', async () => {
+      onPostingsTab();
+      const fetchMock = stub(edited, { [`POST /v1/jobs/${jobId}/publish`]: () => Response.json(edited) });
+
+      await screen.findByText(noticeText);
+      await fireEvent.click(screen.getByRole('button', { name: 'Update boards' }));
+
+      await waitFor(() => expect(screen.getAllByRole('status').some((status) => status.textContent?.includes('Sent your changes to the job boards.'))).toBe(true));
+      const request = fetchMock.mock.calls.find(([url]) => url === `/v1/jobs/${jobId}/publish`);
+      expect(request?.[1]).toEqual(expect.objectContaining({ method: 'POST' }));
+      // No board named: the API sends it to every board the job is on.
+      expect(request?.[1]?.body ?? null).toBeNull();
+    });
+
+    it('says why it failed, and keeps the notice', async () => {
+      stub(edited, { [`POST /v1/jobs/${jobId}/publish`]: () => Response.json({ detail: 'The job changed meanwhile.' }, { status: 409 }) });
+
+      await fireEvent.click(await screen.findByRole('button', { name: 'Update boards' }));
+
+      await waitFor(() => expect(screen.getAllByRole('alert').some((alert) => alert.textContent?.includes('The job changed meanwhile.'))).toBe(true));
+      expect(screen.getByText(noticeText)).toBeInTheDocument();
+    });
+
+    it('stays quiet with no change, for someone who may not edit jobs, and when no board has the job', async () => {
+      stub({ ...edited, hasUnpublishedChanges: false });
+      await screen.findByRole('region', { name: 'Pipeline' });
+      await waitFor(() => expect(tab(/^Job postings/)).toHaveAccessibleName(/^Job postings ?\d+$/));
+      expect(screen.queryByText(noticeText)).not.toBeInTheDocument();
+      cleanup();
+
+      page.data = { user: userAs('Viewer') };
+      stub(edited);
+      await screen.findByRole('region', { name: 'Pipeline' });
+      await waitFor(() => expect(tab(/^Job postings/)).toHaveAccessibleName(/^Job postings ?\d+$/));
+      expect(screen.queryByText(noticeText)).not.toBeInTheDocument();
+      cleanup();
+
+      page.data = { user };
+      stub({ ...edited, postings: [posting('careers', 'Careers page', { mode: 'Hosted' })] });
+      await screen.findByRole('region', { name: 'Pipeline' });
+      await waitFor(() => expect(tab(/^Job postings/)).toHaveAccessibleName(/^Job postings ?\d+$/));
+      expect(screen.queryByText(noticeText)).not.toBeInTheDocument();
+    });
   });
 
   it("says why publishing failed where the person is, not only on the Job postings tab", async () => {

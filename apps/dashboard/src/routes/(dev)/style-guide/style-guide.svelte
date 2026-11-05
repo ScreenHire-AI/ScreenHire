@@ -1267,9 +1267,9 @@
 
       <Panel title="Report stat" flush>
         <SummaryBand>
-          <ReportStat icon={UsersIcon} title="Applications" value="40" change={{ text: '18 more than before', direction: 'up' }} />
-          <ReportStat icon={HourglassIcon} title="Reached interview" value="12" share="30% of applications" change={{ text: 'No change', direction: 'none' }} />
-          <ReportStat icon={TimerIcon} title="Median time to hire" value="21 days" change={{ text: '3 days faster', direction: 'down' }} />
+          <ReportStat icon={UsersIcon} title="Applications" value="40" change={{ text: '18 more than before', short: '18', direction: 'up' }} />
+          <ReportStat icon={HourglassIcon} title="Reached interview" value="12" share="30% of applications" change={{ text: 'No change', short: 'No change', direction: 'none' }} />
+          <ReportStat icon={TimerIcon} title="Median time to hire" value="21 days" change={{ text: '3 days faster', short: '3 days', direction: 'down' }} />
         </SummaryBand>
       </Panel>
 
