@@ -14,6 +14,7 @@ function customization(overrides: Partial<PostingCustomization> = {}): PostingCu
   return {
     boardId: 'adzuna',
     boardName: 'Adzuna feed',
+    jobVersion: 2,
     title: { override: null, job: 'Senior .NET Engineer' },
     description: { override: null, job: jobDescription },
     changes: [],
@@ -53,6 +54,14 @@ describe('customize posting sheet', () => {
     expect(within(sheet).queryByRole('button', { name: "Use the job's title" })).toBeNull();
     expect(within(sheet).queryByRole('button', { name: "Use the job's description" })).toBeNull();
     await expectNoAxeViolations();
+  });
+
+  it('fills a phone, leaving the rich text toolbar room', async () => {
+    renderSheet(customization());
+    const sheet = await openSheet();
+
+    expect(sheet).toHaveClass('data-[side=right]:w-full');
+    expect(sheet).not.toHaveClass('data-[side=right]:w-3/4');
   });
 
   it("starts with the board's own text, and each field goes back to the job's on its own", async () => {
@@ -113,7 +122,7 @@ describe('customize posting sheet', () => {
 
     await fireEvent.click(within(sheet).getByRole('button', { name: 'Save and post' }));
 
-    await waitFor(() => expect(bodyOf(fetchMock, 'PUT', customizationUrl)).toEqual({ title: 'Senior .NET Engineer', description: longer }));
+    await waitFor(() => expect(bodyOf(fetchMock, 'PUT', customizationUrl)).toEqual({ title: 'Senior .NET Engineer', description: longer, jobVersion: 2 }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
@@ -129,5 +138,49 @@ describe('customize posting sheet', () => {
 
     expect(await within(sheet).findByText('Adzuna needs a description of at least 100 characters.')).toBeInTheDocument();
     expect(within(sheet).getByRole('textbox', { name: 'Description' })).toHaveTextContent('Still short.');
+  });
+
+  it('says a failing check once when the save fails while previewing', async () => {
+    const issue = 'Adzuna needs a description of at least 100 characters.';
+    renderSheet(customization(), {
+      [`POST ${customizationUrl}/preview`]: () => Response.json({ title: 'Senior .NET Engineer', description: jobDescription, issues: [issue] }),
+      [`PUT ${customizationUrl}`]: () => Response.json({ title: 'One or more validation errors occurred.', errors: { board: [issue] } }, { status: 400 }),
+    });
+    const sheet = await openSheet();
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Preview' }));
+    await within(sheet).findByText(issue);
+
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Save and post' }));
+
+    await waitFor(() => expect(within(sheet).getByRole('button', { name: 'Save and post' })).toBeEnabled());
+    expect(within(sheet).getAllByText(issue)).toHaveLength(1);
+  });
+
+  it('draws the preview in a sans-serif frame with no scripts', async () => {
+    renderSheet(customization(), {
+      [`POST ${customizationUrl}/preview`]: () => Response.json({ title: 'Senior .NET Engineer', description: jobDescription, issues: [] }),
+    });
+    const sheet = await openSheet();
+
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Preview' }));
+
+    const frame = await within(sheet).findByTitle('Description preview');
+    expect(frame).toHaveAttribute('sandbox', '');
+    expect(frame.getAttribute('srcdoc')).toContain('sans-serif');
+    expect(frame.getAttribute('srcdoc')).toContain(jobDescription);
+  });
+
+  it('says the job moved on when it was published again while the sheet was open, and keeps what was typed', async () => {
+    renderSheet(customization(), {
+      [`PUT ${customizationUrl}`]: () =>
+        Response.json({ title: 'Conflict', status: 409, detail: 'The job was published again while this was open. Close this and open it again to see what changed.' }, { status: 409 }),
+    });
+    const sheet = await openSheet();
+    editRichText(within(sheet).getByRole('textbox', { name: 'Description' }), '<p>Typed here.</p>');
+
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Save and post' }));
+
+    expect(await within(sheet).findByText(/published again while this was open/)).toBeInTheDocument();
+    expect(within(sheet).getByRole('textbox', { name: 'Description' })).toHaveTextContent('Typed here.');
   });
 });

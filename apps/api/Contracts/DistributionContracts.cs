@@ -63,9 +63,10 @@ public sealed record JobPostingStatus(
 
 /// <summary>
 /// What one board receives in place of the job's title and description. A null or blank field follows the job, and so
-/// does one equal to the job's own text; sending both null removes the customization.
+/// does one equal to the job's own text; sending both null removes the customization. <c>jobVersion</c> is the version
+/// the text was edited against (<see cref="PostingCustomization.JobVersion"/>): a save against an older one is a 409.
 /// </summary>
-public sealed record CustomizePostingRequest(string? Title, string? Description);
+public sealed record CustomizePostingRequest(string? Title, string? Description, int? JobVersion = null);
 
 /// <summary>One text of a board: its own (null when it follows the job) and the job's newest published one.</summary>
 public sealed record CustomizedText(string? Override, string Job);
@@ -75,11 +76,12 @@ public sealed record PostingTextChange(string Field, string Before, string After
 
 /// <summary>
 /// A board's customization, for the Customize sheet: each text with the job's, and what the job changed since the
-/// board's own was written against it.
+/// board's own was written against it. <c>jobVersion</c> is the published version the job's text comes from.
 /// </summary>
 public sealed record PostingCustomization(
     string BoardId,
     string BoardName,
+    int JobVersion,
     CustomizedText Title,
     CustomizedText Description,
     IReadOnlyList<PostingTextChange> Changes);

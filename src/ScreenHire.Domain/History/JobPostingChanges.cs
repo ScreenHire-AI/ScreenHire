@@ -31,16 +31,16 @@ public static class JobPostingChanges
         if (before?.DescriptionOverride != after.DescriptionOverride)
         {
             // Bold, a heading or a list changes the HTML but not the words, and before and after would read the same.
-            var was = before?.DescriptionOverride is { } html1 ? RichTextToPlain.Convert(html1) : null;
-            var now = after.DescriptionOverride is { } html2 ? RichTextToPlain.Convert(html2) : null;
-            if (was == now && now is not null)
+            var oldText = before?.DescriptionOverride is { } oldHtml ? RichTextToPlain.Convert(oldHtml) : null;
+            var newText = after.DescriptionOverride is { } newHtml ? RichTextToPlain.Convert(newHtml) : null;
+            if (oldText == newText && newText is not null)
             {
                 lines.Add(ChangeLine.Of("changed the formatting of the description for ", board));
             }
             else
             {
-                var details = new ChangeDetail[] { new("Description", was, now, ChangeValueKind.Paragraphs) };
-                lines.Add(now is null
+                var details = new ChangeDetail[] { new("Description", oldText, newText, ChangeValueKind.Paragraphs) };
+                lines.Add(newText is null
                     ? ChangeLine.Of("went back to the job's description for ", board, details: details)
                     : ChangeLine.Of("customized the description for ", board, details: details));
             }

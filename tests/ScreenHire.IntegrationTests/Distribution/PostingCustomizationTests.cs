@@ -186,6 +186,46 @@ public sealed class PostingCustomizationTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task Saving_the_same_text_again_sends_nothing_to_the_board()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var jobId = (await recruiter.CreateJobAsync(PublishableJob("Platform engineer"))).Id();
+        await recruiter.PublishJobAsync(jobId);
+        var first = (await recruiter.PutAsync(Path(jobId, "careerjet"), Request("Platform engineer (remote)", CareerjetDescription))).Expect(HttpStatusCode.OK);
+
+        var again = (await recruiter.PutAsync(Path(jobId, "careerjet"), Request("Platform engineer (remote)", CareerjetDescription))).Expect(HttpStatusCode.OK);
+
+        again.Text("updatedAt").Should().Be(first.Text("updatedAt"), "nothing changed, so the board was not sent the posting again");
+    }
+
+    [Fact]
+    public async Task A_save_from_a_sheet_opened_before_the_job_was_published_again_is_refused_and_keeps_nothing()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var slug = await SlugOfAsync(recruiter.OrganizationId);
+        var body = PublishableJob("Platform engineer");
+        var jobId = (await recruiter.CreateJobAsync(body)).Id();
+        await recruiter.PublishJobAsync(jobId);
+        var opened = (await recruiter.GetAsync(Path(jobId, "careerjet"))).Expect(HttpStatusCode.OK);
+        opened.At("jobVersion").GetInt32().Should().Be(1);
+
+        body["title"] = "Staff platform engineer";
+        (await recruiter.PutAsync($"/v1/jobs/{jobId}", body)).Expect(HttpStatusCode.OK);
+        await recruiter.PublishJobAsync(jobId);
+
+        // The sheet still holds version 1's title, as a person who changed nothing there would send it.
+        var request = Request("Platform engineer", CareerjetDescription);
+        request["jobVersion"] = 1;
+        (await recruiter.PutAsync(Path(jobId, "careerjet"), request)).Expect(HttpStatusCode.Conflict);
+
+        var customization = (await recruiter.GetAsync(Path(jobId, "careerjet"))).Expect(HttpStatusCode.OK);
+        customization.At("jobVersion").GetInt32().Should().Be(2);
+        customization.At("title.override").ValueKind.Should().Be(JsonValueKind.Null, "the old title must not become the board's own");
+        customization.At("description.override").ValueKind.Should().Be(JsonValueKind.Null);
+        (await FeedAsync(slug, "careerjet")).Should().Contain("Staff platform engineer").And.NotContain(CareerjetPhrase);
+    }
+
+    [Fact]
     public async Task A_title_longer_than_200_characters_is_refused()
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();

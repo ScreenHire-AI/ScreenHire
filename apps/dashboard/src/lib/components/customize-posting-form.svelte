@@ -45,7 +45,7 @@
     description: z.string(),
   });
   // A copy: the sheet edits one customization, and a refetch of the job underneath it must not rewrite what is typed.
-  const job = untrack(() => ({ title: customization.title.job, description: customization.description.job }));
+  const job = untrack(() => ({ version: customization.jobVersion, title: customization.title.job, description: customization.description.job }));
   const start = untrack(() => ({
     title: customization.title.override ?? customization.title.job,
     description: customization.description.override ?? customization.description.job,
@@ -60,7 +60,11 @@
     async onUpdate({ form: submitted }) {
       if (!submitted.valid) return;
       try {
-        await save.mutateAsync({ jobId, boardId: customization.boardId, data: { title: submitted.data.title, description: submitted.data.description } });
+        await save.mutateAsync({
+          jobId,
+          boardId: customization.boardId,
+          data: { title: submitted.data.title, description: submitted.data.description, jobVersion: job.version },
+        });
         onsaved?.();
       } catch (error) {
         if (error instanceof ApiError && error.status === 400) {
@@ -106,6 +110,12 @@
     );
   });
 
+  // A failed save says what the preview already says, so the footer leaves that out (W7).
+  const saveErrors = $derived(($errors._errors ?? []).filter((message) => !(mode === 'preview' && preview?.issues.includes(message))));
+
+  // Bare HTML would draw in the browser's serif. A sandboxed frame cannot reach the page's fonts, so this is the system's.
+  const frameDocument = (html: string) => `<!doctype html><style>body{font-family:system-ui,sans-serif;line-height:1.6}</style>${html}`;
+
   const describedBy = (field: string, error: unknown) => (error ? `customize-${field}-error` : undefined);
 </script>
 
@@ -143,7 +153,7 @@
       <div class="flex min-w-0 items-start justify-between gap-2">
         <Field.Error id="customize-title-error" errors={$errors.title?.map((message) => ({ message }))} />
         {#if titleCustom}
-          <Button type="button" variant="ghost" size="sm" class="ml-auto" onclick={() => ($form.title = job.title)}>Use the job's title</Button>
+          <Button type="button" variant="outline" size="sm" class="ml-auto" onclick={() => ($form.title = job.title)}>Use the job's title</Button>
         {/if}
       </div>
     </Field.Field>
@@ -162,7 +172,7 @@
       <div class="flex min-w-0 items-start justify-between gap-2">
         <Field.Error id="customize-description-error" errors={$errors.description?.map((message) => ({ message }))} />
         {#if descriptionCustom}
-          <Button type="button" variant="ghost" size="sm" class="ml-auto" onclick={useJobDescription}>Use the job's description</Button>
+          <Button type="button" variant="outline" size="sm" class="ml-auto" onclick={useJobDescription}>Use the job's description</Button>
         {/if}
       </div>
     </Field.Field>
@@ -182,14 +192,14 @@
         {#each preview.issues as issue (issue)}<FailureText message={issue} />{/each}
         <p data-preview-title class="font-semibold break-words">{preview.title}</p>
         <!-- The description is sanitized HTML, but it renders in a sandboxed frame with no scripts, as an email does. -->
-        <iframe title="Description preview" sandbox="" srcdoc={preview.description} class="block h-80 w-full rounded-lg border border-border-subtle bg-card"></iframe>
+        <iframe title="Description preview" sandbox="" srcdoc={frameDocument(preview.description)} class="block h-80 w-full rounded-lg border border-border-subtle bg-card"></iframe>
       {/if}
     </section>
   {/if}
 
   <div class="flex flex-wrap items-center justify-end gap-2 border-t border-border-subtle pt-4">
     <div class="mr-auto flex min-w-0 flex-col gap-1">
-      {#each $errors._errors ?? [] as message (message)}<FailureText {message} />{/each}
+      {#each saveErrors as message (message)}<FailureText {message} />{/each}
     </div>
     {#if oncancel}
       <Button type="button" variant="outline" size="lg" onclick={oncancel}>Cancel</Button>

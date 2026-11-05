@@ -15494,9 +15494,16 @@
               "null",
               "string"
             ]
+          },
+          "jobVersion": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         },
-        "description": "What one board receives in place of the job's title and description. A null or blank field follows the job, and so\ndoes one equal to the job's own text; sending both null removes the customization."
+        "description": "What one board receives in place of the job's title and description. A null or blank field follows the job, and so\ndoes one equal to the job's own text; sending both null removes the customization. `jobVersion` is the version\nthe text was edited against (int PostingCustomization.JobVersion): a save against an older one is a 409."
       },
       "CustomRoleDetail": {
         "required": [
@@ -18465,6 +18472,7 @@
         "required": [
           "boardId",
           "boardName",
+          "jobVersion",
           "title",
           "description",
           "changes"
@@ -18476,6 +18484,10 @@
           },
           "boardName": {
             "type": "string"
+          },
+          "jobVersion": {
+            "type": "integer",
+            "format": "int32"
           },
           "title": {
             "$ref": "#/components/schemas/CustomizedText"
@@ -18490,7 +18502,7 @@
             }
           }
         },
-        "description": "A board's customization, for the Customize sheet: each text with the job's, and what the job changed since the\nboard's own was written against it."
+        "description": "A board's customization, for the Customize sheet: each text with the job's, and what the job changed since the\nboard's own was written against it. `jobVersion` is the published version the job's text comes from."
       },
       "PostingDefaults": {
         "type": "object",

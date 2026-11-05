@@ -6090,6 +6090,7 @@ export const GetPostingCustomizationParams = zod.object({
 export const GetPostingCustomizationResponse = zod.object({
   "boardId": zod.string(),
   "boardName": zod.string(),
+  "jobVersion": zod.int(),
   "title": zod.object({
   "override": zod.string().nullable(),
   "job": zod.string()
@@ -6103,7 +6104,7 @@ export const GetPostingCustomizationResponse = zod.object({
   "before": zod.string(),
   "after": zod.string()
 }).describe('A text of the job that changed since the board\'s own was written. Both are plain text.'))
-}).describe('A board\'s customization, for the Customize sheet: each text with the job\'s, and what the job changed since the\nboard\'s own was written against it.')
+}).describe('A board\'s customization, for the Customize sheet: each text with the job\'s, and what the job changed since the\nboard\'s own was written against it. `jobVersion` is the published version the job\'s text comes from.')
 
 
 export const CustomizePostingParams = zod.object({
@@ -6113,8 +6114,9 @@ export const CustomizePostingParams = zod.object({
 
 export const CustomizePostingBody = zod.object({
   "title": zod.string().nullable(),
-  "description": zod.string().nullable()
-}).describe('What one board receives in place of the job\'s title and description. A null or blank field follows the job, and so\ndoes one equal to the job\'s own text; sending both null removes the customization.')
+  "description": zod.string().nullable(),
+  "jobVersion": zod.int().nullish()
+}).describe('What one board receives in place of the job\'s title and description. A null or blank field follows the job, and so\ndoes one equal to the job\'s own text; sending both null removes the customization. `jobVersion` is the version\nthe text was edited against (int PostingCustomization.JobVersion): a save against an older one is a 409.')
 
 export const CustomizePostingResponse = zod.object({
   "id": zod.uuid(),
@@ -6148,8 +6150,9 @@ export const PreviewPostingCustomizationParams = zod.object({
 
 export const PreviewPostingCustomizationBody = zod.object({
   "title": zod.string().nullable(),
-  "description": zod.string().nullable()
-}).describe('What one board receives in place of the job\'s title and description. A null or blank field follows the job, and so\ndoes one equal to the job\'s own text; sending both null removes the customization.')
+  "description": zod.string().nullable(),
+  "jobVersion": zod.int().nullish()
+}).describe('What one board receives in place of the job\'s title and description. A null or blank field follows the job, and so\ndoes one equal to the job\'s own text; sending both null removes the customization. `jobVersion` is the version\nthe text was edited against (int PostingCustomization.JobVersion): a save against an older one is a 409.')
 
 export const PreviewPostingCustomizationResponse = zod.object({
   "title": zod.string(),

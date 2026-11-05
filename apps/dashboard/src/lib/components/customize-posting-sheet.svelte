@@ -37,7 +37,7 @@
 </script>
 
 <Sheet.Root bind:open>
-  <Sheet.Content side="right" class="w-full overflow-y-auto data-[side=right]:sm:max-w-2xl">
+  <Sheet.Content side="right" class="overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-2xl">
     <Sheet.Header>
       <Sheet.Title>Customize for {boardName}</Sheet.Title>
       <Sheet.Description>Only {boardName} gets this text; a field that matches the job follows it.</Sheet.Description>

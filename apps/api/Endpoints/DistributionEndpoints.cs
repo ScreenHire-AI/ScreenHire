@@ -161,7 +161,7 @@ internal static class DistributionEndpoints
         }
 
         return TypedResults.Ok(new PostingCustomization(
-            boardId, target.Adapter.Name,
+            boardId, target.Adapter.Name, target.Content.Version,
             new(posting?.TitleOverride, job.Title), new(posting?.DescriptionOverride, job.Description), changes));
     }
 
@@ -220,6 +220,15 @@ internal static class DistributionEndpoints
             return TypedResults.NotFound();
         }
 
+        // The sheet holds the text of the version it opened on. Against a newer one, a field left as the job's would read as
+        // the board's own and pin the old text, and a field that is the board's own would hide the job's change.
+        if (request.JobVersion is { } version && version != target.Content.Version)
+        {
+            return TypedResults.Problem(
+                "The job was published again while this was open. Close this and open it again to see what changed.",
+                statusCode: StatusCodes.Status409Conflict);
+        }
+
         var job = target.Content.Snapshot;
         var (title, description, problem) = Texts(request, job);
         if (problem is not null)
@@ -240,7 +249,7 @@ internal static class DistributionEndpoints
 
         var isNew = posting is null;
         posting ??= new JobPosting { OrganizationId = target.OrganizationId, JobId = jobId, BoardId = boardId, CreatedAt = now };
-        posting.Customize(title, description, job, now);
+        var changed = posting.Customize(title, description, job, now);
         posting.BoardLabel = target.Adapter.Name;
 
         var issues = target.Adapter.Validate(PostingContents.For(posting, target.Content));
@@ -250,7 +259,7 @@ internal static class DistributionEndpoints
             return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["board"] = [.. issues] });
         }
 
-        var changes = await planner.RepostAsync(target.Organization, target.Content, posting, isNew, cancellationToken);
+        var changes = await planner.RepostAsync(target.Organization, target.Content, posting, isNew, resend: changed, cancellationToken);
         db.JobPostings.AddRange(changes.Added);
         foreach (var message in changes.Messages)
         {
@@ -319,9 +328,9 @@ internal static class DistributionEndpoints
     private static (string? Title, string? Description, ValidationProblem? Problem) Texts(CustomizePostingRequest request, JobSnapshot job)
     {
         var title = string.IsNullOrWhiteSpace(request.Title) ? null : request.Title.Trim();
-        if (title?.Length > 200)
+        if (title?.Length > JobContentValidator.MaxTitleLength)
         {
-            return (null, null, TypedResults.ValidationProblem(ValidationExtensions.Problem("title", "At most 200 characters.")));
+            return (null, null, TypedResults.ValidationProblem(ValidationExtensions.Problem("title", $"At most {JobContentValidator.MaxTitleLength} characters.")));
         }
 
         if (request.Description?.Length > JobContentValidator.MaxDescriptionLength)

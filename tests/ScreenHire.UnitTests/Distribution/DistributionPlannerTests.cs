@@ -224,7 +224,7 @@ public sealed class DistributionPlannerTests
         posting.Sequence.Should().Be(1);
         posting.Customize("Own title", null, Content(1).Snapshot, Now);
 
-        var changes = await planner.RepostAsync(organization, Content(1), posting, isNew: false, CancellationToken.None);
+        var changes = await planner.RepostAsync(organization, Content(1), posting, isNew: false, resend: true, CancellationToken.None);
 
         posting.JobVersion.Should().Be(1, "no job version is made");
         posting.Sequence.Should().Be(2, "it is a new request for the board");
@@ -244,7 +244,7 @@ public sealed class DistributionPlannerTests
         var before = posting.State;
         posting.Customize(null, "<p>Written for Careerjet, with its own words about the work.</p>", Content(1).Snapshot, Now);
 
-        var changes = await planner.RepostAsync(organization, Content(1), posting, isNew: false, CancellationToken.None);
+        var changes = await planner.RepostAsync(organization, Content(1), posting, isNew: false, resend: true, CancellationToken.None);
 
         before.Should().Be(PostingState.Submitted);
         posting.State.Should().Be(before);
@@ -260,7 +260,7 @@ public sealed class DistributionPlannerTests
         var posting = Posting("own");
         posting.Customize("Own title", null, Content(1).Snapshot, Now);
 
-        var changes = await planner.RepostAsync(organization, Content(1), posting, isNew: true, CancellationToken.None);
+        var changes = await planner.RepostAsync(organization, Content(1), posting, isNew: true, resend: true, CancellationToken.None);
 
         changes.Added.Should().ContainSingle().Which.Should().BeSameAs(posting);
         posting.State.Should().Be(PostingState.Submitted);
@@ -279,13 +279,42 @@ public sealed class DistributionPlannerTests
         posting.MarkLive(1, "ext-1", Now);
         posting.Customize("Own title", null, Content(1).Snapshot, Now);
 
-        var changes = await planner.RepostAsync(organization, Content(1), posting, isNew: false, CancellationToken.None);
+        var changes = await planner.RepostAsync(organization, Content(1), posting, isNew: false, resend: true, CancellationToken.None);
 
         posting.State.Should().Be(PostingState.Queued);
         posting.Sequence.Should().Be(2);
         changes.Messages.OfType<SyncJobPosting>().Should().ContainSingle()
             .Which.Should().BeEquivalentTo(new { BoardId = "push", JobVersion = 1, Action = PostingAction.Update, Sequence = 2 });
         changes.Messages.OfType<JobPostingsChanged>().Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Reposting_text_that_did_not_change_leaves_a_posting_on_the_board_alone()
+    {
+        var board = new RecordingBoard("own");
+        var planner = new DistributionPlanner(new BoardRegistry([board]), time);
+        var posting = (await planner.PublishAsync(organization, Content(1), [], null, CancellationToken.None)).Added.Single();
+
+        var changes = await planner.RepostAsync(organization, Content(1), posting, isNew: false, resend: false, CancellationToken.None);
+
+        posting.Sequence.Should().Be(1, "a resend would spend the board's quota on the text it already has");
+        board.Updated.Should().BeEmpty();
+        changes.Messages.OfType<JobPostingsChanged>().Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Reposting_text_that_did_not_change_still_sends_a_posting_the_board_does_not_have()
+    {
+        var board = new RecordingBoard("own");
+        var planner = new DistributionPlanner(new BoardRegistry([board]), time);
+        var posting = Posting("own");
+        posting.Queue(1, Content(1).Url, ["The board needs more text."], Now);
+        posting.State.Should().Be(PostingState.Draft);
+
+        await planner.RepostAsync(organization, Content(1), posting, isNew: false, resend: false, CancellationToken.None);
+
+        posting.State.Should().Be(PostingState.Submitted);
+        board.Sent.Should().ContainSingle();
     }
 
     [Fact]

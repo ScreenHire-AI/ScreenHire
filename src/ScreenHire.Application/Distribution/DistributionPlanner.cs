@@ -67,21 +67,23 @@ public sealed class DistributionPlanner(BoardRegistry boards, TimeProvider time)
 
     /// <summary>
     /// Sends <paramref name="content"/> to <paramref name="posting"/>'s board only, after the caller changed that board's own text
-    /// (<see cref="JobPosting.Customize"/>) and checked it. The board gets the same job version again with the new text,
-    /// so no other board is touched and no job version is made. <paramref name="posting"/> is the board's tracked
-    /// posting, or a new one this returns in <see cref="DistributionChanges.Added"/>. Always raises
+    /// (<see cref="JobPosting.Customize"/>) and checked it. With <paramref name="resend"/> the board gets the same job
+    /// version again with the new text. Without it, for a save that changed nothing, a posting already on the board is
+    /// left alone and spends none of the board's quota. No other board is touched and no job version is made.
+    /// <paramref name="posting"/> is the board's tracked posting, or a new one this returns in
+    /// <see cref="DistributionChanges.Added"/>. Always raises
     /// <see cref="JobPostingsChanged"/>: a customization can leave a Submitted posting Submitted, and other open
     /// dashboards still need to refetch the text.
     /// </summary>
     public async Task<DistributionChanges> RepostAsync(
-        Organization organization, PostingContent content, JobPosting posting, bool isNew, CancellationToken cancellationToken)
+        Organization organization, PostingContent content, JobPosting posting, bool isNew, bool resend, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(organization);
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(posting);
         var now = time.GetUtcNow();
         var messages = new List<object>();
-        await SendAsync(posting, content, resend: true, messages, now, cancellationToken);
+        await SendAsync(posting, content, resend, messages, now, cancellationToken);
         messages.Add(new JobPostingsChanged(organization.Id, content.JobId, now));
         return new DistributionChanges(isNew ? [posting] : [], messages);
     }

@@ -9,11 +9,12 @@ import type { PostingTextChange } from './postingTextChange.ts';
 
 /**
  * A board's customization, for the Customize sheet: each text with the job's, and what the job changed since the
- * board's own was written against it.
+ * board's own was written against it. `jobVersion` is the published version the job's text comes from.
  */
 export interface PostingCustomization {
   boardId: string;
   boardName: string;
+  jobVersion: number;
   title: CustomizedText;
   description: CustomizedText;
   changes: PostingTextChange[];
