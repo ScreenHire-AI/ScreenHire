@@ -17,7 +17,7 @@
   import { describeError } from '#lib/query.js';
 
   // Every email to the candidate and every reply from them, about any of their applications, newest first (design system
-  // section 21), with the email composer under them for people who can send, so what was sent is the first thing the tab
+  // section 21), with the email composer in its own panel under them for people who can send, so what was sent is the first thing the tab
   // shows. Each row opens to the email exactly as it went or arrived. Emails sent before ScreenHire kept each one have only
   // their subject. A reply has the arrow and who it is from; a file that came with it shows as a count.
   let {
@@ -98,22 +98,23 @@
         {/each}
       </ol>
     {/if}
-
-    {#if recipient}
-      <section aria-labelledby="messages-compose" class="flex flex-col gap-3 border-t border-border-subtle pt-5">
-        <h3 id="messages-compose" class="text-heading">Email {recipient.candidateName}</h3>
-        <EmailComposer
-          id="messages-composer"
-          label={`Email ${recipient.candidateName}`}
-          recipients={[recipient]}
-          inline
-          onsent={(message) => {
-            sent = message;
-            onsent?.(message);
-          }}
-        />
-        <p role="status" class="text-muted-foreground empty:hidden">{sent}</p>
-      </section>
-    {/if}
   </div>
 </Panel>
+
+{#if recipient}
+  <Panel title={`Email ${recipient.candidateName}`}>
+    <div class="flex flex-col gap-3">
+      <EmailComposer
+        id="messages-composer"
+        label={`Email ${recipient.candidateName}`}
+        recipients={[recipient]}
+        inline
+        onsent={(message) => {
+          sent = message;
+          onsent?.(message);
+        }}
+      />
+      <p role="status" class="text-muted-foreground empty:hidden">{sent}</p>
+    </div>
+  </Panel>
+{/if}

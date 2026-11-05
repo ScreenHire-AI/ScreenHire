@@ -26,6 +26,7 @@
   import QueryError from '#lib/components/query-error.svelte';
   import SortHeader from '#lib/components/sort-header.svelte';
   import SortMenu from '#lib/components/sort-menu.svelte';
+  import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
@@ -40,6 +41,7 @@
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import { can, seesAllJobs } from '#lib/permissions.js';
   import { describeError } from '#lib/query.js';
+  import { keptInMindLabel } from '#lib/talent-pool.js';
   import type { PageProps } from './$types';
 
   let { params }: PageProps = $props();
@@ -67,14 +69,17 @@
   // The applications are a table (L1, L2): one row each, with the dates in their own columns. It opens oldest first, the
   // order they were made in; a column header sorts it. A phone gets list items with a Sort chip.
   const features = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: { basic: sortFn_basic, alphanumeric: sortFn_alphanumeric } });
-  const progress = (application: ApplicationSummary) => progressOf(application, history.data?.data);
+  // How far each got comes from the history, which loads on its own. It sits on the rows because the table caches each
+  // row's values until its data changes: read in an accessor, a remembered sort would keep the values from before it loaded.
+  type ApplicationRow = ApplicationSummary & { how: ReturnType<typeof progressOf> };
+  const rows = $derived((detail?.applications ?? []).map((application): ApplicationRow => ({ ...application, how: progressOf(application, history.data?.data) })));
   // `any`: one list mixes columns of different value types.
-  const columns: ColumnDef<typeof features, ApplicationSummary, any>[] = [
+  const columns: ColumnDef<typeof features, ApplicationRow, any>[] = [
     { id: 'job', header: 'Job', accessorFn: (application) => application.jobTitle, sortFn: 'alphanumeric' },
-    { id: 'stage', header: 'Stage', accessorFn: (application) => progress(application).outcome, sortFn: 'alphanumeric' },
+    { id: 'stage', header: 'Stage', accessorFn: (application) => application.how.outcome, sortFn: 'alphanumeric' },
     { id: 'applied', header: 'Applied', accessorFn: (application) => Date.parse(application.submittedAt), sortFn: 'basic' },
-    { id: 'reached', header: 'Got as far as', accessorFn: (application) => progress(application).reached ?? '', sortFn: 'alphanumeric' },
-    { id: 'ended', header: 'Ended', accessorFn: (application) => { const ended = progress(application).endedAt; return ended ? Date.parse(ended) : undefined; }, sortFn: 'basic', sortDescFirst: true, sortUndefined: 'last' },
+    { id: 'reached', header: 'Got as far as', accessorFn: (application) => application.how.reached ?? '', sortFn: 'alphanumeric' },
+    { id: 'ended', header: 'Ended', accessorFn: (application) => (application.how.endedAt ? Date.parse(application.how.endedAt) : undefined), sortFn: 'basic', sortDescFirst: true, sortUndefined: 'last' },
   ];
   const sort = createTableSort('candidate-applications', { id: 'applied', desc: false }, ['job', 'stage', 'applied', 'reached', 'ended']);
   const table = createTable({
@@ -82,7 +87,7 @@
     features,
     columns,
     get data() {
-      return detail?.applications ?? [];
+      return rows;
     },
     getRowId: (application) => application.id,
   });
@@ -168,11 +173,11 @@
             <div class="flex justify-end border-b border-border-subtle px-4 py-2"><SortMenu {table} /></div>
             <ul aria-label="Applications">
               {#each sortedApplications as application (application.id)}
-                {@const how = progress(application)}
+                {@const how = application.how}
                 <ListItem href={`/applications/${application.id}`} title={application.jobTitle}>
                   {#snippet meta()}<DateText at={application.submittedAt} />{/snippet}
                   {#snippet facts()}
-                    <Badge variant="muted">{how.outcome}</Badge>
+                    {#if application.keptInMindAt}<StatusBadge status="saved" label={keptInMindLabel} quiet />{:else}<Badge variant="muted">{how.outcome}</Badge>{/if}
                     {#if how.reached}<span class="text-muted-foreground">Got as far as {how.reached}</span>{/if}
                   {/snippet}
                 </ListItem>
@@ -184,19 +189,19 @@
                 <Table.Header>
                   {#each table.getHeaderGroups() as group (group.id)}
                     <Table.Row class="bg-muted hover:bg-muted">
-                      {#each group.headers as header (header.id)}<SortHeader {header} class="px-3 first:pl-4.5" />{/each}
+                      {#each group.headers as header (header.id)}<SortHeader {header} class="first:pl-4.5" />{/each}
                     </Table.Row>
                   {/each}
                 </Table.Header>
                 <Table.Body>
                   {#each sortedApplications as application (application.id)}
-                    {@const how = progress(application)}
+                    {@const how = application.how}
                     <!-- The whole row opens the application (design system section 9). -->
                     <Table.Row class="group relative h-12 hover:bg-muted">
                       <Table.Cell class="max-w-64 pl-4.5">
                         <span class="flex min-w-0"><TruncatedText text={application.jobTitle} href={`/applications/${application.id}`} class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline" /></span>
                       </Table.Cell>
-                      <Table.Cell class="whitespace-nowrap">{how.outcome}</Table.Cell>
+                      <Table.Cell class="whitespace-nowrap">{#if application.keptInMindAt}<StatusBadge status="saved" label={keptInMindLabel} quiet />{:else}{how.outcome}{/if}</Table.Cell>
                       <Table.Cell class="whitespace-nowrap text-muted-foreground"><span class="relative"><DateText at={application.submittedAt} /></span></Table.Cell>
                       <Table.Cell class="max-w-48"><span class="flex min-w-0"><TruncatedText text={how.reached ?? ''} /></span></Table.Cell>
                       <Table.Cell class="whitespace-nowrap text-muted-foreground"><span class="relative">{#if how.endedAt}<DateText at={how.endedAt} />{/if}</span></Table.Cell>

@@ -41,10 +41,10 @@
 <Panel title="Declarations">
   <SummaryList>
     {#if aiUse}
-      <SummaryItem label="AI use">{aiUse}{detail.aiUseDetails ? `: ${detail.aiUseDetails}` : ''}</SummaryItem>
+      <SummaryItem label="AI use" hideLabel>{aiUse}{detail.aiUseDetails ? `: ${detail.aiUseDetails}` : ''}</SummaryItem>
     {/if}
     {#if detail.accommodationRequested}
-      <SummaryItem label="Adjustments">Asked for adjustments to the process</SummaryItem>
+      <SummaryItem label="Adjustments" hideLabel>Asked for adjustments to the process</SummaryItem>
     {/if}
     <!-- "Keep my details for future roles": only an application whose candidate said yes can be saved. The
          default, no, shows nothing (W6). The permission has no end date, so there are no dates here. -->

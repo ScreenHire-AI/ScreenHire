@@ -64,23 +64,27 @@
   // such column.
   const assignee = (task: TaskListItem) => (task.assigneeUserId ? sentenceStart(personName(task.assigneeUserId, team.data?.data, currentUserId)) : 'The team');
   const doneBy = (task: TaskListItem) => (task.completedByUserId ? sentenceStart(personName(task.completedByUserId, team.data?.data, currentUserId)) : '');
+  // The names sit on the rows because the table caches each row's values until its data changes: a name read in an
+  // accessor would stay the one from before the team loaded, and a remembered sort on it would order the rows wrongly.
+  type TaskTableRow = TaskListItem & { assignee: string; doneBy: string };
+  const rows = $derived(shown.map((task): TaskTableRow => ({ ...task, assignee: assignee(task), doneBy: doneBy(task) })));
 
   // The table sorts (L2). Open tasks start with the one that has waited longest; done tasks with the newest finished.
   // Each has its own remembered sort, since they have different columns.
   const features = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: { basic: sortFn_basic, alphanumeric: sortFn_alphanumeric } });
   // `any`: one list mixes columns of different value types.
-  const columns = $derived<ColumnDef<typeof features, TaskListItem, any>[]>([
+  const columns = $derived<ColumnDef<typeof features, TaskTableRow, any>[]>([
     { id: 'task', header: 'Task', accessorFn: (task) => task.note, sortFn: 'alphanumeric' },
     { id: 'candidate', header: 'Candidate', accessorFn: (task) => task.candidateName, sortFn: 'alphanumeric' },
     { id: 'job', header: 'Job', accessorFn: (task) => task.jobTitle, sortFn: 'alphanumeric' },
     { id: 'kind', header: 'Type', accessorFn: (task) => taskKindLabels[task.kind], sortFn: 'alphanumeric' },
-    ...(scope === 'Everyone' ? [{ id: 'for', header: 'For', accessorFn: assignee, sortFn: 'alphanumeric' } satisfies ColumnDef<typeof features, TaskListItem, any>] : []),
+    ...(scope === 'Everyone' ? [{ id: 'for', header: 'For', accessorFn: (task) => task.assignee, sortFn: 'alphanumeric' } satisfies ColumnDef<typeof features, TaskTableRow, any>] : []),
     { id: 'created', header: 'Created', accessorFn: (task) => task.createdAt, sortFn: 'basic', sortDescFirst: true },
     ...(status === 'Completed'
       ? [
           { id: 'done', header: 'Done', accessorFn: (task) => task.completedAt ?? undefined, sortFn: 'basic', sortDescFirst: true, sortUndefined: 'last' },
-          { id: 'doneBy', header: 'Done by', accessorFn: doneBy, sortFn: 'alphanumeric' },
-        ] satisfies ColumnDef<typeof features, TaskListItem, any>[]
+          { id: 'doneBy', header: 'Done by', accessorFn: (task) => task.doneBy, sortFn: 'alphanumeric' },
+        ] satisfies ColumnDef<typeof features, TaskTableRow, any>[]
       : []),
   ]);
   const columnIds = ['task', 'candidate', 'job', 'kind', 'for', 'created', 'done', 'doneBy'];
@@ -91,8 +95,8 @@
   // A remembered sort can name a column this scope does not have (For, outside Everyone's): the table then opens on its
   // default instead of sorting on nothing.
   $effect(() => {
-    const sorted = sorts[status].sorting[0]?.id;
-    if (sorted && !columns.some((column) => column.id === sorted)) sorts[status].show(undefined);
+    const sortedColumn = sorts[status].sorting[0]?.id;
+    if (sortedColumn && !columns.some((column) => column.id === sortedColumn)) sorts[status].show(undefined);
   });
   const table = createTable({
     ...tableSortOptions(() => sorts[status]),
@@ -101,7 +105,7 @@
       return columns;
     },
     get data() {
-      return shown;
+      return rows;
     },
     getRowId: (task) => task.id,
   });
@@ -189,7 +193,7 @@
               <Table.Header>
                 {#each table.getHeaderGroups() as group (group.id)}
                   <Table.Row class="bg-muted hover:bg-muted">
-                    {#each group.headers as header (header.id)}<SortHeader {header} class={['px-3 first:pl-4.5', header.id === 'created' && 'whitespace-nowrap']} />{/each}
+                    {#each group.headers as header (header.id)}<SortHeader {header} class={['first:pl-4.5', header.id === 'created' && 'whitespace-nowrap']} />{/each}
                   </Table.Row>
                 {/each}
               </Table.Header>
@@ -197,6 +201,7 @@
                 {#each sorted as task (task.id)}
                   <!-- The whole row is the link to where the work is done (design system section 9). -->
                   <Table.Row class="group relative h-12 hover:bg-muted">
+                    <!-- One branch per entry in `columns`, which draws the headers. -->
                     {#each table.getHeaderGroups()[0]!.headers as header (header.id)}
                       {#if header.id === 'task'}
                         <Table.Cell class="max-w-96 pl-4.5">
@@ -209,13 +214,13 @@
                       {:else if header.id === 'kind'}
                         <Table.Cell class="whitespace-nowrap">{taskKindLabels[task.kind]}</Table.Cell>
                       {:else if header.id === 'for'}
-                        <Table.Cell class="max-w-48"><span class="flex min-w-0"><TruncatedText text={assignee(task)} /></span></Table.Cell>
+                        <Table.Cell class="max-w-48"><span class="flex min-w-0"><TruncatedText text={task.assignee} /></span></Table.Cell>
                       {:else if header.id === 'created'}
                         <Table.Cell class="whitespace-nowrap text-muted-foreground"><span class="relative"><DateText at={task.createdAt} /></span></Table.Cell>
                       {:else if header.id === 'done'}
                         <Table.Cell class="whitespace-nowrap text-muted-foreground"><span class="relative">{#if task.completedAt}<DateText at={task.completedAt} />{/if}</span></Table.Cell>
                       {:else if header.id === 'doneBy'}
-                        <Table.Cell class="max-w-48"><span class="flex min-w-0"><TruncatedText text={doneBy(task)} /></span></Table.Cell>
+                        <Table.Cell class="max-w-48"><span class="flex min-w-0"><TruncatedText text={task.doneBy} /></span></Table.Cell>
                       {/if}
                     {/each}
                   </Table.Row>

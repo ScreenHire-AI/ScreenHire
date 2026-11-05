@@ -2,6 +2,7 @@ import type { ApplicationSummary, ApplicationTimelineEntry, CandidateDetail, Can
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { goto } from '$app/navigation';
+import { preferences } from '#lib/preferences.svelte.js';
 import { apiStub, jobs, ownerPermissions, user } from '../../../../test-support/fixtures.js';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
@@ -126,6 +127,7 @@ const text = (element: Element | null | undefined) => {
 beforeEach(() => vi.mocked(goto).mockClear());
 afterEach(() => {
   vi.unstubAllGlobals();
+  localStorage.clear();
   appPage.data = {};
 });
 
@@ -187,6 +189,19 @@ describe('candidate profile page', () => {
     expect(applicationRows(table).map((row) => row[0])).toEqual(['Late job', 'Early job']);
     await fireEvent.click(within(table).getByRole('button', { name: /^Job/ }));
     expect(applicationRows(table).map((row) => row[0])).toEqual(['Early job', 'Late job']);
+  });
+
+  it('orders a remembered sort by how far each got once the history arrives, not by what was known before it', async () => {
+    preferences.setSort('candidate-applications', { id: 'reached', desc: false });
+    let sendHistory: (response: Response) => void = () => {};
+    const pendingHistory = new Promise<Response>((resolve) => (sendHistory = resolve));
+    renderPage({ writes: { [`GET /v1/candidates/${candidateId}/history`]: () => pendingHistory } });
+
+    const table = await screen.findByRole('table', { name: 'Applications' });
+    await waitFor(() => expect(applicationRows(table)).toHaveLength(5));
+    sendHistory(Response.json(history));
+
+    await waitFor(() => expect(applicationRows(table).map((row) => row[3])).toEqual(['', '', 'Offer', 'Screening', 'Screening']));
   });
 
   it('lists the history across applications, newest first, naming each stage, job and who did it, without edit lines or deleted notes', async () => {

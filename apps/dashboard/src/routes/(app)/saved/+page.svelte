@@ -324,12 +324,12 @@
                             <button
                               {...mergeProps(props, { onclick: () => open('note', [person]) })}
                               type="button"
-                              class="relative flex w-full min-w-0 items-center rounded-md text-left hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none pointer-coarse:min-h-11"
+                              class="relative flex min-h-5 w-full min-w-0 items-center rounded-md text-left hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none pointer-coarse:min-h-11"
                             >
                               {#if person.note}
                                 <span class="block min-w-0 truncate">{person.note}</span>
                               {:else}
-                                <!-- No note: the cell is blank (L1), and still the button that adds one. -->
+                                <!-- No note: the cell is blank (L1), and still the button that adds one, a line tall so it has a focus ring. -->
                                 <span class="sr-only">Add a note</span>
                               {/if}
                               <!-- The visible text stays inside the button's name (WCAG 2.5.3); this says whose note it is. -->

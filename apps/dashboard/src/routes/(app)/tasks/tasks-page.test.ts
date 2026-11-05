@@ -59,6 +59,7 @@ const rows = (panel: HTMLElement) => within(within(panel).getByRole('table', { n
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  localStorage.clear();
 });
 
 describe('my tasks page', () => {
@@ -182,6 +183,21 @@ describe('my tasks page', () => {
     expect(rows(panel)).toHaveLength(1);
     expect(errors).not.toHaveBeenCalled();
     errors.mockRestore();
+  });
+
+  it('sorts by the names once the team has loaded, not by what was known before it', async () => {
+    let sendMembers: (response: Response) => void = () => {};
+    const pendingMembers = new Promise<Response>((resolve) => (sendMembers = resolve));
+    renderPage({ 'GET /v1/organization/members': () => pendingMembers });
+    const panel = await screen.findByRole('region', { name: 'Tasks' });
+    await fireEvent.click(within(screen.getByRole('group', { name: 'Whose' })).getByRole('button', { name: /^Everyone's/ }));
+    await waitFor(() => expect(rows(panel)).toHaveLength(3));
+
+    await fireEvent.click(within(within(panel).getByRole('columnheader', { name: /^For/ })).getByRole('button'));
+    // A name that sorts after "The team", where the placeholder for a name not loaded yet sorts before it.
+    sendMembers(Response.json(members.map((member) => (member.userId === robin ? { ...member, displayName: 'Zoe Ashby' } : member))));
+
+    await waitFor(() => expect(rows(panel).map((row) => within(row).getAllByRole('cell')[4]!.textContent?.trim())).toEqual(['The team', 'You', 'Zoe Ashby']));
   });
 
   it('lists the tasks as items on a phone, naming whose each is with a name as it is written', async () => {
