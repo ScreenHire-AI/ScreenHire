@@ -176,7 +176,8 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
                 columns,
                 sideways: board.scrollWidth - board.clientWidth,
                 pageDown: page.scrollHeight - page.clientHeight,
-                pageSideways: page.scrollWidth - page.clientWidth,
+                // The stable scrollbar gutter (S8) is in scrollWidth and not in clientWidth: below zero is a page that fits.
+                pageSideways: Math.max(0, page.scrollWidth - page.clientWidth),
               };
             }
             """);
