@@ -8,6 +8,7 @@ sources:
   - resource: apps/api/Auth/ApiKeyAuthentication.cs
   - resource: apps/api/Auth/ApiKeyTokens.cs
   - resource: apps/api/Auth/AuthenticationSetup.cs
+  - resource: apps/api/Configuration/AuthOptions.cs
   - resource: apps/api/Auth/EmailVerification.cs
   - resource: apps/api/Auth/ExternalProviders.cs
   - resource: apps/api/Auth/HiringAuthorization.cs
@@ -138,7 +139,8 @@ waits for SMTP; moving the send to a worker message is a later change.
   from 127.0.0.1 against one API, and the integration suite alone sends about 80 such requests in 20 seconds.
   The per-address email cap is unchanged everywhere and has its own test. It counts under a per-address advisory
   lock, so simultaneous requests cannot slip past it. The client IP comes from `X-Forwarded-For`
-  (`UseForwardedHeaders`), believed only from loopback and from the addresses in `ScreenHire:Auth:TrustedProxies`.
+  (`UseForwardedHeaders`), believed only from loopback and from the addresses or CIDR networks in `ScreenHire:Auth:TrustedProxies`, reading
+  `ScreenHire:Auth:ForwardLimit` entries from the right.
   Loopback covers the dashboard's own `/v1` proxy (`xfwd: true` in `vite.config.ts`). A deployed reverse proxy must
   be listed, or every visitor shares its bucket.
 - **Email addresses.** The magic-link form takes one bare address. A display name (`Name <a@example.com>`) or a list

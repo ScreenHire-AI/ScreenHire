@@ -9,6 +9,12 @@ sources:
   - resource: azure.yaml
   - resource: infra/main.bicep
   - resource: apps/migrator/Program.cs
+  - resource: src/ScreenHire.Infrastructure/Persistence/DatabaseMigrator.cs
+  - resource: src/ScreenHire.Infrastructure/Hosting/KeyVaultConfiguration.cs
+  - resource: apps/careers/astro.config.mjs
+  - resource: apps/dashboard/static/_redirects
+  - resource: apps/dashboard/static/_headers
+  - resource: apps/dashboard/static/_routes.json
   - resource: apps/careers/Dockerfile
   - resource: apps/dashboard/functions/v1/[[path]].js
   - resource: src/ScreenHire.Infrastructure/Hosting/ProductionSettings.cs
