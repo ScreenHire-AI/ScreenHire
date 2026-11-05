@@ -202,7 +202,7 @@
 
   <!-- The filters: one line that scrolls inside the panel rather than wrapping (F5), each with its count (T4). -->
   <div class="flex items-center gap-2 border-b border-border-subtle px-4.5 py-2 max-md:px-4">
-    <div class="min-w-0 flex-1 overflow-x-auto">
+    <div class="min-w-0 flex-1 overflow-x-auto [scrollbar-width:thin]">
       <div role="group" aria-label="Show" class="flex w-max gap-1">
         {#each templateFilters as option (option.value)}
           <Toggle size="lg" bind:pressed={() => filter === option.value, () => (filter = option.value)}>
