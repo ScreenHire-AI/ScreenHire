@@ -47,7 +47,8 @@ What comes next, in order, is the [roadmap](roadmap.md).
 | Stage time limits | A stage's time limit (SLA) passing fires the "time limit passes" trigger, which may only remind the team, and an application past it shows an Overdue badge | #44 |
 | Workflow graph | The builder's graph edits the same draft as the Pipeline view: add an automation to a stage or the whole workflow, open its form at any node, remove it, and draw a "move to a stage" link; every node is a tab stop, the arrow keys move between nodes, and a validation problem shows on its node. On a phone the graph is for reading ([workflow engine](architecture/workflow-engine.md#4-builder-ux-dashboard)) | the editable graph task |
 | Templates | One page with a tab each for hiring templates, scorecards and email templates: where each is used and when it was last used, filters for In use, Not used in 6 months and Archived, Duplicate, Archive and Restore, Reset to original for an edited built-in email, and an editor for each with the Edit / Preview switch; email templates moved here from Settings | the Templates page task |
-| Settings | One sidebar item with its own menu: Organization, Team, Roles (what each role can do, from the API's permission catalogue), Branding, Verification, API keys and Webhooks (each saying how to call it and linking the API reference, public in production), each for a role with its permission | #39, #42, the Settings menu task |
+| Settings | One sidebar item with its own menu: Organization, Team, Roles (what each role can do, from the API's permission catalogue), Data requests, Branding, Verification, API keys and Webhooks (each saying how to call it and linking the API reference, public in production), each for a role with its permission | #39, #42, the Settings menu task |
+| Data requests and record retention | A candidate asks for a copy of their data or for erasure from the careers privacy page: an address in, one fixed answer, then a signed link that works for an hour and one choice. Settings, Data requests lists each request with its due date and offers Send a copy, Erase (the name typed to confirm) and Decline (the reason is emailed to the candidate), and the team gets a live card for each new one. A copy is one JSON file of the candidate's applications, answers, messages and notes, downloaded through an emailed link that expires. An off-by-default retention setting deletes ended applications every day, after a dry-run count before it saves and with a Last run line ([data requests](architecture/data-requests.md)) | the data requests task |
 | Saved candidates | Save candidate beside Rejected, on a job's selection and when a job closes: the candidate leaves the job without a rejection and joins the saved candidates, only with their own "Keep my details for future roles" from the apply form, with no end date (they stay until the team removes them or they use the stop link); a Saved candidates page with search, tags, Rating, Last contacted, a Message button and a note the team can edit, with History; invitations to apply with a link to stop being kept; adding someone to a job, linked to their earlier applications ([saved candidates](architecture/talent-pool.md)) | the talent pool task, the saved candidates task |
 | Careers site | Tenant boards and hosts, the apply flow with the notice first, steps that work without JavaScript with one questionnaire section a page and "Step 2 of 4", saving the form to finish later through an emailed link, direct-to-storage resume upload | #11 |
 | Careers widget | The job list and the apply flow in a frame on a company's own site from one line of embed code; the sites allowed to frame the careers pages set `frame-ancestors`, the frame sizes itself over postMessage from the careers origin only, the flow stays cookie-free, and the application records the site ([careers widget](architecture/careers-widget.md)) | the careers widget task |
@@ -118,12 +119,12 @@ brackets.
   embedded disposable-domain list from time to time (#13).
 - **Database firewall.** The Azure definition lets every Azure address reach PostgreSQL, so its passwords are the only barrier. Before real
   candidates apply, choose between accepting that and a virtual network, which costs more ([deploy](operations/deploy.md), ADR-0007).
-- **Storage and scanning.** The Azure definition creates the three private containers (`applicant-uploads`, `brand-images`,
-  `email-attachments`) and the CORS rule. Do not add a one-day storage lifecycle rule for unclaimed uploads: it would delete submitted
+- **Storage and scanning.** The Azure definition creates the private containers (`applicant-uploads`, `brand-images`,
+  `email-attachments`, `data-exports`) and the CORS rule. Do not add a one-day storage lifecycle rule for unclaimed uploads: it would delete submitted
   resumes, because only the database knows which files are claimed. The worker's daily sweep does it instead
   ([apply flow](architecture/apply-flow.md), section 3). Wire a real malware scanner behind
   `IMalwareScanner` (#11, #15). Optionally, Turnstile keys in `ScreenHire:Turnstile` (#11); with them, saving a draft application
-  also needs the check to pass. The worker's identity lists and deletes in `brand-images` through its storage role (branding.md §4).
+  also needs the check to pass. The worker's identity lists and deletes in `brand-images` through its storage role (branding.md §4). Candidates' copies of their data go in a fourth private container, `data-exports`, which the worker writes and deletes in and the API reads through short SAS links; the Azure definition creates it, and the same storage roles cover it (data-requests.md).
 - **Database.** The Azure definition puts `pg_trgm` on the server's `azure.extensions` list, which the migrations need. The trigram indexes on candidate names and emails and job titles do not
   serve the search as `screenhire_app` yet, because `ILIKE` is not leakproof under row-level security; marking a
   function leakproof needs a superuser, so decide whether to provision one before anyone expects a faster search (see
@@ -145,6 +146,13 @@ brackets.
   details for future roles" wording and the privacy page's "Future roles" section, per market; and the note's History,
   whose free text outlives a saved entry in append-only `change_records` with no link back to the candidate until an
   erasure in that organization purges it (the saved candidates task).
+- **Data requests and retention.** A legal review of the request flow, which answers every address the same way and then
+  offers a copy or erasure behind an emailed link; of the copy file's contents (applications, answers, messages and
+  notes; verification output and scorecards are left out); of the 30-day due date, which is the team's target and not a
+  promise to the candidate; of the retention default (off) and its definition of ended (hired, rejected, withdrawn or a
+  closed job, counted from when it ended; saved candidates are never removed); and of the careers privacy page wording and
+  the decline email per market. Erasure sends no confirmation, because the address is erased with the candidate (the data
+  requests task).
 - **Product.** Set prices and job limits in `apps/marketing/src/lib/pricing.ts` (#6). Move jobs still on "Software
   engineer" version 1 to version 2 (#13).
 
@@ -157,11 +165,11 @@ brackets.
   kinds come from each job's current workflow, so a removed stage's history drops out of the funnel
   (`architecture/reports.md` section 6).
 - A job board that reads our feed never says where its listing landed, so only the careers page has a View posting link.
-- Erasure requests: an Owner or Admin erases a candidate from their profile, with the name typed to confirm
-  ([candidates](architecture/candidates.md)). There is no form for a candidate to ask for their data or its erasure: the
-  privacy page tells them to write to the employer. A candidate who uses the stop link in a saved candidate's invitation is
-  only taken off the list ([saved candidates](architecture/talent-pool.md)); the profile then offers Erase candidate.
-  Nothing expires a saved candidate and nothing deletes an ended application, so record retention matters more than before.
+- Data requests: a candidate can ask for a copy of their data or for erasure through the careers privacy page, and the team
+  acts on it from Settings, Data requests ([data requests](architecture/data-requests.md)). Retention never touches a saved
+  candidate: they stay until the team removes them or they use the stop link, which only takes them off the list
+  ([saved candidates](architecture/talent-pool.md)); the profile then offers Erase candidate. Retention treats a Hired application and an application on a closed job as
+  ended, as the setting says.
 
 - MCP clients that sign in only with OAuth, such as claude.ai custom connectors, cannot connect until OAuth comes
   (ADR-0011 decision 6).

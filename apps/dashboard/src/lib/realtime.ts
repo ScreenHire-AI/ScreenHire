@@ -21,6 +21,9 @@ export const membersPath = '/v1/organization/members';
 export const talentPoolPath = '/v1/talent-pool';
 export const reportsPath = '/v1/reports';
 export const viewsPath = '/v1/views';
+export const dataRequestsPath = '/v1/data-requests';
+/** The retention setting, its dry-run count and its history (`/v1/organization/data-retention`). */
+export const retentionPath = '/v1/organization/data-retention';
 
 /**
  * Which queries each tenant event makes stale, as API paths. Add a line when a page shows what an event changes.
@@ -39,6 +42,9 @@ export const viewsPath = '/v1/views';
  * TeammateMentioned refreshes nothing: the note's own event does, and the shell turns the mention into a card for the
  * person mentioned. Reports count applications by when they arrived and the stages they reached, and list the open jobs
  * a person sees, so arriving, moving, a job opening or closing, a changed workflow and a changed hiring team refresh them.
+ * A data request arriving or answered (DataRequestReceived, DataRequestChanged) refreshes the Data requests list and its open
+ * count. An erasure blanks the candidate on a request's row and changes the retention dry-run's count, so CandidateErased
+ * refreshes both, and the retention panel's Last run when a run erased someone's last application.
  */
 export const invalidations: InvalidationMap = {
   // Reports list the open jobs, so opening and closing one refreshes them.
@@ -79,7 +85,12 @@ export const invalidations: InvalidationMap = {
   // and the kept application's page.
   TalentPoolChanged: [talentPoolPath, jobsPath, applicationsPath, candidatesPath],
   // An erased candidate leaves every list, the pool and the job tables, and an open page of theirs finds nothing.
-  CandidateErased: [talentPoolPath, jobsPath, applicationsPath, candidatesPath, tasksPath, reportsPath],
+  CandidateErased: [talentPoolPath, jobsPath, applicationsPath, candidatesPath, tasksPath, reportsPath, dataRequestsPath, retentionPath],
+  DataRequestReceived: [dataRequestsPath],
+  DataRequestChanged: [dataRequestsPath],
+  // Retention removed ended applications, some from candidates who keep another one: every list and count refetches, and
+  // the retention panel's Last run and dry-run count change.
+  ApplicationsRemoved: [jobsPath, applicationsPath, candidatesPath, tasksPath, reportsPath, retentionPath],
   // A teammate's shared view appears in the sidebar, and a rename or a delete reaches everyone who sees it.
   ViewsChanged: [viewsPath],
 };

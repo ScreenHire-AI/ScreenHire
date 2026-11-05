@@ -950,6 +950,65 @@ export const StopKeepingDetailsParams = zod.object({
 export const StopKeepingDetailsResponse = zod.void()
 
 
+export const GetPublicDataRequestFormParams = zod.object({
+  "organizationSlug": zod.string()
+})
+
+export const GetPublicDataRequestFormResponse = zod.object({
+  "organizationName": zod.string(),
+  "enabled": zod.boolean(),
+  "turnstileSiteKey": zod.string().nullable()
+}).describe('What the careers data request page needs before it asks for an address. `enabled` is false where the deployment\nsends no email or has no careers host to link to: the page then keeps its "write to the employer" text.\n`turnstileSiteKey` is null unless the bot challenge is configured.')
+
+
+export const RequestPublicDataRequestLinkParams = zod.object({
+  "organizationSlug": zod.string()
+})
+
+export const RequestPublicDataRequestLinkBody = zod.object({
+  "email": zod.string(),
+  "botCheckToken": zod.string().nullish()
+}).describe('The address a candidate types to be sent the link that opens their choices. The answer to it is the same whether or not\nthe address has applied, so it tells nobody who has.')
+
+export const RequestPublicDataRequestLinkResponse = zod.void()
+
+
+export const GetPublicDataRequestChoicesParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string()
+})
+
+export const GetPublicDataRequestChoicesResponse = zod.object({
+  "organizationName": zod.string()
+}).describe('What a valid emailed link opens: the organization the candidate will be asking, by name.')
+
+
+export const MakePublicDataRequestParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string()
+})
+
+export const MakePublicDataRequestBody = zod.object({
+  "kind": zod.enum(['Copy', 'Erasure'])
+}).describe('The candidate\'s choice: a copy of their data, or its erasure.')
+
+export const MakePublicDataRequestResponse = zod.object({
+  "id": zod.uuid(),
+  "kind": zod.enum(['Copy', 'Erasure']),
+  "receivedAt": zod.iso.datetime({"offset":true})
+}).describe('The request the choice created, or the one that was already open. It never carries the team\'s due date, which is a\ntarget on their dashboard and not a promise to the candidate.')
+
+
+export const GetPublicDataDownloadParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string()
+})
+
+export const GetPublicDataDownloadResponse = zod.object({
+  "url": zod.string()
+}).describe('A short-lived address that downloads the candidate\'s copy.')
+
+
 export const listJobsResponseLastUpdatedCreatedDefault = false;
 
 export const ListJobsResponseItem = zod.object({
@@ -4835,6 +4894,136 @@ export const EraseCandidateBody = zod.object({
 export const EraseCandidateResponse = zod.void()
 
 
+export const ListDataRequestsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.uuid(),
+  "kind": zod.enum(['Copy', 'Erasure']),
+  "status": zod.enum(['Open', 'Completed', 'Declined']),
+  "receivedAt": zod.iso.datetime({"offset":true}),
+  "dueAt": zod.iso.datetime({"offset":true}),
+  "overdue": zod.boolean(),
+  "resolvedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "copySentAt": zod.iso.datetime({"offset":true}).nullable(),
+  "declineReason": zod.string().nullable(),
+  "candidate": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "email": zod.string()
+}).describe('Who asked, while they are still in the organization\'s records: `id`, `name` and `email`. A request from\nsomeone since erased has no candidate (`null`), and nothing about them is kept.')])
+}).describe('One candidate\'s request for a copy of their data or for it to be erased. `dueAt` is the team\'s target for an answer\nand `overdue` says it has passed while the request is still open; neither is a promise to the candidate.\n`copySentAt` is when the download link for a copy went out. `declineReason` is what the team told the candidate;\nit is cleared if the candidate is erased.')),
+  "openCount": zod.int()
+}).describe('The organization\'s data requests, earliest due date first: every open one, and those answered in the last 90 days.\n`openCount` is how many are open.')
+
+
+export const SendDataRequestCopyParams = zod.object({
+  "id": zod.uuid()
+})
+
+export const SendDataRequestCopyResponse = zod.void()
+
+
+export const EraseDataRequestParams = zod.object({
+  "id": zod.uuid()
+})
+
+export const EraseDataRequestBody = zod.object({
+  "confirmation": zod.string()
+}).describe('Erases the candidate behind an erasure request. `confirmation` is the candidate\'s full name as the person typed it,\ncompared ignoring case and surrounding spaces.')
+
+export const EraseDataRequestResponse = zod.void()
+
+
+export const DeclineDataRequestParams = zod.object({
+  "id": zod.uuid()
+})
+
+export const DeclineDataRequestBody = zod.object({
+  "reason": zod.string()
+}).describe('Declines a request. `reason` (1 to 500 characters) is emailed to the candidate, so it is written for them.')
+
+export const DeclineDataRequestResponse = zod.void()
+
+
+export const getOrganizationRetentionResponseLastUpdatedCreatedDefault = false;
+
+export const GetOrganizationRetentionResponse = zod.object({
+  "months": zod.int().nullable(),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(getOrganizationRetentionResponseLastUpdatedCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "lastRun": zod.union([zod.null(),zod.object({
+  "at": zod.iso.datetime({"offset":true}),
+  "applicationsRemoved": zod.int()
+}).describe('When a retention run last deleted applications, and how many (the latest batch, when a run took several).')])
+}).describe('The organization\'s record retention. `months` is how long after it ended an application stays before it is deleted\n(1 to 120), or `null` for never, the default. `lastUpdated` is the last change ("by ScreenHire" while it is\nthe default); its history is `/v1/organization/data-retention/history`. `lastRun` is the newest run that deleted\nsomething, or `null` when none has.')
+
+
+export const UpdateOrganizationRetentionBody = zod.object({
+  "months": zod.int().nullable()
+}).describe('Sets the period (1 to 120 months), or turns retention off with `null`.')
+
+export const updateOrganizationRetentionResponseLastUpdatedCreatedDefault = false;
+
+export const UpdateOrganizationRetentionResponse = zod.object({
+  "months": zod.int().nullable(),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(updateOrganizationRetentionResponseLastUpdatedCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "lastRun": zod.union([zod.null(),zod.object({
+  "at": zod.iso.datetime({"offset":true}),
+  "applicationsRemoved": zod.int()
+}).describe('When a retention run last deleted applications, and how many (the latest batch, when a run took several).')])
+}).describe('The organization\'s record retention. `months` is how long after it ended an application stays before it is deleted\n(1 to 120), or `null` for never, the default. `lastUpdated` is the last change ("by ScreenHire" while it is\nthe default); its history is `/v1/organization/data-retention/history`. `lastRun` is the newest run that deleted\nsomething, or `null` when none has.')
+
+
+export const GetOrganizationRetentionHistoryQueryParams = zod.object({
+  "before": zod.uuid().optional(),
+  "limit": zod.int().optional()
+})
+
+export const GetOrganizationRetentionHistoryResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "id": zod.uuid(),
+  "at": zod.iso.datetime({"offset":true}),
+  "by": zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)]),
+  "userId": zod.uuid().nullable(),
+  "apiKeyId": zod.uuid().nullable(),
+  "lines": zod.array(zod.object({
+  "text": zod.string(),
+  "parts": zod.array(zod.object({
+  "text": zod.string(),
+  "strong": zod.boolean()
+})),
+  "details": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string().nullable(),
+  "after": zod.string().nullable(),
+  "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
+}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
+}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
+}).describe('Everything one save changed in the object: who, when, and a line per change.')),
+  "nextBefore": zod.uuid().nullable()
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
+
+
+export const PreviewOrganizationRetentionQueryParams = zod.object({
+  "months": zod.int().optional()
+})
+
+export const PreviewOrganizationRetentionResponse = zod.object({
+  "applications": zod.int(),
+  "candidates": zod.int()
+}).describe('What saving a period would delete right now: `applications` that ended before it, belonging to `candidates`\ndifferent people. Saved candidates are never counted.')
+
+
 export const GetApplicationVerificationParams = zod.object({
   "applicationId": zod.uuid()
 })
@@ -6709,7 +6898,7 @@ export const CreateInvitationResponse = zod.object({
 
 export const ListMembershipLogResponseItem = zod.object({
   "id": zod.uuid(),
-  "kind": zod.enum(['Invited', 'InvitationRevoked', 'Joined', 'RoleChanged', 'Removed', 'RoleCreated', 'RoleUpdated', 'RoleDeleted', 'JobAccessChanged', 'AddedToHiringTeam', 'RemovedFromHiringTeam', 'CandidateErased']),
+  "kind": zod.enum(['Invited', 'InvitationRevoked', 'Joined', 'RoleChanged', 'Removed', 'RoleCreated', 'RoleUpdated', 'RoleDeleted', 'JobAccessChanged', 'AddedToHiringTeam', 'RemovedFromHiringTeam', 'CandidateErased', 'DataRequestReceived', 'DataRequestCopySent', 'DataRequestDeclined', 'RetentionApplied']),
   "actorUserId": zod.uuid().nullable(),
   "memberUserId": zod.uuid().nullable(),
   "invitationId": zod.uuid().nullable(),
@@ -6726,8 +6915,10 @@ export const ListMembershipLogResponseItem = zod.object({
   "jobTitle": zod.string().nullable(),
   "hiringTemplateId": zod.uuid().nullable(),
   "hiringTemplateName": zod.string().nullable(),
-  "actorApiKeyId": zod.uuid().nullable()
-}).describe('One entry in the organization\'s membership log. `actorUserId` made the change, or `actorApiKeyId` when an\nAPI key did; `memberUserId` is who it is\nabout (null for an invitation not accepted yet and for a change to a role itself). `previousRole` and\n`role` are set where the kind has them, with the custom role\'s id and its name at the time; for RoleCreated,\nRoleUpdated and RoleDeleted, `customRoleId` and `roleName` are the role, and a rename keeps the old name in\n`previousRoleName`. JobAccessChanged sets `previousJobAccess` and `jobAccess`; an invitation and a\njoin set `jobAccess`. AddedToHiringTeam and RemovedFromHiringTeam name a job (`jobId`, with its title now)\nor a hiring template\'s default team (`hiringTemplateId`, with its name now). A reader who sees only their own\njobs gets no entries about the others.')
+  "actorApiKeyId": zod.uuid().nullable(),
+  "dataRequestId": zod.uuid().nullish(),
+  "itemCount": zod.int().nullish()
+}).describe('One entry in the organization\'s membership log. `actorUserId` made the change, or `actorApiKeyId` when an\nAPI key did; `memberUserId` is who it is\nabout (null for an invitation not accepted yet and for a change to a role itself). `previousRole` and\n`role` are set where the kind has them, with the custom role\'s id and its name at the time; for RoleCreated,\nRoleUpdated and RoleDeleted, `customRoleId` and `roleName` are the role, and a rename keeps the old name in\n`previousRoleName`. JobAccessChanged sets `previousJobAccess` and `jobAccess`; an invitation and a\njoin set `jobAccess`. AddedToHiringTeam and RemovedFromHiringTeam name a job (`jobId`, with its title now)\nor a hiring template\'s default team (`hiringTemplateId`, with its name now). A reader who sees only their own\njobs gets no entries about the others. The data request kinds and CandidateErased from a request set `dataRequestId`\n(an id only, never the candidate); RetentionApplied sets `itemCount`, the applications it deleted.')
 export const ListMembershipLogResponse = zod.array(ListMembershipLogResponseItem)
 
 

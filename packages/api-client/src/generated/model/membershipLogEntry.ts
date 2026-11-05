@@ -17,7 +17,8 @@ import type { OrganizationRole } from './organizationRole.ts';
  * `previousRoleName`. JobAccessChanged sets `previousJobAccess` and `jobAccess`; an invitation and a
  * join set `jobAccess`. AddedToHiringTeam and RemovedFromHiringTeam name a job (`jobId`, with its title now)
  * or a hiring template's default team (`hiringTemplateId`, with its name now). A reader who sees only their own
- * jobs gets no entries about the others.
+ * jobs gets no entries about the others. The data request kinds and CandidateErased from a request set `dataRequestId`
+ * (an id only, never the candidate); RetentionApplied sets `itemCount`, the applications it deleted.
  */
 export interface MembershipLogEntry {
   id: string;
@@ -51,4 +52,8 @@ export interface MembershipLogEntry {
   hiringTemplateName: string | null;
   /** @nullable */
   actorApiKeyId: string | null;
+  /** @nullable */
+  dataRequestId?: string | null;
+  /** @nullable */
+  itemCount?: number | null;
 }

@@ -1,6 +1,7 @@
 using System.Globalization;
 using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.Privacy;
 using ScreenHire.Domain.TalentPool;
 
 namespace ScreenHire.Domain.History;
@@ -10,7 +11,8 @@ namespace ScreenHire.Domain.History;
 /// from Brightwater to <b>Brightwater Studio</b>") and the questions per page ("changed questions per page from 8 to
 /// <b>10</b>") and the sites that may embed the careers page ("let <b>https://www.example.com</b> embed the careers
 /// page"), all on the Organization page, the branding ("changed the brand colour from #1f4e5a to
-/// <b>#2b2788</b>", "replaced the logo") and the verification settings ("turned on <b>the consistency check</b>"). Creating the organization is not
+/// <b>#2b2788</b>", "replaced the logo"), the verification settings ("turned on <b>the consistency check</b>") and record
+/// retention ("turned on deleting ended applications <b>18 months</b> after they end"). Creating the organization is not
 /// a change anyone made on these pages, so it records nothing.
 /// </summary>
 public static class SettingsChanges
@@ -124,6 +126,32 @@ public static class SettingsChanges
         }
 
         return lines;
+    }
+
+    /// <param name="before">The settings before the save; null on the first save, which compares with the default (off).</param>
+    /// <param name="after">The settings after the save.</param>
+    public static IReadOnlyList<ChangeLine> Retention(RetentionSettings? before, RetentionSettings? after)
+    {
+        if (after is null)
+        {
+            return [];
+        }
+
+        var (was, now) = (before?.EndedApplicationsMonths, after.EndedApplicationsMonths);
+        if (was == now)
+        {
+            return [];
+        }
+
+        if (now is not { } months)
+        {
+            return [ChangeLine.Of("turned off ", "deleting ended applications")];
+        }
+
+        var period = $"{months.ToString(CultureInfo.InvariantCulture)} {(months == 1 ? "month" : "months")}";
+        return was is null
+            ? [ChangeLine.Of("turned on deleting ended applications ", period, " after they end")]
+            : [ChangeLine.Of("changed when ended applications are deleted to ", period, " after they end")];
     }
 
     /// <param name="before">The saved entry before the save; null when the save added it.</param>

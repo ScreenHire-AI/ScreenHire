@@ -1754,6 +1754,251 @@
         }
       }
     },
+    "/v1/public/organizations/{organizationSlug}/data-requests": {
+      "get": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "GetPublicDataRequestForm",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicDataRequestForm"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/data-requests/links": {
+      "post": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "RequestPublicDataRequestLink",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicDataRequestLinkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/data-requests/{token}": {
+      "get": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "GetPublicDataRequestChoices",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicDataRequestLinkStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "MakePublicDataRequest",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicDataRequestChoice"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicDataRequestReceipt"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/data-requests/downloads/{token}": {
+      "get": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "GetPublicDataDownload",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicDataDownload"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
     "/v1/jobs": {
       "get": {
         "tags": [
@@ -4536,6 +4781,482 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/data-requests": {
+      "get": {
+        "tags": [
+          "Data requests"
+        ],
+        "operationId": "ListDataRequests",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataRequestList"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/data-requests/{id}/send-copy": {
+      "post": {
+        "tags": [
+          "Data requests"
+        ],
+        "operationId": "SendDataRequestCopy",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/data-requests/{id}/erase": {
+      "post": {
+        "tags": [
+          "Data requests"
+        ],
+        "operationId": "EraseDataRequest",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EraseDataRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/data-requests/{id}/decline": {
+      "post": {
+        "tags": [
+          "Data requests"
+        ],
+        "operationId": "DeclineDataRequest",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeclineDataRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/data-retention": {
+      "get": {
+        "tags": [
+          "Data retention"
+        ],
+        "operationId": "GetOrganizationRetention",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationRetention"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Data retention"
+        ],
+        "operationId": "UpdateOrganizationRetention",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRetentionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationRetention"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/data-retention/history": {
+      "get": {
+        "tags": [
+          "Data retention"
+        ],
+        "operationId": "GetOrganizationRetentionHistory",
+        "parameters": [
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/data-retention/preview": {
+      "get": {
+        "tags": [
+          "Data retention"
+        ],
+        "operationId": "PreviewOrganizationRetention",
+        "parameters": [
+          {
+            "name": "months",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetentionPreview"
+                }
+              }
+            }
           },
           "404": {
             "description": "Not Found"
@@ -15551,6 +16272,141 @@
         },
         "description": "One of the organization's custom roles, for its page. `copiedFrom` is the name of the role it started as."
       },
+      "DataRequestCandidate": {
+        "required": [
+          "id",
+          "name",
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          }
+        },
+        "description": "Who asked, while they are still in the organization's records: `id`, `name` and `email`. A request from\nsomeone since erased has no candidate (`null`), and nothing about them is kept."
+      },
+      "DataRequestEntry": {
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "receivedAt",
+          "dueAt",
+          "overdue",
+          "resolvedAt",
+          "copySentAt",
+          "declineReason",
+          "candidate"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DataRequestKind"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DataRequestStatus"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "overdue": {
+            "type": "boolean"
+          },
+          "resolvedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "copySentAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "declineReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "candidate": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DataRequestCandidate"
+              }
+            ]
+          }
+        },
+        "description": "One candidate's request for a copy of their data or for it to be erased. `dueAt` is the team's target for an answer\nand `overdue` says it has passed while the request is still open; neither is a promise to the candidate.\n`copySentAt` is when the download link for a copy went out. `declineReason` is what the team told the candidate;\nit is cleared if the candidate is erased."
+      },
+      "DataRequestKind": {
+        "enum": [
+          "Copy",
+          "Erasure"
+        ]
+      },
+      "DataRequestList": {
+        "required": [
+          "items",
+          "openCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataRequestEntry"
+            }
+          },
+          "openCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "The organization's data requests, earliest due date first: every open one, and those answered in the last 90 days.\n`openCount` is how many are open."
+      },
+      "DataRequestStatus": {
+        "enum": [
+          "Open",
+          "Completed",
+          "Declined"
+        ]
+      },
+      "DeclineDataRequestRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          }
+        },
+        "description": "Declines a request. `reason` (1 to 500 characters) is emailed to the candidate, so it is written for them."
+      },
       "DefinitionError": {
         "required": [
           "path",
@@ -15831,6 +16687,18 @@
           }
         },
         "description": "Erases a candidate. `confirmation` is the candidate's full name as the person typed it, compared ignoring case and\nsurrounding spaces, so an erasure is never one stray click."
+      },
+      "EraseDataRequestRequest": {
+        "required": [
+          "confirmation"
+        ],
+        "type": "object",
+        "properties": {
+          "confirmation": {
+            "type": "string"
+          }
+        },
+        "description": "Erases the candidate behind an erasure request. `confirmation` is the candidate's full name as the person typed it,\ncompared ignoring case and surrounding spaces."
       },
       "EvaluationOutcome": {
         "enum": [
@@ -17892,7 +18760,11 @@
           "JobAccessChanged",
           "AddedToHiringTeam",
           "RemovedFromHiringTeam",
-          "CandidateErased"
+          "CandidateErased",
+          "DataRequestReceived",
+          "DataRequestCopySent",
+          "DataRequestDeclined",
+          "RetentionApplied"
         ]
       },
       "MembershipLogEntry": {
@@ -18049,9 +18921,23 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "dataRequestId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "itemCount": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         },
-        "description": "One entry in the organization's membership log. `actorUserId` made the change, or `actorApiKeyId` when an\nAPI key did; `memberUserId` is who it is\nabout (null for an invitation not accepted yet and for a change to a role itself). `previousRole` and\n`role` are set where the kind has them, with the custom role's id and its name at the time; for RoleCreated,\nRoleUpdated and RoleDeleted, `customRoleId` and `roleName` are the role, and a rename keeps the old name in\n`previousRoleName`. JobAccessChanged sets `previousJobAccess` and `jobAccess`; an invitation and a\njoin set `jobAccess`. AddedToHiringTeam and RemovedFromHiringTeam name a job (`jobId`, with its title now)\nor a hiring template's default team (`hiringTemplateId`, with its name now). A reader who sees only their own\njobs gets no entries about the others."
+        "description": "One entry in the organization's membership log. `actorUserId` made the change, or `actorApiKeyId` when an\nAPI key did; `memberUserId` is who it is\nabout (null for an invitation not accepted yet and for a change to a role itself). `previousRole` and\n`role` are set where the kind has them, with the custom role's id and its name at the time; for RoleCreated,\nRoleUpdated and RoleDeleted, `customRoleId` and `roleName` are the role, and a rename keeps the old name in\n`previousRoleName`. JobAccessChanged sets `previousJobAccess` and `jobAccess`; an invitation and a\njoin set `jobAccess`. AddedToHiringTeam and RemovedFromHiringTeam name a job (`jobId`, with its title now)\nor a hiring template's default team (`hiringTemplateId`, with its name now). A reader who sees only their own\njobs gets no entries about the others. The data request kinds and CandidateErased from a request set `dataRequestId`\n(an id only, never the candidate); RetentionApplied sets `itemCount`, the applications it deleted."
       },
       "MoveApplicationRequest": {
         "required": [
@@ -18238,6 +19124,37 @@
           }
         },
         "description": "The signed-in user's organization. `slug` names its careers pages and public API routes and does not change after\nonboarding; `careersUrl` is its careers board on the configured careers domain, where `{careersUrl}/embed.js`\nis the embeddable widget's script. `questionsPerPage` is how many questions candidates see on each page of a\nquestionnaire that has no sections. `embedOrigins` are the sites allowed to show the careers pages in a frame\n(origins such as `https://www.example.com`, in the order they were added). `lastUpdated` is the last change\nto the name, the questions per page or the sites, or when the organization was made; its history is\n`/v1/organization/history`."
+      },
+      "OrganizationRetention": {
+        "required": [
+          "months",
+          "lastUpdated",
+          "lastRun"
+        ],
+        "type": "object",
+        "properties": {
+          "months": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "lastUpdated": {
+            "$ref": "#/components/schemas/LastUpdate"
+          },
+          "lastRun": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RetentionLastRun"
+              }
+            ]
+          }
+        },
+        "description": "The organization's record retention. `months` is how long after it ended an application stays before it is deleted\n(1 to 120), or `null` for never, the default. `lastUpdated` is the last change (\"by ScreenHire\" while it is\nthe default); its history is `/v1/organization/data-retention/history`. `lastRun` is the newest run that deleted\nsomething, or `null` when none has."
       },
       "OrganizationRole": {
         "enum": [
@@ -19099,6 +20016,105 @@
           }
         },
         "description": "The candidate as the apply form asks: a first name, an optional last name, the email and an optional phone."
+      },
+      "PublicDataDownload": {
+        "required": [
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        },
+        "description": "A short-lived address that downloads the candidate's copy."
+      },
+      "PublicDataRequestChoice": {
+        "required": [
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/DataRequestKind"
+          }
+        },
+        "description": "The candidate's choice: a copy of their data, or its erasure."
+      },
+      "PublicDataRequestForm": {
+        "required": [
+          "organizationName",
+          "enabled",
+          "turnstileSiteKey"
+        ],
+        "type": "object",
+        "properties": {
+          "organizationName": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "turnstileSiteKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "What the careers data request page needs before it asks for an address. `enabled` is false where the deployment\nsends no email or has no careers host to link to: the page then keeps its \"write to the employer\" text.\n`turnstileSiteKey` is null unless the bot challenge is configured."
+      },
+      "PublicDataRequestLinkRequest": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "botCheckToken": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "The address a candidate types to be sent the link that opens their choices. The answer to it is the same whether or not\nthe address has applied, so it tells nobody who has."
+      },
+      "PublicDataRequestLinkStatus": {
+        "required": [
+          "organizationName"
+        ],
+        "type": "object",
+        "properties": {
+          "organizationName": {
+            "type": "string"
+          }
+        },
+        "description": "What a valid emailed link opens: the organization the candidate will be asking, by name."
+      },
+      "PublicDataRequestReceipt": {
+        "required": [
+          "id",
+          "kind",
+          "receivedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DataRequestKind"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "The request the choice created, or the one that was already open. It never carries the team's due date, which is a\ntarget on their dashboard and not a promise to the candidate."
       },
       "PublicHeaderColors": {
         "required": [
@@ -20022,6 +21038,42 @@
           }
         },
         "description": "Ask a teammate for a scorecard: a Scorecard task assigned to them, done when they submit that scorecard for the\napplication."
+      },
+      "RetentionLastRun": {
+        "required": [
+          "at",
+          "applicationsRemoved"
+        ],
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "applicationsRemoved": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "When a retention run last deleted applications, and how many (the latest batch, when a run took several)."
+      },
+      "RetentionPreview": {
+        "required": [
+          "applications",
+          "candidates"
+        ],
+        "type": "object",
+        "properties": {
+          "applications": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "candidates": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "What saving a period would delete right now: `applications` that ended before it, belonging to `candidates`\ndifferent people. Saved candidates are never counted."
       },
       "RoleCatalogue": {
         "required": [
@@ -22237,6 +23289,22 @@
         },
         "description": "Renames the organization and, when given, sets its questions per page (1 to 50); null keeps it. Its slug, and so its\ncareers address, stays as it is."
       },
+      "UpdateRetentionRequest": {
+        "required": [
+          "months"
+        ],
+        "type": "object",
+        "properties": {
+          "months": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "Sets the period (1 to 120 months), or turns retention off with `null`."
+      },
       "UpdateRoleRequest": {
         "required": [
           "name",
@@ -23417,6 +24485,12 @@
     },
     {
       "name": "Candidates"
+    },
+    {
+      "name": "Data requests"
+    },
+    {
+      "name": "Data retention"
     },
     {
       "name": "Verification"

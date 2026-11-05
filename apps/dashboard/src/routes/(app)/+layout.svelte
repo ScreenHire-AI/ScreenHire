@@ -27,7 +27,14 @@
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { preferences } from '#lib/preferences.svelte.js';
-  import { mentionNotification, mentionNotificationId, Notifications, replyNotification, teamNotification } from '#lib/notifications.svelte.js';
+  import {
+    dataRequestNotification,
+    mentionNotification,
+    mentionNotificationId,
+    Notifications,
+    replyNotification,
+    teamNotification,
+  } from '#lib/notifications.svelte.js';
   import { createQueryClient } from '#lib/query.js';
   import { startLiveUpdates } from '#lib/realtime.js';
   import { sidebarViews } from '#lib/sidebar-views.js';
@@ -88,6 +95,11 @@
       void notifyMention(event.data.applicationId, event.data.noteId, event.data.authorUserId);
     }
     if (event.type === 'ApplicationNoteDeleted') notifications.dismiss(mentionNotificationId(event.data.noteId));
+    // A candidate's data request shows a card to the people who may act on it (Erase candidates, every job); it carries no name.
+    if (event.type === 'DataRequestReceived') {
+      const card = dataRequestNotification(data.user, event.data.requestId, event.data.kind);
+      if (card) notifications.add(card);
+    }
     // A candidate's reply shows a card to the person who sent the email it answers, or, when an automation sent it, to everyone
     // the event reaches (the members who see the job). An automatic answer (out of office) shows none.
     if (event.type === 'CandidateReplied' && !event.data.autoReply && (!event.data.senderUserId || event.data.senderUserId === data.user?.id)) {

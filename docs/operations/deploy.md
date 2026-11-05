@@ -34,7 +34,7 @@ Expect to correct a flag or two on the first pass and fix this page when you do.
 | Worker | Container Apps, no ingress, 1 replica fixed | 0.25 vCPU, 0.5 GiB |
 | Careers site | Container Apps, external ingress, 1 to 2 replicas | 0.25 vCPU, 0.5 GiB |
 | Database | PostgreSQL Flexible Server 17, Burstable B1ms, 32 GB, 7-day backups, password login, `pg_trgm` allowed | |
-| Files | Blob Storage, locally redundant, three private containers, CORS for the browser's direct uploads | |
+| Files | Blob Storage, locally redundant, four private containers, CORS for the browser's direct uploads | |
 | Secrets and keys | Key Vault: required secrets, the Data Protection key. A second vault (`postgreskv-...`) holds the Postgres owner's connection strings, which Aspire writes there. No app has a role on it. | |
 | Images | Azure Container Registry (Basic), created by the Container Apps environment | |
 | Marketing and dashboard | Cloudflare Pages, built from this repository | |

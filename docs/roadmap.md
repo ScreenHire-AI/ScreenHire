@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: "Roadmap"
-description: "The order of work after the MVP: what each finished workflow delivered and in which PRs, what comes next (page audits, editing a posting for one board, candidate data requests, hosting readiness), later items, and what must exist before real customers."
+description: "The order of work after the MVP: what each finished workflow delivered and in which PRs, what comes next (page audits, editing a posting for one board, hosting readiness), later items, and what must exist before real customers."
 tags: [roadmap, planning]
 ---
 # Roadmap
@@ -29,6 +29,7 @@ each item names the doc that designs it. Board workflows carry the detail.
 | Reports (roadmap item 5): headline numbers, a weekly trend, the funnel, days in each stage, sources and open jobs; adding a candidate by hand with a resume, server search behind Ctrl K and a Last activity column ([reports](architecture/reports.md)) | "After the owner's review: scorecards, verification review, candidates, reports, branding and the roadmap's next items"; "Owner review of the second build" | #61 to #74, #81 |
 | Saved candidates (roadmap item 7, first built as the talent pool): Save candidate beside Reject, kept with no end date until the team removes them or they stop it, with Rating, Last contacted and a note the team can edit ([saved candidates](architecture/talent-pool.md)) | "After the owner's review: scorecards, verification review, candidates, reports, branding and the roadmap's next items"; "Owner review of the second build" | #61 to #74, #84 |
 | Connect to Slack (roadmap item 9): an Admin installs the app from Settings, a channel gets the events the team picks, and each person gets their own mentions and tasks ([Slack](architecture/slack.md)) | "After the owner's review: scorecards, verification review, candidates, reports, branding and the roadmap's next items" | #61 to #74 |
+| Candidate data requests and record retention (roadmap item 13): a candidate asks for a copy of their data or to be erased from the careers privacy page through an emailed link, the team answers in Settings, Data requests (Send a copy, Erase, Decline) against a due date, and an off-by-default retention setting deletes ended applications daily after a dry-run count ([data requests](architecture/data-requests.md)) | "Production polish: page audits, per-board postings, data requests and hosting readiness" | the data requests task |
 | Hosting readiness (roadmap item 14): the Azure definition, an AppHost publish model with the Bicep it generates under `infra/` and `azure.yaml`, a migrator that creates the schema as the database owner, production settings that stop a host naming what is missing, secrets and the Data Protection key in Key Vault, a CI check that the definition still generates, and the [deploy runbook](operations/deploy.md) (ADR-0007). Nothing is deployed | "Production polish: page audits, per-board postings, data requests and hosting readiness" | The hosting readiness task |
 
 ## Next
@@ -37,7 +38,6 @@ each item names the doc that designs it. Board workflows carry the detail.
 |---|---|---|---|
 | 11 | Page audits: every dashboard, careers and marketing page checked against the [design system](design/design-system.md) and for usability, and fixed | "Production polish: page audits, per-board postings, data requests and hosting readiness" | The features work; UI gaps are what keep the app from being ready for customers |
 | 12 | Edit a job posting for one board or for every board, so a board that refuses a job can be fixed without changing the others ([job distribution](architecture/job-distribution.md)) | "Production polish: page audits, per-board postings, data requests and hosting readiness" | Today the only fix for one board is editing the job for all of them |
-| 13 | Candidate data requests and record retention | "Production polish: page audits, per-board postings, data requests and hosting readiness" | The privacy page tells a candidate to write to the employer, and nothing deletes an ended application |
 
 ## Later
 
@@ -63,8 +63,7 @@ each item names the doc that designs it. Board workflows carry the detail.
 
 - **Hosting:** defined and written down, not deployed. The [deploy runbook](operations/deploy.md) lists every owner step. CI runs on GitHub Actions (ADR-0020).
 - **Billing:** none exists.
-- **Compliance** ([legal](research/legal.md)): data-access requests and a form for candidates to ask for erasure (a
-  person erases a candidate from the profile today), record retention, bias audits,
+- **Compliance** ([legal](research/legal.md)): bias audits,
   Colorado and California automated-decision rules (due 1 January 2027), EU AI Act provider duties (due 2 December
   2027), the customer documentation pack.
 - **Accessibility:** an external WCAG 2.2 audit before general availability (ADR-0009).

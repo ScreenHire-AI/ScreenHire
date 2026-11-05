@@ -31,6 +31,11 @@
 //                               machine works; never in production), RetryDelays:0..n and DisableAfterFailedDeliveries
 //                               (the tests shorten both). The signing key comes from the webhook-signing-key parameter,
 //                               never from these keys.
+//   DataRequests:*              candidates' requests for a copy of their data or for its erasure (ScreenHire.Application
+//                               DataRequestOptions, docs/architecture/data-requests.md), forwarded to the API and the worker:
+//                               DueDays, LinkLifetime, LinkCooldown, ExportLifetime, PermitsPerMinute and ExportContainer.
+//   Retention:*                 the daily record retention run (ScreenHire.Application RecordRetentionOptions), forwarded to
+//                               the API and the worker: BatchSize. Each organization's period is its own setting, off by default.
 //   CareersEmbedding:*          the sites allowed to embed the careers pages (the API's CareersEmbeddingOptions,
 //                               docs/architecture/careers-widget.md), forwarded to the API: AllowLoopback
 //                               (appsettings.Development.json and the test stacks turn it on, so a site on this machine,
@@ -219,6 +224,20 @@ foreach (var (key, value) in settings.GetSection("Webhooks").AsEnumerable(makePa
         var name = $"ScreenHire__Webhooks__{key.Replace(":", "__", StringComparison.Ordinal)}";
         api.WithEnvironment(name, value);
         worker.WithEnvironment(name, value);
+    }
+}
+
+// Data requests and record retention (docs/architecture/data-requests.md): plain settings, no secrets, read by both hosts.
+foreach (var section in new[] { "DataRequests", "Retention" })
+{
+    foreach (var (key, value) in settings.GetSection(section).AsEnumerable(makePathsRelative: true))
+    {
+        if (value is not null)
+        {
+            var name = $"ScreenHire__{section}__{key.Replace(":", "__", StringComparison.Ordinal)}";
+            api.WithEnvironment(name, value);
+            worker.WithEnvironment(name, value);
+        }
     }
 }
 

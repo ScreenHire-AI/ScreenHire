@@ -65,7 +65,8 @@ public sealed record InterviewEventToRemove(Guid InterviewId, Guid UserId, strin
 /// <summary>
 /// Deletes events from interviewers' calendars without telling their guests, for a candidate who was erased: an event
 /// holds the candidate's name and address, and the rows that said where it is are gone with the candidate. Ids and times
-/// only, never a name or an address. <see cref="CauseId"/> is the erased candidate.
+/// only, never a name or an address. <see cref="CauseId"/> is the erased candidate, or the application removed when only some of a
+/// candidate's applications went (record retention), so a later erasure of the whole candidate is not dropped as a repeat.
 /// </summary>
 public sealed record RemoveInterviewEvents(Guid OrganizationId, Guid CauseId, IReadOnlyList<InterviewEventToRemove> Events) : ITenantMessage
 {

@@ -2,13 +2,9 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
-using ScreenHire.Application.Applications;
 using ScreenHire.Application.Candidates;
-using ScreenHire.Application.Scheduling;
-using ScreenHire.Application.Verification;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Organizations;
-using ScreenHire.Domain.Scheduling;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
@@ -88,13 +84,13 @@ internal static class CandidateEndpoints
         Guid candidateId,
         EraseCandidateRequest request,
         IDbContextOutbox<ScreenHireDbContext> outbox,
-        IApplicantDirectory directory,
+        CandidateErasure erasure,
         ITenantContext tenant,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
         var db = outbox.DbContext;
-        if (!tenant.SeesAllJobs || tenant.OrganizationId is not { } organizationId)
+        if (!tenant.SeesAllJobs || tenant.OrganizationId is null)
         {
             return TypedResults.NotFound();
         }
@@ -113,73 +109,20 @@ internal static class CandidateEndpoints
             return TypedResults.ValidationProblem(ValidationExtensions.Problem("confirmation", "Type the candidate's full name to confirm."));
         }
 
-        var now = time.GetUtcNow();
-        var applications = await db.Applications.AsNoTracking().Where(a => a.CandidateId == candidateId).ToListAsync(cancellationToken);
-        var applicationIds = applications.Select(a => a.Id).ToList();
-        var jobIds = applications.Select(a => a.JobId).Distinct().ToList();
-        var jobs = await db.Jobs.AsNoTracking().Where(j => jobIds.Contains(j.Id)).ToDictionaryAsync(j => j.Id, cancellationToken);
-        var files = await db.ApplicationFiles.AsNoTracking().Where(f => applicationIds.Contains(f.ApplicationId)).ToListAsync(cancellationToken);
-        var replyAttachments = await db.InboundEmailAttachments.AsNoTracking()
-            .Where(a => applicationIds.Contains(a.ApplicationId)).Select(a => a.BlobName).ToListAsync(cancellationToken);
-        var observations = await db.SubmissionObservations.AsNoTracking()
-            .Where(o => applicationIds.Contains(o.ApplicationId)).ToDictionaryAsync(o => o.ApplicationId, cancellationToken);
-
-        // The events on interviewers' calendars hold the candidate's name and address, and the rows that say where they are
-        // go with the candidate. So their places are read now, under the interviewers' locks (a calendar write in flight
-        // finishes and saves its event ids first), and a message deletes them quietly once this commits.
-        var interviewers = await db.InterviewAttendees.AsNoTracking().Where(a => applicationIds.Contains(a.ApplicationId)).Select(a => a.UserId).ToListAsync(cancellationToken);
-        await InterviewLocks.TakeAsync(db, organizationId, interviewers, cancellationToken);
-        var interviews = await db.InterviewRequests.AsNoTracking().Where(r => applicationIds.Contains(r.ApplicationId)).ToDictionaryAsync(r => r.Id, cancellationToken);
-        var eventsToRemove = (await db.InterviewAttendees.AsNoTracking().Where(a => applicationIds.Contains(a.ApplicationId)).ToListAsync(cancellationToken))
-            .Where(a => interviews[a.InterviewId] is { } i
-                && (i.Status == InterviewStatus.Booked
-                    || (i.Status == InterviewStatus.Cancelled && a.ProviderEventId is not null && a.SyncStatus != InterviewSyncStatus.Synced)))
-            .Select(a => new InterviewEventToRemove(
-                a.InterviewId, a.UserId, a.ProviderEventId, interviews[a.InterviewId].WindowStart, interviews[a.InterviewId].WindowEnd))
-            .ToList();
-
-        // Who shared a detail with these applications, read before the rows go. A person has a handful of applications, so
-        // this asks the directory once for each, the same question the duplicate check asks.
-        var rechecks = new List<RecheckApplicationDuplicates>();
-        foreach (var application in applications)
+        // The one erasure shared with the data requests' Erase action and record retention. It deletes through `db` (this
+        // transaction) and hands back the messages, which go out in the same save.
+        var messages = await erasure.EraseCandidateAsync(db, candidateId, tenant.UserId, dataRequestId: null, time.GetUtcNow(), cancellationToken);
+        if (messages is null)
         {
-            var context = new VerificationContext(
-                application, candidate, jobs[application.JobId], observations.GetValueOrDefault(application.Id),
-                [.. files.Where(f => f.ApplicationId == application.Id)], now);
-            var related = (await directory.FindSharedAsync(context, cancellationToken)).SelectMany(m => m.ApplicationIds).Distinct();
-            rechecks.AddRange(related.Select(id => new RecheckApplicationDuplicates(organizationId, id, application.Id, CauseErased: true)));
+            return TypedResults.NotFound();
         }
 
-        // A draft saved before applying is keyed by the address, not by a candidate row, so no cascade reaches it.
-        db.ApplicationDrafts.RemoveRange(await db.ApplicationDrafts.Where(d => d.Email == candidate.NormalizedEmail).ToListAsync(cancellationToken));
-        // The history of a saved note holds its text, keeps no link to the candidate and is append-only for this role. Run
-        // before the delete below: the function keeps what belongs to every other candidate's entry.
-        await db.Database.ExecuteSqlAsync($"SELECT erase_saved_note_history({candidateId})", cancellationToken);
-        db.Candidates.Remove(candidate);
-        db.MembershipEvents.Add(new MembershipEvent
+        // Each message goes out by its own type, so the files, the calendars and the dashboards each hear their part.
+        foreach (var message in messages)
         {
-            OrganizationId = organizationId,
-            Kind = MembershipEventKind.CandidateErased,
-            ActorUserId = tenant.UserId,
-            OccurredAt = now,
-        });
-
-        if (files.Count > 0 || replyAttachments.Count > 0)
-        {
-            await outbox.PublishAsync(new EraseApplicantFiles(organizationId, [.. files.Select(f => f.BlobName)], replyAttachments));
+            await outbox.PublishAsync(message);
         }
 
-        foreach (var recheck in rechecks.DistinctBy(r => (r.ApplicationId, r.CauseApplicationId)))
-        {
-            await outbox.PublishAsync(recheck);
-        }
-
-        if (eventsToRemove.Count > 0)
-        {
-            await outbox.PublishAsync(new RemoveInterviewEvents(organizationId, candidateId, eventsToRemove));
-        }
-
-        await outbox.PublishAsync(new CandidateErased(organizationId, candidateId, now));
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
         return TypedResults.NoContent();
     }

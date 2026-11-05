@@ -66,6 +66,33 @@ describe('settings layout', () => {
     expect(screen.queryByText('Settings page content')).not.toBeInTheDocument();
   });
 
+  // Data requests need Erase candidates and every job, as the API does (ADR-0015).
+  describe('Data requests', () => {
+    it.each<Exclude<OrganizationRole, 'Custom'>>(['Owner', 'Admin'])('shows the page to an %s', (role) => {
+      renderAs(userAs(role), '/settings/data-requests');
+
+      expect(screen.getByText('Settings page content')).toBeInTheDocument();
+    });
+
+    it.each<Exclude<OrganizationRole, 'Custom'>>(['Recruiter', 'Viewer'])('tells a %s their role cannot change it', async (role) => {
+      renderAs(userAs(role), '/settings/data-requests');
+
+      expect(screen.getByText('Not in your role')).toBeInTheDocument();
+      expect(screen.getByText('Your role cannot change data requests. Ask an owner or admin of your organization.')).toBeInTheDocument();
+      expect(screen.queryByText('Settings page content')).not.toBeInTheDocument();
+      await expectNoAxeViolations();
+    });
+
+    it('says an admin who sees only their own jobs needs all jobs, and shows no page content', () => {
+      const admin = userAs('Admin');
+      renderAs({ ...admin, organization: { ...admin.organization!, seesAllJobs: false } }, '/settings/data-requests');
+
+      expect(screen.getByText('Needs all jobs')).toBeInTheDocument();
+      expect(screen.getByText(/Data requests reach every job, and you see only the jobs you're on/)).toBeInTheDocument();
+      expect(screen.queryByText('Settings page content')).not.toBeInTheDocument();
+    });
+  });
+
   it('shows no page content when the session has no organization', () => {
     renderAs({ ...user, organization: null });
 

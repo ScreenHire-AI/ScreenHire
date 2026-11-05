@@ -1,5 +1,6 @@
 import { defineAction } from 'astro:actions';
 import { applyStep } from '../lib/apply-server';
+import { makeRequest, requestLink } from '../lib/data-request';
 import { changeInterview } from '../lib/interview';
 import { answerQuestionnaire } from '../lib/questionnaire';
 import { stopKeeping } from '../lib/talent-pool';
@@ -67,5 +68,20 @@ export const server = {
   talentPool: defineAction({
     accept: 'form',
     handler: async (form: FormData, context) => stopKeeping(form, addressOf(context)),
+  }),
+
+  /**
+   * Asks for the emailed link to a data request (docs/architecture/data-requests.md), posted as an HTML form with the bot
+   * check's token. The answer never says whether the address applied. Never throws for the candidate.
+   */
+  requestDataLink: defineAction({
+    accept: 'form',
+    handler: async (form: FormData, context) => requestLink(form, addressOf(context)),
+  }),
+
+  /** A copy or erasure, chosen on the page the emailed link opens. The token travels in a hidden field. Never throws for the candidate. */
+  makeDataRequest: defineAction({
+    accept: 'form',
+    handler: async (form: FormData, context) => makeRequest(form, addressOf(context)),
   }),
 };

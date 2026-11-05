@@ -44,7 +44,8 @@ public sealed record PendingInvitation(
 /// <c>previousRoleName</c>. JobAccessChanged sets <c>previousJobAccess</c> and <c>jobAccess</c>; an invitation and a
 /// join set <c>jobAccess</c>. AddedToHiringTeam and RemovedFromHiringTeam name a job (<c>jobId</c>, with its title now)
 /// or a hiring template's default team (<c>hiringTemplateId</c>, with its name now). A reader who sees only their own
-/// jobs gets no entries about the others.
+/// jobs gets no entries about the others. The data request kinds and CandidateErased from a request set <c>dataRequestId</c>
+/// (an id only, never the candidate); RetentionApplied sets <c>itemCount</c>, the applications it deleted.
 /// </summary>
 public sealed record MembershipLogEntry(
     Guid Id,
@@ -65,7 +66,9 @@ public sealed record MembershipLogEntry(
     string? JobTitle,
     Guid? HiringTemplateId,
     string? HiringTemplateName,
-    Guid? ActorApiKeyId);
+    Guid? ActorApiKeyId,
+    Guid? DataRequestId = null,
+    int? ItemCount = null);
 
 /// <summary>
 /// The organization's roles and what each can do: the four built-in ones, most access first, then its custom roles by
@@ -137,7 +140,7 @@ internal static class TeamMappings
         new(entry.Id, entry.Kind, entry.ActorUserId, entry.MemberUserId, entry.InvitationId,
             entry.PreviousRole, entry.PreviousCustomRoleId, NameOf(entry.PreviousRole, entry.PreviousCustomRoleName),
             entry.Role, entry.CustomRoleId, NameOf(entry.Role, entry.CustomRoleName), entry.OccurredAt,
-            entry.PreviousJobAccess, entry.JobAccess, entry.JobId, jobTitle, entry.HiringTemplateId, templateName, entry.ActorApiKeyId);
+            entry.PreviousJobAccess, entry.JobAccess, entry.JobId, jobTitle, entry.HiringTemplateId, templateName, entry.ActorApiKeyId, entry.DataRequestId, entry.ItemCount);
 
     private static string? NameOf(OrganizationRole? role, string? customName) =>
         role == OrganizationRole.Custom ? customName : customName ?? role?.ToString();

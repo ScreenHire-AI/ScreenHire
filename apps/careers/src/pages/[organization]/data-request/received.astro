@@ -1,0 +1,47 @@
+---
+// Where choosing a copy or erasure lands (POST, then redirect, then this GET). Token-free: the emailed link stays in the
+// candidate's inbox, and the page does not say which of the two they chose, so it says what happens for each.
+import CareersLayout from '../../../layouts/CareersLayout.astro';
+import { getPublicOrganization } from '../../../lib/api';
+import { basePath } from '../../../lib/host';
+
+const { organization } = Astro.params;
+const response = await getPublicOrganization(organization!);
+if (response.status !== 200) {
+  return new Response(null, { status: 404 });
+}
+
+const employer = response.data;
+const base = basePath(Astro.request, employer.slug);
+---
+
+<CareersLayout
+  title={`We have your request | ${employer.name}`}
+  description={`What happens next after you ask ${employer.name} about your data.`}
+  organizationName={employer.name}
+  organizationSlug={employer.slug}
+  branding={employer.branding}
+  noindex
+>
+  <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">We have your request</h1>
+  <p class="mt-3 text-candidate-body">The hiring team at {employer.name} will see it and decide how to answer.</p>
+
+  <section aria-labelledby="next" class="mt-6">
+    <h2 id="next" class="font-display text-xl leading-tight font-bold">What happens next</h2>
+    <ul class="mt-2 flex list-disc flex-col gap-1.5 pl-5 text-candidate-body">
+      <li>
+        If you asked for a copy, we email a link to the file when it is ready. The link works for a limited time, so download
+        the file when it arrives.
+      </li>
+      <li>
+        If you asked for erasure and it goes ahead, we cannot email you afterwards, because your email address is erased too.
+        You will not get a message when it is done.
+      </li>
+    </ul>
+  </section>
+
+  <p class="mt-6 text-sm">
+    <a href={`${base}/privacy`} class="text-link">What we collect and why</a>
+  </p>
+  <a href={base || '/'} class="button-secondary mt-4">See open roles</a>
+</CareersLayout>

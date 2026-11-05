@@ -6,6 +6,7 @@ using ScreenHire.Domain.History;
 using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.Privacy;
 using ScreenHire.Domain.TalentPool;
 using ScreenHire.Domain.Webhooks;
 using ScreenHire.Infrastructure.Persistence.History;
@@ -20,7 +21,8 @@ public sealed partial class TrackedKindsTests
         TrackedKinds.All.Select(k => k.EntityType).Should().BeEquivalentTo(
         [
             typeof(HiringTemplate), typeof(HiringTemplateVersion), typeof(EmailTemplate), typeof(Job), typeof(JobPosting), typeof(ScorecardTemplate),
-            typeof(CustomRole), typeof(Organization), typeof(Organization), typeof(VerificationSettings), typeof(TalentPoolEntry), typeof(SendingDomain),
+            typeof(CustomRole), typeof(Organization), typeof(Organization), typeof(VerificationSettings), typeof(RetentionSettings), typeof(TalentPoolEntry),
+            typeof(SendingDomain),
             typeof(OrganizationMember), typeof(OrganizationInvitation), typeof(ApiKey),
         ]);
         TrackedKinds.FindAll(typeof(WebhookEndpoint)).Should().BeEmpty("its row holds the signing secret (ADR-0016)");

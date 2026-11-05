@@ -130,7 +130,7 @@ an application over it. `Source` stays `CareersSite`: the observation, the telem
 check treat a widget application as any careers-page one, and the automation fact `application.source` keeps its two
 values. `ApplicationSummary`, `ApplicationDetail` and the MCP server's application carry `sourceSite`; the dashboard
 shows the site's host in the Source column and "Applied 2 hours ago via www.example.com" in the header. The privacy page
-says the site is noted (notice version `2026-11-02.1`).
+says the site is noted (notice version `2026-11-05.1`).
 
 A draft saved inside the widget keeps no site: its emailed link opens on the careers site, and that application has no
 source site. Reports still count widget applications under the careers page.

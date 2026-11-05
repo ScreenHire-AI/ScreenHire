@@ -205,13 +205,14 @@ reply lands in Messages ([email](email.md), "Replies"). The link stays, because 
 - **Erasure.** An Owner or Admin can erase a candidate from their profile ([candidates.md](candidates.md)). The entry
   cascades from the candidate, so erasing removes them from the list, and the erasure deletes the note's History from
   `change_records`, including that of entries that had already left the list ([candidates.md](candidates.md)). A candidate's
-  own request to stop being kept deletes nothing; the profile then offers Erase candidate. There is still no request form for data access or erasure ("Before real
-  customers" in the [roadmap](../roadmap.md)).
-  Until then, a person removes them with "They asked to be removed", which also withdraws the permission. When someone
+  own request to stop being kept deletes nothing; the profile then offers Erase candidate. A candidate can also ask for
+  a copy or for erasure themselves ([data requests](data-requests.md)), and the team answers it. A person removes them from
+  the list with "They asked to be removed", which also withdraws the permission. When someone
   leaves the list and is not erased, the note's History stays: nobody can read it, and nothing links it to the candidate.
-- **Record retention.** Nothing deletes an ended application after a period; that is the same roadmap item. It matters
-  more now: nothing expires a saved candidate, so until retention exists their details stay until a person removes them
-  or the candidate stops it.
+- **Record retention.** An organization can delete ended applications after a number of months ([data
+  requests](data-requests.md#retention-rule)), off by default. The run skips a saved candidate entirely, so nothing expires
+  a saved candidate: their details stay until a person removes them or the candidate stops it. Once they leave the list,
+  their ended applications count again.
 - **A legal review** of keeping details with no expiry, and of the apply form and privacy page wording per market, is an
   owner action ([status](../status.md#owner-actions)).
 - **API keys, MCP and webhooks.** The routes take no API key and there is no webhook event for it. The MCP

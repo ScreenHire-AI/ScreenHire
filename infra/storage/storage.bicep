@@ -65,6 +65,11 @@ resource email_attachments 'Microsoft.Storage/storageAccounts/blobServices/conta
   parent: blobs
 }
 
+resource data_exports 'Microsoft.Storage/storageAccounts/blobServices/containers@2024-01-01' = {
+  name: 'data-exports'
+  parent: blobs
+}
+
 output blobEndpoint string = storage.properties.primaryEndpoints.blob
 
 output dataLakeEndpoint string = storage.properties.primaryEndpoints.dfs

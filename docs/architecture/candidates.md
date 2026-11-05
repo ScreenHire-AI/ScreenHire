@@ -8,6 +8,8 @@ sources:
   - resource: src/ScreenHire.Domain/Organizations/MembershipEvent.cs
   - resource: src/ScreenHire.Domain/Organizations/RolePermissions.cs
   - resource: src/ScreenHire.Application/Candidates/CandidateErased.cs
+  - resource: src/ScreenHire.Application/Candidates/CandidateErasure.cs
+  - resource: src/ScreenHire.Domain/Privacy/DataRequest.cs
   - resource: src/ScreenHire.Application/Applications/EraseApplicantFiles.cs
   - resource: src/ScreenHire.Application/Verification/RecheckApplicationDuplicates.cs
   - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/CandidateConfiguration.cs
@@ -73,8 +75,11 @@ Wording both without a number, or counting only the jobs the reader sees, is the
 sees every job (a member on Only jobs they're on gets a 404), the antiforgery token, and the candidate's full name as
 `confirmation`. The dashboard asks the person to type the name; the server checks it again (a 400 otherwise).
 
-In one transaction, which first locks the candidate's row so an application arriving now waits and cannot go with the
-cascade while its files are missing from the list below:
+The route opens the transaction, takes the candidate's row lock, checks the typed name and calls `CandidateErasure`
+(`src/ScreenHire.Application/Candidates`), which opens no transaction and publishes nothing: it deletes through the
+route's context and returns the messages, which the route sends through its outbox in the same save. The record
+retention run calls the same service from the worker. In that one transaction, with the candidate's row locked so an
+application arriving now waits and cannot go with the cascade while its files are missing from the list below:
 
 - the candidate row is deleted. The foreign keys cascade to every application and everything under it: answers, file
   rows, notes, emails, replies and their attachment rows, tasks, scorecards, questionnaires, automation runs, the saved
@@ -96,8 +101,15 @@ cascade while its files are missing from the list below:
   holds the candidate's name and address and the rows that say where it is go with the candidate. The route reads them
   under the interviewers' locks, and the worker deletes each event without notifying guests where the provider allows it
   ([interview scheduling](interview-scheduling.md#when-an-interview-is-cut-short));
+- the candidate's data requests keep their rows with no candidate: the foreign key sets `candidate_id` to null, the copy's
+  blob name and any decline reason are cleared, an open request is completed (erasing answers it), and `EraseDataExports`
+  names the copies' blobs for the worker to delete. A request that caused the erasure puts its id on the tombstone;
 - `RecheckApplicationDuplicates` is sent for every application that shared details with the erased ones, so no level
   keeps resting on someone who is gone; and `CandidateErased` tells open dashboards to drop them.
+
+`EraseApplicationsAsync` deletes just the applications it is given and erases the candidate whole only when none is left. A
+saved candidate is skipped. Its interview-events message carries the application's id as cause, so a later whole erasure
+is not dropped as a repeat.
 
 Messages already queued for an erased application (analysis, scans, automations, a webhook or Slack post) find nothing
 and finish without error instead of retrying into the dead-letter table.

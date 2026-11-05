@@ -107,8 +107,8 @@ describe('visibleSettingsSections', () => {
 
   it('shows Owners and Admins every page, and email templates on the Templates page instead', () => {
     const withSlack = (user: CurrentUser) => visibleSettingsSections(user, { slack: true });
-    expect(withSlack(userAs('Owner'))).toHaveLength(11);
-    expect(withSlack(userAs('Admin'))).toHaveLength(11);
+    expect(withSlack(userAs('Owner'))).toHaveLength(12);
+    expect(withSlack(userAs('Admin'))).toHaveLength(12);
     expect(labels(userAs('Owner'))).not.toContain('Email templates');
   });
 
@@ -116,7 +116,7 @@ describe('visibleSettingsSections', () => {
     const owner = userAs('Owner');
 
     expect(labels(owner)).not.toContain('Slack');
-    expect(labels(owner)).toHaveLength(10);
+    expect(labels(owner)).toHaveLength(11);
     expect(visibleSettingsSections(owner, { slack: false }).map((section) => section.label)).not.toContain('Slack');
     expect(visibleSettingsSections(owner, { slack: true }).map((section) => section.label)).toContain('Slack');
   });
@@ -170,5 +170,18 @@ describe('job access', () => {
     expect(visibleSettingsSections(owner).map((section) => section.label)).toContain('API keys');
     expect(visibleSettingsSections(scoped).map((section) => section.label)).not.toContain('API keys');
     expect(visibleSettingsSections(scoped).map((section) => section.label)).not.toContain('Webhooks');
+  });
+
+  it('puts Data requests after Roles for anyone who may erase candidates and sees every job, and for no one else', () => {
+    const owner = userAs('Owner');
+    const scoped: CurrentUser = { ...owner, organization: { ...owner.organization!, seesAllJobs: false } };
+    const organization = (user: CurrentUser) => visibleSettingsSections(user).filter((section) => section.group === 'Organization').map((section) => section.label);
+
+    expect(organization(owner)).toEqual(['General', 'Team', 'Roles', 'Data requests']);
+    expect(organization(userAs('Admin'))).toContain('Data requests');
+    expect(organization(scoped)).not.toContain('Data requests');
+    expect(organization(userAs('Recruiter'))).toEqual([]);
+    expect(organization(userAs('Viewer'))).toEqual([]);
+    expect(settingsSectionOf('/settings/data-requests')).toMatchObject({ label: 'Data requests', permission: 'EraseCandidates', allJobs: true });
   });
 });

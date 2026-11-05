@@ -47,6 +47,21 @@ public sealed class Candidate : ITenantOwned
     public DateTimeOffset CreatedAt { get; init; }
 
     /// <summary>
+    /// When the careers site last asked to email this candidate a link for a data request. The cooldown reads it, so a
+    /// stranger typing the address again and again cannot flood the inbox. The decision to send is an atomic
+    /// <c>ExecuteUpdate</c> on this column (two requests at once must not both send), so <see cref="DataRequestLinkDue"/>
+    /// is for display and tests, not for deciding.
+    /// </summary>
+    public DateTimeOffset? DataRequestLinkSentAt { get; private set; }
+
+    /// <summary>Whether no link went to this candidate within <paramref name="cooldown"/> of <paramref name="now"/>.</summary>
+    public bool DataRequestLinkDue(DateTimeOffset now, TimeSpan cooldown) =>
+        DataRequestLinkSentAt is not { } sent || now - sent >= cooldown;
+
+    /// <summary>Records that a link went at <paramref name="now"/>, on a candidate this context holds (seeding and tests; the real claim is atomic in SQL).</summary>
+    public void MarkDataRequestLinkSent(DateTimeOffset now) => DataRequestLinkSentAt = now;
+
+    /// <summary>
     /// Whether the email provider reported this address as undeliverable or as a spam complaint. ScreenHire stops
     /// emailing a flagged address and says so on the candidate. Per organization, like the candidate. It is a
     /// delivery fact only: it never feeds a verification level, a score or a rejection (ADR-0004).

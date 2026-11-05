@@ -1,3 +1,4 @@
+import FileLockIcon from '~icons/lucide/file-lock';
 import GlobeIcon from '~icons/lucide/globe';
 import Building2Icon from '~icons/lucide/building-2';
 import HashIcon from '~icons/lucide/hash';
@@ -64,6 +65,9 @@ export const settingsSections: readonly {
   { label: 'General', href: '/settings/organization', icon: Building2Icon, permission: 'EditSettings', group: 'Organization' },
   { label: 'Team', href: '/settings/team', icon: UsersRoundIcon, permission: 'ManageTeam', group: 'Organization' },
   { label: 'Roles', href: '/settings/roles', icon: ShieldUserIcon, permission: 'ManageTeam', group: 'Organization' },
+  // A request is about one candidate whatever job they applied to, and retention deletes across every job, so the page
+  // needs Erase candidates and all jobs, as the API does.
+  { label: 'Data requests', href: '/settings/data-requests', icon: FileLockIcon, permission: 'EraseCandidates', group: 'Organization', allJobs: true },
   { label: 'Careers site', href: '/settings/careers-site', icon: GlobeIcon, permission: 'EditSettings', group: 'Hiring' },
   { label: 'Branding', href: '/settings/branding', icon: PaletteIcon, permission: 'EditSettings', group: 'Hiring' },
   { label: 'Verification', href: '/settings/verification', icon: ShieldCheckIcon, permission: 'EditSettings', group: 'Hiring' },
@@ -78,8 +82,8 @@ export const settingsSections: readonly {
 ];
 
 /**
- * The Settings pages the person's role may use: none means no Settings item at all. API keys, webhooks and Slack reach every
- * job, so they also need all jobs (ADR-0015); the API refuses them otherwise with 403 "Needs all jobs". A page of a
+ * The Settings pages the person's role may use: none means no Settings item at all. API keys, webhooks, Slack and Data
+ * requests reach every job, so they also need all jobs (ADR-0015); the API refuses them otherwise with 403 "Needs all jobs". A page of a
  * feature that is not set up (Slack) is left out whoever asks.
  */
 export const visibleSettingsSections = (user: CurrentUser | null | undefined, features: SettingsFeatures = {}) =>
