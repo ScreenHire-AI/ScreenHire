@@ -16,6 +16,11 @@ sources:
   - resource: apps/dashboard/src/lib/rich-text.ts
   - resource: apps/dashboard/src/lib/table-sort.svelte.ts
   - resource: apps/dashboard/src/lib/preview-window.svelte.ts
+  - resource: apps/dashboard/src/lib/components/edit-preview-layout.svelte
+  - resource: apps/dashboard/src/lib/components/edit-preview-switch.svelte
+  - resource: apps/dashboard/src/lib/components/preview-pending.svelte
+  - resource: apps/dashboard/src/lib/components/template-list.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/pipeline-view.svelte
   - resource: apps/dashboard/src/lib/form-builder.ts
   - resource: apps/dashboard/src/lib/form-sections.ts
   - resource: apps/dashboard/src/lib/templates.ts
