@@ -25,6 +25,15 @@ sources:
   - resource: apps/api/Endpoints/DataRequestEndpoints.cs
   - resource: apps/api/Endpoints/RetentionEndpoints.cs
   - resource: apps/api/Contracts/DataRequestContracts.cs
+  - resource: apps/careers/src/lib/data-request.ts
+  - resource: apps/careers/src/actions/index.ts
+  - resource: apps/careers/src/pages/[organization]/data-request/index.astro
+  - resource: apps/careers/src/pages/[organization]/data-request/sent.astro
+  - resource: apps/careers/src/pages/[organization]/data-request/[token].astro
+  - resource: apps/careers/src/pages/[organization]/data-request/received.astro
+  - resource: apps/careers/src/pages/[organization]/data-request/expired.astro
+  - resource: apps/careers/src/pages/[organization]/data-request/download/[token].ts
+  - resource: apps/careers/src/pages/[organization]/privacy.astro
 ---
 # Data requests and record retention
 
@@ -183,6 +192,27 @@ again. It adds a `RetentionApplied` entry with the count when the count is above
 nothing. When a run takes several batches, "Last run" shows the latest batch's count. Applications removed from a candidate who
 keeps another application raise no event of their own; the list refetches when the dashboard next focuses.
 
+## Careers pages
+
+The pages are under `apps/careers/src/pages/[organization]/data-request/`. Each is server rendered with no client JavaScript;
+the only script is Cloudflare's bot check, and only where the deployment has one. The forms are native and post to the
+`requestDataLink` and `makeDataRequest` Astro Actions (`apps/careers/src/actions/index.ts`), whose logic and outcome mapping are in
+`apps/careers/src/lib/data-request.ts`. Every call forwards the visitor's address, so the API's rate limit counts the visitor and
+not the careers server. Links are built from the tenant base, so they are right on a tenant host.
+
+| Page | What it does |
+|---|---|
+| `index.astro` | Explains in plain words what happens (a link by email if there is an application from the address, valid for about an hour, then a copy or erasure, decided by the team), then one labelled email field and "Email me a link". With `enabled` false, or any answer but 200 from `GET ""`, it shows only the old text: write to the employer through the email address they use to write to you. With a Turnstile site key it adds the widget (the script and frame hosts are added to that page's content security policy, as on the apply page) and says the check needs JavaScript. A problem shows in place and keeps the typed address; nothing personal is ever in the page's address. |
+| `sent.astro` | The one answer after asking for a link: "If we have an application from that address, we have emailed a link". It is the same for an address that applied, one that did not and one in its cooldown, and the address in the URL carries nothing. |
+| `[token].astro` | The emailed link. The token's shape is checked before it goes into an API path. A good link shows two radio choices (a copy; erasure, which says it cannot be undone) and a hidden token field. A forged, expired or erased-candidate link, or a malformed one, shows "This link has expired or is not valid" with a link back to the form (status 404); a busy network shows a short message (429). Never cached (`Cache-Control: no-store`), `noindex`, no referrer. |
+| `received.astro` | The confirmation after choosing, reached by redirect so a refresh never posts twice. It carries no token and does not repeat the choice. It says the team will see the request; that for a copy we email a link when the file is ready; and that for erasure we cannot email afterwards because the address is erased. It promises no date. |
+| `download/[token].ts` | The address in the copy email. It reads the organization from the host or path, checks the token's shape, asks `GET downloads/{token}` for the read link and answers 302 to it (only a web address is followed), with `no-store` and no referrer. Anything else is a 302 to `expired.astro`. |
+| `expired.astro` | A token-free page for a link that no longer works, with a link to ask for a new one. |
+
+The privacy page's "Your choices" section links to the form and says the team decides what to do with each request. A visitor who
+cannot pass the bot check (JavaScript off, a strict privacy tool) is told to write to the employer; the form itself stays
+usable and is refused only when the check is configured and fails. The notice version moved to `2026-11-05.1` with that change.
+
 ## Not built yet
 
-The careers pages and the dashboard's Data requests page.
+The dashboard's Data requests page.

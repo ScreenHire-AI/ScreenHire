@@ -119,7 +119,7 @@ organization and never stores it as sent, and keeps it only on the job's device-
 fingerprint is kept only when it is ticked. The observation and the telemetry are deleted after 30 days. The notice and
 the privacy page say all of this, and that the employer may email a follow-up questionnaire whose page keeps the
 answers only, that a saved draft keeps the details and answers only, for 30 days, and that an application through
-the form on the employer's own website notes which website (`NOTICE_VERSION` `2026-11-02.1`).
+the form on the employer's own website notes which website. `NOTICE_VERSION` is `2026-11-05.1`, bumped when the privacy page's "Your choices" section began to link to the data request page.
 
 The review step also asks, optionally and unticked, "Keep my details for future roles", with one line saying the
 employer keeps their details until they ask, or the employer removes them, and may invite them to apply for other
@@ -262,6 +262,9 @@ busy moment never mails a second link. The API (`PublicApplicationDraftEndpoints
   a strict privacy tool) applies as before; the 403's message says so. The notice that the checks never reject anyone shows
   wherever the check runs, on the review step and on any step that offers Save. This is a limit on mail the form can trigger,
   not a verdict on the candidate: no signal is written, and nothing about a draft reaches verification.
+  The data request form ([data requests](data-requests.md#careers-pages)) is the other route that emails a link to a typed address, and it uses the
+  same check: it sends the widget's token and the API refuses only a failed one. Where the check is configured, a visitor with
+  JavaScript off cannot pass it, and the form says to write to the employer instead.
 - Accepted limits. The check, the per-address cap and the per-network rate limit bound what anyone can make the API
   email, and the email says to ignore it if you did not start the application. The sixth save's 429 tells the caller
   that address has saved several drafts in that organization today, which says nothing about whether it applied.

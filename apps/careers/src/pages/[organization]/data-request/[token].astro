@@ -1,0 +1,122 @@
+---
+// The page a candidate opens from the link in a data request email (docs/architecture/data-requests.md): ask for a copy of
+// their data, or ask for it to be erased. One native form posted to the `makeDataRequest` action, so it works with JavaScript
+// off and ships no script. The link is the candidate's alone: never cached, indexed or sent on as a referrer, and the
+// confirmation's address carries no token.
+import { actions } from 'astro:actions';
+import CareersLayout from '../../../layouts/CareersLayout.astro';
+import { getPublicDataRequestChoices, getPublicOrganization } from '../../../lib/api';
+import { forwardedFor } from '../../../lib/apply-server';
+import { isToken, REQUEST_MESSAGES } from '../../../lib/data-request';
+import { basePath } from '../../../lib/host';
+
+const { organization, token } = Astro.params;
+const base = basePath(Astro.request, organization!);
+const result = Astro.getActionResult(actions.makeDataRequest);
+if (result?.data?.outcome === 'received') {
+  return Astro.redirect(`${base}/data-request/received`, 303);
+}
+
+Astro.response.headers.set('Cache-Control', 'no-store');
+
+// A token of the wrong shape is never put into an API path.
+const [employerResponse, choicesResponse] = await Promise.all([
+  getPublicOrganization(organization!),
+  isToken(token) ? getPublicDataRequestChoices(organization!, token, forwardedFor(Astro.clientAddress)) : null,
+]);
+if (employerResponse.status !== 200) {
+  return new Response(null, { status: 404 });
+}
+
+const employer = employerResponse.data;
+const outcome = result?.data?.outcome;
+const gone = choicesResponse?.status !== 200 || outcome === 'expired';
+const status = choicesResponse?.status === 429 ? 'busy' : gone ? 'expired' : 'open';
+Astro.response.status = status === 'open' ? 200 : status === 'busy' ? 429 : 404;
+const problem = result?.error ? REQUEST_MESSAGES.error : outcome === 'bad-choice' || outcome === 'busy' || outcome === 'error' ? REQUEST_MESSAGES[outcome] : undefined;
+
+const heading = {
+  open: 'Ask about your data',
+  busy: 'Too many attempts',
+  expired: 'This link has expired or is not valid',
+}[status];
+---
+
+<CareersLayout
+  title={`${heading} | ${employer.name}`}
+  description={`Ask ${employer.name} for a copy of your data, or to erase it.`}
+  organizationName={employer.name}
+  organizationSlug={employer.slug}
+  branding={employer.branding}
+  noindex
+>
+  <meta slot="head" name="referrer" content="no-referrer" />
+
+  <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{heading}</h1>
+
+  {
+    status === 'expired' && (
+      <>
+        <p class="mt-3 text-candidate-body text-candidate-muted-foreground">
+          Links about your data stop working after a short time, and the link may be incomplete. You can ask for a new one.
+        </p>
+        <a href={`${base}/data-request`} class="button-primary mt-4">Ask for a new link</a>
+      </>
+    )
+  }
+
+  {
+    status === 'busy' && (
+      <p class="mt-3 text-candidate-body text-candidate-muted-foreground">
+        Too many attempts from your network. Wait a minute, then open the link in your email again.
+      </p>
+    )
+  }
+
+  {
+    status === 'open' && (
+      <>
+        <p class="mt-3 text-candidate-body">
+          Choose what you want to ask {employer.name} for. The hiring team will see your request and decide how to answer it.
+        </p>
+
+        <form method="POST" action={actions.makeDataRequest} novalidate class="mt-5 flex flex-col gap-4">
+          <input type="hidden" name="organization" value={employer.slug} />
+          <input type="hidden" name="token" value={token} />
+          {problem && <p role="alert" class="text-candidate-body font-semibold text-destructive">{problem}</p>}
+
+          <fieldset class="flex flex-col gap-2">
+            <legend class="mb-1.5 text-candidate-body font-bold">What do you want to ask for?</legend>
+            <label class="choice">
+              <input type="radio" name="kind" value="Copy" required aria-describedby="copy-hint" />
+              <span class="flex flex-col">
+                <span class="text-sm font-semibold">A copy of my data</span>
+                <span id="copy-hint" class="text-candidate-hint text-candidate-muted-foreground">
+                  The team prepares a file with the information from your applications. When it is ready, we email a link to it.
+                </span>
+              </span>
+            </label>
+            <label class="choice">
+              <input type="radio" name="kind" value="Erasure" required aria-describedby="erasure-hint" />
+              <span class="flex flex-col">
+                <span class="text-sm font-semibold">Erase my data</span>
+                <span id="erasure-hint" class="text-candidate-hint text-candidate-muted-foreground">
+                  Asks the team to erase the information from your applications. Erasure cannot be undone, and we cannot email you
+                  afterwards because your address is erased too.
+                </span>
+              </span>
+            </label>
+          </fieldset>
+
+          <div class="mt-2 flex flex-col gap-3 sm:flex-row">
+            <button type="submit" class="button-primary">Send my request</button>
+          </div>
+        </form>
+      </>
+    )
+  }
+
+  <p class="mt-6 text-sm">
+    <a href={`${base}/privacy`} class="text-link">What we collect and why</a>
+  </p>
+</CareersLayout>
