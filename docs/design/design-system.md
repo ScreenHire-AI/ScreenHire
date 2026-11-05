@@ -412,10 +412,11 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
 - A page that cannot open (an unknown, expired or closed link) says what happened in one sentence and who to contact:
   the hiring team at the employer, by the address they write from. "Open it again" is never the only advice.
 - A long page of prose (the privacy page) starts with an "On this page" list of links to its headings.
-- On a coarse pointer, header, breadcrumb and footer links are 44px tall (`pointer-coarse:min-h-11`); with a mouse they
-  are at least 24px (WCAG 2.5.8).
-- A row of buttons is the same on every careers form: the primary button first in the document and at the right on a wide
-  screen, Back beside it, and Save and finish later at the left.
+- Header, breadcrumb and footer links are 44px tall on a coarse pointer and at least 24px with a mouse (WCAG 2.5.8):
+  `pointer-coarse:min-h-11` on marketing pages. Careers pages use a plain `min-h-11`, so they are 44px on any pointer.
+- A careers form with steps has one row of buttons: the primary button first in the document and at the right on a wide
+  screen, Back beside it, and Save and finish later at the left. A page with one action leaves it at the left, under its
+  content.
 
 ## 5. Space, shape and size
 
