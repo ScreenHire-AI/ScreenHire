@@ -363,7 +363,7 @@ describe('workflow builder', () => {
     vi.unstubAllGlobals();
   });
 
-  // The same buttons on every stage row are the row's menu (owner correction): one More button per stage holds all three.
+  // An action repeated on every row belongs in the row's menu (L2): one More button per stage holds all three.
   it("holds a stage's Edit automations, Choose scorecard and Remove stage in its row menu, and removes the stage without a confirm", async () => {
     renderViews('editor');
     const stages = screen.getByRole('region', { name: 'Stages' });
@@ -377,6 +377,12 @@ describe('workflow builder', () => {
     try {
       await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Remove stage' }));
       await vi.waitFor(() => expect(within(stages).queryByRole('group', { name: /Phone screen/ })).toBeNull());
+      // The menu button left with its row, so focus moves on to the next stage's rather than falling to the page.
+      await vi.waitFor(() => expect(within(stages).getByRole('button', { name: 'Actions for Hired' })).toHaveFocus());
+
+      await fireEvent.pointerDown(within(stages).getByRole('button', { name: 'Actions for Not progressing' }), { button: 0, pointerType: 'mouse' });
+      await fireEvent.click(await screen.findByRole('menuitem', { name: 'Remove stage' }));
+      await vi.waitFor(() => expect(within(stages).getByRole('button', { name: 'Add stage' })).toHaveFocus());
     } finally {
       delete (Element.prototype as Partial<Element>).getAnimations;
     }
