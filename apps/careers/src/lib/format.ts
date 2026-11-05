@@ -27,6 +27,28 @@ export function formatSalary(min?: number | null, max?: number | null, currency?
 }
 
 /**
+ * The facts a job shows under its title, in order: where, how, what kind of contract and the pay. A remote job's location
+ * often already says so ("Remote (GB, IE)"), and saying it twice is noise, so the workplace type is dropped when the
+ * location names it.
+ */
+export function jobFacts(job: {
+  location: string;
+  workplaceType: string;
+  employmentType: string;
+  salaryMin?: number | null;
+  salaryMax?: number | null;
+  salaryCurrency?: string | null;
+}): string[] {
+  const workplace = label(job.workplaceType);
+  const facts = [job.location];
+  if (!job.location.toLowerCase().includes(workplace.toLowerCase())) facts.push(workplace);
+  facts.push(label(job.employmentType));
+  const salary = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
+  if (salary) facts.push(salary);
+  return facts;
+}
+
+/**
  * Serializes JSON-LD for an inline `<script>`. JSON.stringify leaves `<` alone, so a `</script>` in a job title or
  * location would end the element early and run as markup; `\u003c` is the same character to a JSON parser.
  */

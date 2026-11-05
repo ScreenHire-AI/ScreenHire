@@ -27,7 +27,7 @@ const base = basePath(Astro.request, organization.slug);
   <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">
     {gone ? 'This job has closed' : 'We could not find this job'}
   </h1>
-  <p class="mt-3 text-[15px] text-candidate-muted-foreground">
+  <p class="mt-3 text-candidate-body text-candidate-muted-foreground">
     {
       gone
         ? `${organization.name} is no longer taking applications for this role. If you already applied, your application is still with them.`

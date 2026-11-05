@@ -70,7 +70,7 @@ const here = { tz: asked ? zone : null, change: changing };
 const noTimes = picking && !!interview && (interview.slotsUnavailable || days.length === 0);
 
 const heading = {
-  busy: 'Too many tries',
+  busy: 'Please wait a minute',
   'not-found': 'We could not find this interview',
   Cancelled: 'This interview is cancelled',
   Expired: 'This link has expired',
@@ -78,8 +78,8 @@ const heading = {
   Booked: changing ? 'Pick another time' : 'Your interview is booked',
 }[state];
 const message = {
-  busy: 'Wait a minute, then open the link again.',
-  'not-found': 'The link may be incomplete. Open it again from the email you received.',
+  busy: 'Too many tries from your network. Wait a minute, then open the link again.',
+  'not-found': `The link may be incomplete. Open it again from the email you received. If it still does not work, reply to that email or contact the hiring team at ${employer.name}.`,
   Cancelled: `This link is closed. If you would like another time, reply to the email you received or contact the hiring team at ${employer.name}.`,
   Expired: `The time to pick an interview has passed. To ask for another time, reply to the email you received or contact the hiring team at ${employer.name}.`,
   Open: '',
@@ -223,7 +223,7 @@ const closed = !interview || state === 'Cancelled' || state === 'Expired';
               <section aria-labelledby="cancel-heading" class="mt-10 border-t border-candidate-border pt-6">
                 <h2 id="cancel-heading" class="text-candidate-body font-bold">Cannot make it?</h2>
                 <details class="mt-3">
-                  <summary class="button-secondary w-fit cursor-pointer">Cancel this interview</summary>
+                  <summary class="button-secondary w-fit">Cancel this interview</summary>
                   <form method="POST" action={actions.interviewCancel} class="mt-4 flex flex-col items-start gap-3">
                     <input type="hidden" name="organization" value={employer.slug} />
                     <input type="hidden" name="token" value={token} />

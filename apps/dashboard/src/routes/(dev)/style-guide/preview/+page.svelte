@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Question } from '@screenhire/api-client';
   import { page } from '$app/state';
+  import PreviewPending from '#lib/components/preview-pending.svelte';
   import QuestionnairePreview from '#lib/components/workflow/questionnaire-preview.svelte';
   import { createPreviewSink } from '#lib/preview-window.svelte.js';
 
@@ -21,6 +22,8 @@
   {#if sink.value}
     <QuestionnairePreview questions={sink.value} followUp />
   {:else}
-    <p role="status" class="p-4 text-muted-foreground">Waiting for the editor.</p>
+    <div class="p-4">
+      <PreviewPending orphaned={sink.orphaned}><p aria-hidden="true" class="text-muted-foreground">Waiting for the editor.</p></PreviewPending>
+    </div>
   {/if}
 </main>

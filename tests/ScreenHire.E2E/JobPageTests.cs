@@ -148,6 +148,39 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
     }
 
     [Fact]
+    public async Task A_board_that_did_not_take_the_job_can_be_given_text_of_its_own_and_only_that_board_posts_again()
+    {
+        // Too short for Adzuna (100 characters), long enough for Talent.com (50): the one board to fix.
+        var scene = await SceneAsync("<p>Run the recruiter dashboard's release train with the platform team.</p>");
+        await Page.SetViewportSizeAsync(1440, 1040);
+        await SignInAsync(Page, scene.Email);
+        await GoToJobAsync(scene.JobId);
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Job postings") }).ClickAsync();
+        var adzuna = Page.GetByRole(AriaRole.Region, new() { Name = "Job postings" }).Locator("[data-board='adzuna']");
+
+        // The words under the row say what each fix reaches.
+        await Expect(adzuna.Locator("[data-posting-fixes]")).ToContainTextAsync("Edit details changes every board. Customize changes only Adzuna");
+        await adzuna.GetByRole(AriaRole.Button, new() { Name = "Customize", Exact = true }).ClickAsync();
+        var sheet = Page.GetByRole(AriaRole.Dialog, new() { NameRegex = new("^Customize for Adzuna") });
+        var description = sheet.GetByRole(AriaRole.Textbox, new() { Name = "Description" });
+        await description.ClickAsync();
+        await Page.Keyboard.PressAsync("ControlOrMeta+A");
+        await Page.Keyboard.TypeAsync("Run the recruiter dashboard's release train with the platform team, from the first branch to the shipped build, every week.");
+
+        // The board's checks run on the new text; the preview shows what it would receive.
+        await sheet.GetByRole(AriaRole.Button, new() { Name = "Preview" }).ClickAsync();
+        await Expect(sheet.Locator("[data-preview-title]")).ToBeVisibleAsync();
+        await ExpectNoAccessibilityViolationsAsync();
+        await sheet.GetByRole(AriaRole.Button, new() { Name = "Save and post" }).ClickAsync();
+
+        await Expect(sheet).ToBeHiddenAsync();
+        await Expect(adzuna.GetByText("Customized", new() { Exact = true })).ToBeVisibleAsync();
+        await Expect(adzuna.Locator("[data-posting-problem]")).ToHaveCountAsync(0);
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-job-customized-posting-light");
+    }
+
+    [Fact]
     public async Task At_1920_every_stage_of_the_board_shows_without_the_page_scrolling()
     {
         var scene = await SceneAsync(FullDescription, candidates: ["Casey Morgan", "Alex Rivera", "Jordan Lee", "Riley Chen", "Sam Taylor", "Robin Ashby"]);

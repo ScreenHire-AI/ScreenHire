@@ -21,9 +21,21 @@ public static class PostingContents
             .SingleOrDefaultAsync(cancellationToken);
         return row is null
             ? null
-            : new PostingContent(
+            : For(posting, new PostingContent(
                 posting.JobId, row.version.Version, row.version.Snapshot, row.PublishedAt ?? row.version.PublishedAt,
-                row.version.PublishedAt, posting.Url, row.Name, row.Slug);
+                row.version.PublishedAt, posting.Url, row.Name, row.Slug));
+    }
+
+    /// <summary>
+    /// The content <paramref name="posting"/>'s board receives for <paramref name="content"/>: the same version with the
+    /// board's own title and description in place of the job's. The one seam for per-board overrides; adapters and feeds
+    /// read the result and know nothing about them.
+    /// </summary>
+    public static PostingContent For(JobPosting posting, PostingContent content)
+    {
+        ArgumentNullException.ThrowIfNull(posting);
+        ArgumentNullException.ThrowIfNull(content);
+        return posting.IsCustomized ? content with { Snapshot = posting.WithOverrides(content.Snapshot) } : content;
     }
 
     /// <summary>
@@ -45,9 +57,10 @@ public static class PostingContents
                     on new { posting.JobId, Version = posting.JobVersion } equals new { version.JobId, version.Version }
                 join job in db.Jobs.AsNoTracking() on posting.JobId equals job.Id
                 orderby job.PublishedAt descending
-                select new { posting.JobId, posting.Url, version.Version, version.Snapshot, VersionPublishedAt = version.PublishedAt, job.PublishedAt })
+                select new { posting, version.Version, version.Snapshot, VersionPublishedAt = version.PublishedAt, job.PublishedAt })
             .ToListAsync(cancellationToken);
-        return [.. rows.Select(r => new PostingContent(
-            r.JobId, r.Version, r.Snapshot, r.PublishedAt ?? r.VersionPublishedAt, r.VersionPublishedAt, r.Url, organizationName, organizationSlug))];
+        return [.. rows.Select(r => For(r.posting, new PostingContent(
+            r.posting.JobId, r.Version, r.Snapshot, r.PublishedAt ?? r.VersionPublishedAt, r.VersionPublishedAt, r.posting.Url,
+            organizationName, organizationSlug)))];
     }
 }

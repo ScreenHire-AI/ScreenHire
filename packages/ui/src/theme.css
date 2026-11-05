@@ -152,4 +152,13 @@
   label:has(:disabled) {
     cursor: not-allowed;
   }
+
+  /* The browser's stylesheet gives the button inside a file input its own arrow, so the rule above stops at the input. */
+  input[type='file']::file-selector-button {
+    cursor: pointer;
+  }
+
+  input[type='file']:disabled::file-selector-button {
+    cursor: not-allowed;
+  }
 }

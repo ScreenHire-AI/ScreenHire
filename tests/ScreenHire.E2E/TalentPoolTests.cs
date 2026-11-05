@@ -156,13 +156,13 @@ public sealed partial class TalentPoolTests(E2EFixture fixture) : BrowserTest(fi
         await Page.GetByRole(AriaRole.Button, new() { Name = "Stop keeping my details" }).ClickAsync();
 
         await Expect(Page).ToHaveURLAsync(new Regex("/talent-pool/stopped$"));
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Done");
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToContainTextAsync("no longer keeps your details for future roles");
         Page.Url.Should().NotContain(stopLink.Groups["token"].Value, "the confirmation's address carries no token");
         await ExpectNoAccessibilityViolationsAsync();
 
         // The link now says they are no longer kept, and the team's saved candidates no longer lists them.
         await Page.GotoAsync(stopLink.Value);
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToContainTextAsync("no longer keeps your details");
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToContainTextAsync("no longer keeps your details for future roles");
         using var pool = await scene.Session.Client.GetAsync("/v1/talent-pool", Ct);
         (await pool.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("people").GetArrayLength().Should().Be(0);
     }

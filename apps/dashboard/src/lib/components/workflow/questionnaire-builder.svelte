@@ -89,7 +89,7 @@
 
 <EditPreviewLayout bind:mode onpopout={() => source.open('/preview/form')}>
   {#snippet toolbar()}
-    <div role="group" aria-label="Questionnaire" class="flex min-w-0 gap-1 overflow-x-auto">
+    <div role="group" aria-label="Questionnaire" class="flex min-w-0 gap-1 overflow-x-auto [scrollbar-width:thin]">
       <Toggle class="shrink-0" bind:pressed={() => selected === 'apply', (pressed) => pressed && (selected = 'apply')}>Apply form</Toggle>
       {#each followUps as followUp (followUp.id)}
         <Toggle class="shrink-0" bind:pressed={() => selected === followUp.id, (pressed) => pressed && (selected = followUp.id)}>
