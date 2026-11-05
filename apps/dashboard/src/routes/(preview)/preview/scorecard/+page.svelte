@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { ScorecardQuestion } from '@screenhire/api-client';
   import { page } from '$app/state';
-  import ScorecardPreview from '#lib/components/scorecard-preview.svelte';
   import PreviewPending from '#lib/components/preview-pending.svelte';
+  import ScorecardPreview from '#lib/components/scorecard-preview.svelte';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { createPreviewSink } from '#lib/preview-window.svelte.js';
 

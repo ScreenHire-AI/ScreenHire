@@ -1,8 +1,8 @@
 <script lang="ts">
   import { page } from '$app/state';
+  import PreviewPending from '#lib/components/preview-pending.svelte';
   import QuestionnairePreview from '#lib/components/workflow/questionnaire-preview.svelte';
   import type { FormPreview } from '#lib/components/workflow/questionnaire-builder.svelte';
-  import PreviewPending from '#lib/components/preview-pending.svelte';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { createPreviewSink } from '#lib/preview-window.svelte.js';
 

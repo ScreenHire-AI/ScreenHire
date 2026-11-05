@@ -63,11 +63,12 @@
   import { filterCounts, matchesFilter, templateFilters, templateKindViews, usedByLabel, type TemplateFilter, type TemplateKind } from '#lib/templates.js';
 
   // One tab of the Templates page (design system section 21): the list template's table panel (section 7). Its header
-  // is its title and the search, with no sentence about the tab (W9); under it the filters with their counts (T4), then a table that sorts
-  // every column (L2) and opens on Last updated, newest first, with the person's sort remembered per kind. The name is
-  // semibold with Built in after it for ScreenHire's own (W6, L1); a draft is the Draft badge in Version; Used by is a
-  // count; Last updated says who. Phones get list items with the Sort chip (section 8). Archived templates show only
-  // under Archived. The row menu is the page's: `menu` renders a row's items, and `hasMenu` says whether it has any.
+  // is its title and the search, with no sentence about the tab (W9); under it the filters with their counts (T4), then
+  // a table that sorts every column (L2) and opens on Last updated, newest first, with the person's sort remembered per
+  // kind. The name is semibold with Built in after it for ScreenHire's own (W6, L1); Version and Draft are their own
+  // columns; Used by is a count; Last updated says who. Phones get list items with the Sort chip (section 8) and the row
+  // menu. Archived templates show only under Archived. The row menu is the page's: `menu` renders a row's items, and
+  // `hasMenu` says whether it has any.
   let {
     kind,
     rows,
@@ -197,7 +198,7 @@
 
 <Panel title={view.noun} flush footer={message || failure ? footer : undefined}>
   {#snippet tools()}
-    <SearchField bind:value={search} label={`Search ${view.noun.toLocaleLowerCase()}`} class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />
+    <SearchField bind:value={search} label={`Search ${view.noun.toLocaleLowerCase()}`} placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />
   {/snippet}
 
   <!-- The filters: one line that scrolls inside the panel rather than wrapping (F5), each with its count (T4). -->

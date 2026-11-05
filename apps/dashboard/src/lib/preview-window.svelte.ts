@@ -89,7 +89,7 @@ export class PreviewSink<T> {
     };
     this.#channel.postMessage({ type: 'hello' } satisfies PreviewMessage<T>);
     const waiting = setTimeout(() => {
-      if (this.value === undefined && !this.closed) this.orphaned = true;
+      if (this.value === undefined) this.orphaned = true;
     }, previewWaitMs);
     $effect(() => () => {
       clearTimeout(waiting);

@@ -33,7 +33,7 @@
     title: string;
     /** The sheet's one line: usually the record's name. */
     description: string;
-    /** What it says with nothing to list, to match a list's column ("None"); the count ("0 jobs") by default. */
+    /** What it says with nothing to list ("None"), because a header fact is never blank; the count ("0 jobs") by default. */
     empty?: string;
   } = $props();
 

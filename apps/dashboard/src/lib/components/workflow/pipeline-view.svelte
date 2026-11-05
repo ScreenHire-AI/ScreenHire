@@ -2,6 +2,7 @@
   import { createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import type { DefinitionError, HiringWorkflow, StageKind } from '@screenhire/api-client';
   import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
+  import { tick } from 'svelte';
   import ArrowRightIcon from '~icons/lucide/arrow-right';
   import ClipboardListIcon from '~icons/lucide/clipboard-list';
   import PlusIcon from '~icons/lucide/plus';
@@ -57,6 +58,16 @@
   const emailTemplates = createListEmailTemplates();
   const templateNames = $derived(emailTemplateNames(emailTemplates.data?.data.templates));
 
+  let root = $state<HTMLElement>();
+
+  // The row and its menu button leave with the stage, so focus moves to the next stage's menu, or to Add stage after the last.
+  async function removeStage(index: number) {
+    workflow.stages = removeAt(workflow.stages, index);
+    await tick();
+    const next = root?.querySelectorAll<HTMLElement>('[data-stage-menu] button')[index];
+    (next ?? root?.querySelector<HTMLElement>('[data-stage-add]'))?.focus();
+  }
+
   const inLane = (stageId: string | null) => workflow.automations.filter((automation) => laneOf(automation) === stageId);
   const laneErrors = (stageId: string | null) =>
     workflow.automations.reduce(
@@ -85,10 +96,10 @@
   {/if}
 {/snippet}
 
-<div class="flex flex-col gap-5">
+<div bind:this={root} class="flex flex-col gap-5">
   <Panel title="Stages" count={workflow.stages.length}>
     {#snippet actions()}
-      <Button variant="outline" onclick={() => (workflow.stages = [...workflow.stages, newStage(workflow)])}><PlusIcon aria-hidden="true" />Add stage</Button>
+      <Button data-stage-add variant="outline" onclick={() => (workflow.stages = [...workflow.stages, newStage(workflow)])}><PlusIcon aria-hidden="true" />Add stage</Button>
     {/snippet}
     <FieldErrors id="stages-errors" messages={errorsAt(errors, 'stages')} />
     <ReorderList
@@ -111,12 +122,13 @@
             </Hint>
           </span>
           <div class="flex min-w-0 flex-1 flex-col gap-3 pl-1">
-            <div class="grid items-end gap-2 @xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_7rem_auto]">
-              <label class={labelClass}>
+            <!-- Narrow, the fields stack and the menu shares the last one's line, so a stage gains no row of its own for it. -->
+            <div class="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2 @xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_7rem_auto]">
+              <label class={[labelClass, 'col-span-2 @xl:col-span-1']}>
                 Name
                 <Input bind:value={stage.name} maxlength={80} aria-invalid={stageErrors.length > 0 || undefined} />
               </label>
-              <label class={labelClass}>
+              <label class={[labelClass, 'col-span-2 @xl:col-span-1']}>
                 Kind
                 <select class={selectClass} value={stage.kind} onchange={(event) => (stage.kind = event.currentTarget.value as StageKind)}>
                   {#each stageKinds as kind (kind)}<option value={kind}>{stageKindLabels[kind]}</option>{/each}
@@ -136,7 +148,7 @@
                   />
                 </label>
               {:else}<span class="hidden @xl:block"></span>{/if}
-              <div class="flex shrink-0 justify-end">
+              <div data-stage-menu class="col-start-2 flex shrink-0 justify-end @xl:col-start-auto">
                 <MoreMenu label={`Actions for ${stage.name}`} size="icon-lg" quiet>
                   <DropdownMenu.Item onSelect={() => onopen(stage.id)}><ZapIcon aria-hidden="true" />Edit automations</DropdownMenu.Item>
                   <!-- A stage that ends the application has no scorecard (A3); one left from another kind still shows, to remove. -->
@@ -144,7 +156,7 @@
                     <DropdownMenu.Item onSelect={() => onscorecard(index)}><ClipboardListIcon aria-hidden="true" />Choose scorecard</DropdownMenu.Item>
                   {/if}
                   <!-- Nothing changes until Save, so removing a stage from the draft does not confirm (section 10). -->
-                  <DropdownMenu.Item onSelect={() => (workflow.stages = removeAt(workflow.stages, index))}><Trash2Icon aria-hidden="true" />Remove stage</DropdownMenu.Item>
+                  <DropdownMenu.Item onSelect={() => removeStage(index)}><Trash2Icon aria-hidden="true" />Remove stage</DropdownMenu.Item>
                 </MoreMenu>
               </div>
             </div>

@@ -36,7 +36,8 @@
 {/snippet}
 
 <div class={cn('@container/editor flex w-full min-w-0 flex-col gap-4', className)} data-edit-preview>
-  <div class={['flex min-w-0 flex-wrap items-center justify-between gap-2', !toolbar && '@[82rem]/editor:hidden']}>
+  <!-- The row keeps the edit pane's width, so the switch stays with its form rather than at the window's far edge (S6, S7). -->
+  <div class={['flex min-w-0 max-w-form flex-wrap items-center justify-between gap-2 @[82rem]/editor:max-w-none', !toolbar && '@[82rem]/editor:hidden']}>
     {#if toolbar}<div class="flex min-w-0 flex-wrap items-center gap-2">{@render toolbar()}</div>{/if}
     <EditPreviewSwitch bind:mode {onpopout} class="@[82rem]/editor:hidden" />
   </div>
