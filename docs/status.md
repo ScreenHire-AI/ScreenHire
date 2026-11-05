@@ -116,6 +116,8 @@ brackets.
 - **IP data and identity checks.** Supply an ip2asn file and a Tor exit list, or wire a commercial source behind
   `IIpIntelligence` (#13). Set `ScreenHire:Verification:DeviceHashKey` (32+ characters) in production (#13). Refresh the
   embedded disposable-domain list from time to time (#13).
+- **Database firewall.** The Azure definition lets every Azure address reach PostgreSQL, so its passwords are the only barrier. Before real
+  candidates apply, choose between accepting that and a virtual network, which costs more ([deploy](operations/deploy.md), ADR-0007).
 - **Storage and scanning.** The Azure definition creates the three private containers (`applicant-uploads`, `brand-images`,
   `email-attachments`) and the CORS rule. Do not add a one-day storage lifecycle rule for unclaimed uploads: it would delete submitted
   resumes, because only the database knows which files are claimed. The worker's daily sweep does it instead
