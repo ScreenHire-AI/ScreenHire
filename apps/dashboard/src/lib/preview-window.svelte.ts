@@ -89,7 +89,9 @@ export class PreviewSink<T> {
     };
     this.#channel.postMessage({ type: 'hello' } satisfies PreviewMessage<T>);
     const waiting = setTimeout(() => {
-      if (this.value === undefined) this.orphaned = true;
+      if (this.value !== undefined) return;
+      this.orphaned = true;
+      this.closed = false; // The no-editor line says it all, so "Editor closed" does not repeat it.
     }, previewWaitMs);
     $effect(() => () => {
       clearTimeout(waiting);

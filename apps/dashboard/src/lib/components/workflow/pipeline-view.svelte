@@ -60,6 +60,13 @@
 
   let root = $state<HTMLElement>();
 
+  // A sheet opens once the stage's menu has closed: opened from the item itself, it loses focus to the closing menu.
+  let sheetChosen: (() => void) | undefined;
+  function onMenuClosed() {
+    sheetChosen?.();
+    sheetChosen = undefined;
+  }
+
   // The row and its menu button leave with the stage, so focus moves to the next stage's menu, or to Add stage after the last.
   async function removeStage(index: number) {
     workflow.stages = removeAt(workflow.stages, index);
@@ -149,11 +156,11 @@
                 </label>
               {:else}<span class="hidden @xl:block"></span>{/if}
               <div data-stage-menu class="col-start-2 flex shrink-0 justify-end @xl:col-start-auto">
-                <MoreMenu label={`Actions for ${stage.name}`} size="icon-lg" quiet>
-                  <DropdownMenu.Item onSelect={() => onopen(stage.id)}><ZapIcon aria-hidden="true" />Edit automations</DropdownMenu.Item>
+                <MoreMenu label={`Actions for ${stage.name}`} size="icon-lg" quiet onclosed={onMenuClosed}>
+                  <DropdownMenu.Item onSelect={() => (sheetChosen = () => onopen(stage.id))}><ZapIcon aria-hidden="true" />Edit automations</DropdownMenu.Item>
                   <!-- A stage that ends the application has no scorecard (A3); one left from another kind still shows, to remove. -->
                   {#if !isTerminal(stage.kind) || stage.scorecard || stage.scorecardTemplateId}
-                    <DropdownMenu.Item onSelect={() => onscorecard(index)}><ClipboardListIcon aria-hidden="true" />Choose scorecard</DropdownMenu.Item>
+                    <DropdownMenu.Item onSelect={() => (sheetChosen = () => onscorecard(index))}><ClipboardListIcon aria-hidden="true" />Choose scorecard</DropdownMenu.Item>
                   {/if}
                   <!-- Nothing changes until Save, so removing a stage from the draft does not confirm (section 10). -->
                   <DropdownMenu.Item onSelect={() => removeStage(index)}><Trash2Icon aria-hidden="true" />Remove stage</DropdownMenu.Item>

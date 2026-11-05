@@ -279,6 +279,8 @@ describe('workflow builder', () => {
     renderViews('editor');
     await chooseStageAction('Phone screen', 'Edit automations');
     const sheet = await screen.findByRole('dialog', { name: 'Automations: Phone screen' });
+    // The sheet opens once the menu has closed, so focus lands in it rather than on the menu button behind it.
+    await vi.waitFor(() => expect(sheet).toContainElement(document.activeElement as HTMLElement));
     const options = (select: HTMLElement) => within(select).getAllByRole('option').map((option) => option.textContent?.trim());
 
     expect(options(within(sheet).getByRole('combobox', { name: 'Action 1' }))).toContain('Queue for rejection review');

@@ -100,6 +100,7 @@ describe('a pop-out preview with its editor', () => {
     vi.advanceTimersByTime(previewWaitMs + 1);
 
     await vi.waitFor(() => expect(screen.getByText(/No editor is open/)).toBeInTheDocument());
+    expect(screen.queryByText('Editor closed.')).toBeNull();
     editor.close();
   });
 });
