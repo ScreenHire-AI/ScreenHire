@@ -41,7 +41,13 @@ public interface IApplicantFileStore
 
     /// <summary>Deletes a reply attachment's blob, from the email attachments container, when a candidate is erased. As <see cref="DeleteAsync"/>.</summary>
     Task DeleteReplyAttachmentAsync(string blobName, CancellationToken cancellationToken);
+
+    /// <summary>The blobs in the uploads container whose name starts with <paramref name="prefix"/>, for the sweep of uploads no application claimed.</summary>
+    Task<IReadOnlyList<StoredUploadBlob>> ListAsync(string prefix, CancellationToken cancellationToken);
 }
+
+/// <summary>A blob in the applicant uploads container: its name and when storage first created it.</summary>
+public sealed record StoredUploadBlob(string Name, DateTimeOffset CreatedAt);
 
 /// <summary>A file's bytes, or the reason (<see cref="Problem"/>) there are none.</summary>
 public sealed record StoredFile(byte[]? Content, string? Problem = null)
@@ -58,6 +64,9 @@ public sealed class NoApplicantFileStore : IApplicantFileStore
     public Task DeleteAsync(string blobName, CancellationToken cancellationToken) => Task.CompletedTask;
 
     public Task DeleteReplyAttachmentAsync(string blobName, CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task<IReadOnlyList<StoredUploadBlob>> ListAsync(string prefix, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<StoredUploadBlob>>([]);
 }
 
 public static partial class ExtractApplicationDocumentHandler

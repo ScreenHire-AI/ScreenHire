@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Jobs;
@@ -12,8 +11,8 @@ namespace ScreenHire.Infrastructure.Persistence;
 
 /// <summary>
 /// Applies migrations and seeds a demo employer for local development. Never called outside Development;
-/// production schema changes run as a separate migration step in the deploy pipeline, which also gives the
-/// <c>screenhire_app</c> role its login.
+/// a deployment runs the migrations in a step of its own, the migrator (apps/migrator), through
+/// <see cref="DatabaseMigrator"/>, which also gives the <c>screenhire_app</c> role its login.
 /// </summary>
 public static class DevelopmentDataSeeder
 {
@@ -57,8 +56,7 @@ public static class DevelopmentDataSeeder
             .Options;
         await using var db = new ScreenHireDbContext(options, tenant);
 
-        await db.Database.MigrateAsync(cancellationToken);
-        await GrantAppRoleLoginAsync(ownerConnectionString, appConnectionString, cancellationToken);
+        await DatabaseMigrator.MigrateAsync(ownerConnectionString, DatabaseMigrator.AppRolePasswordFrom(appConnectionString), cancellationToken);
 
         var now = time.GetUtcNow();
         var organization = await SeedOrganizationAsync(db, now, cancellationToken);
@@ -91,20 +89,6 @@ public static class DevelopmentDataSeeder
             organization.SetBrandColor(DemoBrandColor);
             await db.SaveChangesAsync(cancellationToken);
         }
-    }
-
-    // A raw connection, not EF: EF logs command text, and this command carries the password. ALTER ROLE is a utility
-    // statement and cannot take parameters, so the literal is quoted here.
-    private static async Task GrantAppRoleLoginAsync(string ownerConnectionString, string appConnectionString, CancellationToken cancellationToken)
-    {
-        var password = new NpgsqlConnectionStringBuilder(appConnectionString).Password
-            ?? throw new InvalidOperationException($"ConnectionStrings:{DatabaseRegistration.AppConnectionName} has no password.");
-
-        await using var connection = new NpgsqlConnection(ownerConnectionString);
-        await connection.OpenAsync(cancellationToken);
-        await using var command = connection.CreateCommand();
-        command.CommandText = $"ALTER ROLE {TenantSecurity.AppRole} WITH LOGIN PASSWORD '{password.Replace("'", "''", StringComparison.Ordinal)}'";
-        await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
     private static async Task<Organization> SeedOrganizationAsync(ScreenHireDbContext db, DateTimeOffset now, CancellationToken cancellationToken)

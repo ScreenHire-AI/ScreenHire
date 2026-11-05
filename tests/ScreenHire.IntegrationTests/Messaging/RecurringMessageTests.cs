@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using ScreenHire.Application.Applications;
 using ScreenHire.Application.Branding;
 using ScreenHire.Application.Jobs;
 using ScreenHire.Application.Messaging;
@@ -50,6 +51,22 @@ public sealed class RecurringMessageTests(AppHostFixture fixture)
             "the PurgeExpiredBrandImageUploads schedule to be tracked", cancellationToken);
         var schedule = (await schedules.QueryAsync(cancellationToken)).Should().ContainSingle(s => s.Name == nameof(PurgeExpiredBrandImageUploads)).Subject;
         schedule.CronExpression.Should().Be("27 3 * * *");
+        schedule.Paused.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Uploads_no_application_claimed_are_swept_daily_by_a_tracked_schedule()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var settings = new MessagingSettings { Schema = MessagingHost.NewSchema(), AutoProvision = true };
+        await using var worker = await MessagingHost.StartHandlerAsync(fixture, settings, [], cancellationToken, withRecurringSchedules: true);
+        var schedules = worker.Services.GetRequiredService<IRecurringScheduleControl>();
+
+        await WolverineStore.WaitUntilAsync(
+            async () => (await schedules.QueryAsync(cancellationToken)).Any(s => s.Name == nameof(PurgeExpiredApplicantUploads)),
+            "the PurgeExpiredApplicantUploads schedule to be tracked", cancellationToken);
+        var schedule = (await schedules.QueryAsync(cancellationToken)).Should().ContainSingle(s => s.Name == nameof(PurgeExpiredApplicantUploads)).Subject;
+        schedule.CronExpression.Should().Be("47 3 * * *");
         schedule.Paused.Should().BeFalse();
     }
 

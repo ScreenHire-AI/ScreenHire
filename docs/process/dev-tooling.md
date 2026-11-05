@@ -122,6 +122,7 @@ Every command in these files was run once when they were written (October 2026),
 | `dotnet aspire start` without `--isolated`, in the root checkout | `preview` | agents run it from a worktree, with `--isolated`; the root checkout belongs to the owner, who runs it there and whose own stack may be running |
 | `gh run rerun <run-id> --failed` | `pull-request` | it starts CI jobs again; it runs the first time a pull request's CI fails in code its branch did not touch |
 | `merge-pull-request` Step 2 (merge `origin/main` into a conflicting PR, `pnpm verify:fast`, push, one CI run) | `merge-pull-request` | it needs a PR that conflicts with `main`; the steps are `/pull-request`'s Steps 2 and 7, which were run |
+| `az` (every command but `--help`), `dotnet aspire do provision-azure-bicep-resources`, `dotnet aspire deploy`, `azd`, `wrangler` | `docs/operations/deploy.md` | they create or change cloud resources, which a task never does (`.claude/rules/unattended-runs.md`); `dotnet aspire publish`, the migrator (against a local PostgreSQL) and the careers image build were run |
 | `git rebase origin/main` and its conflict steps (`git diff --name-only --diff-filter=U`, `git checkout --ours`, `git rebase --continue`), `git push origin HEAD:main` | `merge-back` | they move `main`, so they run only when the owner asks for a merge back |
 
 The unit, Vitest and end-to-end commands (`dotnet test --project tests/ScreenHire.UnitTests --filter-class ...`,
