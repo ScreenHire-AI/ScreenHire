@@ -1,6 +1,6 @@
 import type { JobDetail } from '@screenhire/api-client';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { page } from '$app/state';
 import { apiStub, applications, board, jobId, posting, stages, user, userAs } from '../../../../test-support/fixtures.js';
 import { stubViewport } from '../../../../test-support/viewport.js';
@@ -72,6 +72,10 @@ async function openMoreActions() {
   await fireEvent.pointerDown(trigger, { button: 0, pointerType: 'mouse' });
   return screen.findByRole('menu');
 }
+
+beforeEach(() => {
+  page.data = { user };
+});
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -315,6 +319,7 @@ describe('job page', () => {
     expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual([
       'Edit details',
       'Edit workflow',
+      'Add candidate',
       'Edit hiring team',
       'Close & remove everywhere',
     ]);
@@ -342,6 +347,21 @@ describe('job page', () => {
     stub(job);
     await screen.findByRole('button', { name: /Hiring team/ });
     expect(screen.queryByRole('button', { name: 'Add candidate' })).not.toBeInTheDocument();
+  });
+
+  it('offers no Edit details, Close or Publish to a role that cannot edit jobs (A3)', async () => {
+    page.data = { user: userAs('Viewer') };
+    stub(job);
+    await screen.findByRole('button', { name: /Hiring team/ });
+    expect(screen.queryByRole('link', { name: 'Edit details' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'More actions' })).not.toBeInTheDocument();
+    cleanup();
+
+    const fetchMock = stub({ ...job, status: 'Draft', publishedAt: null, postings: [] });
+    await screen.findByRole('button', { name: /Hiring team/ });
+    // Publish needs the boards, so wait for them: without them it would be missing for everyone.
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/v1/boards', expect.anything()));
+    await expect(screen.findByRole('button', { name: /^Publish/ }, { timeout: 200 })).rejects.toThrow();
   });
 
   it('has no Add candidate on a closed job, which takes no applications', async () => {
