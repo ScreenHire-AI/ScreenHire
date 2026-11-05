@@ -35,6 +35,10 @@ sources:
   - resource: apps/dashboard/src/lib/components/mini-card.svelte
   - resource: apps/dashboard/src/lib/components/copy-button.svelte
   - resource: apps/dashboard/src/lib/components/candidate/header-cards.svelte
+  - resource: apps/careers/src/components/JobFacts.astro
+  - resource: apps/careers/src/components/Notice.astro
+  - resource: apps/careers/src/lib/public-style.test.ts
+  - resource: apps/marketing/src/styles/global.css
 ---
 # ScreenHire design system
 
@@ -389,8 +393,35 @@ weight and tracking. The family is its own class: `font-display` for the two tit
 Titles take the employer's heading font where one is set (section 18), otherwise Bricolage Grotesque. Base 15px, display 30px, inputs 16px (no zoom on iOS), hints under a field 13px: `text-candidate-body`,
 `text-candidate-input` and `text-candidate-hint` in `packages/ui`. A form of several pages shows `PageProgress`
 (`packages/ui/src/questions`) above its fields: a bar of one segment per step, then "Step 2 of 4" and "9 of 24
-answered" in the hint size, the step semibold; each page's heading is its section's name. Marketing display goes up to 64px. The dashboard's
+answered" in the hint size, the step semibold; each page's heading is its section's name. Marketing display goes up to 64px (the home page's title is 60px, `text-6xl`). The dashboard's
 questionnaire preview shows the candidate base with `text-candidate-body`.
+
+### 4.4 Rules for public pages
+
+The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with these additions. `public-style.test.ts`
+(`apps/careers/src/lib`) fails on the first three.
+
+- Nothing under 12px, and no pixel font size in markup: use `text-candidate-body` (15px) and `text-candidate-hint`
+  (13px) on careers pages, and Tailwind's scale on marketing pages.
+- No capitals and no code font for ordinary words. A small line above a title or a card's heading is a kicker
+  (`.kicker` on marketing pages): sentence case, body face, 14px. The code font is for codes only: reason codes, a
+  notice version.
+- No cursor class on a component. Buttons, summaries, selects and switch labels get the hand from `theme.css` (A10).
+- A kicker adds to the breadcrumb and never repeats it (W7): a page whose kicker would be its own name has none.
+- A job's facts (where, how, contract, pay) are chips from one component, `JobFacts`, on the board, the job and the apply
+  form. The workplace type is left out when the location already says it. Chips are never links or buttons (A5).
+- A message about what just happened is `Notice`: an icon, the message, and one quieter line for what to do next. A page
+  never builds its own bordered block for it.
+- Every step of a form names itself in a visible heading, so "Step 2 of 3" is never the only clue. The review step says
+  who receives the answers and when.
+- A page that cannot open (an unknown, expired or closed link) says what happened in one sentence and who to contact:
+  the hiring team at the employer, by the address they write from. "Open it again" is never the only advice.
+- A long page of prose (the privacy page) starts with an "On this page" list of links to its headings.
+- Header, breadcrumb and footer links are 44px tall on a coarse pointer and at least 24px with a mouse (WCAG 2.5.8):
+  `pointer-coarse:min-h-11` on marketing pages. Careers pages use a plain `min-h-11`, so they are 44px on any pointer.
+- A careers form with steps has one row of buttons: the primary button first in the document and at the right on a wide
+  screen, Back beside it, and Save and finish later at the left. A page with one action leaves it at the left, under its
+  content.
 
 ## 5. Space, shape and size
 

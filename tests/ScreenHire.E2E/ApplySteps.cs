@@ -27,7 +27,7 @@ internal static class ApplySteps
         // A step sent with nothing in it explains itself.
         await frame.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" }).ClickAsync();
         await Expect(ErrorSummary(frame)).ToContainTextAsync("Enter your first name.");
-        await Expect(ErrorSummary(frame)).ToContainTextAsync("Add a file.");
+        await Expect(ErrorSummary(frame)).ToContainTextAsync("Add a file for \"Your CV or resume\".");
         await checkAccessibility();
 
         await FillDetailsAsync(frame, email);

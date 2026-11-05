@@ -45,8 +45,10 @@ const signInUrl = PUBLIC_APP_URL ? new URL('/', PUBLIC_APP_URL).href : undefined
       class="sr-only rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground focus:not-sr-only focus:absolute focus:top-3 focus:left-3"
       >Skip to content</a
     >
-    <header class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-7 gap-y-3 px-6 py-5">
-      <a href="/" class="flex items-center gap-2.5 text-foreground no-underline">
+    {/* On a phone the name and the Start free button share the first row and the links wrap below them; from md up it is
+        one row: name, links, then the buttons at the right. */}
+    <header class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-7 gap-y-2 px-6 py-5">
+      <a href="/" class="order-1 flex items-center gap-2.5 text-foreground no-underline">
         <span
           aria-hidden="true"
           class="grid size-8 place-items-center rounded-[9px] bg-foreground font-display text-lg font-extrabold text-background"
@@ -54,22 +56,21 @@ const signInUrl = PUBLIC_APP_URL ? new URL('/', PUBLIC_APP_URL).href : undefined
         >
         <span class="font-display text-xl font-bold tracking-tight">ScreenHire</span>
       </a>
-      <nav aria-label="Main" class="flex flex-wrap gap-x-6 gap-y-1 text-[15px] font-semibold">
+      <nav aria-label="Main" class="order-3 flex w-full flex-wrap gap-x-6 text-base font-semibold md:order-2 md:w-auto">
         {
           mainNav.map((page) => (
             <a
               href={page.path}
               aria-current={isCurrent(page.path) ? 'page' : undefined}
-              class="text-secondary-foreground no-underline hover:text-primary aria-[current=page]:text-primary"
+              class="inline-flex min-h-8 items-center text-secondary-foreground no-underline hover:text-primary aria-[current=page]:text-primary pointer-coarse:min-h-11"
             >
               {page.label}
             </a>
           ))
         }
       </nav>
-      <div class="flex-1"></div>
-      <div class="flex items-center gap-2.5">
-        {signInUrl && <a href={signInUrl} class="px-1.5 py-2 font-semibold text-foreground no-underline hover:text-primary">Sign in</a>}
+      <div class="order-2 ml-auto flex items-center gap-2.5 md:order-3">
+        {signInUrl && <a href={signInUrl} class="inline-flex min-h-11 items-center px-1.5 font-semibold text-foreground no-underline hover:text-primary">Sign in</a>}
         <a
           href={pages.pricing.path}
           class="inline-flex h-11 items-center rounded-[10px] bg-primary px-5 font-bold text-primary-foreground no-underline hover:bg-primary/90"
@@ -80,9 +81,9 @@ const signInUrl = PUBLIC_APP_URL ? new URL('/', PUBLIC_APP_URL).href : undefined
     {
       breadcrumbs && (
         <nav aria-label="Breadcrumb" class="mx-auto max-w-6xl px-6">
-          <ol class="flex flex-wrap gap-x-2 font-mono text-xs text-muted-foreground uppercase">
+          <ol class="flex flex-wrap gap-x-2 text-sm text-muted-foreground">
             <li>
-              <a href="/" class="text-muted-foreground hover:text-primary">Home</a>
+              <a href="/" class="inline-flex min-h-6 items-center text-muted-foreground hover:text-primary pointer-coarse:min-h-11">Home</a>
             </li>
             {breadcrumbs.map((crumb, index) => (
               <li class="flex gap-x-2">
@@ -90,7 +91,7 @@ const signInUrl = PUBLIC_APP_URL ? new URL('/', PUBLIC_APP_URL).href : undefined
                 {index === breadcrumbs.length - 1 ? (
                   <span aria-current="page">{crumb.name}</span>
                 ) : (
-                  <a href={crumb.path} class="text-muted-foreground hover:text-primary">
+                  <a href={crumb.path} class="inline-flex min-h-6 items-center text-muted-foreground hover:text-primary pointer-coarse:min-h-11">
                     {crumb.name}
                   </a>
                 )}
@@ -109,12 +110,12 @@ const signInUrl = PUBLIC_APP_URL ? new URL('/', PUBLIC_APP_URL).href : undefined
         <nav aria-label="Footer" class="flex flex-wrap gap-x-6 gap-y-2">
           {
             footerNav.map((page) => (
-              <a href={page.path} class="text-muted-foreground hover:text-primary">
+              <a href={page.path} class="inline-flex min-h-6 items-center text-muted-foreground hover:text-primary pointer-coarse:min-h-11">
                 {page.label}
               </a>
             ))
           }
-          <a href="/rss.xml" class="text-muted-foreground hover:text-primary">RSS</a>
+          <a href="/rss.xml" class="inline-flex min-h-6 items-center text-muted-foreground hover:text-primary pointer-coarse:min-h-11">RSS</a>
         </nav>
         <div class="flex flex-col gap-1">
           <span>© {new Date().getUTCFullYear()} ScreenHire</span>

@@ -1,13 +1,15 @@
 ---
 // A message about what just happened, always an icon and words (never colour alone). The icon is the circle-alert
 // shape for a problem and the info shape otherwise, never a status icon (design-system section 14). A problem is announced at once
-// (`role="alert"`) and takes the strong border; the calm kinds are read out politely.
+// (`role="alert"`) and takes the strong border; the calm kinds are read out politely. `detail` is one quieter line under
+// the message, for what to do next.
 interface Props {
   kind: 'success' | 'info' | 'problem';
   message: string;
+  detail?: string;
 }
 
-const { kind, message } = Astro.props;
+const { kind, message, detail } = Astro.props;
 ---
 
 <div
@@ -18,5 +20,8 @@ const { kind, message } = Astro.props;
     <circle cx="12" cy="12" r="10"></circle>
     {kind === 'problem' ? <path d="M12 8v4M12 16h.01"></path> : <path d="M12 16v-4M12 8h.01"></path>}
   </svg>
-  <p class="font-semibold">{message}</p>
+  <div class="min-w-0">
+    <p class="font-semibold">{message}</p>
+    {detail && <p class="mt-1 text-candidate-muted-foreground">{detail}</p>}
+  </div>
 </div>

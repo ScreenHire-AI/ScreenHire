@@ -10,7 +10,7 @@ const { sources, title = 'Sources' } = Astro.props;
 
 <section aria-labelledby="sources-title" class="flex flex-col gap-3">
   <h2 id="sources-title" class="font-display text-2xl font-bold tracking-tight">{title}</h2>
-  <ol class="flex list-decimal flex-col gap-1.5 pl-6 text-sm text-secondary-foreground marker:font-mono marker:text-muted-foreground">
+  <ol class="flex list-decimal flex-col gap-1.5 pl-6 text-sm text-secondary-foreground marker:text-muted-foreground">
     {
       sources.map((source, index) => (
         <li id={`source-${index + 1}`}>

@@ -29,7 +29,6 @@ const collectionPage = {
 
 <BaseLayout title={title} description={description} breadcrumbs={[{ name: label, path }]} jsonLd={[collectionPage]}>
   <PageHeader
-    kicker="Hiring-AI law tracker"
     title="The laws that govern AI in hiring."
     lead="Plain-language summaries of the rules on automated tools in recruitment across the EU, the UK and the US, with key dates, sources and what is still unclear."
   />
@@ -44,15 +43,15 @@ const collectionPage = {
       {
         laws.map((law) => (
           <li class="flex flex-col gap-2 rounded-xl border border-border bg-card p-6">
-            <span class="font-mono text-xs text-muted-foreground uppercase">{law.data.jurisdiction}</span>
+            <span class="kicker">{law.data.jurisdiction}</span>
             <h3 class="font-display text-2xl leading-snug font-bold">
               <a href={`${path}${law.id}/`} class="text-foreground no-underline hover:text-primary">
                 {law.data.title}
               </a>
             </h3>
             <p class="text-secondary-foreground">{law.data.status}</p>
-            <p class="mt-auto font-mono text-xs text-muted-foreground">
-              LAST REVIEWED <time datetime={law.data.lastReviewed}>{formatDate(law.data.lastReviewed).toUpperCase()}</time>
+            <p class="mt-auto text-sm text-muted-foreground">
+              Last reviewed <time datetime={law.data.lastReviewed}>{formatDate(law.data.lastReviewed)}</time>
             </p>
           </li>
         ))
