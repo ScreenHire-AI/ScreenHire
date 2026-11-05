@@ -7,7 +7,7 @@ import WithQueryClient from '../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
 // Signed out at /candidates unless a test changes it.
-const appPage = vi.hoisted(() => ({ url: new URL('http://dashboard.test/candidates'), data: {} as Record<string, unknown> }));
+const appPage = vi.hoisted(() => ({ url: new URL('http://dashboard.test/candidates'), data: {} as Record<string, unknown>, state: {} as { erased?: string } }));
 // The Add candidate sheet's form reads `navigating` (superforms).
 vi.mock('$app/state', () => ({ page: appPage, navigating: { to: null } }));
 vi.mock('$app/navigation', async (importOriginal) => ({ ...(await importOriginal<typeof import('$app/navigation')>()), goto: vi.fn(async () => {}) }));
@@ -15,6 +15,7 @@ vi.mock('$app/navigation', async (importOriginal) => ({ ...(await importOriginal
 afterEach(() => {
   appPage.url = new URL('http://dashboard.test/candidates');
   appPage.data = {};
+  appPage.state = {};
   vi.unstubAllGlobals();
 });
 
@@ -144,6 +145,15 @@ describe('candidates page', () => {
     await fireEvent.click(await within(band).findByRole('button', { name: 'Add candidate' }));
     const sheet = await screen.findByRole('dialog', { name: 'Add candidate' });
     expect(within(sheet).getByLabelText('Job')).toBeInTheDocument();
+  });
+
+  it('says who was erased when an erase returns here, and nothing otherwise', async () => {
+    appPage.data = { user };
+    appPage.state = { erased: 'Casey Morgan' };
+    render_();
+
+    await screen.findByRole('heading', { level: 1, name: 'Candidates' });
+    expect(document.querySelector('[data-erased]')).toHaveTextContent('Erased Casey Morgan.');
   });
 
   it('has no Add candidate for a role that cannot add candidates (A3)', async () => {

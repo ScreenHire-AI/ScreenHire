@@ -220,6 +220,6 @@
       </div>
     </div>
 
-    <EraseCandidateDialog bind:open={eraseOpen} candidateId={detail.id} candidateName={detail.fullName} ondone={() => goto('/candidates')} />
+    <EraseCandidateDialog bind:open={eraseOpen} candidateId={detail.id} candidateName={detail.fullName} ondone={() => goto('/candidates', { state: { erased: detail.fullName } })} />
   {/if}
 </main>

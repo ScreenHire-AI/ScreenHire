@@ -737,7 +737,7 @@ describe('application page', () => {
     await within(tasks).findByText('Fill in the Interview scorecard.');
     expect(within(tasks).getAllByRole('checkbox').map((box) => box.getAttribute('aria-label'))).toEqual(['Mark done for Call the references.']);
     expect(within(tasks).getByRole('link', { name: 'Fill in: Fill in the Interview scorecard.' })).toHaveAttribute('href', '?tab=scorecards&scorecard=interview');
-    expect(within(tasks).getByRole('link', { name: 'Fill in: Review this application.' })).toHaveAttribute('href', '?tab=scorecards');
+    expect(within(tasks).getByRole('link', { name: 'Open scorecards: Review this application.' })).toHaveAttribute('href', '?tab=scorecards');
     // Robin's request is Robin's to do.
     expect(within(tasks).queryByRole('link', { name: 'Fill in: Fill in the Screening scorecard.' })).not.toBeInTheDocument();
   });

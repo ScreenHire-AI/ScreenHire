@@ -70,7 +70,10 @@
   // the whole team), so their row links there: a requested scorecard with the sheet open on it.
   function scorecardWork(task: TaskRow): { href: string; label: string } | undefined {
     if (completesByHand(task.kind) || (task.assigneeUserId !== null && task.assigneeUserId !== currentUserId)) return undefined;
-    return { href: `?${task.kind === 'Scorecard' && task.scorecardTemplateId ? scorecardLink(task.scorecardTemplateId) : 'tab=scorecards'}`, label: 'Fill in' };
+    // A requested scorecard opens with its sheet; a review has no scorecard to open, so its link says where it goes.
+    return task.kind === 'Scorecard' && task.scorecardTemplateId
+      ? { href: `?${scorecardLink(task.scorecardTemplateId)}`, label: 'Fill in' }
+      : { href: '?tab=scorecards', label: 'Open scorecards' };
   }
 </script>
 

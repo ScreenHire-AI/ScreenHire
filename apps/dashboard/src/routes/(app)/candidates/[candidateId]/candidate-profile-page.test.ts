@@ -340,7 +340,7 @@ describe('candidate profile page', () => {
       await waitFor(() => expect(button).toBeEnabled());
       await fireEvent.click(button);
 
-      await waitFor(() => expect(goto).toHaveBeenCalledWith('/candidates'));
+      await waitFor(() => expect(goto).toHaveBeenCalledWith('/candidates', { state: { erased: 'Casey Morgan' } }));
       expect(sent).toEqual([{ confirmation: 'Casey Morgan' }]);
       expect(goto).toHaveBeenCalledOnce();
     });

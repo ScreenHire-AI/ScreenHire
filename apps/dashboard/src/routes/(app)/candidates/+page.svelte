@@ -243,6 +243,8 @@
           />
         {/if}
         <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4">{emailed}</p>
+        <!-- Erasing a candidate returns here, so this is where it says it worked. -->
+        <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4" data-erased>{page.state.erased ? `Erased ${page.state.erased}.` : ''}</p>
         <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4" data-added>
           {#if added}Added <a href={`/applications/${added.applicationId}`} class="text-foreground underline underline-offset-2">{added.name}</a> to {added.jobTitle}.{/if}
         </p>
