@@ -294,7 +294,7 @@ public sealed partial class TalentPoolTests(E2EFixture fixture) : BrowserTest(fi
     [GeneratedRegex(@"^[A-Z][a-z]{2} \d{1,2}, \d{4}$")]
     private static partial Regex DatePattern();
 
-    // The same date inside a longer cell, such as Last contacted with its Message button.
+    // The same date inside a longer cell.
     [GeneratedRegex(@"[A-Z][a-z]{2} \d{1,2}, \d{4}")]
     private static partial Regex DateInText();
 }

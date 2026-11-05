@@ -70,7 +70,10 @@
   // the whole team), so their row links there: a requested scorecard with the sheet open on it.
   function scorecardWork(task: TaskRow): { href: string; label: string } | undefined {
     if (completesByHand(task.kind) || (task.assigneeUserId !== null && task.assigneeUserId !== currentUserId)) return undefined;
-    return { href: `?${task.kind === 'Scorecard' && task.scorecardTemplateId ? scorecardLink(task.scorecardTemplateId) : 'tab=scorecards'}`, label: 'Fill in' };
+    // A requested scorecard opens with its sheet; a review has no scorecard to open, so its link says where it goes.
+    return task.kind === 'Scorecard' && task.scorecardTemplateId
+      ? { href: `?${scorecardLink(task.scorecardTemplateId)}`, label: 'Fill in' }
+      : { href: '?tab=scorecards', label: 'Open scorecards' };
   }
 </script>
 
@@ -103,17 +106,21 @@
       <FailureText message={completion.failure} />
     {/if}
     {#if verificationStep}
-      <!-- One row, as a task is: the level's icon, the step, who suggested it, and the link to the reasons on the right.
-           The caveat shows once: the Verification step already says it, the Review step does not (ADR-0004). -->
-      <div class="flex items-start gap-3 border-t border-border-subtle pt-3" data-verification-step>
+      <!-- One row, as a task is: the level's icon, the step, and the link to the reasons on the right (under the step in a
+           narrow container, so the text keeps the row's width, F2). The level is the badge beside the name (W7), so the
+           row does not say it again. The caveat shows once: the next step's own words often carry it, and the row adds it
+           only when they do not (ADR-0004). -->
+      <div class="@container/step flex items-start gap-3 border-t border-border-subtle pt-3" data-verification-step>
         <span class="grid size-7 shrink-0 place-items-center"><StatusIcon status={verificationStep.level.status} class="size-5" /></span>
-        <div class="flex min-w-0 flex-1 flex-col gap-0.5 pt-1">
-          <p class="max-w-measure font-semibold">{verificationStep.view.nextStep}</p>
-          <p class="max-w-measure text-muted-foreground">
-            {verificationStep.level.label} by the checks.{#if !/reject/i.test(verificationStep.view.nextStep)}{' '}Not a reason to reject on its own.{/if}
-          </p>
+        <div class="grid min-w-0 flex-1 items-start gap-x-3 gap-y-1 @md/step:grid-cols-[minmax(0,1fr)_auto]">
+          <div class="flex min-w-0 flex-col gap-0.5 pt-1">
+            <p class="max-w-measure font-semibold">{verificationStep.view.nextStep}</p>
+            {#if !/reject/i.test(verificationStep.view.nextStep)}
+              <p class="max-w-measure text-muted-foreground">Not a reason to reject on its own.</p>
+            {/if}
+          </div>
+          <a href="?tab=verification" class="inline-flex min-h-6 items-center justify-self-start pt-1 font-semibold text-primary underline underline-offset-2 pointer-coarse:min-h-11">See the reasons</a>
         </div>
-        <a href="?tab=verification" class="inline-flex min-h-6 shrink-0 items-center pt-1 font-semibold text-primary underline underline-offset-2 pointer-coarse:min-h-11">See the reasons</a>
       </div>
     {/if}
     {#if !tasks.isPending && !tasks.isError && taskRows.length === 0 && !verificationStep}
