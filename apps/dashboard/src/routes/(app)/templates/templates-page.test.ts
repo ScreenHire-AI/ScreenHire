@@ -231,4 +231,34 @@ describe('templates page', () => {
     expect(buttons).toHaveLength(1);
     expect(buttons[0]!.closest('[data-slot=action-bar]')).not.toBeNull();
   });
+
+  // L1: nothing uses the template, so the cell is blank and only a screen reader hears it. W9: the panel has no sentence about its tab.
+  it('leaves Used by and Version blank where there is nothing to say, and puts no sentence under the panel title', async () => {
+    renderPage();
+    const table = await screen.findByRole('table', { name: 'Hiring templates' });
+    const old = await within(table).findByRole('row', { name: /Summer interns 2025/ });
+
+    await waitFor(() => expect(within(old).getByText('Not used')).toHaveClass('sr-only'));
+    expect(within(old).queryByText('None')).toBeNull();
+    const panel = screen.getByRole('region', { name: 'Hiring templates' });
+    expect(within(panel).queryByText(/Where a job starts/)).toBeNull();
+  });
+
+  // Duplicate and Archive live only on the row, so a phone's list item has the row's menu too.
+  it('gives each list item on a phone the row menu', async () => {
+    stubViewport(360);
+    renderPage();
+    const list = await screen.findByRole('list', { name: 'Hiring templates' });
+
+    await fireEvent.pointerDown(await within(list).findByRole('button', { name: 'Actions for Brightwater engineering' }), { button: 0, pointerType: 'mouse' });
+    expect(await screen.findByRole('menuitem', { name: 'Duplicate' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Archive' })).toBeInTheDocument();
+  });
+
+  it('offers an empty Emails tab a link to the new email template page (A5)', async () => {
+    renderPage('/templates?tab=emails', { 'GET /v1/email-templates': () => Response.json({ ...emailList, templates: [] }) });
+
+    const link = await screen.findByRole('link', { name: 'New template' });
+    expect(link).toHaveAttribute('href', '/templates/emails/new');
+  });
 });

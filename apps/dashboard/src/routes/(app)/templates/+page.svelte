@@ -312,6 +312,7 @@
         {members}
         {currentUserId}
         menu={emailMenu}
+        createHref={editsEmails ? '/templates/emails/new' : undefined}
         hasMenu={(row) => editsEmails && (duplicable(emailOf(row)) || !row.builtIn || Boolean(emailOf(row)?.edited))}
         message={messages.emails}
         failure={failures.emails}
