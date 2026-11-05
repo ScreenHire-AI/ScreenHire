@@ -183,7 +183,12 @@ internal static class DataRequestEndpoints
             return TypedResults.ValidationProblem(problems);
         }
 
+        // The row lock makes two people declining at once take turns: the second sees the request already declined and
+        // gets the 409, so the team log holds one entry and the candidate one email. SaveChangesAndFlushMessagesAsync
+        // commits the transaction.
         var db = outbox.DbContext;
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await db.Database.ExecuteSqlAsync($"SELECT 1 FROM data_requests WHERE id = {id} FOR UPDATE", cancellationToken);
         var request = await db.DataRequests.SingleOrDefaultAsync(r => r.Id == id, cancellationToken);
         if (request is null)
         {

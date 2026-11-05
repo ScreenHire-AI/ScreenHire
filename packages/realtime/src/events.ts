@@ -173,6 +173,8 @@ export const realtimeEventSchemas = {
   DataRequestReceived: z.object({ organizationId: id, requestId: id, kind: z.enum(['Copy', 'Erasure']), receivedAt: instant }),
   // A data request was answered, or its copy was built or expired: the Data requests list refetches.
   DataRequestChanged: z.object({ organizationId: id, requestId: id }),
+  // The record retention run removed ended applications. A count only, so the lists refetch.
+  ApplicationsRemoved: z.object({ organizationId: id, count: z.number().int() }),
   TeamNotified: z.object({ organizationId: id, applicationId: id, jobId: id, runId: id, notifiedAt: instant }),
   ViewsChanged: z.object({ organizationId: id, viewId: id, changedAt: instant, actorUserId: actor }),
 } as const;

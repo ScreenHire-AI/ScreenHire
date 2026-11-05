@@ -114,6 +114,13 @@
     }
   },
   {
+    "type": "ApplicationsRemoved",
+    "data": {
+      "organizationId": "0199f0c4-0000-7000-8000-000000000001",
+      "count": 2
+    }
+  },
+  {
     "type": "AutomationRunFinished",
     "data": {
       "organizationId": "0199f0c4-0000-7000-8000-000000000001",

@@ -166,8 +166,7 @@ brackets.
   acts on it from Settings, Data requests ([data requests](architecture/data-requests.md)). Retention never touches a saved
   candidate: they stay until the team removes them or they use the stop link, which only takes them off the list
   ([saved candidates](architecture/talent-pool.md)); the profile then offers Erase candidate. Retention treats a Hired application and an application on a closed job as
-  ended, as the setting says. Removing some of a candidate's applications while they keep another raises no live update;
-  open pages catch up when they next refetch.
+  ended, as the setting says.
 
 - MCP clients that sign in only with OAuth, such as claude.ai custom connectors, cannot connect until OAuth comes
   (ADR-0011 decision 6).

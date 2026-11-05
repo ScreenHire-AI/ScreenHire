@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using ScreenHire.Application.Privacy;
 using ScreenHire.Application.Verification;
 using ScreenHire.Domain.Applications;
@@ -260,6 +261,55 @@ public sealed partial class DataRequestAdminTests(AppHostFixture fixture)
         // One mail only, however the message was delivered.
         await Task.Delay(TimeSpan.FromSeconds(2), Ct);
         (await fixture.Mailpit.MessagesAsync(world.Person.Email, Ct)).Count(m => m.Subject.StartsWith("About your request to ", StringComparison.Ordinal)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Two_people_declining_one_request_at_once_get_one_204_and_one_409_and_the_candidate_one_email_and_the_log_one_entry()
+    {
+        using var world = await fixture.NewWorldAsync();
+        var requestId = await fixture.OpenRequestAsync(world.OrganizationId, world.CandidateId, DataRequestKind.Copy);
+        var path = $"/v1/data-requests/{requestId}/decline";
+        var reason = $"Both of us said no {Guid.NewGuid():N}";
+
+        // Hold the request's row so both calls are in flight at the same moment: the test releases it once two database
+        // sessions are waiting on a lock, instead of hoping two requests overlap.
+        Task<ApiResult> first, second;
+        await using (var gate = new NpgsqlConnection(await fixture.GetOwnerConnectionStringAsync(Ct)))
+        {
+            await gate.OpenAsync(Ct);
+            await using var transaction = await gate.BeginTransactionAsync(Ct);
+            await using (var hold = new NpgsqlCommand("SELECT 1 FROM data_requests WHERE id = @id FOR UPDATE", gate, transaction))
+            {
+                hold.Parameters.AddWithValue("id", requestId);
+                await hold.ExecuteScalarAsync(Ct);
+            }
+
+            first = world.Owner.PostAsync(path, new JsonObject { ["reason"] = reason });
+            second = world.Owner.PostAsync(path, new JsonObject { ["reason"] = reason });
+            await WolverineStore.WaitUntilAsync(
+                async () => await fixture.OwnerScalarAsync<long>(
+                    "SELECT count(*) FROM pg_stat_activity WHERE wait_event_type = 'Lock' AND pid <> pg_backend_pid() AND query ILIKE '%data_requests%'") >= 2,
+                "both decline calls to be waiting on the request's row", Ct);
+            await transaction.RollbackAsync(Ct);
+        }
+
+        var answers = await Task.WhenAll(first, second);
+
+        answers.Select(a => a.Status).Should().BeEquivalentTo([HttpStatusCode.NoContent, HttpStatusCode.Conflict], "the second to arrive sees it already declined");
+        (await fixture.OwnerScalarAsync<long>(
+            "SELECT count(*) FROM membership_events WHERE kind = 'DataRequestDeclined' AND data_request_id = @id", ("id", requestId)))
+            .Should().Be(1, "the team log records one decline");
+
+        await WaitForMailAsync(world.Person.Email, "About your request to ");
+        var store = await WolverineStore.ForAppHostAsync(fixture, Ct);
+        await WolverineStore.WaitUntilAsync(
+            async () => await store.CountHandledAsync(requestId.ToString(), Ct, ".SendDataRequestDeclined") >= 1,
+            "the worker to handle the decline email's message", Ct);
+        (await store.CountHandledAsync(requestId.ToString(), Ct, ".SendDataRequestDeclined")).Should().Be(1);
+        (await store.GetDeadLettersAsync(requestId.ToString(), Ct)).Should().BeEmpty();
+        (await fixture.Mailpit.MessagesAsync(world.Person.Email, Ct)).Count(m => m.Subject.StartsWith("About your request to ", StringComparison.Ordinal))
+            .Should().Be(1, "one decline, one email");
+        (await world.Owner.ListedAsync(requestId))!.Value.GetProperty("status").GetString().Should().Be("Declined");
     }
 
     [Fact]

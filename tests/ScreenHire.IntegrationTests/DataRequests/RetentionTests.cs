@@ -1,12 +1,17 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using ScreenHire.Application.Candidates;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Application.Verification;
 using ScreenHire.Application.Privacy;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.IntegrationTests.Messaging;
+using ScreenHire.IntegrationTests.Realtime;
 using Wolverine;
 using Wolverine.Runtime.Recurring;
 using static ScreenHire.IntegrationTests.CandidateTestSupport;
@@ -203,6 +208,66 @@ public sealed class RetentionTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_run_that_deletes_applications_tells_its_own_organizations_dashboards_how_many_and_no_other_organization()
+    {
+        using var ours = await fixture.NewWorldAsync();
+        using var theirs = await fixture.NewWorldAsync();
+        var spare = SyntheticApplicants.GenuineHuman.AsNewPerson();
+        var second = (await ours.Owner.CreateApplicationAsync(ours.JobId, spare.Email, spare.FullName)).Id();
+        await RejectedAsync(ours.Owner, ours.ApplicationId, monthsAgo: 13);
+        await RejectedAsync(ours.Owner, second, monthsAgo: 13);
+        await RejectedAsync(theirs.Owner, theirs.ApplicationId, monthsAgo: 13);
+        (await ours.Owner.PutAsync(Path, new JsonObject { ["months"] = 6 })).Expect(HttpStatusCode.OK);
+        (await theirs.Owner.PutAsync(Path, new JsonObject { ["months"] = 6 })).Expect(HttpStatusCode.OK);
+        await using var ourEvents = await EventsConnection.ConnectAsync(ours.Owner.Session, Ct);
+        await using var theirEvents = await EventsConnection.ConnectAsync(theirs.Owner.Session, Ct);
+
+        await RunAsync(ours.OrganizationId);
+        await RunAsync(theirs.OrganizationId);
+
+        var removed = await ourEvents.WaitForAsync("ApplicationsRemoved", "organizationId", ours.OrganizationId, Ct);
+        removed.GetProperty("count").GetInt32().Should().Be(2);
+        var theirRemoved = await theirEvents.WaitForAsync("ApplicationsRemoved", "organizationId", theirs.OrganizationId, Ct);
+        theirRemoved.GetProperty("count").GetInt32().Should().Be(1);
+        // Both organizations' events have been delivered by now, so neither connection heard the other's.
+        ourEvents.ReceivedAnythingAbout(theirs.OrganizationId).Should().BeFalse("another organization's removals are not ours to hear");
+        theirEvents.ReceivedAnythingAbout(ours.OrganizationId).Should().BeFalse();
+        ourEvents.Received.Count(e => e.Type == "ApplicationsRemoved").Should().Be(1);
+    }
+
+    [Fact]
+    public async Task A_batch_smaller_than_the_selection_sends_itself_again_and_each_run_records_its_own_count()
+    {
+        using var world = await fixture.NewWorldAsync();
+        var spare = SyntheticApplicants.GenuineHuman.AsNewPerson();
+        var second = (await world.Owner.CreateApplicationAsync(world.JobId, spare.Email, spare.FullName)).Id();
+        (await world.Owner.PutAsync(Path, new JsonObject { ["months"] = 6 })).Expect(HttpStatusCode.OK);
+        var now = new DateTimeOffset(2026, 11, 5, 9, 0, 0, TimeSpan.Zero);
+        foreach (var id in new[] { world.ApplicationId, second })
+        {
+            (await world.Owner.PostAsync($"/v1/applications/{id}/move", new JsonObject { ["toStageId"] = "rejected" })).Expect(HttpStatusCode.OK);
+            await fixture.OwnerSqlAsync("UPDATE applications SET stage_entered_at = @entered WHERE id = @id", ("id", id), ("entered", now.AddMonths(-13)));
+        }
+
+        var message = new PurgeOrganizationEndedApplications(world.OrganizationId, now);
+        var first = await HandleAsync(world.OrganizationId, message, batchSize: 1);
+
+        first.OfType<PurgeOrganizationEndedApplications>().Should().ContainSingle().Which.Should().Be(message, "one application is still waiting");
+        first.OfType<ApplicationsRemoved>().Should().ContainSingle().Which.Should().Be(new ApplicationsRemoved(world.OrganizationId, 1));
+        (await RemainingApplicationsAsync(world.OrganizationId)).Should().Be(1);
+
+        var last = await HandleAsync(world.OrganizationId, message, batchSize: 1);
+
+        last.OfType<PurgeOrganizationEndedApplications>().Should().BeEmpty("nothing is left, so the chain ends");
+        last.OfType<ApplicationsRemoved>().Should().ContainSingle().Which.Should().Be(new ApplicationsRemoved(world.OrganizationId, 1));
+        (await RemainingApplicationsAsync(world.OrganizationId)).Should().Be(0);
+        var entries = (await world.Owner.GetAsync("/v1/organization/membership-log")).Expect(HttpStatusCode.OK).Body.EnumerateArray()
+            .Where(e => e.GetProperty("kind").GetString() == "RetentionApplied").ToList();
+        entries.Select(e => e.GetProperty("itemCount").GetInt32()).Should().Equal([1, 1], "each run records the applications it removed");
+        (await HandleAsync(world.OrganizationId, message, batchSize: 1)).Should().BeEmpty("a run that finds nothing sends nothing");
+    }
+
+    [Fact]
     public async Task The_daily_sweeps_are_tracked_schedules()
     {
         var settings = new MessagingSettings { Schema = MessagingHost.NewSchema(), AutoProvision = true };
@@ -234,6 +299,29 @@ public sealed class RetentionTests(AppHostFixture fixture)
         fixture.OwnerSqlAsync(
             "UPDATE applications SET stage_entered_at = now() - make_interval(months => @months), kept_in_mind_at = CASE WHEN kept_in_mind_at IS NULL THEN NULL ELSE now() - make_interval(months => @months) END WHERE id = @id",
             ("id", applicationId), ("months", monthsAgo));
+
+    // The handler's own shape, run in-process with a chosen batch size: its transaction, one save, then the messages it returns.
+    private async Task<OutgoingMessages> HandleAsync(Guid organizationId, PurgeOrganizationEndedApplications message, int batchSize)
+    {
+        await using var db = await VerificationSupport.TenantDbAsync(fixture, organizationId);
+        await using var transaction = await db.Database.BeginTransactionAsync(Ct);
+        var outgoing = await PurgeOrganizationEndedApplicationsHandler.Handle(
+            message,
+            db,
+            new CandidateErasure(new DatabaseApplicantDirectory(db)),
+            Options.Create(new RecordRetentionOptions { BatchSize = batchSize }),
+            NullLogger<PurgeOrganizationEndedApplications>.Instance,
+            Ct);
+        await db.SaveChangesAsync(Ct);
+        await transaction.CommitAsync(Ct);
+        return outgoing;
+    }
+
+    private async Task<int> RemainingApplicationsAsync(Guid organizationId)
+    {
+        await using var db = await VerificationSupport.TenantDbAsync(fixture, organizationId);
+        return await db.Applications.CountAsync(Ct);
+    }
 
     // What the daily sweep sends for one organization.
     private async Task RunAsync(Guid organizationId)

@@ -131,7 +131,7 @@ request, or an unknown id, is a 404.
 | `GET ""` (`ListDataRequests`) | Every open request and those answered in the last 90 days, earliest due date first, with `openCount`. Each item has the kind, status, `receivedAt`, `dueAt`, `overdue`, `resolvedAt`, `copySentAt`, `declineReason` and the candidate (`id`, `name`, `email`) while they exist; `candidate` is null after an erasure. |
 | `POST {id}/send-copy` (`SendDataRequestCopy`) | An open Copy request only (else 409). Publishes `BuildDataCopy` and answers 202. The request stays open until the worker has built the file. |
 | `POST {id}/erase` (`EraseDataRequest`) | An open Erasure request only (else 409). Body `{ confirmation }`, the candidate's full name, ignoring case and spaces (else a validation problem). Same explicit transaction, row lock and `CandidateErasure.EraseCandidateAsync` as the erase route, with the request's id on the tombstone. The service completes this request and the candidate's other open ones. |
-| `POST {id}/decline` (`DeclineDataRequest`) | An open request only (else 409). Body `{ reason }`, 1 to 500 characters once trimmed. Sets Declined, adds a `DataRequestDeclined` entry to the team log (the actor and the request id, never the reason), publishes `SendDataRequestDeclined` and `DataRequestChanged`. |
+| `POST {id}/decline` (`DeclineDataRequest`) | An open request only (else 409). Body `{ reason }`, 1 to 500 characters once trimmed. It locks the request's row first, so two people declining at once take turns and the second gets the 409. Sets Declined, adds a `DataRequestDeclined` entry to the team log (the actor and the request id, never the reason), publishes `SendDataRequestDeclined` and `DataRequestChanged`. |
 
 Mutations require the antiforgery token. The routes are in the `RolePermissionsTests` table. The team log's entries carry
 `dataRequestId` and, for `RetentionApplied`, `itemCount`.
@@ -192,8 +192,9 @@ tenant has no user, so it sees every job), takes up to `BatchSize` application i
 `CandidateErasure.EraseApplicationsAsync` inside the handler's transaction. It returns the erasure's messages (files, calendar
 events, duplicate checks and one `CandidateErased` event per candidate left with nothing) and, while more are waiting, itself
 again. It adds a `RetentionApplied` entry with the count when the count is above zero, and nothing about the people. A rerun finds
-nothing. When a run takes several batches, "Last run" shows the latest batch's count. Applications removed from a candidate who
-keeps another application raise no event of their own; the list refetches when the dashboard next focuses.
+nothing. When a run takes several batches, "Last run" shows the latest batch's count. Each batch also raises `ApplicationsRemoved`
+(the organization id and the count, no job or person), because an application removed from a candidate who keeps another one
+raises no `CandidateErased`; open dashboards refetch their lists, reports and the retention panel on it.
 
 ## Careers pages
 
@@ -247,5 +248,6 @@ palette all read `settingsSections` and need Erase candidates and a person who s
 - **Live updates.** `DataRequestReceived` and `DataRequestChanged` refresh the requests and their open count; `CandidateErased`
   also refreshes the requests and the retention panel, since an erasure blanks a row's candidate and changes the dry-run count. A
   `DataRequestReceived` also adds a card to the notification tray ("New data request", for a copy or an erasure, linking to the
-  page) for a person who may erase candidates and sees every job; it names no one. Cards last until dismissed, so the list and its
+  page) for a person who may erase candidates and sees every job; it names no one. `ApplicationsRemoved` refreshes the lists,
+  reports and the retention panel after a retention run. Cards last until dismissed, so the list and its
   open count are the lasting record.

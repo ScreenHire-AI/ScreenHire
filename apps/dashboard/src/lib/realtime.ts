@@ -88,6 +88,9 @@ export const invalidations: InvalidationMap = {
   CandidateErased: [talentPoolPath, jobsPath, applicationsPath, candidatesPath, tasksPath, reportsPath, dataRequestsPath, retentionPath],
   DataRequestReceived: [dataRequestsPath],
   DataRequestChanged: [dataRequestsPath],
+  // Retention removed ended applications, some from candidates who keep another one: every list and count refetches, and
+  // the retention panel's Last run and dry-run count change.
+  ApplicationsRemoved: [jobsPath, applicationsPath, candidatesPath, tasksPath, reportsPath, retentionPath],
   // A teammate's shared view appears in the sidebar, and a rename or a delete reaches everyone who sees it.
   ViewsChanged: [viewsPath],
 };

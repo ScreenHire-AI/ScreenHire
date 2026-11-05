@@ -15,3 +15,10 @@ public sealed record DataRequestReceived(Guid OrganizationId, Guid RequestId, Da
 /// Data requests list refetches.
 /// </summary>
 public sealed record DataRequestChanged(Guid OrganizationId, Guid RequestId) : ITenantEvent;
+
+/// <summary>
+/// The daily record retention run removed ended applications (docs/architecture/data-requests.md, "Retention"). It carries
+/// a count only, never a job, a candidate or an application, so open dashboards refetch their lists. A candidate left with
+/// no application is also announced by <c>CandidateErased</c>; this covers the one who keeps another application.
+/// </summary>
+public sealed record ApplicationsRemoved(Guid OrganizationId, int Count) : ITenantEvent;

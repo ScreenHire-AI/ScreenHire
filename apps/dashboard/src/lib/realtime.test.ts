@@ -48,4 +48,23 @@ describe('live updates', () => {
 
     for (const key of keys) expect(client.getQueryState(key)?.isInvalidated, key.join('/')).toBe(true);
   });
+
+  it('refreshes the lists, reports and the retention panel when retention removes applications, and nothing unrelated', async () => {
+    const client = new QueryClient();
+    const keys = [
+      ['v1', 'jobs'],
+      ['v1', 'applications'],
+      ['v1', 'candidates', 'candidate-1'],
+      ['v1', 'reports', 'funnel'],
+      ['v1', 'organization', 'data-retention'],
+      ['v1', 'organization', 'data-retention', 'preview', { months: 6 }],
+    ];
+    const unrelated = [['v1', 'organization', 'members'], ['v1', 'data-requests']];
+    for (const key of [...keys, ...unrelated]) client.setQueryData(key, {});
+
+    await Promise.all((invalidations.ApplicationsRemoved ?? []).map((path) => invalidatePath(client, path)));
+
+    for (const key of keys) expect(client.getQueryState(key)?.isInvalidated, key.join('/')).toBe(true);
+    for (const key of unrelated) expect(client.getQueryState(key)?.isInvalidated, key.join('/')).toBe(false);
+  });
 });
