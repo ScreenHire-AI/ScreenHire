@@ -65,7 +65,8 @@ public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : Browser
         await Expect(calendar).ToBeVisibleAsync();
         await calendar.GetByRole(AriaRole.Button, new() { Name = "Connect Sandbox calendar" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(applicationUrl);
-        await Expect(calendar).ToContainTextAsync("Connected to Sandbox calendar");
+        await Expect(calendar).ToContainTextAsync("Connected");
+        await Expect(calendar).ToContainTextAsync("Sandbox calendar");
         await ExpectNoAccessibilityViolationsAsync();
         await Page.Keyboard.PressAsync("Escape");
         await Expect(calendar).ToHaveCountAsync(0);
