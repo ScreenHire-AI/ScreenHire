@@ -39,19 +39,19 @@ public sealed class TemplatesPageTests(E2EFixture fixture) : BrowserTest(fixture
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/templates/emails/stage-change"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Moved to the next step");
 
-        // Each tab says what its templates are for and passes axe, on a laptop and on a phone.
+        // Each tab is a panel titled for its templates, with no sentence about them, and passes axe, on a laptop and on a phone.
         foreach (var (width, height) in new[] { (1440, 1000), (360, 800) })
         {
             await Page.SetViewportSizeAsync(width, height);
-            foreach (var (tab, sentence) in new[]
+            foreach (var (tab, title) in new[]
             {
-                ("hiring", "Where a job starts"),
-                ("scorecards", "What reviewers fill in at a stage"),
-                ("emails", "What candidates receive"),
+                ("hiring", "Hiring templates"),
+                ("scorecards", "Scorecards"),
+                ("emails", "Email templates"),
             })
             {
                 await Page.GotoAsync(DashboardUrl(tab == "hiring" ? "/templates" : $"/templates?tab={tab}"));
-                await Expect(Page.GetByText(sentence).First).ToBeAttachedAsync();
+                await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 2, Name = title })).ToBeVisibleAsync();
                 await Expect(Page.GetByRole(AriaRole.Group, new() { Name = "Show" }).GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^In use") }))
                     .ToContainTextAsync(new Regex(@"\d"));
                 (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth")).Should().BeTrue($"{tab} at {width} scrolls sideways");
