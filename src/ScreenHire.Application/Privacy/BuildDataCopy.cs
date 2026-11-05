@@ -46,6 +46,12 @@ public static partial class BuildDataCopyHandler
         ILogger<BuildDataCopy> logger,
         CancellationToken cancellationToken)
     {
+        // The row locks below last only as long as the transaction Wolverine opens around this handler.
+        if (db.Database.CurrentTransaction is null)
+        {
+            throw new InvalidOperationException("Building a copy needs the handler's transaction, or its row locks end at once.");
+        }
+
         // Read without tracking: a tracked row would keep these values through the re-read after the locks.
         var target = await db.DataRequests.AsNoTracking().Where(r => r.Id == message.RequestId).Select(r => r.CandidateId).SingleOrDefaultAsync(cancellationToken);
         if (target is { } lockedCandidateId)
