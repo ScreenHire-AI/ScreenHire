@@ -912,6 +912,9 @@ describe('application page', () => {
 
     expect(declarations).toHaveTextContent('Used AI: Grammar checks only.');
     expect(declarations).toHaveTextContent('Asked for adjustments to the process');
+    // These values explain themselves, so their labels are for screen readers only (W9).
+    expect(within(declarations).getByText('AI use')).toHaveClass('sr-only');
+    expect(within(declarations).getByText('Adjustments')).toHaveClass('sr-only');
   });
 
   it('shows only what the candidate declared, and says so when that is nothing (W6)', async () => {

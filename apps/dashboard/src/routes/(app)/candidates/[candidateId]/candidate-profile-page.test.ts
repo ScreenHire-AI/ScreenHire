@@ -171,6 +171,9 @@ describe('candidate profile page', () => {
       ['Account Manager', 'Saved', 'Oct 5, 2026', 'Screening', 'Oct 12, 2026'],
       ['Product Designer', 'Interview', 'Oct 20, 2026', '', ''],
     ]);
+    // Saved is a status, as it is on the Candidates list (T1); a stage or an ending is plain text.
+    expect(within(table).getByText('Saved').closest('[data-slot=badge]')).toBeInTheDocument();
+    expect(within(table).getByText('Hired').closest('[data-slot=badge]')).toBeNull();
     expect(within(table).getByRole('link', { name: 'Support Engineer' })).toHaveAttribute('href', '/applications/a-support');
     expect(within(table).getByRole('columnheader', { name: /^Applied/ })).toHaveAttribute('aria-sort', 'ascending');
     expect(screen.getByRole('region', { name: 'Applications' })).toHaveTextContent('5');
