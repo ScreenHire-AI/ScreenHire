@@ -169,10 +169,6 @@
 
     <Panel title="How webhooks work">
       <div class="flex flex-col gap-4">
-        <p class="max-w-measure">
-          When something happens, ScreenHire posts a signed JSON message to each endpoint that listens for it, so another system
-          hears about it without asking.
-        </p>
         <SummaryList>
           <SummaryItem label="Events">
             {#if eventTypes.isSuccess}
@@ -185,20 +181,14 @@
               <FailureText message={describeError(eventTypes.error, 'Could not load the events')} />
             {:else}<Skeleton class="h-4 w-48" />{/if}
           </SummaryItem>
-          <SummaryItem label="Check each message">
+          <SummaryItem label="Signature">
             <span class="flex flex-col gap-1">
               <span class="font-mono text-code break-all">ScreenHire-Signature: t=…,v1=…</span>
-              <span>
-                v1 is the HMAC-SHA256 of t, a full stop and the raw body, keyed with the endpoint's signing secret. Work out your own
-                and compare.
-              </span>
+              <span>v1 is the HMAC-SHA256 of t, a full stop and the raw body, keyed with the signing secret.</span>
             </span>
           </SummaryItem>
-          <SummaryItem label="Repeats">ScreenHire-Event-Id stays the same when a message is sent again, so you can drop repeats.</SummaryItem>
-          <SummaryItem label="When delivery fails">
-            ScreenHire tries again with a growing wait. After repeated failures the endpoint turns off and says why. Replay any delivery
-            from its log.
-          </SummaryItem>
+          <SummaryItem label="Repeats">A repeat keeps its ScreenHire-Event-Id.</SummaryItem>
+          <SummaryItem label="Failures">Retried with a growing wait, then the endpoint turns off. Replay a delivery from its log.</SummaryItem>
           <SummaryItem label="Reference">
             {#if apiOrigin}
               <a href={`${apiOrigin}/scalar#tag/webhooks`} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-primary">

@@ -3,9 +3,10 @@
   import CopyIcon from '~icons/lucide/copy';
   import LockIcon from '~icons/lucide/lock';
   import SaveIcon from '~icons/lucide/save';
+  import ShieldUserIcon from '~icons/lucide/shield-user';
   import Trash2Icon from '~icons/lucide/trash-2';
   import UsersRoundIcon from '~icons/lucide/users-round';
-  import type { CustomRoleDetail, HttpValidationProblemDetails, Permission, PermissionGroup, PermissionSummary, RoleSummary } from '@screenhire/api-client';
+  import type { CustomRoleDetail, HttpValidationProblemDetails, Permission, PermissionGroup, PermissionSummary, RoleSummary, TeamMember } from '@screenhire/api-client';
   import {
     ApiError,
     createDeleteRole,
@@ -16,6 +17,15 @@
     getGetRoleHistoryQueryOptions,
   } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
+  import {
+    createSortedRowModel,
+    createTable,
+    rowSortingFeature,
+    sortFn_alphanumeric,
+    sortFn_basic,
+    tableFeatures,
+    type ColumnDef,
+  } from '@tanstack/svelte-table';
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
@@ -23,6 +33,7 @@
   import { page } from '$app/state';
   import BuiltInBadge from '#lib/components/built-in-badge.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
+  import DateText from '#lib/components/date-text.svelte';
   import Fact from '#lib/components/fact.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
@@ -33,17 +44,23 @@
   import NewRoleSheet from '#lib/components/new-role-sheet.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import SortHeader from '#lib/components/sort-header.svelte';
+  import SortMenu from '#lib/components/sort-menu.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
+  import TruncatedText from '#lib/components/truncated-text.svelte';
+  import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
+  import * as Table from '#lib/components/ui/table/index.js';
   import { applyValidationProblem } from '#lib/forms.js';
   import { createHistoryPages } from '#lib/history-pages.svelte.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { mayAssign, roleKey } from '#lib/settings.js';
+  import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import { lastUpdateWords } from '#lib/history.js';
   import type { PageProps } from './$types';
 
@@ -84,7 +101,33 @@
   const ready = $derived(catalogue.isSuccess && (isBuiltIn ? Boolean(summary) : Boolean(detail)));
   // A role with more access than the person's own can be read here but not changed (TeamPolicy).
   const editable = $derived(!isBuiltIn && detail !== undefined && mayAssign(actor, detail.permissions));
+  // Nobody copies the Owner role, and a role with more access than the person's own is not theirs to copy.
+  const mayCopy = $derived(params.roleId !== 'owner' && summary !== undefined && mayAssign(actor, summary.permissions));
   const people = $derived((members ?? []).filter((member) => roleKey(member) === params.roleId));
+
+  // The people table sorts (L2), by name first, with Team's columns for the same facts.
+  const features = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: { basic: sortFn_basic, alphanumeric: sortFn_alphanumeric } });
+  // `any`: one list mixes columns of different value types.
+  const peopleColumns: ColumnDef<typeof features, TeamMember, any>[] = [
+    { id: 'name', header: 'Name', accessorFn: (member) => member.displayName, sortFn: 'alphanumeric' },
+    { id: 'email', header: 'Email', accessorFn: (member) => member.email, sortFn: 'alphanumeric' },
+    // All jobs first, then by how many jobs they are on, most first.
+    { id: 'jobs', header: 'Jobs', accessorFn: (member) => (member.seesAllJobs ? Number.MAX_SAFE_INTEGER : member.jobCount), sortFn: 'basic', sortDescFirst: true },
+    { id: 'joined', header: 'Joined', accessorFn: (member) => member.joinedAt, sortFn: 'basic', sortDescFirst: true },
+  ];
+  const peopleSort = createTableSort('role-people', { id: 'name', desc: false }, ['name', 'email', 'jobs', 'joined']);
+  const peopleTable = createTable({
+    ...tableSortOptions(() => peopleSort),
+    features,
+    columns: peopleColumns,
+    get data() {
+      return people;
+    },
+    getRowId: (member) => member.id,
+  });
+  const sortedPeople = $derived(peopleTable.getRowModel().rows.map((row) => row.original));
+  // Team's own check for its row menu: never your own access, and only a role the person may give.
+  const manageable = (member: TeamMember) => member.userId !== currentUserId && mayAssign(actor, summary?.permissions ?? []);
   const groups = $derived.by(() => {
     const byGroup = new Map<PermissionGroup, PermissionSummary[]>();
     for (const permission of permissions) byGroup.set(permission.group, [...(byGroup.get(permission.group) ?? []), permission]);
@@ -213,7 +256,7 @@
       {#snippet status()}{#if isBuiltIn}<BuiltInBadge />{/if}{/snippet}
       {#snippet actions()}
         {#if isBuiltIn}
-          {#if params.roleId !== 'owner' && summary && mayAssign(actor, summary.permissions)}
+          {#if mayCopy}
             <Button size="lg" onclick={() => (copying = true)}><CopyIcon aria-hidden="true" />Copy role</Button>
           {/if}
         {:else if editable}
@@ -270,8 +313,7 @@
               <Field.Error id="role-name-error" errors={$errors.name?.map((message) => ({ message }))} />
             </Field.Field>
           </Panel>
-          <Panel title="What this role can do" flush>
-            {#snippet actions()}<span class="text-caption text-muted-foreground tabular-nums">{chosen} of {assignable.length}</span>{/snippet}
+          <Panel title="What this role can do" count={chosen} flush>
             {#each groups as [group, inGroup] (group)}
               <fieldset class="min-w-0">
                 <legend class="w-full border-b border-border-subtle bg-muted px-4.5 py-2.5 text-caption font-semibold max-md:px-4">{group}</legend>
@@ -319,17 +361,8 @@
         </form>
       {:else}
         {@const held = detail?.permissions ?? summary?.permissions ?? []}
-        <Panel title="What this role can do">
-          <!-- The same "N of M" as the form: out of all permissions for a built-in role, out of those a custom one may hold. -->
-          {#snippet actions()}<span class="text-caption text-muted-foreground tabular-nums">{held.length} of {isBuiltIn ? permissions.length : assignable.length}</span>{/snippet}
-          <!-- Read only says why and what to do (E3). -->
-          <p class="mb-3 text-muted-foreground">
-            {#if isBuiltIn}
-              ScreenHire supplies this role, so it cannot be changed. Copy it to make one of your own.
-            {:else}
-              This role has more access than yours, so you cannot change it.
-            {/if}
-          </p>
+        <!-- A plain count, as the form's: a fraction reads as a score (E2). -->
+        <Panel title="What this role can do" count={held.length}>
           <dl class="flex flex-col gap-3">
             {#each groups as [group, inGroup] (group)}
               {@const included = inGroup.filter((permission) => held.includes(permission.permission))}
@@ -341,6 +374,17 @@
               {/if}
             {/each}
           </dl>
+          {#snippet footer()}
+            <!-- Read only says why and what to do (E3), in the footer because no sentence sits under a panel's title (W9).
+                 It offers a copy only where the Copy role button is. -->
+            <p class="text-muted-foreground">
+              {#if isBuiltIn}
+                ScreenHire supplies this role, so it cannot be changed.{mayCopy ? ' Copy it to make one of your own.' : ''}
+              {:else}
+                This role has more access than yours, so you cannot change it.
+              {/if}
+            </p>
+          {/snippet}
         </Panel>
       {/if}
 
@@ -357,24 +401,55 @@
             </Empty.Header>
           </Empty.Root>
         {:else}
-          <ul>
-            {#each people as member (member.id)}
-              <li class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-border-subtle px-4.5 py-3 last:border-0 max-md:px-4">
-                <span class="flex min-w-0 flex-[1_1_14rem] flex-wrap items-baseline gap-x-3 gap-y-0.5">
+          <!-- Phones get two-line items and the Sort chip (design system section 8, L2); wider screens the table, as on Team. -->
+          <div class="flex justify-end border-b border-border-subtle px-4 py-2 md:hidden"><SortMenu table={peopleTable} /></div>
+          <ul class="md:hidden">
+            {#each sortedPeople as member (member.id)}
+              <li class="flex min-w-0 items-start gap-2 border-b border-border-subtle px-4 py-3 last:border-0">
+                <div class="flex min-w-0 flex-1 flex-col gap-1.5">
                   <span class="min-w-0 font-semibold break-words">{member.displayName}</span>
                   <span class="min-w-0 break-all text-muted-foreground">{member.email}</span>
-                </span>
-                <!-- Which jobs they see (ADR-0015), and the access sheet on Team, where it changes. -->
-                <MemberJobs {member} />
-                {#if member.userId !== page.data.user?.id && mayAssign(actor, summary?.permissions ?? [])}
-                  <a href={`/settings/team?access=${member.id}`} class="inline-flex min-h-6 items-center underline underline-offset-2 pointer-coarse:min-h-11">Edit access on Team</a>
-                {/if}
+                  <span class="flex flex-wrap items-center gap-1.5"><MemberJobs {member} /><Badge variant="muted">Joined <DateText at={member.joinedAt} /></Badge></span>
+                </div>
+                {#if manageable(member)}{@render personMenu(member)}{/if}
               </li>
             {/each}
           </ul>
+          <div class="overflow-x-auto max-md:hidden">
+            <Table.Root>
+              <Table.Header>
+                {#each peopleTable.getHeaderGroups() as group (group.id)}
+                  <Table.Row class="bg-muted hover:bg-muted">
+                    {#each group.headers as header (header.id)}
+                      <SortHeader {header} class={header.id === 'name' ? 'px-4.5' : undefined} />
+                    {/each}
+                    <Table.Head class="w-12 pr-4.5"><span class="sr-only">Actions</span></Table.Head>
+                  </Table.Row>
+                {/each}
+              </Table.Header>
+              <Table.Body>
+                {#each sortedPeople as member (member.id)}
+                  <Table.Row class="h-12">
+                    <Table.Cell class="max-w-48 px-4.5"><TruncatedText text={member.displayName} class="font-semibold" /></Table.Cell>
+                    <Table.Cell class="w-full max-w-0 min-w-32 text-muted-foreground"><TruncatedText text={member.email} /></Table.Cell>
+                    <Table.Cell class="whitespace-nowrap tabular-nums"><MemberJobs {member} /></Table.Cell>
+                    <Table.Cell class="whitespace-nowrap text-muted-foreground"><DateText at={member.joinedAt} /></Table.Cell>
+                    <Table.Cell class="pr-4.5 text-right">{#if manageable(member)}{@render personMenu(member)}{/if}</Table.Cell>
+                  </Table.Row>
+                {/each}
+              </Table.Body>
+            </Table.Root>
+          </div>
         {/if}
       </Panel>
     </div>
+
+    <!-- A person's access is changed on Team: Edit access opens their sheet there. -->
+    {#snippet personMenu(member: TeamMember)}
+      <MoreMenu label={`Actions for ${member.displayName}`} size="icon" quiet>
+        <DropdownMenu.Item onSelect={() => void goto(`/settings/team?access=${member.id}`)}><ShieldUserIcon aria-hidden="true" />Edit access</DropdownMenu.Item>
+      </MoreMenu>
+    {/snippet}
 
     <NewRoleSheet bind:open={copying} {roles} {actor} from={params.roleId} />
 

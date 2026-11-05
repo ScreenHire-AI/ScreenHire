@@ -46,6 +46,14 @@ afterEach(() => {
 });
 
 describe('careers site settings page', () => {
+  it('has Last updated and History on its title row, like every page people edit (T6, S8)', async () => {
+    renderPage();
+
+    await screen.findByLabelText('Questions per page');
+    expect(document.querySelector('[data-last-updated]')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^History/ })).toBeInTheDocument();
+  });
+
   it('links to the careers address the API gives', async () => {
     renderPage();
 
@@ -86,7 +94,7 @@ describe('careers site settings page', () => {
         return Response.json({ ...organization, embedOrigins: ['https://www.brightwater.example.com'] });
       },
     });
-    expect(await screen.findByText('No sites yet.')).toBeInTheDocument();
+    expect(await screen.findByText('No sites yet. Add one to get the embed code.')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Embed code' })).toBeNull();
 
     await fireEvent.input(screen.getByLabelText('New site'), { target: { value: 'www.brightwater.example.com' } });

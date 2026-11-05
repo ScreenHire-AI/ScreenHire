@@ -43,7 +43,10 @@ public sealed class FileViewerTests(E2EFixture fixture) : BrowserTest(fixture)
 
         // It fills the window, with Close and Download.
         var box = (await viewer.BoundingBoxAsync())!;
-        box.Width.Should().BeApproximately(1440, 2, "the viewer fills the window's width");
+        // The window's width inside the page's stable scrollbar gutter (S8), which a fixed element does not cover: the
+        // body's width, since clientWidth counts the gutter.
+        var inside = await Page.EvaluateAsync<float>("() => document.body.getBoundingClientRect().width");
+        box.Width.Should().BeApproximately(inside, 2, "the viewer fills the window's width");
         box.Height.Should().BeApproximately(1040, 2, "the viewer fills the window's height");
         await Expect(viewer.GetByRole(AriaRole.Button, new() { Name = "Close" })).ToBeVisibleAsync();
         await Expect(viewer.GetByRole(AriaRole.Link, new() { Name = "Download" })).ToBeVisibleAsync();
@@ -116,9 +119,10 @@ public sealed class FileViewerTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(frame.Locator("section[aria-label='Page 1'] p")).ToContainTextAsync(firstWord);
         (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth")).Should().BeTrue();
         box = (await viewer.BoundingBoxAsync())!;
-        box.Width.Should().BeApproximately(360, 2);
+        inside = await Page.EvaluateAsync<float>("() => document.body.getBoundingClientRect().width");
+        box.Width.Should().BeApproximately(inside, 2);
         box.Height.Should().BeApproximately(800, 2);
-        (await viewer.Locator("iframe").BoundingBoxAsync())!.Width.Should().BeLessThan(360);
+        (await viewer.Locator("iframe").BoundingBoxAsync())!.Width.Should().BeLessThan(inside);
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-file-viewer-dark-phone");
         await Page.Keyboard.PressAsync("Escape");

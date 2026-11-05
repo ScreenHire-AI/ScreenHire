@@ -110,7 +110,7 @@
               aria-invalid={$errors.slug ? 'true' : undefined}
               aria-describedby={$errors.slug ? 'slug-hint slug-error' : 'slug-hint'}
             />
-            <Field.Description id="slug-hint">Lower-case letters, numbers and hyphens.</Field.Description>
+            <Field.Description id="slug-hint">The name in your careers page address. Lower-case letters, numbers and hyphens.</Field.Description>
             <Field.Error id="slug-error" errors={$errors.slug?.map((message) => ({ message }))} />
           </Field.Field>
         </div>

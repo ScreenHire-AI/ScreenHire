@@ -76,6 +76,13 @@ afterEach(() => {
   navigation.goto.mockClear();
 });
 
+/** Opens the row menu of the first delivery of an event, by the event's words. */
+async function openReplayMenu(label: string) {
+  const [trigger] = await screen.findAllByRole('button', { name: `Actions for the ${label} delivery` });
+  await fireEvent.pointerDown(trigger!, { button: 0, pointerType: 'mouse' });
+  return screen.findByRole('menu');
+}
+
 describe('webhook endpoint page', () => {
   it('shows the delivery log with a status label for each delivery and each event in words, and the events with their codes', async () => {
     renderPage(endpoint());
@@ -105,7 +112,7 @@ describe('webhook endpoint page', () => {
   it('replays a finished delivery with a POST', async () => {
     const fetchMock = renderPage(endpoint(), { [`POST /v1/webhooks/${endpointId}/deliveries/d2/replay`]: () => Response.json({}, { status: 202 }) });
 
-    await fireEvent.click((await screen.findAllByRole('button', { name: 'Replay the application.moved delivery' }))[0]!);
+    await fireEvent.click(within(await openReplayMenu('Application moved')).getByRole('menuitem', { name: 'Replay delivery' }));
 
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(`/v1/webhooks/${endpointId}/deliveries/d2/replay`, expect.objectContaining({ method: 'POST' })),
@@ -116,17 +123,17 @@ describe('webhook endpoint page', () => {
     renderPage(endpoint());
     await screen.findAllByText('Job published');
 
-    for (const type of ['application.submitted', 'application.moved', 'job.closed']) {
-      expect(screen.getAllByRole('button', { name: `Replay the ${type} delivery` }).length).toBeGreaterThan(0);
+    for (const label of ['Application submitted', 'Application moved', 'Job closed']) {
+      expect(screen.getAllByRole('button', { name: `Actions for the ${label} delivery` }).length).toBeGreaterThan(0);
     }
-    expect(screen.queryAllByRole('button', { name: 'Replay the job.published delivery' })).toHaveLength(0);
+    expect(screen.queryAllByRole('button', { name: 'Actions for the Job published delivery' })).toHaveLength(0);
   });
 
   it('hides replay while the endpoint is off, and says how to get it back', async () => {
     renderPage(endpoint({ enabled: false }));
     await screen.findAllByText('application.submitted');
 
-    expect(screen.queryAllByRole('button', { name: /^Replay the/ })).toHaveLength(0);
+    expect(screen.queryAllByRole('button', { name: /^Actions for the .* delivery$/ })).toHaveLength(0);
     expect(screen.getByText('Turn the endpoint on to replay deliveries.')).toBeInTheDocument();
   });
 
@@ -135,7 +142,7 @@ describe('webhook endpoint page', () => {
       [`POST /v1/webhooks/${endpointId}/deliveries/d2/replay`]: () => Response.json({ detail: 'The event is still being tried.' }, { status: 409 }),
     });
 
-    await fireEvent.click((await screen.findAllByRole('button', { name: 'Replay the application.moved delivery' }))[0]!);
+    await fireEvent.click(within(await openReplayMenu('Application moved')).getByRole('menuitem', { name: 'Replay delivery' }));
 
     expect(await screen.findByText('The event is still being tried.')).toBeInTheDocument();
   });

@@ -24,6 +24,7 @@
   import WeekChart, { type WeekPoint } from '#lib/components/week-chart.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
+  import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { Label } from '#lib/components/ui/label/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { Switch } from '#lib/components/ui/switch/index.js';
@@ -63,6 +64,8 @@
   const jobs = createListJobs();
 
   const data = $derived<HiringReport | undefined>(report.data?.status === 200 ? report.data.data : undefined);
+  // Nothing arrived and nobody was hired in these dates: the page shows one empty state, and there is nothing to export.
+  const empty = $derived(data !== undefined && data.headline.applications === 0 && data.headline.hires === 0);
   const busy = $derived(report.isFetching && report.isPlaceholderData);
   const jobOptions = $derived<FilterOption[]>(
     (jobs.data?.data ?? []).map((job) => ({ value: job.id, label: job.title })).toSorted((a, b) => a.label.localeCompare(b.label)),
@@ -276,15 +279,25 @@
 <main class="flex min-w-0 flex-col">
   <HeaderBand title="Reports">
     {#snippet actions()}
-      <Button variant="outline" disabled={!data} onclick={exportCsv}><DownloadIcon aria-hidden="true" />Export CSV</Button>
+      <!-- Nothing to export before the report arrives or from an empty one, so the button is not offered (A3); the tooltip says how far it reaches. -->
+      {#if data && !empty}
+        <Tooltip.Root>
+          <Tooltip.Trigger>
+            {#snippet child({ props })}
+              <Button {...props} variant="outline" onclick={exportCsv}><DownloadIcon aria-hidden="true" />Export CSV</Button>
+            {/snippet}
+          </Tooltip.Trigger>
+          <Tooltip.Content>Every panel, for these dates and jobs</Tooltip.Content>
+        </Tooltip.Root>
+      {/if}
     {/snippet}
     {#snippet tabs()}
-      <!-- The filters scope every panel below, so they sit in one row on the band's bottom edge, and scroll rather than
-           wrap (F5). -->
-      <div data-filters class="-mx-1 flex min-w-0 items-center gap-2 overflow-x-auto px-1 pb-4">
+      <!-- The filters scope every panel below, so they sit in one row on the band's bottom edge. The row wraps by content on
+           a phone, so no control is cut off at the edge, and each control still keeps its own label on one line (F5). -->
+      <div data-filters class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-3 pb-4">
         <DateRangeFilter bind:value={() => range, setRange} />
         <MultiFilterMenu label="Job" options={jobOptions} bind:values={() => jobIds, setJobs} />
-        <span class="ml-2 flex shrink-0 items-center gap-2 pointer-coarse:min-h-11">
+        <span class="ml-2 flex shrink-0 items-center gap-2 max-sm:ml-0 pointer-coarse:min-h-11">
           <Switch id="reports-compare" checked={compare} onCheckedChange={setCompare} />
           <Label for="reports-compare" class="whitespace-nowrap">Compare periods</Label>
         </span>
@@ -318,8 +331,9 @@
           </div>
         </div>
         <p class="sr-only" role="status">Loading reports…</p>
-      {:else if data.headline.applications === 0 && data.headline.hires === 0}
-        <!-- Nothing arrived and nobody was hired: one empty state for the page, not the same one in each panel (W7). -->
+      {:else if empty}
+        <!-- Nothing arrived and nobody was hired: one empty state for the page, not the same one in each panel (W7). The
+             panel has only a label, so it has no header band over it. -->
         <Panel label="Reports">{@render nothing('Nothing in these dates', true)}</Panel>
       {:else}
         <div class="flex flex-col gap-5">
@@ -449,13 +463,21 @@
 
 <!-- `offer`: whether this empty state carries the one "Show the last 365 days", so a page shows it once (W7). -->
 {#snippet nothing(title: string, offer: boolean)}
+  <!-- An organization with no jobs has no dates to widen: say what fills Reports and where the work starts. -->
+  {@const noJobs = offer && jobIds.length === 0 && jobs.isSuccess && jobs.data.data.length === 0}
   <Empty.Root class="py-6">
     <Empty.Header>
       <Empty.Media variant="icon"><ChartBarIcon /></Empty.Media>
-      <Empty.Title>{title}</Empty.Title>
-      {#if offer}<Empty.Description>{jobIds.length > 0 ? 'Try more dates or more jobs.' : 'Try a longer range.'}</Empty.Description>{/if}
+      <Empty.Title>{noJobs ? 'No jobs yet' : title}</Empty.Title>
+      {#if noJobs}
+        <Empty.Description>Reports fill in once a job has applications.</Empty.Description>
+      {:else if offer}
+        <Empty.Description>{jobIds.length > 0 ? 'Try more dates or more jobs.' : 'Try a longer range.'}</Empty.Description>
+      {/if}
     </Empty.Header>
-    {#if offer && range.kind === 'preset' && range.days < longest.days}
+    {#if noJobs}
+      <Empty.Content><Button href="/jobs" variant="outline" size="lg">Go to jobs</Button></Empty.Content>
+    {:else if offer && range.kind === 'preset' && range.days < longest.days}
       <Empty.Content><Button variant="outline" size="lg" onclick={() => setRange(longest)}>Show the last 365 days</Button></Empty.Content>
     {/if}
   </Empty.Root>
