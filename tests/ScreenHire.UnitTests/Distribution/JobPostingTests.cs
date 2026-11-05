@@ -1,4 +1,5 @@
 using ScreenHire.Domain.Distribution;
+using ScreenHire.Domain.Jobs;
 
 namespace ScreenHire.UnitTests.Distribution;
 
@@ -214,6 +215,191 @@ public sealed class JobPostingTests
             }
         }
     }
+
+    [Fact]
+    public void Queueing_the_same_version_again_with_resend_sends_it_as_a_new_request()
+    {
+        var posting = LivePosting();
+        posting.Queue(1, Url, [], T0.AddHours(1)).Should().BeFalse("without resend the version already sent is a no-op");
+        posting.State.Should().Be(PostingState.Live);
+        var sequence = posting.Sequence;
+
+        posting.Queue(1, Url, [], T0.AddHours(2), resend: true).Should().BeTrue();
+
+        posting.State.Should().Be(PostingState.Queued);
+        posting.JobVersion.Should().Be(1, "a resend sends the same version");
+        posting.Sequence.Should().Be(sequence + 1, "a new request must not look like a duplicate of the first");
+    }
+
+    [Fact]
+    public void A_resend_never_goes_back_to_an_older_version()
+    {
+        var posting = LivePosting();
+        posting.Queue(2, Url, [], T0.AddHours(1)).Should().BeTrue();
+        var sequence = posting.Sequence;
+
+        posting.Queue(1, Url, [], T0.AddHours(2), resend: true).Should().BeFalse();
+
+        posting.JobVersion.Should().Be(2);
+        posting.Sequence.Should().Be(sequence);
+    }
+
+    [Fact]
+    public void A_resend_with_issues_leaves_a_posting_that_is_on_the_board_as_it_is()
+    {
+        var posting = LivePosting();
+        var sequence = posting.Sequence;
+
+        posting.Queue(1, Url, ["Adzuna needs a description of at least 100 characters."], T0.AddHours(1), resend: true).Should().BeFalse();
+
+        posting.State.Should().Be(PostingState.Live);
+        posting.Sequence.Should().Be(sequence);
+        posting.Issues.Should().ContainSingle();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void A_blank_override_follows_the_job_and_keeps_no_base(string? blank)
+    {
+        var posting = NewPosting();
+        posting.Customize("Own title", "<p>Own description</p>", Job("Job title", "<p>Job description</p>"), T0);
+
+        var changed = posting.Customize(blank, blank, Job("Job title", "<p>Job description</p>"), T0.AddMinutes(1));
+
+        changed.Should().BeTrue("removing an override is a change");
+        posting.TitleOverride.Should().BeNull();
+        posting.DescriptionOverride.Should().BeNull();
+        posting.TitleBase.Should().BeNull();
+        posting.DescriptionBase.Should().BeNull();
+        posting.CustomizedAt.Should().BeNull();
+        posting.IsCustomized.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Text_equal_to_the_jobs_own_follows_the_job()
+    {
+        var posting = NewPosting();
+        var job = Job("Job title", "<p>Job description</p>");
+
+        var changed = posting.Customize("Job title", "<p>Job description</p>", job, T0);
+
+        changed.Should().BeFalse("nothing is overridden, so nothing changed");
+        posting.IsCustomized.Should().BeFalse();
+        posting.TitleOverride.Should().BeNull();
+        posting.DescriptionOverride.Should().BeNull();
+        posting.TitleBase.Should().BeNull();
+        posting.DescriptionBase.Should().BeNull();
+        posting.WithOverrides(job).Should().Be(job);
+    }
+
+    [Fact]
+    public void Customizing_keeps_the_jobs_text_as_the_base_of_an_overridden_field_only()
+    {
+        var posting = NewPosting();
+
+        var changed = posting.Customize("Own title", null, Job("Job title", "<p>Job description</p>"), T0);
+
+        changed.Should().BeTrue();
+        posting.TitleOverride.Should().Be("Own title");
+        posting.TitleBase.Should().Be("Job title");
+        posting.DescriptionOverride.Should().BeNull();
+        posting.DescriptionBase.Should().BeNull("a field that follows the job has no base");
+        posting.CustomizedAt.Should().Be(T0);
+        posting.UpdatedAt.Should().Be(T0);
+    }
+
+    [Fact]
+    public void The_title_and_the_description_are_customized_independently()
+    {
+        var job = Job("Job title", "<p>Job description</p>");
+        var titleOnly = NewPosting();
+        var descriptionOnly = NewPosting();
+
+        titleOnly.Customize("Own title", null, job, T0);
+        descriptionOnly.Customize(null, "<p>Own description</p>", job, T0);
+
+        titleOnly.IsCustomized.Should().BeTrue();
+        titleOnly.WithOverrides(job).Should().BeEquivalentTo(job with { Title = "Own title" });
+        descriptionOnly.IsCustomized.Should().BeTrue();
+        descriptionOnly.WithOverrides(job).Should().BeEquivalentTo(job with { Description = "<p>Own description</p>" });
+    }
+
+    [Fact]
+    public void Saving_the_same_text_again_changes_nothing_that_the_board_shows()
+    {
+        var posting = NewPosting();
+        var job = Job("Job title", "<p>Job description</p>");
+        posting.Customize("Own title", "<p>Own description</p>", job, T0);
+        var updatedAt = posting.UpdatedAt;
+
+        posting.Customize("Own title", "<p>Own description</p>", job, T0.AddHours(1)).Should().BeFalse();
+
+        posting.UpdatedAt.Should().Be(updatedAt);
+    }
+
+    [Fact]
+    public void Saving_an_override_against_the_changed_job_moves_its_base_and_counts_as_a_change()
+    {
+        var posting = NewPosting();
+        posting.Customize(null, "<p>Own description</p>", Job("Job title", "<p>Old job description</p>"), T0);
+        var newJob = Job("Job title", "<p>New job description</p>");
+        posting.IsStaleAgainst(newJob).Should().BeTrue();
+
+        var changed = posting.Customize(null, "<p>Own description</p>", newJob, T0.AddHours(1));
+
+        changed.Should().BeTrue("the base the override is compared with changed");
+        posting.DescriptionBase.Should().Be("<p>New job description</p>");
+        posting.IsStaleAgainst(newJob).Should().BeFalse("the person has now seen what the job says");
+    }
+
+    [Fact]
+    public void A_posting_that_is_not_customized_shows_the_job_as_it_is()
+    {
+        var job = Job("Job title", "<p>Job description</p>");
+
+        NewPosting().WithOverrides(job).Should().BeSameAs(job);
+    }
+
+    [Fact]
+    public void Overrides_replace_only_the_fields_they_are_set_for()
+    {
+        var job = Job("Job title", "<p>Job description</p>");
+        var posting = NewPosting();
+        posting.Customize("Own title", null, job, T0);
+
+        var shown = posting.WithOverrides(job);
+
+        shown.Title.Should().Be("Own title");
+        shown.Description.Should().Be("<p>Job description</p>");
+        shown.Slug.Should().Be(job.Slug);
+        shown.Locations.Should().BeEquivalentTo(job.Locations);
+    }
+
+    [Theory]
+    [InlineData(true, false, "Job title", "<p>Job description</p>", false, "an unchanged job is not stale")]
+    [InlineData(true, false, "Renamed job", "<p>Job description</p>", true, "the overridden title changed under it")]
+    [InlineData(true, false, "Job title", "<p>Rewritten</p>", false, "a description that follows the job is never stale")]
+    [InlineData(false, true, "Renamed job", "<p>Job description</p>", false, "a title that follows the job is never stale")]
+    [InlineData(false, true, "Job title", "<p>Rewritten</p>", true, "the overridden description changed under it")]
+    [InlineData(true, true, "Job title", "<p>Rewritten</p>", true, "one overridden field is enough")]
+    [InlineData(false, false, "Renamed job", "<p>Rewritten</p>", false, "nothing is overridden")]
+    public void A_posting_is_stale_only_when_the_job_changed_a_field_it_overrides(
+        bool overrideTitle, bool overrideDescription, string latestTitle, string latestDescription, bool stale, string reason)
+    {
+        var posting = NewPosting();
+        posting.Customize(
+            overrideTitle ? "Own title" : null,
+            overrideDescription ? "<p>Own description</p>" : null,
+            Job("Job title", "<p>Job description</p>"),
+            T0);
+
+        posting.IsStaleAgainst(Job(latestTitle, latestDescription)).Should().Be(stale, reason);
+    }
+
+    private static JobSnapshot Job(string title, string description) =>
+        new(title, "job", description, null, EmploymentType.FullTime, WorkplaceType.Onsite, [new JobLocation("London", null, "GB")], [], null, null);
 
     private static JobPosting NewPosting() =>
         new() { OrganizationId = Guid.CreateVersion7(), JobId = Guid.CreateVersion7(), BoardId = "sandbox", CreatedAt = T0 };

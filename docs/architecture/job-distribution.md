@@ -23,6 +23,9 @@ sources:
   - resource: src/ScreenHire.Application/Distribution/JobBoardAdapter.cs
   - resource: src/ScreenHire.Application/Distribution/JobPostingsChanged.cs
   - resource: src/ScreenHire.Application/Distribution/PostingContents.cs
+  - resource: apps/dashboard/src/lib/components/customize-posting-form.svelte
+  - resource: apps/dashboard/src/lib/components/customize-posting-sheet.svelte
+  - resource: src/ScreenHire.Domain/History/JobPostingChanges.cs
   - resource: src/ScreenHire.Application/Distribution/ReconcileJobPostings.cs
   - resource: src/ScreenHire.Application/Distribution/SyncJobPosting.cs
   - resource: src/ScreenHire.Domain/Distribution/IndexingNotification.cs
@@ -184,6 +187,38 @@ publish answer that arrives after a close is a no-op. `JobPostingTests` covers t
   careers page while it is up, null everywhere else, because a board that reads our feed never says where its listing
   landed.
 
+### Per-board customization
+
+A job can be fine on every board but one: Adzuna needs a description of at least 100 characters, Talent.com 50. Two
+levels of edit cover it. Edit details changes the job, and the next publish sends the new version to every board.
+Customize changes what one board receives and posts to that board only. No other board and no job version changes.
+
+- **Storage:** five nullable columns on `job_postings`: `title_override` and `description_override` (null follows the
+  job, each field on its own), `title_base` and `description_base` (the job's text when the field was overridden), and
+  `customized_at`. The base is what lets the row say "the job changed since" and the sheet show what changed, with no
+  second query.
+- **One seam:** every adapter, feed and the public job-board API read `PostingContent`. `PostingContents.For(posting,
+  content)` returns it with the board's own title and description in place of the job's; `LoadAsync` and
+  `ActiveOnBoardAsync` use it, and `DistributionPlanner` validates and sends every board with it, so a later publish keeps
+  a customized field and checks it. Adapters and feeds do not know overrides exist.
+- **Which boards:** `BoardCapabilities.CanCustomize` is false for the hosted careers page (the job's own page, read live)
+  and the notify-only Google board (it sends a URL, not text), and true for every board that is sent or serves a copy.
+  `BoardSummary.canCustomize` carries it.
+- **Routes** (`DistributionEndpoints`, `EditJobs` like posting; the dashboard only, no API key):
+  `GET /v1/jobs/{jobId}/postings/{boardId}/customization` (the board's text, the job's, and what the job changed since),
+  `POST .../customization/preview` (what the board would receive and what its `Validate` says; nothing saved) and
+  `PUT .../customization` (`{ title, description }`, a blank field or one equal to the job's follows the job). A save runs the
+  board's checks on the customized text first. If one fails the answer is a 400 with the issues under `board`, and
+  nothing is stored or sent. Otherwise the planner's `RepostAsync` sends the board the job's newest published version
+  with its own text: `JobPosting.Queue(..., resend: true)` accepts the same active version again and bumps `Sequence`, so
+  the worker's idempotency key is new. The save always raises `JobPostingsChanged`, because a Submitted posting can end
+  where it began. A job that is not open, or a board that cannot be customized, is a 409.
+- **Later job edits:** a field the board has not overridden follows the job as before. A customized field keeps its text,
+  and `JobPostingStatus.jobChangedSinceCustomized` is true while the job's newest published text differs from the base. It
+  compares published versions, so an Edit details that is not yet published does not show.
+- **History:** a `JobPosting` is a tracked kind under the job's subject (`JobPostingChanges`): "customized the title
+  for Adzuna", "went back to the job's description for Adzuna", with before and after. State changes make no line.
+
 ### Worker, idempotency and reconciliation
 
 - `SyncJobPosting` (`ITenantMessage`) carries `(jobId, boardId, jobVersion)`, the action and the posting's request
@@ -314,6 +349,8 @@ secrets locally, the secret store in a deployment) and passes it to both as `Goo
 |---|---|
 | `JobPostingTests` (unit) | every transition, issues keeping a posting in Draft, stale versions, no Closed without confirmation, resends and Error |
 | `DistributionPlannerTests`, `IndexingPlanTests` (unit) | the default boards, per-board states and estimates on publish and close, one event per change, one command per push board, the idempotency key, partner gating, hidden boards; deletes first within the quota |
+| `JobPostingTests`, `DistributionPlannerTests`, `JobPostingChangesTests` (unit) | a customized board is validated and sent on its own text while the others get the job's; a same-version re-post bumps `Sequence`; override changes make history lines and state churn makes none |
+| `PostingCustomizationTests` (integration) | a board that refused a short description takes a customized one and serves it in its feed while other feeds and the job version stay; a failing check changes nothing; the careers page, a draft job and another tenant are refused; a later publish keeps the customized field and flags the job change; the job's History records it |
 | `FeedFormatTests` (unit) | every feed validates against its board's schema; CDATA, `]]>` and control characters; per-board field mapping; validation issues |
 | `DistributionTests` (integration) | publish puts the job in every feed, the job-board API, the Indexing queue and the sandbox; close serves 410, drops it from the feeds, queues `URL_DELETED`, and the sandbox reports Closed only after its delay; per-board teardown; new versions; cache headers and 304; tenant isolation; the dispatcher sends queued notifications and Google never reaches Closed; a duplicate board command leaves one claim for its key and changes nothing |
 | `BoardAnswerRaceTests` (integration) | a changed publish and a close that arrive while a board answer is being saved (the test holds the posting's lock, as the worker does) wait for it and succeed, where both were a 409 |

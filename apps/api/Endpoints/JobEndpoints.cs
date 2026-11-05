@@ -744,7 +744,7 @@ internal static class JobEndpoints
             .SingleOrDefaultAsync(cancellationToken);
 
         return row?.Job.ToDetail(
-            row.Latest, row.Template?.Name, row.Template?.LatestPublishedVersion, row.Postings.ToStatuses(boards), row.LastChange);
+            row.Latest, row.Template?.Name, row.Template?.LatestPublishedVersion, row.Postings.ToStatuses(boards, row.Latest), row.LastChange);
     }
 
     private static async Task<string> FreeSlugAsync(ScreenHireDbContext db, string slug, CancellationToken cancellationToken)

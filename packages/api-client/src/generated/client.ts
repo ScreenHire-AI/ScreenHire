@@ -51,6 +51,7 @@ import type {
   CreatedApiKey,
   CurrentUser,
   CustomRoleDetail,
+  CustomizePostingRequest,
   DismissVerificationAssessmentRequest,
   EditApplicationNoteRequest,
   EditSavedNoteRequest,
@@ -121,6 +122,8 @@ import type {
   OrganizationSendingDomain,
   OrganizationVerificationSettings,
   PendingInvitation,
+  PostingCustomization,
+  PostingPreview,
   ProblemDetails,
   PublicApplicationDraft,
   PublicApplicationDraftReceipt,
@@ -5361,6 +5364,212 @@ export const closeJobPosting = async (jobId: string,
     method: 'POST'
 
 
+  }
+);}
+
+
+
+export type getPostingCustomizationResponse200 = {
+  data: PostingCustomization
+  status: 200
+}
+
+export type getPostingCustomizationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getPostingCustomizationResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPostingCustomizationResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type getPostingCustomizationResponseSuccess = (getPostingCustomizationResponse200) & {
+  headers: Headers;
+};
+export type getPostingCustomizationResponseError = (getPostingCustomizationResponse401 | getPostingCustomizationResponse404 | getPostingCustomizationResponse409) & {
+  headers: Headers;
+};
+
+export type getPostingCustomizationResponse = (getPostingCustomizationResponseSuccess | getPostingCustomizationResponseError)
+
+export const getGetPostingCustomizationUrl = (jobId: string,
+    boardId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/postings/${boardId}/customization`
+}
+
+export const getPostingCustomization = async (jobId: string,
+    boardId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getPostingCustomizationResponse> => {
+
+  return apiFetch<getPostingCustomizationResponse>(getGetPostingCustomizationUrl(jobId,boardId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type customizePostingResponse200 = {
+  data: JobPostingStatus
+  status: 200
+}
+
+export type customizePostingResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type customizePostingResponse401 = {
+  data: void
+  status: 401
+}
+
+export type customizePostingResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type customizePostingResponse404 = {
+  data: void
+  status: 404
+}
+
+export type customizePostingResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type customizePostingResponseSuccess = (customizePostingResponse200) & {
+  headers: Headers;
+};
+export type customizePostingResponseError = (customizePostingResponse400 | customizePostingResponse401 | customizePostingResponse403 | customizePostingResponse404 | customizePostingResponse409) & {
+  headers: Headers;
+};
+
+export type customizePostingResponse = (customizePostingResponseSuccess | customizePostingResponseError)
+
+export const getCustomizePostingUrl = (jobId: string,
+    boardId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/postings/${boardId}/customization`
+}
+
+export const customizePosting = async (jobId: string,
+    boardId: string,
+    customizePostingRequest: CustomizePostingRequest, options?: Parameters<typeof apiFetch>[1]): Promise<customizePostingResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<customizePostingResponse>(getCustomizePostingUrl(jobId,boardId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(customizePostingRequest)
+  }
+);}
+
+
+
+export type previewPostingCustomizationResponse200 = {
+  data: PostingPreview
+  status: 200
+}
+
+export type previewPostingCustomizationResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type previewPostingCustomizationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type previewPostingCustomizationResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type previewPostingCustomizationResponse404 = {
+  data: void
+  status: 404
+}
+
+export type previewPostingCustomizationResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type previewPostingCustomizationResponseSuccess = (previewPostingCustomizationResponse200) & {
+  headers: Headers;
+};
+export type previewPostingCustomizationResponseError = (previewPostingCustomizationResponse400 | previewPostingCustomizationResponse401 | previewPostingCustomizationResponse403 | previewPostingCustomizationResponse404 | previewPostingCustomizationResponse409) & {
+  headers: Headers;
+};
+
+export type previewPostingCustomizationResponse = (previewPostingCustomizationResponseSuccess | previewPostingCustomizationResponseError)
+
+export const getPreviewPostingCustomizationUrl = (jobId: string,
+    boardId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/postings/${boardId}/customization/preview`
+}
+
+export const previewPostingCustomization = async (jobId: string,
+    boardId: string,
+    customizePostingRequest: CustomizePostingRequest, options?: Parameters<typeof apiFetch>[1]): Promise<previewPostingCustomizationResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<previewPostingCustomizationResponse>(getPreviewPostingCustomizationUrl(jobId,boardId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(customizePostingRequest)
   }
 );}
 

@@ -22,7 +22,8 @@ public sealed record BoardSummary(
     bool ConfirmsRemoval,
     int? PublishEtaSeconds,
     int? RemovalEtaSeconds,
-    int? DailyQuota);
+    int? DailyQuota,
+    bool CanCustomize);
 
 /// <summary>One job on one board: where it stands and what is still uncertain.</summary>
 /// <remarks>
@@ -33,6 +34,9 @@ public sealed record BoardSummary(
 /// Closed: say "removal requested", never "removed". <c>mode</c> is null for a board whose configuration was removed.
 /// <c>viewUrl</c> is where a person can see the posting: the job's own page on a board we host, while it is up. It is
 /// null for every other board, because a board that reads our feed never says where its listing landed.
+/// <c>customizedTitle</c> and <c>customizedDescription</c> say which of the board's texts are its own rather than the job's;
+/// <c>jobChangedSinceCustomized</c> is true when the job's newest published text differs from the text the board's own
+/// was written against, so the person can review it.
 /// </remarks>
 public sealed record JobPostingStatus(
     Guid Id,
@@ -52,7 +56,36 @@ public sealed record JobPostingStatus(
     DateTimeOffset? LiveAt,
     DateTimeOffset? ClosingAt,
     DateTimeOffset? ClosedAt,
-    string? ViewUrl);
+    string? ViewUrl,
+    bool CustomizedTitle,
+    bool CustomizedDescription,
+    bool JobChangedSinceCustomized);
+
+/// <summary>
+/// What one board receives in place of the job's title and description. A null or blank field follows the job, and so
+/// does one equal to the job's own text; sending both null removes the customization.
+/// </summary>
+public sealed record CustomizePostingRequest(string? Title, string? Description);
+
+/// <summary>One text of a board: its own (null when it follows the job) and the job's newest published one.</summary>
+public sealed record CustomizedText(string? Override, string Job);
+
+/// <summary>A text of the job that changed since the board's own was written. Both are plain text.</summary>
+public sealed record PostingTextChange(string Field, string Before, string After);
+
+/// <summary>
+/// A board's customization, for the Customize sheet: each text with the job's, and what the job changed since the
+/// board's own was written against it.
+/// </summary>
+public sealed record PostingCustomization(
+    string BoardId,
+    string BoardName,
+    CustomizedText Title,
+    CustomizedText Description,
+    IReadOnlyList<PostingTextChange> Changes);
+
+/// <summary>What a board would receive for a draft customization, and what its checks say about it. Nothing is saved.</summary>
+public sealed record PostingPreview(string Title, string Description, IReadOnlyList<string> Issues);
 
 /// <summary>
 /// Publishing a job: optionally, the boards to post it to. Left out, the first publish posts to every board in
@@ -120,21 +153,29 @@ internal static class DistributionMappings
         var capabilities = adapter.Capabilities;
         return new(adapter.BoardId, adapter.Name, capabilities.Mode, capabilities.CanClose, capabilities.CanUnpublishPerBoard,
             capabilities.ConfirmsLive, capabilities.ConfirmsRemoval, Seconds(capabilities.PublishEta), Seconds(capabilities.RemovalEta),
-            capabilities.DailyQuota);
+            capabilities.DailyQuota, capabilities.CanCustomize);
     }
 
-    public static JobPostingStatus ToStatus(this JobPosting posting, BoardRegistry boards)
+    /// <param name="posting">The job's posting on one board.</param>
+    /// <param name="boards">The registry that names the board and says what it can do.</param>
+    /// <param name="latest">
+    /// The job's newest published content, to say whether the job changed under a customization; null for a job never
+    /// published, which has no customization.
+    /// </param>
+    public static JobPostingStatus ToStatus(this JobPosting posting, BoardRegistry boards, JobSnapshot? latest)
     {
         var adapter = boards.Find(posting.BoardId);
         var capabilities = adapter?.Capabilities;
         return new(posting.Id, posting.BoardId, adapter?.Name ?? posting.BoardId, capabilities?.Mode, posting.State, posting.JobVersion,
             capabilities?.ConfirmsLive ?? false, capabilities?.ConfirmsRemoval ?? false, capabilities?.CanUnpublishPerBoard ?? false,
             posting.ExpectedBy, posting.Issues, posting.LastError, posting.UpdatedAt, posting.SubmittedAt, posting.LiveAt,
-            posting.ClosingAt, posting.ClosedAt, capabilities?.Mode == BoardMode.Hosted && posting.IsActive ? posting.Url : null);
+            posting.ClosingAt, posting.ClosedAt, capabilities?.Mode == BoardMode.Hosted && posting.IsActive ? posting.Url : null,
+            posting.TitleOverride is not null, posting.DescriptionOverride is not null,
+            latest is not null && posting.IsStaleAgainst(latest));
     }
 
-    public static List<JobPostingStatus> ToStatuses(this IEnumerable<JobPosting> postings, BoardRegistry boards) =>
-        [.. postings.Select(p => p.ToStatus(boards)).OrderBy(p => p.BoardName, StringComparer.Ordinal)];
+    public static List<JobPostingStatus> ToStatuses(this IEnumerable<JobPosting> postings, BoardRegistry boards, JobSnapshot? latest) =>
+        [.. postings.Select(p => p.ToStatus(boards, latest)).OrderBy(p => p.BoardName, StringComparer.Ordinal)];
 
     public static JobBoardJob ToJobBoardJob(this PostingContent content, bool withContent)
     {

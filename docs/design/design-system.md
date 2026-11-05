@@ -16,6 +16,8 @@ sources:
   - resource: apps/dashboard/src/lib/rich-text.ts
   - resource: apps/dashboard/src/lib/table-sort.svelte.ts
   - resource: apps/dashboard/src/lib/preview-window.svelte.ts
+  - resource: apps/dashboard/src/lib/components/customize-posting-sheet.svelte
+  - resource: apps/dashboard/src/lib/components/customize-posting-form.svelte
   - resource: apps/dashboard/src/lib/form-builder.ts
   - resource: apps/dashboard/src/lib/form-sections.ts
   - resource: apps/dashboard/src/lib/templates.ts
@@ -130,7 +132,8 @@ Authors check their screens against this list, and the `design-review` agent rep
   result at its real size and adds no sentence about itself; a window icon pops it out, beside the switch or in the
   preview's header, and the window follows the edits. Container queries choose the layout, so the first paint is
   already right (S8). The email composer keeps the switch and has no window: it is one email in a sheet, not wording
-  others reuse.
+  others reuse. The Customize sheet does the same: its preview is the API's answer for one board's text, fetched when
+  the preview opens, and it does not follow the edits.
 - **A9** Anything that opens in place says so: a `chevron-down` at the end of the row, turning up when it is open, and
   the whole row is the control, with `aria-expanded`. A row with no chevron never expands. Expand all and Collapse all
   sit above a list of them.
@@ -548,6 +551,7 @@ in a development build, shows every component in each state, and its test fails 
 | Email preview | `EmailPreview` | An email as the candidate receives it: the subject, then Email or Plain text (Toggle). The HTML renders in a sandboxed frame with no scripts, in an inset, never in the page, because a tenant wrote the template. The composer's preview, a sent email opened in Messages (`SentEmail`), as it went, and a reply opened there (`ReceivedEmail`), under who it is from and above its files |
 | Email composer | `EmailComposer`; `EmailComposerSheet` on shadcn `Sheet` | Email one candidate or a selection: in a sheet from a list's selection bar and the candidate's header (section 9, in place), and inline at the top of the Messages tab, titled Email and the candidate's name. To, then Start from: Blank email, the default, or one of the organization's templates, which fills Subject and Message. The rejection and follow-up questions emails are never offered, because only their actions send them (`docs/architecture/email.md`), and a blank email never becomes a template. The Edit / Preview switch (A8, no window) and Insert variable, a menu of the variables that puts one at the caret of the field last used: a chip in the message, `{{ name }}` in the subject. Changing a template's wording changes this email only, and one muted line under the message says so and that the template stays as it is. Preview is the first candidate's email, rendered by the API with their details ("Preview for" and their name in a selection); each candidate's own copy is rendered with theirs. Send is the sheet's one primary ("Send 3 emails" for a selection); inline on Messages it is outline, because the page's primary is Move to stage (A1), and empty fields say what they need when it is pressed. Each email lands in Activity and Messages as it went. No bulk email while a verification filter or view picked the rows |
 | Add candidate sheet | `AddCandidateSheet` on shadcn `Sheet` | A recruiter adds a candidate by hand: Job (only the drafts and open jobs, and left out on a job's page, where the job is preset), First name, Last name, Email, Phone and Resume, then Cancel and Add candidate. Last name, Phone and Resume say "(optional)", the exception here (W6). No Source field: the API sets Recruiter (W6). No notice, telemetry or declarations: the Verification tab says which checks had nothing to look at (section 16). The resume goes straight to storage, as on the careers form. The page's primary on Candidates (in the action bar on a phone); outline on a job's page, where Publish is the primary, in More on a phone, and absent on a closed job; never without Add candidates (A3). A refusal (a closed job, someone who already applied, someone on a job the person does not see) is `FailureText` in the sheet; on success the page's status line names the candidate as a link to their page |
+| Customize sheet | `CustomizePostingSheet`, `CustomizePostingForm` on shadcn `Sheet` | What one job board receives in place of the job's title and description, opened from a Job postings row (its menu, or the words under a row that needs fixes). Each field starts as what the board gets now, which is the job's text until it is customized; "Use the job's title" or "Use the job's description" shows only while the field differs and puts the job's text back, and an empty or equal field follows the job. The Edit / Preview switch (A8: a sheet is narrower than editor and result together; no window) shows the API's preview, the title and the description in a sandboxed frame, with the board's failing checks as `FailureText`. When the job changed since the board was customized, a block above the fields shows each field's old and new job text. Cancel and one primary, Save and post. A failing board check is `FailureText` in the sheet and nothing is sent. Never offered for the Careers page or Google |
 | Live indicator | `LiveIndicator` | The live updates status as a pill in the top bar, beside Search, on every page: icon, colour and label (T1), from section 3.2 (Live, Connecting, Offline). While live, its icon has a slow, soft pulse behind it, which stops for reduced motion. On a phone only the icon shows; screen readers hear the label |
 | Failure text | `FailureText` with `ProblemIcon` | A failed action or form, in one line where it happened: the problem icon, the verify colour and the reason (T1, section 14). A section that cannot load uses `QueryError` |
 | Verification chip and panel | `VerificationChip`, `SignalEvidence`, `ReviewLog`, `LevelScale`; `VerificationPanel` is the candidate's Verification tab, with `VerificationExplainDialog` and `VerificationDismissDialog` | Section 16. `LevelScale` draws a level on its three steps. A summary card per kind of check: Network, Identity, Automation and Content always, Files and Form activity (the telemetry aggregates) only when they found something, each named for what was looked at, never for what it means about the person. Reasons expand one by one or with Expand all, and each can be marked explained, with Undo for its author. The review log is its own panel: dismissals, explained reasons, undos and review notes as Activity, and Add review note, named apart from Activity's Add note |
@@ -756,9 +760,12 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   address (`?tab=postings`; the old `?tab=distribution` still opens it), and the count is the boards the job is on or on its way to. Job postings is a small table, one row per
   board: Status, Board, Posted, Last updated and a row menu. The menu has View posting and Copy link where we know the
   live address, which today is only the careers page: a board that reads our feed never says where its listing landed.
-  Then comes what a person can do there: Edit details and Retry on a posting that needs fixes, Post or Post again, and
-  Take down last. A board that only closes with the job says why it has no Take down. The board's estimate is plain
-  text after the status. A posting that needs fixes says what is wrong under its row. A draft or closed job has no
+  Then comes what a person can do there: Edit details and Customize (every board but the Careers page) and Retry on a
+  posting that needs fixes, Post or Post again, and Take down last. A board with text of its own carries one Customized
+  badge after its name (L1). A board that only closes with the job says why it has no Take down. The board's estimate is plain
+  text after the status. A posting that needs fixes says what is wrong under its row, and what each fix reaches: Edit
+  details changes every board, Customize changes only that board (the Customize sheet opens from a button, never a link,
+  A5). A customized board whose job changed since says so under its row. A draft or closed job has no
   menus: its header publishes or closes it. A posting whose checks
   found issues is "did not take this job", never "refused": only a board's own answer is a refusal. On the board, the
   closed stages share one Closed column (section 5), whose rows take a dropped card, and a calm card shows no level.
