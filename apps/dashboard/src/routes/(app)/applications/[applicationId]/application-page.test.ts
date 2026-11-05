@@ -311,7 +311,8 @@ describe('application page', () => {
     await within(steps).findByText(/Confirm the candidate is who they say they are/);
     // The caveat shows exactly once: this step's own words carry it, so the row adds none of its own (ADR-0004).
     expect(steps.textContent?.match(/not a reason to reject/gi)).toHaveLength(1);
-    expect(steps).toHaveTextContent('Verification suggested by the checks.');
+    // The level is the badge beside the name, so the row does not repeat it (W7).
+    expect(steps).not.toHaveTextContent('Verification suggested by the checks.');
     expect(within(steps).getByRole('link', { name: 'See the reasons' })).toHaveAttribute('href', '?tab=verification');
     // The level is also the candidate's status, beside the name on every tab (S2, T2).
     const band = screen.getByRole('heading', { level: 1 }).closest<HTMLElement>('[data-slot="header-band"]')!;
@@ -354,14 +355,14 @@ describe('application page', () => {
     expect(within(region).getByText('Ask about the notice period.')).toBeInTheDocument();
   });
 
-  it('filters Activity by kind, with a count on each', async () => {
+  it('filters Activity by kind, with a count on each kind and none on All, which the tab shows', async () => {
     renderPage('activity');
     const region = await screen.findByRole('region', { name: 'Activity' });
     const filter = within(region).getByRole('group', { name: 'Show' });
 
     await waitFor(() =>
       expect(within(filter).getAllByRole('button').map((button) => button.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
-        'All 6',
+        'All',
         'Notes 1',
         'Emails 0',
         'Scorecards 0',
@@ -736,7 +737,7 @@ describe('application page', () => {
     await within(tasks).findByText('Fill in the Interview scorecard.');
     expect(within(tasks).getAllByRole('checkbox').map((box) => box.getAttribute('aria-label'))).toEqual(['Mark done for Call the references.']);
     expect(within(tasks).getByRole('link', { name: 'Fill in: Fill in the Interview scorecard.' })).toHaveAttribute('href', '?tab=scorecards&scorecard=interview');
-    expect(within(tasks).getByRole('link', { name: 'Fill in: Review this application.' })).toHaveAttribute('href', '?tab=scorecards');
+    expect(within(tasks).getByRole('link', { name: 'Open scorecards: Review this application.' })).toHaveAttribute('href', '?tab=scorecards');
     // Robin's request is Robin's to do.
     expect(within(tasks).queryByRole('link', { name: 'Fill in: Fill in the Screening scorecard.' })).not.toBeInTheDocument();
   });
@@ -911,6 +912,23 @@ describe('application page', () => {
 
     expect(declarations).toHaveTextContent('Used AI: Grammar checks only.');
     expect(declarations).toHaveTextContent('Asked for adjustments to the process');
+    // These values explain themselves, so their labels are for screen readers only (W9).
+    expect(within(declarations).getByText('AI use')).toHaveClass('sr-only');
+    expect(within(declarations).getByText('Adjustments')).toHaveClass('sr-only');
+  });
+
+  it('shows only what the candidate declared, and says so when that is nothing (W6)', async () => {
+    stubApi({
+      [`GET /v1/applications/${applicationId}`]: () =>
+        Response.json({ ...application, aiUseDeclaration: 'NotProvided', aiUseDetails: null, accommodationRequested: false }),
+    });
+    renderPage('application');
+    const declarations = await screen.findByRole('region', { name: 'Declarations' });
+
+    expect(declarations).toHaveTextContent('Nothing declared.');
+    expect(declarations).not.toHaveTextContent('AI use');
+    expect(declarations).not.toHaveTextContent('None requested');
+    expect(declarations).not.toHaveTextContent('Not asked or not answered');
   });
 
   describe('saved candidates', () => {

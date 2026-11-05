@@ -2,6 +2,7 @@ import type { ApplicationSummary, ApplicationTimelineEntry, CandidateDetail, Can
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { goto } from '$app/navigation';
+import { preferences } from '#lib/preferences.svelte.js';
 import { apiStub, jobs, ownerPermissions, user } from '../../../../test-support/fixtures.js';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
@@ -126,17 +127,18 @@ const text = (element: Element | null | undefined) => {
 beforeEach(() => vi.mocked(goto).mockClear());
 afterEach(() => {
   vi.unstubAllGlobals();
+  localStorage.clear();
   appPage.data = {};
 });
 
 describe('candidate profile page', () => {
-  it('shows who they are in the header: name, email and phone as links, and when they first applied', async () => {
+  it('shows who they are in the header: name, and email and phone as links, and no first-applied fact the table already shows', async () => {
     renderPage();
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Casey Morgan' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'casey@example.com' })).toHaveAttribute('href', 'mailto:casey@example.com');
     expect(screen.getByRole('link', { name: '+44 20 7946 0000' })).toHaveAttribute('href', 'tel:+44 20 7946 0000');
-    expect(text(screen.getByRole('heading', { level: 1 }).closest('[data-slot="header-band"]'))).toContain('First applied');
+    expect(text(screen.getByRole('heading', { level: 1 }).closest('[data-slot="header-band"]'))).not.toContain('First applied');
   });
 
   it('leaves the phone out when there is none', async () => {
@@ -146,33 +148,63 @@ describe('candidate profile page', () => {
     expect(screen.queryByRole('link', { name: /^\+/ })).not.toBeInTheDocument();
   });
 
-  it('lists the applications oldest first, each with its outcome, when it was made, how far it got and when it ended', async () => {
+  const applicationRows = (table: HTMLElement) =>
+    within(table)
+      .getAllByRole('row')
+      .slice(1)
+      .map((row) => within(row).getAllByRole('cell').map((cell) => cell.textContent?.trim()));
+
+  it('lists the applications as a table, oldest first, with each stage and its dates in their own columns (L1, T5)', async () => {
     renderPage();
 
-    const list = await screen.findByRole('list', { name: 'Applications, oldest first' });
-    await waitFor(() => expect(within(list).getAllByRole('listitem')).toHaveLength(5));
+    const table = await screen.findByRole('table', { name: 'Applications' });
+    await waitFor(() => expect(within(table).getAllByRole('row')).toHaveLength(6));
     // How far a closed application got comes from the history, which loads on its own.
-    await waitFor(() => expect(text(within(list).getAllByRole('listitem')[0])).toContain('Got as far as Screening'));
+    await waitFor(() => expect(applicationRows(table)[0]![3]).toBe('Screening'));
 
-    expect(within(list).getAllByRole('listitem').map(text)).toEqual([
-      'Support Engineer Rejected Applied Sep 1, 2026 Got as far as Screening Ended Sep 10, 2026',
-      'Data Analyst Withdrawn Applied Sep 15, 2026 Ended Sep 16, 2026',
-      'Senior .NET Engineer Hired Applied Oct 2, 2026 Got as far as Offer Ended Oct 10, 2026',
-      'Account Manager Saved Applied Oct 5, 2026 Got as far as Screening Ended Oct 12, 2026',
-      'Product Designer Interview Applied Oct 20, 2026',
+    expect(within(table).getAllByRole('columnheader').map((header) => header.textContent?.trim())).toEqual(['Job', 'Stage', 'Applied', 'Got as far as', 'Ended']);
+    // A blank cell is blank: an open application has no end date and an application that never moved has no stage reached.
+    expect(applicationRows(table)).toEqual([
+      ['Support Engineer', 'Rejected', 'Sep 1, 2026', 'Screening', 'Sep 10, 2026'],
+      ['Data Analyst', 'Withdrawn', 'Sep 15, 2026', '', 'Sep 16, 2026'],
+      ['Senior .NET Engineer', 'Hired', 'Oct 2, 2026', 'Offer', 'Oct 10, 2026'],
+      ['Account Manager', 'Saved', 'Oct 5, 2026', 'Screening', 'Oct 12, 2026'],
+      ['Product Designer', 'Interview', 'Oct 20, 2026', '', ''],
     ]);
-    expect(within(list).getByRole('link', { name: 'Support Engineer' })).toHaveAttribute('href', '/applications/a-support');
+    // Saved is a status, as it is on the Candidates list (T1); a stage or an ending is plain text.
+    expect(within(table).getByText('Saved').closest('[data-slot=badge]')).toBeInTheDocument();
+    expect(within(table).getByText('Hired').closest('[data-slot=badge]')).toBeNull();
+    expect(within(table).getByRole('link', { name: 'Support Engineer' })).toHaveAttribute('href', '/applications/a-support');
+    expect(within(table).getByRole('columnheader', { name: /^Applied/ })).toHaveAttribute('aria-sort', 'ascending');
     expect(screen.getByRole('region', { name: 'Applications' })).toHaveTextContent('5');
   });
 
-  it('shows the outcome as a muted badge', async () => {
-    renderPage();
+  it('sorts the applications by a column, and compares dates as instants', async () => {
+    const earlier = application('early', 'Early job', '2026-10-20T10:00:00+05:00', { name: 'Interview', kind: 'Interview' });
+    const later = application('late', 'Late job', '2026-10-20T08:00:00Z', { name: 'Interview', kind: 'Interview' });
+    renderPage({ applications: [later, earlier], history: [] });
 
-    const list = await screen.findByRole('list', { name: 'Applications, oldest first' });
-    const badge = await within(list).findByText('Hired');
+    const table = await screen.findByRole('table', { name: 'Applications' });
+    // 10:00 at +05:00 is 05:00 UTC, before 08:00 UTC although "10" sorts after "08" as text.
+    await waitFor(() => expect(applicationRows(table).map((row) => row[0])).toEqual(['Early job', 'Late job']));
 
-    expect(badge).toHaveAttribute('data-slot', 'badge');
-    expect(badge).toHaveClass('bg-secondary', 'text-muted-foreground');
+    await fireEvent.click(within(table).getByRole('button', { name: /^Applied/ }));
+    expect(applicationRows(table).map((row) => row[0])).toEqual(['Late job', 'Early job']);
+    await fireEvent.click(within(table).getByRole('button', { name: /^Job/ }));
+    expect(applicationRows(table).map((row) => row[0])).toEqual(['Early job', 'Late job']);
+  });
+
+  it('orders a remembered sort by how far each got once the history arrives, not by what was known before it', async () => {
+    preferences.setSort('candidate-applications', { id: 'reached', desc: false });
+    let sendHistory: (response: Response) => void = () => {};
+    const pendingHistory = new Promise<Response>((resolve) => (sendHistory = resolve));
+    renderPage({ writes: { [`GET /v1/candidates/${candidateId}/history`]: () => pendingHistory } });
+
+    const table = await screen.findByRole('table', { name: 'Applications' });
+    await waitFor(() => expect(applicationRows(table)).toHaveLength(5));
+    sendHistory(Response.json(history));
+
+    await waitFor(() => expect(applicationRows(table).map((row) => row[3])).toEqual(['', '', 'Offer', 'Screening', 'Screening']));
   });
 
   it('lists the history across applications, newest first, naming each stage, job and who did it, without edit lines or deleted notes', async () => {
@@ -187,6 +219,17 @@ describe('candidate profile page', () => {
       'Moved from Screening to Rejected by Robin Ashby in Support Engineer',
     ]);
     expect(screen.getByRole('region', { name: 'History' })).toHaveTextContent('3');
+  });
+
+  it('names the job on each History line only when there is more than one application', async () => {
+    renderPage({
+      applications: [senior],
+      history: [item('a-senior', 'Senior .NET Engineer', entry({ type: 'StageChanged', occurredAt: '2026-10-10T12:00:00Z', actorUserId: user.id, fromStageId: 'offer', toStageId: 'hired' }), { fromStageName: 'Offer', toStageName: 'Hired' })],
+    });
+
+    const list = await screen.findByRole('list', { name: 'History across all applications' });
+    await waitFor(() => expect(list).toHaveTextContent('Moved from Offer to Hired'));
+    expect(list).not.toHaveTextContent('Senior .NET Engineer');
   });
 
   it('shows a note in the history as the team reads it: a mention is the person, never their id', async () => {
@@ -210,7 +253,7 @@ describe('candidate profile page', () => {
     const region = await screen.findByRole('region', { name: 'History' });
 
     await within(region).findByRole('button', { name: /retry|try again/i });
-    expect(screen.getByRole('list', { name: 'Applications, oldest first' })).toBeInTheDocument();
+    expect(screen.getByRole('table', { name: 'Applications' })).toBeInTheDocument();
   });
 
   it('shows a not found state, with a way back, when the candidate does not exist or is another organization\'s', async () => {
@@ -233,8 +276,8 @@ describe('candidate profile page', () => {
 
   it('has no axe violations', async () => {
     renderPage({ user: withErase, history: [...history, asked] });
-    const list = await screen.findByRole('list', { name: 'Applications, oldest first' });
-    await waitFor(() => expect(text(within(list).getAllByRole('listitem')[0])).toContain('Got as far as Screening'));
+    const table = await screen.findByRole('table', { name: 'Applications' });
+    await waitFor(() => expect(applicationRows(table)[0]![3]).toBe('Screening'));
     await screen.findByRole('list', { name: 'History across all applications' });
 
     await expectNoAxeViolations();
@@ -286,7 +329,7 @@ describe('candidate profile page', () => {
       await screen.findByRole('heading', { level: 1, name: 'Casey Morgan' });
       await fireEvent.pointerDown(screen.getByRole('button', { name: 'More actions' }), { button: 0, pointerType: 'mouse' });
       await fireEvent.click(await screen.findByRole('menuitem', { name: 'Erase candidate' }));
-      return screen.findByRole('dialog', { name: 'Erase this candidate?' });
+      return screen.findByRole('dialog', { name: 'Erase Casey Morgan?' });
     }
 
     it('opens the dialog after the menu item is chosen, and the button stays off until the name is typed', async () => {
@@ -315,7 +358,7 @@ describe('candidate profile page', () => {
       await waitFor(() => expect(button).toBeEnabled());
       await fireEvent.click(button);
 
-      await waitFor(() => expect(goto).toHaveBeenCalledWith('/candidates'));
+      await waitFor(() => expect(goto).toHaveBeenCalledWith('/candidates', { state: { erased: 'Casey Morgan' } }));
       expect(sent).toEqual([{ confirmation: 'Casey Morgan' }]);
       expect(goto).toHaveBeenCalledOnce();
     });
