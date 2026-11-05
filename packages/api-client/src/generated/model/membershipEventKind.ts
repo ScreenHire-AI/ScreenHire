@@ -21,4 +21,8 @@ export const MembershipEventKind = {
   AddedToHiringTeam: 'AddedToHiringTeam',
   RemovedFromHiringTeam: 'RemovedFromHiringTeam',
   CandidateErased: 'CandidateErased',
+  DataRequestReceived: 'DataRequestReceived',
+  DataRequestCopySent: 'DataRequestCopySent',
+  DataRequestDeclined: 'DataRequestDeclined',
+  RetentionApplied: 'RetentionApplied',
 } as const;

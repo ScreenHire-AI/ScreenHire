@@ -15,6 +15,7 @@ using ScreenHire.Application.Distribution.GoogleIndexing;
 using ScreenHire.Application.Verification;
 using ScreenHire.Application.Verification.Content;
 using ScreenHire.Application.Jobs;
+using ScreenHire.Application.Privacy;
 using ScreenHire.Application.Slack;
 using ScreenHire.Application.TalentPool;
 using ScreenHire.Application.Webhooks;
@@ -198,6 +199,10 @@ public static class ScreenHireMessaging
         opts.Services.TryAddSingleton<IMalwareScanner, NoMalwareScanner>();
         opts.Services.TryAddSingleton<IBrandImageStore, NoBrandImageStore>();
         opts.Services.AddScreenHireVerification();
+        // Data requests and record retention: their options, the shared erasure, and no storage for copies of candidates'
+        // data until the worker registers its blob store first.
+        opts.Services.AddScreenHirePrivacy();
+        opts.Services.TryAddSingleton<IDataExportStore, NoDataExportStore>();
 
         UsePostgres(opts, connectionString, settings);
         // Polled, like the real-time queue: a chain of events (an automation moving an application, which raises the next

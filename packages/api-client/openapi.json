@@ -17590,7 +17590,11 @@
           "JobAccessChanged",
           "AddedToHiringTeam",
           "RemovedFromHiringTeam",
-          "CandidateErased"
+          "CandidateErased",
+          "DataRequestReceived",
+          "DataRequestCopySent",
+          "DataRequestDeclined",
+          "RetentionApplied"
         ]
       },
       "MembershipLogEntry": {

@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Application.Verification;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Domain.Privacy;
 using ScreenHire.Domain.Verification;
 using ScreenHire.IntegrationTests.Messaging;
 using ScreenHire.IntegrationTests.Realtime;
@@ -409,6 +410,51 @@ public sealed class CandidateErasureTests(AppHostFixture fixture)
         (await TablesHoldingAsync(fixture, noteThatLeft, lastNote)).Should().BeEmpty("the free text of a saved note may name the person");
         (await TablesHoldingAsync(fixture, keptNote)).Should().Contain($"change_records holds {keptNote}", "another candidate's history stays");
         (await TablesHoldingAsync(fixture, otherNote)).Should().Contain($"change_records holds {otherNote}", "another organization's history is out of reach");
+    }
+
+    [Fact]
+    public async Task A_data_request_survives_the_erasure_with_no_candidate_no_copy_and_no_reason_and_its_copy_is_deleted()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var job = await OpenJobTitledAsync(owner, "Platform Engineer");
+        var person = SyntheticApplicants.GenuineHuman.AsNewPerson();
+        var application = (await owner.CreateApplicationAsync(job, person.Email, person.FullName)).Id();
+        var candidateId = await CandidateOfAsync(owner, application);
+        var now = DateTimeOffset.UtcNow;
+        var copyBlob = $"{owner.OrganizationId}/{Guid.NewGuid():N}.json";
+        var waiting = DataRequest.Open(owner.OrganizationId, candidateId, DataRequestKind.Erasure, now, TimeSpan.FromDays(30));
+        var sent = DataRequest.Open(owner.OrganizationId, candidateId, DataRequestKind.Copy, now, TimeSpan.FromDays(30));
+        sent.CopySent(copyBlob, now.AddDays(7), owner.UserId, now);
+        var declined = DataRequest.Open(owner.OrganizationId, candidateId, DataRequestKind.Copy, now, TimeSpan.FromDays(30));
+        declined.Decline($"We hold nothing under the name {person.FullName}.", owner.UserId, now);
+        await using (var db = await VerificationSupport.TenantDbAsync(fixture, owner.OrganizationId))
+        {
+            db.DataRequests.AddRange(waiting, sent, declined);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        (await TablesHoldingAsync(fixture, person.FullName, candidateId.ToString()))
+            .Should().Contain([$"data_requests holds {person.FullName}", $"data_requests holds {candidateId}"], "the scan can see what it is about to prove gone");
+
+        (await owner.PostAsync($"/v1/candidates/{candidateId}/erase", new JsonObject { ["confirmation"] = person.FullName })).Expect(HttpStatusCode.NoContent);
+
+        await using (var db = await VerificationSupport.TenantDbAsync(fixture, owner.OrganizationId))
+        {
+            var rows = await db.DataRequests.AsNoTracking().ToListAsync(Ct);
+            rows.Should().HaveCount(3, "the requests are the record that they were asked and answered");
+            rows.Should().OnlyContain(r => r.CandidateId == null && r.ExportBlobName == null && r.ExportExpiresAt == null && r.DeclineReason == null);
+            rows.Single(r => r.Id == waiting.Id).Status.Should().Be(DataRequestStatus.Completed, "erasing answers it");
+            rows.Single(r => r.Id == waiting.Id).ResolvedByUserId.Should().Be(owner.UserId);
+            rows.Single(r => r.Id == declined.Id).Status.Should().Be(DataRequestStatus.Declined);
+        }
+
+        // The copy's blob is named in a message of its own, which the worker handles with the rest of the erasure.
+        var store = await WolverineStore.ForAppHostAsync(fixture, Ct);
+        await WolverineStore.WaitUntilAsync(
+            async () => await store.CountHandledAsync(copyBlob, Ct, "EraseDataExports") > 0,
+            "the worker to handle the message that deletes the erased candidate's copy",
+            Ct);
+        (await TablesHoldingAsync(fixture, person.Email, person.FullName, person.FirstName, candidateId.ToString())).Should().BeEmpty();
     }
 
     private static async Task SaveWithNoteAsync(Tenant owner, Guid application, Guid candidate, string note)

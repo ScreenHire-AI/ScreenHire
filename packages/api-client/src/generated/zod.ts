@@ -6602,7 +6602,7 @@ export const CreateInvitationResponse = zod.object({
 
 export const ListMembershipLogResponseItem = zod.object({
   "id": zod.uuid(),
-  "kind": zod.enum(['Invited', 'InvitationRevoked', 'Joined', 'RoleChanged', 'Removed', 'RoleCreated', 'RoleUpdated', 'RoleDeleted', 'JobAccessChanged', 'AddedToHiringTeam', 'RemovedFromHiringTeam', 'CandidateErased']),
+  "kind": zod.enum(['Invited', 'InvitationRevoked', 'Joined', 'RoleChanged', 'Removed', 'RoleCreated', 'RoleUpdated', 'RoleDeleted', 'JobAccessChanged', 'AddedToHiringTeam', 'RemovedFromHiringTeam', 'CandidateErased', 'DataRequestReceived', 'DataRequestCopySent', 'DataRequestDeclined', 'RetentionApplied']),
   "actorUserId": zod.uuid().nullable(),
   "memberUserId": zod.uuid().nullable(),
   "invitationId": zod.uuid().nullable(),

@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 using FluentValidation;
 using Scalar.AspNetCore;
 using ScreenHire.Api.Applications;
@@ -15,6 +17,7 @@ using ScreenHire.Api.Realtime;
 using ScreenHire.Application.Automations;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Messaging;
+using ScreenHire.Application.Privacy;
 using ScreenHire.Application.Scheduling;
 using ScreenHire.Application.SendingDomains;
 using ScreenHire.Application.Slack;
@@ -79,6 +82,8 @@ builder.AddJobDistribution();
 // Webhook subscriptions: the API shows each endpoint's secret once and checks URLs against the same address rule the
 // worker applies (docs/architecture/workflow-engine.md section 5).
 builder.Services.AddOptions<WebhookOptions>().BindConfiguration(WebhookOptions.Section);
+// Data requests, record retention and the erasure they and the erase route share (docs/architecture/data-requests.md).
+builder.Services.AddScreenHirePrivacy();
 // The sites an organization lets embed its careers pages (docs/architecture/careers-widget.md).
 builder.Services.AddOptions<CareersEmbeddingOptions>().BindConfiguration(CareersEmbeddingOptions.Section);
 // Slack (docs/architecture/slack.md): connecting a workspace and linking accounts happen here; the worker posts.
@@ -171,6 +176,9 @@ if (app.Environment.IsDevelopment())
     await app.Services.GetRequiredService<ApplicantUploads>().ProvisionDevelopmentStorageAsync();
     await app.Services.GetRequiredService<BrandImageUploads>().ProvisionDevelopmentStorageAsync();
     await app.Services.GetRequiredService<EmailAttachmentStore>().ProvisionDevelopmentStorageAsync();
+    // The container the copies of candidates' data go to; the worker writes it, the API issues read links to it.
+    await app.Services.GetRequiredService<BlobServiceClient>().GetBlobContainerClient(DataExportsContainer.From(app.Configuration))
+        .CreateIfNotExistsAsync(PublicAccessType.None);
 }
 
 await app.RunAsync();

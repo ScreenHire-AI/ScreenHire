@@ -42,6 +42,9 @@ public enum ChangeSubjectKind
 
     /// <summary>The organization's sending domain, on Settings, Sending domain: added, verified, no longer verified and removed.</summary>
     SendingDomain,
+
+    /// <summary>The organization's record retention, on Settings, Data requests: whether ended applications are deleted, and after how many months.</summary>
+    RetentionSettings,
 }
 
 /// <summary>

@@ -14,9 +14,11 @@ public sealed class MembershipEvent : ITenantOwned
     public required MembershipEventKind Kind { get; init; }
 
     /// <summary>
-    /// Who made the change. For <see cref="MembershipEventKind.Joined"/>, the person who accepted. Null only when an
+    /// Who made the change. For <see cref="MembershipEventKind.Joined"/>, the person who accepted. Null when an
     /// organization API key made it (<see cref="ActorApiKeyId"/>): a job a key creates starts with its template's
-    /// default hiring team.
+    /// default hiring team. Null with no key too when nobody on the team acted: a candidate's own data request
+    /// (<see cref="MembershipEventKind.DataRequestReceived"/>), the retention schedule
+    /// (<see cref="MembershipEventKind.RetentionApplied"/>) and an erasure it caused.
     /// </summary>
     public required Guid? ActorUserId { get; init; }
 
@@ -65,6 +67,15 @@ public sealed class MembershipEvent : ITenantOwned
     /// <summary>The hiring template whose default hiring team changed, for the hiring-team kinds.</summary>
     public Guid? HiringTemplateId { get; init; }
 
+    /// <summary>
+    /// The data request the entry is about, for the data request kinds, and for <see cref="MembershipEventKind.CandidateErased"/>
+    /// when an erase request caused it. An id only: it names no one once the candidate is gone.
+    /// </summary>
+    public Guid? DataRequestId { get; init; }
+
+    /// <summary>How many applications a <see cref="MembershipEventKind.RetentionApplied"/> run deleted.</summary>
+    public int? ItemCount { get; init; }
+
     public required DateTimeOffset OccurredAt { get; init; }
 }
 
@@ -98,4 +109,19 @@ public enum MembershipEventKind
     /// erasing is that nothing about them is kept.
     /// </summary>
     CandidateErased,
+
+    /// <summary>A candidate asked for a copy of their data or for it to be erased (<see cref="MembershipEvent.DataRequestId"/>). No actor: the candidate asked.</summary>
+    DataRequestReceived,
+
+    /// <summary>A member sent a candidate the copy they asked for. The request is <see cref="MembershipEvent.DataRequestId"/>.</summary>
+    DataRequestCopySent,
+
+    /// <summary>A member declined a data request and told the candidate why. The reason stays on the request, not in the log.</summary>
+    DataRequestDeclined,
+
+    /// <summary>
+    /// The record retention schedule deleted ended applications: how many is <see cref="MembershipEvent.ItemCount"/>. No actor,
+    /// and nothing about the people.
+    /// </summary>
+    RetentionApplied,
 }

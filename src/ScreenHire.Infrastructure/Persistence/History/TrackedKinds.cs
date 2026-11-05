@@ -5,6 +5,7 @@ using ScreenHire.Domain.History;
 using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.Privacy;
 using ScreenHire.Domain.TalentPool;
 
 namespace ScreenHire.Infrastructure.Persistence.History;
@@ -36,6 +37,9 @@ public static class TrackedKinds
         Track<Organization>(ChangeSubjectKind.Organization, o => o.Id.ToString("D"), SettingsChanges.Name),
         Track<Organization>(ChangeSubjectKind.Branding, o => o.Id.ToString("D"), SettingsChanges.Branding),
         Track<VerificationSettings>(ChangeSubjectKind.VerificationSettings, s => s.OrganizationId.ToString("D"), SettingsChanges.Verification),
+        // Record retention deletes data, so who turned it on or changed its period is worth a history. Run results are not on
+        // this row (the team log has them), so the schedule never writes it.
+        Track<RetentionSettings>(ChangeSubjectKind.RetentionSettings, s => s.OrganizationId.ToString("D"), SettingsChanges.Retention),
         // A saved candidate's note. The subject is the entry: saving the candidate again from another job replaces it with
         // a new note, and edits made under the job it was saved from stay with that entry, which a member on Only jobs
         // they're on may not see.

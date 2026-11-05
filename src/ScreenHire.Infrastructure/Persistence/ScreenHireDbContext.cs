@@ -13,6 +13,7 @@ using ScreenHire.Domain.History;
 using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.Privacy;
 using ScreenHire.Domain.Scheduling;
 using ScreenHire.Domain.Slack;
 using ScreenHire.Domain.Views;
@@ -142,6 +143,12 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     public DbSet<ConsistencyCheck> ConsistencyChecks => Set<ConsistencyCheck>();
 
     public DbSet<VerificationSettings> VerificationSettings => Set<VerificationSettings>();
+
+    /// <summary>Candidates' requests for a copy of their data or for it to be erased (docs/architecture/data-requests.md).</summary>
+    public DbSet<DataRequest> DataRequests => Set<DataRequest>();
+
+    /// <summary>An organization's record retention, one row each (docs/architecture/data-requests.md).</summary>
+    public DbSet<RetentionSettings> RetentionSettings => Set<RetentionSettings>();
 
     public DbSet<EmailTemplate> EmailTemplates => Set<EmailTemplate>();
 

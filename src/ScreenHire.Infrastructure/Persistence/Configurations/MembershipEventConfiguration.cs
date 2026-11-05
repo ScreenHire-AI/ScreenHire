@@ -16,7 +16,7 @@ internal sealed class MembershipEventConfiguration : IEntityTypeConfiguration<Me
         builder.Property(e => e.PreviousJobAccess).HasConversion<string>().HasMaxLength(20);
         builder.Property(e => e.JobAccess).HasConversion<string>().HasMaxLength(20);
 
-        // No foreign key to users or memberships: the log outlives both (MembershipEvent).
+        // No foreign key to users or memberships: the log outlives both (MembershipEvent). The same for DataRequestId: ids only.
         builder.HasOne<Organization>().WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(e => new { e.OrganizationId, e.OccurredAt });
     }

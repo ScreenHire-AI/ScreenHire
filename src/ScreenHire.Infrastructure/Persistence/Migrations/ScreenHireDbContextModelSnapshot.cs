@@ -1212,6 +1212,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<DateTimeOffset?>("DataRequestLinkSentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("data_request_link_sent_at");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(320)
@@ -2260,6 +2264,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("custom_role_name");
 
+                    b.Property<Guid?>("DataRequestId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("data_request_id");
+
                     b.Property<Guid?>("HiringTemplateId")
                         .HasColumnType("uuid")
                         .HasColumnName("hiring_template_id");
@@ -2267,6 +2275,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("InvitationId")
                         .HasColumnType("uuid")
                         .HasColumnName("invitation_id");
+
+                    b.Property<int?>("ItemCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("item_count");
 
                     b.Property<string>("JobAccess")
                         .HasMaxLength(20)
@@ -2635,6 +2647,104 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_sending_domains_organization_id");
 
                     b.ToTable("sending_domains", (string)null);
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Privacy.DataRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("CandidateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("candidate_id");
+
+                    b.Property<DateTimeOffset?>("CopySentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("copy_sent_at");
+
+                    b.Property<string>("DeclineReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("decline_reason");
+
+                    b.Property<DateTimeOffset>("DueAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("due_at");
+
+                    b.Property<string>("ExportBlobName")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("export_blob_name");
+
+                    b.Property<DateTimeOffset?>("ExportExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("export_expires_at");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_at");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<Guid?>("ResolvedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resolved_by_user_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_data_requests");
+
+                    b.HasIndex("CandidateId")
+                        .HasDatabaseName("ix_data_requests_candidate_id");
+
+                    b.HasIndex("OrganizationId", "CandidateId", "Kind")
+                        .IsUnique()
+                        .HasDatabaseName("ix_data_requests_organization_id_candidate_id_kind")
+                        .HasFilter("status = 'Open'");
+
+                    b.HasIndex("OrganizationId", "Status", "DueAt")
+                        .HasDatabaseName("ix_data_requests_organization_id_status_due_at");
+
+                    b.ToTable("data_requests", (string)null);
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Privacy.RetentionSettings", b =>
+                {
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<int?>("EndedApplicationsMonths")
+                        .HasColumnType("integer")
+                        .HasColumnName("ended_applications_months");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("OrganizationId")
+                        .HasName("pk_retention_settings");
+
+                    b.ToTable("retention_settings", (string)null);
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Scheduling.CalendarConnection", b =>
@@ -4882,6 +4992,32 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_sending_domains_organizations_organization_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Privacy.DataRequest", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Candidates.Candidate", null)
+                        .WithMany()
+                        .HasForeignKey("CandidateId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_data_requests_candidates_candidate_id");
+
+                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_data_requests_organizations_organization_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Privacy.RetentionSettings", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
+                        .WithOne()
+                        .HasForeignKey("ScreenHire.Domain.Privacy.RetentionSettings", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_retention_settings_organizations_organization_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Scheduling.CalendarConnection", b =>
