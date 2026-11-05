@@ -169,7 +169,7 @@
                   aria-describedby="sending-domain-hint"
                   bind:value={$form.domain}
                 />
-                <Field.Description id="sending-domain-hint">Email comes from hiring@ this domain once its DNS records pass. Until then it comes from ScreenHire.</Field.Description>
+                <Field.Description id="sending-domain-hint">Email comes from hiring@ this domain once its DNS records pass.</Field.Description>
                 <Field.Error id="sending-domain-error" errors={$errors.domain?.map((message) => ({ message }))} />
               </Field.Field>
             </div>

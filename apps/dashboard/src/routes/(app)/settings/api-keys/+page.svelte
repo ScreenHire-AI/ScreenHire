@@ -274,7 +274,7 @@
           <SummaryItem label="Header"><span class="font-mono text-code break-all">Authorization: Bearer shk_…</span></SummaryItem>
           <SummaryItem label="Access">Read only, or read and write, which can do what a Recruiter can</SummaryItem>
           <SummaryItem label="Verification read">
-            Levels, reasons and evidence, and candidates by level. Only an Owner can give it, and every read goes in the application's review log.
+            Levels, reasons and evidence, and candidates by level. Only an Owner can give it, and every read goes in the application's review log. A level is never a reason to reject on its own.
           </SummaryItem>
           <SummaryItem label="Reference">
             {#if apiOrigin}

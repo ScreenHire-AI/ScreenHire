@@ -338,6 +338,21 @@ describe('reports page', () => {
     await expectNoAxeViolations();
   });
 
+  it('offers no export when the report could not load, and no empty header over the error', async () => {
+    const others = apiStub({ 'GET /v1/jobs': () => Response.json(jobs) });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) =>
+        String(input).startsWith('/v1/reports/hiring') ? Response.json({ title: 'Server error', status: 500 }, { status: 500 }) : others(input, init),
+      ),
+    );
+    render(WithQueryClient, { props: { component: Page, props: {} } });
+
+    expect(await screen.findByText(/Could not load the reports/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Export CSV' })).toBeNull();
+    expect(screen.getByRole('region', { name: 'Reports' }).querySelector('header')).toBeNull();
+  });
+
   it('says what fills Reports, and links to Jobs, for an organization with no jobs yet', async () => {
     renderPage(nothing, []);
 

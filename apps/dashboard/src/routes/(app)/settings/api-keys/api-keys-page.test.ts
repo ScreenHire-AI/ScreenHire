@@ -160,6 +160,8 @@ describe('API keys page', () => {
 
     expect(verification).toBeEnabled();
     expect(screen.getByText(/every read goes in the application's review log/)).toBeInTheDocument();
+    // ADR-0021: where the scope is given, an Owner hears what it must not be used for.
+    expect(screen.getByText(/A level is never a reason to reject on its own/)).toBeInTheDocument();
     await fireEvent.input(within(dialog).getByLabelText('Name'), { target: { value: 'Auditor' } });
     await fireEvent.click(verification);
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Create key' }));

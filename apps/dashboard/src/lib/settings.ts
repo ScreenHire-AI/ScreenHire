@@ -44,11 +44,11 @@ export const featureOn = (features: SettingsFeatures, feature: SettingsFeature) 
 export const featureWaits = (features: SettingsFeatures, feature: SettingsFeature) => features[feature] === undefined && !shownUntilOff.has(feature);
 
 /**
- * A feature's entry in `SettingsFeatures`, from the shell's query for it. The last answer stands through a failed
- * refetch, so a dropped connection never takes the page from someone using it. A status that was never read counts as
- * unavailable (A3), so its page does not wait forever; `undefined` means the first answer is still on its way.
+ * Slack's entry in `SettingsFeatures`, from the shell's `GET /v1/slack` query. The last answer stands through a failed
+ * refetch, so a dropped connection never takes the page from someone using it. A status that was never read counts as no
+ * Slack (A3), so its page does not wait forever; `undefined` means the first answer is still on its way.
  */
-export const featureFrom = (status: { available: boolean } | undefined, failed: boolean) => status?.available ?? (failed ? false : undefined);
+export const slackFeature = (status: { available: boolean } | undefined, failed: boolean) => status?.available ?? (failed ? false : undefined);
 
 export const settingsSections: readonly {
   label: string;

@@ -11,7 +11,7 @@ import {
   settingsSectionOf,
   featureOn,
   featureWaits,
-  featureFrom,
+  slackFeature,
   visibleSettingsSections,
 } from './settings.js';
 
@@ -73,18 +73,18 @@ describe('role keys', () => {
   });
 });
 
-describe('featureFrom', () => {
+describe('slackFeature', () => {
   it('waits for the first answer', () => {
-    expect(featureFrom(undefined, false)).toBeUndefined();
+    expect(slackFeature(undefined, false)).toBeUndefined();
   });
 
-  it('counts a status that was never read as unavailable', () => {
-    expect(featureFrom(undefined, true)).toBe(false);
+  it('counts a status that was never read as no Slack', () => {
+    expect(slackFeature(undefined, true)).toBe(false);
   });
 
   it('keeps the last answer through a failed refetch', () => {
-    expect(featureFrom({ available: true }, true)).toBe(true);
-    expect(featureFrom({ available: false }, true)).toBe(false);
+    expect(slackFeature({ available: true }, true)).toBe(true);
+    expect(slackFeature({ available: false }, true)).toBe(false);
   });
 });
 
@@ -92,9 +92,10 @@ describe('featureOn', () => {
   it('shows the page until the shell hears that this installation cannot send from a domain, and waits for no answer', () => {
     expect(featureOn({}, 'sendingDomain')).toBe(true);
     expect(featureWaits({}, 'sendingDomain')).toBe(false);
-    expect(featureOn({ sendingDomain: featureFrom({ available: false }, false) }, 'sendingDomain')).toBe(false);
-    expect(featureOn({ sendingDomain: featureFrom(undefined, true) }, 'sendingDomain')).toBe(false);
-    expect(featureOn({ sendingDomain: featureFrom({ available: true }, false) }, 'sendingDomain')).toBe(true);
+    expect(featureOn({ sendingDomain: false }, 'sendingDomain')).toBe(false);
+    expect(featureOn({ sendingDomain: true }, 'sendingDomain')).toBe(true);
+    // A failed query is not an answer: the entry stays and the page reports the failure.
+    expect(featureOn({ sendingDomain: undefined }, 'sendingDomain')).toBe(true);
     // Slack is the other way round: off until it is heard to be on.
     expect(featureOn({}, 'slack')).toBe(false);
     expect(featureWaits({}, 'slack')).toBe(true);

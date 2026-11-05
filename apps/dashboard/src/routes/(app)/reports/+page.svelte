@@ -279,12 +279,12 @@
 <main class="flex min-w-0 flex-col">
   <HeaderBand title="Reports">
     {#snippet actions()}
-      <!-- Nothing to export in an empty report, so the button is not offered there (A3); the tooltip says how far it reaches. -->
-      {#if !empty}
+      <!-- Nothing to export before the report arrives or from an empty one, so the button is not offered (A3); the tooltip says how far it reaches. -->
+      {#if data && !empty}
         <Tooltip.Root>
           <Tooltip.Trigger>
             {#snippet child({ props })}
-              <Button {...props} variant="outline" disabled={!data} onclick={exportCsv}><DownloadIcon aria-hidden="true" />Export CSV</Button>
+              <Button {...props} variant="outline" onclick={exportCsv}><DownloadIcon aria-hidden="true" />Export CSV</Button>
             {/snippet}
           </Tooltip.Trigger>
           <Tooltip.Content>Every panel, for these dates and jobs</Tooltip.Content>
