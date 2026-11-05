@@ -105,7 +105,7 @@
           <Combobox.Item
             value={option.value}
             label={option.label}
-            class="flex min-h-9 cursor-default items-center gap-2 rounded-md px-2.5 py-1 text-body outline-hidden select-none data-highlighted:bg-accent pointer-coarse:min-h-11"
+            class="flex min-h-9 items-center gap-2 rounded-md px-2.5 py-1 text-body outline-hidden select-none data-highlighted:bg-accent pointer-coarse:min-h-11"
           >
             {#snippet children({ selected })}
               <span class="min-w-0 flex-1 truncate">{option.label}</span>

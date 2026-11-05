@@ -38,7 +38,7 @@ code with Copy:
 The address is the organization's careers board (`careersUrl` on `GET /v1/organization`) plus `/embed.js`, on a tenant
 host or with the organization in the path alike. That snippet frames the board.
 
-A job has its own snippet, on its Postings tab (Embed on your website, shown for an open job): the same tag with the
+A job has its own snippet, on its Job postings tab (Embed on your website, shown for an open job): the same tag with the
 job's address, which frames that job's page and its application instead of the board.
 
 ```html
@@ -163,4 +163,4 @@ There are no owner actions beyond the careers domain itself.
 - End to end: `EmbedTests` serves a company's page from `HostPage`, a loopback server, because Chromium's Local Network
   Access stops a routed page it cannot place on this machine from loading the careers pages here. A listed site embeds
   the board, branded and sized, the candidate applies inside the frame, the dashboard shows the site, and the job's own
-  snippet from its Postings tab frames that job; a site off the list is refused.
+  snippet from its Job postings tab frames that job; a site off the list is refused.

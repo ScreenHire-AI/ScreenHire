@@ -34,4 +34,6 @@ export interface JobPostingStatus {
   closingAt: string | null;
   /** @nullable */
   closedAt: string | null;
+  /** @nullable */
+  viewUrl: string | null;
 }

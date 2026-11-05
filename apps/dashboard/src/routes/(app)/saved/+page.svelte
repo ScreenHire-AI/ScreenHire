@@ -283,7 +283,7 @@
               {#each table.getHeaderGroups() as group (group.id)}
                 <Table.Row class="bg-muted hover:bg-muted">
                   <Table.Head class={[selectColumn, overflowing && 'sticky left-0 z-[1] bg-muted']}>
-                    <label class="inline-grid size-6 cursor-pointer place-items-center pointer-coarse:size-11">
+                    <label class="inline-grid size-6 place-items-center pointer-coarse:size-11">
                       <input type="checkbox" class="size-4 accent-primary" aria-label="Select everyone shown" checked={allSelected} onchange={toggleAll} />
                     </label>
                   </Table.Head>
@@ -298,7 +298,7 @@
                 <!-- A stuck cell covers what scrolls under it, so it carries the row's hover tint itself. -->
                 <Table.Row class="group relative h-12 hover:bg-muted">
                   <Table.Cell class={[selectColumn, stuckSelect, overflowing && 'bg-card group-hover:bg-muted']}>
-                    <label class="inline-grid size-6 cursor-pointer place-items-center pointer-coarse:size-11">
+                    <label class="inline-grid size-6 place-items-center pointer-coarse:size-11">
                       <input
                         type="checkbox"
                         class="size-4 accent-primary"
@@ -324,7 +324,7 @@
                             <button
                               {...mergeProps(props, { onclick: () => open('note', [person]) })}
                               type="button"
-                              class="relative flex w-full min-w-0 cursor-pointer items-center rounded-md text-left hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none pointer-coarse:min-h-11"
+                              class="relative flex w-full min-w-0 items-center rounded-md text-left hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none pointer-coarse:min-h-11"
                             >
                               {#if person.note}
                                 <span class="block min-w-0 truncate">{person.note}</span>

@@ -8,11 +8,12 @@ sources:
 ---
 # MVP status
 
-Snapshot 2026-10-25, after the MVP workflow's tasks (PRs #1 to #18 and the acceptance task), the "Design system v0.2"
+Snapshot 2026-11-05, after the MVP workflow's tasks (PRs #1 to #18 and the acceptance task), the "Design system v0.2"
 workflow (PRs #22 to #33), the "Platform: team, API access and webhooks" workflow (PRs #36 to #38) and the "Team,
 collaboration and communication" workflow (PRs #39 to #42, and the docs restructure in ADR-0012), the "Workflow
 builder" workflow (PRs #44, #45 and the editable graph) and the "Design system v0.3, the review's features, and roles
-with job access" workflow (PRs #47 to #58 and the remaining screens). The whole product
+with job access" workflow (PRs #47 to #58 and the remaining screens), the "After the owner's review" workflow (PRs #61
+to #74) and the "Owner review of the second build" workflow (PRs #80 to #89). The whole product
 runs on one machine with `pnpm dev` ([local demo](operations/local-demo.md)), and one Playwright journey in
 `pnpm verify` (`tests/ScreenHire.E2E/AcceptanceJourneyTests.cs`) walks it end to end: sign in, a job from a template,
 publish to the careers page and the sandbox board, a genuine candidate and a bot apply, both arrive live with their
@@ -68,12 +69,12 @@ hidden rather than an error.
 | LLM | A deterministic fake model for the consistency check; with no provider the check records "unavailable"; off per organization by default |
 | Job boards | A sandbox push board (Development only) and the feeds; Google Indexing has a local fake and is off unless set; Indeed is flags only |
 | Webhook receivers | `WebhookReceiver` in `tests/ScreenHire.Testing`, a local server, so no test needs the internet |
-| Slack | The sandbox workspace behind `ISlackClient` (Development only, on in the test stacks); with no Slack app configured, Settings > Slack says it is not set up |
+| Slack | The sandbox workspace behind `ISlackClient` (Development only, on in the test stacks); with no Slack app configured, Settings hides Slack |
 | Calendars | The sandbox calendar behind `ICalendarProvider` (Development only, on in `pnpm dev` and the test stacks); with no Google or Microsoft app configured those buttons are hidden |
 | IP data | Configured ranges for the RFC 5737 documentation addresses; an ip2asn file and a Tor exit list are optional and absent |
 | Storage, bot challenge, malware scan | Azurite; Turnstile unconfigured (recorded as "not checked", the honeypot still works); `NoMalwareScanner`, which records every file as "not scanned" |
 | Built, flagged off | The cross-employer Signal Network, off until legal review (ADR-0005) |
-| Not built | Identity verification and liveness (phase 2, the control is disabled), interview verification (phase 3), candidate replies and an inbox |
+| Not built | Identity verification and liveness (phase 2, the control is disabled), interview verification (phase 3), an inbox across candidates |
 
 ## Owner actions
 
@@ -146,10 +147,11 @@ brackets.
 ## Known gaps
 
 - Interview scheduling sends no reminders, and a recruiter cannot move a booked interview for the candidate: they cancel it and offer a new one. Events made for interviewers on different providers are separate copies, not one shared event ([interview scheduling](architecture/interview-scheduling.md)).
-- Reports know two sources, the careers page and a recruiter, because nothing records which job board sent a careers
-  applicant, and they count an application through the careers widget under the careers page although it records its
-  site; only the MCP server reads reports for a key, not the HTTP API; and stage kinds come from each job's current workflow, so a
-  removed stage's history drops out of the funnel (`architecture/reports.md` section 6).
+- Reports count applicants from Google for Jobs and the public job-board API as the careers page, because those two keep
+  their canonical URLs and carry no source tag; only the MCP server reads reports for a key, not the HTTP API; and stage
+  kinds come from each job's current workflow, so a removed stage's history drops out of the funnel
+  (`architecture/reports.md` section 6).
+- A job board that reads our feed never says where its listing landed, so only the careers page has a View posting link.
 - Erasure requests: an Owner or Admin erases a candidate from their profile, with the name typed to confirm
   ([candidates](architecture/candidates.md)). There is no form for a candidate to ask for their data or its erasure: the
   privacy page tells them to write to the employer. A candidate who uses the stop link in a saved candidate's invitation is

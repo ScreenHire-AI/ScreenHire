@@ -186,7 +186,7 @@
   <li data-signal={signal.code} data-explained={signal.explained ? '' : undefined} class="has-[details[open]]:bg-secondary/60">
     <details bind:open={() => expanded[signal.id] ?? false, (open) => (expanded = { ...expanded, [signal.id]: open })} class="group">
       <!-- It opens in place, so it shows the chevron that says so, turning up when open (A9). -->
-      <summary class="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2.5 hover:bg-secondary/60 [&::-webkit-details-marker]:hidden">
+      <summary class="flex min-h-11 list-none flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2.5 hover:bg-secondary/60 [&::-webkit-details-marker]:hidden">
         <span class="min-w-0 flex-1 font-semibold">{signal.title}</span>
         {#if showCheck}<span class="text-caption text-muted-foreground">{checkTitle(signal.category)}</span>{/if}
         <!-- A state of the reason, so a badge on its row (W6); calm, so quiet (T3). -->

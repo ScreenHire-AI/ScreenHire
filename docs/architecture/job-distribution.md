@@ -4,6 +4,9 @@ title: "Job Distribution Engine: In-House One-Click Post & Teardown"
 description: "One-click publish and honest teardown: what teardown can mean per board, the posting states, worker reconciliation, the five XML feeds, the public job-board API, Google for Jobs JSON-LD and the Indexing API queue, the sandbox board, and the distribution settings."
 tags: [distribution, job-boards, feeds, google-for-jobs]
 sources:
+  - resource: apps/api/Contracts/DistributionContracts.cs
+  - resource: apps/dashboard/src/lib/components/distribution-panel.svelte
+  - resource: apps/dashboard/src/lib/distribution.ts
   - resource: src/ScreenHire.Application/Distribution/Adapters/OwnChannelAdapters.cs
   - resource: src/ScreenHire.Application/Distribution/Adapters/SandboxBoardAdapter.cs
   - resource: src/ScreenHire.Application/Distribution/BoardRegistry.cs
@@ -177,7 +180,9 @@ publish answer that arrives after a close is a no-op. `JobPostingTests` covers t
   careers page and Google cannot do that (`canUnpublishPerBoard` false: Google would re-index the live page), so the
   call is a 409.
 - **Status:** `GET /v1/jobs/{jobId}/postings` and `GET /v1/jobs/{jobId}` (`postings`). `GET /v1/boards` lists the
-  boards an organization may use.
+  boards an organization may use. A posting's `viewUrl` is where a person can see it: the job's own page on the hosted
+  careers page while it is up, null everywhere else, because a board that reads our feed never says where its listing
+  landed.
 
 ### Worker, idempotency and reconciliation
 

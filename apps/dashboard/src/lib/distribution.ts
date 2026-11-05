@@ -109,6 +109,11 @@ export function describePosting(posting: JobPostingStatus | undefined, now: numb
 /** Postings that are on a board, or on their way there. */
 const active = new Set<JobPostingStatus['state']>(['Queued', 'Submitted', 'Live']);
 
+/** Whether the job is on this board or on its way there, which is what the tab counts. */
+export function isPosted(posting: JobPostingStatus | undefined): boolean {
+  return posting !== undefined && active.has(posting.state);
+}
+
 /**
  * The one action a board offers. Only an open job is posted per board (a draft is published from the header, to every
  * board at once); a board that cannot drop one job alone (the careers page, Google) offers no take-down, because only
@@ -145,12 +150,17 @@ export function boardRows(boards: readonly BoardSummary[], postings: readonly Jo
   return rows;
 }
 
+/** When the job went to the board. A hosted board goes live with no send. */
+export function postedAt(posting: JobPostingStatus | undefined): string | undefined {
+  return posting?.submittedAt ?? posting?.liveAt ?? undefined;
+}
+
 /**
- * The Distribution tab's count (design system E2, "Distribution 7/8"): the boards the job is on or on its way to, out of
- * every board listed. A pull board never confirms it shows the job, so a posting sent there counts as posted.
+ * The Job postings tab's count (design system E2): the boards the job is on or on its way to. A pull board never confirms it
+ * shows the job, so a posting sent there counts as posted. It says where the job went, not that every board shows it.
  */
-export function postingCounts(rows: readonly BoardRow[]): { posted: number; total: number } {
-  return { posted: rows.filter((row) => row.posting && active.has(row.posting.state)).length, total: rows.length };
+export function postedCount(rows: readonly BoardRow[]): number {
+  return rows.filter((row) => isPosted(row.posting)).length;
 }
 
 /** A problem with the job's postings, for a notice on the job page: what is wrong, naming each board, in words. */

@@ -1179,7 +1179,8 @@ export const CreateJobResponse = zod.object({
   "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
   "liveAt": zod.iso.datetime({"offset":true}).nullable(),
   "closingAt": zod.iso.datetime({"offset":true}).nullable(),
-  "closedAt": zod.iso.datetime({"offset":true}).nullable()
+  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "viewUrl": zod.string().nullable()
 }).describe('One job on one board: where it stands and what is still uncertain.')),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
@@ -1376,7 +1377,8 @@ export const GetJobResponse = zod.object({
   "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
   "liveAt": zod.iso.datetime({"offset":true}).nullable(),
   "closingAt": zod.iso.datetime({"offset":true}).nullable(),
-  "closedAt": zod.iso.datetime({"offset":true}).nullable()
+  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "viewUrl": zod.string().nullable()
 }).describe('One job on one board: where it stands and what is still uncertain.')),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
@@ -1595,7 +1597,8 @@ export const UpdateJobResponse = zod.object({
   "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
   "liveAt": zod.iso.datetime({"offset":true}).nullable(),
   "closingAt": zod.iso.datetime({"offset":true}).nullable(),
-  "closedAt": zod.iso.datetime({"offset":true}).nullable()
+  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "viewUrl": zod.string().nullable()
 }).describe('One job on one board: where it stands and what is still uncertain.')),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
@@ -1830,7 +1833,8 @@ export const PublishJobResponse = zod.object({
   "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
   "liveAt": zod.iso.datetime({"offset":true}).nullable(),
   "closingAt": zod.iso.datetime({"offset":true}).nullable(),
-  "closedAt": zod.iso.datetime({"offset":true}).nullable()
+  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "viewUrl": zod.string().nullable()
 }).describe('One job on one board: where it stands and what is still uncertain.')),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
@@ -2027,7 +2031,8 @@ export const CloseJobResponse = zod.object({
   "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
   "liveAt": zod.iso.datetime({"offset":true}).nullable(),
   "closingAt": zod.iso.datetime({"offset":true}).nullable(),
-  "closedAt": zod.iso.datetime({"offset":true}).nullable()
+  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "viewUrl": zod.string().nullable()
 }).describe('One job on one board: where it stands and what is still uncertain.')),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
@@ -2419,7 +2424,8 @@ export const UpdateJobWorkflowResponse = zod.object({
   "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
   "liveAt": zod.iso.datetime({"offset":true}).nullable(),
   "closingAt": zod.iso.datetime({"offset":true}).nullable(),
-  "closedAt": zod.iso.datetime({"offset":true}).nullable()
+  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "viewUrl": zod.string().nullable()
 }).describe('One job on one board: where it stands and what is still uncertain.')),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
@@ -2621,7 +2627,8 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
   "liveAt": zod.iso.datetime({"offset":true}).nullable(),
   "closingAt": zod.iso.datetime({"offset":true}).nullable(),
-  "closedAt": zod.iso.datetime({"offset":true}).nullable()
+  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "viewUrl": zod.string().nullable()
 }).describe('One job on one board: where it stands and what is still uncertain.')),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
@@ -6014,7 +6021,8 @@ export const ListJobPostingsResponseItem = zod.object({
   "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
   "liveAt": zod.iso.datetime({"offset":true}).nullable(),
   "closingAt": zod.iso.datetime({"offset":true}).nullable(),
-  "closedAt": zod.iso.datetime({"offset":true}).nullable()
+  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "viewUrl": zod.string().nullable()
 }).describe('One job on one board: where it stands and what is still uncertain.')
 export const ListJobPostingsResponse = zod.array(ListJobPostingsResponseItem)
 
@@ -6041,7 +6049,8 @@ export const CloseJobPostingResponse = zod.object({
   "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
   "liveAt": zod.iso.datetime({"offset":true}).nullable(),
   "closingAt": zod.iso.datetime({"offset":true}).nullable(),
-  "closedAt": zod.iso.datetime({"offset":true}).nullable()
+  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "viewUrl": zod.string().nullable()
 }).describe('One job on one board: where it stands and what is still uncertain.')
 
 

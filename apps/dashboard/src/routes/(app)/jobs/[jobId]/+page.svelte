@@ -45,7 +45,7 @@
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
-  import { boardRows, postingCounts, postingProblems } from '#lib/distribution.js';
+  import { boardRows, postedCount, postingProblems } from '#lib/distribution.js';
   import { employmentLabel, formatSalary } from '#lib/format.js';
   import { createHistoryPages } from '#lib/history-pages.svelte.js';
   import { jobStatus } from '#lib/job-status.js';
@@ -100,19 +100,14 @@
   // an open job is on the boards.
   const problems = $derived(detail?.status === 'Open' && boards.data ? postingProblems(rows) : []);
 
-  // The job's peer views (section 21): the work area first, then Distribution, whose count says how many boards the job
-  // is on (E2). The tab is in the address, so a link reaches it and a reload keeps it.
-  // Postings was called Distribution: its old address (?tab=distribution) still opens it.
+  // The job's peer views (section 21): the work area first, then Job postings, whose count says how many boards the job went
+  // to (E2). The tab is in the address, so a link reaches it and a reload keeps it.
+  // Job postings was called Distribution: its old address (?tab=distribution) still opens it.
   const tab = $derived(['postings', 'distribution'].includes((page.shallow?.url ?? page.url).searchParams.get('tab') ?? '') ? 'postings' : 'candidates');
-  const sections = $derived.by((): RecordTab[] => {
-    const counts = postingCounts(rows);
-    return [
-      { value: 'candidates', label: 'Candidates', count: applications.isSuccess ? all.length : undefined },
-      boards.data
-        ? { value: 'postings', label: 'Postings', count: counts.posted, of: counts.total, countLabel: `posted on ${counts.posted} of ${counts.total} boards` }
-        : { value: 'postings', label: 'Postings' },
-    ];
-  });
+  const sections = $derived<RecordTab[]>([
+    { value: 'candidates', label: 'Candidates', count: applications.isSuccess ? all.length : undefined },
+    { value: 'postings', label: 'Job postings', count: boards.data ? postedCount(rows) : undefined },
+  ]);
 
   // A tab is a view of the same page, so switching only changes the address (shallow), keeping the page's state.
   function showTab(next: string) {
@@ -292,7 +287,7 @@
       <div class={['flex w-full flex-col gap-4 px-4 py-6 md:px-6', boardFills && 'min-h-0 flex-1']}>
         <Tabs.Content value="candidates" class={['flex flex-col gap-4', boardFills && 'min-h-0']}>
           {#each problems as problem (problem.kind)}
-            <Notice href="?tab=postings" link="Fix on Postings">{problem.text}</Notice>
+            <Notice href="?tab=postings" link="Fix on Job postings">{problem.text}</Notice>
           {/each}
           <JobPipeline
             bind:view
@@ -313,15 +308,15 @@
               <JobEmbedPanel slug={detail.slug} />
             {/if}
           {:else if boards.isError}
-            <Panel title="Postings">
+            <Panel title="Job postings">
               <QueryError message={describeError(boards.error, 'Could not load the job boards')} onretry={() => boards.refetch()} inset />
             </Panel>
           {:else}
-            <!-- Rows of the panel's shape: a board's name, then its state (E1). -->
-            <Panel title="Postings" flush>
+            <!-- Rows of the panel's shape: a board's name, with its state at the end of the line (E1). -->
+            <Panel title="Job postings" flush>
               <div aria-hidden="true" class="flex flex-col">
                 {#each [0, 1] as row (row)}
-                  <div class="flex flex-col gap-2 border-b border-border-subtle px-4.5 py-3 last:border-0 max-md:px-4">
+                  <div class="flex min-h-12 items-center justify-between gap-3 border-b border-border-subtle px-4.5 last:border-0 max-md:px-4">
                     <Skeleton class="h-5 w-32" />
                     <Skeleton class="h-5 w-20" />
                   </div>

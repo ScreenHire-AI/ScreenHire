@@ -9,7 +9,7 @@ namespace ScreenHire.E2E;
 /// <summary>
 /// The job page on design system v0.3 (docs/design/design-system.md section 21) in a real browser: the authenticity
 /// chips and the Stage filter, a sort that outlives a reload, a posting a board did not take as a notice with the
-/// Postings tab's count, and a board that fits a wide window without moving the page. Each test signs in as a new
+/// Job postings tab's count, and a board that fits a wide window without moving the page. Each test signs in as a new
 /// person with a new organization, and adds its job and applications through the API.
 /// </summary>
 public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
@@ -126,24 +126,25 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
         var notice = Page.Locator("[data-slot='notice']");
         await Expect(notice).ToContainTextAsync("Adzuna did not take this job. Adzuna needs a description of at least 100 characters.");
         var posted = (boards - 1).ToString(CultureInfo.InvariantCulture);
-        var all = boards.ToString(CultureInfo.InvariantCulture);
-        var distribution = Page.GetByRole(AriaRole.Tab, new() { Name = $"Postings posted on {posted} of {all} boards", Exact = true });
-        await Expect(distribution).ToBeVisibleAsync();
-        await Expect(distribution).ToContainTextAsync($"{posted}/{all}");
+        var postingsTab = Page.GetByRole(AriaRole.Tab, new() { Name = $"Job postings {posted}", Exact = true });
+        await Expect(postingsTab).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-job-refused-posting-light");
 
-        // The notice links to the fix: the Postings tab, where the board's row says what is wrong.
-        await notice.GetByRole(AriaRole.Link, new() { Name = "Fix on Postings" }).ClickAsync();
-        await Expect(distribution).ToHaveAttributeAsync("aria-selected", "true");
-        var adzuna = Page.GetByRole(AriaRole.Region, new() { Name = "Postings" }).Locator("[data-board='adzuna']");
+        // A plain button shows the hand as a link does (A10): the browser's default for a button is the arrow.
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "History" })).ToHaveCSSAsync("cursor", "pointer");
+
+        // The notice links to the fix: the Job postings tab, where the board's row says what is wrong.
+        await notice.GetByRole(AriaRole.Link, new() { Name = "Fix on Job postings" }).ClickAsync();
+        await Expect(postingsTab).ToHaveAttributeAsync("aria-selected", "true");
+        var adzuna = Page.GetByRole(AriaRole.Region, new() { Name = "Job postings" }).Locator("[data-board='adzuna']");
         await Expect(adzuna.Locator("[data-posting-problem]")).ToContainTextAsync("Adzuna needs a description of at least 100 characters.");
         await Expect(adzuna.GetByRole(AriaRole.Link, new() { Name = "Edit details" })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
 
         // The tab is in the address, so a reload keeps it.
         await Page.ReloadAsync();
-        await Expect(Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Postings") })).ToHaveAttributeAsync("aria-selected", "true");
+        await Expect(Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Job postings") })).ToHaveAttributeAsync("aria-selected", "true");
     }
 
     [Fact]

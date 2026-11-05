@@ -1,7 +1,7 @@
 import type { JobPostingStatus } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import { board, now, posting } from '../test-support/fixtures.js';
-import { boardAction, boardRows, describePosting, postingCounts, postingProblems } from './distribution.js';
+import { boardAction, boardRows, describePosting, postedAt, postedCount, postingProblems } from './distribution.js';
 
 const later = (ms: number) => new Date(now + ms).toISOString();
 
@@ -81,8 +81,17 @@ describe('boardRows', () => {
   });
 });
 
-describe('postingCounts', () => {
-  it('counts the boards a posting is on or on its way to, out of every board', () => {
+describe('postedAt', () => {
+  it('is when the job was sent, or when it went live on a board that needs no send', () => {
+    expect(postedAt(posting('adzuna', 'Adzuna', { submittedAt: '2026-11-02T09:00:00Z', liveAt: '2026-11-03T09:00:00Z' }))).toBe('2026-11-02T09:00:00Z');
+    expect(postedAt(posting('careers', 'Careers page', { submittedAt: null, liveAt: '2026-11-03T09:00:00Z' }))).toBe('2026-11-03T09:00:00Z');
+    expect(postedAt(posting('adzuna', 'Adzuna', { submittedAt: null, liveAt: null }))).toBeUndefined();
+    expect(postedAt(undefined)).toBeUndefined();
+  });
+});
+
+describe('postedCount', () => {
+  it('counts the boards a posting is on or on its way to', () => {
     const boards = [board('careers', 'Careers page'), board('adzuna', 'Adzuna'), board('jooble', 'Jooble'), board('sandbox', 'Sandbox board')];
     const rows = boardRows(boards, [
       posting('careers', 'Careers page', { state: 'Live' }),
@@ -90,7 +99,7 @@ describe('postingCounts', () => {
       posting('jooble', 'Jooble', { state: 'Submitted', confirmsLive: false }),
     ]);
 
-    expect(postingCounts(rows)).toEqual({ posted: 2, total: 4 });
+    expect(postedCount(rows)).toBe(2);
   });
 });
 

@@ -286,7 +286,7 @@
                       </span>
                     </div>
                   {:else}
-                    <label class="flex cursor-pointer items-start gap-3 border-b border-border-subtle px-4.5 py-3 has-focus-visible:ring-2 has-focus-visible:ring-ring has-focus-visible:ring-inset max-md:px-4 pointer-coarse:min-h-11">
+                    <label class="flex items-start gap-3 border-b border-border-subtle px-4.5 py-3 has-focus-visible:ring-2 has-focus-visible:ring-ring has-focus-visible:ring-inset max-md:px-4 pointer-coarse:min-h-11">
                       <input
                         type="checkbox"
                         name="permissions"

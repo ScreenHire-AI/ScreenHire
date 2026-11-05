@@ -134,6 +134,9 @@ Authors check their screens against this list, and the `design-review` agent rep
 - **A9** Anything that opens in place says so: a `chevron-down` at the end of the row, turning up when it is open, and
   the whole row is the control, with `aria-expanded`. A row with no chevron never expands. Expand all and Collapse all
   sit above a list of them.
+- **A10** Anything that can be pressed shows the hand cursor, and a disabled control shows not-allowed. That covers
+  buttons, tabs, switches, checkboxes, menu items and options, whichever component draws them. It is one rule in the
+  base layer of `packages/ui/src/theme.css`, so no component sets a cursor. A new kind of control joins that rule.
 
 **Words and type**
 
@@ -210,8 +213,8 @@ Authors check their screens against this list, and the `design-review` agent rep
 - **E1** Loading shows skeletons of the same shape. Empty states say why and offer the one action. Errors use
   `QueryError`.
 - **E2** A problem says what is wrong and where to fix it, in words, in a notice on the page where people will see it.
-  A tab shows its state in its count where one fits (Postings 7/8), always in the same grey count badge. A state
-  that needs a look is the record's status badge beside its title (T2), never a coloured tab, a dot or a lone icon (W7).
+  A tab's count is a plain number in the same grey count badge (Job postings 7), never a fraction, which reads as a score
+  and can claim more than the boards confirm. A state that needs a look is the record's status badge beside its title (T2), never a coloured tab, a dot or a lone icon (W7).
 - **E3** Read-only says why and what to do. Editable shows its controls.
 
 **Tables**
@@ -292,7 +295,7 @@ takes the review colour and the `clock-alert` icon because it asks a person to a
 that sits beside verification results and would read as a concern about the candidate. The label says by how much, in the
 largest whole unit: "Overdue by 2 days", "Overdue by 5 hours". The due date and time are in its tooltip (section 13). It
 is a filled badge wherever it shows (T3), because it needs attention. An application within its time limit shows
-nothing. A job board's estimate that has run out, the muted "Overdue" pill in a job's Postings panel, is a fact
+nothing. A job board's estimate that has run out, the muted "Overdue" in a job's Job postings table, is a fact
 about the board and not this status.
 
 ### 3.3 Recruiter app, dark
@@ -541,14 +544,14 @@ in a development build, shows every component in each state, and its test fails 
 | Move to stage | `MoveToStage` on shadcn `DropdownMenu` | The non-drag way to move a candidate (section 17): a button that opens the stages, the current one marked. On a candidate's page, Save candidate follows the stages, beside Rejected, for a candidate whose permission for future roles holds; it opens a sheet (`SaveCandidateSheet`) with a note and Save candidate as its primary. On a detail page a last item, With a note, opens the move in a sheet with a note. A saved candidate has no current stage: moving them brings them back to the job |
 | Confirm dialog | shadcn `Dialog` (`ConfirmDialog`, `CloseJobDialog`, `LeaveDialog`) | Section 9: the question as its title, what happens in one line, the outline way back and the action, in `destructive` when it destroys (A2). A choice that goes with the action (also revoke a removed member's keys, also save a closing job's candidates who allowed it) sits under the line as a checkbox. A failure stays in the dialog as `FailureText`. An action that cannot be undone and takes a person's data with it (`EraseCandidateDialog`) sets `confirmText`: a field "Type <name> to confirm" keeps the action off until the typed text matches, ignoring case and the spaces at the ends. A name is not a code, so W8 holds |
 | Secret dialog | shadcn `Dialog` (`SecretDialog`) | A secret the API shows once (an API key, a webhook signing secret): "Copy it now. You will not see it again.", the value in a read-only monospace field with Copy, and Done. The value lives only while the dialog is open; never in the query cache, the address or storage |
-| Code block | `CodeBlock` | Code someone pastes elsewhere: the careers widget's embed code (Settings, Careers site, and a job's Postings tab for that job), an MCP client's config (Settings, MCP server), the example request (Settings, API keys) and each DNS record's Host and Value, under a caption saying which is which (Settings, Sending domain). The code in monospace on the `secondary` fill, wrapping at spaces first rather than scrolling, then a large outline Copy that turns to Copied, with a status line for screen readers. Without a clipboard, Copy selects the code |
+| Code block | `CodeBlock` | Code someone pastes elsewhere: the careers widget's embed code (Settings, Careers site, and a job's Job postings tab for that job), an MCP client's config (Settings, MCP server), the example request (Settings, API keys) and each DNS record's Host and Value, under a caption saying which is which (Settings, Sending domain). The code in monospace on the `secondary` fill, wrapping at spaces first rather than scrolling, then a large outline Copy that turns to Copied, with a status line for screen readers. Without a clipboard, Copy selects the code |
 | Email preview | `EmailPreview` | An email as the candidate receives it: the subject, then Email or Plain text (Toggle). The HTML renders in a sandboxed frame with no scripts, in an inset, never in the page, because a tenant wrote the template. The composer's preview, a sent email opened in Messages (`SentEmail`), as it went, and a reply opened there (`ReceivedEmail`), under who it is from and above its files |
 | Email composer | `EmailComposer`; `EmailComposerSheet` on shadcn `Sheet` | Email one candidate or a selection: in a sheet from a list's selection bar and the candidate's header (section 9, in place), and inline at the top of the Messages tab, titled Email and the candidate's name. To, then Start from: Blank email, the default, or one of the organization's templates, which fills Subject and Message. The rejection and follow-up questions emails are never offered, because only their actions send them (`docs/architecture/email.md`), and a blank email never becomes a template. The Edit / Preview switch (A8, no window) and Insert variable, a menu of the variables that puts one at the caret of the field last used: a chip in the message, `{{ name }}` in the subject. Changing a template's wording changes this email only, and one muted line under the message says so and that the template stays as it is. Preview is the first candidate's email, rendered by the API with their details ("Preview for" and their name in a selection); each candidate's own copy is rendered with theirs. Send is the sheet's one primary ("Send 3 emails" for a selection); inline on Messages it is outline, because the page's primary is Move to stage (A1), and empty fields say what they need when it is pressed. Each email lands in Activity and Messages as it went. No bulk email while a verification filter or view picked the rows |
 | Add candidate sheet | `AddCandidateSheet` on shadcn `Sheet` | A recruiter adds a candidate by hand: Job (only the drafts and open jobs, and left out on a job's page, where the job is preset), First name, Last name, Email, Phone and Resume, then Cancel and Add candidate. Last name, Phone and Resume say "(optional)", the exception here (W6). No Source field: the API sets Recruiter (W6). No notice, telemetry or declarations: the Verification tab says which checks had nothing to look at (section 16). The resume goes straight to storage, as on the careers form. The page's primary on Candidates (in the action bar on a phone); outline on a job's page, where Publish is the primary, in More on a phone, and absent on a closed job; never without Add candidates (A3). A refusal (a closed job, someone who already applied, someone on a job the person does not see) is `FailureText` in the sheet; on success the page's status line names the candidate as a link to their page |
 | Live indicator | `LiveIndicator` | The live updates status as a pill in the top bar, beside Search, on every page: icon, colour and label (T1), from section 3.2 (Live, Connecting, Offline). While live, its icon has a slow, soft pulse behind it, which stops for reduced motion. On a phone only the icon shows; screen readers hear the label |
 | Failure text | `FailureText` with `ProblemIcon` | A failed action or form, in one line where it happened: the problem icon, the verify colour and the reason (T1, section 14). A section that cannot load uses `QueryError` |
 | Verification chip and panel | `VerificationChip`, `SignalEvidence`, `ReviewLog`, `LevelScale`; `VerificationPanel` is the candidate's Verification tab, with `VerificationExplainDialog` and `VerificationDismissDialog` | Section 16. `LevelScale` draws a level on its three steps. A summary card per kind of check: Network, Identity, Automation and Content always, Files and Form activity (the telemetry aggregates) only when they found something, each named for what was looked at, never for what it means about the person. Reasons expand one by one or with Expand all, and each can be marked explained, with Undo for its author. The review log is its own panel: dismissals, explained reasons, undos and review notes as Activity, and Add review note, named apart from Activity's Add note |
-| Tabs | `RecordTabs` on shadcn `Tabs` (`line`) | A record's peer views in a fixed order, each with its count in the count badge. A tab shows its state in its count where one fits (Postings 7/8, posted on 7 of 8 boards, which screen readers hear in words), always in the same grey count badge; a state that needs a look is the record's status beside its title, never a coloured tab, a dot or a lone icon (E2). The list scrolls sideways, never wraps (F5) |
+| Tabs | `RecordTabs` on shadcn `Tabs` (`line`) | A record's peer views in a fixed order, each with its count in the count badge. A count is a plain number, never a fraction (Job postings 7), always in the same grey count badge; a state that needs a look is the record's status beside its title, never a coloured tab, a dot or a lone icon (E2). The list scrolls sideways, never wraps (F5) |
 | Notice | `Notice` | A problem to fix: the verify status's soft colour, full width, the problem icon (section 14), what is wrong in words and a link to the fix (E2) |
 | Expandable row | `ExpandableRow` | A list's row that opens in place to show more, such as an email on Messages: the whole row is the button, with `aria-expanded` and `chevron-down`, which turns up when it is open; what it shows follows the row. Its words wrap rather than truncate, since a tooltip has no place inside a button. The rows share one surface and its dividers (S4) |
 | Summary card | shadcn `Card` as it is (`SummaryCard`), on a summary band (`SummaryBand`, section 6) | An icon in a neutral 32px chip and `Card.Title` (16/24 semibold); the count as a badge in `Card.Action`, saying what it counts (2 signals); `Card.Description` (14/20 muted, two lines at most, the rest in a tooltip). A link when it opens what it counts |
@@ -744,13 +747,19 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
 ## 21. Screens the v0.3 build changed
 
 - **Job:** the work area first. The authenticity bar becomes filter chips with counts, the stages a Stage filter,
-  and Postings (once Distribution: where the job is posted) its own tab, whose count says 7/8. A refused posting is a notice that names the board and links to
+  and Job postings (once Distribution: where the job is posted) its own tab, whose count says how many boards the job went to. A refused posting is a notice that names the board and links to
   the fix. Calm rows say nothing. The board's empty and closed stages shrink so every stage fits, and the board
   scrolls inside itself. Workflow opens its own page from the header. Selected rows get a bar with Move and Email;
   with an authenticity filter on, Email hides and Rejected leaves Move (ADR-0004).
   Built: the chips and the Stage filter sit on a row under the pipeline panel's header (S3), as words and counts with
   no status icon (I2), and a phone has Stage, Authenticity and Sort chips above the list items. The tab is in the
-  address (`?tab=postings`; the old `?tab=distribution` still opens it), and the count is the boards the job is on or on its way to. A posting whose checks
+  address (`?tab=postings`; the old `?tab=distribution` still opens it), and the count is the boards the job is on or on its way to. Job postings is a small table, one row per
+  board: Status, Board, Posted, Last updated and a row menu. The menu has View posting and Copy link where we know the
+  live address, which today is only the careers page: a board that reads our feed never says where its listing landed.
+  Then comes what a person can do there: Edit details and Retry on a posting that needs fixes, Post or Post again, and
+  Take down last. A board that only closes with the job says why it has no Take down. The board's estimate is plain
+  text after the status. A posting that needs fixes says what is wrong under its row. A draft or closed job has no
+  menus: its header publishes or closes it. A posting whose checks
   found issues is "did not take this job", never "refused": only a board's own answer is a refusal. On the board, the
   closed stages share one Closed column (section 5), whose rows take a dropped card, and a calm card shows no level.
   In the table a calm AI assistance cell is empty, with its words for screen readers, and authenticity keeps its quiet
