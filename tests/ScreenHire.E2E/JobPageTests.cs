@@ -126,7 +126,8 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
         var notice = Page.Locator("[data-slot='notice']");
         await Expect(notice).ToContainTextAsync("Adzuna did not take this job. Adzuna needs a description of at least 100 characters.");
         var posted = (boards - 1).ToString(CultureInfo.InvariantCulture);
-        await Expect(Page.GetByRole(AriaRole.Tab, new() { Name = $"Job postings {posted}", Exact = true })).ToBeVisibleAsync();
+        var postingsTab = Page.GetByRole(AriaRole.Tab, new() { Name = $"Job postings {posted}", Exact = true });
+        await Expect(postingsTab).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-job-refused-posting-light");
 
@@ -135,7 +136,7 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
 
         // The notice links to the fix: the Job postings tab, where the board's row says what is wrong.
         await notice.GetByRole(AriaRole.Link, new() { Name = "Fix on Job postings" }).ClickAsync();
-        await Expect(distribution).ToHaveAttributeAsync("aria-selected", "true");
+        await Expect(postingsTab).ToHaveAttributeAsync("aria-selected", "true");
         var adzuna = Page.GetByRole(AriaRole.Region, new() { Name = "Job postings" }).Locator("[data-board='adzuna']");
         await Expect(adzuna.Locator("[data-posting-problem]")).ToContainTextAsync("Adzuna needs a description of at least 100 characters.");
         await Expect(adzuna.GetByRole(AriaRole.Link, new() { Name = "Edit details" })).ToBeVisibleAsync();
