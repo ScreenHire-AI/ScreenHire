@@ -115,6 +115,15 @@ export function isPosted(posting: JobPostingStatus | undefined): boolean {
 }
 
 /**
+ * How many boards a new version of the job would reach: the ones it has a posting on, refused ones included, since
+ * publishing checks them again. The careers page is not one: it shows an edit at once. Boards it was taken down from stay
+ * down until someone posts to them.
+ */
+export function updatableBoards(rows: readonly BoardRow[]): number {
+  return rows.filter(({ posting }) => posting && posting.mode !== 'Hosted' && posting.state !== 'Closed' && posting.state !== 'Closing').length;
+}
+
+/**
  * The one action a board offers. Only an open job is posted per board (a draft is published from the header, to every
  * board at once); a board that cannot drop one job alone (the careers page, Google) offers no take-down, because only
  * closing the job removes it there.

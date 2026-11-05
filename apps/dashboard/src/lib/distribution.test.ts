@@ -1,7 +1,7 @@
 import type { JobPostingStatus } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import { board, now, posting } from '../test-support/fixtures.js';
-import { boardAction, boardRows, canCustomize, describePosting, isCustomized, needsDetailFixes, postedAt, postedCount, postingProblems } from './distribution.js';
+import { boardAction, boardRows, canCustomize, describePosting, isCustomized, needsDetailFixes, postedAt, postedCount, postingProblems, updatableBoards } from './distribution.js';
 
 const later = (ms: number) => new Date(now + ms).toISOString();
 
@@ -132,6 +132,20 @@ describe('postedAt', () => {
     expect(postedAt(posting('careers', 'Careers page', { submittedAt: null, liveAt: '2026-11-03T09:00:00Z' }))).toBe('2026-11-03T09:00:00Z');
     expect(postedAt(posting('adzuna', 'Adzuna', { submittedAt: null, liveAt: null }))).toBeUndefined();
     expect(postedAt(undefined)).toBeUndefined();
+  });
+});
+
+describe('updatableBoards', () => {
+  it('counts the boards a new version would reach, refused ones too, and not the careers page or a board taken down', () => {
+    const boards = ['careers', 'adzuna', 'jooble', 'talent', 'sandbox'].map((id) => board(id, id));
+    const rows = boardRows(boards, [
+      posting('careers', 'careers', { mode: 'Hosted' }),
+      posting('adzuna', 'adzuna', { state: 'Draft', issues: ['Too short.'] }),
+      posting('jooble', 'jooble', { state: 'Submitted', confirmsLive: false }),
+      posting('talent', 'talent', { state: 'Closed' }),
+    ]);
+
+    expect(updatableBoards(rows)).toBe(2);
   });
 });
 

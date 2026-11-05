@@ -148,6 +148,32 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
     }
 
     [Fact]
+    public async Task An_edit_to_an_open_job_reaches_the_boards_with_Update_boards()
+    {
+        // Long enough for every board's checks, so the only notice is the one this test is about.
+        var scene = await SceneAsync("<p>Run the recruiter dashboard's release train with the platform team, from the first branch to the shipped build, every single week.</p>");
+        await Page.SetViewportSizeAsync(1440, 1040);
+        await SignInAsync(Page, scene.Email);
+        await GoToJobAsync(scene.JobId);
+        var notice = Page.Locator("[data-slot='notice']");
+        await Expect(notice).ToHaveCountAsync(0);
+
+        await Page.GetByRole(AriaRole.Link, new() { Name = "Edit details" }).ClickAsync();
+        var details = Page.GetByRole(AriaRole.Form, new() { Name = "Edit job details" });
+        await Expect(details).ToContainTextAsync("Other boards keep what they were sent until you update them.");
+        await details.GetByLabel("Title", new() { Exact = true }).FillAsync("Platform Engineer, Release Train");
+        await details.GetByRole(AriaRole.Button, new() { Name = "Save details" }).ClickAsync();
+        await Expect(details).ToBeHiddenAsync();
+
+        await Expect(notice).ToContainTextAsync("Your changes are live on the careers page, not yet on the job boards.");
+        await ExpectNoAccessibilityViolationsAsync();
+        await notice.GetByRole(AriaRole.Button, new() { Name = "Update boards" }).ClickAsync();
+
+        await Expect(notice).ToHaveCountAsync(0);
+        await Expect(Page.Locator("[data-slot='header-band']")).ToContainTextAsync("Sent your changes to the job boards.");
+    }
+
+    [Fact]
     public async Task A_board_that_did_not_take_the_job_can_be_given_text_of_its_own_and_only_that_board_posts_again()
     {
         // Too short for Adzuna (100 characters), long enough for Talent.com (50): the one board to fix.

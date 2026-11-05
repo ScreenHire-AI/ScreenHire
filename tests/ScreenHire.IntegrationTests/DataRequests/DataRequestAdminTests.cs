@@ -158,6 +158,9 @@ public sealed partial class DataRequestAdminTests(AppHostFixture fixture)
         var download = DownloadLink().Match(mail.Text);
         download.Success.Should().BeTrue($"the email carries the download link: {mail.Text}");
         mail.Text.Should().Contain("The link works for 7 days");
+        // The email goes just before the handler's transaction commits, and the link works from the commit.
+        await WolverineStore.WaitUntilAsync(
+            async () => (await owner.ListedAsync(requestId))?.GetProperty("status").GetString() == "Completed", "the sent copy to commit", Ct);
         using var client = fixture.CreateHttpClient("api");
         client.DefaultRequestHeaders.Add("X-Forwarded-For", $"10.{Random.Shared.Next(0, 256)}.{Random.Shared.Next(0, 256)}.{Random.Shared.Next(1, 255)}");
         var ready = await client.GetFromJsonAsync<JsonElement>(

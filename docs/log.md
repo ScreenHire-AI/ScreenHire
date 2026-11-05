@@ -2,6 +2,10 @@
 
 ## 2026-11-05
 
+**An edit to an open job can now reach the boards.** Saving changed the careers page and left every board on the version
+it had, with no way to send the new one from the dashboard: the only publish button was on drafts. The job page now says
+so in a notice with Update boards, which publishes with no boards named. Customize still changes one board.
+
 **The Azure definition and a deploy runbook exist, and nothing is deployed.** `apps/apphost/AzurePublish.cs` is the publish model;
 `dotnet aspire publish` writes it to `infra/`, and a CI job fails when the two differ. [Deploy ScreenHire to Azure](operations/deploy.md)
 has the order, the commands and the settings. A new `apps/migrator` creates the schema as the database owner, so the API and worker

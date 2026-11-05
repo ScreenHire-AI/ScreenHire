@@ -45,7 +45,7 @@
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
-  import { boardRows, postedCount, postingProblems } from '#lib/distribution.js';
+  import { boardRows, postedCount, postingProblems, updatableBoards } from '#lib/distribution.js';
   import { employmentLabel, formatSalary } from '#lib/format.js';
   import { createHistoryPages } from '#lib/history-pages.svelte.js';
   import { jobStatus } from '#lib/job-status.js';
@@ -101,6 +101,8 @@
   // A posting that needs fixes is a notice where people will see it, naming the board, with a link to the fix (E2). Only
   // an open job is on the boards.
   const problems = $derived(detail?.status === 'Open' && boards.data ? postingProblems(rows) : []);
+  // An edit shows on the careers page at once; the boards keep the version they were sent until someone sends a new one.
+  const updatable = $derived(mayEdit && detail?.status === 'Open' && detail.hasUnpublishedChanges && updatableBoards(rows) > 0);
 
   // The job's peer views (section 21): the work area first, then Job postings, whose count says how many boards the job went
   // to (E2). The tab is in the address, so a link reaches it and a reload keeps it.
@@ -127,6 +129,7 @@
   // "Close & remove everywhere" was chosen; its confirmation opens once the menu has closed.
   let closeChosen = false;
   let publishFailure = $state('');
+  let boardsUpdated = $state('');
 
   // A draft's primary action: publish to every board at once.
   async function publishEverywhere() {
@@ -135,6 +138,18 @@
       await publish.mutateAsync({ jobId: params.jobId });
     } catch (error) {
       publishFailure = describeError(error, 'Could not publish the job');
+    }
+  }
+
+  // With no boards named, a later publish sends the new version to every board the job is on, and checks refused ones again.
+  async function updateBoards() {
+    publishFailure = '';
+    boardsUpdated = '';
+    try {
+      await publish.mutateAsync({ jobId: params.jobId });
+      boardsUpdated = 'Sent your changes to the job boards.';
+    } catch (error) {
+      publishFailure = describeError(error, 'Could not update the job boards');
     }
   }
 
@@ -187,7 +202,7 @@
     <Tabs.Root value={tab} onValueChange={showTab} class={['gap-0', boardFills && 'min-h-0 flex-1']}>
       <!-- What saving the details or publishing did, in the band's line under the title, so a long message never pushes
            the actions onto a second row. -->
-      <HeaderBand title={detail.title} details={page.state.saved || publishFailure || added ? outcome : undefined}>
+      <HeaderBand title={detail.title} details={page.state.saved || publishFailure || boardsUpdated || added ? outcome : undefined}>
         {#snippet status()}<StatusBadge {...jobStatus[detail.status]} />{/snippet}
         {#snippet actions()}
           <!-- The one primary action; on a phone it sits in the action bar at the bottom of the screen (section 8). -->
@@ -291,6 +306,15 @@
 
       <!-- The work area first, filling the window (S6), with no side column beside the table or the board (S7). -->
       <div class={['flex w-full flex-col gap-4 px-4 py-6 md:px-6', boardFills && 'min-h-0 flex-1']}>
+        <!-- Above the tabs, because it is about the job, not one view of it. -->
+        {#if updatable}
+          <Notice>
+            Your changes are live on the careers page, not yet on the job boards.
+            {#snippet action()}
+              <Button variant="outline" disabled={publish.isPending} onclick={updateBoards}><SendIcon aria-hidden="true" />Update boards</Button>
+            {/snippet}
+          </Notice>
+        {/if}
         <Tabs.Content value="candidates" class={['flex flex-col gap-4', boardFills && 'min-h-0']}>
           {#each problems as problem (problem.kind)}
             <Notice href="?tab=postings" link="Fix on Job postings">{problem.text}</Notice>
@@ -350,6 +374,7 @@
 
 {#snippet outcome()}
   <p role="status" class="empty:hidden">{page.state.saved ?? ''}</p>
+  <p role="status" class="empty:hidden">{boardsUpdated}</p>
   <p role="status" class="empty:hidden" data-added>
     {#if added}Added <a href={`/applications/${added.applicationId}`} class="underline underline-offset-2">{added.name}</a> to this job.{/if}
   </p>
