@@ -382,10 +382,9 @@ That is the last resort. It loses everything written since that time.
   and `TorExitListFile` need a file mounted into the worker, generic `ScreenHire:Auth:Oidc:*` providers are not parameters (add
   them as environment variables of the API in `AzurePublish.cs` when a customer needs one), and
   `ScreenHire:ApiKeys:PermitsPerMinute` keeps its default, which is right for one API replica.
-- Do not add a one-day lifecycle rule to the uploads container. The owner action in [apply flow](../architecture/apply-flow.md)
-  asks for one for unclaimed uploads, but nothing marks a claimed blob, so an age rule would also delete every submitted resume.
-  Unclaimed uploads are not cleaned up today. That needs a scheduled job like the one for brand images, and the privacy
-  page's "deleted after a day" is not true until it exists.
+- Do not add a one-day lifecycle rule to the uploads container. An age rule cannot tell a claimed file from an unclaimed one and
+  would delete every submitted resume. The worker's daily sweep (`PurgeExpiredApplicantUploads`, 03:47 UTC) removes uploads no
+  application claimed, a day after they were made; its storage role is the one the worker already has.
 - No malware scanner runs (`NoMalwareScanner`). Wire one behind `IMalwareScanner` before real candidates apply.
 - Keep access logs for 30 days or less. Log Analytics retention is a setting on the workspace.
 - Cloudflare Pages and the dashboard function, the wildcard host binding, and the proxy settings could not be tested here.

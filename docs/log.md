@@ -6,8 +6,9 @@
 `dotnet aspire publish` writes it to `infra/`, and a CI job fails when the two differ. [Deploy ScreenHire to Azure](operations/deploy.md)
 has the order, the commands and the settings. A new `apps/migrator` creates the schema as the database owner, so the API and worker
 hold only `screenhire_app`. A host outside Development now stops at start naming each required setting it lacks, and the health
-endpoints answer in every environment. The runbook also says not to add the one-day lifecycle rule that `apply-flow.md` asked for:
-nothing marks a claimed upload, so it would delete submitted resumes.
+endpoints answer in every environment. The one-day storage lifecycle rule that `apply-flow.md` asked for would have deleted
+submitted resumes, so a daily worker sweep, `PurgeExpiredApplicantUploads`, removes the files of applications that were never
+sent instead, which makes the privacy page's "deleted after a day" true.
 
 **A job's Postings tab is now Job postings, a small table.** One row per board: Status, Board, Posted, Last updated and a
 row menu. The menu has View posting and Copy link where we know the live address, which today is only the careers page,

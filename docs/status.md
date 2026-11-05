@@ -117,8 +117,9 @@ brackets.
   `IIpIntelligence` (#13). Set `ScreenHire:Verification:DeviceHashKey` (32+ characters) in production (#13). Refresh the
   embedded disposable-domain list from time to time (#13).
 - **Storage and scanning.** The Azure definition creates the three private containers (`applicant-uploads`, `brand-images`,
-  `email-attachments`) and the CORS rule. Do not add the one-day lifecycle rule for unclaimed uploads that was listed here: nothing
-  marks a claimed blob, so an age rule would delete submitted resumes too (see Known gaps). Wire a real malware scanner behind
+  `email-attachments`) and the CORS rule. Do not add a one-day storage lifecycle rule for unclaimed uploads: it would delete submitted
+  resumes, because only the database knows which files are claimed. The worker's daily sweep does it instead
+  ([apply flow](architecture/apply-flow.md), section 3). Wire a real malware scanner behind
   `IMalwareScanner` (#11, #15). Optionally, Turnstile keys in `ScreenHire:Turnstile` (#11); with them, saving a draft application
   also needs the check to pass. The worker's identity lists and deletes in `brand-images` through its storage role (branding.md §4).
 - **Database.** The Azure definition puts `pg_trgm` on the server's `azure.extensions` list, which the migrations need. The trigram indexes on candidate names and emails and job titles do not
@@ -147,7 +148,6 @@ brackets.
 
 ## Known gaps
 
-- Uploads that no application claims are never deleted, though the privacy page says they are after a day. A storage age rule would also delete claimed resumes, so the fix is a scheduled job like the brand-image clean-up, or a blob tag that marks a claimed upload.
 - The API and worker run as one replica each (the SignalR hub and the real-time queue consumer are in the API process); the Azure definition fixes them there ([realtime](architecture/realtime.md)).
 - Interview scheduling sends no reminders, and a recruiter cannot move a booked interview for the candidate: they cancel it and offer a new one. Events made for interviewers on different providers are separate copies, not one shared event ([interview scheduling](architecture/interview-scheduling.md)).
 - Reports count applicants from Google for Jobs and the public job-board API as the careers page, because those two keep

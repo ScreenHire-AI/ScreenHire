@@ -3,12 +3,15 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using ScreenHire.Application.Applications;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Tenancy;
 using ScreenHire.IntegrationTests.Messaging;
+using Wolverine;
 
 namespace ScreenHire.IntegrationTests;
 
@@ -245,6 +248,30 @@ public sealed class PublicApplicationTests(AppHostFixture fixture)
         (await client.PostAsync(
             $"/v1/public/organizations/{organization.Slug}/jobs/{job.Id}/questions/resume/uploads/{uploadId}/verify", null, Ct))
             .StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task The_sweep_removes_an_upload_no_application_claimed_and_keeps_the_resume_of_a_sent_one()
+    {
+        var (organization, job) = await OrganizationWithEngineeringJobAsync();
+        using var client = fixture.CreateHttpClient("api");
+        var verify = (Guid id) => client.PostAsync(
+            $"/v1/public/organizations/{organization.Slug}/jobs/{job.Id}/questions/resume/uploads/{id}/verify", null, Ct);
+
+        var abandoned = await UploadAsync(client, organization, job, "resume", "Abandoned CV.pdf", Pdf);
+        var claimed = await UploadAsync(client, organization, job, "resume", "Casey Morgan CV.pdf", Pdf);
+        (await SubmitAsync(client, organization, job.Id, Application("casey.sweep@example.com", claimed))).StatusCode.Should().Be(HttpStatusCode.Created);
+        (await verify(abandoned)).StatusCode.Should().Be(HttpStatusCode.OK, "both blobs are in storage before the sweep");
+
+        // What the daily sweep sends for this organization, for uploads made by an hour from now: both are older than that.
+        await using var sender = await MessagingHost.StartPublisherToAppHostQueuesAsync(fixture, Ct);
+        await sender.Services.GetRequiredService<IMessageBus>()
+            .PublishAsync(new PurgeOrganizationApplicantUploads(organization.Id, DateTimeOffset.UtcNow.AddHours(1)));
+
+        // Verifying an upload whose blob is still there succeeds, so a refusal means the sweep deleted the blob.
+        await WolverineStore.WaitUntilAsync(
+            async () => (await verify(abandoned)).StatusCode == HttpStatusCode.NotFound, "the sweep to remove the unclaimed upload", Ct);
+        (await verify(claimed)).StatusCode.Should().Be(HttpStatusCode.OK, "a sent application's resume is kept, however old");
     }
 
     [Fact]
