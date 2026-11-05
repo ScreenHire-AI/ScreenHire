@@ -262,6 +262,8 @@ public sealed class PublicApplicationTests(AppHostFixture fixture)
         var claimed = await UploadAsync(client, organization, job, "resume", "Casey Morgan CV.pdf", Pdf);
         (await SubmitAsync(client, organization, job.Id, Application("casey.sweep@example.com", claimed))).StatusCode.Should().Be(HttpStatusCode.Created);
         (await verify(abandoned)).StatusCode.Should().Be(HttpStatusCode.OK, "both blobs are in storage before the sweep");
+        var (otherOrganization, otherJob) = await OrganizationWithEngineeringJobAsync();
+        var othersUpload = await UploadAsync(client, otherOrganization, otherJob, "resume", "Another CV.pdf", Pdf);
 
         // What the daily sweep sends for this organization, for uploads made by an hour from now: both are older than that.
         await using var sender = await MessagingHost.StartPublisherToAppHostQueuesAsync(fixture, Ct);
@@ -272,6 +274,9 @@ public sealed class PublicApplicationTests(AppHostFixture fixture)
         await WolverineStore.WaitUntilAsync(
             async () => (await verify(abandoned)).StatusCode == HttpStatusCode.NotFound, "the sweep to remove the unclaimed upload", Ct);
         (await verify(claimed)).StatusCode.Should().Be(HttpStatusCode.OK, "a sent application's resume is kept, however old");
+        (await client.PostAsync(
+            $"/v1/public/organizations/{otherOrganization.Slug}/jobs/{otherJob.Id}/questions/resume/uploads/{othersUpload}/verify", null, Ct))
+            .StatusCode.Should().Be(HttpStatusCode.OK, "one organization's sweep leaves another organization's blobs alone");
     }
 
     [Fact]
