@@ -104,6 +104,23 @@ describe('command palette', () => {
     await waitFor(() => expect(goto).toHaveBeenCalledWith('/jobs/job-2'));
   });
 
+  it('lists what the server found first, and only pages and actions that contain what was typed', async () => {
+    const found: SearchResults = { candidates: [], jobs: [{ id: 'job-3', title: 'Senior Product Designer', status: 'Open' }] };
+    const { palette, input } = renderPalette(() => Response.json(found));
+
+    await fireEvent.input(input, { target: { value: 'sen' } });
+    await within(palette).findByRole('option', { name: /Senior Product Designer/ });
+
+    const names = within(palette)
+      .getAllByRole('option')
+      .map((option) => option.textContent ?? '');
+    expect(names[0]).toContain('Senior Product Designer');
+    // "sen" is not in "General settings" or "Saved candidates"; the old fuzzy match listed them all above the job.
+    expect(names.some((name) => name.startsWith('General'))).toBe(false);
+    expect(names.some((name) => name.startsWith('Saved candidates'))).toBe(false);
+    expect(names.some((name) => name.startsWith('Sending domain'))).toBe(true);
+  });
+
   it('says so when the search fails, and still offers the actions', async () => {
     const { palette, input } = renderPalette(() => Response.json({ title: 'Error' }, { status: 500 }));
 

@@ -61,7 +61,9 @@ describe('Calendar account sheet', () => {
     );
 
     const account = await screen.findByText('avery@example.com');
-    expect(account.parentElement).toHaveTextContent('Connected to Sandbox calendar as avery@example.com.');
+    expect(account.parentElement).toHaveTextContent('Sandbox calendar');
+    expect(screen.getByText('Connected')).toBeInTheDocument();
+    expect(screen.getByText(/Interviews already booked stay on your calendar/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Connect/ })).not.toBeInTheDocument();
     await fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }));
 

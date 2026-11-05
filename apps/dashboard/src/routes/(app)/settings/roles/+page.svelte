@@ -121,12 +121,7 @@
         <QueryError message={describeError(catalogue.error, 'Could not load the roles')} onretry={() => catalogue.refetch()} inset />
       </Panel>
     {:else}
-      <!-- What roles are, in the panel's header as a Templates tab says it, so the page header stays one row like every
-           settings page's (S8). -->
       <Panel title="Roles" flush>
-        {#snippet tools()}
-          <p class="min-w-0 flex-1 text-muted-foreground">Four ready-made roles work with no setup; make your own by copying one.</p>
-        {/snippet}
         {#if catalogue.isPending}
           <div aria-hidden="true" class="flex flex-col">
             {#each [0, 1, 2, 3] as row (row)}

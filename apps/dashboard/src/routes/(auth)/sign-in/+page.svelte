@@ -22,7 +22,7 @@
   // The submit button disappears with the form, so focus moves to the page's new title (WCAG 2.4.3).
   let heading = $state<HTMLHeadingElement>();
 
-  const { form, errors, enhance, submitting, reset } = superForm(defaults(zod4(RequestMagicLinkBody)), {
+  const { form, errors, enhance, submitting } = superForm(defaults(zod4(RequestMagicLinkBody)), {
     SPA: true,
     validators: zod4(RequestMagicLinkBody),
     resetForm: false,
@@ -47,9 +47,10 @@
     },
   });
 
-  async function useAnotherAddress() {
+  // Back to the form with the address still in it: the person fixes a typo or sends the same address another link
+  // without typing it again.
+  async function sendAnother() {
     sentTo = undefined;
-    reset();
     await tick();
     document.getElementById('email')?.focus();
   }
@@ -71,7 +72,7 @@
       <Panel title="Email link" footer={anotherAddress}>
         <div class="flex flex-col gap-2" role="status">
           <p class="break-words">We sent a sign-in link to <strong class="font-semibold">{sentTo}</strong>. It works once, for the next 15 minutes.</p>
-          <p class="text-muted-foreground">Nothing there? Check spam, or ask for a new link.</p>
+          <p class="text-muted-foreground">Nothing there? Check spam, or send another link.</p>
         </div>
       </Panel>
     {:else}
@@ -153,6 +154,6 @@
 
 {#snippet anotherAddress()}
   <div class="flex flex-wrap items-center justify-end gap-2">
-    <Button variant="outline" size="lg" onclick={useAnotherAddress}>Use a different email</Button>
+    <Button variant="outline" size="lg" onclick={sendAnother}>Send another link</Button>
   </div>
 {/snippet}

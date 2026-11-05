@@ -91,7 +91,7 @@ describe('Slack page', () => {
 
     expect(await screen.findByText('#hiring')).toBeInTheDocument();
     // The workspace and when it was added are labelled facts in the header band (W3).
-    expect(screen.getByText('Workspace', { selector: 'dt' }).nextElementSibling).toHaveTextContent('ScreenHire sandbox');
+    expect(screen.getByText('Name', { selector: 'dt' }).nextElementSibling).toHaveTextContent('ScreenHire sandbox');
     expect(screen.getByText('Added', { selector: 'dt' }).nextElementSibling).toHaveTextContent('by Avery Quinn');
     expect(screen.getByText('Connected')).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: 'New application' })).toBeChecked();

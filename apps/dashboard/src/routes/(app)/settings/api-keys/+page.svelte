@@ -88,13 +88,11 @@
   const apiOrigin = $derived(meta.data?.data.apiOrigin);
   const list = $derived(keys.data?.data ?? []);
   const access = (scopes: readonly ApiKeyScope[]) => (scopes.includes('Write') ? 'Read and write' : 'Read only');
-  // What the Verification read scope opens, in the create dialog and on each live key that has it (ADR-0021).
+  // What the Verification read scope opens, in the create dialog (ADR-0021).
   const verificationOpens = 'Opens verification levels, reasons and evidence.';
-  // A revoked key opens nothing now, and the list still says it could, for anyone auditing what the keys could read.
-  const verificationLine = (key: ApiKeySummary) => {
-    if (!key.scopes.includes('VerificationRead')) return null;
-    return key.revokedAt ? 'Had Verification read.' : `Verification read. ${verificationOpens}`;
-  };
+  // The Access column holds everything a key can do, so a row's name is the only line of text in it (L1). A revoked key
+  // keeps the words it had, for anyone auditing what it could read; its Revoked status says it no longer can.
+  const accessText = (key: ApiKeySummary) => (key.scopes.includes('VerificationRead') ? `${access(key.scopes)} and Verification read` : access(key.scopes));
 
   // The table sorts (L2), keys by name first.
   const features = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: { basic: sortFn_basic, alphanumeric: sortFn_alphanumeric } });
@@ -103,7 +101,7 @@
     { id: 'status', header: 'Status', accessorFn: (key) => (key.revokedAt ? 'Revoked' : 'Active'), sortFn: 'alphanumeric' },
     { id: 'name', header: 'Name', accessorFn: (key) => key.name, sortFn: 'alphanumeric' },
     { id: 'key', header: 'Key', accessorFn: (key) => key.prefix, sortFn: 'alphanumeric' },
-    { id: 'access', header: 'Access', accessorFn: (key) => access(key.scopes), sortFn: 'alphanumeric' },
+    { id: 'access', header: 'Access', accessorFn: (key) => accessText(key), sortFn: 'alphanumeric' },
     { id: 'lastUsed', header: 'Last used', accessorFn: (key) => key.lastUsedAt ?? '', sortFn: 'basic', sortDescFirst: true },
     { id: 'created', header: 'Created', accessorFn: (key) => key.createdAt, sortFn: 'basic', sortDescFirst: true },
   ];
@@ -227,9 +225,8 @@
                   </span>
                   <span class="flex flex-wrap gap-1.5">
                     <Badge variant="muted" class="font-mono">{key.prefix}…</Badge>
-                    <Badge variant="muted">{access(key.scopes)}</Badge>
+                    <Badge variant="muted">{accessText(key)}</Badge>
                   </span>
-                  {#if verificationLine(key)}<p class="text-caption text-muted-foreground">{verificationLine(key)}</p>{/if}
                 </div>
                 {#if !key.revokedAt}{@render keyMenu(key)}{/if}
               </li>
@@ -253,10 +250,9 @@
                     <Table.Cell class="px-4.5">{@render status(key)}</Table.Cell>
                     <Table.Cell class="w-full max-w-0">
                       <TruncatedText text={key.name} class="font-semibold" />
-                      {#if verificationLine(key)}<TruncatedText text={verificationLine(key) ?? ''} class="text-caption text-muted-foreground" />{/if}
                     </Table.Cell>
                     <Table.Cell class="text-muted-foreground">{key.prefix}…</Table.Cell>
-                    <Table.Cell>{access(key.scopes)}</Table.Cell>
+                    <Table.Cell><TruncatedText text={accessText(key)} /></Table.Cell>
                     <Table.Cell class="text-muted-foreground">{#if key.lastUsedAt}<DateText at={key.lastUsedAt} />{:else}Never{/if}</Table.Cell>
                     <Table.Cell class="text-muted-foreground"><DateText at={key.createdAt} /></Table.Cell>
                     <Table.Cell class="pr-4.5 text-right">{#if !key.revokedAt}{@render keyMenu(key)}{/if}</Table.Cell>
@@ -271,16 +267,14 @@
 
     <Panel title="Use the ScreenHire API">
       <div class="flex flex-col gap-4">
-        <p class="max-w-measure">A key lets another system read and change your jobs, candidates, applications and templates.</p>
         <SummaryList>
           <SummaryItem label="Base URL">
             {#if apiOrigin}<span class="font-mono text-code break-all">{apiOrigin}/v1</span>{:else}<Skeleton class="h-4 w-48" />{/if}
           </SummaryItem>
-          <SummaryItem label="Sign in with"><span class="font-mono text-code break-all">Authorization: Bearer shk_…</span></SummaryItem>
-          <SummaryItem label="Access">Read only, or read and write. Write also changes hiring data, as a Recruiter can.</SummaryItem>
+          <SummaryItem label="Header"><span class="font-mono text-code break-all">Authorization: Bearer shk_…</span></SummaryItem>
+          <SummaryItem label="Access">Read only, or read and write, which can do what a Recruiter can</SummaryItem>
           <SummaryItem label="Verification read">
-            Without it a key sees no verification results. With it a key reads levels, reasons and evidence and lists candidates by level. Only an owner can give it.
-            Every read is recorded in the application's review log, and a level is never a reason to reject on its own.
+            Levels, reasons and evidence, and candidates by level. Only an Owner can give it, and every read goes in the application's review log.
           </SummaryItem>
           <SummaryItem label="Reference">
             {#if apiOrigin}

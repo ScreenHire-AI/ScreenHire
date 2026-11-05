@@ -20,6 +20,9 @@
 /* `.light` lets a box show the light theme inside a dark page, as the style guide does (section 3.3). */
 :root,
 .light {
+  /* The browser draws scrollbars, date pickers, native selects and checkboxes in this scheme: without it a dark page
+     shows white scrollbars (design system section 3.3). */
+  color-scheme: light;
   /* Recruiter app — light */
   --background: #f7f5f0;
   --foreground: #1c1b19;
@@ -103,6 +106,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: #141311;
   --foreground: #edeae4;
   --card: #1c1b18;

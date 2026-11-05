@@ -65,9 +65,9 @@ const nothing: HiringReport = {
 };
 
 /** Answers the report with `body` and the jobs list, and records each report request's address. */
-function renderPage(body: HiringReport = report) {
+function renderPage(body: HiringReport = report, jobList: readonly unknown[] = jobs) {
   const asked: URL[] = [];
-  const others = apiStub({ 'GET /v1/jobs': () => Response.json(jobs) });
+  const others = apiStub({ 'GET /v1/jobs': () => Response.json(jobList) });
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -324,13 +324,27 @@ describe('reports page', () => {
   it('says once that there is nothing in the dates, and offers a longer range', async () => {
     renderPage(nothing);
 
-    const empty = await screen.findByRole('region', { name: 'Reports' });
-    expect(empty).toHaveTextContent('Nothing in these dates');
+    const title = await screen.findByText('Nothing in these dates');
+    expect(title).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Hiring funnel' })).toBeNull();
+    // The empty state is one card, not a panel with an empty header strip over it (S3).
+    expect(screen.queryByRole('region', { name: 'Reports' })).toBeNull();
     expect(screen.getAllByRole('button', { name: 'Show the last 365 days' })).toHaveLength(1);
+    // Nothing to export from an empty report, so the button is not offered (A3).
+    expect(screen.queryByRole('button', { name: 'Export CSV' })).toBeNull();
 
-    await fireEvent.click(within(empty).getByRole('button', { name: 'Show the last 365 days' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Show the last 365 days' }));
     expect(goto).toHaveBeenCalledWith(new URL('http://dashboard.test/reports?range=365'), { replace: true, reset: false });
+    await expectNoAxeViolations();
+  });
+
+  it('says what fills Reports, and links to Jobs, for an organization with no jobs yet', async () => {
+    renderPage(nothing, []);
+
+    expect(await screen.findByText('No jobs yet')).toBeInTheDocument();
+    expect(screen.getByText('Reports fill in once a job has applications.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Go to jobs' })).toHaveAttribute('href', '/jobs');
+    expect(screen.queryByRole('button', { name: 'Show the last 365 days' })).toBeNull();
     await expectNoAxeViolations();
   });
 });

@@ -15,7 +15,7 @@ describe('MCP server page', () => {
     render(WithQueryClient, { props: { component: Page, props: {} } });
 
     const tools = await screen.findByRole('list', { name: 'Tools' });
-    const verification = screen.getByRole('list', { name: 'With Verification read' });
+    const verification = screen.getByRole('list', { name: 'Also with Verification read' });
 
     expect(within(tools).getAllByRole('listitem')).toHaveLength(10);
     expect(within(tools).getByText('Read the hiring report')).toBeInTheDocument();

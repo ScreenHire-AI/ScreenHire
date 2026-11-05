@@ -23,6 +23,7 @@
   import { page } from '$app/state';
   import BuiltInBadge from '#lib/components/built-in-badge.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
+  import DateText from '#lib/components/date-text.svelte';
   import Fact from '#lib/components/fact.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
@@ -270,8 +271,7 @@
               <Field.Error id="role-name-error" errors={$errors.name?.map((message) => ({ message }))} />
             </Field.Field>
           </Panel>
-          <Panel title="What this role can do" flush>
-            {#snippet actions()}<span class="text-caption text-muted-foreground tabular-nums">{chosen} of {assignable.length}</span>{/snippet}
+          <Panel title="What this role can do" count={chosen} flush>
             {#each groups as [group, inGroup] (group)}
               <fieldset class="min-w-0">
                 <legend class="w-full border-b border-border-subtle bg-muted px-4.5 py-2.5 text-caption font-semibold max-md:px-4">{group}</legend>
@@ -319,9 +319,8 @@
         </form>
       {:else}
         {@const held = detail?.permissions ?? summary?.permissions ?? []}
-        <Panel title="What this role can do">
-          <!-- The same "N of M" as the form: out of all permissions for a built-in role, out of those a custom one may hold. -->
-          {#snippet actions()}<span class="text-caption text-muted-foreground tabular-nums">{held.length} of {isBuiltIn ? permissions.length : assignable.length}</span>{/snippet}
+        <!-- A plain count, as the form's: a fraction reads as a score (E2). -->
+        <Panel title="What this role can do" count={held.length}>
           <!-- Read only says why and what to do (E3). -->
           <p class="mb-3 text-muted-foreground">
             {#if isBuiltIn}
@@ -359,16 +358,20 @@
         {:else}
           <ul>
             {#each people as member (member.id)}
+              {@const editable = member.userId !== page.data.user?.id && mayAssign(actor, summary?.permissions ?? [])}
               <li class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-border-subtle px-4.5 py-3 last:border-0 max-md:px-4">
                 <span class="flex min-w-0 flex-[1_1_14rem] flex-wrap items-baseline gap-x-3 gap-y-0.5">
-                  <span class="min-w-0 font-semibold break-words">{member.displayName}</span>
+                  <!-- Whoever the person may change opens their access sheet on Team from their name, so no link repeats down the list (A5, L1). -->
+                  {#if editable}
+                    <a href={`/settings/team?access=${member.id}`} class="min-w-0 font-semibold break-words underline-offset-2 hover:underline">{member.displayName}</a>
+                  {:else}
+                    <span class="min-w-0 font-semibold break-words">{member.displayName}</span>
+                  {/if}
                   <span class="min-w-0 break-all text-muted-foreground">{member.email}</span>
                 </span>
-                <!-- Which jobs they see (ADR-0015), and the access sheet on Team, where it changes. -->
+                <!-- Which jobs they see (ADR-0015), and when they joined (T5). -->
                 <MemberJobs {member} />
-                {#if member.userId !== page.data.user?.id && mayAssign(actor, summary?.permissions ?? [])}
-                  <a href={`/settings/team?access=${member.id}`} class="inline-flex min-h-6 items-center underline underline-offset-2 pointer-coarse:min-h-11">Edit access on Team</a>
-                {/if}
+                <span class="text-muted-foreground"><DateText at={member.joinedAt} /></span>
               </li>
             {/each}
           </ul>

@@ -55,7 +55,6 @@ describe('the tokens-only check', () => {
     '&#123;',
     'shadow-[0_1px_2px_color-mix(in_oklab,var(--foreground)_14%,transparent)]',
     '<div class="bg-scrim/10 size-[26px]">',
-    '<input class="disabled:cursor-not-allowed">',
   ])('allows %s', (line) => {
     expect(violations(line)).toEqual([]);
   });

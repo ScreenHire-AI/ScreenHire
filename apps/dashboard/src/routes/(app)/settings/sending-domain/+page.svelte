@@ -158,13 +158,18 @@
         <form method="POST" use:enhance novalidate aria-label="Add a domain">
           <Panel title="Domain">
             <div class="flex flex-col gap-5">
-              <p class="max-w-measure text-muted-foreground">
-                Email to candidates comes from hiring@ your domain once its DNS records pass, and their replies come back to ScreenHire. Until then
-                it comes from ScreenHire's address.
-              </p>
               <Field.Field data-invalid={$errors.domain ? true : undefined}>
                 <Field.Label for="sending-domain">Domain</Field.Label>
-                <Input id="sending-domain" name="domain" type="text" autocomplete="off" placeholder="example.com" bind:value={$form.domain} />
+                <Input
+                  id="sending-domain"
+                  name="domain"
+                  type="text"
+                  autocomplete="off"
+                  placeholder="example.com"
+                  aria-describedby="sending-domain-hint"
+                  bind:value={$form.domain}
+                />
+                <Field.Description id="sending-domain-hint">Email comes from hiring@ this domain once its DNS records pass. Until then it comes from ScreenHire.</Field.Description>
                 <Field.Error id="sending-domain-error" errors={$errors.domain?.map((message) => ({ message }))} />
               </Field.Field>
             </div>
@@ -191,12 +196,8 @@
           </SummaryList>
         </Panel>
 
-        <Panel title="DNS records">
+        <Panel title="DNS records" count={domain.records.length}>
           <div class="flex flex-col gap-5">
-            <p class="max-w-measure text-muted-foreground">
-              Add these at the company's DNS host, then check them. The records sit on subdomains, so your existing mail and SPF record stay as
-              they are.
-            </p>
             <ul class="flex flex-col divide-y divide-border">
               {#each domain.records as record (record.type + record.host)}
                 {@const found = recordStatus(record.state)}

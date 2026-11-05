@@ -121,7 +121,8 @@ because they have no fixed place in a pipeline, and Rejected and Withdrawn end a
 
 `apps/dashboard/src/routes/(app)/reports/+page.svelte`, on the Report template (design system section 7). Dates, Job and
 the Compare switch sit in the header band and live in the address (`?range=90`, `?from=2026-01-01&to=2026-03-31`, `?job=...`
-repeated, `?compare=off`), so a link or the trip back keeps them. Export CSV is the band's one action.
+repeated, `?compare=off`), so a link or the trip back keeps them. Export CSV is the band's one action, left out while
+the report is empty.
 
 - **Headline cards** (`ReportStat`): five numbers, each with its change from the previous period in words and an arrow
   ("18 more than before", "3 days faster"), always muted text, never a status colour. Compare off, or a previous period

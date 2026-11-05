@@ -65,7 +65,9 @@ describe('role page', () => {
     expect(screen.queryByRole('checkbox', { name: /See jobs and candidates/ })).not.toBeInTheDocument();
     expect(screen.getByText('Every role has it.')).toBeInTheDocument();
     expect(screen.getAllByText('Owner only. A custom role cannot have it.')).toHaveLength(2);
-    expect(screen.getByText('2 of 4')).toBeInTheDocument();
+    // A plain count, never "2 of 4", which reads as a score (E2).
+    expect(within(screen.getByRole('region', { name: 'What this role can do' })).getByText('2')).toBeInTheDocument();
+    expect(screen.queryByText(/\d of \d/)).not.toBeInTheDocument();
     expect(screen.getByText('Viewer')).toBeInTheDocument();
     expect(screen.getAllByText('Robin Hale').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'History' })).toBeInTheDocument();
@@ -107,8 +109,8 @@ describe('role page', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Viewer' })).toBeInTheDocument();
     expect(screen.getByText('Built in')).toBeInTheDocument();
     expect(screen.getByText(/ScreenHire supplies this role, so it cannot be changed/)).toBeInTheDocument();
-    // Counted as the form counts, "N of M" (T4).
-    expect(screen.getByText(/^1 of \d+$/)).toBeInTheDocument();
+    // Counted as the form counts: a plain number, never "N of M" (E2).
+    expect(within(screen.getByRole('region', { name: 'What this role can do' })).getByText('1')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Copy role' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'History' })).not.toBeInTheDocument();

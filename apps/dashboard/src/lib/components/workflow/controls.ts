@@ -2,9 +2,9 @@
 // they need no script to be accessible. On touch, selects are 44px high with 16px text, and checkboxes grow inside
 // 44px-high labels (F4).
 export const selectClass =
-  'h-9 pointer-coarse:h-11 pointer-coarse:text-reading max-md:text-reading w-full min-w-0 rounded-lg border border-input bg-transparent px-2 text-body text-foreground  focus-visible:border-ring   aria-invalid:border-destructive disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30';
+  'h-9 pointer-coarse:h-11 pointer-coarse:text-reading max-md:text-reading w-full min-w-0 rounded-lg border border-input bg-transparent px-2 text-body text-foreground  focus-visible:border-ring   aria-invalid:border-destructive disabled:opacity-50 dark:bg-input/30';
 
-export const checkboxClass = 'size-4 pointer-coarse:size-6 flex-none accent-primary disabled:cursor-not-allowed';
+export const checkboxClass = 'size-4 pointer-coarse:size-6 flex-none accent-primary';
 
 export const labelClass = 'flex min-w-0 flex-col gap-1 text-body font-semibold text-secondary-foreground';
 
