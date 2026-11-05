@@ -4,6 +4,9 @@ title: "Job Distribution Engine: In-House One-Click Post & Teardown"
 description: "One-click publish and honest teardown: what teardown can mean per board, the posting states, worker reconciliation, the five XML feeds, the public job-board API, Google for Jobs JSON-LD and the Indexing API queue, the sandbox board, and the distribution settings."
 tags: [distribution, job-boards, feeds, google-for-jobs]
 sources:
+  - resource: apps/api/Contracts/DistributionContracts.cs
+  - resource: apps/dashboard/src/lib/components/distribution-panel.svelte
+  - resource: apps/dashboard/src/lib/distribution.ts
   - resource: src/ScreenHire.Application/Distribution/Adapters/OwnChannelAdapters.cs
   - resource: src/ScreenHire.Application/Distribution/Adapters/SandboxBoardAdapter.cs
   - resource: src/ScreenHire.Application/Distribution/BoardRegistry.cs
