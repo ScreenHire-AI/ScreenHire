@@ -9,6 +9,9 @@ import {
   roleKey,
   seesAllJobsWith,
   settingsSectionOf,
+  featureOn,
+  featureWaits,
+  sendingDomainFeature,
   slackFeature,
   visibleSettingsSections,
 } from './settings.js';
@@ -86,6 +89,19 @@ describe('slackFeature', () => {
   });
 });
 
+describe('sendingDomainFeature', () => {
+  it('shows the page until the shell hears that this installation cannot send from a domain, and waits for no answer', () => {
+    expect(featureOn({}, 'sendingDomain')).toBe(true);
+    expect(featureWaits({}, 'sendingDomain')).toBe(false);
+    expect(featureOn({ sendingDomain: sendingDomainFeature({ available: false }, false) }, 'sendingDomain')).toBe(false);
+    expect(featureOn({ sendingDomain: sendingDomainFeature(undefined, true) }, 'sendingDomain')).toBe(false);
+    expect(featureOn({ sendingDomain: sendingDomainFeature({ available: true }, false) }, 'sendingDomain')).toBe(true);
+    // Slack is the other way round: off until it is heard to be on.
+    expect(featureOn({}, 'slack')).toBe(false);
+    expect(featureWaits({}, 'slack')).toBe(true);
+  });
+});
+
 describe('visibleSettingsSections', () => {
   const labels = (user: CurrentUser | null) => visibleSettingsSections(user).map((section) => section.label);
 
@@ -103,6 +119,13 @@ describe('visibleSettingsSections', () => {
     expect(labels(owner)).toHaveLength(10);
     expect(visibleSettingsSections(owner, { slack: false }).map((section) => section.label)).not.toContain('Slack');
     expect(visibleSettingsSections(owner, { slack: true }).map((section) => section.label)).toContain('Slack');
+  });
+
+  it('hides Sending domain, page and menu entry, where the installation has no email provider (A3)', () => {
+    const owner = userAs('Owner');
+
+    expect(labels(owner)).toContain('Sending domain');
+    expect(visibleSettingsSections(owner, { sendingDomain: false }).map((section) => section.label)).not.toContain('Sending domain');
   });
 
   it('shows Recruiters, Viewers and an Interviewer none', () => {

@@ -75,12 +75,12 @@
           <SummaryItem label="Transport">Streamable HTTP</SummaryItem>
           <SummaryItem label="Header"><span class="font-mono text-code break-all">Authorization: Bearer &lt;API key&gt;</span></SummaryItem>
           <SummaryItem label="Access">Read only, or read and write, as the key allows</SummaryItem>
-          <SummaryItem label="Tools">
+          <SummaryItem label="Tools" count={tools.length}>
             <ul aria-label="Tools" class="flex flex-wrap gap-1.5">
               {#each tools as tool (tool)}<li><Badge variant="muted">{tool}</Badge></li>{/each}
             </ul>
           </SummaryItem>
-          <SummaryItem label="Also with Verification read">
+          <SummaryItem label="Also with Verification read" count={verificationTools.length}>
             <ul aria-label="Also with Verification read" class="flex flex-wrap gap-1.5">
               {#each verificationTools as tool (tool)}<li><Badge variant="muted">{tool}</Badge></li>{/each}
             </ul>

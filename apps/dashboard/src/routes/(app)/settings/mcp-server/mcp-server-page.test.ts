@@ -22,6 +22,9 @@ describe('MCP server page', () => {
     expect(within(tools).getByText('List saved candidates')).toBeInTheDocument();
     expect(within(tools).queryByText(/verification/i)).not.toBeInTheDocument();
     expect(within(verification).getAllByRole('listitem')).toHaveLength(2);
+    // Each list says how many it holds, in the count badge after its label (T4).
+    expect(screen.getByText('Tools').closest('dt')).toHaveTextContent('Tools10');
+    expect(screen.getByText('Also with Verification read').closest('dt')).toHaveTextContent('Also with Verification read2');
     await expectNoAxeViolations();
   });
 });

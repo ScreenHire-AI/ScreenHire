@@ -8,7 +8,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { can, seesAllJobs } from '#lib/permissions.js';
-  import { settingsSectionOf, visibleSettingsSections } from '#lib/settings.js';
+  import { featureWaits, settingsSectionOf, visibleSettingsSections } from '#lib/settings.js';
   import { getShell } from '#lib/shell.js';
   import type { LayoutProps } from './$types';
 
@@ -28,7 +28,7 @@
   const shell = getShell();
   const features = $derived(shell?.features() ?? {});
   const hidden = $derived(Boolean(section?.feature) && features[section!.feature!] === false);
-  const waiting = $derived(permitted && Boolean(section?.feature) && features[section!.feature!] === undefined);
+  const waiting = $derived(permitted && Boolean(section?.feature) && featureWaits(features, section!.feature!));
   const pending = $derived(hidden || waiting);
   const allowed = $derived(permitted && !pending);
   $effect(() => {

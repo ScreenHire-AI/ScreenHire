@@ -27,18 +27,30 @@ export type SettingsGroup = 'Organization' | 'Hiring' | 'Integrations';
 
 /**
  * A feature the installation may not have. Slack needs a Slack app set up where ScreenHire is hosted (`GET /v1/slack` says
- * `available`), so its page and menu entry are hidden everywhere it is not. A feature is off until the shell has heard
- * that it is on.
+ * `available`), and the sending domain needs an email provider (`GET /v1/organization/sending-domain` says `available`), so
+ * their pages and menu entries are hidden everywhere they are not (A3). Slack is off until the shell has heard that it is
+ * on; the sending domain is on until the shell has heard that it is off, because nearly every installation has it and the
+ * entry should not wait for a query to appear.
  */
-export type SettingsFeature = 'slack';
+export type SettingsFeature = 'slack' | 'sendingDomain';
 export type SettingsFeatures = Readonly<Partial<Record<SettingsFeature, boolean>>>;
 
+const shownUntilOff: ReadonlySet<SettingsFeature> = new Set(['sendingDomain']);
+
+/** Whether a feature's page and menu entry show now: what the shell heard, else the feature's own default. */
+export const featureOn = (features: SettingsFeatures, feature: SettingsFeature) => features[feature] ?? shownUntilOff.has(feature);
+
+/** Whether a page of this feature has to wait for the shell's first answer before it can be shown or refused. */
+export const featureWaits = (features: SettingsFeatures, feature: SettingsFeature) => features[feature] === undefined && !shownUntilOff.has(feature);
+
 /**
- * Slack's entry in `SettingsFeatures`, from the shell's `GET /v1/slack` query. The last answer stands through a failed
- * refetch, so a dropped connection never takes the page from someone using it. A status that was never read counts as no
- * Slack (A3), so its page does not wait forever; `undefined` means the first answer is still on its way.
+ * A feature's entry in `SettingsFeatures`, from the shell's query for it. The last answer stands through a failed
+ * refetch, so a dropped connection never takes the page from someone using it. A status that was never read counts as
+ * unavailable (A3), so its page does not wait forever; `undefined` means the first answer is still on its way.
  */
-export const slackFeature = (status: { available: boolean } | undefined, failed: boolean) => status?.available ?? (failed ? false : undefined);
+const featureFrom = (status: { available: boolean } | undefined, failed: boolean) => status?.available ?? (failed ? false : undefined);
+export const slackFeature = featureFrom;
+export const sendingDomainFeature = featureFrom;
 
 export const settingsSections: readonly {
   label: string;
@@ -57,7 +69,7 @@ export const settingsSections: readonly {
   { label: 'Careers site', href: '/settings/careers-site', icon: GlobeIcon, permission: 'EditSettings', group: 'Hiring' },
   { label: 'Branding', href: '/settings/branding', icon: PaletteIcon, permission: 'EditSettings', group: 'Hiring' },
   { label: 'Verification', href: '/settings/verification', icon: ShieldCheckIcon, permission: 'EditSettings', group: 'Hiring' },
-  { label: 'Sending domain', href: '/settings/sending-domain', icon: MailCheckIcon, permission: 'EditSettings', group: 'Hiring' },
+  { label: 'Sending domain', href: '/settings/sending-domain', icon: MailCheckIcon, permission: 'EditSettings', group: 'Hiring', feature: 'sendingDomain' },
   // A channel post reaches everyone in the channel, whatever jobs they see, so Slack needs all jobs too. Each person links
   // their own account from their menu (SlackAccountSheet), not here.
   { label: 'Slack', href: '/settings/slack', icon: HashIcon, permission: 'ManageIntegrations', group: 'Integrations', allJobs: true, feature: 'slack' },
@@ -74,7 +86,7 @@ export const settingsSections: readonly {
  */
 export const visibleSettingsSections = (user: CurrentUser | null | undefined, features: SettingsFeatures = {}) =>
   settingsSections.filter(
-    (section) => can(user, section.permission) && (!section.allJobs || seesAllJobs(user)) && (!section.feature || features[section.feature] === true),
+    (section) => can(user, section.permission) && (!section.allJobs || seesAllJobs(user)) && (!section.feature || featureOn(features, section.feature)),
   );
 
 /** The Settings page a path belongs to, such as Roles for `/settings/roles/compare`. */
