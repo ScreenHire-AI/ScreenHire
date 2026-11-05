@@ -48,9 +48,7 @@ export const featureWaits = (features: SettingsFeatures, feature: SettingsFeatur
  * refetch, so a dropped connection never takes the page from someone using it. A status that was never read counts as
  * unavailable (A3), so its page does not wait forever; `undefined` means the first answer is still on its way.
  */
-const featureFrom = (status: { available: boolean } | undefined, failed: boolean) => status?.available ?? (failed ? false : undefined);
-export const slackFeature = featureFrom;
-export const sendingDomainFeature = featureFrom;
+export const featureFrom = (status: { available: boolean } | undefined, failed: boolean) => status?.available ?? (failed ? false : undefined);
 
 export const settingsSections: readonly {
   label: string;

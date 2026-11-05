@@ -327,8 +327,8 @@ describe('reports page', () => {
     const title = await screen.findByText('Nothing in these dates');
     expect(title).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Hiring funnel' })).toBeNull();
-    // The empty state is one card, not a panel with an empty header strip over it (S3).
-    expect(screen.queryByRole('region', { name: 'Reports' })).toBeNull();
+    // The empty state is one panel, with no empty header strip over it (S3).
+    expect(screen.getByRole('region', { name: 'Reports' }).querySelector('header')).toBeNull();
     expect(screen.getAllByRole('button', { name: 'Show the last 365 days' })).toHaveLength(1);
     // Nothing to export from an empty report, so the button is not offered (A3).
     expect(screen.queryByRole('button', { name: 'Export CSV' })).toBeNull();

@@ -332,9 +332,9 @@
         </div>
         <p class="sr-only" role="status">Loading reports…</p>
       {:else if empty}
-        <!-- Nothing arrived and nobody was hired: one empty state for the page, not the same one in each panel (W7). It is
-             no section with a title, so it is the card alone, as the loading state is, not a panel with an empty header. -->
-        <div class="rounded-panel border border-border bg-card shadow-surface">{@render nothing('Nothing in these dates', true)}</div>
+        <!-- Nothing arrived and nobody was hired: one empty state for the page, not the same one in each panel (W7). The
+             panel has only a label, so it has no header band over it. -->
+        <Panel label="Reports">{@render nothing('Nothing in these dates', true)}</Panel>
       {:else}
         <div class="flex flex-col gap-5">
           <div

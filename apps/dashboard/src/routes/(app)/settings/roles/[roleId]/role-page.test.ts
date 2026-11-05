@@ -118,6 +118,45 @@ describe('role page', () => {
     await expectNoAxeViolations();
   });
 
+  it('offers no copy of the Owner role, in words or as a button', async () => {
+    renderPage('owner');
+
+    expect(await screen.findByText(/ScreenHire supplies this role, so it cannot be changed/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Copy role' })).toBeNull();
+    expect(screen.queryByText(/Copy it to make one of your own/)).toBeNull();
+  });
+
+  it('says why a built-in role is read only and offers the copy below the list, not under the title', async () => {
+    renderPage('viewer');
+
+    const reason = await screen.findByText(/Copy it to make one of your own/);
+    const list = within(screen.getByRole('region', { name: 'What this role can do' })).getByText('See jobs and candidates');
+    expect(list.compareDocumentPosition(reason) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('lists the people with a role in a sortable table, each with when they joined and Edit access in the row menu', async () => {
+    renderPage(interviewerRoleId);
+
+    const people = within(await screen.findByRole('region', { name: 'People with this role' }));
+    const table = within(await people.findByRole('table'));
+    for (const column of ['Name', 'Email', 'Jobs', 'Joined']) expect(table.getByRole('button', { name: new RegExp(column) })).toBeInTheDocument();
+    expect(table.getByText('robin@brightwater.example.com')).toBeInTheDocument();
+    expect(people.queryByRole('link')).toBeNull();
+
+    await fireEvent.pointerDown(table.getByRole('button', { name: 'Actions for Robin Hale' }), { button: 0, pointerType: 'mouse' });
+    await fireEvent.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Edit access' }));
+    expect(goto).toHaveBeenCalledWith('/settings/team?access=m-2');
+    await expectNoAxeViolations();
+  });
+
+  it('offers no Edit access on your own row', async () => {
+    renderPage('owner');
+
+    const people = within(await screen.findByRole('region', { name: 'People with this role' }));
+    expect(within(await people.findByRole('table')).getByText(user.email)).toBeInTheDocument();
+    expect(people.queryByRole('button', { name: `Actions for ${user.displayName}` })).toBeNull();
+  });
+
   it('says the role is gone when the API answers 404', async () => {
     renderPage('01a157d4-0000-7000-8000-0000000000dd', {
       'GET /v1/organization/roles/01a157d4-0000-7000-8000-0000000000dd': () => Response.json({ title: 'Not Found', status: 404 }, { status: 404 }),

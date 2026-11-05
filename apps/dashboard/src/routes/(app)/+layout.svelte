@@ -32,7 +32,7 @@
   import { startLiveUpdates } from '#lib/realtime.js';
   import { sidebarViews } from '#lib/sidebar-views.js';
   import { can } from '#lib/permissions.js';
-  import { sendingDomainFeature, slackFeature } from '#lib/settings.js';
+  import { featureFrom } from '#lib/settings.js';
   import { sections, setShell } from '#lib/shell.js';
   import { createChordHandler } from '#lib/shortcuts.js';
   import { defaultNotificationSettings } from '#lib/teammate-changes.js';
@@ -154,8 +154,8 @@
     openCalendar: () => (calendarOpen = true),
     live: () => live.connection.status,
     features: () => ({
-      slack: slackFeature(slack.data?.data, slack.isError),
-      sendingDomain: sendingDomainFeature(sendingDomain.data?.data, sendingDomain.isError),
+      slack: featureFrom(slack.data?.data, slack.isError),
+      sendingDomain: featureFrom(sendingDomain.data?.data, sendingDomain.isError),
     }),
   });
 
