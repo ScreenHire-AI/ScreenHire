@@ -24,7 +24,7 @@
   import { describeError } from '#lib/query.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import { taskHref } from '#lib/tasks.svelte.js';
-  import { personName, taskKindLabels } from '#lib/team.js';
+  import { assigneeText, personName, taskKindLabels } from '#lib/team.js';
 
   // The tasks automations make (AssignReviewer, CreateTask, QueueForRejectionReview), on the list template: a table, one
   // row per task, with a list on a phone. Mine is the tasks assigned to the person, For the team the tasks assigned to
@@ -88,6 +88,12 @@
     Open: createTableSort('tasks-open', { id: 'created', desc: false }, columnIds),
     Completed: createTableSort('tasks-done', { id: 'done', desc: true }, columnIds),
   };
+  // A remembered sort can name a column this scope does not have (For, outside Everyone's): the table then opens on its
+  // default instead of sorting on nothing.
+  $effect(() => {
+    const sorted = sorts[status].sorting[0]?.id;
+    if (sorted && !columns.some((column) => column.id === sorted)) sorts[status].show(undefined);
+  });
   const table = createTable({
     ...tableSortOptions(() => sorts[status]),
     features,
@@ -172,7 +178,7 @@
                   <Badge variant="muted" class="max-w-full"><TruncatedText text={task.candidateName} /></Badge>
                   <Badge variant="muted" class="max-w-full"><TruncatedText text={task.jobTitle} /></Badge>
                   <Badge variant="muted">{taskKindLabels[task.kind]}</Badge>
-                  {#if scope === 'Everyone'}<Badge variant="muted">For {assignee(task).toLowerCase()}</Badge>{/if}
+                  {#if scope === 'Everyone'}<Badge variant="muted">{assigneeText(task.assigneeUserId, team.data?.data, currentUserId)}</Badge>{/if}
                 {/snippet}
               </ListItem>
             {/each}

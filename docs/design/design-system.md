@@ -231,8 +231,8 @@ Authors check their screens against this list, and the `design-review` agent rep
   table with a natural order (roles, by access) keeps it until someone sorts. The dashboard remembers each person's
   sort. On a phone a Sort chip beside the filters offers the same choices. A fixed grid, such as the permissions
   table, does not sort.
-- **L3** An action that repeats on every row (Message, Invite to apply, Remove) lives in the row's menu, never as a
-  button down a column. A row's own link, its name, is the one thing in the row that is not in the menu.
+- **L3** The same button repeated down a list belongs in the row's menu (Message, Invite to apply, Remove), not as a
+  button down a column.
 
 **Verification and access** (the `verification-guardrails` agent owns the first)
 

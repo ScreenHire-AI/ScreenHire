@@ -2,6 +2,7 @@ import type { TaskListItem, TeamMember } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { apiStub, jobId, user } from '../../../test-support/fixtures.js';
+import { stubViewport } from '../../../test-support/viewport.js';
 import WithQueryClient from '../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
@@ -164,5 +165,37 @@ describe('my tasks page', () => {
     expect(rows(panel)[0]).toHaveTextContent('Alex Reed');
     await fireEvent.click(within(panel).getByRole('button', { name: /^Candidate/ }));
     expect(rows(panel)[0]).toHaveTextContent('Jordan Lee');
+  });
+
+  it('opens on its default when a remembered sort names a column the scope does not have', async () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    renderPage();
+    const panel = await screen.findByRole('region', { name: 'Tasks' });
+    const whose = screen.getByRole('group', { name: 'Whose' });
+    await fireEvent.click(within(whose).getByRole('button', { name: /^Everyone's/ }));
+    await fireEvent.click(within(within(panel).getByRole('columnheader', { name: /^For/ })).getByRole('button'));
+    expect(within(panel).getByRole('columnheader', { name: /^For/ })).toHaveAttribute('aria-sort', 'ascending');
+
+    // Mine has no For column, so the sort falls back to the oldest task first instead of sorting on nothing.
+    await fireEvent.click(within(whose).getByRole('button', { name: /^For the team/ }));
+    await waitFor(() => expect(within(panel).getByRole('columnheader', { name: /^Created/ })).toHaveAttribute('aria-sort', 'ascending'));
+    expect(rows(panel)).toHaveLength(1);
+    expect(errors).not.toHaveBeenCalled();
+    errors.mockRestore();
+  });
+
+  it('lists the tasks as items on a phone, naming whose each is with a name as it is written', async () => {
+    stubViewport(360);
+    renderPage();
+    await screen.findByRole('region', { name: 'Tasks' });
+    await fireEvent.click(within(screen.getByRole('group', { name: 'Whose' })).getByRole('button', { name: /^Everyone's/ }));
+
+    const list = await screen.findByRole('list', { name: 'Open tasks' });
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    await waitFor(() => expect(list).toHaveTextContent('For Robin Ashby'));
+    expect(list).toHaveTextContent('For the team');
+    expect(list).toHaveTextContent('For you');
+    expect(list).not.toHaveTextContent('robin ashby');
+    expect(within(screen.getByRole('region', { name: 'Tasks' })).getByRole('button', { name: 'Sort' })).toBeInTheDocument();
   });
 });
