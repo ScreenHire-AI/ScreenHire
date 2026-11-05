@@ -30,7 +30,7 @@ describe('settings menu', () => {
 
     const groups = within(menu).getAllByRole('list');
     expect(groups.map((group) => [group.getAttribute('aria-labelledby') && document.getElementById(group.getAttribute('aria-labelledby')!)?.textContent, within(group).getAllByRole('link').map((link) => link.textContent?.trim())])).toEqual([
-      ['Organization', ['General', 'Team', 'Roles']],
+      ['Organization', ['General', 'Team', 'Roles', 'Data requests']],
       ['Hiring', ['Careers site', 'Branding', 'Verification', 'Sending domain']],
       ['Integrations', ['Slack', 'MCP server', 'Webhooks', 'API keys']],
     ]);
@@ -63,6 +63,7 @@ describe('settings menu', () => {
     expect(labels).not.toContain('Team');
     expect(labels).not.toContain('Roles');
     expect(labels).not.toContain('API keys');
+    expect(labels).not.toContain('Data requests');
   });
 
   it('scrolls the row, which may hide the current entry past its edge, to centre it', () => {
@@ -85,8 +86,8 @@ describe('settings menu', () => {
     try {
       render(WithShell, { props: { component: SettingsMenu, props: { children: content, current: '/settings/webhooks' }, features: { slack: true } } });
 
-      // Webhooks is the tenth entry, at 900px: the row scrolls to 850 so it sits in the middle.
-      expect(scrolledTo).toEqual([850]);
+      // Webhooks is the eleventh entry, at 1000px: the row scrolls to 950 so it sits in the middle.
+      expect(scrolledTo).toEqual([950]);
     } finally {
       Object.defineProperty(HTMLElement.prototype, 'offsetLeft', offsetLeft);
       Object.defineProperty(HTMLElement.prototype, 'offsetWidth', offsetWidth);

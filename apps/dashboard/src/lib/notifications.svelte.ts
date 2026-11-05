@@ -1,4 +1,5 @@
-import type { AutomationRunEntry } from '@screenhire/api-client';
+import type { AutomationRunEntry, CurrentUser } from '@screenhire/api-client';
+import { can, seesAllJobs } from '#lib/permissions.js';
 import type { Toast } from '#lib/teammate-changes.js';
 
 /** One notification in the tray: what happened, who it is about, and where to look. */
@@ -165,6 +166,30 @@ export function replyNotification(
     title: `${application.candidate.fullName}, ${application.jobTitle}`,
     detail: answersYou ? 'Replied to your email.' : 'Replied to an automated email.',
     href: `/applications/${application.id}?tab=messages`,
+  };
+}
+
+/** The tray id of a data request's card: one per request, so a redelivered event adds no second card. */
+export function dataRequestNotificationId(requestId: string): string {
+  return `data-request:${requestId}`;
+}
+
+/**
+ * The card for a candidate's new data request (DataRequestReceived carries the request's id and kind only, so the card
+ * names no one). Only people who may erase candidates and see every job get it, as the API allows only them to open the
+ * page it links to; anyone else gets none (undefined).
+ */
+export function dataRequestNotification(
+  user: CurrentUser | null | undefined,
+  requestId: string,
+  kind: 'Copy' | 'Erasure',
+): Notification | undefined {
+  if (!can(user, 'EraseCandidates') || !seesAllJobs(user)) return undefined;
+  return {
+    id: dataRequestNotificationId(requestId),
+    title: 'New data request',
+    detail: kind === 'Copy' ? 'A candidate asked for a copy of their data.' : 'A candidate asked to be erased.',
+    href: '/settings/data-requests',
   };
 }
 

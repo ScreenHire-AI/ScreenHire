@@ -26,4 +26,26 @@ describe('live updates', () => {
     for (const key of keys) expect(client.getQueryState(key)?.isInvalidated, key.join('/')).toBe(true);
     for (const key of unrelated) expect(client.getQueryState(key)?.isInvalidated, key.join('/')).toBe(false);
   });
+
+  it.each(['DataRequestReceived', 'DataRequestChanged'] as const)('marks the Data requests list stale on %s and leaves the retention setting alone', async (type) => {
+    const client = new QueryClient();
+    const list = ['v1', 'data-requests'];
+    const unrelated = [['v1', 'organization', 'data-retention'], ['v1', 'organization', 'data-retention', 'preview'], ['v1', 'candidates']];
+    for (const key of [list, ...unrelated]) client.setQueryData(key, {});
+
+    await Promise.all((invalidations[type] ?? []).map((path) => invalidatePath(client, path)));
+
+    expect(client.getQueryState(list)?.isInvalidated).toBe(true);
+    for (const key of unrelated) expect(client.getQueryState(key)?.isInvalidated, key.join('/')).toBe(false);
+  });
+
+  it('refreshes the retention setting, its dry-run and Last run, and the requests, when a candidate is erased', async () => {
+    const client = new QueryClient();
+    const keys = [['v1', 'data-requests'], ['v1', 'organization', 'data-retention'], ['v1', 'organization', 'data-retention', 'preview', { months: 6 }]];
+    for (const key of keys) client.setQueryData(key, {});
+
+    await Promise.all((invalidations.CandidateErased ?? []).map((path) => invalidatePath(client, path)));
+
+    for (const key of keys) expect(client.getQueryState(key)?.isInvalidated, key.join('/')).toBe(true);
+  });
 });

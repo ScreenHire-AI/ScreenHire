@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { builtInPermissions, userAs } from '../test-support/fixtures.js';
 import {
+  dataRequestNotification,
+  dataRequestNotificationId,
   maxNotifications,
   mentionNotification,
   mentionNotificationId,
@@ -78,6 +81,37 @@ describe('reply notifications', () => {
     tray.add(replyNotification('reply-1', application, true));
 
     expect(tray.items.map((item) => item.id)).toEqual(['reply:reply-1']);
+  });
+});
+
+describe('data request notifications', () => {
+  it('words a request for a copy and one for erasure, linking to the Data requests page, and names no one', () => {
+    expect(dataRequestNotification(userAs('Owner'), 'req-1', 'Copy')).toEqual({
+      id: dataRequestNotificationId('req-1'),
+      title: 'New data request',
+      detail: 'A candidate asked for a copy of their data.',
+      href: '/settings/data-requests',
+    });
+    expect(dataRequestNotification(userAs('Admin'), 'req-2', 'Erasure')?.detail).toBe('A candidate asked to be erased.');
+  });
+
+  it('shows no card to a role that cannot open the page, or to someone who sees only their own jobs', () => {
+    const admin = userAs('Admin');
+    const scoped = { ...admin, organization: { ...admin.organization!, seesAllJobs: false } };
+
+    expect(dataRequestNotification(userAs('Recruiter'), 'req-1', 'Copy')).toBeUndefined();
+    expect(dataRequestNotification(userAs('Viewer'), 'req-1', 'Copy')).toBeUndefined();
+    expect(dataRequestNotification(scoped, 'req-1', 'Copy')).toBeUndefined();
+    expect(dataRequestNotification(null, 'req-1', 'Copy')).toBeUndefined();
+    expect(builtInPermissions.Admin).toContain('EraseCandidates');
+  });
+
+  it('keys the card by the request, so a redelivered event shows one card', () => {
+    const tray = new Notifications();
+    tray.add(dataRequestNotification(userAs('Owner'), 'req-1', 'Copy')!);
+    tray.add(dataRequestNotification(userAs('Owner'), 'req-1', 'Copy')!);
+
+    expect(tray.items.map((item) => item.id)).toEqual(['data-request:req-1']);
   });
 });
 

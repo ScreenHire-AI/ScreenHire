@@ -15,8 +15,9 @@ const candidateId = '01a157d4-0000-7000-8000-000000000204';
 const teammate = '01a157d4-0000-7000-8000-0000000000cc';
 const supportJob = '01a157d4-0000-7000-8000-000000000011';
 
-// The fixtures' Owner has every permission but erasing, which the catalogue gained after them.
-const withErase: CurrentUser = { ...user, organization: { ...user.organization!, permissions: [...ownerPermissions, 'EraseCandidates'] } };
+// The fixtures' Owner holds Erase candidates, as the catalogue's does; this one's role lacks it.
+const withErase: CurrentUser = user;
+const withoutErase: CurrentUser = { ...user, organization: { ...user.organization!, permissions: ownerPermissions.filter((permission) => permission !== 'EraseCandidates') } };
 const withEraseOnlyOwnJobs: CurrentUser = { ...withErase, organization: { ...withErase.organization!, seesAllJobs: false } };
 
 const members: TeamMember[] = [
@@ -261,7 +262,7 @@ describe('candidate profile page', () => {
     });
 
     it('leaves the menu and the notice out for a person without the permission', async () => {
-      renderPage({ history: [...history, asked] });
+      renderPage({ user: withoutErase, history: [...history, asked] });
 
       await screen.findByRole('list', { name: 'History across all applications' });
 
