@@ -207,15 +207,19 @@ Customize changes what one board receives and posts to that board only. No other
 - **Routes** (`DistributionEndpoints`, `EditJobs` like posting; the dashboard only, no API key):
   `GET /v1/jobs/{jobId}/postings/{boardId}/customization` (the board's text, the job's, and what the job changed since),
   `POST .../customization/preview` (what the board would receive and what its `Validate` says; nothing saved) and
-  `PUT .../customization` (`{ title, description }`, a blank field or one equal to the job's follows the job). A save runs the
-  board's checks on the customized text first. If one fails the answer is a 400 with the issues under `board`, and
-  nothing is stored or sent. Otherwise the planner's `RepostAsync` sends the board the job's newest published version
-  with its own text: `JobPosting.Queue(..., resend: true)` accepts the same active version again and bumps `Sequence`, so
-  the worker's idempotency key is new. The save always raises `JobPostingsChanged`, because a Submitted posting can end
-  where it began. A job that is not open, or a board that cannot be customized, is a 409.
+  `PUT .../customization` (`{ title, description, jobVersion }`, a blank field or one equal to the job's follows the job).
+  `jobVersion` is the version the sheet opened on: a save against an older one is a 409, because a field left as the old
+  job's text would otherwise become the board's own. A save runs the board's checks on the customized text first. If one
+  fails the answer is a 400 with the issues under `board`, and nothing is stored or sent. Otherwise the planner's
+  `RepostAsync` sends the board the job's newest published version with its own text: `JobPosting.Queue(..., resend: true)`
+  accepts the same active version again and bumps `Sequence`, so the worker's idempotency key is new. A save that changed
+  nothing leaves a posting already on the board alone, so it spends none of the board's quota. The save always raises
+  `JobPostingsChanged`, because a Submitted posting can end where it began. A job that is not open, or a board that cannot
+  be customized, is a 409.
 - **Later job edits:** a field the board has not overridden follows the job as before. A customized field keeps its text,
   and `JobPostingStatus.jobChangedSinceCustomized` is true while the job's newest published text differs from the base. It
-  compares published versions, so an Edit details that is not yet published does not show.
+  compares published versions, so an Edit details that is not yet published does not show. Saving the sheet, which shows
+  every change, accepts them: the base of each customized field moves to the job's newest text.
 - **History:** a `JobPosting` is a tracked kind under the job's subject (`JobPostingChanges`): "customized the title
   for Adzuna", "went back to the job's description for Adzuna", with before and after. State changes make no line.
 
