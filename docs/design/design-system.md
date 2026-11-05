@@ -97,7 +97,8 @@ Authors check their screens against this list, and the `design-review` agent rep
 - **S8** Moving between sibling pages never shifts the frame. Pages in one set (the settings pages, a record's tabs)
   keep one header height, so the menu, tabs and content start at the same place on each: a header's title row is at
   least a button's height, and a fact like Updated and History sits on that row, never on a row only some pages have.
-  A sentence about the page goes in its panel's header, not under the title.
+  A sentence about the page goes in its panel's header, not under the title. The window keeps room for its scrollbar
+  (`scrollbar-gutter: stable` on `html`), so a page that scrolls lines up with one that does not.
 
 **Actions**
 
@@ -842,8 +843,8 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   own role lacks) have a lock and say why. Its header's facts are Copied from and Last updated with History (the people
   are counted on their panel, W7); Copy role and Delete role are in More, and deleting a role somebody has is refused,
   saying how many. A built-in role's page is a read-only view with Built in beside its title and Copy role as the
-  primary action. Both list the people with the role, each with the jobs they see ("All jobs", or a count button that
-  lists them) and an Edit access on Team link. Job access (ADR-0015): Team has a Jobs column, plain text (T4): "All
+  primary action, and the panel's footer says why it is read only, offering a copy only where the button is. Both list the people with the role in a sortable table: Name, Email, Jobs ("All jobs", or a count button that
+  lists them) and Joined, with Edit access in the row menu, which opens that person's sheet on Team, for anyone the viewer may change. Job access (ADR-0015): Team has a Jobs column, plain text (T4): "All
   jobs", or "2 jobs" for someone on Only jobs they're on. A member's menu holds Edit access, which opens one sheet for
   their role (a select, with what it can do below) and their jobs: All jobs ("Including jobs added later") or Only jobs
   they're on, then the jobs whose hiring team they are on as links, read only, with one line saying each job's Hiring
