@@ -214,8 +214,9 @@ Customize changes what one board receives and posts to that board only. No other
   `RepostAsync` sends the board the job's newest published version with its own text: `JobPosting.Queue(..., resend: true)`
   accepts the same active version again and bumps `Sequence`, so the worker's idempotency key is new. A save that changed
   nothing leaves a posting already on the board alone, so it spends none of the board's quota. The save always raises
-  `JobPostingsChanged`, because a Submitted posting can end where it began. A job that is not open, or a board that cannot
-  be customized, is a 409.
+  `JobPostingsChanged`, because a Submitted posting can end where it began. A job that is not open, a board that cannot
+  be customized, and a board the job was taken down from (Closing or Closed) are each a 409: a board that is down stays
+  down until someone posts it again, and saving text must not do that.
 - **Later job edits:** a field the board has not overridden follows the job as before. A customized field keeps its text,
   and `JobPostingStatus.jobChangedSinceCustomized` is true while the job's newest published text differs from the base. It
   compares published versions, so an Edit details that is not yet published does not show. Saving the sheet, which shows
