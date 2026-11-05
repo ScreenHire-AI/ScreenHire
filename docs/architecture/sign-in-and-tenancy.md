@@ -8,6 +8,7 @@ sources:
   - resource: apps/api/Auth/ApiKeyAuthentication.cs
   - resource: apps/api/Auth/ApiKeyTokens.cs
   - resource: apps/api/Auth/AuthenticationSetup.cs
+  - resource: apps/api/Configuration/AuthOptions.cs
   - resource: apps/api/Auth/EmailVerification.cs
   - resource: apps/api/Auth/ExternalProviders.cs
   - resource: apps/api/Auth/HiringAuthorization.cs
@@ -138,7 +139,8 @@ waits for SMTP; moving the send to a worker message is a later change.
   from 127.0.0.1 against one API, and the integration suite alone sends about 80 such requests in 20 seconds.
   The per-address email cap is unchanged everywhere and has its own test. It counts under a per-address advisory
   lock, so simultaneous requests cannot slip past it. The client IP comes from `X-Forwarded-For`
-  (`UseForwardedHeaders`), believed only from loopback and from the addresses in `ScreenHire:Auth:TrustedProxies`.
+  (`UseForwardedHeaders`), believed only from loopback and from the addresses or CIDR networks in `ScreenHire:Auth:TrustedProxies`, reading
+  `ScreenHire:Auth:ForwardLimit` entries from the right.
   Loopback covers the dashboard's own `/v1` proxy (`xfwd: true` in `vite.config.ts`). A deployed reverse proxy must
   be listed, or every visitor shares its bucket.
 - **Email addresses.** The magic-link form takes one bare address. A display name (`Name <a@example.com>`) or a list
@@ -279,7 +281,8 @@ Verification, Sending domain, API keys and Webhooks, under `/settings/*`; email 
 `/settings/email-templates` addresses redirect there), each page
 behind its permission (`settingsSections` in `apps/dashboard/src/lib/settings.ts`), and the command palette lists the
 same pages. Slack's page and entry are left out wherever `GET /v1/slack` says Slack is not `available` (a feature on its
-settings row, `SettingsFeatures`), and an address to it goes to the first page the person may use. The settings layout tells anyone who opens another page by its address that their role cannot change it.
+settings row, `SettingsFeatures`), and so is Sending domain's wherever `GET /v1/organization/sending-domain` says
+there is no email provider (shown until that answer says so, and kept when the request fails), and an address to either goes to the first page the person may use. The settings layout tells anyone who opens another page by its address that their role cannot change it.
 Hiring controls show by the permission their route needs: an Interviewer sees Add note and Fill scorecard but no Move.
 The Team page offers only what `TeamPolicy` allows (`settings.ts` mirrors it): an Admin sees no Owner role and no actions
 on an Owner's row, and nobody gets actions on their own row. Removing a member offers to revoke the active API keys they
@@ -496,7 +499,8 @@ checklist.
 
 ## Deploy prerequisites
 
-Hosting is not chosen yet (`.claude/rules/unattended-runs.md`). Whatever runs the API in production must:
+Hosting is Azure Container Apps (ADR-0007), defined in `apps/apphost/AzurePublish.cs` and written up in
+[deploy](../operations/deploy.md), which does each of these. Whatever runs the API in production must:
 
 - run the EF migrations and then `ScreenHireMessaging.ProvisionStorageAsync` as the owner, in that order, on every
   release (docs/architecture/messaging.md, "Roles and provisioning"). The API does both at startup in Development.
@@ -508,9 +512,11 @@ Hosting is not chosen yet (`.claude/rules/unattended-runs.md`). Whatever runs th
 - protect the ASP.NET Core Data Protection key ring at rest. The session, external-sign-in and antiforgery cookies are
   encrypted with it. The ring is kept in Postgres (`data_protection_keys`, `AddScreenHireDataProtection`) and shared
   by every API instance and the worker, which signs follow-up questionnaire links with it (workflow-engine.md §8), so it
-  survives restarts; its keys are stored as Data Protection writes them, so add a key vault or certificate
-  (`ProtectKeysWith...`);
-- list its reverse proxies in `ScreenHire:Auth:TrustedProxies`;
+  survives restarts; its keys are stored as Data Protection writes them unless
+  `ScreenHire:DataProtection:KeyVaultKeyUri` names a Key Vault key, which wraps them
+  (`ProtectKeysWithAzureKeyVault`). A production host refuses to start without it;
+- list its reverse proxies in `ScreenHire:Auth:TrustedProxies`, as addresses or CIDR networks (several in one entry, separated
+  by commas), with `ScreenHire:Auth:ForwardLimit` set to the number of trusted hops;
 - set `ScreenHire:ApiKeys:PermitsPerMinute` for the number of API instances, because each one counts a key's requests
   on its own;
 - give the worker an SMTP connection (`ConnectionStrings:mailpit` until the production provider is chosen) and

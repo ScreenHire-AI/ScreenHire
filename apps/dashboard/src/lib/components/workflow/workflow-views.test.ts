@@ -39,13 +39,16 @@ const workflow: HiringWorkflow = {
 const renderViews = (mode: 'editor' | 'summary', tab = 'pipeline', errors: DefinitionError[] = []) =>
   render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: structuredClone(workflow), errors, mode, tab } } });
 
-// A stage's actions live in its row menu (L3): open it, then pick one.
-const stageAction = async (stage: string, action: string) => {
-  await fireEvent.pointerDown(within(screen.getByRole('region', { name: 'Stages' })).getByRole('button', { name: `Actions for ${stage}` }), { button: 0, pointerType: 'mouse' });
-  await fireEvent.click(await screen.findByRole('menuitem', { name: action }));
-};
-
 const controls = (root: Element) => root.querySelectorAll('input, select, textarea');
+
+// A stage's Edit automations, Choose scorecard and Remove stage are its row's menu, not buttons on every row.
+async function chooseStageAction(stage: string, action: string) {
+  await fireEvent.pointerDown(within(screen.getByRole('region', { name: 'Stages' })).getByRole('button', { name: `Actions for ${stage}` }), {
+    button: 0,
+    pointerType: 'mouse',
+  });
+  await fireEvent.click(await screen.findByRole('menuitem', { name: action }));
+}
 
 describe('validation badge', () => {
   it('is busy while a check is on its way', () => {
@@ -120,7 +123,10 @@ describe('read-only workflow', () => {
     expect(within(questions).getByText('Required')).toHaveAttribute('data-slot', 'badge');
     await expectNoAxeViolations(container);
 
-    // The candidate's form never shares the screen with the content: the switch swaps them.
+    // The candidate's form never shares the screen with the content: the switch swaps them. Nothing here can be edited, so
+    // its first choice names what it shows instead of offering Edit (E3).
+    expect(within(pane).getByRole('button', { name: 'Questions' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(pane).queryByRole('button', { name: 'Edit' })).toBeNull();
     expect(within(pane).queryByRole('group', { name: 'Screen size' })).toBeNull();
     await fireEvent.click(within(pane).getByRole('button', { name: 'Preview' }));
     expect(within(pane).queryByRole('region', { name: 'Screening questions' })).toBeNull();
@@ -204,26 +210,6 @@ describe('workflow builder', () => {
     await expectNoAxeViolations(container);
   });
 
-  it("puts a stage's actions in one row menu instead of buttons that repeat down the list (L3)", async () => {
-    renderViews('editor');
-    const stages = screen.getByRole('region', { name: 'Stages' });
-
-    expect(within(stages).queryByRole('button', { name: /^Edit automations/ })).toBeNull();
-    expect(within(stages).queryByRole('button', { name: /^Choose scorecard/ })).toBeNull();
-    expect(within(stages).getAllByRole('button', { name: /^Actions for / })).toHaveLength(4);
-
-    // Removing a stage changes nothing until Save, so the menu item does not ask first (section 10).
-    // jsdom has no Web Animations, and a row leaving the list's `animate:flip` asks for its running ones.
-    Element.prototype.getAnimations = () => [];
-    try {
-      await stageAction('Not progressing', 'Remove stage');
-    } finally {
-      delete (Element.prototype as Partial<Element>).getAnimations;
-    }
-    expect(within(stages).getAllByRole('group', { name: /^Stage / })).toHaveLength(3);
-    expect(within(stages).queryByRole('group', { name: /Not progressing/ })).toBeNull();
-  });
-
   it('adds a follow-up questionnaire beside the apply form, with no file questions and a preview of its own', async () => {
     const { container } = renderViews('editor', 'questionnaire');
     const pane = screen.getByRole('tabpanel', { name: 'Questionnaire' });
@@ -269,13 +255,13 @@ describe('workflow builder', () => {
       followUpQuestionnaires: [{ id: 'availability', name: 'Availability', questions: [{ id: 'start', type: 'ShortText', label: 'When could you start?' }] }],
     };
     const view = render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: structuredClone(workflow), errors: [], mode: 'editor' } } });
-    await stageAction('Phone screen', 'Edit automations');
+    await chooseStageAction('Phone screen', 'Edit automations');
     let sheet = await screen.findByRole('dialog', { name: 'Automations: Phone screen' });
     expect(within(sheet).queryByRole('option', { name: 'Send a questionnaire' })).toBeNull();
     view.unmount();
 
     render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: followUp, errors: [], mode: 'editor' } } });
-    await stageAction('Phone screen', 'Edit automations');
+    await chooseStageAction('Phone screen', 'Edit automations');
     sheet = await screen.findByRole('dialog', { name: 'Automations: Phone screen' });
     const action = within(sheet).getByRole('combobox', { name: 'Action 1' });
     await fireEvent.change(action, { target: { value: 'SendQuestionnaire' } });
@@ -291,8 +277,10 @@ describe('workflow builder', () => {
   // A passed time limit measures the team's delay, so the form offers only reminders for it (workflow-engine.md section 8).
   it("offers a stage's time limit as a trigger, on stages that have one, with only the reminder actions", async () => {
     renderViews('editor');
-    await stageAction('Phone screen', 'Edit automations');
+    await chooseStageAction('Phone screen', 'Edit automations');
     const sheet = await screen.findByRole('dialog', { name: 'Automations: Phone screen' });
+    // The sheet opens once the menu has closed, so focus lands in it rather than on the menu button behind it.
+    await vi.waitFor(() => expect(sheet).toContainElement(document.activeElement as HTMLElement));
     const options = (select: HTMLElement) => within(select).getAllByRole('option').map((option) => option.textContent?.trim());
 
     expect(options(within(sheet).getByRole('combobox', { name: 'Action 1' }))).toContain('Queue for rejection review');
@@ -315,7 +303,7 @@ describe('workflow builder', () => {
       { path: 'automations[0].actions[0]', message: 'Offering an interview is not allowed here.' },
     ];
     render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: withInterview, errors, mode: 'editor', tab: 'pipeline' } } });
-    await stageAction('Phone screen', 'Edit automations');
+    await chooseStageAction('Phone screen', 'Edit automations');
     const sheet = await screen.findByRole('dialog', { name: 'Automations: Phone screen' });
 
     const days = within(sheet).getByRole('spinbutton', { name: 'Days to choose' });
@@ -354,11 +342,13 @@ describe('workflow builder', () => {
     const { container } = renderViews('editor');
     const stages = screen.getByRole('region', { name: 'Stages' });
 
-    // An end stage has no scorecard to choose (A3); a stage that can have one offers it in its menu.
+    // A stage that ends the application has no scorecard, so its menu leaves the item out (A3).
     await fireEvent.pointerDown(within(stages).getByRole('button', { name: 'Actions for Hired' }), { button: 0, pointerType: 'mouse' });
-    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent?.trim())).toEqual(['Edit automations', 'Remove stage']);
-    await fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
-    await stageAction('Phone screen', 'Choose scorecard');
+    const hiredMenu = await screen.findByRole('menu');
+    expect(within(hiredMenu).getByRole('menuitem', { name: 'Edit automations' })).toBeInTheDocument();
+    expect(within(hiredMenu).queryByRole('menuitem', { name: 'Choose scorecard' })).toBeNull();
+    await fireEvent.keyDown(hiredMenu, { key: 'Escape' });
+    await chooseStageAction('Phone screen', 'Choose scorecard');
     const sheet = await screen.findByRole('dialog', { name: 'Scorecard: Phone screen' });
     const picker = within(sheet).getByRole('combobox', { name: 'Scorecard' });
     await within(sheet).findByRole('option', { name: 'Technical interview' });
@@ -376,10 +366,35 @@ describe('workflow builder', () => {
     vi.unstubAllGlobals();
   });
 
+  // An action repeated on every row belongs in the row's menu (L2): one More button per stage holds all three.
+  it("holds a stage's Edit automations, Choose scorecard and Remove stage in its row menu, and removes the stage without a confirm", async () => {
+    renderViews('editor');
+    const stages = screen.getByRole('region', { name: 'Stages' });
+    expect(within(stages).queryByRole('button', { name: /^(Edit automations|Choose scorecard|Remove)/ })).toBeNull();
+
+    await fireEvent.pointerDown(within(stages).getByRole('button', { name: 'Actions for Phone screen' }), { button: 0, pointerType: 'mouse' });
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Edit automations', 'Choose scorecard', 'Remove stage']);
+    // jsdom has no Web Animations, and a row leaving the list's `animate:flip` asks for its running ones (as in form-builder.test.ts).
+    Element.prototype.getAnimations = () => [];
+    try {
+      await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Remove stage' }));
+      await vi.waitFor(() => expect(within(stages).queryByRole('group', { name: /Phone screen/ })).toBeNull());
+      // The menu button left with its row, so focus moves on to the next stage's rather than falling to the page.
+      await vi.waitFor(() => expect(within(stages).getByRole('button', { name: 'Actions for Hired' })).toHaveFocus());
+
+      await fireEvent.pointerDown(within(stages).getByRole('button', { name: 'Actions for Not progressing' }), { button: 0, pointerType: 'mouse' });
+      await fireEvent.click(await screen.findByRole('menuitem', { name: 'Remove stage' }));
+      await vi.waitFor(() => expect(within(stages).getByRole('button', { name: 'Add stage' })).toHaveFocus());
+    } finally {
+      delete (Element.prototype as Partial<Element>).getAnimations;
+    }
+  });
+
   it('says so, with a retry, when the scorecard library does not load', async () => {
     vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/scorecard-templates': () => new Response(null, { status: 500 }) })));
     renderViews('editor');
-    await stageAction('Phone screen', 'Choose scorecard');
+    await chooseStageAction('Phone screen', 'Choose scorecard');
     const sheet = await screen.findByRole('dialog', { name: 'Scorecard: Phone screen' });
 
     expect(await within(sheet).findByRole('alert')).toHaveTextContent('Could not load the scorecard library');

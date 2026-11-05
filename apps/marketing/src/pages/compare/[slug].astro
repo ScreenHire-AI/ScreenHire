@@ -33,7 +33,7 @@ const path = `${pages.compare.path}${comparison.id}/`;
   ]}
   jsonLd={data.faqs.length > 0 ? [faqPage(data.faqs)] : []}
 >
-  <PageHeader kicker={`Compare · ScreenHire and ${data.competitor}`} title={data.heading} lead={data.intro} />
+  <PageHeader kicker={`ScreenHire and ${data.competitor}`} title={data.heading} lead={data.intro} />
 
   <section aria-labelledby="table-title" class="mx-auto max-w-6xl px-6 pb-10">
     <h2 id="table-title" class="font-display text-3xl font-bold tracking-tight">Side by side</h2>
@@ -42,13 +42,13 @@ const path = `${pages.compare.path}${comparison.id}/`;
       features change, so check the sources below.
     </p>
     <div class="mt-5 overflow-x-auto rounded-xl border border-border bg-card">
-      <table class="w-full min-w-[640px] border-collapse text-left text-[15px]">
+      <table class="w-full min-w-[640px] border-collapse text-left text-base">
         <caption class="sr-only">{data.competitor} compared with ScreenHire</caption>
         <thead>
-          <tr class="border-b border-border font-mono text-xs tracking-[0.06em] text-muted-foreground uppercase">
-            <th scope="col" class="w-1/5 px-4 py-3 font-medium">Topic</th>
-            <th scope="col" class="px-4 py-3 font-medium">{data.competitor}</th>
-            <th scope="col" class="px-4 py-3 font-medium">ScreenHire</th>
+          <tr class="border-b border-border text-sm font-semibold text-muted-foreground">
+            <th scope="col" class="w-1/5 px-4 py-3">Topic</th>
+            <th scope="col" class="px-4 py-3">{data.competitor}</th>
+            <th scope="col" class="px-4 py-3">ScreenHire</th>
           </tr>
         </thead>
         <tbody>

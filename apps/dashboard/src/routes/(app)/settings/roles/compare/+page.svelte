@@ -36,9 +36,7 @@
 <TopBar crumbs={[{ label: 'Settings' }, { label: 'Roles', href: listHref }, { label: 'Compare roles' }]} back />
 
 <main>
-  <HeaderBand title="Compare roles" count={catalogue.isSuccess ? roles.length : undefined} countLabel="roles">
-    {#snippet details()}<span>Give each person the role with the least access they need.</span>{/snippet}
-  </HeaderBand>
+  <HeaderBand title="Compare roles" />
 
   <div class="flex flex-col gap-5 px-4 py-6 md:px-6">
     {#if catalogue.isError}
@@ -103,7 +101,8 @@
                         <td class="w-full max-w-0 min-w-56 px-3 text-muted-foreground"><TruncatedText text={permission.description} /></td>
                         {#each roles as role (roleKey(role))}
                           <td class="px-3 text-center">
-                            {#if has(role, permission)}Yes{:else}<span class="text-muted-foreground">No</span>{/if}
+                            <!-- A role without the permission is a blank cell, its No for screen readers only (L1): a column of No hid the Yes. -->
+                            {#if has(role, permission)}Yes{:else}<span class="sr-only">No</span>{/if}
                           </td>
                         {/each}
                       </tr>

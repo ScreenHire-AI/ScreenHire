@@ -7,6 +7,7 @@
     createGetOrganization,
     createUpdateCareersEmbedding,
     createUpdateOrganization,
+    getGetOrganizationHistoryQueryOptions,
     getGetOrganizationQueryKey,
   } from '@screenhire/api-client/svelte-query';
   import { DEFAULT_QUESTIONS_PER_PAGE, MAX_QUESTIONS_PER_PAGE, MIN_QUESTIONS_PER_PAGE } from '@screenhire/ui/questions/model';
@@ -18,6 +19,7 @@
   import { embedSnippet } from '#lib/embed-snippet.js';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import HistoryFact from '#lib/components/history-fact.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SummaryItem from '#lib/components/summary-item.svelte';
@@ -116,7 +118,12 @@
 <TopBar crumbs={[{ label: 'Settings' }, { label: 'Careers site' }]} />
 
 <main class="flex flex-col">
-  <HeaderBand title="Careers site" />
+  <HeaderBand title="Careers site">
+    <!-- What people edit here (questions per page, the sites that embed it) is the organization's, so its history (T6). -->
+    {#snippet actions()}
+      {#if detail}<HistoryFact value={detail.lastUpdated} name="Careers site" page={(before) => getGetOrganizationHistoryQueryOptions({ before })} />{/if}
+    {/snippet}
+  </HeaderBand>
 
   <SettingsMenu>
     <div class="flex w-full max-w-form flex-col gap-5">
@@ -172,7 +179,7 @@
         <Panel title="Embed on your website">
           <section aria-labelledby="embed-sites-heading" class="flex flex-col gap-3">
             <h3 id="embed-sites-heading" class="flex items-center gap-2 font-semibold">
-              Sites that can embed it <Badge variant="count">{detail.embedOrigins.length}</Badge>
+              Allowed sites <Badge variant="count">{detail.embedOrigins.length}</Badge>
             </h3>
             <TagList
               tags={detail.embedOrigins}
@@ -182,7 +189,7 @@
               maxlength={200}
               inputmode="url"
               missing="Enter the site's address first."
-              empty="No sites yet."
+              empty="No sites yet. Add one to get the embed code."
               busy={embedding.isPending}
               failure={embeddingFailure}
               onadd={(site) => saveSites([...detail.embedOrigins, site])}

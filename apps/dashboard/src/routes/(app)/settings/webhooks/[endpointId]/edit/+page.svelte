@@ -4,6 +4,7 @@
   import { useQueryClient } from '@tanstack/svelte-query';
   import { goto } from '$app/navigation';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import Notice from '#lib/components/notice.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
@@ -71,6 +72,10 @@
         <p class="sr-only" role="status">Loading the endpoint…</p>
       </Panel>
     {:else}
+      {#if !detail.enabled}
+        <!-- Saving leaves it off, and the page says so where someone is looking at the form (E3); Turn on is on the endpoint's page. -->
+        <Notice href={endpointHref} link="Turn it on there" class="mb-5">This endpoint is off. Saving does not turn it on.</Notice>
+      {/if}
       <WebhookEndpointForm endpoint={detail} submitLabel="Save" cancelHref={endpointHref} failure="Could not save the endpoint" onsave={save} />
     {/if}
   </div>

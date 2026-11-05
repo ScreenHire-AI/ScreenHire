@@ -63,11 +63,12 @@
   import { filterCounts, matchesFilter, templateFilters, templateKindViews, usedByLabel, type TemplateFilter, type TemplateKind } from '#lib/templates.js';
 
   // One tab of the Templates page (design system section 21): the list template's table panel (section 7). Its header
-  // holds the tab's one sentence and the search; under it the filters with their counts (T4), then a table that sorts
-  // every column (L2) and opens on Last updated, newest first, with the person's sort remembered per kind. The name is
-  // semibold with Built in after it for ScreenHire's own (W6, L1); a draft is the Draft badge in Version; Used by is a
-  // count; Last updated says who. Phones get list items with the Sort chip (section 8). Archived templates show only
-  // under Archived. The row menu is the page's: `menu` renders a row's items, and `hasMenu` says whether it has any.
+  // is its title and the search, with no sentence about the tab (W9); under it the filters with their counts (T4), then
+  // a table that sorts every column (L2) and opens on Last updated, newest first, with the person's sort remembered per
+  // kind. The name is semibold with Built in after it for ScreenHire's own (W6, L1); Version and Draft are their own
+  // columns; Used by is a count; Last updated says who. Phones get list items with the Sort chip (section 8) and the row
+  // menu. Archived templates show only under Archived. The row menu is the page's: `menu` renders a row's items, and
+  // `hasMenu` says whether it has any.
   let {
     kind,
     rows,
@@ -82,6 +83,7 @@
     message = '',
     failure = '',
     oncreate,
+    createHref,
   }: {
     kind: TemplateKind;
     rows: readonly TemplateRow[];
@@ -100,6 +102,8 @@
     failure?: string;
     /** Starts a new template of this kind, for a role that may; an empty list offers it (E1). */
     oncreate?: () => void;
+    /** The same, for a kind made on its own page (an email template): a link, because it opens another page (A5). */
+    createHref?: string;
   } = $props();
 
   const sidebar = Sidebar.useSidebar();
@@ -192,18 +196,14 @@
   }
 </script>
 
-<Panel label={view.noun} flush footer={message || failure ? footer : undefined}>
+<Panel title={view.noun} flush footer={message || failure ? footer : undefined}>
   {#snippet tools()}
-    <p class="min-w-0 flex-1 text-muted-foreground max-md:hidden"><TruncatedText text={view.sentence} /></p>
-    <SearchField bind:value={search} label={`Search ${view.noun.toLocaleLowerCase()}`} class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />
+    <SearchField bind:value={search} label={`Search ${view.noun.toLocaleLowerCase()}`} placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />
   {/snippet}
-
-  <!-- On a phone the sentence moves under the header, where it has the width to read whole. -->
-  <p class="border-b border-border-subtle px-4 py-2 text-muted-foreground md:hidden">{view.sentence}</p>
 
   <!-- The filters: one line that scrolls inside the panel rather than wrapping (F5), each with its count (T4). -->
   <div class="flex items-center gap-2 border-b border-border-subtle px-4.5 py-2 max-md:px-4">
-    <div class="min-w-0 flex-1 overflow-x-auto">
+    <div class="min-w-0 flex-1 overflow-x-auto [scrollbar-width:thin]">
       <div role="group" aria-label="Show" class="flex w-max gap-1">
         {#each templateFilters as option (option.value)}
           <Toggle size="lg" bind:pressed={() => filter === option.value, () => (filter = option.value)}>
@@ -241,6 +241,8 @@
       </Empty.Header>
       {#if filtering}
         <Empty.Content><Button variant="outline" size="lg" onclick={clearFilters}>Show all</Button></Empty.Content>
+      {:else if createHref}
+        <Empty.Content><Button variant="outline" size="lg" href={createHref}><PlusIcon aria-hidden="true" />New template</Button></Empty.Content>
       {:else if oncreate}
         <Empty.Content><Button variant="outline" size="lg" onclick={oncreate}><PlusIcon aria-hidden="true" />New template</Button></Empty.Content>
       {/if}
@@ -256,6 +258,8 @@
             {#if row.usage?.usedBy.length}<Badge variant="muted">Used by {usedByLabel(kind, row.usage.usedBy.length).toLocaleLowerCase()}</Badge>{/if}
             {#if row.draft}<StatusBadge status="draft" label={`Draft ${row.draft}`} quiet />{/if}
           {/snippet}
+          <!-- Duplicate and Archive live only on the row, so a phone gets the row's menu too (section 11, Table, list item). -->
+          {#snippet actions()}{#if hasMenu(row)}{@render menu(row)}{/if}{/snippet}
         </ListItem>
       {/each}
     </ul>
@@ -336,7 +340,8 @@
 
 {#snippet usedByCell(row: TemplateRow)}
   {#if row.usage}
-    <span class={row.usage.usedBy.length > 0 ? 'text-foreground' : ''}>{usedByLabel(kind, row.usage.usedBy.length)}</span>
+    <!-- Nothing uses it: the cell is blank and only a screen reader hears it (L1). -->
+    {#if row.usage.usedBy.length > 0}<span class="text-foreground">{usedByLabel(kind, row.usage.usedBy.length)}</span>{:else}<span class="sr-only">Not used</span>{/if}
   {:else if usagePending}
     <Skeleton class="h-4 w-16" />
   {/if}
@@ -354,7 +359,7 @@
 
 {#snippet versionCell(row: TemplateRow)}
   <!-- The newest published version; a template that was never published has none. -->
-  {#if row.published}<span class="text-foreground">{row.published}</span>{:else}<span class="text-muted-foreground">None</span>{/if}
+  {#if row.published}<span class="text-foreground">{row.published}</span>{:else}<span class="sr-only">Not published</span>{/if}
 {/snippet}
 
 {#snippet draftCell(row: TemplateRow)}

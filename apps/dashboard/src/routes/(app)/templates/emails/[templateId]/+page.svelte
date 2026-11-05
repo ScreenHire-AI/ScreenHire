@@ -103,7 +103,7 @@
   async function save(value: { name: string | null; subject: string; body: string }) {
     notice = '';
     await update.mutateAsync({ templateId: params.templateId, data: { subject: value.subject, body: value.body, name: value.name } });
-    notice = 'Saved.';
+    notice = 'Saved. Emails go out in this wording from now on.';
   }
 
   async function run(action: () => Promise<unknown>, done: string, failed: string) {

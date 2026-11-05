@@ -33,10 +33,10 @@ const { title, description, published, updated } = post.data;
   ]}
   jsonLd={[article({ type: 'BlogPosting', headline: title, description, path, datePublished: published, dateModified: updated }, site)]}
 >
-  <PageHeader kicker="Blog" title={title} lead={description}>
-    <p class="font-mono text-xs text-muted-foreground uppercase">
-      ScreenHire team · <time datetime={published}>{formatDate(published)}</time>
-      {updated && <> · updated <time datetime={updated}>{formatDate(updated)}</time></>}
+  <PageHeader title={title} lead={description}>
+    <p class="text-sm text-muted-foreground">
+      By the ScreenHire team on <time datetime={published}>{formatDate(published)}</time>.
+      {updated && <> Updated <time datetime={updated}>{formatDate(updated)}</time>.</>}
     </p>
   </PageHeader>
   <div class="mx-auto max-w-6xl px-6 pb-16">

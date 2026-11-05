@@ -2,8 +2,9 @@
   import { createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import type { DefinitionError, HiringWorkflow, StageKind } from '@screenhire/api-client';
   import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
+  import { tick } from 'svelte';
   import ArrowRightIcon from '~icons/lucide/arrow-right';
-  import ClipboardCheckIcon from '~icons/lucide/clipboard-check';
+  import ClipboardListIcon from '~icons/lucide/clipboard-list';
   import PlusIcon from '~icons/lucide/plus';
   import Trash2Icon from '~icons/lucide/trash-2';
   import ZapIcon from '~icons/lucide/zap';
@@ -34,7 +35,9 @@
 
   // The default builder view (workflow-engine.md §4): the stages in order, each with the automations that fire on it,
   // then a panel for the automations that belong to no one stage, full width under the stages (S7). Stages reorder with
-  // a grip (A7): drag it, open its Move menu, or press Space and the arrow keys (WCAG 2.5.7).
+  // a grip (A7): drag it, open its Move menu, or press Space and the arrow keys (WCAG 2.5.7). What each stage offers
+  // beyond its fields (Edit automations, Choose scorecard, Remove stage) is its row's menu, not a button repeated on
+  // every row.
   let {
     workflow = $bindable(),
     errors,
@@ -55,21 +58,29 @@
   const emailTemplates = createListEmailTemplates();
   const templateNames = $derived(emailTemplateNames(emailTemplates.data?.data.templates));
 
+  let root = $state<HTMLElement>();
+
+  // A sheet opens once the stage's menu has closed: opened from the item itself, it loses focus to the closing menu.
+  let sheetChosen: (() => void) | undefined;
+  function onMenuClosed() {
+    sheetChosen?.();
+    sheetChosen = undefined;
+  }
+
+  // The row and its menu button leave with the stage, so focus moves to the next stage's menu, or to Add stage after the last.
+  async function removeStage(index: number) {
+    workflow.stages = removeAt(workflow.stages, index);
+    await tick();
+    const next = root?.querySelectorAll<HTMLElement>('[data-stage-menu] button')[index];
+    (next ?? root?.querySelector<HTMLElement>('[data-stage-add]'))?.focus();
+  }
+
   const inLane = (stageId: string | null) => workflow.automations.filter((automation) => laneOf(automation) === stageId);
   const laneErrors = (stageId: string | null) =>
     workflow.automations.reduce(
       (count, automation, index) => count + (laneOf(automation) === stageId ? errorsUnder(errors, `automations[${index}]`).length : 0),
       0,
     );
-
-  // A stage's menu opens a sheet from an item. The sheet opens once the menu has closed and given focus back (MoreMenu's
-  // `onclosed`), so it can give it back in turn.
-  let chosen: (() => void) | null = null;
-  function afterMenu() {
-    const run = chosen;
-    chosen = null;
-    run?.();
-  }
 </script>
 
 {#snippet summaries(stageId: string | null)}
@@ -92,10 +103,10 @@
   {/if}
 {/snippet}
 
-<div class="flex flex-col gap-5">
+<div bind:this={root} class="flex flex-col gap-5">
   <Panel title="Stages" count={workflow.stages.length}>
     {#snippet actions()}
-      <Button variant="outline" onclick={() => (workflow.stages = [...workflow.stages, newStage(workflow)])}><PlusIcon aria-hidden="true" />Add stage</Button>
+      <Button data-stage-add variant="outline" onclick={() => (workflow.stages = [...workflow.stages, newStage(workflow)])}><PlusIcon aria-hidden="true" />Add stage</Button>
     {/snippet}
     <FieldErrors id="stages-errors" messages={errorsAt(errors, 'stages')} />
     <ReorderList
@@ -118,12 +129,13 @@
             </Hint>
           </span>
           <div class="flex min-w-0 flex-1 flex-col gap-3 pl-1">
-            <div class="grid items-end gap-2 @xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_7rem_auto]">
-              <label class={labelClass}>
+            <!-- Narrow, the fields stack and the menu shares the last one's line, so a stage gains no row of its own for it. -->
+            <div class="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2 @xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_7rem_auto]">
+              <label class={[labelClass, 'col-span-2 @xl:col-span-1']}>
                 Name
                 <Input bind:value={stage.name} maxlength={80} aria-invalid={stageErrors.length > 0 || undefined} />
               </label>
-              <label class={labelClass}>
+              <label class={[labelClass, 'col-span-2 @xl:col-span-1']}>
                 Kind
                 <select class={selectClass} value={stage.kind} onchange={(event) => (stage.kind = event.currentTarget.value as StageKind)}>
                   {#each stageKinds as kind (kind)}<option value={kind}>{stageKindLabels[kind]}</option>{/each}
@@ -144,28 +156,22 @@
                   />
                 </label>
               {:else}<span class="hidden @xl:block"></span>{/if}
-              <!-- What can be done to this stage, once, so no button repeats down the list (L3). Removing a stage changes
-                   nothing until Save, so it does not confirm (section 10). -->
-              <div class="flex shrink-0 justify-end">
-                <MoreMenu label={`Actions for ${stage.name}`} size="icon" quiet onclosed={afterMenu}>
-                  <DropdownMenu.Item onSelect={() => (chosen = () => onopen(stage.id))}><ZapIcon aria-hidden="true" />Edit automations</DropdownMenu.Item>
+              <div data-stage-menu class="col-start-2 flex shrink-0 justify-end @xl:col-start-auto">
+                <MoreMenu label={`Actions for ${stage.name}`} size="icon-lg" quiet onclosed={onMenuClosed}>
+                  <DropdownMenu.Item onSelect={() => (sheetChosen = () => onopen(stage.id))}><ZapIcon aria-hidden="true" />Edit automations</DropdownMenu.Item>
                   <!-- A stage that ends the application has no scorecard (A3); one left from another kind still shows, to remove. -->
                   {#if !isTerminal(stage.kind) || stage.scorecard || stage.scorecardTemplateId}
-                    <DropdownMenu.Item onSelect={() => (chosen = () => onscorecard(index))}>
-                      <ClipboardCheckIcon aria-hidden="true" />{stage.scorecard || stage.scorecardTemplateId ? 'Change scorecard' : 'Choose scorecard'}
-                    </DropdownMenu.Item>
+                    <DropdownMenu.Item onSelect={() => (sheetChosen = () => onscorecard(index))}><ClipboardListIcon aria-hidden="true" />Choose scorecard</DropdownMenu.Item>
                   {/if}
-                  <DropdownMenu.Separator />
-                  <DropdownMenu.Item variant="destructive" onSelect={() => (workflow.stages = removeAt(workflow.stages, index))}>
-                    <Trash2Icon aria-hidden="true" />Remove stage
-                  </DropdownMenu.Item>
+                  <!-- Nothing changes until Save, so removing a stage from the draft does not confirm (section 10). -->
+                  <DropdownMenu.Item onSelect={() => removeStage(index)}><Trash2Icon aria-hidden="true" />Remove stage</DropdownMenu.Item>
                 </MoreMenu>
               </div>
             </div>
             <FieldErrors id={`stage-${index}-errors`} messages={stageErrors} />
             {@render summaries(stage.id)}
             {#if (stage.scorecard || stage.scorecardTemplateId) && !isTerminal(stage.kind)}
-              <p class="flex items-center gap-1.5 text-muted-foreground"><ClipboardCheckIcon aria-hidden="true" /><span><span class="sr-only">Scorecard:</span>{' '}<ScorecardName {stage} /></span></p>
+              <p class="flex items-center gap-1.5 text-muted-foreground"><ClipboardListIcon aria-hidden="true" /><span><span class="sr-only">Scorecard:</span>{' '}<ScorecardName {stage} /></span></p>
             {/if}
           </div>
         </div>

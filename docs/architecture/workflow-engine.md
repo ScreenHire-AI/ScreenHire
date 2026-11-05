@@ -758,8 +758,9 @@ evaluator for one trigger and lists each triggered automation's outcome, rule re
   because a signal fired would act on the signal as a finding about them (ADR-0004 lists route, tag, assign and
   request verification).
 - The Data Protection key ring moved to Postgres for the API too, so its sign-in cookies, antiforgery tokens and
-  telemetry sessions survive a restart. The keys are stored as Data Protection writes them; production should protect
-  them at rest (status.md, owner actions).
+  telemetry sessions survive a restart. The keys are stored as Data Protection writes them unless
+  `ScreenHire:DataProtection:KeyVaultKeyUri` names a Key Vault key that wraps them, which a production host requires
+  ([deploy](../operations/deploy.md)).
 
 ## Open questions
 

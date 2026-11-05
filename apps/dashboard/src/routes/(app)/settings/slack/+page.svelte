@@ -233,7 +233,7 @@
         {#if current.workspace}
           <Panel title="Workspace">
             <SummaryList>
-              <SummaryItem label="Workspace"><TruncatedText text={current.workspace.teamName} /></SummaryItem>
+              <SummaryItem label="Name"><TruncatedText text={current.workspace.teamName} /></SummaryItem>
               <SummaryItem label="Added"><RelativeTime at={settings.connectedAt} />{settings.connectedBy ? ` by ${settings.connectedBy}` : ''}</SummaryItem>
             </SummaryList>
           </Panel>
@@ -242,10 +242,6 @@
         <form method="POST" use:enhance novalidate aria-label="Channel">
           <Panel title="Channel">
             <div class="flex flex-col gap-5">
-              <p class="max-w-measure text-muted-foreground">
-                Everyone in the channel sees these, whatever jobs they are on. Verification results stay in ScreenHire.
-              </p>
-
               <Field.Field data-invalid={$errors.channelId ? true : undefined}>
                 <span class="sr-only" id="slack-channel-label">Channel</span>
                 <div class="flex min-w-0 flex-wrap items-center gap-3" aria-labelledby="slack-channel-label" role="group">
@@ -274,6 +270,8 @@
                     {option.label}
                   </label>
                 {/each}
+                <!-- How far a post reaches: the channel, not the job's hiring team. It sits with the events it is about. -->
+                <p class="mt-1 text-muted-foreground">Everyone in the channel sees these, whatever jobs they are on. Verification results stay in ScreenHire.</p>
               </fieldset>
             </div>
             {#snippet footer()}

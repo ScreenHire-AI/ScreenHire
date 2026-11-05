@@ -59,8 +59,11 @@
 
   <SettingsMenu>
     <Panel title="Connect a client">
+      <!-- The key it signs in with is made on API keys, so that page's own action is the one in this header (A5). -->
+      {#snippet actions()}
+        <a href="/settings/api-keys" class={buttonVariants({ variant: 'outline' })}><KeyRoundIcon aria-hidden="true" />Create a key</a>
+      {/snippet}
       <div class="flex flex-col gap-4">
-        <p class="max-w-measure">Any MCP client can work in ScreenHire with an API key. It sees verification results only through a key an owner gave the Verification read scope.</p>
         <SummaryList>
           <SummaryItem label="Server URL">
             {#if serverUrl}
@@ -72,13 +75,13 @@
           <SummaryItem label="Transport">Streamable HTTP</SummaryItem>
           <SummaryItem label="Header"><span class="font-mono text-code break-all">Authorization: Bearer &lt;API key&gt;</span></SummaryItem>
           <SummaryItem label="Access">Read only, or read and write, as the key allows</SummaryItem>
-          <SummaryItem label="Tools">
+          <SummaryItem label="Tools" count={tools.length}>
             <ul aria-label="Tools" class="flex flex-wrap gap-1.5">
               {#each tools as tool (tool)}<li><Badge variant="muted">{tool}</Badge></li>{/each}
             </ul>
           </SummaryItem>
-          <SummaryItem label="With Verification read">
-            <ul aria-label="With Verification read" class="flex flex-wrap gap-1.5">
+          <SummaryItem label="Also with Verification read" count={verificationTools.length}>
+            <ul aria-label="Also with Verification read" class="flex flex-wrap gap-1.5">
               {#each verificationTools as tool (tool)}<li><Badge variant="muted">{tool}</Badge></li>{/each}
             </ul>
           </SummaryItem>
@@ -86,9 +89,6 @@
         {#if serverUrl}
           <CodeBlock code={config(serverUrl)} label="Example client configuration" />
         {/if}
-        <div>
-          <a href="/settings/api-keys" class={buttonVariants({ variant: 'outline', size: 'lg' })}><KeyRoundIcon aria-hidden="true" />Create a key</a>
-        </div>
       </div>
     </Panel>
   </SettingsMenu>

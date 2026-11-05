@@ -22,9 +22,9 @@ const embed = embedOf(Astro.locals);
       We check applications for bots and impersonation. Those checks never reject anyone, and a person looks at anything
       they flag.
     </p>
-    <div class="grid gap-3 text-[13.5px] sm:grid-cols-2">
+    <div class="grid gap-3 text-candidate-hint sm:grid-cols-2">
       <div class="flex flex-col gap-1">
-        <h3 class="font-mono text-[11px] font-semibold tracking-wide text-candidate-muted-foreground">WE LOOK AT</h3>
+        <h3 class="text-candidate-hint font-bold text-candidate-foreground">What we look at</h3>
         <ul class="flex flex-col gap-1">
           <li class="flex gap-2"><svg aria-hidden="true" class="mt-1 size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>What you send: your details, answers and files</li>
           <li class="flex gap-2"><svg aria-hidden="true" class="mt-1 size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>Signs that a bot filled in the form</li>
@@ -33,7 +33,7 @@ const embed = embedOf(Astro.locals);
         </ul>
       </div>
       <div class="flex flex-col gap-1">
-        <h3 class="font-mono text-[11px] font-semibold tracking-wide text-candidate-muted-foreground">WE NEVER</h3>
+        <h3 class="text-candidate-hint font-bold text-candidate-foreground">What we never do</h3>
         <ul class="flex flex-col gap-1">
           <li class="flex gap-2"><svg aria-hidden="true" class="mt-1 size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Record what you type or which keys you press</li>
           <li class="flex gap-2"><svg aria-hidden="true" class="mt-1 size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>See your other tabs or apps</li>
@@ -42,15 +42,15 @@ const embed = embedOf(Astro.locals);
         </ul>
       </div>
     </div>
-    <a href={withEmbed(`${base}/privacy`, embed)} class="text-sm font-semibold text-candidate-foreground underline underline-offset-2">What we collect and why</a>
+    <a href={withEmbed(`${base}/privacy`, embed)} class="inline-flex min-h-11 w-fit items-center text-candidate-body font-semibold text-candidate-foreground underline underline-offset-2">What we collect and why</a>
   </div>
   {
     withSwitch && (
       <div class="border-t border-candidate-border bg-candidate-background px-4 py-3">
-        <label class="flex min-h-11 cursor-pointer items-center justify-between gap-3">
+        <label class="flex min-h-11 items-center justify-between gap-3">
           <span class="flex flex-col">
             <span class="text-sm font-semibold">I use dictation, a screen reader or other assistive technology</span>
-            <span id="assistive-hint" class="text-[13px] text-candidate-muted-foreground">
+            <span id="assistive-hint" class="text-candidate-hint text-candidate-muted-foreground">
               We switch off any checks on how you type, paste or how long you take. This is never held against you.
             </span>
           </span>

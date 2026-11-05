@@ -1,0 +1,23 @@
+# The build context for apps/careers/Dockerfile is the repository root; keep it to what the image needs.
+**/node_modules
+**/bin
+**/obj
+**/dist
+**/build
+**/.astro
+**/.svelte-kit
+.git
+.kangentic
+.claude
+.github
+.azure
+docs
+tests
+infra
+src
+apps/api
+apps/worker
+apps/apphost
+apps/migrator
+TestResults
+*.md

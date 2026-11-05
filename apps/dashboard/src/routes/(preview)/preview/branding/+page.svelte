@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state';
   import BrandingPreview, { type BrandingDraft } from '#lib/components/branding-preview.svelte';
+  import PreviewPending from '#lib/components/preview-pending.svelte';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { createPreviewSink } from '#lib/preview-window.svelte.js';
 
@@ -11,7 +12,7 @@
 </script>
 
 <svelte:head>
-  <title>Preview · ScreenHire</title>
+  <title>Branding preview · ScreenHire</title>
 </svelte:head>
 
 <main class="min-h-screen bg-background p-4">
@@ -22,10 +23,11 @@
   {#if sink.value}
     <BrandingPreview draft={sink.value} headingLevel={2} />
   {:else}
-    <div class="flex flex-col gap-4" aria-hidden="true">
-      <Skeleton class="h-40 w-full" />
-      <Skeleton class="h-24 w-full" />
-    </div>
-    <p role="status" class="sr-only">Loading the preview</p>
+    <PreviewPending orphaned={sink.orphaned}>
+      <div class="flex flex-col gap-4" aria-hidden="true">
+        <Skeleton class="h-40 w-full" />
+        <Skeleton class="h-24 w-full" />
+      </div>
+    </PreviewPending>
   {/if}
 </main>

@@ -159,7 +159,9 @@ describe('API keys page', () => {
     const verification = within(dialog).getByRole('switch', { name: 'Verification read' });
 
     expect(verification).toBeEnabled();
-    expect(screen.getByText(/recorded in the application's review log/)).toBeInTheDocument();
+    expect(screen.getByText(/every read goes in the application's review log/)).toBeInTheDocument();
+    // ADR-0021: where the scope is given, an Owner hears what it must not be used for.
+    expect(screen.getByText(/A level is never a reason to reject on its own/)).toBeInTheDocument();
     await fireEvent.input(within(dialog).getByLabelText('Name'), { target: { value: 'Auditor' } });
     await fireEvent.click(verification);
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Create key' }));
@@ -190,21 +192,21 @@ describe('API keys page', () => {
     expect(within(dialog).getByText('Only an owner can give a key Verification read.')).toBeInTheDocument();
   });
 
-  it('shows on a key that it has the scope and what the scope opens, and keeps its access words short', async () => {
+  it('shows in the Access column that a key has the scope, with no second line under its name', async () => {
     renderPage([key('k5', 'Auditor', { scopes: ['Read', 'VerificationRead'] }), key('k6', 'Payroll sync', { scopes: ['Read', 'Write'] })]);
 
-    expect((await screen.findAllByText('Verification read. Opens verification levels, reasons and evidence.')).length).toBe(2);
-    expect(screen.getAllByText('Read only').length).toBeGreaterThan(0);
-    expect(screen.queryByText(/with verification/)).not.toBeInTheDocument();
+    expect((await screen.findAllByText('Read only and Verification read')).length).toBe(2);
+    expect(screen.getAllByText('Read and write').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Opens verification levels/)).not.toBeInTheDocument();
     await expectNoAxeViolations();
   });
 
-  it('says nothing of the scope on a key without it, and says a revoked key had it without saying it opens anything', async () => {
+  it('keeps the words a revoked key had, beside its Revoked status', async () => {
     renderPage([syncKey, key('k7', 'Old auditor', { scopes: ['Read', 'VerificationRead'], revokedAt: '2026-10-10T09:00:00Z' })]);
     await screen.findAllByText('Payroll sync');
 
-    expect(screen.getAllByText('Had Verification read.').length).toBe(2);
-    expect(screen.queryByText(/^Verification read\. Opens/)).not.toBeInTheDocument();
+    expect(screen.getAllByText('Read only and Verification read').length).toBe(2);
+    expect(screen.getAllByText('Revoked').length).toBeGreaterThan(0);
   });
 
   it('shows the new token once, with Copy, and forgets it after Done', async () => {

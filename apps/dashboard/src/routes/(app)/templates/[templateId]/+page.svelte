@@ -158,7 +158,7 @@
     failure = '';
     try {
       await publish.mutateAsync({ templateId: params.templateId, version: current.version });
-      notice = `Published version ${current.version}.`;
+      notice = `Published version ${current.version}. Jobs created from now on start from it.`;
     } catch (error) {
       failure = draft.failed(error, 'Could not publish');
     }

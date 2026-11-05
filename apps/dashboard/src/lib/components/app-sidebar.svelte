@@ -279,7 +279,7 @@
                 <Sidebar.MenuButton
                   {...props}
                   size="lg"
-                  tooltipContent={user.organization ? `${user.displayName}, ${user.organization.name}` : user.displayName}
+                  tooltipContent={user.organization ? `${user.displayName}, ${user.organization.roleName}` : user.displayName}
                   tooltipContentProps={{ hidden: !rail && !cut.has('user') && !cut.has('user-organization') }}
                 >
                   <span
@@ -289,7 +289,8 @@
                   >
                   <span class="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:sr-only">
                     <span {@attach truncation('user')} class="truncate font-semibold text-sidebar-foreground">{user.displayName}</span>
-                    <span {@attach truncation('user-organization')} class="truncate text-caption text-muted-foreground">{user.organization?.name}</span>
+                    <!-- The role, not the organization: the workspace above already names it (W7). -->
+                    <span {@attach truncation('user-organization')} class="truncate text-caption text-muted-foreground">{user.organization?.roleName}</span>
                   </span>
                 </Sidebar.MenuButton>
               {/snippet}

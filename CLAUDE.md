@@ -10,8 +10,10 @@ subsystem.
 
 | Path | What |
 |---|---|
-| `.github` | GitHub Actions: `workflows/ci.yml` (the gate's suites on Linux) and the shared toolchain setup, `actions/setup` |
-| `apps/apphost` | .NET Aspire AppHost — runs the whole stack locally |
+| `.github` | GitHub Actions: `workflows/ci.yml` (the gate's suites on Linux, and the `infra` job that regenerates the Azure Bicep) and the shared toolchain setup, `actions/setup` |
+| `infra` | The Azure Bicep that `dotnet aspire publish` generates from the AppHost's publish model (`apps/apphost/AzurePublish.cs`), with `azure.yaml` at the root for `azd`. Generated: never edit it, regenerate it ([`docs/operations/deploy.md`](docs/operations/deploy.md)) |
+| `apps/apphost` | .NET Aspire AppHost — runs the whole stack locally; in publish mode (`dotnet aspire publish`) it builds the Azure model in `AzurePublish.cs` |
+| `apps/migrator` | Console app run for a deployment, with the database owner's login: applies the EF migrations, gives `screenhire_app` its login and creates Wolverine's tables. The API and worker never hold that login |
 | `apps/api` | ASP.NET Core minimal API (`Endpoints/*`, `Contracts/*`), the SignalR hub (`Realtime/*`, `/v1/hubs/events`) and the MCP server for AI assistants (`Mcp/*`, `/v1/mcp`, [`docs/architecture/mcp-server.md`](docs/architecture/mcp-server.md)); emits `packages/api-client/openapi.json` at build |
 | `apps/worker` | .NET worker: hosts the Wolverine handlers, durability agent and cron schedules |
 | `apps/careers` | Astro 7 SSR (Node) — tenant careers pages + apply flow ([`docs/architecture/apply-flow.md`](docs/architecture/apply-flow.md)) |
@@ -106,6 +108,9 @@ subsystem.
   runs it for a pull request that changes the marketing build, and `/pull-request` reports the result without
   blocking on it until the budgets are calibrated on the runners. Locally, run it with paths while you work on a page;
   only one run measures at a time on the machine (the next one waits).
+- After changing the AppHost's publish model (`apps/apphost/AzurePublish.cs`): regenerate `infra/` with
+  `rm -rf infra && dotnet aspire publish --apphost apps/apphost/ScreenHire.AppHost.csproj --output-path infra --non-interactive` and
+  commit it; CI's `infra` job fails when it differs. Deploying is the owner's, from [`docs/operations/deploy.md`](docs/operations/deploy.md).
 - After changing an endpoint or contract: `pnpm generate:api` and commit `openapi.json` + `src/generated`.
 - After changing code a doc describes: `node scripts/docs-bundle.mjs sources <file>` names the docs whose `sources:`
   list it (`/sync-docs`). A new or changed doc keeps its frontmatter and its line in the folder's `index.md` in step;

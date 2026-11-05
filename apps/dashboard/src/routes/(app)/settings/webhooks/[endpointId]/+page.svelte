@@ -33,7 +33,6 @@
   import Fact from '#lib/components/fact.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
-  import IconButton from '#lib/components/icon-button.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Notice from '#lib/components/notice.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -349,12 +348,13 @@
   <StatusBadge status={status.status} label={status.label} quiet={!needsAttention(status.status)} />
 {/snippet}
 
-<!-- The API refuses a replay while the event is still being tried, or while the endpoint is off. -->
+<!-- The API refuses a replay while the event is still being tried, or while the endpoint is off. Replay is the row's one
+     action, so it is in the row's menu like every list's row actions (L1), not a button repeated down the log. -->
 {#snippet replayButton(delivery: WebhookDeliveryEntry)}
   {#if detail?.enabled && delivery.status !== 'Pending'}
-    <IconButton label={`Replay the ${delivery.eventType} delivery`} disabled={replay.isPending} onclick={() => replayDelivery(delivery)}>
-      <RotateCcwIcon aria-hidden="true" />
-    </IconButton>
+    <MoreMenu label={`Actions for the ${eventLabel(delivery.eventType)} delivery`} size="icon" quiet>
+      <DropdownMenu.Item disabled={replay.isPending} onSelect={() => replayDelivery(delivery)}><RotateCcwIcon aria-hidden="true" />Replay delivery</DropdownMenu.Item>
+    </MoreMenu>
   {/if}
 {/snippet}
 

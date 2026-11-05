@@ -24,6 +24,7 @@
   import SortHeader from '#lib/components/sort-header.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import * as Table from '#lib/components/ui/table/index.js';
+  import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import type { TableSort } from '#lib/preferences.svelte.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
@@ -65,6 +66,10 @@
   } = $props();
 
   let view = $state<'chart' | 'table'>('chart');
+  const views = [
+    { id: 'chart', label: 'Chart', icon: ChartBarIcon },
+    { id: 'table', label: 'Table', icon: TableIcon },
+  ] as const;
 
   const features = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: { basic: sortFn_basic, alphanumeric: sortFn_alphanumeric } });
   // `any`: each column's value type differs.
@@ -97,8 +102,20 @@
   {#snippet actions()}
     {#if chart}
       <div role="group" aria-label="View" class="flex gap-1">
-        <Toggle bind:pressed={() => view === 'chart', () => (view = 'chart')}><ChartBarIcon aria-hidden="true" />Chart</Toggle>
-        <Toggle bind:pressed={() => view === 'table', () => (view = 'table')}><TableIcon aria-hidden="true" />Table</Toggle>
+        <!-- In a narrow panel only the icons show, so the title keeps its room instead of ending in an ellipsis; the word stays
+             for screen readers and in the tooltip (A4, F4). -->
+        {#each views as option (option.id)}
+          <Tooltip.Root>
+            <Tooltip.Trigger>
+              {#snippet child({ props })}
+                <Toggle {...props} bind:pressed={() => view === option.id, () => (view = option.id)}>
+                  <option.icon aria-hidden="true" /><span class="@max-sm/panel:sr-only">{option.label}</span>
+                </Toggle>
+              {/snippet}
+            </Tooltip.Trigger>
+            <Tooltip.Content>{option.label}</Tooltip.Content>
+          </Tooltip.Root>
+        {/each}
       </div>
     {/if}
   {/snippet}

@@ -28,7 +28,7 @@ const jobTitle = jobResponse.status === 200 ? jobResponse.data.title : null;
   noindex
 >
   <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">Application sent</h1>
-  <p class="mt-3 text-[15px]">
+  <p class="mt-3 text-candidate-body">
     Thank you for applying{jobTitle && <> for <strong>{jobTitle}</strong></>} at {employer.name}. We have your application.
   </p>
 
@@ -37,7 +37,7 @@ const jobTitle = jobResponse.status === 200 ? jobResponse.data.title : null;
     <ul class="mt-1.5 flex list-disc flex-col gap-1 pl-5 text-sm">
       <li>A person at {employer.name} reads your application. No software makes a decision about you.</li>
       <li>{employer.name} contacts you by email about next steps.</li>
-      <li>If anything we checked needs a closer look, a person decides what to do, and you can ask for a human review.</li>
+      <li>You can ask {employer.name} to show, correct or delete your information, or to have a person review your application. Use the address they write to you from.</li>
     </ul>
   </section>
 

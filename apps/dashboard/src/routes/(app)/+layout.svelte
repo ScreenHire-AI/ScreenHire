@@ -2,6 +2,7 @@
   import { getApplication, listAutomationRuns, listTeamMembers } from '@screenhire/api-client';
   import {
     createGetCalendar,
+    createGetOrganizationSendingDomain,
     createGetSlack,
     createListApplications,
     createListJobs,
@@ -30,6 +31,7 @@
   import { createQueryClient } from '#lib/query.js';
   import { startLiveUpdates } from '#lib/realtime.js';
   import { sidebarViews } from '#lib/sidebar-views.js';
+  import { can } from '#lib/permissions.js';
   import { slackFeature } from '#lib/settings.js';
   import { sections, setShell } from '#lib/shell.js';
   import { createChordHandler } from '#lib/shortcuts.js';
@@ -151,7 +153,11 @@
     },
     openCalendar: () => (calendarOpen = true),
     live: () => live.connection.status,
-    features: () => ({ slack: slackFeature(slack.data?.data, slack.isError) }),
+    features: () => ({
+      slack: slackFeature(slack.data?.data, slack.isError),
+      // A failed query says nothing about the feature, so the entry stays and the page reports the failure.
+      sendingDomain: sendingDomain.data?.data.available,
+    }),
   });
 
   const chords = createChordHandler(Object.fromEntries(sections.map((section) => [section.key, section.href])), (href) => void goto(href));
@@ -187,6 +193,11 @@
 
   // Slack, for the Slack account item in each person's menu (docs/architecture/slack.md); it changes rarely.
   const slack = createGetSlack(() => ({ query: { enabled: Boolean(data.user?.organization), staleTime: 60_000 } }));
+  // Whether this installation can send from a company's own domain, for Settings' entry (A3). Only a person who edits settings
+  // may ask; anyone else never sees the entry, so the API's refusal is no answer about the feature.
+  const sendingDomain = createGetOrganizationSendingDomain(() => ({
+    query: { enabled: can(data.user, 'EditSettings'), staleTime: 60_000 },
+  }));
   // The person's calendar, for the Calendar item in their menu (docs/architecture/interview-scheduling.md); it changes rarely.
   const calendar = createGetCalendar(() => ({ query: { enabled: Boolean(data.user?.organization), staleTime: 60_000 } }));
 

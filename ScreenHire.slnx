@@ -6,6 +6,9 @@
   <Folder Name="/apps/apphost/">
     <Project Path="apps/apphost/ScreenHire.AppHost.csproj" />
   </Folder>
+  <Folder Name="/apps/migrator/">
+    <Project Path="apps/migrator/ScreenHire.Migrator.csproj" />
+  </Folder>
   <Folder Name="/apps/worker/">
     <Project Path="apps/worker/ScreenHire.Worker.csproj" />
   </Folder>

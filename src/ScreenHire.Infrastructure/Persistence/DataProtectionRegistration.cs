@@ -1,3 +1,4 @@
+using Azure.Identity;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +14,9 @@ public static class DataProtectionRegistration
     /// </summary>
     public const string ApplicationName = "ScreenHire";
 
+    /// <summary>The Key Vault key that wraps the key ring, e.g. <c>https://{vault}.vault.azure.net/keys/data-protection</c>.</summary>
+    public const string KeyVaultKeyUriSetting = "ScreenHire:DataProtection:KeyVaultKeyUri";
+
     /// <summary>
     /// One ASP.NET Core Data Protection key ring for the API and the worker, kept in Postgres
     /// (<see cref="ScreenHireDbContext.DataProtectionKeys"/>). The worker signs the follow-up questionnaire links it emails
@@ -20,8 +24,9 @@ public static class DataProtectionRegistration
     /// same ring, so they survive a restart and work on every API instance.
     /// </summary>
     /// <remarks>
-    /// The keys are stored unencrypted, as on a file system. Production should also protect them at rest with a key
-    /// vault or certificate (<c>ProtectKeysWith...</c>), an owner action in workflow-engine.md §8.
+    /// The keys are stored unencrypted unless <c>ScreenHire:DataProtection:KeyVaultKeyUri</c> names a Key Vault key, which
+    /// wraps them at rest (docs/operations/deploy.md). The host signs in to Key Vault as its managed identity, which needs
+    /// the Key Vault Crypto User role. Production hosts refuse to start without the setting (<c>ProductionSettings</c>).
     /// </remarks>
     public static TBuilder AddScreenHireDataProtection<TBuilder>(this TBuilder builder)
         where TBuilder : IHostApplicationBuilder
@@ -34,6 +39,11 @@ public static class DataProtectionRegistration
         if (builder.Configuration.GetConnectionString(DatabaseRegistration.AppConnectionName) is { Length: > 0 })
         {
             dataProtection.PersistKeysToDbContext<ScreenHireDbContext>();
+        }
+
+        if (builder.Configuration[KeyVaultKeyUriSetting] is { Length: > 0 } keyUri)
+        {
+            dataProtection.ProtectKeysWithAzureKeyVault(new Uri(keyUri), new DefaultAzureCredential());
         }
 
         return builder;

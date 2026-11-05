@@ -261,7 +261,8 @@
 
   {#if mode === 'preview'}
     <section aria-labelledby={`${id}-preview`} class="flex min-w-0 flex-col gap-2">
-      <h3 id={`${id}-preview`} class="text-heading">{recipients.length === 1 ? 'Preview' : `Preview for ${first?.candidateName ?? ''}`}</h3>
+      <!-- The switch already says Preview (W7): one recipient's heading is for screen readers, a selection names whose email it shows. -->
+      <h3 id={`${id}-preview`} class={cn('text-heading', recipients.length === 1 && 'sr-only')}>{recipients.length === 1 ? 'Preview' : `Preview for ${first?.candidateName ?? ''}`}</h3>
       <EmailPreview {preview} failure={previewFailure} />
     </section>
   {/if}

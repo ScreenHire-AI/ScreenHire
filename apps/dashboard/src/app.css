@@ -14,8 +14,7 @@
   html {
     font-family: var(--sh-font-body);
     -webkit-font-smoothing: antialiased;
-    /* Room for the page scrollbar whether or not this page scrolls, so moving between sibling pages and tabs never
-       narrows the header band by 15px when one of them is taller than the window (S8). */
+    /* A page that scrolls lines up with one that does not (S8). The bits-ui scroll lock sees this and adds no padding. */
     scrollbar-gutter: stable;
   }
 

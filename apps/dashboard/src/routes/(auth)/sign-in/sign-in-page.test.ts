@@ -45,6 +45,20 @@ describe('sign-in page', () => {
     expect(screen.queryByRole('region', { name: 'Single sign-on' })).not.toBeInTheDocument();
   });
 
+  it('sends another link from the same address: back to the form with the email still in it', async () => {
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>(async () => new Response(null, { status: 202 })));
+    show(data());
+    await fireEvent.input(screen.getByLabelText('Work email'), { target: { value: 'avery@example.com' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Email me a sign-in link' }));
+    await screen.findByRole('heading', { level: 1, name: 'Check your email' });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Send another link' }));
+
+    const email = await screen.findByLabelText('Work email');
+    expect(email).toHaveValue('avery@example.com');
+    await vi.waitFor(() => expect(email).toHaveFocus());
+  });
+
   it('offers each configured provider, returning to where the visitor was going', () => {
     show(data());
 

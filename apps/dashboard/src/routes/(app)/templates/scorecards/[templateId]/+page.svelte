@@ -137,7 +137,7 @@
     try {
       const response = await update.mutateAsync({ templateId: params.templateId, data: { name: name.trim(), questions } });
       load(response.data);
-      notice = 'Saved.';
+      notice = 'Saved. Jobs created from now on use these questions.';
     } catch (error) {
       mode = 'edit';
       if (error instanceof ApiError && error.status === 400) {

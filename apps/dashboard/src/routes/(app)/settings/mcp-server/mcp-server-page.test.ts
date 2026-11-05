@@ -15,13 +15,16 @@ describe('MCP server page', () => {
     render(WithQueryClient, { props: { component: Page, props: {} } });
 
     const tools = await screen.findByRole('list', { name: 'Tools' });
-    const verification = screen.getByRole('list', { name: 'With Verification read' });
+    const verification = screen.getByRole('list', { name: 'Also with Verification read' });
 
     expect(within(tools).getAllByRole('listitem')).toHaveLength(10);
     expect(within(tools).getByText('Read the hiring report')).toBeInTheDocument();
     expect(within(tools).getByText('List saved candidates')).toBeInTheDocument();
     expect(within(tools).queryByText(/verification/i)).not.toBeInTheDocument();
     expect(within(verification).getAllByRole('listitem')).toHaveLength(2);
+    // Each list says how many it holds, in the count badge after its label (T4).
+    expect(screen.getByText('Tools').closest('dt')).toHaveTextContent('Tools10');
+    expect(screen.getByText('Also with Verification read').closest('dt')).toHaveTextContent('Also with Verification read2');
     await expectNoAxeViolations();
   });
 });

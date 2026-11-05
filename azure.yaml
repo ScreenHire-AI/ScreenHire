@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+# The Azure Developer CLI (azd) project for ScreenHire (ADR-0007, docs/operations/deploy.md). azd reads the AppHost's
+# publish model (apps/apphost/AzurePublish.cs): the API, the worker and the careers site as Container Apps, with the
+# PostgreSQL server, Blob Storage and Key Vault they use. infra/ holds the Bicep that `dotnet aspire publish` generates
+# from the same model; the infra CI job keeps it current. Nothing here is deployed by a task: the owner runs it.
+name: screenhire
+services:
+  app:
+    language: dotnet
+    project: ./apps/apphost/ScreenHire.AppHost.csproj
+    host: containerapp
