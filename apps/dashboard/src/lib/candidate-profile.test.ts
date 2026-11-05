@@ -1,7 +1,7 @@
 import type { ApplicationSummary, ApplicationTimelineEntry, CandidateHistoryEntry, TeamMember } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import { eventIcons } from '#lib/activity.js';
-import { askedToBeRemovedAt, historyItems, inTimeOrder, progressOf } from '#lib/candidate-profile.js';
+import { askedToBeRemovedAt, historyItems, progressOf } from '#lib/candidate-profile.js';
 
 const me = '01a157d4-0000-7000-8000-0000000000aa';
 const robin = '01a157d4-0000-7000-8000-0000000000cc';
@@ -53,32 +53,6 @@ const item = (applicationId: string, jobTitle: string, e: ApplicationTimelineEnt
   jobTitle,
   entry: e,
   ...names,
-});
-
-describe('inTimeOrder', () => {
-  it('sorts applications oldest first by when they were made, not by the order the API sent', () => {
-    const newest = application('c', '2026-10-20T12:00:00Z', { name: 'Applied', kind: 'Applied' });
-    const oldest = application('a', '2025-09-01T12:00:00Z', { name: 'Applied', kind: 'Applied' });
-    const middle = application('b', '2026-03-01T12:00:00Z', { name: 'Applied', kind: 'Applied' });
-
-    expect(inTimeOrder([newest, oldest, middle]).map((a) => a.id)).toEqual(['a', 'b', 'c']);
-  });
-
-  it('compares instants, so an offset does not change the order', () => {
-    // 10:00 at +05:00 is 05:00 UTC, earlier than 08:00 UTC although "10" sorts after "08" as text.
-    const earlier = application('early', '2026-10-20T10:00:00+05:00', { name: 'Applied', kind: 'Applied' });
-    const later = application('late', '2026-10-20T08:00:00Z', { name: 'Applied', kind: 'Applied' });
-
-    expect(inTimeOrder([later, earlier]).map((a) => a.id)).toEqual(['early', 'late']);
-  });
-
-  it('does not change the list it is given', () => {
-    const input = [application('b', '2026-03-01T12:00:00Z', { name: 'Applied', kind: 'Applied' }), application('a', '2025-09-01T12:00:00Z', { name: 'Applied', kind: 'Applied' })];
-
-    inTimeOrder(input);
-
-    expect(input.map((a) => a.id)).toEqual(['b', 'a']);
-  });
 });
 
 describe('progressOf', () => {

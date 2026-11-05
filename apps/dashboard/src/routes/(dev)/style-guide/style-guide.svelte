@@ -120,6 +120,7 @@
   import type { StatusName } from '#lib/status.js';
   import EditPreviewDemo from './edit-preview-demo.svelte';
   import AddCandidateDemo from './add-candidate-demo.svelte';
+  import CustomizePostingDemo from './customize-posting-demo.svelte';
   import BrandingDemo from './branding-demo.svelte';
   import EmailComposerDemo, { demoEmail } from './email-composer-demo.svelte';
   import FormBuilderDemo from './form-builder-demo.svelte';
@@ -570,7 +571,7 @@
 
 <ConfirmDialog
   bind:open={typedConfirmOpen}
-  title="Erase this candidate?"
+  title="Erase Jordan Ellis?"
   description="This erases Jordan Ellis and all of their applications, files, answers, notes and verification data, for good."
   confirmLabel="Erase candidate"
   failure="Could not erase the candidate"
@@ -924,6 +925,9 @@
         </Panel>
         <Panel title="Add candidate sheet" class="flex-[1_1_320px]">
           <AddCandidateDemo />
+        </Panel>
+        <Panel title="Customize sheet" class="flex-[1_1_320px]">
+          <CustomizePostingDemo />
         </Panel>
         <Panel title="Live indicator" class="flex-[1_1_320px]">
           <div class="flex flex-col gap-1">
@@ -1357,7 +1361,7 @@
               <dd><Rating rating={{ state: 'Rated', value: 3.7, scorecards: 2 }} /></dd>
             </div>
             <div class="flex flex-wrap items-center gap-3">
-              <dt class="text-muted-foreground">None yet</dt>
+              <dt class="text-muted-foreground">None yet, blank</dt>
               <dd><Rating rating={{ state: 'NotRated', scorecards: 0 }} /></dd>
             </div>
             <div class="flex flex-wrap items-center gap-3">

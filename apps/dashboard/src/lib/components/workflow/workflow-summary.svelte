@@ -144,7 +144,7 @@
 <Tabs.Content value="questionnaire">
   <!-- Content and the candidate's form never share the screen (A8): the switch swaps them in place. -->
   <div class="flex flex-col gap-5">
-    <EditPreviewSwitch bind:mode />
+    <EditPreviewSwitch bind:mode readOnly />
     {#if mode === 'preview'}
       <Panel title="Preview">
         <PreviewFrame>

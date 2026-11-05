@@ -14,6 +14,19 @@ if (response.status !== 200) {
 
 const employer = response.data;
 useEmbedding(Astro.locals, Astro.url, employer.embedOrigins);
+
+// The headings below, in order: a phone gets a page of about five screens, so a list of them saves the scrolling.
+const sections = [
+  { id: 'browsing', title: 'While you look at jobs' },
+  { id: 'applying', title: 'When you apply' },
+  { id: 'saving', title: 'If you save to finish later' },
+  { id: 'after', title: 'After you apply' },
+  { id: 'future-roles', title: 'Future roles' },
+  { id: 'checks', title: 'What we check, and what we never do' },
+  { id: 'assistive', title: 'Assistive technology' },
+  { id: 'ai', title: 'AI tools' },
+  { id: 'rights', title: 'Your choices' },
+];
 ---
 
 <CareersLayout
@@ -23,7 +36,7 @@ useEmbedding(Astro.locals, Astro.url, employer.embedOrigins);
   organizationSlug={employer.slug}
   branding={employer.branding}
 >
-  <article class="flex flex-col gap-6 text-[15px] leading-relaxed [&_h2]:font-display [&_h2]:text-xl [&_h2]:font-bold [&_li]:mt-1 [&_ul]:list-disc [&_ul]:pl-5">
+  <article class="flex flex-col gap-6 text-candidate-body leading-relaxed [&_section_h2]:font-display [&_section_h2]:text-xl [&_section_h2]:font-bold [&_section_li]:mt-1 [&_section_ul]:list-disc [&_section_ul]:pl-5">
     <header>
       <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">What we collect and why</h1>
       <p class="mt-2 text-candidate-muted-foreground">
@@ -31,6 +44,15 @@ useEmbedding(Astro.locals, Astro.url, employer.embedOrigins);
         ScreenHire handles them on its behalf.
       </p>
     </header>
+
+    <nav aria-labelledby="contents-heading" class="rounded-2xl border border-candidate-border bg-candidate-surface px-4 py-3.5">
+      <h2 id="contents-heading" class="text-base font-bold">On this page</h2>
+      <ul class="mt-1.5 grid gap-x-6 sm:grid-cols-2">
+        {sections.map((each) => (
+          <li><a href={`#${each.id}`} class="inline-flex min-h-11 items-center text-link">{each.title}</a></li>
+        ))}
+      </ul>
+    </nav>
 
     <section aria-labelledby="browsing">
       <h2 id="browsing">While you look at jobs</h2>
@@ -182,6 +204,6 @@ useEmbedding(Astro.locals, Astro.url, employer.embedOrigins);
       </p>
     </section>
 
-    <p class="font-mono text-[11px] text-candidate-muted-foreground">NOTICE VERSION {NOTICE_VERSION}</p>
+    <p class="text-candidate-hint text-candidate-muted-foreground">Notice version <span class="font-mono">{NOTICE_VERSION}</span></p>
   </article>
 </CareersLayout>

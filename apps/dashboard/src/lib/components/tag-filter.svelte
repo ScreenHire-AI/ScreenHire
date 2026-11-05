@@ -13,7 +13,7 @@
 
   let labelCut = $state(false);
   const watchLabel = watchTruncation((cut) => (labelCut = cut));
-  const summary = $derived(`Tag: ${tag ?? 'all'}`);
+  const summary = $derived(`Tag: ${tag ?? 'All'}`);
   // bits-ui radio groups take strings; a key no tag can have stands for no filter.
   const anyTag = '\u0000any';
 </script>

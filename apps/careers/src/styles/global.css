@@ -10,7 +10,6 @@
     background: var(--candidate-background);
     color: var(--candidate-foreground);
     font-family: var(--sh-font-body);
-    font-size: 15px;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -27,14 +26,15 @@
 }
 
 @layer components {
-  /* .field-input, .file-input and .choice come with the shared question components (@screenhire/ui/questions.css). */
+  /* The hand cursor on buttons, summaries, selects and switch labels is one rule in the theme (design-system A10), so no
+     class here sets a cursor. .field-input, .file-input and .choice come with the shared question components (@screenhire/ui/questions.css). */
 
   .button-primary {
-    @apply inline-flex min-h-13 cursor-pointer items-center justify-center rounded-[14px] border-0 bg-candidate-cta px-8 text-base font-bold text-candidate-cta-foreground no-underline;
+    @apply inline-flex min-h-13 items-center justify-center rounded-[14px] border-0 bg-candidate-cta px-8 text-base font-bold text-candidate-cta-foreground no-underline;
   }
 
   .button-secondary {
-    @apply inline-flex min-h-13 cursor-pointer items-center justify-center rounded-[14px] border border-candidate-input-border bg-candidate-surface px-6 text-base font-bold text-candidate-foreground no-underline;
+    @apply inline-flex min-h-13 items-center justify-center rounded-[14px] border border-candidate-input-border bg-candidate-surface px-6 text-base font-bold text-candidate-foreground no-underline;
   }
 
   .text-link {

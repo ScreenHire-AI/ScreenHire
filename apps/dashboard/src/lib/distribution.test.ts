@@ -1,9 +1,54 @@
 import type { JobPostingStatus } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import { board, now, posting } from '../test-support/fixtures.js';
-import { boardAction, boardRows, describePosting, postedAt, postedCount, postingProblems } from './distribution.js';
+import { boardAction, boardRows, canCustomize, describePosting, isCustomized, needsDetailFixes, postedAt, postedCount, postingProblems } from './distribution.js';
 
 const later = (ms: number) => new Date(now + ms).toISOString();
+
+describe('canCustomize', () => {
+  const takesText = board('adzuna', 'Adzuna', { mode: 'Pull', canCustomize: true });
+  const careers = board('careers', 'Careers page', { mode: 'Hosted', canCustomize: false });
+
+  it('is offered on an open job for a board that takes text of its own', () => {
+    expect(canCustomize('Open', takesText)).toBe(true);
+    expect(canCustomize('Open', takesText, posting('adzuna', 'Adzuna', { state: 'Draft' }))).toBe(true);
+  });
+
+  it('is never offered for the Careers page, whatever the job or posting', () => {
+    expect(canCustomize('Open', careers)).toBe(false);
+    expect(canCustomize('Open', careers, posting('careers', 'Careers page'))).toBe(false);
+  });
+
+  it('is not offered on a draft or closed job, or for a board that is removing the job', () => {
+    expect(canCustomize('Draft', takesText)).toBe(false);
+    expect(canCustomize('Closed', takesText)).toBe(false);
+    expect(canCustomize('Open', takesText, posting('adzuna', 'Adzuna', { state: 'Closing' }))).toBe(false);
+    expect(canCustomize('Open', takesText, posting('adzuna', 'Adzuna', { state: 'Closed' }))).toBe(false);
+  });
+});
+
+describe('needsDetailFixes', () => {
+  it('is true for a posting its board refused or its checks held back, on a job that is not closed', () => {
+    expect(needsDetailFixes('Open', posting('adzuna', 'Adzuna', { state: 'Draft' }))).toBe(true);
+    expect(needsDetailFixes('Open', posting('adzuna', 'Adzuna', { state: 'Rejected' }))).toBe(true);
+    expect(needsDetailFixes('Closed', posting('adzuna', 'Adzuna', { state: 'Draft' }))).toBe(false);
+  });
+
+  it('is false for a board that is live, did not answer or was never posted', () => {
+    expect(needsDetailFixes('Open', posting('adzuna', 'Adzuna', { state: 'Live' }))).toBe(false);
+    expect(needsDetailFixes('Open', posting('adzuna', 'Adzuna', { state: 'Error' }))).toBe(false);
+    expect(needsDetailFixes('Open', undefined)).toBe(false);
+  });
+});
+
+describe('isCustomized', () => {
+  it('is true when either text is the board own', () => {
+    expect(isCustomized(posting('adzuna', 'Adzuna', { customizedTitle: true }))).toBe(true);
+    expect(isCustomized(posting('adzuna', 'Adzuna', { customizedDescription: true }))).toBe(true);
+    expect(isCustomized(posting('adzuna', 'Adzuna'))).toBe(false);
+    expect(isCustomized(undefined)).toBe(false);
+  });
+});
 
 describe('describePosting', () => {
   const cases: [JobPostingStatus['state'], Partial<JobPostingStatus>, string, string | null, string][] = [

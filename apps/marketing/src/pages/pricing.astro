@@ -36,19 +36,20 @@ const faqs: Faq[] = [
   jsonLd={[softwareApplication(description, site, pricedOffers(plans)), faqPage(faqs)]}
 >
   <PageHeader
-    kicker="Pricing"
     title="Simple pricing for small teams."
     lead="One monthly price per plan, unlimited users, and applicant verification included. No credit card to start."
   />
 
   <section aria-labelledby="plans-title" class="mx-auto max-w-6xl px-6 pb-10">
     <h2 id="plans-title" class="sr-only">Plans</h2>
-    <ul class="grid gap-4 md:grid-cols-3">
+    {/* Each card spans the same four rows (name and summary, price, limits, button), so a summary that wraps in one card does
+        not push its price out of line with the others. */}
+    <ul class="grid gap-4 md:grid-cols-3 md:grid-rows-[repeat(4,auto)]">
       {
         plans.map((plan) => (
           <li
             class:list={[
-              'flex flex-col gap-4 rounded-2xl border bg-card p-6',
+              'flex flex-col gap-4 rounded-2xl border bg-card p-6 md:row-span-4 md:grid md:grid-rows-subgrid',
               plan.highlighted ? 'border-primary' : 'border-border',
             ]}
           >
@@ -62,7 +63,7 @@ const faqs: Faq[] = [
               </span>
               <span class="text-muted-foreground">a month</span>
             </p>
-            <p class="font-mono text-xs text-muted-foreground uppercase">{plan.activeJobs} · unlimited users</p>
+            <p class="text-sm text-muted-foreground">{plan.activeJobs}, unlimited users</p>
             <a
               href={startUrl}
               class:list={[

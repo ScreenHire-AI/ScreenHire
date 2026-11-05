@@ -5,6 +5,7 @@
   import PencilIcon from '~icons/lucide/pencil';
   import RotateCwIcon from '~icons/lucide/rotate-cw';
   import SendIcon from '~icons/lucide/send';
+  import SlidersIcon from '~icons/lucide/sliders-horizontal';
   import type { BoardSummary, JobDetail, JobPostingStatus } from '@screenhire/api-client';
   import { createCloseJobPosting, createPublishJob } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
@@ -20,6 +21,7 @@
     tableFeatures,
     type ColumnDef,
   } from '@tanstack/svelte-table';
+  import CustomizePostingSheet from '#lib/components/customize-posting-sheet.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import Hint from '#lib/components/hint.svelte';
@@ -28,9 +30,22 @@
   import SortHeader from '#lib/components/sort-header.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
+  import { Badge } from '#lib/components/ui/badge/index.js';
+  import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import { formatDateTime } from '#lib/dates.js';
-  import { boardAction, boardRows, describePosting, isPosted, postedAt, type BoardAction, type BoardRow } from '#lib/distribution.js';
+  import {
+    boardAction,
+    boardRows,
+    canCustomize,
+    describePosting,
+    isCustomized,
+    isPosted,
+    needsDetailFixes,
+    postedAt,
+    type BoardAction,
+    type BoardRow,
+  } from '#lib/distribution.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
   import { needsAttention } from '#lib/status.js';
@@ -40,7 +55,8 @@
   // posted there, when that last changed, and a row menu: a link to the live posting where the board has one, then what
   // the person can do there. A posting that needs fixes says what is wrong in words under its row (E2). Publishing a
   // draft to every board is the page's primary action, in its header band, and what it did shows above the tabs; closing
-  // the job is its More menu.
+  // the job is its More menu. Customize, in the same menu, changes what one board receives (a sheet); a board with text
+  // of its own carries one Customized badge after its name.
   let {
     job,
     boards,
@@ -102,6 +118,16 @@
     getRowId: (row) => row.boardId,
   });
   const rows = $derived(table.getRowModel().rows);
+
+  // Customize opens a sheet for one board. From the menu it opens once the menu has closed and given focus back, so the
+  // sheet can give it back in turn (MoreMenu's `onclosed`); from the words under a row it opens at once.
+  let customizing = $state<{ boardId: string; name: string } | null>(null);
+  let customizeOpen = $state(false);
+  let chosen: { boardId: string; name: string } | null = null;
+  function openCustomize(target: { boardId: string; name: string }) {
+    customizing = target;
+    customizeOpen = true;
+  }
 
   // Live updates refetch the job when a board answers; refetching here as well shows our own change at once.
   const settle = { onSettled: () => invalidatePath(queryClient, jobsPath) };
@@ -172,6 +198,9 @@
         </thead>
         {#each rows as row (row.id)}
           {@const view = describePosting(row.original.posting, now)}
+          {@const fixes = needsDetailFixes(job.status, row.original.posting)}
+          {@const customizable = canCustomize(job.status, row.original.board, row.original.posting)}
+          {@const jobMoved = customizable && !!row.original.posting?.jobChangedSinceCustomized}
           <!-- One body per board, so a posting's problem stays with its row whichever way the table sorts. -->
           <tbody data-board={row.id} class="border-b border-border-subtle last:border-b-0 hover:bg-muted">
             <tr class="h-12">
@@ -191,18 +220,38 @@
               {/each}
             </tr>
             <!-- What is wrong, in words, under the board's name (E2). A calm state's meaning is in its tooltip and for
-                 screen readers. -->
-            {#if needsAttention(view.status)}
+                 screen readers. A posting the job's own details can fix says what each fix reaches: Edit details changes
+                 every board, Customize only this one. A customized board whose job moved on says so. -->
+            {#if needsAttention(view.status) || jobMoved}
               <tr>
                 <td></td>
-                <td colspan={row.getAllCells().length - 1} class="px-3 pb-3">
-                  <p data-posting-problem class="text-body text-muted-foreground">
-                    {view.detail}
-                    <!-- Issues the board's checks found are in the job's own details, which is where they are fixed. -->
-                    {#if row.original.posting?.state === 'Draft' && job.status !== 'Closed'}
-                      <a href={`/jobs/${job.id}/edit`} class="font-semibold text-primary underline underline-offset-2">Edit details</a>
+                <td colspan={row.getAllCells().length - 1} class="px-3 pb-3 text-body text-muted-foreground">
+                  <div class="flex flex-col gap-2">
+                    {#if needsAttention(view.status)}
+                      <p data-posting-problem>{view.detail}</p>
                     {/if}
-                  </p>
+                    <!-- Edit details goes to another page, so it is a link; Customize opens a sheet, so it is a button (A5, A6). -->
+                    {#if fixes}
+                      <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                        <p data-posting-fixes>
+                          <a href={`/jobs/${job.id}/edit`} class="font-semibold text-primary underline underline-offset-2">Edit details</a> changes every board.{customizable
+                            ? ` Customize changes only ${row.original.name}.`
+                            : ''}
+                        </p>
+                        {#if customizable}
+                          <Button type="button" variant="outline" size="sm" onclick={() => openCustomize({ boardId: row.original.boardId, name: row.original.name })}>
+                            <SlidersIcon aria-hidden="true" />Customize
+                          </Button>
+                        {/if}
+                      </div>
+                    {/if}
+                    {#if jobMoved}
+                      <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                        <p data-posting-changed>The job changed since this was customized.</p>
+                        <Button type="button" variant="outline" size="sm" onclick={() => openCustomize({ boardId: row.original.boardId, name: row.original.name })}>Review the changes</Button>
+                      </div>
+                    {/if}
+                  </div>
                 </td>
               </tr>
             {/if}
@@ -212,6 +261,10 @@
     </div>
   {/if}
 </Panel>
+
+{#if customizing}
+  <CustomizePostingSheet bind:open={customizeOpen} jobId={job.id} boardId={customizing.boardId} boardName={customizing.name} />
+{/if}
 
 {#snippet messages()}
   <FailureText message={failure} />
@@ -241,7 +294,11 @@
 
 {#snippet boardCell(row: BoardRow)}
   {@const posted = postedAt(row.posting)}
-  <TruncatedText text={row.name} class="font-semibold" />
+  <!-- The board's name, with at most one badge after it (L1). -->
+  <span class="flex min-w-0 items-center gap-2">
+    <TruncatedText text={row.name} class="font-semibold" />
+    {#if isCustomized(row.posting)}<Badge variant="muted" class="shrink-0">Customized</Badge>{/if}
+  </span>
   {#if posted && row.posting}
     <span class="flex flex-col text-caption text-muted-foreground md:hidden">
       <span>Posted <DateText at={posted} /></span>
@@ -264,11 +321,20 @@
 {#snippet actionsCell(row: BoardRow)}
   {@const action = boardAction(job.status, row.board, row.posting)}
   {@const url = row.posting?.viewUrl}
-  {@const fixable = row.posting?.state === 'Draft' && job.status !== 'Closed'}
+  {@const fixable = needsDetailFixes(job.status, row.posting)}
+  {@const customizable = canCustomize(job.status, row.board, row.posting)}
   <!-- A board that only closes with the job has nothing to do, and its menu says why (E3). -->
   {@const locked = job.status === 'Open' && isPosted(row.posting) && !action}
-  {#if url || fixable || action || locked}
-    <MoreMenu label={`Actions for ${row.name}`} size="icon" quiet>
+  {#if url || fixable || customizable || action || locked}
+    <MoreMenu
+      label={`Actions for ${row.name}`}
+      size="icon"
+      quiet
+      onclosed={() => {
+        if (chosen) openCustomize(chosen);
+        chosen = null;
+      }}
+    >
       {#if url}
         <DropdownMenu.Item>
           {#snippet child({ props })}
@@ -283,7 +349,10 @@
           {#snippet child({ props })}<a {...props} href={`/jobs/${job.id}/edit`}><PencilIcon aria-hidden="true" />Edit details</a>{/snippet}
         </DropdownMenu.Item>
       {/if}
-      {#if url && (action || locked)}<DropdownMenu.Separator />{/if}
+      {#if customizable}
+        <DropdownMenu.Item onSelect={() => (chosen = { boardId: row.boardId, name: row.name })}><SlidersIcon aria-hidden="true" />Customize</DropdownMenu.Item>
+      {/if}
+      {#if (url || fixable || customizable) && (action || locked)}<DropdownMenu.Separator />{/if}
       {#if action}
         {@const item = actionItem(action, row.posting)}
         <DropdownMenu.Item disabled={busyBoard === row.boardId} onSelect={() => act(action, row.boardId, row.name)}><item.icon aria-hidden="true" />{item.label}</DropdownMenu.Item>

@@ -148,6 +148,176 @@ public sealed class DistributionPlannerTests
     }
 
     [Fact]
+    public async Task A_board_with_its_own_text_is_validated_and_sent_on_that_text_while_another_board_gets_the_jobs()
+    {
+        var own = new RecordingBoard("own");
+        var follower = new RecordingBoard("follower");
+        var planner = new DistributionPlanner(new BoardRegistry([own, follower]), time);
+        var content = Content(1);
+        var customized = Posting("own");
+        customized.Customize("Staff Engineer, Platform", "<p>Written for this board.</p>", content.Snapshot, Now);
+
+        var changes = await planner.PublishAsync(organization, content, [customized], ["own", "follower"], CancellationToken.None);
+
+        own.Validated.Should().ContainSingle().Which.Snapshot.Should().BeEquivalentTo(
+            content.Snapshot with { Title = "Staff Engineer, Platform", Description = "<p>Written for this board.</p>" });
+        own.Sent.Should().ContainSingle().Which.Snapshot.Title.Should().Be("Staff Engineer, Platform");
+        follower.Validated.Should().ContainSingle().Which.Snapshot.Should().Be(content.Snapshot);
+        follower.Sent.Should().ContainSingle().Which.Snapshot.Should().Be(content.Snapshot);
+        changes.Added.Select(p => p.BoardId).Should().Equal("follower");
+    }
+
+    [Fact]
+    public async Task An_override_that_fails_its_boards_check_keeps_the_posting_in_draft_even_when_the_job_passes()
+    {
+        var planner = Planner(out _);
+        var postings = new List<JobPosting> { Posting("talent"), Posting("careerjet") };
+        postings[0].Customize(null, "<p>Short.</p>", Content(1).Snapshot, Now);
+
+        await planner.PublishAsync(organization, Content(1), postings, null, CancellationToken.None);
+
+        postings.Single(p => p.BoardId == "talent").State.Should().Be(PostingState.Draft);
+        postings.Single(p => p.BoardId == "talent").Issues.Should().ContainSingle().Which.Should().Contain("Talent.com");
+        postings.Single(p => p.BoardId == "careerjet").State.Should().Be(PostingState.Submitted, "it follows the job, which is long enough");
+    }
+
+    [Fact]
+    public async Task An_override_that_passes_its_boards_check_lets_a_short_job_through_on_that_board_only()
+    {
+        var planner = Planner(out _);
+        var shortJob = Content(1, "<p>Short.</p>");
+        var postings = new List<JobPosting> { Posting("talent") };
+        postings[0].Customize(null, "<p>Build and run the systems our customers rely on every day, with a small team that owns its work.</p>", shortJob.Snapshot, Now);
+
+        var changes = await planner.PublishAsync(organization, shortJob, postings, ["talent", "careerjet"], CancellationToken.None);
+
+        postings.Single().State.Should().Be(PostingState.Submitted);
+        changes.Added.Single(p => p.BoardId == "careerjet").State.Should().Be(PostingState.Submitted, "Careerjet has no length check");
+        var withoutOverride = await planner.PublishAsync(organization, shortJob, [], ["talent"], CancellationToken.None);
+        withoutOverride.Added.Single().State.Should().Be(PostingState.Draft, "the same job without an override still fails Talent.com's check");
+    }
+
+    [Fact]
+    public async Task A_new_job_version_keeps_a_boards_own_text()
+    {
+        var board = new RecordingBoard("own");
+        var planner = new DistributionPlanner(new BoardRegistry([board]), time);
+        var posting = Posting("own");
+        posting.Customize("Own title", null, Content(1).Snapshot, Now);
+        await planner.PublishAsync(organization, Content(1), [posting], null, CancellationToken.None);
+
+        await planner.PublishAsync(organization, Content(2), [posting], null, CancellationToken.None);
+
+        posting.JobVersion.Should().Be(2);
+        board.Sent.Select(c => (c.Version, c.Snapshot.Title)).Should().Equal((1, "Own title"), (2, "Own title"));
+    }
+
+    [Fact]
+    public async Task Reposting_sends_the_same_version_again_with_the_boards_new_text_and_touches_no_other_board()
+    {
+        var own = new RecordingBoard("own");
+        var other = new RecordingBoard("other");
+        var planner = new DistributionPlanner(new BoardRegistry([own, other]), time);
+        var postings = (await planner.PublishAsync(organization, Content(1), [], null, CancellationToken.None)).Added.ToList();
+        var posting = postings.Single(p => p.BoardId == "own");
+        posting.State.Should().Be(PostingState.Submitted);
+        posting.Sequence.Should().Be(1);
+        posting.Customize("Own title", null, Content(1).Snapshot, Now);
+
+        var changes = await planner.RepostAsync(organization, Content(1), posting, isNew: false, resend: true, CancellationToken.None);
+
+        posting.JobVersion.Should().Be(1, "no job version is made");
+        posting.Sequence.Should().Be(2, "it is a new request for the board");
+        posting.State.Should().Be(PostingState.Submitted);
+        own.Updated.Should().ContainSingle().Which.Snapshot.Title.Should().Be("Own title", "the board already had the posting, so it is an update");
+        other.Updated.Should().BeEmpty();
+        other.Sent.Should().ContainSingle("the other board was published once and not touched again");
+        changes.Added.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Reposting_raises_the_posting_event_even_when_the_state_ends_where_it_began()
+    {
+        var planner = Planner(out _);
+        var postings = (await planner.PublishAsync(organization, Content(1), [], ["careerjet"], CancellationToken.None)).Added.ToList();
+        var posting = postings.Single();
+        var before = posting.State;
+        posting.Customize(null, "<p>Written for Careerjet, with its own words about the work.</p>", Content(1).Snapshot, Now);
+
+        var changes = await planner.RepostAsync(organization, Content(1), posting, isNew: false, resend: true, CancellationToken.None);
+
+        before.Should().Be(PostingState.Submitted);
+        posting.State.Should().Be(before);
+        changes.Messages.OfType<JobPostingsChanged>().Should().ContainSingle()
+            .Which.Should().BeEquivalentTo(new { OrganizationId = organization.Id, JobId = Content(1).JobId, ChangedAt = Now });
+    }
+
+    [Fact]
+    public async Task Reposting_a_posting_that_did_not_exist_returns_it_as_added_and_publishes_it()
+    {
+        var board = new RecordingBoard("own");
+        var planner = new DistributionPlanner(new BoardRegistry([board]), time);
+        var posting = Posting("own");
+        posting.Customize("Own title", null, Content(1).Snapshot, Now);
+
+        var changes = await planner.RepostAsync(organization, Content(1), posting, isNew: true, resend: true, CancellationToken.None);
+
+        changes.Added.Should().ContainSingle().Which.Should().BeSameAs(posting);
+        posting.State.Should().Be(PostingState.Submitted);
+        posting.JobVersion.Should().Be(1);
+        board.Sent.Should().ContainSingle().Which.Snapshot.Title.Should().Be("Own title");
+        board.Updated.Should().BeEmpty("a board that never had the posting is published to, not updated");
+        changes.Messages.OfType<JobPostingsChanged>().Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Reposting_to_a_push_board_asks_the_worker_to_update_it_at_the_same_version()
+    {
+        var planner = Planner(out _);
+        var postings = (await planner.PublishAsync(organization, Content(1), [], ["push"], CancellationToken.None)).Added.ToList();
+        var posting = postings.Single();
+        posting.MarkLive(1, "ext-1", Now);
+        posting.Customize("Own title", null, Content(1).Snapshot, Now);
+
+        var changes = await planner.RepostAsync(organization, Content(1), posting, isNew: false, resend: true, CancellationToken.None);
+
+        posting.State.Should().Be(PostingState.Queued);
+        posting.Sequence.Should().Be(2);
+        changes.Messages.OfType<SyncJobPosting>().Should().ContainSingle()
+            .Which.Should().BeEquivalentTo(new { BoardId = "push", JobVersion = 1, Action = PostingAction.Update, Sequence = 2 });
+        changes.Messages.OfType<JobPostingsChanged>().Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Reposting_text_that_did_not_change_leaves_a_posting_on_the_board_alone()
+    {
+        var board = new RecordingBoard("own");
+        var planner = new DistributionPlanner(new BoardRegistry([board]), time);
+        var posting = (await planner.PublishAsync(organization, Content(1), [], null, CancellationToken.None)).Added.Single();
+
+        var changes = await planner.RepostAsync(organization, Content(1), posting, isNew: false, resend: false, CancellationToken.None);
+
+        posting.Sequence.Should().Be(1, "a resend would spend the board's quota on the text it already has");
+        board.Updated.Should().BeEmpty();
+        changes.Messages.OfType<JobPostingsChanged>().Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Reposting_text_that_did_not_change_still_sends_a_posting_the_board_does_not_have()
+    {
+        var board = new RecordingBoard("own");
+        var planner = new DistributionPlanner(new BoardRegistry([board]), time);
+        var posting = Posting("own");
+        posting.Queue(1, Content(1).Url, ["The board needs more text."], Now);
+        posting.State.Should().Be(PostingState.Draft);
+
+        await planner.RepostAsync(organization, Content(1), posting, isNew: false, resend: false, CancellationToken.None);
+
+        posting.State.Should().Be(PostingState.Submitted);
+        board.Sent.Should().ContainSingle();
+    }
+
+    [Fact]
     public void Google_is_hidden_until_configured()
     {
         Registry(GoogleIndexingMode.Off).Find(Boards.GoogleIndexing).Should().BeNull();
@@ -182,9 +352,54 @@ public sealed class DistributionPlannerTests
             [new JobLocation("London", null, "GB")], [], null, null),
         Now, Now, "https://careers.example.com/harbour/jobs/engineer", organization.Name, organization.Slug);
 
+    private JobPosting Posting(string boardId) =>
+        new() { OrganizationId = organization.Id, JobId = Content(1).JobId, BoardId = boardId, CreatedAt = Now };
+
     private static PostingState State(DistributionChanges changes, string boardId) => StateOf(changes.Added, boardId);
 
     private static PostingState StateOf(IEnumerable<JobPosting> postings, string boardId) => postings.Single(p => p.BoardId == boardId).State;
+
+    /// <summary>A pull board that records the content it is asked to validate and the content it is sent.</summary>
+    private sealed class RecordingBoard(string boardId) : IJobBoardAdapter
+    {
+        public List<PostingContent> Validated { get; } = [];
+
+        /// <summary>Every delivery, a first publish or an update, in order.</summary>
+        public List<PostingContent> Sent { get; } = [];
+
+        public List<PostingContent> Updated { get; } = [];
+
+        public string BoardId => boardId;
+
+        public string Name => boardId;
+
+        public BoardCapabilities Capabilities => new(BoardMode.Pull, true, true, false, false, null, null);
+
+        public bool IsConfigured => true;
+
+        public IReadOnlyList<string> Validate(PostingContent content)
+        {
+            Validated.Add(content);
+            return [];
+        }
+
+        public Task<BoardResult> PublishAsync(PostingRequest request, CancellationToken cancellationToken)
+        {
+            Sent.Add(request.Content);
+            return Task.FromResult(new BoardResult(BoardOutcome.Submitted));
+        }
+
+        public Task<BoardResult> UpdateAsync(PostingRequest request, CancellationToken cancellationToken)
+        {
+            Sent.Add(request.Content);
+            Updated.Add(request.Content);
+            return Task.FromResult(new BoardResult(BoardOutcome.Submitted));
+        }
+
+        public Task<BoardResult> CloseAsync(PostingRequest request, CancellationToken cancellationToken) => throw new InvalidOperationException();
+
+        public Task<BoardResult> GetStatusAsync(PostingRequest request, CancellationToken cancellationToken) => throw new InvalidOperationException();
+    }
 
     private sealed class FakePushBoard(string boardId = "push", bool partnerGated = false) : IJobBoardAdapter
     {

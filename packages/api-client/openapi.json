@@ -5239,6 +5239,244 @@
         ]
       }
     },
+    "/v1/jobs/{jobId}/postings/{boardId}/customization": {
+      "get": {
+        "tags": [
+          "Distribution"
+        ],
+        "operationId": "GetPostingCustomization",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "boardId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostingCustomization"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Distribution"
+        ],
+        "operationId": "CustomizePosting",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "boardId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomizePostingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobPostingStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{jobId}/postings/{boardId}/customization/preview": {
+      "post": {
+        "tags": [
+          "Distribution"
+        ],
+        "operationId": "PreviewPostingCustomization",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "boardId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomizePostingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostingPreview"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/public/boards/{organizationSlug}": {
       "get": {
         "tags": [
@@ -13910,7 +14148,8 @@
           "confirmsRemoval",
           "publishEtaSeconds",
           "removalEtaSeconds",
-          "dailyQuota"
+          "dailyQuota",
+          "canCustomize"
         ],
         "type": "object",
         "properties": {
@@ -13955,6 +14194,9 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "canCustomize": {
+            "type": "boolean"
           }
         },
         "description": "A board an organization may post to, and what it can promise (docs/architecture/job-distribution.md §1)."
@@ -15214,6 +15456,54 @@
           }
         },
         "description": "The signed-in user, and the organization they work in (null until onboarding)."
+      },
+      "CustomizedText": {
+        "required": [
+          "override",
+          "job"
+        ],
+        "type": "object",
+        "properties": {
+          "override": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "job": {
+            "type": "string"
+          }
+        },
+        "description": "One text of a board: its own (null when it follows the job) and the job's newest published one."
+      },
+      "CustomizePostingRequest": {
+        "required": [
+          "title",
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "jobVersion": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "What one board receives in place of the job's title and description. A null or blank field follows the job, and so\ndoes one equal to the job's own text; sending both null removes the customization. `jobVersion` is the version\nthe text was edited against (int PostingCustomization.JobVersion): a save against an older one is a 409."
       },
       "CustomRoleDetail": {
         "required": [
@@ -16893,7 +17183,10 @@
           "liveAt",
           "closingAt",
           "closedAt",
-          "viewUrl"
+          "viewUrl",
+          "customizedTitle",
+          "customizedDescription",
+          "jobChangedSinceCustomized"
         ],
         "type": "object",
         "properties": {
@@ -16989,6 +17282,15 @@
               "null",
               "string"
             ]
+          },
+          "customizedTitle": {
+            "type": "boolean"
+          },
+          "customizedDescription": {
+            "type": "boolean"
+          },
+          "jobChangedSinceCustomized": {
+            "type": "boolean"
           }
         },
         "description": "One job on one board: where it stands and what is still uncertain."
@@ -18166,6 +18468,42 @@
         },
         "description": "A permission in the order the Roles page lists it: its group, its name and one line on what it covers.\n`ownerOnly` ones never go into a custom role; `everyRole` ones are in every role."
       },
+      "PostingCustomization": {
+        "required": [
+          "boardId",
+          "boardName",
+          "jobVersion",
+          "title",
+          "description",
+          "changes"
+        ],
+        "type": "object",
+        "properties": {
+          "boardId": {
+            "type": "string"
+          },
+          "boardName": {
+            "type": "string"
+          },
+          "jobVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "$ref": "#/components/schemas/CustomizedText"
+          },
+          "description": {
+            "$ref": "#/components/schemas/CustomizedText"
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostingTextChange"
+            }
+          }
+        },
+        "description": "A board's customization, for the Customize sheet: each text with the job's, and what the job changed since the\nboard's own was written against it. `jobVersion` is the published version the job's text comes from."
+      },
       "PostingDefaults": {
         "type": "object",
         "properties": {
@@ -18227,6 +18565,29 @@
         },
         "description": "Values a new job starts with when it is created from the template. Every member is optional."
       },
+      "PostingPreview": {
+        "required": [
+          "title",
+          "description",
+          "issues"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "What a board would receive for a draft customization, and what its checks say about it. Nothing is saved."
+      },
       "PostingState": {
         "enum": [
           "Draft",
@@ -18238,6 +18599,26 @@
           "Closed",
           "Error"
         ]
+      },
+      "PostingTextChange": {
+        "required": [
+          "field",
+          "before",
+          "after"
+        ],
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "before": {
+            "type": "string"
+          },
+          "after": {
+            "type": "string"
+          }
+        },
+        "description": "A text of the job that changed since the board's own was written. Both are plain text."
       },
       "ProblemDetails": {
         "type": "object",

@@ -142,9 +142,11 @@ describe('saved candidates page', () => {
     const table = await screen.findByRole('table', { name: 'Saved candidates' });
     const row = within(table).getByRole('link', { name: 'Sam Taylor' }).closest('tr')!;
 
-    expect(within(row).getByText('Never')).toHaveClass('text-muted-foreground');
+    expect(within(row).getByText('Never')).toBeInTheDocument();
     expect(within(row).getByText('Never contacted')).toHaveClass('sr-only');
+    // No note: the cell shows nothing (L1), and the button that adds one says so to a screen reader only.
     expect(within(row).getByRole('button', { name: /Edit note for Sam Taylor$/ })).toHaveTextContent('Add a note');
+    expect(within(row).getByText('Add a note')).toHaveClass('sr-only');
   });
 
   it('has no Verification column, filter or chip, since the pool is never a list picked by level (ADR-0004)', async () => {
@@ -232,7 +234,7 @@ describe('saved candidates page', () => {
   it('says nobody has been saved and offers no filters, with no filters offered', async () => {
     renderPage({ who: [] });
 
-    expect(await screen.findByText('Nobody has been saved yet.')).toBeInTheDocument();
+    expect(await screen.findByText(/^Nobody has been saved yet./)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull();
     expect(screen.queryByRole('button', { name: /^Saved from/ })).toBeNull();
   });
@@ -243,7 +245,7 @@ describe('saved candidates page', () => {
 
     await search('nobody by this name');
     expect(screen.getByText('Nobody in saved candidates matches these filters.')).toBeInTheDocument();
-    expect(screen.queryByText('Nobody has been saved yet.')).toBeNull();
+    expect(screen.queryByText(/^Nobody has been saved yet./)).toBeNull();
 
     await fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
     expect(nameLinks()).toEqual(['Casey Morgan', 'Jordan Lee', 'Sam Taylor']);
@@ -262,11 +264,24 @@ describe('saved candidates page', () => {
   });
 
   describe('a row menu', () => {
-    it('offers Invite to apply, Add to a job and Remove to someone who may email, add and move candidates', async () => {
+    it('offers Invite to apply, Add to a job, Message and Remove to someone who may email, add and move candidates', async () => {
       renderPage();
       const menu = await openRowMenu('Casey Morgan');
 
-      expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Invite to apply', 'Add to a job', 'Edit note', 'Remove from saved']);
+      expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual([
+        'Invite to apply',
+        'Add to a job',
+        'Message',
+        'Edit note',
+        'Remove from saved',
+      ]);
+    });
+
+    it('has no Message button down the Last contacted column: the action repeats on every row, so it is in the menu', async () => {
+      renderPage();
+      await screen.findByRole('table', { name: 'Saved candidates' });
+
+      expect(screen.queryByRole('button', { name: /^Message / })).toBeNull();
     });
 
     it('stays on each list item on a phone, where the record page has none of these actions (section 8)', async () => {
@@ -324,12 +339,13 @@ describe('saved candidates page', () => {
       },
     });
 
-    it('opens the email composer for that person from the Last contacted cell, and sends to their saved-from application', async () => {
+    it('opens the email composer for that person from the row menu, and sends to their saved-from application', async () => {
       const sends: unknown[] = [];
       renderPage({ routes: emailRoutes(sends) });
       await screen.findByRole('table', { name: 'Saved candidates' });
 
-      await fireEvent.click(screen.getByRole('button', { name: 'Message Casey Morgan' }));
+      const menu = await openRowMenu('Casey Morgan');
+      await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Message' }));
 
       const sheet = await screen.findByRole('dialog', { name: 'Email Casey Morgan' });
       await fireEvent.input(within(sheet).getByLabelText('Subject'), { target: { value: 'A quick question' } });
@@ -343,16 +359,16 @@ describe('saved candidates page', () => {
 
     it('is not offered when the deployment sends no email', async () => {
       renderPage({ sending: false });
-      await screen.findByRole('table', { name: 'Saved candidates' });
+      const menu = await openRowMenu('Casey Morgan');
 
-      expect(screen.queryByRole('button', { name: /^Message / })).toBeNull();
+      expect(within(menu).queryByRole('menuitem', { name: 'Message' })).toBeNull();
     });
 
     it('is not offered to someone who may not email candidates', async () => {
       renderPage({ as: userAs('Viewer') });
       await screen.findByRole('table', { name: 'Saved candidates' });
 
-      expect(screen.queryByRole('button', { name: /^Message / })).toBeNull();
+      expect(screen.queryByRole('menuitem', { name: 'Message' })).toBeNull();
     });
 
     it('opens from the row menu on a phone', async () => {
@@ -475,7 +491,7 @@ describe('saved candidates page', () => {
 
       const dialog = await openRemoveDialog();
       expect(post).not.toHaveBeenCalled();
-      expect(within(dialog).getByRole('checkbox', { name: 'They asked to be removed: stop keeping their details' })).not.toBeChecked();
+      expect(within(dialog).getByRole('checkbox', { name: 'They asked to be removed, so stop keeping their details' })).not.toBeChecked();
       await fireEvent.click(within(dialog).getByRole('button', { name: 'Remove' }));
 
       await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
@@ -489,7 +505,7 @@ describe('saved candidates page', () => {
       renderPage({ routes: { [`POST /v1/talent-pool/${casey.candidateId}/remove`]: post } });
 
       const dialog = await openRemoveDialog();
-      await fireEvent.click(within(dialog).getByRole('checkbox', { name: 'They asked to be removed: stop keeping their details' }));
+      await fireEvent.click(within(dialog).getByRole('checkbox', { name: 'They asked to be removed, so stop keeping their details' }));
       await fireEvent.click(within(dialog).getByRole('button', { name: 'Remove' }));
 
       await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
@@ -530,7 +546,7 @@ describe('saved candidates page', () => {
 
   it('has no accessibility violations in its empty state', async () => {
     const { container } = renderPage({ who: [] });
-    await screen.findByText('Nobody has been saved yet.');
+    await screen.findByText(/^Nobody has been saved yet./);
 
     await expectNoAxeViolations(container);
   });

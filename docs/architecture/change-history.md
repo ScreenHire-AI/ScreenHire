@@ -12,6 +12,7 @@ sources:
   - resource: src/ScreenHire.Domain/History/ScorecardTemplateChanges.cs
   - resource: src/ScreenHire.Domain/History/SettingsChanges.cs
   - resource: src/ScreenHire.Domain/History/JobChanges.cs
+  - resource: src/ScreenHire.Domain/History/JobPostingChanges.cs
   - resource: src/ScreenHire.Domain/History/RoleChanges.cs
   - resource: src/ScreenHire.Domain/History/TeamChanges.cs
   - resource: src/ScreenHire.Domain/History/ApiKeyChanges.cs
@@ -59,6 +60,13 @@ One `change_records` row (`ChangeRecord`) per object per save:
 | `created` | Whether the save created the object: its first line says so, and Last updated says Created until a later change |
 | `lines` | JSONB: one line per change, each its words (`parts`, the changed thing's name marked strong) and its values before and after (`details`) |
 | `sequence` | An identity column: the order. It counts every organization's records, so it never leaves the API: the paging cursor is an entry's id |
+
+A job's history also takes the text one board has of its own. A `JobPosting` is a second tracked kind under the `Job`
+subject (`JobPostingChanges`, no `creates`), so "customized the title for Adzuna" or "went back to the job's description
+for Adzuna" joins the job's entry for that save. Only the title and description overrides make lines: a posting changes
+state all day as boards answer, and the interceptor skips a describer that returns no lines, so a worker's save writes
+nothing. The board's name comes from `JobPosting.BoardLabel`, which the customize route sets and the table does not
+store, because this layer cannot see the board registry; it falls back to the board id.
 
 Everything one save changes in an object is one entry with several lines. People are stored by id and named when the
 history is read, so a renamed person shows their current name. That holds for the member a team line is about, too: the

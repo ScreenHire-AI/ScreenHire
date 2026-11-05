@@ -89,7 +89,15 @@ public sealed record BoardCapabilities(
     TimeSpan? PublishEta,
     TimeSpan? RemovalEta,
     int? DailyQuota = null,
-    bool PartnerGated = false);
+    bool PartnerGated = false)
+{
+    /// <summary>
+    /// Whether this board can receive text of its own. The careers page is the job's own page and Google reads it, so
+    /// neither (<see cref="BoardMode.Hosted"/>, <see cref="BoardMode.Notify"/>) takes an override; every board that is
+    /// sent or serves a copy of the job does.
+    /// </summary>
+    public bool CanCustomize => Mode is not (BoardMode.Hosted or BoardMode.Notify);
+}
 
 /// <summary>
 /// The content a board receives: one frozen <see cref="JobVersion"/> and where the job lives. Adapters read this,

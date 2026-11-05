@@ -127,10 +127,32 @@ export function boardAction(jobStatus: JobStatus, board: Pick<BoardSummary, 'can
   return null;
 }
 
+/**
+ * Whether a board can be given text of its own: while the job is open, on a board that sends or serves a copy of it. The
+ * Careers page is the job's own page and Google reads that page, so neither is ever customized. A board the job was taken
+ * down from, or is being taken down from, stays down until it is posted again, so it is left alone here.
+ */
+export function canCustomize(jobStatus: JobStatus, board: Pick<BoardSummary, 'canCustomize'>, posting?: JobPostingStatus): boolean {
+  return jobStatus === 'Open' && board.canCustomize && posting?.state !== 'Closing' && posting?.state !== 'Closed';
+}
+
+/**
+ * Whether the posting needs fixes the job's own details can make: the board's checks found issues (Draft) or it refused
+ * the posting (Rejected). Editing the details changes the job for every board; Customize changes only this one.
+ */
+export function needsDetailFixes(jobStatus: JobStatus, posting: JobPostingStatus | undefined): boolean {
+  return jobStatus !== 'Closed' && (posting?.state === 'Draft' || posting?.state === 'Rejected');
+}
+
+/** Whether any of the board's text is its own rather than the job's. */
+export function isCustomized(posting: JobPostingStatus | undefined): boolean {
+  return posting !== undefined && (posting.customizedTitle || posting.customizedDescription);
+}
+
 export interface BoardRow {
   boardId: string;
   name: string;
-  board: Pick<BoardSummary, 'canUnpublishPerBoard'>;
+  board: Pick<BoardSummary, 'canUnpublishPerBoard' | 'canCustomize'>;
   posting: JobPostingStatus | undefined;
 }
 
@@ -143,7 +165,7 @@ export function boardRows(boards: readonly BoardSummary[], postings: readonly Jo
   const rows: BoardRow[] = boards.map((board) => ({ boardId: board.id, name: board.name, board, posting: byBoard.get(board.id) }));
   for (const posting of postings) {
     if (!boards.some((board) => board.id === posting.boardId)) {
-      rows.push({ boardId: posting.boardId, name: posting.boardName, board: { canUnpublishPerBoard: posting.canUnpublish }, posting });
+      rows.push({ boardId: posting.boardId, name: posting.boardName, board: { canUnpublishPerBoard: posting.canUnpublish, canCustomize: false }, posting });
     }
   }
 

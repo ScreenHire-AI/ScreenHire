@@ -58,9 +58,12 @@ never calls the API.
 | `/questionnaires/{token}` | A follow-up questionnaire, opened from the signed link a SendQuestionnaire automation emailed (section 8). |
 | `/questionnaires/sent` | Where answered follow-up questions land, after a POST-redirect-GET, with no token in the address. |
 | `/interviews/{token}` | A candidate's interview, opened from the signed link an interview invitation or confirmation emailed: pick a time, then see it, move it or cancel it (section 8.1). |
-| `/talent-pool/{token}` | Where a candidate stops the employer keeping their details for future roles, from the signed link in a talent pool invitation ([talent pool](talent-pool.md)). One native form, no JavaScript, `no-store`, `noindex` and `no-referrer`. |
 | `/talent-pool/{token}` | Where a candidate stops the employer keeping their details for future roles, from the signed link in an invitation to apply ([saved candidates](talent-pool.md)). One native form, no JavaScript, `no-store`, `noindex` and `no-referrer`. |
 | `/talent-pool/stopped` | Where stopping lands, after a POST-redirect-GET, with no token in the address. |
+
+Every step names itself in a visible heading ("Your details", the section's name, "Review and send"), and the review step says
+the employer receives the answers when they are sent. On the job page the Apply link comes before the notice, so a phone
+does not scroll past it; the form shows the notice again above its first field and nothing is collected until it is used.
 
 Each step is a native `<form method="POST" enctype="multipart/form-data">` posted to the `apply` Astro Action
 (`src/actions/index.ts`), which re-renders the same page with the next step. What the candidate has entered travels
