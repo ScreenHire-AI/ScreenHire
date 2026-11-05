@@ -85,7 +85,6 @@ public static partial class PurgeOrganizationEndedApplicationsHandler
             outgoing.Add(erasureMessage);
         }
 
-
         outgoing.Add(new ApplicationsRemoved(message.OrganizationId, erased.ApplicationsDeleted));
 
         // More are waiting: the next batch is its own message, so no single transaction grows without bound.

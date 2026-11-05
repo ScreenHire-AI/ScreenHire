@@ -102,7 +102,11 @@ internal static class PublicDataRequestEndpoints
 
         // Before anything is looked up or sent: this route emails a link to whatever address was typed.
         if (await PublicApplicationDraftEndpoints.BotCheckProblemAsync(
-                turnstile, request.BotCheckToken, http.Connection.RemoteIpAddress?.ToString(), cancellationToken) is { } refused)
+                turnstile,
+                request.BotCheckToken,
+                http.Connection.RemoteIpAddress?.ToString(),
+                cancellationToken,
+                "We could not finish the security check, so no link was emailed.") is { } refused)
         {
             return refused;
         }

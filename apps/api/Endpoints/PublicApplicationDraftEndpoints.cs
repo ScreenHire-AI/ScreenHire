@@ -119,11 +119,15 @@ internal static class PublicApplicationDraftEndpoints
     /// needs the check, so a candidate who cannot pass it still applies.
     /// </summary>
     internal static async Task<ProblemHttpResult?> BotCheckProblemAsync(
-        TurnstileVerifier turnstile, string? token, string? remoteAddress, CancellationToken cancellationToken) =>
+        TurnstileVerifier turnstile,
+        string? token,
+        string? remoteAddress,
+        CancellationToken cancellationToken,
+        string detail = "We could not finish the security check, so no link was emailed. You can send your application now instead.") =>
         await turnstile.VerifyAsync(token, remoteAddress, cancellationToken) == BotCheckResult.Failed
             ? TypedResults.Problem(
                 title: "Security check not passed",
-                detail: "We could not finish the security check, so no link was emailed. You can send your application now instead.",
+                detail: detail,
                 statusCode: StatusCodes.Status403Forbidden)
             : null;
 

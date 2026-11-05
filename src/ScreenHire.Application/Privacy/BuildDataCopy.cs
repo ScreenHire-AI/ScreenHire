@@ -46,6 +46,17 @@ public static partial class BuildDataCopyHandler
         ILogger<BuildDataCopy> logger,
         CancellationToken cancellationToken)
     {
+        // Read without tracking: a tracked row would keep these values through the re-read after the locks.
+        var target = await db.DataRequests.AsNoTracking().Where(r => r.Id == message.RequestId).Select(r => r.CandidateId).SingleOrDefaultAsync(cancellationToken);
+        if (target is { } lockedCandidateId)
+        {
+            // Erasure locks the candidate and decline locks the request, so this handler waits for both and they wait for it.
+            // Candidate first, as erasure takes them. Without this an erasure could commit between the checks below and the
+            // upload, and a file of the erased person's data would be written and its link emailed to them.
+            await db.Database.ExecuteSqlAsync($"SELECT 1 FROM candidates WHERE id = {lockedCandidateId} FOR UPDATE", cancellationToken);
+            await db.Database.ExecuteSqlAsync($"SELECT 1 FROM data_requests WHERE id = {message.RequestId} FOR UPDATE", cancellationToken);
+        }
+
         var request = await db.DataRequests.SingleOrDefaultAsync(r => r.Id == message.RequestId, cancellationToken);
         if (request is not { Kind: DataRequestKind.Copy, Status: DataRequestStatus.Open, CandidateId: { } candidateId })
         {

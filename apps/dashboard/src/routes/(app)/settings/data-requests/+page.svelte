@@ -410,7 +410,10 @@
         <form method="POST" use:enhance novalidate aria-label="Record retention">
           <Panel title="Record retention">
             {#snippet actions()}
-              <HistoryFact value={retentionData.lastUpdated} name="Record retention" page={(before) => getGetOrganizationRetentionHistoryQueryOptions({ before })} />
+              <!-- On a phone the fact's words would cut the panel's title short, so History stands alone there. -->
+              <div class="contents max-md:[&_[data-last-updated]>span>span:first-child]:sr-only">
+                <HistoryFact value={retentionData.lastUpdated} name="Record retention" page={(before) => getGetOrganizationRetentionHistoryQueryOptions({ before })} />
+              </div>
             {/snippet}
             <div class="flex max-w-form flex-col gap-5">
               <div class="flex items-start gap-4">
@@ -548,7 +551,7 @@
   <Dialog.Content class="sm:max-w-md">
     <Dialog.Header>
       <Dialog.Title>Decline this request?</Dialog.Title>
-      <Dialog.Description>{actingName} is emailed your reason. Say plainly why you cannot act on the request.</Dialog.Description>
+      <Dialog.Description>{actingName} is emailed your reason.</Dialog.Description>
     </Dialog.Header>
     <form method="POST" use:declineEnhance novalidate class="flex flex-col gap-4">
       <Field.Field data-invalid={$declineErrors.reason ? true : undefined}>

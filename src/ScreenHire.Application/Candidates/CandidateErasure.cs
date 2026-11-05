@@ -7,6 +7,7 @@ using ScreenHire.Application.Verification;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.Privacy;
 using ScreenHire.Domain.Scheduling;
 using ScreenHire.Infrastructure.Persistence;
 
@@ -57,9 +58,12 @@ public sealed class CandidateErasure(IApplicantDirectory directory)
         var exportBlobs = new List<string>();
         foreach (var request in await db.DataRequests.Where(r => r.CandidateId == candidateId).ToListAsync(cancellationToken))
         {
-            if (request.ForgetCandidate(actorUserId, now) is { } blob)
+            // A copy request's blob is named even when the row records none: a build that wrote the file and then failed, on
+            // the email for instance, rolled the row back and left the file.
+            var blob = request.ForgetCandidate(actorUserId, now);
+            if (request.Kind == DataRequestKind.Copy)
             {
-                exportBlobs.Add(blob);
+                exportBlobs.Add(blob ?? CandidateDataExport.BlobNameFor(organizationId, request.Id));
             }
         }
 
