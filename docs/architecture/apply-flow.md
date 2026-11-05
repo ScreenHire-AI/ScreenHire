@@ -130,7 +130,7 @@ employer keeps their details until they ask, or the employer removes them, and m
 roles, and that every invitation has a link to stop. There is no period: the application form carries no number of
 months. The careers server sends `keepForFutureRoles`; the API records the permission on the application only, never on
 the candidate ([saved candidates](talent-pool.md)). The privacy page's "Future roles" section says the same (notice
-version `2026-11-02.1`, bumped when the period was removed).
+version `2026-11-05.1`: it was bumped when the period was removed, and again when the "Your choices" section gained the data request form).
 
 ## 3. Uploads
 
