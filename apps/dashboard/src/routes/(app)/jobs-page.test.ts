@@ -1,9 +1,12 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { apiStub, jobs } from '../../test-support/fixtures.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { page } from '$app/state';
+import { apiStub, jobs, user, userAs } from '../../test-support/fixtures.js';
 import { stubViewport } from '../../test-support/viewport.js';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
+
+vi.mock('$app/state', () => ({ page: { state: {}, data: {}, url: new URL('http://dashboard.test/'), shallow: null }, navigating: { to: null } }));
 
 const closed = { ...jobs[1]!, id: '01a157d4-0000-7000-8000-000000000003', title: 'Support Engineer', status: 'Closed' as const };
 
@@ -29,6 +32,10 @@ async function openRowMenu(title: string) {
   return screen.findByRole('menu');
 }
 
+beforeEach(() => {
+  page.data = { user };
+});
+
 afterEach(() => {
   vi.unstubAllGlobals();
   // The table remembers its sort in the browser.
@@ -41,7 +48,8 @@ describe('jobs page', () => {
     renderPage();
 
     expect((await dataRows()).map(cellTexts)).toEqual([
-      ['Draft', 'Customer Success Lead', 'Manchester, UK', 'Full-time', '-', 'Oct 19, 2026', ''],
+      // A draft was never published: the cell is blank, with its words for screen readers only (L1).
+      ['Draft', 'Customer Success Lead', 'Manchester, UK', 'Full-time', 'Not published', 'Oct 19, 2026', ''],
       ['Open', 'Senior .NET Engineer', 'Remote (GB, IE)', 'Full-time', 'Oct 18, 2026', 'Oct 18, 2026', ''],
     ]);
     expect(screen.getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/jobs/${jobs[1]!.id}`);
@@ -97,7 +105,7 @@ describe('jobs page', () => {
     );
   });
 
-  it('filters by status and by a search of title, department and location', async () => {
+  it('filters by status and by a search of the title and location, the columns a person sees', async () => {
     vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json([...jobs, closed]) })));
     renderPage();
     await dataRows();
@@ -143,6 +151,15 @@ describe('jobs page', () => {
     expect(screen.queryByRole('button', { name: /^Actions for/ })).not.toBeInTheDocument();
   });
 
+  it('offers no row menu to someone who may not edit jobs, whose every item needs that', async () => {
+    page.data = { user: userAs('Viewer') };
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json(jobs) })));
+    renderPage();
+
+    await dataRows();
+    expect(screen.queryByRole('button', { name: /^Actions for/ })).not.toBeInTheDocument();
+  });
+
   it('shows the failure and a way to try again when the list does not load', async () => {
     vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => new Response(null, { status: 503 }) })));
     renderPage();
@@ -168,6 +185,16 @@ describe('jobs page', () => {
 });
 
 describe('jobs page actions', () => {
+  it('opens Edit details from the row menu as a link, before the action that changes the job (A5)', async () => {
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json(jobs) })));
+    renderPage();
+
+    const menu = await openRowMenu('Customer Success Lead');
+
+    expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Edit details', 'Publish to every board']);
+    expect(within(menu).getByRole('menuitem', { name: 'Edit details' })).toHaveAttribute('href', `/jobs/${jobs[0]!.id}/edit`);
+  });
+
   it('publishes a draft from its row menu and refetches the list', async () => {
     const url = `/v1/jobs/${jobs[0]!.id}/publish`;
     const fetchMock = vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json(jobs), [`POST ${url}`]: () => Response.json({}) }));

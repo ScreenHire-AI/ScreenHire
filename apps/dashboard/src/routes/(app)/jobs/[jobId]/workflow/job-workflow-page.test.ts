@@ -51,7 +51,7 @@ afterEach(() => {
 });
 
 describe('job workflow page', () => {
-  it('reads a closed job as content: the summary, the Job closed pill, no controls and no Save button', async () => {
+  it('reads a closed job as content: the summary, the Closed status, no controls and no Save button', async () => {
     stubApi('Closed');
     const { container } = renderPage();
 
@@ -59,18 +59,20 @@ describe('job workflow page', () => {
     expect(within(pane).getByRole('region', { name: 'Stages' })).toBeInTheDocument();
     expect(pane.querySelectorAll('input, select, textarea')).toHaveLength(0);
     expect(container.querySelectorAll(':disabled')).toHaveLength(0);
-    expect(screen.getByText('Job closed')).toHaveAttribute('data-slot', 'badge');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Senior .NET Engineer workflow');
+    expect(screen.getByText('Closed')).toHaveAttribute('data-slot', 'badge');
     expect(screen.queryByRole('button', { name: 'Save workflow' })).toBeNull();
   });
 
-  it('shows the builder with a Save button for an open job, and no Job closed pill', async () => {
+  it('shows the builder with a Save button for an open job, whose status is the first badge beside the title', async () => {
     stubApi('Open');
     renderPage();
 
     const stages = await screen.findByRole('region', { name: 'Stages' });
     expect(within(stages).getAllByRole('spinbutton', { name: 'Time limit (days)' }).length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'Save workflow' })).toBeEnabled();
-    expect(screen.queryByText('Job closed')).toBeNull();
+    expect(screen.getByText('Open')).toHaveAttribute('data-slot', 'badge');
+    expect(screen.queryByText('Closed')).toBeNull();
   });
 
   it('puts Save workflow in the action bar on a phone (section 8)', async () => {
@@ -91,7 +93,10 @@ describe('job workflow page', () => {
 
     await fireEvent.click(screen.getByRole('button', { name: 'Save workflow' }));
 
+    // The message sits in the band's line under the title, so it never pushes the actions onto a second row (S8).
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('No changes to save.'));
+    expect(screen.getByRole('status').closest('[data-slot=header-band]')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Save workflow' }).parentElement).not.toContainElement(screen.getByRole('status'));
     expect(fetchMock.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(0);
   });
 });

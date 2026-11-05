@@ -95,7 +95,9 @@
   const all = $derived(applications.data?.data ?? []);
   const rows = $derived(detail ? boardRows(boards.data?.data ?? [], detail.postings) : []);
   const boardCount = $derived(rows.length);
-  const publishable = $derived(detail?.status === 'Draft' && boardCount > 0);
+  // Edit details, Publish and Close all need Edit jobs, so someone without it is not offered them (A3).
+  const mayEdit = $derived(can(page.data.user, 'EditJobs'));
+  const publishable = $derived(mayEdit && detail?.status === 'Draft' && boardCount > 0);
   // A posting that needs fixes is a notice where people will see it, naming the board, with a link to the fix (E2). Only
   // an open job is on the boards.
   const problems = $derived(detail?.status === 'Open' && boards.data ? postingProblems(rows) : []);
@@ -136,6 +138,9 @@
     }
   }
 
+  const openedLast = $derived(
+    !!detail?.publishedAt && !!detail.lastUpdated.at && Math.abs(Date.parse(detail.lastUpdated.at) - Date.parse(detail.publishedAt)) < 60_000,
+  );
   const notFound = $derived(job.error instanceof ApiError && job.error.status === 404);
 </script>
 
@@ -188,7 +193,7 @@
           <!-- The one primary action; on a phone it sits in the action bar at the bottom of the screen (section 8). -->
           {#if publishable && !sidebar.isMobile}{@render publishButton()}{/if}
           {#if !sidebar.isMobile}
-            {#if detail.status !== 'Closed'}
+            {#if mayEdit && detail.status !== 'Closed'}
               <Button href={`/jobs/${detail.id}/edit`} variant="outline" size="lg"><PencilIcon aria-hidden="true" />Edit details</Button>
             {/if}
             <Button href={`/jobs/${detail.id}/workflow`} variant="outline" size="lg"><WorkflowIcon aria-hidden="true" />Edit workflow</Button>
@@ -200,7 +205,7 @@
             </Button>
           {/if}
           <!-- Closing the job lives in More, confirmed in a dialog (A2); phones fold the other actions in too. -->
-          {#if sidebar.isMobile || detail.status === 'Open'}
+          {#if sidebar.isMobile || (mayEdit && detail.status === 'Open')}
             <MoreMenu
               label="More actions"
               onclosed={() => {
@@ -213,7 +218,7 @@
               }}
             >
               {#if sidebar.isMobile}
-                {#if detail.status !== 'Closed'}
+                {#if mayEdit && detail.status !== 'Closed'}
                   <!-- Items that go to a page are links (A5). -->
                   <DropdownMenu.Item>
                     {#snippet child({ props })}<a {...props} href={`/jobs/${detail.id}/edit`}><PencilIcon aria-hidden="true" />Edit details</a>{/snippet}
@@ -225,9 +230,9 @@
                 {#if canAdd}
                   <DropdownMenu.Item onSelect={() => (addChosen = true)}><UserPlusIcon aria-hidden="true" />Add candidate</DropdownMenu.Item>
                 {/if}
-                <DropdownMenu.Item onSelect={() => (teamChosen = true)}><UsersRoundIcon aria-hidden="true" />Hiring team</DropdownMenu.Item>
+                <DropdownMenu.Item onSelect={() => (teamChosen = true)}><UsersRoundIcon aria-hidden="true" />Edit hiring team</DropdownMenu.Item>
               {/if}
-              {#if detail.status === 'Open'}
+              {#if mayEdit && detail.status === 'Open'}
                 {#if sidebar.isMobile}<DropdownMenu.Separator />{/if}
                 <DropdownMenu.Item variant="destructive" onSelect={() => (closeChosen = true)}>Close &amp; remove everywhere</DropdownMenu.Item>
               {/if}
@@ -239,7 +244,8 @@
           <Fact label="Type">{employmentLabel(detail.employmentType)}</Fact>
           {#if detail.salary}<Fact label="Salary">{formatSalary(detail.salary)}</Fact>{/if}
           {#if detail.status === 'Open' && detail.publishedAt}
-            <Fact label="Opened"><RelativeTime at={detail.publishedAt} /></Fact>
+            <!-- Opening the job is the last change until someone edits it, and Last updated says so: said once (W7). -->
+            {#if !openedLast}<Fact label="Opened"><RelativeTime at={detail.publishedAt} /></Fact>{/if}
           {:else if detail.status === 'Closed' && detail.closedAt}
             <Fact label="Closed"><RelativeTime at={detail.closedAt} /></Fact>
           {:else if !detail.lastUpdated.created}
@@ -266,7 +272,7 @@
         kind="job"
         id={detail.id}
         name={detail.title}
-        mayEdit={can(page.data.user, 'EditJobs')}
+        {mayEdit}
         {currentMemberId}
         seesAllJobs={seesAllJobs(page.data.user)}
       />

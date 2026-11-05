@@ -202,7 +202,7 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
     private async Task OpenQuestionnaireAsync(Guid jobId)
     {
         await Page.GotoAsync(new Uri(Fixture.GetEndpoint("dashboard"), $"/jobs/{jobId}/workflow").ToString());
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToContainTextAsync("Workflow:");
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToContainTextAsync(" workflow");
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Questionnaire" }).ClickAsync();
         await Expect(Region("Screening questions")).ToContainTextAsync("No questions yet.");
     }

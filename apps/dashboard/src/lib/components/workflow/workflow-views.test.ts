@@ -1,7 +1,7 @@
 // A workflow as the builder shows it and as the read-only view reads it (design system section 7), and the validation
 // result beside its title.
 import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
-import { fireEvent, render, screen, within } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
 import { apiStub } from '../../../test-support/fixtures.js';
@@ -360,6 +360,7 @@ describe('workflow builder', () => {
       "Meets the role's requirements Rating, 1 to 5",
       'Notes Long text',
     ]);
+    // The stage's scorecard is its name beside an icon, with the word for screen readers only (W9).
     expect(stages).toHaveTextContent('Scorecard: Phone screen');
     await expectNoAxeViolations(container);
     vi.unstubAllGlobals();
@@ -398,6 +399,51 @@ describe('workflow builder', () => {
 
     expect(await within(sheet).findByRole('alert')).toHaveTextContent('Could not load the scorecard library');
     expect(within(sheet).getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+    vi.unstubAllGlobals();
+  });
+});
+
+describe('workflow simulation', () => {
+  const multi: HiringWorkflow = {
+    ...workflow,
+    questionnaire: {
+      questions: [
+        {
+          id: 'stack',
+          type: 'MultiChoice',
+          label: 'Which of these have you used?',
+          required: false,
+          options: [
+            { id: 'csharp', label: 'C#' },
+            { id: 'svelte', label: 'Svelte' },
+          ],
+        },
+      ],
+    },
+  };
+
+  it('picks a multi-choice answer by the options names and sends their ids, never asking for typed ids (W8)', async () => {
+    const fetchMock = vi.fn(
+      apiStub({
+        'GET /v1/email-templates': () => Response.json({ templates: [], sendingEnabled: false }),
+        'POST /v1/workflows/simulate': () => Response.json({ automations: [] }),
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: structuredClone(multi), errors: [], mode: 'editor', tab: 'simulate' } } });
+
+    const group = await screen.findByRole('group', { name: 'Which of these have you used?' });
+    expect(screen.queryByText(/ids/i)).toBeNull();
+    await fireEvent.click(within(group).getByRole('checkbox', { name: 'Svelte' }));
+    await fireEvent.click(within(group).getByRole('checkbox', { name: 'C#' }));
+    await fireEvent.click(within(group).getByRole('checkbox', { name: 'Svelte' }));
+    expect(screen.getByRole('region', { name: 'What would happen' })).toHaveTextContent('Nothing is saved or sent');
+    await fireEvent.click(screen.getByRole('button', { name: 'Run test' }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/v1/workflows/simulate', expect.objectContaining({ method: 'POST' })));
+    const call = fetchMock.mock.calls.find(([url]) => url === '/v1/workflows/simulate');
+    const body = JSON.parse(String(call?.[1]?.body));
+    expect(body.facts.answers).toEqual([{ questionId: 'stack', values: ['csharp'] }]);
     vi.unstubAllGlobals();
   });
 });

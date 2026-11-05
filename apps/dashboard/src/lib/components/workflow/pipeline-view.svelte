@@ -150,6 +150,7 @@
                     type="number"
                     min={1}
                     max={365}
+                    placeholder="No limit"
                     value={stage.slaDays ?? ''}
                     onchange={(event) => (stage.slaDays = event.currentTarget.value ? Number(event.currentTarget.value) : null)}
                   />
@@ -170,7 +171,7 @@
             <FieldErrors id={`stage-${index}-errors`} messages={stageErrors} />
             {@render summaries(stage.id)}
             {#if (stage.scorecard || stage.scorecardTemplateId) && !isTerminal(stage.kind)}
-              <p class="text-muted-foreground">Scorecard: <ScorecardName {stage} /></p>
+              <p class="flex items-center gap-1.5 text-muted-foreground"><ClipboardListIcon aria-hidden="true" /><span><span class="sr-only">Scorecard:</span>{' '}<ScorecardName {stage} /></span></p>
             {/if}
           </div>
         </div>

@@ -68,7 +68,7 @@ describe('job details form', () => {
       validThrough: '2026-11-30T23:59:59Z',
       description,
     });
-    await waitFor(() => expect(onsaved).toHaveBeenCalledWith('Saved. The careers page shows it now; publish again to update the boards.'));
+    await waitFor(() => expect(onsaved).toHaveBeenCalledWith('Saved. The careers page shows it now. Boards that already have the job keep what they were sent.'));
   });
 
   it('changes the countries candidates can work from by name', async () => {

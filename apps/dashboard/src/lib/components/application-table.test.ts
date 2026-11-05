@@ -289,9 +289,9 @@ describe('candidate table', () => {
     expect(within(items[0]!).getByText('Oct 20, 2026')).toBeInTheDocument();
   });
 
-  it('leaves the Move menu out of the table and the phone list for a role without Move candidates (A3)', () => {
+  it('leaves the row menu out of the table and the phone list for a role without Move candidates (A3)', () => {
     const moves = (allowed: boolean) => ({ allowed, announcement: '', failure: '', move: vi.fn() }) as unknown as Moves;
-    const moveButtons = () => screen.queryAllByRole('button', { name: /to another stage$/ });
+    const moveButtons = () => screen.queryAllByRole('button', { name: /^Actions for / });
 
     const table = render(WithTooltips, { props: { component: ApplicationTable, props: { applications, stages, moves: moves(true) } } });
     expect(moveButtons()).toHaveLength(applications.length);

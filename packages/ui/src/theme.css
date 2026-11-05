@@ -149,7 +149,8 @@
 
   /* A disabled text field, and a label whose control is disabled, show it too (A10), so no component sets a cursor. */
   :is(input, textarea):disabled,
-  label:has(:disabled) {
+  label:has(:disabled),
+  .peer:disabled ~ label {
     cursor: not-allowed;
   }
 

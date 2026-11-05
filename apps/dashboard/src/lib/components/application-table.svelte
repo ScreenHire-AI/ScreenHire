@@ -8,7 +8,7 @@
   import VerificationChip from '#lib/components/verification-chip.svelte';
   import Rating from '#lib/components/rating.svelte';
   import ListItem from '#lib/components/list-item.svelte';
-  import MoveToStage from '#lib/components/move-to-stage.svelte';
+  import ApplicationMenu from '#lib/components/application-menu.svelte';
   import OverdueBadge from '#lib/components/overdue-badge.svelte';
   import SortHeader from '#lib/components/sort-header.svelte';
   import SortMenu from '#lib/components/sort-menu.svelte';
@@ -55,7 +55,7 @@
     label?: string;
     /** Adds a Job column, for the table across every job. */
     showJob?: boolean;
-    /** With `moves`: the job's stages, for each row's "Move" menu. */
+    /** With `moves`: the job's stages, for each row's Move to menu. */
     stages?: readonly WorkflowStage[];
     moves?: Moves;
     /** Columns right after Candidate (status first, T2): the slot the verification columns fill (#lib/candidate-table.ts). */
@@ -294,13 +294,12 @@
 {/snippet}
 
 {#snippet moveHeader()}
-  <span class="sr-only">Move</span>
+  <span class="sr-only">Actions</span>
 {/snippet}
 
 {#snippet moveCell(application: ApplicationSummary)}
   {#if stages && moves?.allowed}
-    <MoveToStage
-      compact
+    <ApplicationMenu
       candidateName={application.candidateName}
       currentStageId={application.keptInMindAt ? '' : application.stage.id}
       {stages}

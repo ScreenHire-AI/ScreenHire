@@ -28,6 +28,7 @@
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import SortHeader from '#lib/components/sort-header.svelte';
+  import SortMenu from '#lib/components/sort-menu.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
@@ -175,6 +176,8 @@
   {#if boardList.length === 0}
     <p class="px-4.5 py-4 text-muted-foreground max-md:px-4">No job boards are set up.</p>
   {:else}
+    <!-- A phone has no header to sort by, so the Sort chip offers the same choices (L2). -->
+    <div class="flex border-b border-border-subtle px-4 py-2 md:hidden"><SortMenu {table} /></div>
     <!-- relative: the Actions header's sr-only label is absolute, and would escape the scroller and widen the page (F1). -->
     <div class="relative overflow-x-auto">
       <table aria-label="Job postings" class="w-full border-collapse text-left">
@@ -224,8 +227,9 @@
                  every board, Customize only this one. A customized board whose job moved on says so. -->
             {#if needsAttention(view.status) || jobMoved}
               <tr>
-                <td></td>
-                <td colspan={row.getAllCells().length - 1} class="px-3 pb-3 text-body text-muted-foreground">
+                <!-- On a phone the words take the full width, where the status column would leave them 212px (F1). -->
+                <td class="max-md:hidden"></td>
+                <td colspan={row.getAllCells().length - 1} class="px-3 pb-3 text-body text-muted-foreground max-md:px-4">
                   <div class="flex flex-col gap-2">
                     {#if needsAttention(view.status)}
                       <p data-posting-problem>{view.detail}</p>
