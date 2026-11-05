@@ -801,7 +801,7 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   per step: a round to-do tick or the level's icon, the step, its facts, and its link on the right. A review or a
   requested scorecard has no tick; a review's link is Open scorecards, to the Scorecards tab, and a requested scorecard's is Fill in, with its sheet open.
   Built: Messages lists every email to the candidate, about any of their applications, newest first, with the email
-  composer on top for people who can send. Each row opens to the email as it went; one sent before ScreenHire kept a
+  composer in its own panel under them for people who can send. Each row opens to the email as it went; one sent before ScreenHire kept a
   copy of each email says only its subject was kept. A candidate's reply is in the same list, with the reply arrow and
   who it is from, and opens to the sender, the message and its files; a file shows once its malware scan allows it. A
   flagged address puts a status beside the name, a notice at the top of the tab and Allow email again, and takes the
