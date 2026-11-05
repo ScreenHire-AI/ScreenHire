@@ -121,6 +121,7 @@
       accept={accept.join(',')}
       required={required && !current}
       disabled={uploading}
+      data-uploaded={current ? '' : undefined}
       aria-invalid={error ? 'true' : undefined}
       aria-describedby={[hintId, error ? errorId : null, statusId].filter(Boolean).join(' ')}
       onchange={upload}

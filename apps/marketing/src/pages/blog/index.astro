@@ -25,7 +25,7 @@ const blog = {
 ---
 
 <BaseLayout title={title} description={description} breadcrumbs={[{ name: label, path }]} jsonLd={[blog]}>
-  <PageHeader kicker="Blog" title="Notes on hiring real people." lead={description}>
+  <PageHeader title="Notes on hiring real people." lead={description}>
     <p><a href="/rss.xml" class="font-semibold text-primary underline-offset-2 hover:underline">Subscribe with RSS</a></p>
   </PageHeader>
   <section aria-labelledby="posts-title" class="mx-auto max-w-6xl px-6 pb-16">
@@ -34,7 +34,7 @@ const blog = {
       {
         posts.map((post) => (
           <li class="flex flex-col gap-2 rounded-xl border border-border bg-card p-6">
-            <time datetime={post.data.published} class="font-mono text-xs text-muted-foreground uppercase">
+            <time datetime={post.data.published} class="text-sm text-muted-foreground">
               {formatDate(post.data.published)}
             </time>
             <h3 class="font-display text-2xl font-bold">

@@ -23,4 +23,5 @@ export interface BoardSummary {
   removalEtaSeconds: number | null;
   /** @nullable */
   dailyQuota: number | null;
+  canCustomize: boolean;
 }

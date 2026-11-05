@@ -1180,7 +1180,10 @@ export const CreateJobResponse = zod.object({
   "liveAt": zod.iso.datetime({"offset":true}).nullable(),
   "closingAt": zod.iso.datetime({"offset":true}).nullable(),
   "closedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "viewUrl": zod.string().nullable()
+  "viewUrl": zod.string().nullable(),
+  "customizedTitle": zod.boolean(),
+  "customizedDescription": zod.boolean(),
+  "jobChangedSinceCustomized": zod.boolean()
 }).describe('One job on one board: where it stands and what is still uncertain.')),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
@@ -1378,7 +1381,10 @@ export const GetJobResponse = zod.object({
   "liveAt": zod.iso.datetime({"offset":true}).nullable(),
   "closingAt": zod.iso.datetime({"offset":true}).nullable(),
   "closedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "viewUrl": zod.string().nullable()
+  "viewUrl": zod.string().nullable(),
+  "customizedTitle": zod.boolean(),
+  "customizedDescription": zod.boolean(),
+  "jobChangedSinceCustomized": zod.boolean()
 }).describe('One job on one board: where it stands and what is still uncertain.')),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
@@ -1598,7 +1604,10 @@ export const UpdateJobResponse = zod.object({
   "liveAt": zod.iso.datetime({"offset":true}).nullable(),
   "closingAt": zod.iso.datetime({"offset":true}).nullable(),
   "closedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "viewUrl": zod.string().nullable()
+  "viewUrl": zod.string().nullable(),
+  "customizedTitle": zod.boolean(),
+  "customizedDescription": zod.boolean(),
+  "jobChangedSinceCustomized": zod.boolean()
 }).describe('One job on one board: where it stands and what is still uncertain.')),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
@@ -1834,7 +1843,10 @@ export const PublishJobResponse = zod.object({
   "liveAt": zod.iso.datetime({"offset":true}).nullable(),
   "closingAt": zod.iso.datetime({"offset":true}).nullable(),
   "closedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "viewUrl": zod.string().nullable()
+  "viewUrl": zod.string().nullable(),
+  "customizedTitle": zod.boolean(),
+  "customizedDescription": zod.boolean(),
+  "jobChangedSinceCustomized": zod.boolean()
 }).describe('One job on one board: where it stands and what is still uncertain.')),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
@@ -2032,7 +2044,10 @@ export const CloseJobResponse = zod.object({
   "liveAt": zod.iso.datetime({"offset":true}).nullable(),
   "closingAt": zod.iso.datetime({"offset":true}).nullable(),
   "closedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "viewUrl": zod.string().nullable()
+  "viewUrl": zod.string().nullable(),
+  "customizedTitle": zod.boolean(),
+  "customizedDescription": zod.boolean(),
+  "jobChangedSinceCustomized": zod.boolean()
 }).describe('One job on one board: where it stands and what is still uncertain.')),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
@@ -2425,7 +2440,10 @@ export const UpdateJobWorkflowResponse = zod.object({
   "liveAt": zod.iso.datetime({"offset":true}).nullable(),
   "closingAt": zod.iso.datetime({"offset":true}).nullable(),
   "closedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "viewUrl": zod.string().nullable()
+  "viewUrl": zod.string().nullable(),
+  "customizedTitle": zod.boolean(),
+  "customizedDescription": zod.boolean(),
+  "jobChangedSinceCustomized": zod.boolean()
 }).describe('One job on one board: where it stands and what is still uncertain.')),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
@@ -2628,7 +2646,10 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "liveAt": zod.iso.datetime({"offset":true}).nullable(),
   "closingAt": zod.iso.datetime({"offset":true}).nullable(),
   "closedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "viewUrl": zod.string().nullable()
+  "viewUrl": zod.string().nullable(),
+  "customizedTitle": zod.boolean(),
+  "customizedDescription": zod.boolean(),
+  "jobChangedSinceCustomized": zod.boolean()
 }).describe('One job on one board: where it stands and what is still uncertain.')),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
@@ -5995,7 +6016,8 @@ export const ListBoardsResponseItem = zod.object({
   "confirmsRemoval": zod.boolean(),
   "publishEtaSeconds": zod.int().nullable(),
   "removalEtaSeconds": zod.int().nullable(),
-  "dailyQuota": zod.int().nullable()
+  "dailyQuota": zod.int().nullable(),
+  "canCustomize": zod.boolean()
 }).describe('A board an organization may post to, and what it can promise (docs/architecture/job-distribution.md §1).')
 export const ListBoardsResponse = zod.array(ListBoardsResponseItem)
 
@@ -6022,7 +6044,10 @@ export const ListJobPostingsResponseItem = zod.object({
   "liveAt": zod.iso.datetime({"offset":true}).nullable(),
   "closingAt": zod.iso.datetime({"offset":true}).nullable(),
   "closedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "viewUrl": zod.string().nullable()
+  "viewUrl": zod.string().nullable(),
+  "customizedTitle": zod.boolean(),
+  "customizedDescription": zod.boolean(),
+  "jobChangedSinceCustomized": zod.boolean()
 }).describe('One job on one board: where it stands and what is still uncertain.')
 export const ListJobPostingsResponse = zod.array(ListJobPostingsResponseItem)
 
@@ -6050,8 +6075,90 @@ export const CloseJobPostingResponse = zod.object({
   "liveAt": zod.iso.datetime({"offset":true}).nullable(),
   "closingAt": zod.iso.datetime({"offset":true}).nullable(),
   "closedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "viewUrl": zod.string().nullable()
+  "viewUrl": zod.string().nullable(),
+  "customizedTitle": zod.boolean(),
+  "customizedDescription": zod.boolean(),
+  "jobChangedSinceCustomized": zod.boolean()
 }).describe('One job on one board: where it stands and what is still uncertain.')
+
+
+export const GetPostingCustomizationParams = zod.object({
+  "jobId": zod.uuid(),
+  "boardId": zod.string()
+})
+
+export const GetPostingCustomizationResponse = zod.object({
+  "boardId": zod.string(),
+  "boardName": zod.string(),
+  "jobVersion": zod.int(),
+  "title": zod.object({
+  "override": zod.string().nullable(),
+  "job": zod.string()
+}).describe('One text of a board: its own (null when it follows the job) and the job\'s newest published one.'),
+  "description": zod.object({
+  "override": zod.string().nullable(),
+  "job": zod.string()
+}).describe('One text of a board: its own (null when it follows the job) and the job\'s newest published one.'),
+  "changes": zod.array(zod.object({
+  "field": zod.string(),
+  "before": zod.string(),
+  "after": zod.string()
+}).describe('A text of the job that changed since the board\'s own was written. Both are plain text.'))
+}).describe('A board\'s customization, for the Customize sheet: each text with the job\'s, and what the job changed since the\nboard\'s own was written against it. `jobVersion` is the published version the job\'s text comes from.')
+
+
+export const CustomizePostingParams = zod.object({
+  "jobId": zod.uuid(),
+  "boardId": zod.string()
+})
+
+export const CustomizePostingBody = zod.object({
+  "title": zod.string().nullable(),
+  "description": zod.string().nullable(),
+  "jobVersion": zod.int().nullish()
+}).describe('What one board receives in place of the job\'s title and description. A null or blank field follows the job, and so\ndoes one equal to the job\'s own text; sending both null removes the customization. `jobVersion` is the version\nthe text was edited against (int PostingCustomization.JobVersion): a save against an older one is a 409.')
+
+export const CustomizePostingResponse = zod.object({
+  "id": zod.uuid(),
+  "boardId": zod.string(),
+  "boardName": zod.string(),
+  "mode": zod.union([zod.null(),zod.union([zod.literal('Hosted'),zod.literal('Pull'),zod.literal('PullFromAts'),zod.literal('Notify'),zod.literal('Push'),zod.literal(null)])]),
+  "state": zod.enum(['Draft', 'Queued', 'Submitted', 'Live', 'Rejected', 'Closing', 'Closed', 'Error']),
+  "jobVersion": zod.int(),
+  "confirmsLive": zod.boolean(),
+  "confirmsRemoval": zod.boolean(),
+  "canUnpublish": zod.boolean(),
+  "expectedBy": zod.iso.datetime({"offset":true}).nullable(),
+  "issues": zod.array(zod.string()),
+  "lastError": zod.string().nullable(),
+  "updatedAt": zod.iso.datetime({"offset":true}),
+  "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "liveAt": zod.iso.datetime({"offset":true}).nullable(),
+  "closingAt": zod.iso.datetime({"offset":true}).nullable(),
+  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "viewUrl": zod.string().nullable(),
+  "customizedTitle": zod.boolean(),
+  "customizedDescription": zod.boolean(),
+  "jobChangedSinceCustomized": zod.boolean()
+}).describe('One job on one board: where it stands and what is still uncertain.')
+
+
+export const PreviewPostingCustomizationParams = zod.object({
+  "jobId": zod.uuid(),
+  "boardId": zod.string()
+})
+
+export const PreviewPostingCustomizationBody = zod.object({
+  "title": zod.string().nullable(),
+  "description": zod.string().nullable(),
+  "jobVersion": zod.int().nullish()
+}).describe('What one board receives in place of the job\'s title and description. A null or blank field follows the job, and so\ndoes one equal to the job\'s own text; sending both null removes the customization. `jobVersion` is the version\nthe text was edited against (int PostingCustomization.JobVersion): a save against an older one is a 409.')
+
+export const PreviewPostingCustomizationResponse = zod.object({
+  "title": zod.string(),
+  "description": zod.string(),
+  "issues": zod.array(zod.string())
+}).describe('What a board would receive for a draft customization, and what its checks say about it. Nothing is saved.')
 
 
 export const GetJobBoardParams = zod.object({

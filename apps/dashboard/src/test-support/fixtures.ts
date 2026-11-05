@@ -207,6 +207,7 @@ export function board(id: string, name: string, overrides: Partial<BoardSummary>
     publishEtaSeconds: null,
     removalEtaSeconds: null,
     dailyQuota: null,
+    canCustomize: true,
     ...overrides,
   };
 }
@@ -231,6 +232,9 @@ export function posting(boardId: string, boardName: string, overrides: Partial<J
     viewUrl: null,
     closingAt: null,
     closedAt: null,
+    customizedTitle: false,
+    customizedDescription: false,
+    jobChangedSinceCustomized: false,
     ...overrides,
   };
 }

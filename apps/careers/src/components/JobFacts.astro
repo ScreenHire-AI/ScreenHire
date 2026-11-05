@@ -1,0 +1,17 @@
+---
+// The facts under a job's title (where, how, contract, pay) as chips. One component for the board, the job page and the
+// apply form, so the three read alike. Chips are plain facts, never links or buttons (design-system A5).
+import { jobFacts } from '../lib/format';
+
+interface Props {
+  job: Parameters<typeof jobFacts>[0];
+  class?: string;
+}
+
+const { job, class: extra } = Astro.props;
+---
+
+{/* Spans, not a list: the board is a list of jobs, and a list inside each job would count as more of them. */}
+<div class:list={['flex flex-wrap gap-1.5 text-candidate-hint font-semibold text-candidate-chip-foreground', extra]}>
+  {jobFacts(job).map((fact) => <span class="rounded-full bg-candidate-chip px-2.5 py-1">{fact}</span>)}
+</div>

@@ -1,3 +1,4 @@
+using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 
 namespace ScreenHire.Domain.Distribution;
@@ -66,6 +67,30 @@ public sealed class JobPosting : IJobScoped
     /// </summary>
     public int Sequence { get; private set; }
 
+    /// <summary>
+    /// The title this board receives instead of the job's, or null when it follows the job. Each overridable field is
+    /// independent (docs/architecture/job-distribution.md, "Per-board customization").
+    /// </summary>
+    public string? TitleOverride { get; private set; }
+
+    /// <summary>The description (sanitized HTML) this board receives instead of the job's, or null when it follows the job.</summary>
+    public string? DescriptionOverride { get; private set; }
+
+    /// <summary>The job's title when <see cref="TitleOverride"/> was set: what the person saw and chose to replace.</summary>
+    public string? TitleBase { get; private set; }
+
+    /// <summary>The job's description when <see cref="DescriptionOverride"/> was set.</summary>
+    public string? DescriptionBase { get; private set; }
+
+    /// <summary>When an override was last saved; null when the board has never been customized.</summary>
+    public DateTimeOffset? CustomizedAt { get; private set; }
+
+    /// <summary>
+    /// The board's display name for the change history line, set by the code that saves an override. Not stored: the
+    /// infrastructure layer that describes the change cannot see the board registry.
+    /// </summary>
+    public string? BoardLabel { get; set; }
+
     public DateTimeOffset CreatedAt { get; init; }
 
     public DateTimeOffset UpdatedAt { get; private set; }
@@ -84,13 +109,72 @@ public sealed class JobPosting : IJobScoped
     /// </summary>
     public bool IsActive => State is PostingState.Queued or PostingState.Submitted or PostingState.Live;
 
+    /// <summary>Whether any field of this board's content is its own rather than the job's.</summary>
+    public bool IsCustomized => TitleOverride is not null || DescriptionOverride is not null;
+
+    /// <summary>
+    /// The content this board receives: <paramref name="snapshot"/> with the fields this board has overridden replaced.
+    /// Every adapter and feed reads content through here, so none of them knows about overrides.
+    /// </summary>
+    public JobSnapshot WithOverrides(JobSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        return IsCustomized
+            ? snapshot with { Title = TitleOverride ?? snapshot.Title, Description = DescriptionOverride ?? snapshot.Description }
+            : snapshot;
+    }
+
+    /// <summary>
+    /// Whether the job's <paramref name="latest"/> text differs from what it was when an overridden field was
+    /// customized, so the person can see what changed under their customization. A field that follows the job is never
+    /// stale.
+    /// </summary>
+    public bool IsStaleAgainst(JobSnapshot latest)
+    {
+        ArgumentNullException.ThrowIfNull(latest);
+        return (TitleOverride is not null && TitleBase != latest.Title)
+            || (DescriptionOverride is not null && DescriptionBase != latest.Description);
+    }
+
+    /// <summary>
+    /// Sets what this board receives in place of the job's title and description. A null or blank field, or one equal to
+    /// the job's own text in <paramref name="job"/>, follows the job. The job's text is kept as the base the override
+    /// was written against. Returns whether anything this board shows, or the base it is compared with, changed.
+    /// </summary>
+    public bool Customize(string? title, string? description, JobSnapshot job, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+        var newTitle = Normalize(title, job.Title);
+        var newDescription = Normalize(description, job.Description);
+        var newTitleBase = newTitle is null ? null : job.Title;
+        var newDescriptionBase = newDescription is null ? null : job.Description;
+        var changed = newTitle != TitleOverride
+            || newDescription != DescriptionOverride
+            || newTitleBase != TitleBase
+            || newDescriptionBase != DescriptionBase;
+        TitleOverride = newTitle;
+        DescriptionOverride = newDescription;
+        TitleBase = newTitleBase;
+        DescriptionBase = newDescriptionBase;
+        CustomizedAt = IsCustomized ? now : null;
+        if (changed)
+        {
+            UpdatedAt = now;
+        }
+
+        return changed;
+
+        static string? Normalize(string? value, string jobText) => string.IsNullOrWhiteSpace(value) || value == jobText ? null : value;
+    }
+
     /// <summary>
     /// Selects <paramref name="version"/> for the board. With <paramref name="issues"/> the posting cannot go out: a
     /// posting not yet on the board waits in Draft, one already on it keeps its older version until the issues are
     /// fixed. Otherwise it is Queued, including a posting that was taken down and is now posted again. A stale version,
-    /// or the version already sent, changes nothing. Returns whether the posting must be sent to the board.
+    /// or the version already sent, changes nothing, unless <paramref name="resend"/> says the board's own content
+    /// changed (a customization), which sends the same version again. Returns whether the posting must be sent to the board.
     /// </summary>
-    public bool Queue(int version, string url, IReadOnlyList<string> issues, DateTimeOffset now)
+    public bool Queue(int version, string url, IReadOnlyList<string> issues, DateTimeOffset now, bool resend = false)
     {
         ArgumentNullException.ThrowIfNull(issues);
         if (version < JobVersion)
@@ -98,7 +182,7 @@ public sealed class JobPosting : IJobScoped
             return false;
         }
 
-        if (version == JobVersion && IsActive)
+        if (version == JobVersion && IsActive && !resend)
         {
             return false;
         }

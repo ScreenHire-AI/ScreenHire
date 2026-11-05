@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
+using ScreenHire.Domain.Distribution;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.History;
 using ScreenHire.Domain.Verification;
@@ -18,8 +19,8 @@ public sealed partial class TrackedKindsTests
     {
         TrackedKinds.All.Select(k => k.EntityType).Should().BeEquivalentTo(
         [
-            typeof(HiringTemplate), typeof(HiringTemplateVersion), typeof(EmailTemplate), typeof(Job), typeof(ScorecardTemplate), typeof(CustomRole),
-            typeof(Organization), typeof(Organization), typeof(VerificationSettings), typeof(TalentPoolEntry), typeof(SendingDomain),
+            typeof(HiringTemplate), typeof(HiringTemplateVersion), typeof(EmailTemplate), typeof(Job), typeof(JobPosting), typeof(ScorecardTemplate),
+            typeof(CustomRole), typeof(Organization), typeof(Organization), typeof(VerificationSettings), typeof(TalentPoolEntry), typeof(SendingDomain),
             typeof(OrganizationMember), typeof(OrganizationInvitation), typeof(ApiKey),
         ]);
         TrackedKinds.FindAll(typeof(WebhookEndpoint)).Should().BeEmpty("its row holds the signing secret (ADR-0016)");
@@ -68,6 +69,17 @@ public sealed partial class TrackedKindsTests
 
         kind.Subject.Should().Be(ChangeSubjectKind.HiringTemplate);
         kind.SubjectId(version).Should().Be(version.TemplateId.ToString("D"));
+    }
+
+    [Fact]
+    public void A_board_posting_belongs_to_its_jobs_history_and_adding_one_does_not_create_the_job()
+    {
+        var posting = new JobPosting { OrganizationId = Guid.CreateVersion7(), JobId = Guid.CreateVersion7(), BoardId = "adzuna" };
+        var kind = TrackedKinds.FindAll(typeof(JobPosting)).Single();
+
+        kind.Subject.Should().Be(ChangeSubjectKind.Job);
+        kind.SubjectId(posting).Should().Be(posting.JobId.ToString("D"));
+        kind.Creates(posting, new ChangeContext(null!, null!)).Should().BeFalse("the job's own line says it was created");
     }
 
     [Fact]

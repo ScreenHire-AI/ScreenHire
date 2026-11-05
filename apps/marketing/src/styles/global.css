@@ -24,6 +24,17 @@
   }
 }
 
+/* The small line above a page's title or a card's heading: sentence case in the body face, never capitals or the code
+   font (design-system W2). */
+@layer components {
+  .kicker {
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    color: var(--muted-foreground);
+  }
+}
+
 /* Long-form Markdown (law tracker entries, blog posts). Tokens only. */
 @layer components {
   .prose {

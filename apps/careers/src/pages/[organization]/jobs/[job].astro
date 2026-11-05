@@ -1,8 +1,9 @@
 ---
+import JobFacts from '../../../components/JobFacts.astro';
 import JobUnavailable from '../../../components/JobUnavailable.astro';
 import PrivacyNotice from '../../../components/PrivacyNotice.astro';
 import CareersLayout from '../../../layouts/CareersLayout.astro';
-import { formatSalary, getPublicJob, getPublicOrganization, jsonLdScript, label } from '../../../lib/api';
+import { getPublicJob, getPublicOrganization, jsonLdScript } from '../../../lib/api';
 import { newTabLinks, useEmbedding, withEmbed } from '../../../lib/embed';
 import { withSource } from '../../../lib/source';
 import { basePath } from '../../../lib/host';
@@ -43,7 +44,6 @@ const posting = job
       }),
     )
   : '';
-const salary = job ? formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency) : null;
 ---
 
 {
@@ -66,28 +66,26 @@ const salary = job ? formatSalary(job.salaryMin, job.salaryMax, job.salaryCurren
       <script slot="head" type="application/ld+json" is:inline set:html={posting} />
 
       <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{job.title}</h1>
-      <div class="mt-3 flex flex-wrap gap-1.5 text-[13px] font-semibold text-candidate-chip-foreground">
-        <span class="rounded-full bg-candidate-chip px-2.5 py-1">{job.location}</span>
-        <span class="rounded-full bg-candidate-chip px-2.5 py-1">{label(job.workplaceType)}</span>
-        <span class="rounded-full bg-candidate-chip px-2.5 py-1">{label(job.employmentType)}</span>
-        {salary && <span class="rounded-full bg-candidate-chip px-2.5 py-1">{salary}</span>}
-      </div>
+      <JobFacts job={job} class="mt-3" />
 
       {job.description && (
         <section
           aria-label="About the role"
-          class="mt-6 text-[15px] leading-relaxed [&_a]:underline [&_h2]:mt-5 [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-4 [&_h3]:font-bold [&_li]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-3 [&_ul]:list-disc [&_ul]:pl-5"
+          class="mt-6 text-candidate-body leading-relaxed [&_a]:underline [&_h2]:mt-5 [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-4 [&_h3]:font-bold [&_li]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-3 [&_ul]:list-disc [&_ul]:pl-5"
           set:html={embed ? newTabLinks(job.description) : job.description}
         />
       )}
 
+      {/* The button comes before the notice so a phone does not scroll past a long box to find it. Opening the form
+          collects nothing: the form shows the same notice above its first field, and nothing is recorded until the
+          candidate uses it (docs/architecture/apply-flow.md section 2). */}
+      <a href={withSource(withEmbed(`${base}/jobs/${job.slug}/apply`, embed), Astro.url.searchParams.get('src'))} class="button-primary mt-6 w-full sm:w-fit">
+        Apply for this role
+      </a>
+
       <div class="mt-6">
         <PrivacyNotice base={base} />
       </div>
-
-      <a href={withSource(withEmbed(`${base}/jobs/${job.slug}/apply`, embed), Astro.url.searchParams.get('src'))} class="button-primary mt-6 w-full sm:w-auto">
-        Apply for this role
-      </a>
     </CareersLayout>
   )
 }

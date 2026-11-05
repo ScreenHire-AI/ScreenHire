@@ -21,6 +21,8 @@ sources:
   - resource: apps/dashboard/src/lib/components/preview-pending.svelte
   - resource: apps/dashboard/src/lib/components/template-list.svelte
   - resource: apps/dashboard/src/lib/components/workflow/pipeline-view.svelte
+  - resource: apps/dashboard/src/lib/components/customize-posting-sheet.svelte
+  - resource: apps/dashboard/src/lib/components/customize-posting-form.svelte
   - resource: apps/dashboard/src/lib/form-builder.ts
   - resource: apps/dashboard/src/lib/form-sections.ts
   - resource: apps/dashboard/src/lib/templates.ts
@@ -38,6 +40,10 @@ sources:
   - resource: apps/dashboard/src/lib/components/mini-card.svelte
   - resource: apps/dashboard/src/lib/components/copy-button.svelte
   - resource: apps/dashboard/src/lib/components/candidate/header-cards.svelte
+  - resource: apps/careers/src/components/JobFacts.astro
+  - resource: apps/careers/src/components/Notice.astro
+  - resource: apps/careers/src/lib/public-style.test.ts
+  - resource: apps/marketing/src/styles/global.css
 ---
 # ScreenHire design system
 
@@ -136,7 +142,8 @@ Authors check their screens against this list, and the `design-review` agent rep
   list icon, because nothing there can be edited (E3). Preview shows the result at its real size and adds no sentence about itself; a window icon pops it out, beside the switch or in the
   preview's header, and the window follows the edits. Container queries choose the layout, so the first paint is
   already right (S8). The email composer keeps the switch and has no window: it is one email in a sheet, not wording
-  others reuse.
+  others reuse. The Customize sheet does the same: its preview is the API's answer for one board's text, fetched when
+  the preview opens, and it does not follow the edits.
 - **A9** Anything that opens in place says so: a `chevron-down` at the end of the row, turning up when it is open, and
   the whole row is the control, with `aria-expanded`. A row with no chevron never expands. Expand all and Collapse all
   sit above a list of them.
@@ -394,8 +401,35 @@ weight and tracking. The family is its own class: `font-display` for the two tit
 Titles take the employer's heading font where one is set (section 18), otherwise Bricolage Grotesque. Base 15px, display 30px, inputs 16px (no zoom on iOS), hints under a field 13px: `text-candidate-body`,
 `text-candidate-input` and `text-candidate-hint` in `packages/ui`. A form of several pages shows `PageProgress`
 (`packages/ui/src/questions`) above its fields: a bar of one segment per step, then "Step 2 of 4" and "9 of 24
-answered" in the hint size, the step semibold; each page's heading is its section's name. Marketing display goes up to 64px. The dashboard's
+answered" in the hint size, the step semibold; each page's heading is its section's name. Marketing display goes up to 64px (the home page's title is 60px, `text-6xl`). The dashboard's
 questionnaire preview shows the candidate base with `text-candidate-body`.
+
+### 4.4 Rules for public pages
+
+The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with these additions. `public-style.test.ts`
+(`apps/careers/src/lib`) fails on the first three.
+
+- Nothing under 12px, and no pixel font size in markup: use `text-candidate-body` (15px) and `text-candidate-hint`
+  (13px) on careers pages, and Tailwind's scale on marketing pages.
+- No capitals and no code font for ordinary words. A small line above a title or a card's heading is a kicker
+  (`.kicker` on marketing pages): sentence case, body face, 14px. The code font is for codes only: reason codes, a
+  notice version.
+- No cursor class on a component. Buttons, summaries, selects and switch labels get the hand from `theme.css` (A10).
+- A kicker adds to the breadcrumb and never repeats it (W7): a page whose kicker would be its own name has none.
+- A job's facts (where, how, contract, pay) are chips from one component, `JobFacts`, on the board, the job and the apply
+  form. The workplace type is left out when the location already says it. Chips are never links or buttons (A5).
+- A message about what just happened is `Notice`: an icon, the message, and one quieter line for what to do next. A page
+  never builds its own bordered block for it.
+- Every step of a form names itself in a visible heading, so "Step 2 of 3" is never the only clue. The review step says
+  who receives the answers and when.
+- A page that cannot open (an unknown, expired or closed link) says what happened in one sentence and who to contact:
+  the hiring team at the employer, by the address they write from. "Open it again" is never the only advice.
+- A long page of prose (the privacy page) starts with an "On this page" list of links to its headings.
+- Header, breadcrumb and footer links are 44px tall on a coarse pointer and at least 24px with a mouse (WCAG 2.5.8):
+  `pointer-coarse:min-h-11` on marketing pages. Careers pages use a plain `min-h-11`, so they are 44px on any pointer.
+- A careers form with steps has one row of buttons: the primary button first in the document and at the right on a wide
+  screen, Back beside it, and Save and finish later at the left. A page with one action leaves it at the left, under its
+  content.
 
 ## 5. Space, shape and size
 
@@ -558,6 +592,7 @@ in a development build, shows every component in each state, and its test fails 
 | Email preview | `EmailPreview` | An email as the candidate receives it: the subject, then Email or Plain text (Toggle). The HTML renders in a sandboxed frame with no scripts, in an inset, never in the page, because a tenant wrote the template. The composer's preview, a sent email opened in Messages (`SentEmail`), as it went, and a reply opened there (`ReceivedEmail`), under who it is from and above its files |
 | Email composer | `EmailComposer`; `EmailComposerSheet` on shadcn `Sheet` | Email one candidate or a selection: in a sheet from a list's selection bar and the candidate's header (section 9, in place), and in its own panel under the emails on the Messages tab, titled Email and the candidate's name, so what was sent is the first thing the tab shows. To, then Start from: Blank email, the default, or one of the organization's templates, which fills Subject and Message. The rejection and follow-up questions emails are never offered, because only their actions send them (`docs/architecture/email.md`), and a blank email never becomes a template. The Edit / Preview switch (A8, no window) and Insert variable, a menu of the variables that puts one at the caret of the field last used: a chip in the message, `{{ name }}` in the subject. Changing a template's wording changes this email only, and one muted line under the message says so and that the template stays as it is. Preview is the first candidate's email, rendered by the API with their details ("Preview for" and their name in a selection); each candidate's own copy is rendered with theirs. Send is the sheet's one primary ("Send 3 emails" for a selection); inline on Messages it is outline, because the page's primary is Move to stage (A1), and empty fields say what they need when it is pressed. Each email lands in Activity and Messages as it went. No bulk email while a verification filter or view picked the rows |
 | Add candidate sheet | `AddCandidateSheet` on shadcn `Sheet` | A recruiter adds a candidate by hand: Job (only the drafts and open jobs, and left out on a job's page, where the job is preset), First name, Last name, Email, Phone and Resume, then Cancel and Add candidate. Last name, Phone and Resume say "(optional)", the exception here (W6). No Source field: the API sets Recruiter (W6). No notice, telemetry or declarations: the Verification tab says which checks had nothing to look at (section 16). The resume goes straight to storage, as on the careers form. The page's primary on Candidates (in the action bar on a phone); outline on a job's page, where Publish is the primary, in More on a phone, and absent on a closed job; never without Add candidates (A3). A refusal (a closed job, someone who already applied, someone on a job the person does not see) is `FailureText` in the sheet; on success the page's status line names the candidate as a link to their page |
+| Customize sheet | `CustomizePostingSheet`, `CustomizePostingForm` on shadcn `Sheet` | What one job board receives in place of the job's title and description. Each field starts as what the board gets now, which is the job's text until it is customized; "Use the job's title" or "Use the job's description" shows under the field only while it differs, and an empty or equal field follows the job. The Edit / Preview switch (A8, no window) shows the API's preview, with the board's failing checks as `FailureText`. When the job changed since the board was customized, a block above the fields shows each field's old and new job text. Cancel and one primary, Save and post; a failing check stays in the sheet and nothing is sent. Where it opens from, and where it is never offered, is in section 21 |
 | Live indicator | `LiveIndicator` | The live updates status as a pill in the top bar, beside Search, on every page: icon, colour and label (T1), from section 3.2 (Live, Connecting, Offline). While live, its icon has a slow, soft pulse behind it, which stops for reduced motion. On a phone only the icon shows; screen readers hear the label |
 | Failure text | `FailureText` with `ProblemIcon` | A failed action or form, in one line where it happened: the problem icon, the verify colour and the reason (T1, section 14). A section that cannot load uses `QueryError` |
 | Verification chip and panel | `VerificationChip`, `SignalEvidence`, `ReviewLog`, `LevelScale`; `VerificationPanel` is the candidate's Verification tab, with `VerificationExplainDialog` and `VerificationDismissDialog` | Section 16. `LevelScale` draws a level on its three steps. A summary card per kind of check: Network, Identity, Automation and Content always, Files and Form activity (the telemetry aggregates) only when they found something, each named for what was looked at, never for what it means about the person. Reasons expand one by one or with Expand all, and each can be marked explained, with Undo for its author. The review log is its own panel: dismissals, explained reasons, undos and review notes as Activity, and Add review note, named apart from Activity's Add note |
@@ -766,9 +801,12 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   address (`?tab=postings`; the old `?tab=distribution` still opens it), and the count is the boards the job is on or on its way to. Job postings is a small table, one row per
   board: Status, Board, Posted, Last updated and a row menu. The menu has View posting and Copy link where we know the
   live address, which today is only the careers page: a board that reads our feed never says where its listing landed.
-  Then comes what a person can do there: Edit details and Retry on a posting that needs fixes, Post or Post again, and
-  Take down last. A board that only closes with the job says why it has no Take down. The board's estimate is plain
-  text after the status. A posting that needs fixes says what is wrong under its row. A draft or closed job has no
+  Then comes what a person can do there: Edit details and Customize (every board but the Careers page) and Retry on a
+  posting that needs fixes, Post or Post again, and Take down last. A board with text of its own carries one Customized
+  badge after its name (L1). A board that only closes with the job says why it has no Take down. The board's estimate is plain
+  text after the status. A posting that needs fixes says what is wrong under its row, and what each fix reaches: Edit
+  details changes every board, Customize changes only that board (the Customize sheet opens from a button, never a link,
+  A5). A customized board whose job changed since says so under its row. A draft or closed job has no
   menus: its header publishes or closes it. A posting whose checks
   found issues is "did not take this job", never "refused": only a board's own answer is a refusal. On the board, the
   closed stages share one Closed column (section 5), whose rows take a dropped card, and a calm card shows no level.

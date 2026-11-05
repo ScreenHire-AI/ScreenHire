@@ -126,7 +126,7 @@ export async function applyStep(
     return saveDraft(organization, definition.job.id, step, state, questions, text(form, TURNSTILE_FIELD) || null, forwarded);
   }
 
-  // An upload's own problem ("larger than 10 MB") says more than the step's "Add a file." for the same field.
+  // An upload's own problem ("larger than 10 MB") says more than the step's "Add a file for ..." for the same field.
   const problems = { ...stepErrors(step, state, definition), ...errors };
   if (Object.keys(problems).length > 0) return { step, state, errors: problems };
   if (step !== 'review') {
