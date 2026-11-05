@@ -33,7 +33,7 @@ internal static class DemoQuestionnaires
                 Options: [new("not_yet", "Not yet"), new("side_projects", "In side projects"), new("production", "In production")]),
             new("london_office", QuestionType.YesNo, "Can you work from our London office two days a week?", Required: true),
             new("work_sample", QuestionType.Url, "A link to code or a project you are proud of",
-                HelpText: "A repository, a portfolio or a write-up. Optional."),
+                HelpText: "A repository, a portfolio or a write-up."),
             NoticePeriod,
         ])),
         (CustomerSuccessLead, new(
