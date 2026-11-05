@@ -8,6 +8,7 @@
   import { calendarProblems } from '#lib/calendar.js';
   import FailureText from '#lib/components/failure-text.svelte';
   import Notice from '#lib/components/notice.svelte';
+  import StatusBadge from '#lib/components/status-badge.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Sheet from '#lib/components/ui/sheet/index.js';
   import { describeError, invalidatePath } from '#lib/query.js';
@@ -75,18 +76,26 @@
       {#if !connection}
         <p>Connect your calendar so ScreenHire offers candidates times you are free, and puts their interview in it.</p>
         <div class="flex flex-wrap gap-2">
-          {#each status.providers as provider, index (provider.id)}
-            <Button size="lg" variant={index === 0 ? 'default' : 'outline'} disabled={connecting} onclick={() => connectCalendar(provider.id)}>
+          {#each status.providers as provider (provider.id)}
+            <Button size="lg" variant={status.providers.length === 1 ? 'default' : 'outline'} disabled={connecting} onclick={() => connectCalendar(provider.id)}>
               <CalendarIcon aria-hidden="true" />Connect {provider.name}
             </Button>
           {/each}
         </div>
       {:else}
         {#if connection.problem}<Notice>{calendarProblems[connection.problem]}</Notice>{/if}
-        <p>
-          Connected to <span class="font-semibold">{connection.providerName}</span>{#if connection.accountEmail}{' '}as
-            <span class="font-semibold">{connection.accountEmail}</span>{/if}.
-        </p>
+        <!-- The state first (T2), then which calendar. Needs fixes, not Connected, while ScreenHire is refused. -->
+        <div class="flex flex-col items-start gap-2">
+          {#if connection.problem}
+            <StatusBadge status="needsFixes" label="Needs connecting again" />
+          {:else}
+            <StatusBadge status="done" label="Connected" />
+          {/if}
+          <p class="flex min-w-0 flex-col">
+            <span class="font-semibold">{connection.providerName}</span>
+            {#if connection.accountEmail}<span class="text-muted-foreground">{connection.accountEmail}</span>{/if}
+          </p>
+        </div>
         <div class="flex flex-wrap gap-2">
           {#if connection.problem}
             <Button size="lg" disabled={connecting} onclick={() => connectCalendar(connection.provider)}>
@@ -97,6 +106,8 @@
             <UnlinkIcon aria-hidden="true" />Disconnect
           </Button>
         </div>
+        <!-- How far Disconnect reaches: it ends ScreenHire's access, and leaves what is already on the calendar. -->
+        <p class="text-muted-foreground">Disconnecting stops ScreenHire offering times from it. Interviews already booked stay on your calendar.</p>
       {/if}
       <FailureText message={failure} />
       <p role="status" class="text-muted-foreground empty:hidden">{failure ? '' : saved}</p>

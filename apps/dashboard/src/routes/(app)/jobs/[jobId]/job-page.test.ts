@@ -1,6 +1,6 @@
 import type { JobDetail } from '@screenhire/api-client';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { page } from '$app/state';
 import { apiStub, applications, board, jobId, posting, stages, user, userAs } from '../../../../test-support/fixtures.js';
 import { stubViewport } from '../../../../test-support/viewport.js';
@@ -73,6 +73,10 @@ async function openMoreActions() {
   return screen.findByRole('menu');
 }
 
+beforeEach(() => {
+  page.data = { user };
+});
+
 afterEach(() => {
   vi.unstubAllGlobals();
   page.state = {};
@@ -115,6 +119,14 @@ describe('job page', () => {
     await waitFor(() => expect(saved).toEqual([{ memberIds: [], copyFromJobId: null }]));
   });
 
+  it('keeps Opened once someone has changed the job since it opened', async () => {
+    stub({ ...job, lastUpdated: { at: '2026-10-20T12:00:00Z', by: 'ScreenHire' } } as JobDetail);
+
+    await screen.findByRole('heading', { level: 1 });
+    const band = document.querySelector<HTMLElement>('[data-slot=header-band]')!;
+    expect(within(band).getAllByRole('term').map((term) => term.textContent)).toEqual(['Location', 'Type', 'Salary', 'Opened', 'Last updated']);
+  });
+
   it('heads the page with the title, its status beside it and a labelled facts row', async () => {
     stub(job);
 
@@ -122,7 +134,8 @@ describe('job page', () => {
     const band = document.querySelector<HTMLElement>('[data-slot=header-band]')!;
     expect(within(band).getByText('Open')).toBeInTheDocument();
     const facts = within(band).getAllByRole('term').map((term) => term.textContent);
-    expect(facts).toEqual(['Location', 'Type', 'Salary', 'Opened', 'Last updated']);
+    // This fixture's last change is its opening, which Last updated says, so Opened is left out (W7).
+    expect(facts).toEqual(['Location', 'Type', 'Salary', 'Last updated']);
     expect(within(band).getByRole('link', { name: 'Edit details' })).toHaveAttribute('href', `/jobs/${jobId}/edit`);
     expect(within(band).getByRole('link', { name: 'Edit workflow' })).toHaveAttribute('href', `/jobs/${jobId}/workflow`);
     expect(within(band).queryByRole('button', { name: /^Publish/ })).not.toBeInTheDocument();
@@ -260,7 +273,7 @@ describe('job page', () => {
   });
 
   it('says what saving the details did above the tabs, whichever one is open', async () => {
-    page.state = { saved: 'Saved. The careers page shows it now; publish again to update the boards.' };
+    page.state = { saved: 'Saved. The careers page shows it now. Boards that already have the job keep what they were sent.' };
     stub(job);
 
     await screen.findByRole('region', { name: 'Pipeline' });
@@ -306,7 +319,8 @@ describe('job page', () => {
     expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual([
       'Edit details',
       'Edit workflow',
-      'Hiring team',
+      'Add candidate',
+      'Edit hiring team',
       'Close & remove everywhere',
     ]);
     const band = document.querySelector<HTMLElement>('[data-slot=header-band]')!;
@@ -333,6 +347,21 @@ describe('job page', () => {
     stub(job);
     await screen.findByRole('button', { name: /Hiring team/ });
     expect(screen.queryByRole('button', { name: 'Add candidate' })).not.toBeInTheDocument();
+  });
+
+  it('offers no Edit details, Close or Publish to a role that cannot edit jobs (A3)', async () => {
+    page.data = { user: userAs('Viewer') };
+    stub(job);
+    await screen.findByRole('button', { name: /Hiring team/ });
+    expect(screen.queryByRole('link', { name: 'Edit details' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'More actions' })).not.toBeInTheDocument();
+    cleanup();
+
+    const fetchMock = stub({ ...job, status: 'Draft', publishedAt: null, postings: [] });
+    await screen.findByRole('button', { name: /Hiring team/ });
+    // Publish needs the boards, so wait for them: without them it would be missing for everyone.
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/v1/boards', expect.anything()));
+    await expect(screen.findByRole('button', { name: /^Publish/ }, { timeout: 200 })).rejects.toThrow();
   });
 
   it('has no Add candidate on a closed job, which takes no applications', async () => {

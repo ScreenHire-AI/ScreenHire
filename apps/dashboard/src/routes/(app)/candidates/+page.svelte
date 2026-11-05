@@ -203,21 +203,14 @@
           {/if}
         {/snippet}
         <!-- The filters: one row under the header, outside the table, that scrolls inside the panel rather than wrapping
-             (F5), as on a job's pipeline. Save view stays in view at the end, as the phone's Sort chip does. -->
-        <div data-filters class="flex shrink-0 items-center gap-2 border-b border-border-subtle px-4.5 py-2 max-md:px-4">
-          <div class="-my-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-1">
-            {#if reached}
-              <Button variant="outline" onclick={clearReached} aria-label={`Clear filter: ${reachedLabel(reached)}`}>
-                {reachedLabel(reached)}<XIcon aria-hidden="true" />
-              </Button>
-            {/if}
-            <MultiFilterMenu label="Job" options={jobs} bind:values={jobFilter} />
-            <MultiFilterMenu label="Stage" options={stages} bind:values={stageFilter} />
-            <VerificationFilterMenu bind:filter={verificationFilter} />
-            <TagFilterMenu bind:tag={tagFilter} {tags} />
+             (F5), as on a job's pipeline. Save view stays in view at the end. On a phone the table draws them in its own
+             row, with the Sort chip at the end, so the filters and Sort share one row. -->
+        {#if !phone.current}
+          <div data-filters class="flex shrink-0 items-center gap-2 border-b border-border-subtle px-4.5 py-2">
+            <div class="-my-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-1">{@render filterMenus()}</div>
+            {@render saveView()}
           </div>
-          <SaveViewButton scope="Candidates" filters={filtersNow} show={canSave} />
-        </div>
+        {/if}
         <p role="status" class="border-b border-border-subtle px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4">{viewGone ? 'That view is no longer there, so this shows every candidate.' : ''}</p>
         {#if applications.isError}
           <div class="p-4">
@@ -239,6 +232,8 @@
             sortId="candidates"
             {sort}
             extraColumns={verificationColumns}
+            filters={filterMenus}
+            filterAction={saveView}
             bind:activeId
             bind:selectedIds
             emptyText={filtering ? 'No candidates match this view.' : 'No candidates yet. Applications appear here as they arrive.'}
@@ -248,6 +243,8 @@
           />
         {/if}
         <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4">{emailed}</p>
+        <!-- Erasing a candidate returns here, so this is where it says it worked. -->
+        <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4" data-erased>{page.state.erased ? `Erased ${page.state.erased}.` : ''}</p>
         <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4" data-added>
           {#if added}Added <a href={`/applications/${added.applicationId}`} class="text-foreground underline underline-offset-2">{added.name}</a> to {added.jobTitle}.{/if}
         </p>
@@ -259,6 +256,22 @@
     <ActionBar>{@render addButton()}</ActionBar>
   {/if}
 </main>
+
+{#snippet filterMenus()}
+  {#if reached}
+    <Button variant="outline" onclick={clearReached} aria-label={`Clear filter: ${reachedLabel(reached)}`}>
+      {reachedLabel(reached)}<XIcon aria-hidden="true" />
+    </Button>
+  {/if}
+  <MultiFilterMenu label="Job" options={jobs} bind:values={jobFilter} />
+  <MultiFilterMenu label="Stage" options={stages} bind:values={stageFilter} />
+  <VerificationFilterMenu bind:filter={verificationFilter} />
+  <TagFilterMenu bind:tag={tagFilter} {tags} />
+{/snippet}
+
+{#snippet saveView()}
+  <SaveViewButton scope="Candidates" filters={filtersNow} show={canSave} />
+{/snippet}
 
 {#snippet addButton()}
   <Button size="lg" aria-haspopup="dialog" onclick={() => (adding = true)}><UserPlusIcon aria-hidden="true" />Add candidate</Button>

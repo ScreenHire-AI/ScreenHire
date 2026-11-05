@@ -170,7 +170,7 @@
   const jobsText = (member: TeamMember) =>
     member.seesAllJobs ? 'All jobs' : member.jobCount === 1 ? '1 job' : `${member.jobCount} jobs`;
 
-  // Edit access: the role and the job access in one sheet. Opened from the row's menu, or by the Role page's link
+  // Edit access: the role and the job access in one sheet. Opened from the row's menu here, or from a role page's row menu
   // (`?access=<memberId>`) once the team has loaded.
   let editing = $state<TeamMember | null>(null);
   let accessOpen = $state(false);

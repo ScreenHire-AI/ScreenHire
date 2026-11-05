@@ -288,6 +288,8 @@ public static class ScreenHireMessaging
         opts.Schedules.ScheduleRecurring<PurgeExpiredApplicationDrafts>("7 4 * * *");
         // Brand images nobody saved into the branding, a day after the upload (docs/architecture/branding.md section 4).
         opts.Schedules.ScheduleRecurring<PurgeExpiredBrandImageUploads>("27 3 * * *");
+        // Files uploaded to an application that was never sent, a day after the upload (docs/architecture/apply-flow.md section 3).
+        opts.Schedules.ScheduleRecurring<PurgeExpiredApplicantUploads>("47 3 * * *");
         // Records that Slack messages went, and the sandbox's messages, past their retention, daily (docs/architecture/slack.md).
         opts.Schedules.ScheduleRecurring<PurgeExpiredSlackMessages>("57 3 * * *");
         // Copies of candidates' data past their download window, daily (docs/architecture/data-requests.md).

@@ -252,7 +252,7 @@ describe('job pipeline', () => {
     expect(within(panel()).queryAllByRole('checkbox')).toHaveLength(0);
     expect(screen.queryByRole('region', { name: 'Selected candidates' })).toBeNull();
     // Each card moves on its own, from its own menu: a person's decision about that candidate.
-    expect(screen.getByRole('button', { name: 'Move Casey Morgan to another stage' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Actions for Casey Morgan' })).toBeInTheDocument();
   });
 
   it('filters the board by an authenticity level, with no Stage filter: its columns are the stages', async () => {
@@ -275,7 +275,7 @@ describe('job pipeline', () => {
 
     expect(screen.getByRole('list', { name: 'Applied stage' })).toBeInTheDocument();
     expect(within(panel()).queryByRole('button', { name: /^Stage:/ })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Move Casey Morgan to another stage' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Actions for Casey Morgan' })).toBeInTheDocument();
 
     await fireEvent.click(within(panelHeader()).getByRole('button', { name: 'Table' }));
     expect(screen.getByRole('table')).toBeInTheDocument();

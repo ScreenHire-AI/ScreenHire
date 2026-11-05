@@ -1,4 +1,5 @@
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Configuration;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.Verification.Content;
@@ -31,6 +32,21 @@ internal sealed class BlobApplicantFileStore(BlobServiceClient blobs, IConfigura
 
     public async Task DeleteAsync(string blobName, CancellationToken cancellationToken) =>
         await blobs.GetBlobContainerClient(container).GetBlobClient(blobName).DeleteIfExistsAsync(cancellationToken: cancellationToken);
+
+    public async Task<IReadOnlyList<StoredUploadBlob>> ListAsync(string prefix, CancellationToken cancellationToken)
+    {
+        var found = new List<StoredUploadBlob>();
+        await foreach (var item in blobs.GetBlobContainerClient(container).GetBlobsAsync(BlobTraits.None, BlobStates.None, prefix, cancellationToken))
+        {
+            // A blob with no creation time is left out, so the sweep never counts it as old.
+            if (item.Properties.CreatedOn is { } createdOn)
+            {
+                found.Add(new StoredUploadBlob(item.Name, createdOn));
+            }
+        }
+
+        return found;
+    }
 
     public async Task DeleteReplyAttachmentAsync(string blobName, CancellationToken cancellationToken) =>
         await blobs.GetBlobContainerClient(replyAttachments).GetBlobClient(blobName).DeleteIfExistsAsync(cancellationToken: cancellationToken);

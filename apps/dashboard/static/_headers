@@ -1,0 +1,7 @@
+# Cloudflare Pages (docs/operations/deploy.md). The recruiter dashboard is for signed-in people only.
+/*
+  X-Robots-Tag: noindex
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: same-origin
+/_app/immutable/*
+  Cache-Control: public, max-age=31536000, immutable

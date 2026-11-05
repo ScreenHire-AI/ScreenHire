@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { escapeHtml, formatSalary, jsonLdScript, label } from './format';
+import { escapeHtml, formatSalary, jobFacts, jsonLdScript, label } from './format';
 
 describe('label', () => {
   it.each([
@@ -43,6 +43,26 @@ describe('formatSalary', () => {
   it('returns null when there is no salary', () => {
     expect(formatSalary(null, null, 'GBP')).toBeNull();
     expect(formatSalary()).toBeNull();
+  });
+});
+
+describe('jobFacts', () => {
+  const job = { location: 'London, England, GB', workplaceType: 'Hybrid', employmentType: 'FullTime', salaryMin: 60_000, salaryMax: 75_000, salaryCurrency: 'GBP' };
+
+  it('lists where, how, the contract and the pay, in that order', () => {
+    expect(jobFacts(job)).toEqual(['London, England, GB', 'Hybrid', 'Full-time', '£60k–£75k']);
+  });
+
+  it('leaves the pay out when there is none', () => {
+    expect(jobFacts({ ...job, salaryMin: null, salaryMax: null })).toEqual(['London, England, GB', 'Hybrid', 'Full-time']);
+  });
+
+  it('does not say remote twice when the location already does', () => {
+    expect(jobFacts({ ...job, location: 'Remote (GB, IE)', workplaceType: 'Remote' })).toEqual(['Remote (GB, IE)', 'Full-time', '£60k–£75k']);
+  });
+
+  it('keeps the workplace type when the location does not name it', () => {
+    expect(jobFacts({ ...job, location: 'Lisbon, PT', workplaceType: 'Remote' })).toContain('Remote');
   });
 });
 

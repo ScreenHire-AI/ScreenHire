@@ -125,7 +125,7 @@
               aria-invalid={$errors.templateVersionId ? 'true' : undefined}
               aria-describedby={describedBy('new-job-template-error', $errors.templateVersionId)}
             >
-              <option value="">None: a basic pipeline</option>
+              <option value="">No template, a basic pipeline</option>
               {#each usable as template (template.id)}
                 <option value={template.latestPublishedVersionId}>{template.name} (v{template.latestPublishedVersion})</option>
               {/each}
@@ -205,7 +205,7 @@
               invalid={!!$errors.description}
             />
             {#if $form.templateVersionId}
-              <Field.Description id="new-job-description-hint">Optional: empty keeps the template's description.</Field.Description>
+              <Field.Description id="new-job-description-hint">Leave it empty to keep the template's description.</Field.Description>
             {/if}
             <Field.Error id="new-job-description-error" errors={$errors.description?.map((message) => ({ message }))} />
           </Field.Field>

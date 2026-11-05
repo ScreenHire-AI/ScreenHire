@@ -41,8 +41,8 @@ const jsonLd = [
   jsonLd={jsonLd}
 >
   <PageHeader kicker={law.data.jurisdiction} title={title} lead={description}>
-    <p class="font-mono text-xs text-muted-foreground">
-      LAST REVIEWED <time datetime={lastReviewed}>{formatDate(lastReviewed).toUpperCase()}</time>
+    <p class="text-sm text-muted-foreground">
+      Last reviewed <time datetime={lastReviewed}>{formatDate(lastReviewed)}</time>
     </p>
   </PageHeader>
 
@@ -57,7 +57,7 @@ const jsonLd = [
         {
           law.data.keyDates.map((item) => (
             <li class="flex flex-col gap-0.5 border-t border-border-subtle pt-3 text-sm">
-              <span class="font-mono text-xs text-muted-foreground uppercase">{item.date}</span>
+              <span class="font-semibold text-muted-foreground">{item.date}</span>
               <span class="text-secondary-foreground">{item.event}</span>
             </li>
           ))

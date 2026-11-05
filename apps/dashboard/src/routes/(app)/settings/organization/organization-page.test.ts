@@ -58,7 +58,7 @@ describe('general settings page', () => {
     expect(screen.getByText('EU')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /jobs\.brightwater\.example\.com/ })).toBeNull();
     expect(screen.queryByLabelText('Questions per page')).toBeNull();
-    expect(screen.queryByText('No sites yet.')).toBeNull();
+    expect(screen.queryByText('No sites yet. Add one to get the embed code.')).toBeNull();
   });
 
   it('loads the name, with Updated and History on the title row, so every settings header is one row (T6, S8)', async () => {

@@ -19,10 +19,6 @@ export interface Progress {
   endedAt?: string;
 }
 
-/** The applications in the order they were made, oldest first. */
-export const inTimeOrder = (applications: readonly ApplicationSummary[]): ApplicationSummary[] =>
-  applications.toSorted((a, b) => Date.parse(a.submittedAt) - Date.parse(b.submittedAt));
-
 /**
  * How far the application got and how it ended. A hired, rejected or withdrawn application sits in a closing stage, so
  * "how far" is the stage it was in before its last move; a saved candidate kept their stage. The history is the
@@ -47,6 +43,8 @@ export function historyItems(
   members: readonly TeamMember[] | undefined,
   currentUserId: string | undefined,
   jobName: (id: string | null | undefined) => string,
+  /** Names the job each entry is in. Left out for a candidate with one application, where it would say the same on every line. */
+  inJob = true,
 ): Activity[] {
   return history
     .filter(({ entry }) => entry.type !== 'NoteEdited' && !(entry.type === 'NoteAdded' && entry.note === null))
@@ -64,7 +62,7 @@ export function historyItems(
         id: entry.id,
         icon: eventIcons[entry.type],
         event: describeEvent(entry, { stageName, followUpName: () => 'a follow-up questionnaire', jobName }),
-        actor: who ? `${who} in ${item.jobTitle}` : `in ${item.jobTitle}`,
+        actor: inJob ? (who ? `${who} in ${item.jobTitle}` : `in ${item.jobTitle}`) : (who ?? undefined),
         note: entry.note ?? undefined,
         // A team note can mention a member by id, so the page draws it as the team reads it, not as a quote.
         noteId: entry.type === 'NoteAdded' ? (entry.noteId ?? undefined) : undefined,

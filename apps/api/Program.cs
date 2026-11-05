@@ -22,9 +22,19 @@ using ScreenHire.Application.Scheduling;
 using ScreenHire.Application.SendingDomains;
 using ScreenHire.Application.Slack;
 using ScreenHire.Infrastructure.Email;
+using ScreenHire.Infrastructure.Hosting;
 using ScreenHire.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Secrets from Key Vault first, so every later read of configuration sees them; then stop at once, naming each one, when
+// a setting the host cannot run without is missing outside Development. The build-time OpenAPI generator starts this
+// app with no configuration and checks neither.
+builder.AddScreenHireKeyVaultConfiguration();
+if (!AuthenticationSetup.GeneratingOpenApiDocument)
+{
+    builder.RequireScreenHireProductionSettings(HostKind.Api);
+}
 
 builder.AddServiceDefaults();
 builder.AddScreenHireDatabase();

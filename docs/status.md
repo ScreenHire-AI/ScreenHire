@@ -18,7 +18,7 @@ runs on one machine with `pnpm dev` ([local demo](operations/local-demo.md)), an
 `pnpm verify` (`tests/ScreenHire.E2E/AcceptanceJourneyTests.cs`) walks it end to end: sign in, a job from a template,
 publish to the careers page and the sandbox board, a genuine candidate and a bot apply, both arrive live with their
 levels and evidence, a move sends the stage-change email, and closing takes the job down everywhere. Nothing is hosted
-yet.
+yet; the [deploy runbook](operations/deploy.md) is the way there.
 
 What comes next, in order, is the [roadmap](roadmap.md).
 
@@ -56,6 +56,7 @@ What comes next, in order, is the [roadmap](roadmap.md).
 | Verification | Authenticity and AI-assistance assessments from a versioned ruleset: network, identity, automation, duplicates, document and answer forensics, the LLM consistency check, aggregate form telemetry | #13, #15, #18 |
 | Dashboard | Every page on [design system v0.3](design/design-system.md) (ADR-0013, ADR-0016), with a design review of the whole dashboard at 390, 1024, 1440 and 1920px: the shell with a sidebar, an icon rail and a phone sheet, and saved views with their status icons and short names; jobs and their forms; the candidates list and the job pipeline, whose tables fill the window; the candidate page with fixed tabs, the details rail, the full-window file viewer and notes the team edits, deletes and @mentions in; templates and the workflow builder, whose stages reorder with a grip; live updates; verification badges and the evidence panel. A development-only style guide shows every component | #14, #16, #17, the acceptance task, #24 to #27, #29 to #33, #48 to #58, the remaining screens |
 | Demo data | The local demo fills every screen, with a questionnaire on every seeded job and answers for every candidate, and a second Brightwater member (Jordan Ellis, Recruiter) | #20, #23, #38 |
+| Hosting definition | An AppHost publish model for Azure Container Apps (API, worker, careers), a Burstable PostgreSQL Flexible Server, Blob Storage and Key Vault, and the Bicep it generates under `infra/` with `azure.yaml`; a migrator that applies the migrations and creates Wolverine's tables as the database owner; production hosts that stop at start naming each required setting that is missing; secrets read from Key Vault and the Data Protection key ring wrapped with a Key Vault key; health endpoints in every environment; CIDR proxy networks; a CI job that checks the definition still generates; Cloudflare Pages files for the dashboard. Nothing is deployed ([deploy](operations/deploy.md), ADR-0007) | the hosting readiness task |
 | Platform | Wolverine messaging with the Postgres outbox, the SignalR hub, the test harness and gate, the marketing site with its SEO budgets, a visual design pass at three widths in `/task-review`, the docs as an Open Knowledge Format bundle (ADR-0012) | #4, #5, #6, #8, #22, #28 |
 
 ## Faked locally
@@ -85,8 +86,8 @@ brackets.
 - **Sign-in.** Register the Google and Microsoft apps with redirect URIs `{AppOrigin}/v1/auth/signin-google` and
   `/signin-microsoft`, request Microsoft's `xms_edov` optional claim, and put the client ids and secrets in the secret
   store (#7). The Data Protection key ring (sign-in cookies, telemetry tokens, questionnaire links) is kept in Postgres
-  and shared by the API and the worker; protect its keys at rest with a key vault or certificate
-  (`ProtectKeysWith...`) in production (#7, #18). List the reverse proxies and the careers
+  and shared by the API and the worker; the Azure definition wraps its keys with a Key Vault key
+  (`ScreenHire:DataProtection:KeyVaultKeyUri`), and a production host will not start without it (#7, #18). List the reverse proxies and the careers
   servers in `ScreenHire:Auth:TrustedProxies` (#7, #11).
 - **Email.** Subscribe to SendGrid in the Azure Marketplace (ADR-0022) and set `Parameters:sendgrid-api-key` and
   `Email:SendGrid:Enabled=true` in the AppHost, `ScreenHire:Email:From`, `ReplyDomain` (the host replies arrive on, with an MX
@@ -116,26 +117,27 @@ brackets.
 - **IP data and identity checks.** Supply an ip2asn file and a Tor exit list, or wire a commercial source behind
   `IIpIntelligence` (#13). Set `ScreenHire:Verification:DeviceHashKey` (32+ characters) in production (#13). Refresh the
   embedded disposable-domain list from time to time (#13).
-- **Storage and scanning.** Create the uploads container with a CORS rule for PUT from the careers hosts and GET from the
-  dashboard host (the file viewer, #25), and a one-day lifecycle rule for unclaimed uploads (#11). Wire a real
-  malware scanner behind `IMalwareScanner` (#11, #15). Optionally, Turnstile keys in `ScreenHire:Turnstile` (#11); with them, saving a draft application also needs the check
-  to pass. Create the private `brand-images` container, and give the worker's identity permission to list and delete
-  blobs in it: the daily clean-up of brand images nobody saved fails without it (branding.md §4). Create the private `data-exports` container, give the worker's identity write and delete rights on it and
-  the API's read (SAS) rights, and optionally add a lifecycle rule for old copies: a candidate's copy lives there until it
-  expires or the candidate is erased (data-requests.md).
-- **Database.** On Azure Database for PostgreSQL, add `pg_trgm` to the server's `azure.extensions` list before the
-  migrations run, or `CREATE EXTENSION` fails. The trigram indexes on candidate names and emails and job titles do not
+- **Database firewall.** The Azure definition lets every Azure address reach PostgreSQL, so its passwords are the only barrier. Before real
+  candidates apply, choose between accepting that and a virtual network, which costs more ([deploy](operations/deploy.md), ADR-0007).
+- **Storage and scanning.** The Azure definition creates the private containers (`applicant-uploads`, `brand-images`,
+  `email-attachments`, `data-exports`) and the CORS rule. Do not add a one-day storage lifecycle rule for unclaimed uploads: it would delete submitted
+  resumes, because only the database knows which files are claimed. The worker's daily sweep does it instead
+  ([apply flow](architecture/apply-flow.md), section 3). Wire a real malware scanner behind
+  `IMalwareScanner` (#11, #15). Optionally, Turnstile keys in `ScreenHire:Turnstile` (#11); with them, saving a draft application
+  also needs the check to pass. The worker's identity lists and deletes in `brand-images` through its storage role (branding.md §4). Candidates' copies of their data go in a fourth private container, `data-exports`, which the worker writes and deletes in and the API reads through short SAS links; the Azure definition creates it, and the same storage roles cover it (data-requests.md).
+- **Database.** The Azure definition puts `pg_trgm` on the server's `azure.extensions` list, which the migrations need. The trigram indexes on candidate names and emails and job titles do not
   serve the search as `screenhire_app` yet, because `ILIKE` is not leakproof under row-level security; marking a
   function leakproof needs a superuser, so decide whether to provision one before anyone expects a faster search (see
   [sign-in and tenancy](architecture/sign-in-and-tenancy.md), Row-level security and indexes). The follow-ups migration
   takes heavy locks while it runs (it lifts FORCE on four tables and builds the indexes in one transaction), so run it
   in a quiet window.
-- **Deploy.** Run the EF migrations and `ScreenHireMessaging.ProvisionStorageAsync` as the owner, give `screenhire_app`
-  its login, and give the API and worker only that connection (#7). Wolverine's static code generation is deferred
-  until hosting (#5). Set `SITE_URL` for marketing builds and redirect URLs without a trailing slash (#6); set Astro's
-  `security.allowedDomains` for careers behind a CDN (#11); keep access logs for 30 days or less (#11). Set
-  `PUBLIC_APP_URL` so the marketing site's "Start free" reaches sign-in (#6). Give the worker
-  `ScreenHire:Domains:AppHost` as well as the API, or mention emails are skipped with a warning (#55).
+- **Deploy.** Follow the [deploy runbook](operations/deploy.md); it has the order, the commands and the settings table. In it the
+  migrator runs the EF migrations and `ScreenHireMessaging.ProvisionStorageAsync` as the owner and gives `screenhire_app` its login,
+  and the API and worker hold only that login (#7). Still yours: the Azure subscription and the Cloudflare account; set the
+  `SITE_URL` and `PUBLIC_APP_URL` of the marketing build and give redirect URLs no trailing slash (#6); the `careers-allowed-domains`
+  and `auth-trusted-proxies` parameters, which need the real ingress addresses (#11); keep access logs for 30 days or less (#11).
+  Wolverine's static code generation was measured and is not needed at the planned size (the worker starts in 12 s and peaks at
+  198 MB without it).
 - **Legal and policy.** A legal review of the law tracker before publishing (#6); the analytics decision, with a privacy
   page and the ePrivacy position per market (#6); a legal review before any typing-rhythm signal (#18); a check of the
   device-check defaults per jurisdiction (notice outside the EU and EEA, consent inside) (#18). A legal review of saved candidates:
@@ -156,6 +158,7 @@ brackets.
 
 ## Known gaps
 
+- The API and worker run as one replica each (the SignalR hub and the real-time queue consumer are in the API process); the Azure definition fixes them there ([realtime](architecture/realtime.md)).
 - Interview scheduling sends no reminders, and a recruiter cannot move a booked interview for the candidate: they cancel it and offer a new one. Events made for interviewers on different providers are separate copies, not one shared event ([interview scheduling](architecture/interview-scheduling.md)).
 - Reports count applicants from Google for Jobs and the public job-board API as the careers page, because those two keep
   their canonical URLs and carry no source tag; only the MCP server reads reports for a key, not the HTTP API; and stage

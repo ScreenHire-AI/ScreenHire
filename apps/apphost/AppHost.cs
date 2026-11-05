@@ -64,12 +64,25 @@
 //                               is the local fake for inbound replies and sending domains (Development only; the test
 //                               stacks and appsettings.Development.json turn it on). email-reply-key signs reply addresses
 //                               and is generated locally.
+//
+// Publish mode (`dotnet aspire publish`, docs/operations/deploy.md) builds a different model, AzurePublish.cs: Container Apps,
+// a PostgreSQL Flexible Server, Blob Storage and a Key Vault. None of the settings above are read there. Every
+// deployment setting is a parameter the deployment supplies (and an empty provider setting leaves that provider
+// hidden), so the generated Bicep under infra/ is the same wherever it is generated; the infra CI job checks that.
 // Avoid :5173 — Kangentic's own dev server uses it on this machine.
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
+
+// `dotnet aspire publish` builds the Azure model in AzurePublish.cs and nothing below.
+if (builder.ExecutionContext.IsPublishMode)
+{
+    AzurePublish.Build(builder);
+    builder.Build().Run();
+    return;
+}
 
 var settings = builder.Configuration.GetSection("ScreenHire");
 var persistData = !bool.TryParse(settings["PersistData"], out var persist) || persist;

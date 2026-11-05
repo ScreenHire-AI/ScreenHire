@@ -18,9 +18,9 @@ const boards = ['Google for Jobs', 'Careers page', '3 job boards'];
       <span aria-hidden="true" class="grid size-[38px] place-items-center rounded-full bg-accent text-sm font-bold text-accent-foreground">JW</span>
       <div class="flex min-w-0 flex-1 flex-col">
         <span class="font-display text-lg font-bold">Jonas Weber</span>
-        <span class="text-[13px] text-muted-foreground">Senior Product Designer · applied 3h ago</span>
+        <span class="text-sm text-muted-foreground">Senior Product Designer, applied 3 hours ago</span>
       </div>
-      <span class="inline-flex items-center gap-1.5 rounded-full bg-status-review-soft px-2.5 py-0.5 text-[12.5px] font-bold text-status-review">
+      <span class="inline-flex items-center gap-1.5 rounded-full bg-status-review-soft px-2.5 py-0.5 text-xs font-bold text-status-review">
         <StatusIcon status="review" class="text-status-review-mark" />Review suggested
       </span>
     </div>
@@ -28,31 +28,32 @@ const boards = ['Google for Jobs', 'Careers page', '3 job boards'];
       {
         evidence.map((item) => (
           <li class="flex flex-col gap-px rounded-[10px] border border-border-subtle bg-muted px-3 py-2">
-            <span class="font-mono text-[10.5px] text-muted-foreground">{item.code}</span>
+            <span class="font-mono text-xs text-muted-foreground">{item.code}</span>
             <span class="font-semibold">{item.text}</span>
           </li>
         ))
       }
-      <li class="mt-0.5 border-l-2 border-border pl-3 text-[13px]">
+      <li class="mt-0.5 border-l-2 border-border pl-3 text-sm">
         <span class="font-semibold">Counter-evidence:</span> the phone number is a UK mobile, not a VoIP line.
       </li>
     </ul>
-    <p class="border-t border-border-subtle bg-muted px-4 py-2.5 text-[13px] text-secondary-foreground">
+    <p class="border-t border-border-subtle bg-muted px-4 py-2.5 text-sm text-secondary-foreground">
       Network, identity and answer signals point the same way, and one detail points against them.
       <span class="mt-1 block font-semibold text-foreground">Suggested next step: a short video call before the portfolio review.</span>
     </p>
   </div>
-  <div class="ml-0 flex flex-wrap items-center overflow-hidden rounded-xl border border-border bg-card text-[13.5px] sm:ml-10">
-    <span class="border-r border-border-subtle px-3 py-2 font-mono text-[10.5px] tracking-[0.08em] text-muted-foreground">POSTED</span>
+  <div class="ml-0 flex flex-wrap items-center overflow-hidden rounded-xl border border-border bg-card text-sm sm:ml-10">
+    <span class="border-r border-border-subtle px-3 py-2 text-xs font-semibold text-muted-foreground">Posted to</span>
     {
       boards.map((board) => (
         <span class="inline-flex items-center gap-1.5 border-r border-border-subtle px-3 py-2 font-semibold last:border-r-0">
-          <StatusIcon status="open" class="text-status-clear-mark" />
           {board}
-          <span class="font-mono text-[10.5px] text-status-clear">LIVE</span>
+          <span class="inline-flex items-center gap-1 text-xs font-bold text-status-clear">
+            <StatusIcon status="open" class="text-status-clear-mark" />Live
+          </span>
         </span>
       ))
     }
   </div>
-  <figcaption class="font-mono text-[11px] text-muted-foreground">Example applicant. Fictional data.</figcaption>
+  <figcaption class="text-xs text-muted-foreground">Example applicant. Fictional data.</figcaption>
 </figure>

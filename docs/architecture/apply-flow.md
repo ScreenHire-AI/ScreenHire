@@ -7,6 +7,7 @@ sources:
   - resource: apps/careers/src/pages/[organization]/jobs/[job]/apply.astro
   - resource: apps/careers/src/pages/[organization]/uploads.ts
   - resource: apps/careers/src/lib/apply.ts
+  - resource: src/ScreenHire.Application/Applications/ApplicantUploadCleanup.cs
   - resource: apps/careers/src/lib/apply-server.ts
   - resource: apps/careers/src/lib/source.ts
   - resource: apps/careers/src/lib/brand.ts
@@ -57,9 +58,12 @@ never calls the API.
 | `/questionnaires/{token}` | A follow-up questionnaire, opened from the signed link a SendQuestionnaire automation emailed (section 8). |
 | `/questionnaires/sent` | Where answered follow-up questions land, after a POST-redirect-GET, with no token in the address. |
 | `/interviews/{token}` | A candidate's interview, opened from the signed link an interview invitation or confirmation emailed: pick a time, then see it, move it or cancel it (section 8.1). |
-| `/talent-pool/{token}` | Where a candidate stops the employer keeping their details for future roles, from the signed link in a talent pool invitation ([talent pool](talent-pool.md)). One native form, no JavaScript, `no-store`, `noindex` and `no-referrer`. |
 | `/talent-pool/{token}` | Where a candidate stops the employer keeping their details for future roles, from the signed link in an invitation to apply ([saved candidates](talent-pool.md)). One native form, no JavaScript, `no-store`, `noindex` and `no-referrer`. |
 | `/talent-pool/stopped` | Where stopping lands, after a POST-redirect-GET, with no token in the address. |
+
+Every step names itself in a visible heading ("Your details", the section's name, "Review and send"), and the review step says
+the employer receives the answers when they are sent. On the job page the Apply link comes before the notice, so a phone
+does not scroll past it; the form shows the notice again above its first field and nothing is collected until it is used.
 
 Each step is a native `<form method="POST" enctype="multipart/form-data">` posted to the `apply` Astro Action
 (`src/actions/index.ts`), which re-renders the same page with the next step. What the candidate has entered travels
@@ -145,7 +149,12 @@ With JavaScript, the `FileField` Svelte island (`packages/ui/src/questions/FileF
 browser through the careers `/uploads` endpoint (a bare `fetch`, which keeps the page under its ~20 KB JavaScript
 budget) and leaves only the upload id in the form.
 Without JavaScript, the file posts with the step and the careers server does the same three calls. Either way the
-candidate hears about a wrong or oversized file at the step where they chose it. Submission checks every file again,
+candidate hears about a wrong or oversized file at the step where they chose it. A file whose application is never sent is
+removed a day later: `PurgeExpiredApplicantUploads` runs daily (03:47 UTC) and fans out one
+`PurgeOrganizationApplicantUploads` per organization, which deletes the blobs under that organization's prefix that are a day
+old and that no `ApplicationFile` row names (it asks again just before each delete, so a candidate who sends the application
+meanwhile keeps the file). Only a submitted application has a row, so a stored resume is never touched, and a form left open
+for more than a day loses its upload and the candidate adds it again. Submission checks every file again,
 stores an `ApplicationFile` per file and publishes one `ScanApplicationFile` message each; the worker's
 `IMalwareScanner` is a placeholder (`NoMalwareScanner`, which records `NotScanned`) until a real scanner is wired in.
 
@@ -351,18 +360,19 @@ about verification.
 
 ## 9. Owner actions before production
 
-- Storage account: create the applicant uploads container, a CORS rule allowing `PUT` from the careers hosts, and `GET`
-  and `PUT` from the dashboard host (the file viewer, and a resume a recruiter adds by hand), and a lifecycle rule that deletes unclaimed uploads (blobs with no
-  application) after a day. Development does the first two at startup
-  (`ApplicantUploads.ProvisionDevelopmentStorageAsync`).
-- Add the careers servers to `ScreenHire:Auth:TrustedProxies`.
+- Storage account: the Azure definition creates the applicant uploads container and a CORS rule (`GET`, `HEAD` and `PUT`, from
+  any origin, because tenant careers hosts vary and the SAS link is the credential). Development does the same at startup
+  (`ApplicantUploads.ProvisionDevelopmentStorageAsync`). Do not add a storage lifecycle rule that deletes blobs after a day:
+  it cannot tell a claimed file from an unclaimed one, so it would delete submitted resumes. The worker's daily sweep
+  (section 3) does it.
+- Add the careers servers to `ScreenHire:Auth:TrustedProxies` (addresses or CIDR networks, [deploy](../operations/deploy.md)).
 - Behind a CDN or load balancer, set Astro's `security.allowedDomains` to the careers hosts when building
-  `apps/careers`. Astro trusts `X-Forwarded-For` (the candidate's address, which the API rate-limits on) only for those
+  `apps/careers` (the `CAREERS_ALLOWED_DOMAINS` build argument of its Dockerfile, the `careers-allowed-domains` parameter). Astro trusts `X-Forwarded-For` (the candidate's address, which the API rate-limits on) only for those
   hosts; without it every candidate shares the proxy's address. Until then Astro also sees its own origin as
   `localhost`, so a browser that sends `Origin` without `Sec-Fetch-Site` (older Safari) gets 403 from Astro's form
   origin check on every step.
-- The lifecycle rule above is what makes the privacy page's "deleted after a day" true for files never sent with an
-  application; nothing in the application deletes them.
+- Files never sent with an application are deleted by the worker's daily sweep (section 3), which is what makes the privacy
+  page's "deleted after a day" true. The worker's storage role needs to list and delete in the uploads container.
 - Keep server and CDN access logs for no more than 30 days: the privacy page promises it, and nothing in the
   application enforces it.
 - Optionally configure Turnstile keys, and a malware scanner behind `IMalwareScanner`.

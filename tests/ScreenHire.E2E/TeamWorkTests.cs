@@ -84,7 +84,8 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         var open = Region("Tasks");
         await Expect(open.GetByRole(AriaRole.Link, new() { Name = "Call the references.", Exact = true })).ToBeVisibleAsync();
         await Expect(open).ToContainTextAsync(Tagged);
-        await Expect(open).ToContainTextAsync("For the team");
+        // For the team already says whose they are, so the table has no For column there.
+        await Expect(open).ToContainTextAsync("To-do");
         await Expect(open.GetByRole(AriaRole.Checkbox)).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-my-tasks");
@@ -103,7 +104,7 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^For the team") }).ClickAsync();
         await Expect(Region("Tasks").GetByText("Nothing to do")).ToBeVisibleAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Done", Exact = true }).ClickAsync();
-        await Expect(Region("Tasks")).ToContainTextAsync("by you");
+        await Expect(Region("Tasks").GetByRole(AriaRole.Cell, new() { Name = "You", Exact = true })).ToBeVisibleAsync();
     }
 
     private ILocator Region(string name) => Page.GetByRole(AriaRole.Region, new() { Name = name, Exact = true });

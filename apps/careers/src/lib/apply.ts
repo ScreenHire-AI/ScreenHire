@@ -324,7 +324,7 @@ export function validateAnswers(state: ApplyState, questions: readonly PublicQue
   const errors: FieldErrors = {};
   for (const question of questions) {
     if (question.type === 'File') {
-      if (question.required && !state.files[question.id]) errors[fields.file(question.id)] = 'Add a file.';
+      if (question.required && !state.files[question.id]) errors[fields.file(question.id)] = `Add a file for "${question.label}".`;
       continue;
     }
 

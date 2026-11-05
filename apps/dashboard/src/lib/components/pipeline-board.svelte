@@ -11,7 +11,7 @@
   import { dndzone, TRIGGERS, type DndEvent } from 'svelte-dnd-action';
   import { goto } from '$app/navigation';
   import VerificationChip from '#lib/components/verification-chip.svelte';
-  import MoveToStage from '#lib/components/move-to-stage.svelte';
+  import ApplicationMenu from '#lib/components/application-menu.svelte';
   import OverdueBadge from '#lib/components/overdue-badge.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
@@ -241,7 +241,7 @@
               <span class="flex items-center gap-2">
                 <span class="min-w-0 flex-1 truncate text-caption text-muted-foreground"><RelativeTime at={card.submittedAt} /></span>
                 <span class="shrink-0">
-                  {#if moves.allowed}<MoveToStage compact candidateName={card.candidateName} currentStageId={card.stage.id} {stages} onmove={(stage) => moves.move(card, stage)} />{/if}
+                  {#if moves.allowed}<ApplicationMenu candidateName={card.candidateName} currentStageId={card.stage.id} {stages} onmove={(stage) => moves.move(card, stage)} />{/if}
                 </span>
               </span>
             </li>

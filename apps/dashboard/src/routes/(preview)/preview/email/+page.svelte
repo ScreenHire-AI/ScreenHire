@@ -2,6 +2,7 @@
   import type { EmailPreview as Preview } from '@screenhire/api-client';
   import { page } from '$app/state';
   import EmailPreview from '#lib/components/email-preview.svelte';
+  import PreviewPending from '#lib/components/preview-pending.svelte';
   import { createPreviewSink } from '#lib/preview-window.svelte.js';
 
   // The email template editor's pop-out preview (design system A8): the email as the sample candidate receives it,
@@ -11,7 +12,7 @@
 </script>
 
 <svelte:head>
-  <title>Preview · ScreenHire</title>
+  <title>Email preview · ScreenHire</title>
 </svelte:head>
 
 <main class="min-h-screen bg-background p-4">
@@ -19,7 +20,12 @@
   {#if sink.closed}
     <p role="status" class="pb-4 text-muted-foreground">Editor closed.</p>
   {/if}
-  <div class="mx-auto max-w-form rounded-panel border border-border bg-card p-4 shadow-surface">
-    <EmailPreview preview={sink.value?.preview} failure={sink.value?.failure} />
-  </div>
+  {#if sink.orphaned}
+    <!-- The panel's own loading state would pulse for ever with no editor behind it (E3). -->
+    <PreviewPending orphaned />
+  {:else}
+    <div class="mx-auto max-w-form rounded-panel border border-border bg-card p-4 shadow-surface">
+      <EmailPreview preview={sink.value?.preview} failure={sink.value?.failure} />
+    </div>
+  {/if}
 </main>

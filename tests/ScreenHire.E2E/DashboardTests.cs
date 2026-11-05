@@ -149,14 +149,16 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
             await Expect(cells.Nth(0)).ToHaveTextAsync(status);
             await Expect(cells.Nth(1)).ToHaveTextAsync(title);
             await Expect(cells.Nth(2)).ToHaveTextAsync(location);
-            // Published date ("Oct 20, 2026") for open jobs; a hyphen for the draft, which was never published.
-            await Expect(cells.Nth(4)).ToHaveTextAsync(status == "Draft" ? new Regex("^-$") : PublishedDate());
+            // Published date ("Oct 20, 2026") for open jobs; a blank cell, its words for screen readers only, for the draft, which was never published (L1).
+            await Expect(cells.Nth(4)).ToHaveTextAsync(status == "Draft" ? new Regex("^Not published$") : PublishedDate());
         }
 
         // The status filter counts each status in a count badge after its label; All's count is the header's (W4).
         await Expect(Page.GetByRole(AriaRole.Group, new() { Name = "Status" }).GetByRole(AriaRole.Button))
             .ToHaveTextAsync([new Regex(@"^All$"), new Regex(@"^Open\s*3$"), new Regex(@"^Draft\s*1$"), new Regex(@"^Closed\s*0$")]);
-        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Avery Quinn" })).ToContainTextAsync("Brightwater Studio");
+        // The person's block shows their role; the workspace button above it names the organization (W7).
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Avery Quinn" })).ToContainTextAsync("Owner");
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Workspace: Brightwater Studio" })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
     }
 

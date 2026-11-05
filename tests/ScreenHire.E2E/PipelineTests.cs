@@ -218,7 +218,8 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await SaveScreenshotAsync(Page, "dashboard-job-390-light");
 
         // The chips' sr-only labels sit inside their list items and must not widen the page.
-        var overflow = await Page.EvaluateAsync<int>("() => document.documentElement.scrollWidth - document.documentElement.clientWidth");
+        // The stable scrollbar gutter (S8) is in scrollWidth and not in clientWidth: below zero is a page that fits.
+        var overflow = await Page.EvaluateAsync<int>("() => Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth)");
         overflow.Should().Be(0, "the page never scrolls sideways (design system F1)");
     }
 
@@ -296,8 +297,10 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
             }
             """);
 
+    // The page's sideways overflow. The html element keeps a stable scrollbar gutter (S8), which scrollWidth counts and
+    // clientWidth does not, so a page that fits reads below zero: only a positive number is overflow.
     private static Task<int> PageOverflowAsync(IPage page) =>
-        page.EvaluateAsync<int>("() => document.documentElement.scrollWidth - document.documentElement.clientWidth");
+        page.EvaluateAsync<int>("() => Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth)");
 
     [Fact]
     public async Task A_recruiter_adds_a_candidate_by_hand_with_a_resume_and_finds_them_with_ctrl_k()

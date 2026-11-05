@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using ScreenHire.Infrastructure.Hosting;
 
 namespace ScreenHire.Api.Configuration;
 
@@ -28,11 +29,23 @@ public sealed class AuthOptions
     public int PermitsPerMinute { get; set; } = 100;
 
     /// <summary>
-    /// IP addresses of the reverse proxies in front of the API whose <c>X-Forwarded-For</c> is believed, besides
-    /// loopback (the dashboard's own <c>/v1</c> proxy). Without the deployed proxy here, every visitor shares the
-    /// proxy's rate-limit bucket.
+    /// The reverse proxies in front of the API whose <c>X-Forwarded-For</c> is believed, besides loopback (the
+    /// dashboard's own <c>/v1</c> proxy): IP addresses or networks in CIDR form, and an entry may list several separated by
+    /// commas (one environment variable carries them). Without the deployed proxy here, every visitor shares the proxy's
+    /// rate-limit bucket.
     /// </summary>
     public List<string> TrustedProxies { get; set; } = [];
+
+    /// <summary>
+    /// How many <c>X-Forwarded-For</c> entries to read from the right. 1 reads what the nearest trusted proxy added. With
+    /// two trusted hops in front (an edge that proxies to the platform's ingress) set 2, so the first hop's entry, the
+    /// visitor's address, is the one used.
+    /// </summary>
+    [Range(1, 5)]
+    public int ForwardLimit { get; set; } = 1;
+
+    /// <summary>The proxies as single entries: <see cref="TrustedProxies"/> split on commas, blanks dropped.</summary>
+    public IEnumerable<string> TrustedProxyEntries() => ProductionSettings.TrustedProxyEntries(TrustedProxies);
 }
 
 public sealed class OidcClientOptions

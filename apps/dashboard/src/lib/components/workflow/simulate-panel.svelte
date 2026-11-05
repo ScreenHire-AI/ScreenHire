@@ -70,6 +70,12 @@
       .map((item) => item.trim())
       .filter(Boolean);
 
+  // Ticking an option adds its id to the question's answer, and unticking takes it away.
+  function toggleOption(questionId: string, optionId: string, on: boolean) {
+    const chosen = list(answers[questionId] ?? '').filter((id) => id !== optionId);
+    answers[questionId] = (on ? [...chosen, optionId] : chosen).join(',');
+  }
+
   const outcomeText: Record<EvaluationOutcome, string> = {
     Matched: 'Would run',
     NotMatched: 'Conditions do not hold',
@@ -167,28 +173,40 @@
         <fieldset class="flex flex-col gap-2">
           <legend class={kickerClass}>Answers</legend>
           {#each questions as question (question.id)}
-            <label class={labelClass}>
-              {question.label}
-              {#if question.type === 'YesNo' || question.type === 'SingleChoice'}
-                <select class={selectClass} bind:value={answers[question.id]}>
-                  <option value="">Not answered</option>
-                  {#if question.type === 'YesNo'}
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                  {:else}
-                    {#each question.options ?? [] as option (option.id)}<option value={option.id}>{option.label}</option>{/each}
-                  {/if}
-                </select>
-              {:else}
-                <Input
-                  bind:value={answers[question.id]}
-                  aria-describedby={question.type === 'MultiChoice' ? `${uid}-${question.id}-hint` : undefined}
-                />
-                {#if question.type === 'MultiChoice'}
-                  <span id={`${uid}-${question.id}-hint`} class="font-normal text-muted-foreground">Option ids, separated by commas.</span>
+            {#if question.type === 'MultiChoice'}
+              <!-- Picked by the option's name, never typed as an id (W8); the answer is kept as the ids the API takes. -->
+              <fieldset class="flex flex-col gap-1">
+                <legend class={labelClass}>{question.label}</legend>
+                {#each question.options ?? [] as option (option.id)}
+                  <label class="flex items-center gap-2 pointer-coarse:min-h-11">
+                    <input
+                      type="checkbox"
+                      class={checkboxClass}
+                      checked={list(answers[question.id] ?? '').includes(option.id)}
+                      onchange={(event) => toggleOption(question.id, option.id, event.currentTarget.checked)}
+                    />
+                    {option.label}
+                  </label>
+                {/each}
+              </fieldset>
+            {:else}
+              <label class={labelClass}>
+                {question.label}
+                {#if question.type === 'YesNo' || question.type === 'SingleChoice'}
+                  <select class={selectClass} bind:value={answers[question.id]}>
+                    <option value="">Not answered</option>
+                    {#if question.type === 'YesNo'}
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    {:else}
+                      {#each question.options ?? [] as option (option.id)}<option value={option.id}>{option.label}</option>{/each}
+                    {/if}
+                  </select>
+                {:else}
+                  <Input bind:value={answers[question.id]} />
                 {/if}
-              {/if}
-            </label>
+              </label>
+            {/if}
           {/each}
         </fieldset>
       {/if}
@@ -251,7 +269,7 @@
         {/if}
       </div>
     {:else if !result}
-      <p class="text-muted-foreground">Nothing run yet. Unsaved changes are included.</p>
+      <p class="text-muted-foreground">Nothing run yet. Nothing is saved or sent, and unsaved changes are included.</p>
     {:else if result.automations.length === 0}
       <p>No automation fires on this trigger.</p>
     {:else}

@@ -57,7 +57,8 @@
     {#snippet children({ props })}<span {...props} class="text-muted-foreground">After yours</span>{/snippet}
   </Hint>
 {:else if !rated}
-  <span class="text-muted-foreground">{ratingWords(rating)}</span>
+  <!-- Nothing to show until a scorecard counts: the cell is blank and the words are for screen readers only (L1). -->
+  <span class="sr-only">{ratingWords(rating)}</span>
 {:else if scorecards}
   <Popover.Root>
     <!-- Named by its own text, so what it says and what a screen reader hears match (WCAG 2.5.3): "Rated 4.1 out of 5

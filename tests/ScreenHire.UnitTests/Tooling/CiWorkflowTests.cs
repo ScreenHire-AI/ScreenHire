@@ -22,7 +22,7 @@ public sealed class CiWorkflowTests
         var files = CiWorkflow.RepositoryGitHubFiles();
         var jobs = CiWorkflow.Jobs(files[CiWorkflow.CiPath]);
 
-        jobs.Select(job => job.Id).Should().Contain(["checks", "vitest", "integration", "e2e", "lighthouse", "gate"]);
+        jobs.Select(job => job.Id).Should().Contain(["checks", "vitest", "integration", "e2e", "infra", "lighthouse", "gate"]);
         jobs.Where(job => job.Shard.Count > 0).Select(job => job.Id).Should().Equal(["vitest", "integration", "e2e"],
             "the shard check reads the matrices");
         jobs.Should().AllSatisfy(job => job.RunsOn.Should().NotBeEmpty());
@@ -35,7 +35,7 @@ public sealed class CiWorkflowTests
     [InlineData("runs-on: ubuntu-24.04\n    timeout-minutes: 15", "runs-on: ubuntu-latest\n    timeout-minutes: 15", "job 'vitest' runs on [ubuntu-latest]")]
     [InlineData("runs-on: ubuntu-24.04\n    timeout-minutes: 20", "runs-on: [self-hosted, linux]\n    timeout-minutes: 20", "job 'lighthouse' runs on a self-hosted runner")]
     [InlineData("    timeout-minutes: 20\n", "", "job 'lighthouse' has no positive timeout-minutes")]
-    [InlineData("needs: [checks, vitest, integration, e2e]", "needs: [checks, integration, e2e]", "gate needs [checks, integration, e2e]")]
+    [InlineData("needs: [checks, vitest, integration, e2e, infra]", "needs: [checks, integration, e2e, infra]", "gate needs [checks, integration, e2e, infra]")]
     [InlineData("shard: [1, 2]\n        shards: [2]", "shard: [1]\n        shards: [2]", "job 'vitest' runs shards [1] of [2]")]
     [InlineData("shard: [1, 2]\n        shards: [2]", "shard: [1, 2]", "job 'vitest' runs shards [1, 2] of []")]
     [InlineData("if: ${{ always() }}\n    runs-on", "runs-on", "if: always()")]

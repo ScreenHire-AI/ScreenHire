@@ -52,13 +52,30 @@
   // Typing has not paused yet, or the answer is on its way: "Nothing matches" would be premature.
   const waiting = $derived(open && text.trim().length >= minLength && (term !== text.trim() || search.isFetching));
 
+  /** Separates what a person can type from the id that keeps two rows with the same words apart. */
+  const idMark = '\u001f';
+
+  /**
+   * The palette's own filter, replacing cmdk's fuzzy one: "sen" matched every Settings page because their values begin
+   * "Settings", which put real jobs below nine settings. A row matches when its words contain what was typed, best when
+   * they start with it or a word does. The id after `idMark` is never searched, so two characters cannot hit a guid.
+   */
+  function filter(value: string, search: string): number {
+    const words = value.split(idMark)[0].toLowerCase();
+    const query = search.trim().toLowerCase();
+    if (query === '' || words.startsWith(query)) return 1;
+    const at = words.indexOf(query);
+    if (at < 0) return 0;
+    return /[\s.@-]/.test(words[at - 1]) ? 0.8 : 0.5;
+  }
+
   function run(action: () => unknown) {
     open = false;
     void action();
   }
 </script>
 
-<Command.Dialog bind:open title="Command palette" description="Jump to a job or candidate, or run an action.">
+<Command.Dialog bind:open {filter} title="Command palette" description="Jump to a job or candidate, or run an action.">
   <!-- aria-controls: the combobox role requires it, and bits-ui does not set it. -->
   <Command.Input
     bind:value={text}
@@ -69,27 +86,11 @@
   />
   <Command.List id="command-palette-results">
     {#if !waiting}<Command.Empty>Nothing matches.</Command.Empty>{/if}
-    <Command.Group heading="Go to">
-      {#each sections as section (section.href)}
-        <Command.Item value={`Go to ${section.label}`} onSelect={() => run(() => goto(section.href))}>
-          {section.label}
-          {#if preferences.shortcutsEnabled}
-            <Command.Shortcut><KbdGroup><Kbd>G</Kbd><Kbd>{section.key.toUpperCase()}</Kbd></KbdGroup></Command.Shortcut>
-          {/if}
-        </Command.Item>
-      {/each}
-    </Command.Group>
-    {#if visibleSettingsSections(page.data?.user, shell?.features()).length > 0}
-      <Command.Group heading="Settings">
-        {#each visibleSettingsSections(page.data?.user, shell?.features()) as setting (setting.href)}
-          <Command.Item value={`Settings ${setting.label}`} onSelect={() => run(() => goto(setting.href))}>{setting.label}</Command.Item>
-        {/each}
-      </Command.Group>
-    {/if}
+    <!-- First, so what the server found for the words typed outranks the pages and actions that merely contain them. -->
     {#if found && found.jobs.length > 0}
       <Command.Group heading="Jobs">
         {#each found.jobs as job (job.id)}
-          <Command.Item value={`Job ${job.title} ${job.id}`} onSelect={() => run(() => goto(`/jobs/${job.id}`))}>
+          <Command.Item value={`${job.title}${idMark}${job.id}`} onSelect={() => run(() => goto(`/jobs/${job.id}`))}>
             {job.title}
             <span class="ml-auto"><StatusBadge {...jobStatus[job.status]} quiet /></span>
           </Command.Item>
@@ -101,7 +102,7 @@
         {#each found.candidates as hit (hit.applicationId)}
           <!-- The email is in the value, so a hit the server found by email stays through the palette's own filter. -->
           <Command.Item
-            value={`Candidate ${hit.candidateName} ${hit.email} ${hit.jobTitle} ${hit.applicationId}`}
+            value={`${hit.candidateName} ${hit.email} ${hit.jobTitle}${idMark}${hit.applicationId}`}
             onSelect={() => run(() => goto(`/applications/${hit.applicationId}`))}
           >
             {hit.candidateName}
@@ -115,6 +116,23 @@
               {/if}
             </span>
           </Command.Item>
+        {/each}
+      </Command.Group>
+    {/if}
+    <Command.Group heading="Go to">
+      {#each sections as section (section.href)}
+        <Command.Item value={`Go to ${section.label}`} onSelect={() => run(() => goto(section.href))}>
+          {section.label}
+          {#if preferences.shortcutsEnabled}
+            <Command.Shortcut><KbdGroup><Kbd>G</Kbd><Kbd>{section.key.toUpperCase()}</Kbd></KbdGroup></Command.Shortcut>
+          {/if}
+        </Command.Item>
+      {/each}
+    </Command.Group>
+    {#if visibleSettingsSections(page.data?.user, shell?.features()).length > 0}
+      <Command.Group heading="Settings">
+        {#each visibleSettingsSections(page.data?.user, shell?.features()) as setting (setting.href)}
+          <Command.Item value={`${setting.label} settings`} onSelect={() => run(() => goto(setting.href))}>{setting.label}</Command.Item>
         {/each}
       </Command.Group>
     {/if}

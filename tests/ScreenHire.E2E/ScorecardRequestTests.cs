@@ -90,9 +90,9 @@ public sealed class ScorecardRequestTests(E2EFixture fixture) : BrowserTest(fixt
         await recruiterPage.GotoAsync(DashboardUrl("/tasks"));
         await Expect(recruiterPage.GetByText("Nothing to do")).ToBeVisibleAsync();
         await recruiterPage.GetByRole(AriaRole.Button, new() { Name = "Done", Exact = true }).ClickAsync();
-        var done = recruiterPage.GetByRole(AriaRole.List, new() { Name = "Done tasks" });
+        var done = recruiterPage.GetByRole(AriaRole.Table, new() { Name = "Done tasks" });
         await Expect(done).ToContainTextAsync("Fill in the Interview scorecard.");
-        await Expect(done).ToContainTextAsync("by you");
+        await Expect(done.GetByRole(AriaRole.Cell, new() { Name = "You", Exact = true })).ToBeVisibleAsync();
     }
 
     private static ILocator Question(ILocator sheet, string label) =>

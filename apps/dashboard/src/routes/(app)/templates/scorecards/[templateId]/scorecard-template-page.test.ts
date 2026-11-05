@@ -95,7 +95,7 @@ describe('scorecard template page', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(saved).toHaveLength(1));
     expect(saved[0]).toMatchObject({ name: 'Technical review', questions: own.questions });
-    expect(await screen.findByText('Saved.')).toBeInTheDocument();
+    expect(await screen.findByText(/^Saved\. Jobs created from now on use these questions\.$/)).toBeInTheDocument();
   });
 
   it('discards unsaved changes from More, after a confirmation (A2)', async () => {

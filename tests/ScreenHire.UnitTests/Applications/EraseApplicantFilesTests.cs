@@ -98,5 +98,8 @@ public sealed class EraseApplicantFilesTests
             DeletedReplyAttachments.Add(blobName);
             return Task.CompletedTask;
         }
+
+        public Task<IReadOnlyList<StoredUploadBlob>> ListAsync(string prefix, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Erasing never lists the container.");
     }
 }

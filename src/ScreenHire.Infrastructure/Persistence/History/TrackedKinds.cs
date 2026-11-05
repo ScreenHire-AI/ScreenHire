@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using ScreenHire.Domain.Distribution;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.History;
 using ScreenHire.Domain.Verification;
@@ -29,6 +30,8 @@ public static class TrackedKinds
         // A built-in's first edit adds its row too, but that is an edit of ScreenHire's wording, not a new template.
         Track<EmailTemplate>(ChangeSubjectKind.EmailTemplate, t => t.Key, EmailTemplateAsync, creates: (t, _) => t.BuiltInId is null),
         Track<Job>(ChangeSubjectKind.Job, j => j.Id.ToString("D"), JobAsync, creates: (_, _) => true),
+        // A board's own title and description join the job's history. No `creates`: adding a posting is not creating the job.
+        Track<JobPosting>(ChangeSubjectKind.Job, p => p.JobId.ToString("D"), JobPostingChanges.Describe),
         Track<ScorecardTemplate>(ChangeSubjectKind.ScorecardTemplate, t => t.Key, ScorecardTemplateAsync, creates: (_, _) => true),
         Track<CustomRole>(ChangeSubjectKind.Role, r => r.Id.ToString("D"), RoleChanges.Describe, creates: (_, _) => true),
 

@@ -22,6 +22,8 @@ public sealed partial class RolePermissionsTests
         ["UpdateJobWorkflow"] = Permission.EditJobs,
         ["ApplyJobTemplateUpdate"] = Permission.EditJobs,
         ["CloseJobPosting"] = Permission.EditJobs,
+        ["PreviewPostingCustomization"] = Permission.EditJobs,
+        ["CustomizePosting"] = Permission.EditJobs,
         ["SetJobHiringTeam"] = Permission.EditJobs,
         ["CreateApplication"] = Permission.AddCandidates,
         ["CreateResumeUpload"] = Permission.AddCandidates,

@@ -119,7 +119,7 @@ candidate.
 `GET /v1/talent-pool` lists everyone saved whose permission still holds. The **Saved candidates** page (a sidebar item
 after Candidates, G then S; `/talent-pool` redirects to `/saved`) is the list template: search over name, email, job
 and note; Saved from and Tag filters; columns Candidate, Rating, Note, Tags, Saved from, Saved and Last contacted; and a
-row menu with Invite to apply, Add to a job, Edit note and Remove from saved. There is no Verification
+row menu with Invite to apply, Add to a job, Message, Edit note and Remove from saved. There is no Verification
 column or filter, so the list never becomes one picked by level for bulk invitations (ADR-0004).
 
 **Rating** is the saved-from application's rating, read by the same code as the candidate page (`RatingReads`). A
@@ -133,8 +133,8 @@ Messages). The event types counted are one list in `TalentPoolReads` (`ContactTy
 - A member on Only jobs they're on sees only email through jobs they are on, so their date can be older than
   another member's.
 
-A **Message** button beside the date opens the email composer for the saved-from application. It shows only for a
-reader who may email candidates, with a sending-enabled sender.
+**Message** in the row menu opens the email composer for the saved-from application. It shows only for a reader who
+may email candidates, with a sending-enabled sender.
 
 **The note** starts as the one written when they were saved and the team can edit it: Edit note in the row menu, or
 press the note. `PUT /v1/talent-pool/{candidateId}/note` (Move candidates, 404 without an entry the reader can see)

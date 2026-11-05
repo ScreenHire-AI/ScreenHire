@@ -7,13 +7,12 @@
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import { cn } from '#lib/utils.js';
 
-  // "Move to stage…": the non-drag way to move an application (WCAG 2.5.7), on every row, card and detail page.
+  // "Move to stage…": the non-drag way to move an application (WCAG 2.5.7) on its detail page. Lists use `ApplicationMenu`.
   let {
     candidateName,
     currentStageId,
     stages,
     disabled = false,
-    compact = false,
     variant = 'outline',
     size,
     class: className,
@@ -25,11 +24,9 @@
     currentStageId: string;
     stages: readonly WorkflowStage[];
     disabled?: boolean;
-    /** A short "Move" trigger for table rows and cards. */
-    compact?: boolean;
     /** A detail page's primary action is filled. */
     variant?: ButtonVariant;
-    /** The trigger's size when not compact; `sm` by default. */
+    /** The trigger's size; `sm` by default. */
     size?: ButtonSize;
     class?: string;
     onmove: (stage: WorkflowStage) => void;
@@ -49,10 +46,10 @@
        trigger "Move to stage , Robin Ashby". -->
   <DropdownMenu.Trigger
     {disabled}
-    aria-label={compact ? `Move ${candidateName} to another stage` : `Move to stage, ${candidateName}`}
-    class={cn(buttonVariants({ variant, size: compact ? 'xs' : (size ?? 'sm') }), className)}
+    aria-label={`Move to stage, ${candidateName}`}
+    class={cn(buttonVariants({ variant, size: size ?? 'sm' }), className)}
   >
-    <ArrowRightIcon aria-hidden="true" />{compact ? 'Move' : 'Move to stage'}
+    <ArrowRightIcon aria-hidden="true" />Move to stage
   </DropdownMenu.Trigger>
   <DropdownMenu.Content align="end" class="w-52">
     <DropdownMenu.Label class="text-caption text-muted-foreground">Move to</DropdownMenu.Label>

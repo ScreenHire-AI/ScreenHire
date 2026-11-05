@@ -6,10 +6,12 @@
   import JobDetailsForm from '#lib/components/job-details-form.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
+  import { jobStatus } from '#lib/job-status.js';
   import { describeError } from '#lib/query.js';
   import type { PageProps } from './$types';
 
@@ -31,7 +33,10 @@
 <TopBar crumbs={[{ label: 'Jobs', href: '/' }, { label: detail?.title ?? 'Job', href: jobHref }, { label: 'Edit details' }]} back />
 
 <main class="flex flex-col">
-  <HeaderBand form title="Edit job details" />
+  <!-- The job's name and its status first (S2); the panel below says what the page does, as the crumb does. -->
+  <HeaderBand form title={detail?.title ?? 'Edit details'}>
+    {#snippet status()}{#if detail}<StatusBadge {...jobStatus[detail.status]} />{/if}{/snippet}
+  </HeaderBand>
 
   <!-- The form template (section 7): one 688px column, labels above fields, actions at the end. -->
   <div class="mx-auto w-full max-w-form px-4 py-6 md:px-6">
@@ -50,7 +55,7 @@
         {/if}
       </Panel>
     {:else if !detail}
-      <Panel title="Details">
+      <Panel title="Edit details">
         <div aria-hidden="true" class="flex flex-col gap-4">
           {#each [0, 1, 2, 3] as field (field)}<Skeleton class="h-14 w-full" />{/each}
         </div>

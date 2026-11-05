@@ -145,9 +145,9 @@
     <form onsubmit={save} novalidate class="flex flex-col gap-5 px-4 pb-4">
       <p class="text-muted-foreground">
         {#if kind === 'job'}
-          The people who work on this job. Anyone set to Only jobs they're on sees this job through this list.
+          Anyone set to Only jobs they're on sees this job through this list.
         {:else}
-          New jobs from this template start with these people on their hiring team.
+          New jobs from this template start with these people.
         {/if}
       </p>
 

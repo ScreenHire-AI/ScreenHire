@@ -102,15 +102,26 @@ internal static class AuthenticationSetup
 
         // Browsers reach the API through a proxy (the dashboard's /v1 path), so the connection's address is the proxy's.
         // The client's comes from X-Forwarded-For, believed only from loopback (the default) and the configured proxies;
-        // trusting any sender would hand every request a fresh rate-limit bucket.
+        // trusting any sender would hand every request a fresh rate-limit bucket. A proxy is an address or a network in
+        // CIDR form, because a platform's ingress has a range, not one address.
         services.Configure<ForwardedHeadersOptions>(options =>
         {
             options.ForwardedHeaders = ForwardedHeaders.XForwardedFor;
-            foreach (var proxy in authOptions.TrustedProxies)
+            options.ForwardLimit = authOptions.ForwardLimit;
+            foreach (var proxy in authOptions.TrustedProxyEntries())
             {
-                options.KnownProxies.Add(IPAddress.TryParse(proxy, out var address)
-                    ? address
-                    : throw new InvalidOperationException($"{AuthOptions.Section}:TrustedProxies: '{proxy}' is not an IP address."));
+                if (IPAddress.TryParse(proxy, out var address))
+                {
+                    options.KnownProxies.Add(address);
+                }
+                else if (System.Net.IPNetwork.TryParse(proxy, out var network))
+                {
+                    options.KnownIPNetworks.Add(network);
+                }
+                else
+                {
+                    throw new InvalidOperationException($"{AuthOptions.Section}:TrustedProxies: '{proxy}' is not an IP address or a CIDR network.");
+                }
             }
         });
 
