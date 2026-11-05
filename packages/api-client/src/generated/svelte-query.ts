@@ -144,6 +144,12 @@ import type {
   PublicApplicationForm,
   PublicApplicationReceipt,
   PublicApplicationRequest,
+  PublicDataDownload,
+  PublicDataRequestChoice,
+  PublicDataRequestForm,
+  PublicDataRequestLinkRequest,
+  PublicDataRequestLinkStatus,
+  PublicDataRequestReceipt,
   PublicInterview,
   PublicInterviewChoice,
   PublicJob,
@@ -3801,6 +3807,524 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return createMutation(() => ({ ...getStopKeepingDetailsMutationOptions(options?.()) }), queryClient);
     }
+
+export type getPublicDataRequestFormResponse200 = {
+  data: PublicDataRequestForm
+  status: 200
+}
+
+export type getPublicDataRequestFormResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicDataRequestFormResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getPublicDataRequestFormResponseSuccess = (getPublicDataRequestFormResponse200) & {
+  headers: Headers;
+};
+export type getPublicDataRequestFormResponseError = (getPublicDataRequestFormResponse404 | getPublicDataRequestFormResponse429) & {
+  headers: Headers;
+};
+
+export const getGetPublicDataRequestFormUrl = (organizationSlug: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/data-requests`
+}
+
+export const getPublicDataRequestForm = async (organizationSlug: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getPublicDataRequestFormResponseSuccess> => {
+
+  return apiQueryFetch<getPublicDataRequestFormResponseSuccess>(getGetPublicDataRequestFormUrl(organizationSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicDataRequestFormQueryKey = (organizationSlug: string,) => {
+    return [
+    'v1','public','organizations',organizationSlug,'data-requests'
+    ] as const;
+    }
+
+
+export const getGetPublicDataRequestFormQueryOptions = <TData = Awaited<ReturnType<typeof getPublicDataRequestForm>>, TError = ErrorType<void>>(organizationSlug: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getPublicDataRequestForm>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicDataRequestFormQueryKey(organizationSlug);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicDataRequestForm>>> = ({ signal }) => getPublicDataRequestForm(organizationSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: organizationSlug !== null && organizationSlug !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getPublicDataRequestForm>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPublicDataRequestFormQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicDataRequestForm>>>
+export type GetPublicDataRequestFormQueryError = ErrorType<void>
+
+
+
+export function createGetPublicDataRequestForm<TData = Awaited<ReturnType<typeof getPublicDataRequestForm>>, TError = ErrorType<void>>(
+ organizationSlug: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getPublicDataRequestForm>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetPublicDataRequestFormQueryOptions(organizationSlug(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type requestPublicDataRequestLinkResponse202 = {
+  data: void
+  status: 202
+}
+
+export type requestPublicDataRequestLinkResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type requestPublicDataRequestLinkResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type requestPublicDataRequestLinkResponse404 = {
+  data: void
+  status: 404
+}
+
+export type requestPublicDataRequestLinkResponse429 = {
+  data: void
+  status: 429
+}
+
+export type requestPublicDataRequestLinkResponseSuccess = (requestPublicDataRequestLinkResponse202) & {
+  headers: Headers;
+};
+export type requestPublicDataRequestLinkResponseError = (requestPublicDataRequestLinkResponse400 | requestPublicDataRequestLinkResponse403 | requestPublicDataRequestLinkResponse404 | requestPublicDataRequestLinkResponse429) & {
+  headers: Headers;
+};
+
+export const getRequestPublicDataRequestLinkUrl = (organizationSlug: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/data-requests/links`
+}
+
+export const requestPublicDataRequestLink = async (organizationSlug: string,
+    publicDataRequestLinkRequest: PublicDataRequestLinkRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<requestPublicDataRequestLinkResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<requestPublicDataRequestLinkResponseSuccess>(getRequestPublicDataRequestLinkUrl(organizationSlug),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicDataRequestLinkRequest)
+  }
+);}
+
+
+
+
+
+export const getRequestPublicDataRequestLinkMutationKey = () => ['requestPublicDataRequestLink'] as const;
+
+export const getRequestPublicDataRequestLinkMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | ProblemDetails | void>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof requestPublicDataRequestLink>>, TError,RequestPublicDataRequestLinkMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof requestPublicDataRequestLink>>, TError,RequestPublicDataRequestLinkMutationVariables, TContext> => {
+
+const mutationKey = getRequestPublicDataRequestLinkMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestPublicDataRequestLink>>, RequestPublicDataRequestLinkMutationVariables> = (props) => {
+          const {organizationSlug,data} = props ?? {};
+
+          return  requestPublicDataRequestLink(organizationSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestPublicDataRequestLinkMutationResult = NonNullable<Awaited<ReturnType<typeof requestPublicDataRequestLink>>>
+    export type RequestPublicDataRequestLinkMutationBody = PublicDataRequestLinkRequest
+    export type RequestPublicDataRequestLinkMutationError = ErrorType<HttpValidationProblemDetails | ProblemDetails | void>
+    export type RequestPublicDataRequestLinkMutationVariables = {organizationSlug: string;data: PublicDataRequestLinkRequest}
+
+    export const createRequestPublicDataRequestLink = <TError = ErrorType<HttpValidationProblemDetails | ProblemDetails | void>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof requestPublicDataRequestLink>>, TError,RequestPublicDataRequestLinkMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof requestPublicDataRequestLink>>,
+        TError,
+        RequestPublicDataRequestLinkMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getRequestPublicDataRequestLinkMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getPublicDataRequestChoicesResponse200 = {
+  data: PublicDataRequestLinkStatus
+  status: 200
+}
+
+export type getPublicDataRequestChoicesResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicDataRequestChoicesResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getPublicDataRequestChoicesResponseSuccess = (getPublicDataRequestChoicesResponse200) & {
+  headers: Headers;
+};
+export type getPublicDataRequestChoicesResponseError = (getPublicDataRequestChoicesResponse404 | getPublicDataRequestChoicesResponse429) & {
+  headers: Headers;
+};
+
+export const getGetPublicDataRequestChoicesUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/data-requests/${token}`
+}
+
+export const getPublicDataRequestChoices = async (organizationSlug: string,
+    token: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getPublicDataRequestChoicesResponseSuccess> => {
+
+  return apiQueryFetch<getPublicDataRequestChoicesResponseSuccess>(getGetPublicDataRequestChoicesUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicDataRequestChoicesQueryKey = (organizationSlug: string,
+    token: string,) => {
+    return [
+    'v1','public','organizations',organizationSlug,'data-requests',token
+    ] as const;
+    }
+
+
+export const getGetPublicDataRequestChoicesQueryOptions = <TData = Awaited<ReturnType<typeof getPublicDataRequestChoices>>, TError = ErrorType<void>>(organizationSlug: string,
+    token: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getPublicDataRequestChoices>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicDataRequestChoicesQueryKey(organizationSlug,token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicDataRequestChoices>>> = ({ signal }) => getPublicDataRequestChoices(organizationSlug,token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: organizationSlug !== null && organizationSlug !== undefined && token !== null && token !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getPublicDataRequestChoices>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPublicDataRequestChoicesQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicDataRequestChoices>>>
+export type GetPublicDataRequestChoicesQueryError = ErrorType<void>
+
+
+
+export function createGetPublicDataRequestChoices<TData = Awaited<ReturnType<typeof getPublicDataRequestChoices>>, TError = ErrorType<void>>(
+ organizationSlug: () =>  string,
+    token: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getPublicDataRequestChoices>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetPublicDataRequestChoicesQueryOptions(organizationSlug(),
+    token(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type makePublicDataRequestResponse200 = {
+  data: PublicDataRequestReceipt
+  status: 200
+}
+
+export type makePublicDataRequestResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type makePublicDataRequestResponse404 = {
+  data: void
+  status: 404
+}
+
+export type makePublicDataRequestResponse429 = {
+  data: void
+  status: 429
+}
+
+export type makePublicDataRequestResponseSuccess = (makePublicDataRequestResponse200) & {
+  headers: Headers;
+};
+export type makePublicDataRequestResponseError = (makePublicDataRequestResponse400 | makePublicDataRequestResponse404 | makePublicDataRequestResponse429) & {
+  headers: Headers;
+};
+
+export const getMakePublicDataRequestUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/data-requests/${token}`
+}
+
+export const makePublicDataRequest = async (organizationSlug: string,
+    token: string,
+    publicDataRequestChoice: PublicDataRequestChoice, options?: Parameters<typeof apiQueryFetch>[1]): Promise<makePublicDataRequestResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<makePublicDataRequestResponseSuccess>(getMakePublicDataRequestUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicDataRequestChoice)
+  }
+);}
+
+
+
+
+
+export const getMakePublicDataRequestMutationKey = () => ['makePublicDataRequest'] as const;
+
+export const getMakePublicDataRequestMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof makePublicDataRequest>>, TError,MakePublicDataRequestMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof makePublicDataRequest>>, TError,MakePublicDataRequestMutationVariables, TContext> => {
+
+const mutationKey = getMakePublicDataRequestMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof makePublicDataRequest>>, MakePublicDataRequestMutationVariables> = (props) => {
+          const {organizationSlug,token,data} = props ?? {};
+
+          return  makePublicDataRequest(organizationSlug,token,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MakePublicDataRequestMutationResult = NonNullable<Awaited<ReturnType<typeof makePublicDataRequest>>>
+    export type MakePublicDataRequestMutationBody = PublicDataRequestChoice
+    export type MakePublicDataRequestMutationError = ErrorType<HttpValidationProblemDetails | void>
+    export type MakePublicDataRequestMutationVariables = {organizationSlug: string;token: string;data: PublicDataRequestChoice}
+
+    export const createMakePublicDataRequest = <TError = ErrorType<HttpValidationProblemDetails | void>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof makePublicDataRequest>>, TError,MakePublicDataRequestMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof makePublicDataRequest>>,
+        TError,
+        MakePublicDataRequestMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getMakePublicDataRequestMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getPublicDataDownloadResponse200 = {
+  data: PublicDataDownload
+  status: 200
+}
+
+export type getPublicDataDownloadResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicDataDownloadResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getPublicDataDownloadResponseSuccess = (getPublicDataDownloadResponse200) & {
+  headers: Headers;
+};
+export type getPublicDataDownloadResponseError = (getPublicDataDownloadResponse404 | getPublicDataDownloadResponse429) & {
+  headers: Headers;
+};
+
+export const getGetPublicDataDownloadUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/data-requests/downloads/${token}`
+}
+
+export const getPublicDataDownload = async (organizationSlug: string,
+    token: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getPublicDataDownloadResponseSuccess> => {
+
+  return apiQueryFetch<getPublicDataDownloadResponseSuccess>(getGetPublicDataDownloadUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicDataDownloadQueryKey = (organizationSlug: string,
+    token: string,) => {
+    return [
+    'v1','public','organizations',organizationSlug,'data-requests','downloads',token
+    ] as const;
+    }
+
+
+export const getGetPublicDataDownloadQueryOptions = <TData = Awaited<ReturnType<typeof getPublicDataDownload>>, TError = ErrorType<void>>(organizationSlug: string,
+    token: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getPublicDataDownload>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicDataDownloadQueryKey(organizationSlug,token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicDataDownload>>> = ({ signal }) => getPublicDataDownload(organizationSlug,token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: organizationSlug !== null && organizationSlug !== undefined && token !== null && token !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getPublicDataDownload>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPublicDataDownloadQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicDataDownload>>>
+export type GetPublicDataDownloadQueryError = ErrorType<void>
+
+
+
+export function createGetPublicDataDownload<TData = Awaited<ReturnType<typeof getPublicDataDownload>>, TError = ErrorType<void>>(
+ organizationSlug: () =>  string,
+    token: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getPublicDataDownload>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetPublicDataDownloadQueryOptions(organizationSlug(),
+    token(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
 
 export type listJobsResponse200 = {
   data: JobSummary[]

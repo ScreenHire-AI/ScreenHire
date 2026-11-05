@@ -1754,6 +1754,251 @@
         }
       }
     },
+    "/v1/public/organizations/{organizationSlug}/data-requests": {
+      "get": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "GetPublicDataRequestForm",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicDataRequestForm"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/data-requests/links": {
+      "post": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "RequestPublicDataRequestLink",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicDataRequestLinkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/data-requests/{token}": {
+      "get": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "GetPublicDataRequestChoices",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicDataRequestLinkStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "MakePublicDataRequest",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicDataRequestChoice"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicDataRequestReceipt"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/data-requests/downloads/{token}": {
+      "get": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "GetPublicDataDownload",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicDataDownload"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
     "/v1/jobs": {
       "get": {
         "tags": [
@@ -15261,6 +15506,12 @@
         },
         "description": "One of the organization's custom roles, for its page. `copiedFrom` is the name of the role it started as."
       },
+      "DataRequestKind": {
+        "enum": [
+          "Copy",
+          "Erasure"
+        ]
+      },
       "DefinitionError": {
         "required": [
           "path",
@@ -18722,6 +18973,105 @@
           }
         },
         "description": "The candidate as the apply form asks: a first name, an optional last name, the email and an optional phone."
+      },
+      "PublicDataDownload": {
+        "required": [
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        },
+        "description": "A short-lived address that downloads the candidate's copy."
+      },
+      "PublicDataRequestChoice": {
+        "required": [
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/DataRequestKind"
+          }
+        },
+        "description": "The candidate's choice: a copy of their data, or its erasure."
+      },
+      "PublicDataRequestForm": {
+        "required": [
+          "organizationName",
+          "enabled",
+          "turnstileSiteKey"
+        ],
+        "type": "object",
+        "properties": {
+          "organizationName": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "turnstileSiteKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "What the careers data request page needs before it asks for an address. `enabled` is false where the deployment\nsends no email or has no careers host to link to: the page then keeps its \"write to the employer\" text.\n`turnstileSiteKey` is null unless the bot challenge is configured."
+      },
+      "PublicDataRequestLinkRequest": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "botCheckToken": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "The address a candidate types to be sent the link that opens their choices. The answer to it is the same whether or not\nthe address has applied, so it tells nobody who has."
+      },
+      "PublicDataRequestLinkStatus": {
+        "required": [
+          "organizationName"
+        ],
+        "type": "object",
+        "properties": {
+          "organizationName": {
+            "type": "string"
+          }
+        },
+        "description": "What a valid emailed link opens: the organization the candidate will be asking, by name."
+      },
+      "PublicDataRequestReceipt": {
+        "required": [
+          "id",
+          "kind",
+          "receivedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DataRequestKind"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "The request the choice created, or the one that was already open. It never carries the team's due date, which is a\ntarget on their dashboard and not a promise to the candidate."
       },
       "PublicHeaderColors": {
         "required": [

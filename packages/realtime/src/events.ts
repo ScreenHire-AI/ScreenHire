@@ -169,6 +169,10 @@ export const realtimeEventSchemas = {
   TalentPoolChanged: z.object({ organizationId: id, applicationId: id, jobId: id, candidateId: id, changedAt: instant }),
   // A candidate and everything about them was erased. Carries the id and the time only (an erased id names no one).
   CandidateErased: z.object({ organizationId: id, candidateId: id, erasedAt: instant }),
+  // A candidate asked for a copy of their data or for its erasure (docs/architecture/data-requests.md). Ids, the kind and the time only.
+  DataRequestReceived: z.object({ organizationId: id, requestId: id, kind: z.enum(['Copy', 'Erasure']), receivedAt: instant }),
+  // A data request was answered, or its copy was built or expired: the Data requests list refetches.
+  DataRequestChanged: z.object({ organizationId: id, requestId: id }),
   TeamNotified: z.object({ organizationId: id, applicationId: id, jobId: id, runId: id, notifiedAt: instant }),
   ViewsChanged: z.object({ organizationId: id, viewId: id, changedAt: instant, actorUserId: actor }),
 } as const;

@@ -155,6 +155,22 @@
     }
   },
   {
+    "type": "DataRequestChanged",
+    "data": {
+      "organizationId": "0199f0c4-0000-7000-8000-000000000001",
+      "requestId": "0199f0c4-0000-7000-8000-000000000002"
+    }
+  },
+  {
+    "type": "DataRequestReceived",
+    "data": {
+      "organizationId": "0199f0c4-0000-7000-8000-000000000001",
+      "requestId": "0199f0c4-0000-7000-8000-000000000002",
+      "kind": "Copy",
+      "receivedAt": "2026-10-20T09:04:00+00:00"
+    }
+  },
+  {
     "type": "HiringTeamChanged",
     "data": {
       "organizationId": "0199f0c4-0000-7000-8000-000000000001",

@@ -128,6 +128,12 @@ import type {
   PublicApplicationForm,
   PublicApplicationReceipt,
   PublicApplicationRequest,
+  PublicDataDownload,
+  PublicDataRequestChoice,
+  PublicDataRequestForm,
+  PublicDataRequestLinkRequest,
+  PublicDataRequestLinkStatus,
+  PublicDataRequestReceipt,
   PublicInterview,
   PublicInterviewChoice,
   PublicJob,
@@ -2110,6 +2116,282 @@ export const stopKeepingDetails = async (organizationSlug: string,
   {
     ...options,
     method: 'POST'
+
+
+  }
+);}
+
+
+
+export type getPublicDataRequestFormResponse200 = {
+  data: PublicDataRequestForm
+  status: 200
+}
+
+export type getPublicDataRequestFormResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicDataRequestFormResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getPublicDataRequestFormResponseSuccess = (getPublicDataRequestFormResponse200) & {
+  headers: Headers;
+};
+export type getPublicDataRequestFormResponseError = (getPublicDataRequestFormResponse404 | getPublicDataRequestFormResponse429) & {
+  headers: Headers;
+};
+
+export type getPublicDataRequestFormResponse = (getPublicDataRequestFormResponseSuccess | getPublicDataRequestFormResponseError)
+
+export const getGetPublicDataRequestFormUrl = (organizationSlug: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/data-requests`
+}
+
+export const getPublicDataRequestForm = async (organizationSlug: string, options?: Parameters<typeof apiFetch>[1]): Promise<getPublicDataRequestFormResponse> => {
+
+  return apiFetch<getPublicDataRequestFormResponse>(getGetPublicDataRequestFormUrl(organizationSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type requestPublicDataRequestLinkResponse202 = {
+  data: void
+  status: 202
+}
+
+export type requestPublicDataRequestLinkResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type requestPublicDataRequestLinkResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type requestPublicDataRequestLinkResponse404 = {
+  data: void
+  status: 404
+}
+
+export type requestPublicDataRequestLinkResponse429 = {
+  data: void
+  status: 429
+}
+
+export type requestPublicDataRequestLinkResponseSuccess = (requestPublicDataRequestLinkResponse202) & {
+  headers: Headers;
+};
+export type requestPublicDataRequestLinkResponseError = (requestPublicDataRequestLinkResponse400 | requestPublicDataRequestLinkResponse403 | requestPublicDataRequestLinkResponse404 | requestPublicDataRequestLinkResponse429) & {
+  headers: Headers;
+};
+
+export type requestPublicDataRequestLinkResponse = (requestPublicDataRequestLinkResponseSuccess | requestPublicDataRequestLinkResponseError)
+
+export const getRequestPublicDataRequestLinkUrl = (organizationSlug: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/data-requests/links`
+}
+
+export const requestPublicDataRequestLink = async (organizationSlug: string,
+    publicDataRequestLinkRequest: PublicDataRequestLinkRequest, options?: Parameters<typeof apiFetch>[1]): Promise<requestPublicDataRequestLinkResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<requestPublicDataRequestLinkResponse>(getRequestPublicDataRequestLinkUrl(organizationSlug),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicDataRequestLinkRequest)
+  }
+);}
+
+
+
+export type getPublicDataRequestChoicesResponse200 = {
+  data: PublicDataRequestLinkStatus
+  status: 200
+}
+
+export type getPublicDataRequestChoicesResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicDataRequestChoicesResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getPublicDataRequestChoicesResponseSuccess = (getPublicDataRequestChoicesResponse200) & {
+  headers: Headers;
+};
+export type getPublicDataRequestChoicesResponseError = (getPublicDataRequestChoicesResponse404 | getPublicDataRequestChoicesResponse429) & {
+  headers: Headers;
+};
+
+export type getPublicDataRequestChoicesResponse = (getPublicDataRequestChoicesResponseSuccess | getPublicDataRequestChoicesResponseError)
+
+export const getGetPublicDataRequestChoicesUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/data-requests/${token}`
+}
+
+export const getPublicDataRequestChoices = async (organizationSlug: string,
+    token: string, options?: Parameters<typeof apiFetch>[1]): Promise<getPublicDataRequestChoicesResponse> => {
+
+  return apiFetch<getPublicDataRequestChoicesResponse>(getGetPublicDataRequestChoicesUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type makePublicDataRequestResponse200 = {
+  data: PublicDataRequestReceipt
+  status: 200
+}
+
+export type makePublicDataRequestResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type makePublicDataRequestResponse404 = {
+  data: void
+  status: 404
+}
+
+export type makePublicDataRequestResponse429 = {
+  data: void
+  status: 429
+}
+
+export type makePublicDataRequestResponseSuccess = (makePublicDataRequestResponse200) & {
+  headers: Headers;
+};
+export type makePublicDataRequestResponseError = (makePublicDataRequestResponse400 | makePublicDataRequestResponse404 | makePublicDataRequestResponse429) & {
+  headers: Headers;
+};
+
+export type makePublicDataRequestResponse = (makePublicDataRequestResponseSuccess | makePublicDataRequestResponseError)
+
+export const getMakePublicDataRequestUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/data-requests/${token}`
+}
+
+export const makePublicDataRequest = async (organizationSlug: string,
+    token: string,
+    publicDataRequestChoice: PublicDataRequestChoice, options?: Parameters<typeof apiFetch>[1]): Promise<makePublicDataRequestResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<makePublicDataRequestResponse>(getMakePublicDataRequestUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicDataRequestChoice)
+  }
+);}
+
+
+
+export type getPublicDataDownloadResponse200 = {
+  data: PublicDataDownload
+  status: 200
+}
+
+export type getPublicDataDownloadResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicDataDownloadResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getPublicDataDownloadResponseSuccess = (getPublicDataDownloadResponse200) & {
+  headers: Headers;
+};
+export type getPublicDataDownloadResponseError = (getPublicDataDownloadResponse404 | getPublicDataDownloadResponse429) & {
+  headers: Headers;
+};
+
+export type getPublicDataDownloadResponse = (getPublicDataDownloadResponseSuccess | getPublicDataDownloadResponseError)
+
+export const getGetPublicDataDownloadUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/data-requests/downloads/${token}`
+}
+
+export const getPublicDataDownload = async (organizationSlug: string,
+    token: string, options?: Parameters<typeof apiFetch>[1]): Promise<getPublicDataDownloadResponse> => {
+
+  return apiFetch<getPublicDataDownloadResponse>(getGetPublicDataDownloadUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'GET'
 
 
   }

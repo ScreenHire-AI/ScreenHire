@@ -950,6 +950,65 @@ export const StopKeepingDetailsParams = zod.object({
 export const StopKeepingDetailsResponse = zod.void()
 
 
+export const GetPublicDataRequestFormParams = zod.object({
+  "organizationSlug": zod.string()
+})
+
+export const GetPublicDataRequestFormResponse = zod.object({
+  "organizationName": zod.string(),
+  "enabled": zod.boolean(),
+  "turnstileSiteKey": zod.string().nullable()
+}).describe('What the careers data request page needs before it asks for an address. `enabled` is false where the deployment\nsends no email or has no careers host to link to: the page then keeps its "write to the employer" text.\n`turnstileSiteKey` is null unless the bot challenge is configured.')
+
+
+export const RequestPublicDataRequestLinkParams = zod.object({
+  "organizationSlug": zod.string()
+})
+
+export const RequestPublicDataRequestLinkBody = zod.object({
+  "email": zod.string(),
+  "botCheckToken": zod.string().nullish()
+}).describe('The address a candidate types to be sent the link that opens their choices. The answer to it is the same whether or not\nthe address has applied, so it tells nobody who has.')
+
+export const RequestPublicDataRequestLinkResponse = zod.void()
+
+
+export const GetPublicDataRequestChoicesParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string()
+})
+
+export const GetPublicDataRequestChoicesResponse = zod.object({
+  "organizationName": zod.string()
+}).describe('What a valid emailed link opens: the organization the candidate will be asking, by name.')
+
+
+export const MakePublicDataRequestParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string()
+})
+
+export const MakePublicDataRequestBody = zod.object({
+  "kind": zod.enum(['Copy', 'Erasure'])
+}).describe('The candidate\'s choice: a copy of their data, or its erasure.')
+
+export const MakePublicDataRequestResponse = zod.object({
+  "id": zod.uuid(),
+  "kind": zod.enum(['Copy', 'Erasure']),
+  "receivedAt": zod.iso.datetime({"offset":true})
+}).describe('The request the choice created, or the one that was already open. It never carries the team\'s due date, which is a\ntarget on their dashboard and not a promise to the candidate.')
+
+
+export const GetPublicDataDownloadParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string()
+})
+
+export const GetPublicDataDownloadResponse = zod.object({
+  "url": zod.string()
+}).describe('A short-lived address that downloads the candidate\'s copy.')
+
+
 export const listJobsResponseLastUpdatedCreatedDefault = false;
 
 export const ListJobsResponseItem = zod.object({

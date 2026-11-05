@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using ScreenHire.Application.Applications;
 using ScreenHire.Application.Candidates;
 using ScreenHire.Application.Messaging;
 
@@ -11,6 +12,9 @@ namespace ScreenHire.Application.Privacy;
 public sealed class DataRequestOptions
 {
     public const string Section = "ScreenHire:DataRequests";
+
+    /// <summary>The rate limiter policy on the public data request routes, partitioned by the visitor's address (<see cref="PermitsPerMinute"/>).</summary>
+    public const string RateLimitPolicy = "data-requests";
 
     /// <summary>The blob container the copies of candidates' data are written to.</summary>
     public const string DefaultExportContainer = "data-exports";
@@ -49,19 +53,34 @@ public sealed class RecordRetentionOptions
 
 /// <summary>
 /// Where copies of candidates' data are kept: the worker writes them and deletes them with the candidate or after their
-/// download window. The blob implementation lives in the worker; <see cref="NoDataExportStore"/> stands in where no
-/// storage is configured.
+/// download window, and the API issues the short read link a download follows. The worker's blob implementation and the
+/// API's each do their half and refuse the rest; <see cref="NoDataExportStore"/> stands in where no storage is configured.
 /// </summary>
 public interface IDataExportStore
 {
     /// <summary>Deletes a copy's blob. A blob that is not there is already gone, not an error.</summary>
     Task DeleteAsync(string blobName, CancellationToken cancellationToken);
+
+    /// <summary>Writes a copy's blob, replacing one of the same name, so a redelivered message writes it again harmlessly.</summary>
+    Task SaveAsync(string blobName, ReadOnlyMemory<byte> content, string contentType, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// A short-lived address that downloads the blob under <paramref name="fileName"/> (an attachment, never rendered on the
+    /// storage origin), or null when the blob is not there or no storage is configured.
+    /// </summary>
+    Task<string?> IssueReadLinkAsync(string blobName, string fileName, CancellationToken cancellationToken);
 }
 
-/// <summary>Stands in for storage where none is configured: there is nothing to delete.</summary>
+/// <summary>Stands in for storage where none is configured: there is nothing to delete, and nothing can be written or read.</summary>
 public sealed class NoDataExportStore : IDataExportStore
 {
     public Task DeleteAsync(string blobName, CancellationToken cancellationToken) => Task.CompletedTask;
+
+    // Refuses rather than pretending: a copy marked as sent with no blob behind it would send the candidate a dead link.
+    public Task SaveAsync(string blobName, ReadOnlyMemory<byte> content, string contentType, CancellationToken cancellationToken) =>
+        throw new InvalidOperationException("No storage is configured for copies of candidates' data.");
+
+    public Task<string?> IssueReadLinkAsync(string blobName, string fileName, CancellationToken cancellationToken) => Task.FromResult<string?>(null);
 }
 
 /// <summary>The name of the container holding copies of candidates' data, as the hosts read it: <c>ScreenHire:DataRequests:ExportContainer</c>.</summary>
@@ -104,7 +123,7 @@ public static partial class EraseDataExportsHandler
 public static class PrivacyRegistration
 {
     /// <summary>
-    /// The options of data requests and record retention, and the shared erasure service. Registered by the API and by the
+    /// The options of data requests and record retention, the shared erasure service and the signed links of the request flow. Registered by the API and by the
     /// worker's messaging setup, which also registers the copy store (<see cref="IDataExportStore"/>).
     /// </summary>
     public static IServiceCollection AddScreenHirePrivacy(this IServiceCollection services)
@@ -113,6 +132,10 @@ public static class PrivacyRegistration
         services.AddOptions<DataRequestOptions>().BindConfiguration(DataRequestOptions.Section);
         services.AddOptions<RecordRetentionOptions>().BindConfiguration(RecordRetentionOptions.Section);
         services.TryAddScoped<CandidateErasure>();
+
+        // The signed links of the flow, with the careers settings they build addresses from and the Data Protection they sign with.
+        services.AddQuestionnaireLinks();
+        services.TryAddSingleton<DataRequestLinks>();
         return services;
     }
 }

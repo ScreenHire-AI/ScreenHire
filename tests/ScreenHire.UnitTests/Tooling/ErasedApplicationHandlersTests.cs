@@ -20,6 +20,7 @@ public sealed partial class ErasedApplicationHandlersTests
         "src/ScreenHire.Application/Automations/RunAutomationsHandler.cs",
         "src/ScreenHire.Application/Automations/ExecuteAutomationActionHandler.cs",
         "src/ScreenHire.Application/Automations/AutomationFailures.cs",
+        "src/ScreenHire.Application/Privacy/SendDataRequestLink.cs",
     ];
 
     [Fact]
