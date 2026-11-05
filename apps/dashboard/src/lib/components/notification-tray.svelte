@@ -1,6 +1,7 @@
 <script lang="ts">
   import AtSignIcon from '~icons/lucide/at-sign';
   import BellIcon from '~icons/lucide/bell';
+  import FileLockIcon from '~icons/lucide/file-lock';
   import LayoutTemplateIcon from '~icons/lucide/layout-template';
   import ReplyIcon from '~icons/lucide/reply';
   import XIcon from '~icons/lucide/x';
@@ -63,7 +64,7 @@
             {#if item.context}<p class="break-words text-muted-foreground">{item.context}</p>{/if}
           </div>
         {:else}
-          <span aria-hidden="true" class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground">{#if item.kind === 'mention'}<AtSignIcon />{:else if item.kind === 'reply'}<ReplyIcon />{:else}<BellIcon />{/if}</span>
+          <span aria-hidden="true" class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground">{#if item.kind === 'mention'}<AtSignIcon />{:else if item.kind === 'reply'}<ReplyIcon />{:else if item.kind === 'dataRequest'}<FileLockIcon />{:else}<BellIcon />{/if}</span>
           <div class="flex min-w-0 flex-1 flex-col gap-0.5 pt-1">
             <a href={item.href} class="font-semibold break-words underline underline-offset-2">{item.title}</a>
             <p class="break-words">{item.detail}</p>

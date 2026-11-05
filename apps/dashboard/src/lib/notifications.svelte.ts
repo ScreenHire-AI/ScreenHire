@@ -10,8 +10,8 @@ export interface Notification {
   /** The automation's note, or what it did. */
   detail: string;
   href: string;
-  /** What raised it, for the card's icon: an automation that notified the team, a note that mentioned you, or a candidate's reply. */
-  kind?: 'team' | 'mention' | 'reply';
+  /** What raised it, for the card's icon: an automation that notified the team, a note that mentioned you, a candidate's reply, or a candidate's data request. */
+  kind?: 'team' | 'mention' | 'reply' | 'dataRequest';
 }
 
 /** The most the tray shows at once, cards and toasts together; an older one leaves when a new one arrives. */
@@ -187,6 +187,7 @@ export function dataRequestNotification(
   if (!can(user, 'EraseCandidates') || !seesAllJobs(user)) return undefined;
   return {
     id: dataRequestNotificationId(requestId),
+    kind: 'dataRequest',
     title: 'New data request',
     detail: kind === 'Copy' ? 'A candidate asked for a copy of their data.' : 'A candidate asked to be erased.',
     href: '/settings/data-requests',

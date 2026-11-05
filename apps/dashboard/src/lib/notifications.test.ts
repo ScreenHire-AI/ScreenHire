@@ -88,6 +88,7 @@ describe('data request notifications', () => {
   it('words a request for a copy and one for erasure, linking to the Data requests page, and names no one', () => {
     expect(dataRequestNotification(userAs('Owner'), 'req-1', 'Copy')).toEqual({
       id: dataRequestNotificationId('req-1'),
+      kind: 'dataRequest',
       title: 'New data request',
       detail: 'A candidate asked for a copy of their data.',
       href: '/settings/data-requests',

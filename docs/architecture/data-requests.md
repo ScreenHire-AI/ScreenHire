@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Data requests and record retention"
-description: "Candidates' requests for a copy of their data or for its erasure, the rows and settings behind them, the shared erasure service, and the retention rule that deletes ended applications; the data model, erasure, the candidate's side of the API, the team's routes, the copy export and the retention schedule are built; the careers pages and the dashboard page follow."
+description: "Candidates' requests for a copy of their data or for its erasure, the rows and settings behind them, the shared erasure service, and the retention rule that deletes ended applications; the data model, erasure, the candidate's side of the API, the team's routes, the copy export, the retention schedule, the careers pages and the dashboard page are built."
 tags: [privacy, erasure, retention, candidates]
 sources:
   - resource: src/ScreenHire.Domain/Privacy/DataRequest.cs
@@ -25,6 +25,9 @@ sources:
   - resource: apps/api/Endpoints/DataRequestEndpoints.cs
   - resource: apps/api/Endpoints/RetentionEndpoints.cs
   - resource: apps/api/Contracts/DataRequestContracts.cs
+  - resource: apps/dashboard/src/routes/(app)/settings/data-requests/+page.svelte
+  - resource: apps/dashboard/src/lib/notifications.svelte.ts
+  - resource: apps/dashboard/src/lib/realtime.ts
   - resource: apps/careers/src/lib/data-request.ts
   - resource: apps/careers/src/actions/index.ts
   - resource: apps/careers/src/pages/[organization]/data-request/index.astro
@@ -114,8 +117,8 @@ the copy and writes the blob; the API only issues the link.
 
 The routes share the `data-requests` rate limit policy: a fixed window per visitor address, `PermitsPerMinute` a minute
 (default 10), partitioned on the address the careers server forwards. `DataRequestReceived` (request id, kind, time) and
-`DataRequestChanged` (request id) are `ITenantEvent`s with Zod schemas in `packages/realtime`; the dashboard does not map
-either yet.
+`DataRequestChanged` (request id) are `ITenantEvent`s with Zod schemas in `packages/realtime`; the dashboard maps both (see
+[Dashboard](#dashboard)).
 
 ## The team's side
 
@@ -213,6 +216,36 @@ The privacy page's "Your choices" section links to the form and says the team de
 cannot pass the bot check (JavaScript off, a strict privacy tool) is told to write to the employer; the form itself stays
 usable and is refused only when the check is configured and fails. The notice version moved to `2026-11-05.1` with that change.
 
-## Not built yet
+## Dashboard
 
-The dashboard's Data requests page.
+Settings > Data requests (`/settings/data-requests`, `apps/dashboard/src/routes/(app)/settings/data-requests/+page.svelte`) is a
+Settings page in the Organization group, after Roles. Its menu entry, the settings layout's guard, the sidebar and the command
+palette all read `settingsSections` and need Erase candidates and a person who sees every job, as the routes do; anyone else sees
+"Not in your role" or "Needs all jobs" and no entry.
+
+- **Requests.** A sortable table on the list template, from `GET /v1/data-requests`. It opens on what needs the team: open requests
+  by due date, the earliest first, then answered ones, the latest first. The header band counts the open requests. Each row has
+  the status first (nothing for an open request within its due date, the Overdue badge once the due date has passed, "Preparing
+  copy" after Send a copy until the list says Completed, Completed and Declined quiet), the candidate (a link to their profile,
+  or "Erased candidate" once they are gone), the kind (Copy of data or Erasure), the received and due dates (an answered request
+  has no due date to show) and an Outcome: "Copy sent" with the date, "Declined" with the reason, or "Erased" with the date. The
+  row's menu offers Send a copy on an open copy request, Erase candidate on an open erasure request and Decline request on any
+  open one, and nothing on an answered request. The phone list shows the same facts as pills, with the address.
+- **Send a copy** asks first (the candidate is emailed a link to a file, and the link expires) and posts to the send-copy route.
+  "Preparing copy" is kept in the open tab only, so a reload shows the request as open until the worker has finished.
+  **Erase candidate** types the candidate's name, as the profile's erase does, but calls the request's own route, which also
+  completes the request. **Decline request** needs a reason of 1 to 500 characters, which is emailed to the candidate. A 409 from
+  any of them reads "This request was already handled." and the list refetches.
+- **Record retention.** A second panel: a switch, off by default, "Delete ended applications", a Keep for (months) field from 1
+  to 120, and a dry run from `GET /v1/organization/data-retention/preview` for the months typed, once typing pauses: "Saving
+  this removes 14 applications from 11 candidates now. Saved candidates are never removed.", or "Nothing would be removed now."
+  Save waits for the count. Turning it on, or shortening the months, with something to remove (or a count that could not be read)
+  opens a confirmation that states the count; lengthening the months or turning it off saves at once. The panel also says when it
+  last ran and how many applications that removed ("Has not run yet." before the first run). Its Last updated and History are in
+  the panel's header, not the page's header band, because the band belongs to the requests and T6 puts Last updated on what
+  people edit.
+- **Live updates.** `DataRequestReceived` and `DataRequestChanged` refresh the requests and their open count; `CandidateErased`
+  also refreshes the requests and the retention panel, since an erasure blanks a row's candidate and changes the dry-run count. A
+  `DataRequestReceived` also adds a card to the notification tray ("New data request", for a copy or an erasure, linking to the
+  page) for a person who may erase candidates and sees every job; it names no one. Cards last until dismissed, so the list and its
+  open count are the lasting record.

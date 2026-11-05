@@ -45,6 +45,7 @@
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
+  import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as Dialog from '#lib/components/ui/dialog/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
@@ -68,8 +69,8 @@
   // The team answers a request here: Send a copy emails the candidate a link to a file of their data, Erase deletes the
   // candidate (the name is typed to confirm), Decline emails them the team's reason. Each request has a due date, the
   // team's own target. The settings layout has already checked Erase candidates and every job, as the API does.
-  // The retention setting is the one thing on this page people edit, so its Last updated and History sit in its panel
-  // (T6), not in the page's header, which would read as the requests' own.
+  // The retention setting is the one thing on this page people edit, so its Last updated and History sit in its panel's
+  // header (T6), not in the page's header band, which would read as the requests' own.
   const queryClient = useQueryClient();
   const sidebar = Sidebar.useSidebar();
 
@@ -111,7 +112,11 @@
     return request.resolvedAt ? `Erased ${formatDate(request.resolvedAt)}` : 'Erased';
   };
 
-  // The table sorts (L2), the next due date first.
+  // The table sorts (L2) and opens on what needs the team: open requests by due date, the earliest first, then the answered ones,
+  // the latest answered first. An answered request has no due date worth sorting by, so its key ranks after every open one.
+  const dueKey = (request: DataRequestEntry) =>
+    request.status === 'Open' ? request.dueAt : `~${String(9e15 - Date.parse(request.resolvedAt ?? request.receivedAt)).padStart(16, '0')}`;
+
   const features = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: { basic: sortFn_basic, alphanumeric: sortFn_alphanumeric } });
   // `any`: one list mixes columns of different value types.
   const columns: ColumnDef<typeof features, DataRequestEntry, any>[] = [
@@ -119,9 +124,10 @@
     { id: 'candidate', header: 'Candidate', accessorFn: (request) => request.candidate?.name ?? '', sortFn: 'alphanumeric' },
     { id: 'request', header: 'Request', accessorFn: (request) => kindLabel(request), sortFn: 'alphanumeric' },
     { id: 'received', header: 'Received', accessorFn: (request) => request.receivedAt, sortFn: 'basic', sortDescFirst: true },
-    { id: 'due', header: 'Due', accessorFn: (request) => request.dueAt, sortFn: 'basic' },
+    { id: 'due', header: 'Due', accessorFn: (request) => dueKey(request), sortFn: 'basic' },
+    { id: 'outcome', header: 'Outcome', accessorFn: (request) => outcome(request), sortFn: 'alphanumeric' },
   ];
-  const sort = createTableSort('data-requests', { id: 'due', desc: false }, ['status', 'candidate', 'request', 'received', 'due']);
+  const sort = createTableSort('data-requests', { id: 'due', desc: false }, ['status', 'candidate', 'request', 'received', 'due', 'outcome']);
   const table = createTable({
     ...tableSortOptions(() => sort),
     features,
@@ -308,7 +314,9 @@
 <TopBar crumbs={[{ label: 'Settings' }, { label: 'Data requests' }]} />
 
 <main class={[sidebar.isMobile && 'pb-6']}>
-  <HeaderBand title="Data requests" count={openCount} countLabel="open" />
+  <HeaderBand title="Data requests" count={openCount}>
+    {#snippet status()}{#if openCount !== undefined}<span class="text-muted-foreground">open</span>{/if}{/snippet}
+  </HeaderBand>
 
   <SettingsMenu>
     <p role="status" class="sr-only">{announcement}</p>
@@ -346,7 +354,12 @@
                       {@render status(request)}
                       {@render candidate(request)}
                     </span>
-                    <p class="text-caption text-muted-foreground">{kindLabel(request)}, received {formatDate(request.receivedAt)}, due {formatDate(request.dueAt)}</p>
+                    {#if request.candidate}<p class="text-caption break-words text-muted-foreground">{request.candidate.email}</p>{/if}
+                    <span class="flex flex-wrap gap-1.5">
+                      <Badge variant="muted">{kindLabel(request)}</Badge>
+                      <Badge variant="muted">Received <DateText at={request.receivedAt} /></Badge>
+                      {#if request.status === 'Open'}<Badge variant="muted">Due <DateText at={request.dueAt} /></Badge>{/if}
+                    </span>
                     {#if outcome(request)}<p class="text-caption break-words text-muted-foreground">{outcome(request)}</p>{/if}
                   </div>
                   {@render requestMenu(request)}
@@ -369,16 +382,13 @@
                   {#each sorted as request (request.id)}
                     <Table.Row class="h-12">
                       <Table.Cell class="px-4.5">{@render status(request)}</Table.Cell>
-                      <Table.Cell class="w-2/5 max-w-0">
-                        {@render candidate(request)}
-                        {#if request.candidate}<TruncatedText text={request.candidate.email} class="text-caption text-muted-foreground" />{/if}
-                      </Table.Cell>
-                      <Table.Cell class="w-3/5 max-w-0">
-                        <TruncatedText text={kindLabel(request)} />
-                        {#if outcome(request)}<TruncatedText text={outcome(request)} class="text-caption text-muted-foreground" />{/if}
-                      </Table.Cell>
+                      <Table.Cell class="w-2/3 max-w-0">{@render candidate(request)}</Table.Cell>
+                      <Table.Cell class="whitespace-nowrap">{kindLabel(request)}</Table.Cell>
                       <Table.Cell class="text-muted-foreground"><DateText at={request.receivedAt} /></Table.Cell>
-                      <Table.Cell class="text-muted-foreground"><DateText at={request.dueAt} /></Table.Cell>
+                      <Table.Cell class="text-muted-foreground">
+                        {#if request.status === 'Open'}<DateText at={request.dueAt} />{:else}<span class="sr-only">No due date</span>{/if}
+                      </Table.Cell>
+                      <Table.Cell class="w-1/3 max-w-0 text-muted-foreground">{#if outcome(request)}<TruncatedText text={outcome(request)} />{/if}</Table.Cell>
                       <Table.Cell class="pr-4.5 text-right">{@render requestMenu(request)}</Table.Cell>
                     </Table.Row>
                   {/each}
@@ -399,10 +409,13 @@
       {:else}
         <form method="POST" use:enhance novalidate aria-label="Record retention">
           <Panel title="Record retention">
+            {#snippet actions()}
+              <HistoryFact value={retentionData.lastUpdated} name="Record retention" page={(before) => getGetOrganizationRetentionHistoryQueryOptions({ before })} />
+            {/snippet}
             <div class="flex max-w-form flex-col gap-5">
               <div class="flex items-start gap-4">
                 <div class="flex min-w-0 flex-1 flex-col gap-1">
-                  <Field.Label for="retention-enabled">Delete ended applications automatically</Field.Label>
+                  <Field.Label for="retention-enabled">Delete ended applications</Field.Label>
                   <Field.Description id="retention-enabled-hint">Ended means hired, rejected or withdrawn, or a closed job, counted from when it ended.</Field.Description>
                 </div>
                 <Switch id="retention-enabled" bind:checked={$form.enabled} aria-describedby="retention-enabled-hint" class="mt-1" />
@@ -441,13 +454,10 @@
               </p>
             </div>
             {#snippet footer()}
-              <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                <HistoryFact value={retentionData.lastUpdated} name="Record retention" page={(before) => getGetOrganizationRetentionHistoryQueryOptions({ before })} />
-                <div class="ml-auto flex flex-wrap items-center justify-end gap-3">
-                  <FailureText message={$errors._errors?.[0]} />
-                  <p role="status" class="text-muted-foreground empty:hidden">{$errors._errors ? '' : saved}</p>
-                  <Button type="submit" size="lg" disabled={$submitting || checking}><SaveIcon aria-hidden="true" />Save</Button>
-                </div>
+              <div class="flex flex-wrap items-center justify-end gap-3">
+                <FailureText message={$errors._errors?.[0]} class="mr-auto" />
+                <p role="status" class="mr-auto text-muted-foreground empty:hidden">{$errors._errors ? '' : saved}</p>
+                <Button type="submit" size="lg" disabled={$submitting || checking}><SaveIcon aria-hidden="true" />Save</Button>
               </div>
             {/snippet}
           </Panel>
@@ -467,7 +477,8 @@
   {:else if request.overdue}
     <OverdueBadge dueAt={request.dueAt} />
   {:else}
-    <StatusBadge status="waiting" label="Open" quiet />
+    <!-- Within its due date an open request is the team's own work, not a state to flag: the word is for screen readers (L1, 3.2). -->
+    <span class="sr-only">Open</span>
   {/if}
 {/snippet}
 

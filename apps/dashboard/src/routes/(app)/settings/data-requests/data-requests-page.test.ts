@@ -108,7 +108,7 @@ beforeEach(() => localStorage.clear());
 afterEach(() => vi.unstubAllGlobals());
 
 describe('Data requests page: the list', () => {
-  it('lists the requests with the next due date first, status first, and shows how each answered one ended', async () => {
+  it('lists open requests first by due date, then answered ones latest first, status first, and shows how each answered one ended', async () => {
     renderPage();
     const table = (await screen.findAllByRole('table'))[0]!;
     await within(table).findByText('Jordan Ellis');
@@ -116,12 +116,14 @@ describe('Data requests page: the list', () => {
     expect(within(table).getByRole('columnheader', { name: /Due/ })).toHaveAttribute('aria-sort', 'ascending');
     const rows = within(table).getAllByRole('row').slice(1);
     expect(rows.map((row) => within(row).getAllByRole('cell')[1]!.textContent?.trim())).toEqual([
-      expect.stringContaining('Erased candidate'),
-      expect.stringContaining('Jordan Ellis'),
       expect.stringContaining('Robin Ashby'),
-      expect.stringContaining('Sam Rivera'),
       expect.stringContaining('Casey Morgan'),
+      expect.stringContaining('Sam Rivera'),
+      expect.stringContaining('Jordan Ellis'),
+      expect.stringContaining('Erased candidate'),
     ]);
+    // An answered request has no due date to show.
+    expect(within(rows[2]!).getAllByRole('cell')[4]).toHaveTextContent('No due date');
     expect(within(table).getAllByText(/^Copy sent /)).toHaveLength(1);
     expect(within(table).getByText('Declined: We could not confirm who sent it.')).toBeInTheDocument();
     expect(within(table).getByText(/^Erased (?!candidate)/)).toBeInTheDocument();
@@ -307,7 +309,7 @@ describe('Data requests page: answering a request', () => {
 });
 
 describe('Data requests page: record retention', () => {
-  const switchName = 'Delete ended applications automatically';
+  const switchName = 'Delete ended applications';
   // The panel is a skeleton until the setting loads, so wait for its switch.
   const retentionPanel = async () => (await screen.findByRole('switch', { name: switchName })).closest('section') as HTMLElement;
   const switchIn = (panel: HTMLElement) => within(panel).getByRole('switch', { name: switchName });
