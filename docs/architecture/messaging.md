@@ -97,7 +97,9 @@ owner's credentials. Tests' private-schema hosts (`MessagingHost`) connect as th
   turns it off (`DisableRetry`). Wolverine's error policy retries failed messages instead.
 - **Runtime code generation.** Wolverine compiles handler adapters at startup (`TypeLoadMode.Dynamic`), which needs
   `WolverineFx.RuntimeCompilation` (Roslyn). Pre-generated code (`TypeLoadMode.Static`) would cut cold start for
-  production; it is not set up yet.
+  production; it is not set up because it is not needed. Against a real database the worker is ready in 12 seconds and
+  peaks at 198 MB, under the 0.5 GiB the Azure definition gives it ([deploy](../operations/deploy.md), "Limits to know").
+  Use static code if that stops being true.
 - **Schema ownership.** The owner creates and migrates Wolverine's tables (see Roles and provisioning). A host that
   fails at startup with `relation "wolverine.…" does not exist` after a Wolverine upgrade is missing step 2.
 - **OpenAPI at build time.** The API build runs `Program` under `GetDocument.Insider`, which starts the host without

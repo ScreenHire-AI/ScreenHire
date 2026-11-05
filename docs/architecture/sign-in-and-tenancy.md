@@ -496,7 +496,8 @@ checklist.
 
 ## Deploy prerequisites
 
-Hosting is not chosen yet (`.claude/rules/unattended-runs.md`). Whatever runs the API in production must:
+Hosting is Azure Container Apps (ADR-0007), defined in `apps/apphost/AzurePublish.cs` and written up in
+[deploy](../operations/deploy.md), which does each of these. Whatever runs the API in production must:
 
 - run the EF migrations and then `ScreenHireMessaging.ProvisionStorageAsync` as the owner, in that order, on every
   release (docs/architecture/messaging.md, "Roles and provisioning"). The API does both at startup in Development.
@@ -508,9 +509,11 @@ Hosting is not chosen yet (`.claude/rules/unattended-runs.md`). Whatever runs th
 - protect the ASP.NET Core Data Protection key ring at rest. The session, external-sign-in and antiforgery cookies are
   encrypted with it. The ring is kept in Postgres (`data_protection_keys`, `AddScreenHireDataProtection`) and shared
   by every API instance and the worker, which signs follow-up questionnaire links with it (workflow-engine.md §8), so it
-  survives restarts; its keys are stored as Data Protection writes them, so add a key vault or certificate
-  (`ProtectKeysWith...`);
-- list its reverse proxies in `ScreenHire:Auth:TrustedProxies`;
+  survives restarts; its keys are stored as Data Protection writes them unless
+  `ScreenHire:DataProtection:KeyVaultKeyUri` names a Key Vault key, which wraps them
+  (`ProtectKeysWithAzureKeyVault`). A production host refuses to start without it;
+- list its reverse proxies in `ScreenHire:Auth:TrustedProxies`, as addresses or CIDR networks (several in one entry, separated
+  by commas), with `ScreenHire:Auth:ForwardLimit` set to the number of trusted hops;
 - set `ScreenHire:ApiKeys:PermitsPerMinute` for the number of API instances, because each one counts a key's requests
   on its own;
 - give the worker an SMTP connection (`ConnectionStrings:mailpit` until the production provider is chosen) and

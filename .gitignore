@@ -31,3 +31,6 @@ build/
 .DS_Store
 Thumbs.db
 .idea/
+
+# Azure Developer CLI environments: they hold subscription and tenant ids and deployment values.
+.azure/

@@ -3,10 +3,16 @@ using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Verification.Content;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Infrastructure.Email;
+using ScreenHire.Infrastructure.Hosting;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Worker;
 
 var builder = Host.CreateApplicationBuilder(args);
+
+// Secrets from Key Vault first, then stop at once, naming each one, when a setting the host cannot run without is missing
+// outside Development.
+builder.AddScreenHireKeyVaultConfiguration();
+builder.RequireScreenHireProductionSettings(HostKind.Worker);
 
 builder.AddServiceDefaults();
 builder.AddScreenHireDatabase();

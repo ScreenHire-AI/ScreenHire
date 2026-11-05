@@ -257,6 +257,35 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  # The Azure definition still generates (ADR-0007, docs/operations/deploy.md): `dotnet aspire publish` writes the Bicep from the
+  # AppHost's publish model (apps/apphost/AzurePublish.cs) and it must equal what is committed under infra/. Nothing is
+  # provisioned, no Azure login is made and no secret is read: the model is only read and written out as text. After a change
+  # to the model, regenerate with the command in docs/operations/deploy.md and commit the result.
+  infra:
+    name: Azure definition (aspire publish)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up the toolchain
+        uses: ./.github/actions/setup
+        with:
+          node: 'false'
+          nuget-cache: infra
+      - name: Build the AppHost
+        run: dotnet build apps/apphost $TEST_BUILD_FLAGS
+      - name: Generate the Bicep
+        run: dotnet aspire publish --apphost apps/apphost/ScreenHire.AppHost.csproj --output-path "$RUNNER_TEMP/infra" --non-interactive --no-build
+      - name: Compare with infra/
+        run: |
+          if ! diff -r infra "$RUNNER_TEMP/infra"; then
+            echo "::error::infra/ differs from what the AppHost's publish model generates. Regenerate it (docs/operations/deploy.md) and commit."
+            exit 1
+          fi
+
   # The marketing budgets (mobile LCP under 1.8 s, CLS under 0.05), only when the change touches what the marketing
   # build outputs or measures it (apps/marketing, packages/ui, pnpm-lock.yaml, tools/lighthouse). Report-only and not in
   # the gate: the LCP margin is about 300 ms, and shared runners have no baseline yet. A miss is a warning on the run, not
@@ -323,7 +352,7 @@ jobs:
   # test job succeeded, each matrix's shards included, so a skipped or cancelled job never reads as a pass.
   gate:
     name: Gate
-    needs: [checks, vitest, integration, e2e]
+    needs: [checks, vitest, integration, e2e, infra]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -334,9 +363,10 @@ jobs:
           VITEST: ${{ needs.vitest.result }}
           INTEGRATION: ${{ needs.integration.result }}
           E2E: ${{ needs.e2e.result }}
+          INFRA: ${{ needs.infra.result }}
         run: |
           status=0
-          for pair in "checks=$CHECKS" "vitest=$VITEST" "integration=$INTEGRATION" "e2e=$E2E"; do
+          for pair in "checks=$CHECKS" "vitest=$VITEST" "integration=$INTEGRATION" "e2e=$E2E" "infra=$INFRA"; do
             if [ "${pair#*=}" = success ]; then echo "passed: ${pair%%=*}"; else echo "FAILED: ${pair%%=*} (${pair#*=})"; status=1; fi
           done
           exit $status

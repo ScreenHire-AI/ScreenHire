@@ -19,7 +19,7 @@ Read the lines below, open the folder or doc whose line answers the question, an
 
 ## Running and working on it
 
-* [Operations](operations/index.md) - Running the whole stack locally and giving the demo.
+* [Operations](operations/index.md) - Running the whole stack locally, giving the demo, and deploying to Azure.
 * [Process](process/index.md) - The Kangentic board pipeline, testing, and the Claude Code skills, agents and rules.
 
 ## Records

@@ -13,8 +13,8 @@ namespace ScreenHire.IntegrationTests.Production;
 /// "Deploy prerequisites"): it migrates, gives the application role its login and provisions Wolverine's tables before the
 /// API starts. Production has no <c>appsettings.Development.json</c>, so the fixture gives the domains a deployment would
 /// (example.com placeholders), and it leaves out Dev SSO's plain-http authority, which the API refuses outside
-/// Development. Production maps no <c>/health</c>, so nothing is waited on to be healthy and the worker, which waits for a
-/// healthy API, is left out.
+/// Development. The worker is left out. Production maps
+/// <c>/health</c> now, but this stack still waits on nothing: the API needs no healthy wait to answer the tests.
 /// </summary>
 public sealed class ProductionApiFixture : AppHostFixture
 {
@@ -22,7 +22,12 @@ public sealed class ProductionApiFixture : AppHostFixture
 
     // The sandbox workspace and calendar are refused outside Development (SlackSandboxGate, CalendarSandboxGate), as is the email sandbox
     // (EmailSandboxGate), and this stack runs the API as Production.
-    protected override IReadOnlyList<string> ExtraArguments => ["--ScreenHire:Slack:Sandbox:Enabled=false", "--ScreenHire:Calendar:Sandbox:Enabled=false", "--ScreenHire:Email:Sandbox:Enabled=false"];
+    // ProductionSettings also refuses the loopback and sandbox switches that appsettings.Development.json turns on for the other stacks.
+    protected override IReadOnlyList<string> ExtraArguments =>
+    [
+        "--ScreenHire:Slack:Sandbox:Enabled=false", "--ScreenHire:Calendar:Sandbox:Enabled=false", "--ScreenHire:Email:Sandbox:Enabled=false",
+        "--ScreenHire:Webhooks:AllowLoopback=false", "--ScreenHire:CareersEmbedding:AllowLoopback=false", "--ScreenHire:Distribution:Sandbox:Enabled=false",
+    ];
 
     protected override void Configure(IDistributedApplicationTestingBuilder builder)
     {
@@ -46,6 +51,10 @@ public sealed class ProductionApiFixture : AppHostFixture
             context.EnvironmentVariables["ASPNETCORE_ENVIRONMENT"] = "Production";
             context.EnvironmentVariables["DOTNET_ENVIRONMENT"] = "Production";
             context.EnvironmentVariables["ScreenHire__Domains__BaseDomain"] = "example.com";
+            // What a production host must have (ProductionSettings) and this stack has no Azure to give: a proxy, and the key ring
+            // left unwrapped on purpose.
+            context.EnvironmentVariables["ScreenHire__Auth__TrustedProxies__0"] = "127.0.0.1";
+            context.EnvironmentVariables["ScreenHire__DataProtection__AllowUnprotectedKeys"] = "true";
             context.EnvironmentVariables["ScreenHire__Domains__CareersDomain"] = "careers.example.com";
             context.EnvironmentVariables["ScreenHire__Domains__CareersHostPattern"] = "{tenant}.{CareersDomain}";
             foreach (var key in context.EnvironmentVariables.Keys.Where(key => key.StartsWith("ScreenHire__Auth__Oidc__", StringComparison.Ordinal)).ToList())

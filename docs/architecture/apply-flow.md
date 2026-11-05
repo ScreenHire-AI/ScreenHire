@@ -348,18 +348,19 @@ about verification.
 
 ## 9. Owner actions before production
 
-- Storage account: create the applicant uploads container, a CORS rule allowing `PUT` from the careers hosts, and `GET`
-  and `PUT` from the dashboard host (the file viewer, and a resume a recruiter adds by hand), and a lifecycle rule that deletes unclaimed uploads (blobs with no
-  application) after a day. Development does the first two at startup
-  (`ApplicantUploads.ProvisionDevelopmentStorageAsync`).
-- Add the careers servers to `ScreenHire:Auth:TrustedProxies`.
+- Storage account: the Azure definition creates the applicant uploads container and a CORS rule (`GET`, `HEAD` and `PUT`, from
+  any origin, because tenant careers hosts vary and the SAS link is the credential). Development does the same at startup
+  (`ApplicantUploads.ProvisionDevelopmentStorageAsync`). Do not add a lifecycle rule that deletes blobs after a day: nothing
+  marks a blob as claimed, so it would delete submitted resumes too.
+- Add the careers servers to `ScreenHire:Auth:TrustedProxies` (addresses or CIDR networks, [deploy](../operations/deploy.md)).
 - Behind a CDN or load balancer, set Astro's `security.allowedDomains` to the careers hosts when building
-  `apps/careers`. Astro trusts `X-Forwarded-For` (the candidate's address, which the API rate-limits on) only for those
+  `apps/careers` (the `CAREERS_ALLOWED_DOMAINS` build argument of its Dockerfile, the `careers-allowed-domains` parameter). Astro trusts `X-Forwarded-For` (the candidate's address, which the API rate-limits on) only for those
   hosts; without it every candidate shares the proxy's address. Until then Astro also sees its own origin as
   `localhost`, so a browser that sends `Origin` without `Sec-Fetch-Site` (older Safari) gets 403 from Astro's form
   origin check on every step.
-- The lifecycle rule above is what makes the privacy page's "deleted after a day" true for files never sent with an
-  application; nothing in the application deletes them.
+- Nothing deletes files never sent with an application, so the privacy page's "deleted after a day" is not true yet. The fix
+  is a scheduled job like the brand-image clean-up, or a blob tag that marks a claimed upload so a lifecycle rule can tell them
+  apart ([status](../status.md), Known gaps).
 - Keep server and CDN access logs for no more than 30 days: the privacy page promises it, and nothing in the
   application enforces it.
 - Optionally configure Turnstile keys, and a malware scanner behind `IMalwareScanner`.
