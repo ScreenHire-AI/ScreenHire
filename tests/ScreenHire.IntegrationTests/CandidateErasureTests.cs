@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
+using ScreenHire.Application.Privacy;
 using ScreenHire.Application.Verification;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Privacy;
@@ -454,6 +455,10 @@ public sealed class CandidateErasureTests(AppHostFixture fixture)
             async () => await store.CountHandledAsync(copyBlob, Ct, "EraseDataExports") > 0,
             "the worker to handle the message that deletes the erased candidate's copy",
             Ct);
+
+        // A copy request with no recorded file is named too: a build that failed after its upload leaves one the row never heard of.
+        (await store.CountHandledAsync(CandidateDataExport.BlobNameFor(owner.OrganizationId, declined.Id), Ct, "EraseDataExports"))
+            .Should().BePositive();
         (await TablesHoldingAsync(fixture, person.Email, person.FullName, person.FirstName, candidateId.ToString())).Should().BeEmpty();
     }
 

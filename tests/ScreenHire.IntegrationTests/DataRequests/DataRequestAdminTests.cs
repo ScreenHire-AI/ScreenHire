@@ -228,6 +228,68 @@ public sealed partial class DataRequestAdminTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_copy_waits_for_an_erasure_under_way_and_then_writes_nothing_and_emails_nothing()
+    {
+        using var world = await fixture.NewWorldAsync();
+        var requestId = await fixture.OpenRequestAsync(world.OrganizationId, world.CandidateId, DataRequestKind.Copy);
+
+        await BuildCopyWhileAnotherTransactionHoldsTheCandidateAsync(world, requestId, "DELETE FROM candidates WHERE id = @candidate");
+
+        (await fixture.OwnerScalarAsync<string>("SELECT export_blob_name FROM data_requests WHERE id = @id", ("id", requestId))).Should().BeNull();
+        (await fixture.OwnerScalarAsync<DateTime?>("SELECT copy_sent_at FROM data_requests WHERE id = @id", ("id", requestId))).Should().BeNull();
+        (await fixture.Mailpit.MessagesAsync(world.Person.Email, Ct)).Should().NotContain(m => m.Subject.StartsWith("Your copy", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_copy_waits_for_a_decline_under_way_and_then_leaves_the_request_declined()
+    {
+        using var world = await fixture.NewWorldAsync();
+        var requestId = await fixture.OpenRequestAsync(world.OrganizationId, world.CandidateId, DataRequestKind.Copy);
+
+        await BuildCopyWhileAnotherTransactionHoldsTheCandidateAsync(
+            world, requestId, "UPDATE data_requests SET status = 'Declined', decline_reason = 'No.', resolved_at = now() WHERE candidate_id = @candidate");
+
+        (await fixture.OwnerScalarAsync<string>("SELECT status FROM data_requests WHERE id = @id", ("id", requestId))).Should().Be("Declined");
+        (await fixture.OwnerScalarAsync<string>("SELECT export_blob_name FROM data_requests WHERE id = @id", ("id", requestId))).Should().BeNull();
+        (await fixture.Mailpit.MessagesAsync(world.Person.Email, Ct)).Should().NotContain(m => m.Subject.StartsWith("Your copy", StringComparison.Ordinal));
+    }
+
+    // Holds the candidate's row, as an erasure does, until the worker's copy build is seen waiting behind it, then runs the
+    // other side of the race and commits. The wait is the proof: a handler that takes no lock never appears in it.
+    private async Task BuildCopyWhileAnotherTransactionHoldsTheCandidateAsync(World world, Guid requestId, string otherSide)
+    {
+        await using (var connection = new NpgsqlConnection(await fixture.GetOwnerConnectionStringAsync(Ct)))
+        {
+            await connection.OpenAsync(Ct);
+            await using var transaction = await connection.BeginTransactionAsync(Ct);
+            await using (var hold = new NpgsqlCommand("SELECT 1 FROM candidates WHERE id = @candidate FOR UPDATE", connection, transaction))
+            {
+                hold.Parameters.AddWithValue("candidate", world.CandidateId);
+                await hold.ExecuteNonQueryAsync(Ct);
+            }
+
+            (await world.Owner.PostAsync($"/v1/data-requests/{requestId}/send-copy")).Expect(HttpStatusCode.Accepted);
+            await WolverineStore.WaitUntilAsync(
+                async () => await fixture.OwnerScalarAsync<long>(
+                    "SELECT count(*) FROM pg_stat_activity WHERE @holder = ANY(pg_blocking_pids(pid))", ("holder", connection.ProcessID)) > 0,
+                "the copy build to wait for the candidate's row", Ct);
+
+            await using (var other = new NpgsqlCommand(otherSide, connection, transaction))
+            {
+                other.Parameters.AddWithValue("candidate", world.CandidateId);
+                await other.ExecuteNonQueryAsync(Ct);
+            }
+
+            await transaction.CommitAsync(Ct);
+        }
+
+        var store = await WolverineStore.ForAppHostAsync(fixture, Ct);
+        await WolverineStore.WaitUntilAsync(
+            async () => await store.CountHandledAsync(requestId.ToString(), Ct, "BuildDataCopy") > 0, "the copy build to finish", Ct);
+        (await store.GetDeadLettersAsync(requestId.ToString(), Ct)).Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Declining_needs_a_reason_emails_it_to_the_candidate_and_leaves_the_reason_out_of_the_team_log()
     {
         using var world = await fixture.NewWorldAsync();
