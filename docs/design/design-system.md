@@ -782,7 +782,7 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   remove button, and Add a person and Copy from another job (Pickers). Changes land on Save. Without Edit jobs the sheet lists the people and says why (E3). A hiring
   template's header has Default hiring team as a fact whose count opens the same sheet, without Copy.
 - **Jobs, Edit details and Workflow (page audit):** the Jobs list leaves a draft's Published cell blank (L1) and its row
-  menu opens Edit details (a link, A5) before Publish to every board or Close and remove everywhere; with a filter on,
+  menu, for someone who may edit jobs (A3), opens Edit details (a link, A5) before Publish to every board or Close and remove everywhere; with a filter on,
   its empty state is the title and Clear filters, with no sentence. A job's candidate table ends each row, and the board each card, with one
   menu holding Move to (L3). On a job's header, Opened is left out while Last updated says the same minute (W7), and on a phone the More
   menu's item is Edit hiring team. The Jobs search matches the title and location, the columns a person sees (W6). Job postings has the Sort chip on a phone (L2). Edit details is headed with the job's

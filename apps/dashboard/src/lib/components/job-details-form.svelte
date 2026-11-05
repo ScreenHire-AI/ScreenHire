@@ -247,8 +247,11 @@
           <!-- How far Save reaches, before it is pressed: the careers page is live, the other boards wait (E3). -->
           <p class="mr-auto text-muted-foreground">Updates the careers page now. Other boards keep what they were sent.</p>
         {/if}
-        <Button href={cancelHref} variant="outline" size="lg">Cancel</Button>
-        <Button type="submit" size="lg" disabled={$submitting}><SaveIcon aria-hidden="true" />Save details</Button>
+        <!-- One group, so a long line beside them moves both buttons to the next row, never only Save. -->
+        <div class="flex gap-2">
+          <Button href={cancelHref} variant="outline" size="lg">Cancel</Button>
+          <Button type="submit" size="lg" disabled={$submitting}><SaveIcon aria-hidden="true" />Save details</Button>
+        </div>
       </div>
     {/snippet}
   </Panel>

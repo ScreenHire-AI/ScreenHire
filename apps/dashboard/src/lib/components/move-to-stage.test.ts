@@ -10,12 +10,6 @@ describe('MoveToStage', () => {
     expect(screen.getByRole('button', { name: 'Move to stage, Robin Ashby' })).toBeInTheDocument();
   });
 
-  it('has a short name in tables and cards', () => {
-    render(MoveToStage, { props: { candidateName: 'Robin Ashby', currentStageId: stages[0]!.id, stages, compact: true, onmove: vi.fn() } });
-
-    expect(screen.getByRole('button', { name: 'Move Robin Ashby to another stage' })).toBeInTheDocument();
-  });
-
   describe('Save candidate', () => {
     const open = () => fireEvent.pointerDown(screen.getByRole('button', { name: 'Move to stage, Robin Ashby' }), { button: 0, pointerType: 'mouse' });
 

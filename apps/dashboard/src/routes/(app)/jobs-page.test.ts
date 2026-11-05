@@ -1,9 +1,12 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { apiStub, jobs } from '../../test-support/fixtures.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { page } from '$app/state';
+import { apiStub, jobs, user, userAs } from '../../test-support/fixtures.js';
 import { stubViewport } from '../../test-support/viewport.js';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
+
+vi.mock('$app/state', () => ({ page: { state: {}, data: {}, url: new URL('http://dashboard.test/'), shallow: null }, navigating: { to: null } }));
 
 const closed = { ...jobs[1]!, id: '01a157d4-0000-7000-8000-000000000003', title: 'Support Engineer', status: 'Closed' as const };
 
@@ -28,6 +31,10 @@ async function openRowMenu(title: string) {
   await fireEvent.pointerDown(trigger, { button: 0, pointerType: 'mouse' });
   return screen.findByRole('menu');
 }
+
+beforeEach(() => {
+  page.data = { user };
+});
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -138,6 +145,15 @@ describe('jobs page', () => {
 
   it('offers no actions on a closed job', async () => {
     vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json([closed]) })));
+    renderPage();
+
+    await dataRows();
+    expect(screen.queryByRole('button', { name: /^Actions for/ })).not.toBeInTheDocument();
+  });
+
+  it('offers no row menu to someone who may not edit jobs, whose every item needs that', async () => {
+    page.data = { user: userAs('Viewer') };
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json(jobs) })));
     renderPage();
 
     await dataRows();

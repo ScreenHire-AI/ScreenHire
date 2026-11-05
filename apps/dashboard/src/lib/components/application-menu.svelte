@@ -4,8 +4,8 @@
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
 
   // A candidate row's menu (design system L3): what can be done to one application from a list, so no button repeats
-  // down the column. Today that is moving it, the non-drag way (WCAG 2.5.7), with the stage it is in marked. The board's
-  // cards keep their own Move button (`MoveToStage`), because a card has no row.
+  // down the column. Today that is moving it, the non-drag way (WCAG 2.5.7), with the stage it is in marked. A job's
+  // table rows and the board's cards share it; the application's own page keeps `MoveToStage`, its one action.
   let {
     candidateName,
     currentStageId,

@@ -5,6 +5,7 @@
   import type { JobStatus, JobSummary } from '@screenhire/api-client';
   import { createListJobs, createPublishJob } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
+  import { page } from '$app/state';
   import {
     createColumnHelper,
     createSortedRowModel,
@@ -41,6 +42,7 @@
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import { employmentLabel } from '#lib/format.js';
   import { jobStatus } from '#lib/job-status.js';
+  import { can } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
@@ -52,6 +54,8 @@
   // Tables become list items on phones (design system section 8), with the sidebar's own phone test.
   const sidebar = Sidebar.useSidebar();
 
+  // Every item in a row's menu needs Edit jobs, so someone without it gets no menu (A3).
+  const mayEdit = $derived(can(page.data.user, 'EditJobs'));
   const all = $derived(jobs.data?.data ?? []);
   const statuses: JobStatus[] = ['Open', 'Draft', 'Closed'];
   let statusFilter = $state<JobStatus | null>(null);
@@ -325,7 +329,7 @@
 {#snippet actionsHeader()}<span class="sr-only">Actions</span>{/snippet}
 
 {#snippet actionsCell(job: JobSummary)}
-  {#if job.status !== 'Closed'}
+  {#if mayEdit && job.status !== 'Closed'}
     <span class="relative inline-flex">{@render rowMenu(job)}</span>
   {/if}
 {/snippet}

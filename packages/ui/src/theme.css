@@ -146,4 +146,11 @@
       cursor: not-allowed;
     }
   }
+
+  /* A disabled text field, and the label of a disabled control around it or before it, which is never :disabled itself. */
+  :is(input, textarea):disabled,
+  label:has(:disabled),
+  .peer:disabled ~ label {
+    cursor: not-allowed;
+  }
 }
