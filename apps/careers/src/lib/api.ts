@@ -5,4 +5,4 @@ export const apiBaseUrl = process.env.API_URL ?? 'http://localhost:5080';
 configureApiClient({ baseUrl: apiBaseUrl });
 
 export * from '@screenhire/api-client';
-export { escapeHtml, formatSalary, jobFacts, jsonLdScript, label } from './format';
+export { jsonLdScript } from './format';

@@ -3,9 +3,9 @@ import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-// The type and cursor rules every public page follows (docs/design/design-system.md section 4.3, W1, W2 and A10),
+// The type and cursor rules every public page follows (docs/design/design-system.md section 4.4, W1, W2 and A10),
 // checked on the markup of the careers pages, the marketing pages and the shared candidate question components, so a
-// page cannot bring back capitals, the code font for ordinary words, text under 12px or its own cursor.
+// page cannot bring back capitals, the code font for ordinary words, a pixel text size or its own cursor.
 const roots = [
   fileURLToPath(new URL('..', import.meta.url)),
   fileURLToPath(new URL('../../../marketing/src', import.meta.url)),
@@ -37,8 +37,22 @@ describe('public page markup', () => {
     expect(offenders(/\buppercase\b|\.toUpperCase\(\)/g)).toEqual([]);
   });
 
-  it('never sets text under 12px (W1)', () => {
-    expect(offenders(/text-\[(\d+(?:\.\d+)?)px\]/g, (match) => Number(match[1]) < 12)).toEqual([]);
+  it('keeps the code font for codes (W2): a reason code and the notice version', () => {
+    expect(offenders(/\bfont-mono\b/g).sort()).toEqual([
+      'apps/careers/src/pages/[organization]/privacy.astro',
+      'apps/marketing/src/components/SampleVerificationCard.astro',
+    ]);
+  });
+
+  it('sets no pixel text size (W1): the tokens and the scale keep everything at 12px or more', () => {
+    expect(offenders(/text-\[\d+(?:\.\d+)?px\]/g)).toEqual([]);
+  });
+
+  it('leaves the root font size to the browser (design system section 4), so the rem tokens mean what they say', () => {
+    for (const stylesheet of ['../styles/global.css', '../../../marketing/src/styles/global.css']) {
+      const css = readFileSync(fileURLToPath(new URL(stylesheet, import.meta.url)), 'utf8');
+      expect(css).not.toMatch(/(?:^|[\s,])(?:html|:root)\s*\{[^}]*font-size/);
+    }
   });
 
   it('leaves the cursor to the theme (A10): no cursor class on a component', () => {

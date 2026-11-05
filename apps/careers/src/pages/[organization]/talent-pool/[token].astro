@@ -32,7 +32,7 @@ const formError = result?.data?.outcome === 'error' || result?.error ? 'Somethin
 const heading = {
   'not-found': 'We could not find this link',
   kept: `Stop ${employer.name} keeping your details?`,
-  stopped: `${employer.name} no longer keeps your details`,
+  stopped: `${employer.name} no longer keeps your details for future roles`,
 }[status];
 ---
 
@@ -50,7 +50,7 @@ const heading = {
 
   {status === 'not-found' && (
     <p class="mt-3 text-candidate-body text-candidate-muted-foreground">
-      The link may be incomplete. Open it again from the email you received. If it still does not work, contact the hiring team at {employer.name}.
+      The link may be incomplete. Open it again from the email you received. If it still does not work, reply to that email or contact the hiring team at {employer.name}.
     </p>
   )}
 

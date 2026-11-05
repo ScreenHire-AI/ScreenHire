@@ -10,7 +10,6 @@
     background: var(--candidate-background);
     color: var(--candidate-foreground);
     font-family: var(--sh-font-body);
-    font-size: 15px;
     -webkit-font-smoothing: antialiased;
   }
 

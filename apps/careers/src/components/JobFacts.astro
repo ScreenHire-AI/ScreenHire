@@ -11,6 +11,6 @@ interface Props {
 const { job, class: extra } = Astro.props;
 ---
 
-<ul class:list={['flex flex-wrap gap-1.5 text-candidate-hint font-semibold text-candidate-chip-foreground', extra]} aria-label="Job details">
+<ul class:list={['flex flex-wrap gap-1.5 text-candidate-hint font-semibold text-candidate-chip-foreground', extra]}>
   {jobFacts(job).map((fact) => <li class="rounded-full bg-candidate-chip px-2.5 py-1">{fact}</li>)}
 </ul>

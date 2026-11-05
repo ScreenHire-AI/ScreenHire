@@ -377,7 +377,7 @@ const answerText = (questionId: string): string => {
           </>
         )}
 
-        <div class="mt-2 flex flex-col gap-3 sm:flex-row-reverse sm:justify-end">
+        <div class="mt-2 flex flex-col gap-3 sm:flex-row-reverse">
           {/* First in the document, so pressing Enter in a field moves forward rather than back. */}
           <button type="submit" name="intent" value="next" class="button-primary">
             {nextLabel}

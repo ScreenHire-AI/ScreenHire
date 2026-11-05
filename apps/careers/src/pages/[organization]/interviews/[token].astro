@@ -78,8 +78,8 @@ const heading = {
   Booked: changing ? 'Pick another time' : 'Your interview is booked',
 }[state];
 const message = {
-  busy: 'Too many people opened this link at once. Wait a minute, then open it again.',
-  'not-found': `The link may be incomplete. Open it again from the email you received. If it still does not work, contact the hiring team at ${employer.name}.`,
+  busy: 'Too many tries from your network. Wait a minute, then open the link again.',
+  'not-found': `The link may be incomplete. Open it again from the email you received. If it still does not work, reply to that email or contact the hiring team at ${employer.name}.`,
   Cancelled: `This link is closed. If you would like another time, reply to the email you received or contact the hiring team at ${employer.name}.`,
   Expired: `The time to pick an interview has passed. To ask for another time, reply to the email you received or contact the hiring team at ${employer.name}.`,
   Open: '',
