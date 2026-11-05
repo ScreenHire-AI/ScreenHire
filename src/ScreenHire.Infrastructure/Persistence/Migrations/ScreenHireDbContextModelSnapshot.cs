@@ -1388,6 +1388,18 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<DateTimeOffset?>("CustomizedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("customized_at");
+
+                    b.Property<string>("DescriptionBase")
+                        .HasColumnType("text")
+                        .HasColumnName("description_base");
+
+                    b.Property<string>("DescriptionOverride")
+                        .HasColumnType("text")
+                        .HasColumnName("description_override");
+
                     b.Property<DateTimeOffset?>("ExpectedBy")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expected_by");
@@ -1440,6 +1452,16 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("SubmittedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("submitted_at");
+
+                    b.Property<string>("TitleBase")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("title_base");
+
+                    b.Property<string>("TitleOverride")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("title_override");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")

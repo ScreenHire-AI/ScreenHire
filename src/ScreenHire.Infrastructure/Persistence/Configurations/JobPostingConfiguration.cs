@@ -17,6 +17,11 @@ internal sealed class JobPostingConfiguration : IEntityTypeConfiguration<JobPost
         // Plain-language issues as a native text[].
         builder.Property(p => p.Issues);
         builder.Ignore(p => p.IsActive);
+        builder.Ignore(p => p.IsCustomized);
+        builder.Ignore(p => p.BoardLabel);
+        // A board's own title (as long as a job's) and description (sanitized HTML, as long as the job's); null follows the job.
+        builder.Property(p => p.TitleOverride).HasMaxLength(200);
+        builder.Property(p => p.TitleBase).HasMaxLength(200);
 
         // Optimistic concurrency on Postgres' xmin system column (no real column), as on jobs. The API's publish and close
         // take the worker's row lock before loading postings (PostingLocks.BeginForJobAsync), so they plan on a board's

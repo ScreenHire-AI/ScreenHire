@@ -36,4 +36,7 @@ export interface JobPostingStatus {
   closedAt: string | null;
   /** @nullable */
   viewUrl: string | null;
+  customizedTitle: boolean;
+  customizedDescription: boolean;
+  jobChangedSinceCustomized: boolean;
 }

@@ -6,7 +6,7 @@ import WithQueryClient from '../../test-support/with-query-client.svelte';
 import DistributionPanel from './distribution-panel.svelte';
 
 const boards = [
-  board('careers', 'Careers page', { mode: 'Hosted', canUnpublishPerBoard: false }),
+  board('careers', 'Careers page', { mode: 'Hosted', canUnpublishPerBoard: false, canCustomize: false }),
   board('adzuna', 'Adzuna feed', { mode: 'Pull', confirmsLive: false, confirmsRemoval: false }),
   board('sandbox', 'Sandbox board'),
 ];
@@ -115,7 +115,82 @@ describe('distribution panel', () => {
     expect(item('careers').querySelector('[data-posting-problem]')).toHaveTextContent('Not sent: Adzuna needs a description of at least 100 characters.');
     expect(within(item('careers')).getByRole('link', { name: 'Edit details' })).toHaveAttribute('href', `/jobs/${jobId}/edit`);
     expect(item('sandbox').querySelector('[data-posting-problem]')).toHaveTextContent('Rejected by the board: Title too long.');
-    expect(within(item('sandbox')).queryByRole('link', { name: 'Edit details' })).toBeNull();
+  });
+
+  it('says what each fix reaches under a posting the job can fix: Edit details every board, Customize only this one', () => {
+    renderPanel({
+      id: jobId,
+      status: 'Open',
+      postings: [posting('adzuna', 'Adzuna feed', { state: 'Draft', issues: ['Adzuna needs a description of at least 100 characters.'] }), posting('sandbox', 'Sandbox board', { state: 'Rejected', lastError: 'Title too long.' })],
+    });
+
+    for (const [boardId, name] of [['adzuna', 'Adzuna feed'], ['sandbox', 'Sandbox board']] as const) {
+      const words = item(boardId).querySelector('[data-posting-fixes]')!;
+      expect(words).toHaveTextContent(`Edit details changes every board. Customize changes only ${name}.`);
+      expect(within(item(boardId)).getByRole('link', { name: 'Edit details' })).toHaveAttribute('href', `/jobs/${jobId}/edit`);
+      expect(within(item(boardId)).getByRole('button', { name: 'Customize' })).toBeInTheDocument();
+    }
+  });
+
+  it('offers only Edit details on the Careers page, which is never customized', async () => {
+    renderPanel({ id: jobId, status: 'Open', postings: [posting('careers', 'Careers page', { state: 'Draft', issues: ['Add a city.'] })] });
+
+    expect(item('careers').querySelector('[data-posting-fixes]')).toHaveTextContent(/^Edit details changes every board\.$/);
+    expect(within(item('careers')).queryByRole('button', { name: 'Customize' })).toBeNull();
+    const menu = await openMenu('Careers page');
+    expect(within(menu).getByRole('menuitem', { name: 'Edit details' })).toBeInTheDocument();
+    expect(within(menu).queryByRole('menuitem', { name: 'Customize' })).toBeNull();
+  });
+
+  it('offers Customize in the menu of every other board while the job is open', async () => {
+    renderPanel({ id: jobId, status: 'Open', postings: [posting('adzuna', 'Adzuna feed', { state: 'Submitted' }), posting('sandbox', 'Sandbox board')] });
+
+    expect(within(await openMenu('Sandbox board')).getByRole('menuitem', { name: 'Customize' })).toBeInTheDocument();
+  });
+
+  it('offers no Customize on a board that is removing the job, which saving would post again', () => {
+    renderPanel({ id: jobId, status: 'Open', postings: [posting('sandbox', 'Sandbox board', { state: 'Closing', expectedBy: in20Seconds })] });
+
+    expect(menuFor('sandbox')).toBeNull();
+  });
+
+  it('marks a board with text of its own with one badge after its name, and no other board', () => {
+    renderPanel({
+      id: jobId,
+      status: 'Open',
+      postings: [posting('adzuna', 'Adzuna feed', { state: 'Submitted', customizedDescription: true }), posting('sandbox', 'Sandbox board')],
+    });
+
+    expect(within(item('adzuna')).getAllByText('Customized')).toHaveLength(1);
+    expect(within(item('sandbox')).queryByText('Customized')).toBeNull();
+  });
+
+  it('says when the job changed since a board was customized, without a second badge', () => {
+    renderPanel({
+      id: jobId,
+      status: 'Open',
+      postings: [posting('adzuna', 'Adzuna feed', { state: 'Submitted', customizedTitle: true, jobChangedSinceCustomized: true })],
+    });
+
+    expect(item('adzuna').querySelector('[data-posting-changed]')).toHaveTextContent('The job changed since this was customized.');
+    expect(within(item('adzuna')).getAllByText('Customized')).toHaveLength(1);
+  });
+
+  it("opens the Customize sheet with the board's text from its menu, and from the words under a row", async () => {
+    const customization = {
+      boardId: 'adzuna',
+      boardName: 'Adzuna feed',
+      title: { override: 'Senior engineer (remote)', job: 'Senior .NET Engineer' },
+      description: { override: null, job: '<p>Short.</p>' },
+      changes: [],
+    };
+    vi.stubGlobal('fetch', vi.fn(apiStub({ [`GET /v1/jobs/${jobId}/postings/adzuna/customization`]: () => Response.json(customization) })));
+    renderPanel({ id: jobId, status: 'Open', postings: [posting('adzuna', 'Adzuna feed', { state: 'Draft', issues: ['Adzuna needs a description of at least 100 characters.'] })] });
+
+    await fireEvent.click(within(item('adzuna')).getByRole('button', { name: 'Customize' }));
+
+    const sheet = await screen.findByRole('dialog', { name: 'Customize for Adzuna feed' });
+    await waitFor(() => expect(within(sheet).getByLabelText('Title')).toHaveValue('Senior engineer (remote)'));
   });
 
   it('links to the live posting, and copies its link, where the board has one', async () => {

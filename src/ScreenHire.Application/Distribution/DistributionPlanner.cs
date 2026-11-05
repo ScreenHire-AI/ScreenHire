@@ -47,7 +47,6 @@ public sealed class DistributionPlanner(BoardRegistry boards, TimeProvider time)
         var changed = false;
         foreach (var boardId in targets)
         {
-            var adapter = boards.Get(boardId);
             var posting = postings.FirstOrDefault(p => p.BoardId == boardId);
             if (posting is null)
             {
@@ -55,25 +54,7 @@ public sealed class DistributionPlanner(BoardRegistry boards, TimeProvider time)
                 added.Add(posting);
             }
 
-            var before = (posting.State, posting.JobVersion);
-            var wasOnBoard = posting.ExternalId is not null || posting.State is PostingState.Submitted or PostingState.Live;
-            if (posting.Queue(content.Version, content.Url, adapter.Validate(content), now))
-            {
-                var request = new PostingRequest(posting, content);
-                if (adapter.Capabilities.Mode == BoardMode.Push)
-                {
-                    messages.Add(SyncJobPosting.For(posting, wasOnBoard ? PostingAction.Update : PostingAction.Publish));
-                }
-                else
-                {
-                    var result = wasOnBoard
-                        ? await adapter.UpdateAsync(request, cancellationToken)
-                        : await adapter.PublishAsync(request, cancellationToken);
-                    posting.Apply(result, now);
-                }
-            }
-
-            changed |= before != (posting.State, posting.JobVersion) || added.Contains(posting);
+            changed |= await SendAsync(posting, content, resend: false, messages, now, cancellationToken) || added.Contains(posting);
         }
 
         if (changed)
@@ -82,6 +63,57 @@ public sealed class DistributionPlanner(BoardRegistry boards, TimeProvider time)
         }
 
         return new DistributionChanges(added, messages);
+    }
+
+    /// <summary>
+    /// Sends <paramref name="content"/> to <paramref name="posting"/>'s board only, after the caller changed that board's own text
+    /// (<see cref="JobPosting.Customize"/>) and checked it. With <paramref name="resend"/> the board gets the same job
+    /// version again with the new text. Without it, for a save that changed nothing, a posting already on the board is
+    /// left alone and spends none of the board's quota. No other board is touched and no job version is made.
+    /// <paramref name="posting"/> is the board's tracked posting, or a new one this returns in
+    /// <see cref="DistributionChanges.Added"/>. Always raises
+    /// <see cref="JobPostingsChanged"/>: a customization can leave a Submitted posting Submitted, and other open
+    /// dashboards still need to refetch the text.
+    /// </summary>
+    public async Task<DistributionChanges> RepostAsync(
+        Organization organization, PostingContent content, JobPosting posting, bool isNew, bool resend, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(organization);
+        ArgumentNullException.ThrowIfNull(content);
+        ArgumentNullException.ThrowIfNull(posting);
+        var now = time.GetUtcNow();
+        var messages = new List<object>();
+        await SendAsync(posting, content, resend, messages, now, cancellationToken);
+        messages.Add(new JobPostingsChanged(organization.Id, content.JobId, now));
+        return new DistributionChanges(isNew ? [posting] : [], messages);
+    }
+
+    // One board's share of a publish: validates the board's own view of the content (the job's, with the board's
+    // overrides), queues the posting and sends it. Returns whether the posting's state, version or sent request changed.
+    private async Task<bool> SendAsync(
+        JobPosting posting, PostingContent content, bool resend, List<object> messages, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var adapter = boards.Get(posting.BoardId);
+        var boardContent = PostingContents.For(posting, content);
+        var before = (posting.State, posting.JobVersion, posting.Sequence);
+        var wasOnBoard = posting.ExternalId is not null || posting.State is PostingState.Submitted or PostingState.Live;
+        if (posting.Queue(boardContent.Version, boardContent.Url, adapter.Validate(boardContent), now, resend))
+        {
+            var request = new PostingRequest(posting, boardContent);
+            if (adapter.Capabilities.Mode == BoardMode.Push)
+            {
+                messages.Add(SyncJobPosting.For(posting, wasOnBoard ? PostingAction.Update : PostingAction.Publish));
+            }
+            else
+            {
+                var result = wasOnBoard
+                    ? await adapter.UpdateAsync(request, cancellationToken)
+                    : await adapter.PublishAsync(request, cancellationToken);
+                posting.Apply(result, now);
+            }
+        }
+
+        return before != (posting.State, posting.JobVersion, posting.Sequence);
     }
 
     /// <summary>

@@ -225,13 +225,15 @@ internal static class JobMappings
 /// </summary>
 internal sealed class JobContentValidator : AbstractValidator<JobSnapshot>
 {
+    public const int MaxTitleLength = 200;
+
     public const int MaxDescriptionLength = 50_000;
 
     private const decimal MaxSalary = 10_000_000_000m;
 
     public JobContentValidator()
     {
-        RuleFor(j => j.Title).NotEmpty().MaximumLength(200);
+        RuleFor(j => j.Title).NotEmpty().MaximumLength(MaxTitleLength);
         RuleFor(j => j.Slug).NotEmpty().MaximumLength(120).Matches("^[a-z0-9]+(-[a-z0-9]+)*$")
             .WithMessage("A slug is lowercase letters and digits separated by single hyphens.");
         RuleFor(j => j.Description).MaximumLength(MaxDescriptionLength);
