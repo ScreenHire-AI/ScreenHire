@@ -260,7 +260,7 @@ describe('job page', () => {
   });
 
   it('says what saving the details did above the tabs, whichever one is open', async () => {
-    page.state = { saved: 'Saved. The careers page shows it now; publish again to update the boards.' };
+    page.state = { saved: 'Saved. The careers page shows it now. Boards that already have the job keep what they were sent.' };
     stub(job);
 
     await screen.findByRole('region', { name: 'Pipeline' });

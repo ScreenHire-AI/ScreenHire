@@ -165,7 +165,7 @@
             <FieldErrors id={`stage-${index}-errors`} messages={stageErrors} />
             {@render summaries(stage.id)}
             {#if (stage.scorecard || stage.scorecardTemplateId) && !isTerminal(stage.kind)}
-              <p class="flex items-center gap-1.5 text-muted-foreground"><ClipboardCheckIcon aria-hidden="true" /><span class="sr-only">Scorecard: </span><ScorecardName {stage} /></p>
+              <p class="flex items-center gap-1.5 text-muted-foreground"><ClipboardCheckIcon aria-hidden="true" /><span><span class="sr-only">Scorecard:</span>{' '}<ScorecardName {stage} /></span></p>
             {/if}
           </div>
         </div>

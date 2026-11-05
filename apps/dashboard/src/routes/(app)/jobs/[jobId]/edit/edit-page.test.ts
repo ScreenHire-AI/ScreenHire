@@ -48,13 +48,13 @@ describe('edit job details page', () => {
     expect(within(band).getByText('Open')).toHaveAttribute('data-slot', 'badge');
     expect(screen.getByRole('region', { name: 'Edit details' })).toBeInTheDocument();
     // Save says how far it reaches before it is pressed (E3).
-    expect(within(form).getByText('Saving updates the careers page now. Publish again to update the other boards.')).toBeInTheDocument();
+    expect(within(form).getByText('Updates the careers page now. Other boards keep what they were sent.')).toBeInTheDocument();
     await fireEvent.input(within(form).getByLabelText('To'), { target: { value: '95000' } });
     await fireEvent.click(within(form).getByRole('button', { name: 'Save details' }));
 
     await waitFor(() =>
       expect(navigation.goto).toHaveBeenCalledWith(`/jobs/${jobId}`, {
-        state: { saved: 'Saved. The careers page shows it now; publish again to update the boards.' },
+        state: { saved: 'Saved. The careers page shows it now. Boards that already have the job keep what they were sent.' },
       }),
     );
   });

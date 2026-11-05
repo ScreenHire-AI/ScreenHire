@@ -119,7 +119,7 @@
             description: value.description,
           },
         });
-        onsaved?.(job.status === 'Open' ? 'Saved. The careers page shows it now; publish again to update the boards.' : 'Saved.');
+        onsaved?.(job.status === 'Open' ? 'Saved. The careers page shows it now. Boards that already have the job keep what they were sent.' : 'Saved.');
       } catch (error) {
         if (error instanceof ApiError && error.status === 400) {
           applyValidationProblem(submitted, error.body as HttpValidationProblemDetails);
@@ -245,7 +245,7 @@
           <FailureText message={$errors._errors[0]} class="mr-auto" />
         {:else if job.status === 'Open'}
           <!-- How far Save reaches, before it is pressed: the careers page is live, the other boards wait (E3). -->
-          <p class="mr-auto text-muted-foreground">Saving updates the careers page now. Publish again to update the other boards.</p>
+          <p class="mr-auto text-muted-foreground">Updates the careers page now. Other boards keep what they were sent.</p>
         {/if}
         <Button href={cancelHref} variant="outline" size="lg">Cancel</Button>
         <Button type="submit" size="lg" disabled={$submitting}><SaveIcon aria-hidden="true" />Save details</Button>

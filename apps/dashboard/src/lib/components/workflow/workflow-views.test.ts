@@ -371,7 +371,7 @@ describe('workflow builder', () => {
       'Notes Long text',
     ]);
     // The stage's scorecard is its name beside an icon, with the word for screen readers only (W9).
-    expect(stages).toHaveTextContent(/Scorecard:\s*Phone screen/);
+    expect(stages).toHaveTextContent('Scorecard: Phone screen');
     await expectNoAxeViolations(container);
     vi.unstubAllGlobals();
   });

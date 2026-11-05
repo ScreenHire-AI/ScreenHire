@@ -293,11 +293,11 @@ describe('pipeline board', () => {
     expect(navigation.goto).toHaveBeenCalledWith(`/applications/${applications[2]!.id}`);
   });
 
-  it('offers a "Move" menu on every card, the non-drag alternative', async () => {
+  it('offers a "Move to" menu on every card, the non-drag alternative', async () => {
     stubApi();
     renderBoard();
     await screen.findByRole('list', { name: 'Applied stage' });
 
-    expect(screen.getAllByRole('button', { name: /^Move .* to another stage$/ })).toHaveLength(applications.length);
+    expect(screen.getAllByRole('button', { name: /^Actions for / })).toHaveLength(applications.length);
   });
 });
