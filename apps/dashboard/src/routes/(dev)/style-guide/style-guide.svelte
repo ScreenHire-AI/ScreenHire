@@ -202,7 +202,7 @@
     interviewSample('Expired'),
   ];
 
-  // A record's tabs (section 11): counts in the count badge, and a state in the count where one fits (7/8).
+  // A record's tabs (section 11): each count a plain number in the count badge.
   const candidateTabs: RecordTab[] = [
     { value: 'overview', label: 'Overview' },
     { value: 'application', label: 'Application' },
@@ -213,7 +213,7 @@
   ];
   const jobTabs: RecordTab[] = [
     { value: 'candidates', label: 'Candidates', count: 24 },
-    { value: 'postings', label: 'Postings', count: 7, of: 8, countLabel: 'posted on 7 of 8 boards' },
+    { value: 'postings', label: 'Job postings', count: 7 },
     { value: 'details', label: 'Details' },
   ];
   let candidateTab = $state('overview');
@@ -1165,7 +1165,7 @@
             </div>
           </figure>
           <figure class="flex flex-col gap-2">
-            <figcaption class="text-caption text-muted-foreground">A job: the state in the count, posted on 7 of 8 boards</figcaption>
+            <figcaption class="text-caption text-muted-foreground">A job: a plain count, the boards the job went to</figcaption>
             <div class="overflow-hidden rounded-lg bg-secondary">
               <Tabs.Root bind:value={jobTab}>
                 <div class="border-b border-border bg-card px-4 pt-2 md:px-6"><RecordTabs label="Job sections" tabs={jobTabs} /></div>

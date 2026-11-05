@@ -1,5 +1,16 @@
 # Log
 
+## 2026-11-05
+
+**A job's Postings tab is now Job postings, a small table.** One row per board: Status, Board, Posted, Last updated and a
+row menu. The menu has View posting and Copy link where we know the live address, which today is only the careers page,
+then Edit details, Retry, Post, Post again or Take down. A posting now carries `viewUrl`. The tab's count is a plain
+number, because 7/8 read as seven of eight boards live when most boards never confirm (E2).
+
+**The hand cursor is one rule.** A browser gives a link the hand and a button the arrow, so anything that can be pressed
+gets the hand from the base layer of `packages/ui/src/theme.css`, on the dashboard, careers and marketing alike (A10). No
+component sets a cursor, and `tokens-only.test.ts` refuses one that does.
+
 ## 2026-11-02
 
 **Interview scheduling runs on the Google Calendar and Microsoft Graph APIs** ([ADR-0024](adr/0024-interview-scheduling-on-calendar-apis.md)).

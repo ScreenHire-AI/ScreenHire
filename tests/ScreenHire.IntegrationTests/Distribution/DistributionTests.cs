@@ -43,6 +43,12 @@ public sealed class DistributionTests(AppHostFixture fixture)
             postings[board].Should().Be("Submitted", $"{board} reads what we serve and never confirms");
         }
 
+        // A person can follow a link to the page we host; a board that reads our feed never says where its listing landed.
+        var viewUrls = published.At("postings").EnumerateArray()
+            .ToDictionary(p => p.GetProperty("boardId").GetString()!, p => p.GetProperty("viewUrl").GetString());
+        viewUrls["careers"].Should().Contain(slug).And.EndWith(published.Text("slug"));
+        viewUrls.Where(p => p.Key != "careers").Should().OnlyContain(p => p.Value == null);
+
         foreach (var board in FeedBoards)
         {
             (await FeedAsync(slug, board)).Should().Contain(jobId.ToString(), $"the {board} feed lists the published job");

@@ -220,7 +220,7 @@
 
 {#snippet selectHeader()}
   <!-- The label is the hit area, sized for mouse and touch (design system F4, section 17). -->
-  <label class="inline-grid size-6 cursor-pointer place-items-center pointer-coarse:size-11">
+  <label class="inline-grid size-6 place-items-center pointer-coarse:size-11">
     <input
       type="checkbox"
       class="size-4 accent-primary"
@@ -233,7 +233,7 @@
 
 {#snippet selectCell(application: ApplicationSummary)}
   <!-- The label is the hit area, sized for mouse and touch (design system F4, section 17). -->
-  <label class="inline-grid size-6 cursor-pointer place-items-center pointer-coarse:size-11">
+  <label class="inline-grid size-6 place-items-center pointer-coarse:size-11">
     <input
       type="checkbox"
       class="size-4 accent-primary"

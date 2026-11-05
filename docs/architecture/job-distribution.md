@@ -177,7 +177,9 @@ publish answer that arrives after a close is a no-op. `JobPostingTests` covers t
   careers page and Google cannot do that (`canUnpublishPerBoard` false: Google would re-index the live page), so the
   call is a 409.
 - **Status:** `GET /v1/jobs/{jobId}/postings` and `GET /v1/jobs/{jobId}` (`postings`). `GET /v1/boards` lists the
-  boards an organization may use.
+  boards an organization may use. A posting's `viewUrl` is where a person can see it: the job's own page on the hosted
+  careers page while it is up, null everywhere else, because a board that reads our feed never says where its listing
+  landed.
 
 ### Worker, idempotency and reconciliation
 

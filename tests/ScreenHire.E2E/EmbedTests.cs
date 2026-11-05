@@ -95,7 +95,7 @@ public sealed class EmbedTests(E2EFixture fixture) : BrowserTest(fixture)
             .GetByRole(AriaRole.Link, new() { Name = "Casey Morgan" }).ClickAsync();
         await Expect(Page.GetByText($"via partner.localhost:{host.Port}")).ToBeVisibleAsync();
 
-        // One job instead of the board: the job's own snippet, from its Postings tab, frames that job on the company's page.
+        // One job instead of the board: the job's own snippet, from its Job postings tab, frames that job on the company's page.
         await GoToAsync("dashboard", $"/jobs/{scene.JobId}?tab=postings");
         var jobCode = Page.GetByLabel("Embed code for this job");
         await Expect(jobCode).ToContainTextAsync($"data-job=\"{scene.JobSlug}\"");

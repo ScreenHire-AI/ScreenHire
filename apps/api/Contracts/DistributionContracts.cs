@@ -31,6 +31,8 @@ public sealed record BoardSummary(
 /// <c>expectedBy</c> is the board's estimate for the next step: when a Submitted posting should show, or a Closing one
 /// be gone. A board that does not confirm (<c>confirmsLive</c> / <c>confirmsRemoval</c> false) never reaches Live or
 /// Closed: say "removal requested", never "removed". <c>mode</c> is null for a board whose configuration was removed.
+/// <c>viewUrl</c> is where a person can see the posting: the job's own page on a board we host, while it is up. It is
+/// null for every other board, because a board that reads our feed never says where its listing landed.
 /// </remarks>
 public sealed record JobPostingStatus(
     Guid Id,
@@ -49,7 +51,8 @@ public sealed record JobPostingStatus(
     DateTimeOffset? SubmittedAt,
     DateTimeOffset? LiveAt,
     DateTimeOffset? ClosingAt,
-    DateTimeOffset? ClosedAt);
+    DateTimeOffset? ClosedAt,
+    string? ViewUrl);
 
 /// <summary>
 /// Publishing a job: optionally, the boards to post it to. Left out, the first publish posts to every board in
@@ -127,7 +130,7 @@ internal static class DistributionMappings
         return new(posting.Id, posting.BoardId, adapter?.Name ?? posting.BoardId, capabilities?.Mode, posting.State, posting.JobVersion,
             capabilities?.ConfirmsLive ?? false, capabilities?.ConfirmsRemoval ?? false, capabilities?.CanUnpublishPerBoard ?? false,
             posting.ExpectedBy, posting.Issues, posting.LastError, posting.UpdatedAt, posting.SubmittedAt, posting.LiveAt,
-            posting.ClosingAt, posting.ClosedAt);
+            posting.ClosingAt, posting.ClosedAt, capabilities?.Mode == BoardMode.Hosted && posting.IsActive ? posting.Url : null);
     }
 
     public static List<JobPostingStatus> ToStatuses(this IEnumerable<JobPosting> postings, BoardRegistry boards) =>

@@ -16892,7 +16892,8 @@
           "submittedAt",
           "liveAt",
           "closingAt",
-          "closedAt"
+          "closedAt",
+          "viewUrl"
         ],
         "type": "object",
         "properties": {
@@ -16982,6 +16983,12 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "viewUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "description": "One job on one board: where it stands and what is still uncertain."

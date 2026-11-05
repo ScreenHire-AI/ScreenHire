@@ -146,7 +146,7 @@
           id={`${listId}-${member.userId}`}
           role="option"
           aria-selected={index === active}
-          class="flex min-h-10 cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-1 aria-selected:bg-accent pointer-coarse:min-h-11"
+          class="flex min-h-10 items-center gap-2.5 rounded-md px-2.5 py-1 aria-selected:bg-accent pointer-coarse:min-h-11"
           onmousedown={(event) => {
             event.preventDefault();
             void pick(member);

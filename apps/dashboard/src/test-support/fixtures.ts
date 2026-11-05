@@ -228,6 +228,7 @@ export function posting(boardId: string, boardName: string, overrides: Partial<J
     updatedAt: '2026-10-20T11:00:00Z',
     submittedAt: null,
     liveAt: null,
+    viewUrl: null,
     closingAt: null,
     closedAt: null,
     ...overrides,

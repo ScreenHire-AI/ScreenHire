@@ -94,8 +94,8 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.SetViewportSizeAsync(DesignWidth, DesignHeight);
         await SignInAsync(Page, scene.Email);
         await GoToJobAsync(Page, scene.JobId);
-        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Postings") }).ClickAsync();
-        var distribution = Page.GetByRole(AriaRole.Region, new() { Name = "Postings" });
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Job postings") }).ClickAsync();
+        var distribution = Page.GetByRole(AriaRole.Region, new() { Name = "Job postings" });
         await Expect(Board(Page, "sandbox")).ToContainTextAsync("Sandbox board");
         await Expect(Board(Page, "sandbox")).ToContainTextAsync("Not posted to this board.");
         await ExpectNoAccessibilityViolationsAsync();
@@ -106,17 +106,21 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Board(Page, "careers")).ToContainTextAsync("Live: the board confirmed the job shows.");
         await Expect(Board(Page, "sandbox")).ToContainTextAsync("Live: the board confirmed the job shows.", WaitForBoard);
         (await SandboxListingsAsync(scene.Slug)).Should().Contain(scene.JobId.ToString(), "the sandbox board lists the job");
-        // The tab's count says how many boards the job is on, here all of them.
-        await Expect(Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Postings posted on (\\d+) of \\1 boards$") })).ToBeVisibleAsync();
+        // The tab's count says how many boards the job went to.
+        await Expect(Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Job postings \\d+$") })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-distribution-live-light");
 
-        await distribution.GetByRole(AriaRole.Button, new() { Name = "Take down from Sandbox board" }).ClickAsync();
+        var sandboxMenu = distribution.GetByRole(AriaRole.Button, new() { Name = "Actions for Sandbox board" });
+        await sandboxMenu.ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Take down" }).ClickAsync();
 
         await Expect(Board(Page, "sandbox")).ToContainTextAsync("Removed:", WaitForBoard);
         (await SandboxListingsAsync(scene.Slug)).Should().NotContain(scene.JobId.ToString(), "the sandbox board dropped the job");
         await Expect(Board(Page, "careers")).ToContainTextAsync("Live:"); // the other boards stay up
-        await Expect(distribution.GetByRole(AriaRole.Button, new() { Name = "Post to Sandbox board" })).ToBeVisibleAsync();
+        await sandboxMenu.ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Menuitem, new() { Name = "Post again", Exact = true })).ToBeVisibleAsync();
+        await Page.Keyboard.PressAsync("Escape");
 
         // Closing takes it down everywhere: a destructive item in the More menu, confirmed in a dialog (A2).
         var band = Page.Locator("[data-slot='header-band']");
@@ -416,7 +420,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
     }
 
     private static ILocator Board(IPage page, string boardId) =>
-        page.GetByRole(AriaRole.Region, new() { Name = "Postings" }).Locator($"[data-board='{boardId}']");
+        page.GetByRole(AriaRole.Region, new() { Name = "Job postings" }).Locator($"[data-board='{boardId}']");
 
     // Select, name, then the two verification columns (status first, T2) and Rating, then Stage.
     private static ILocator StageCellOf(IPage page, string candidate) =>

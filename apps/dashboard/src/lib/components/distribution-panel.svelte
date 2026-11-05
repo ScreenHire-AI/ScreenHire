@@ -1,24 +1,46 @@
 <script lang="ts">
-  import type { BoardSummary, JobDetail } from '@screenhire/api-client';
+  import CircleOffIcon from '~icons/lucide/circle-off';
+  import CopyIcon from '~icons/lucide/copy';
+  import ExternalLinkIcon from '~icons/lucide/external-link';
+  import PencilIcon from '~icons/lucide/pencil';
+  import RotateCwIcon from '~icons/lucide/rotate-cw';
+  import SendIcon from '~icons/lucide/send';
+  import type { BoardSummary, JobDetail, JobPostingStatus } from '@screenhire/api-client';
   import { createCloseJobPosting, createPublishJob } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
+  import {
+    createColumnHelper,
+    createSortedRowModel,
+    createTable,
+    FlexRender,
+    renderSnippet,
+    rowSortingFeature,
+    sortFn_alphanumeric,
+    sortFn_basic,
+    tableFeatures,
+    type ColumnDef,
+  } from '@tanstack/svelte-table';
+  import DateText from '#lib/components/date-text.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import Hint from '#lib/components/hint.svelte';
+  import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
+  import SortHeader from '#lib/components/sort-header.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
-  import { Badge } from '#lib/components/ui/badge/index.js';
-  import { Button } from '#lib/components/ui/button/index.js';
+  import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import { formatDateTime } from '#lib/dates.js';
-  import { boardAction, boardRows, describePosting, type BoardAction } from '#lib/distribution.js';
+  import { boardAction, boardRows, describePosting, isPosted, postedAt, type BoardAction, type BoardRow } from '#lib/distribution.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
   import { needsAttention } from '#lib/status.js';
+  import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
 
-  // Where the job is posted, the job page's Distribution tab: one row per board with its state as a status badge, the
-  // board's estimate as a fact pill and the one thing the person can do there. A posting that needs fixes says what is
-  // wrong in words (E2). Publishing a draft to every board is the page's primary action, in its header band, and what it
-  // did shows above the tabs; closing the job is its More menu.
+  // Where the job is posted, the job page's Job postings tab: a table with one row per board, its state, when the job was
+  // posted there, when that last changed, and a row menu: a link to the live posting where the board has one, then what
+  // the person can do there. A posting that needs fixes says what is wrong in words under its row (E2). Publishing a
+  // draft to every board is the page's primary action, in its header band, and what it did shows above the tabs; closing
+  // the job is its More menu.
   let {
     job,
     boards,
@@ -39,102 +61,235 @@
     return () => clearInterval(timer);
   });
 
-  const rows = $derived(boardRows(boards, job.postings));
+  const boardList = $derived(boardRows(boards, job.postings));
   let failure = $state('');
   let busyBoard = $state<string | null>(null);
+
+  // Every column sorts (L2). The boards keep their natural order, the careers page first, until someone sorts.
+  const features = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: { basic: sortFn_basic, alphanumeric: sortFn_alphanumeric } });
+  const column = createColumnHelper<typeof features, BoardRow>();
+  // `any`: one list mixes columns of different value types.
+  const columns: ColumnDef<typeof features, BoardRow, any>[] = [
+    column.accessor((row) => describePosting(row.posting, now).label, { id: 'status', header: 'Status', sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(statusCell, row.original) }),
+    column.accessor('name', { id: 'board', header: 'Board', sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(boardCell, row.original) }),
+    // A board the job never reached has neither date, so it sorts last either way.
+    column.accessor((row) => postedAt(row.posting), {
+      id: 'posted',
+      header: 'Posted',
+      sortFn: 'basic',
+      sortDescFirst: true,
+      sortUndefined: 'last',
+      cell: ({ row }) => renderSnippet(postedCell, row.original),
+    }),
+    column.accessor((row) => row.posting?.updatedAt, {
+      id: 'updatedAt',
+      header: 'Last updated',
+      sortFn: 'basic',
+      sortDescFirst: true,
+      sortUndefined: 'last',
+      cell: ({ row }) => renderSnippet(updatedCell, row.original),
+    }),
+    column.display({ id: 'actions', header: () => renderSnippet(actionsHeader, undefined), cell: ({ row }) => renderSnippet(actionsCell, row.original) }),
+  ];
+  const sort = createTableSort('job-postings', undefined, ['status', 'board', 'posted', 'updatedAt']);
+  const table = createTable({
+    ...tableSortOptions(() => sort),
+    features,
+    columns,
+    get data() {
+      return boardList;
+    },
+    getRowId: (row) => row.boardId,
+  });
+  const rows = $derived(table.getRowModel().rows);
 
   // Live updates refetch the job when a board answers; refetching here as well shows our own change at once.
   const settle = { onSettled: () => invalidatePath(queryClient, jobsPath) };
   const publish = createPublishJob(() => ({ mutation: settle }));
   const takeDown = createCloseJobPosting(() => ({ mutation: settle }));
 
-  async function run(label: string, request: () => Promise<unknown>, boardId: string) {
+  async function act(action: NonNullable<BoardAction>, boardId: string, name: string) {
     failure = '';
     busyBoard = boardId;
     try {
-      await request();
+      if (action === 'takeDown') await takeDown.mutateAsync({ jobId: job.id, boardId });
+      else await publish.mutateAsync({ jobId: job.id, data: { boards: [boardId] } });
     } catch (error) {
-      failure = describeError(error, `Could not ${label}`);
+      failure = describeError(error, action === 'takeDown' ? `Could not take the job down from ${name}` : `Could not post the job to ${name}`);
     } finally {
       busyBoard = null;
     }
   }
 
-  function act(action: NonNullable<BoardAction>, boardId: string, name: string) {
-    if (action === 'takeDown') {
-      return run(`take the job down from ${name}`, () => takeDown.mutateAsync({ jobId: job.id, boardId }), boardId);
-    }
-
-    return run(`post the job to ${name}`, () => publish.mutateAsync({ jobId: job.id, data: { boards: [boardId] } }), boardId);
+  function actionItem(action: NonNullable<BoardAction>, posting: JobPostingStatus | undefined) {
+    if (action === 'takeDown') return { label: 'Take down', icon: CircleOffIcon };
+    if (action === 'retry') return { label: 'Retry', icon: RotateCwIcon };
+    return { label: posting ? 'Post again' : 'Post', icon: SendIcon };
   }
 
-  const actionLabels: Record<NonNullable<BoardAction>, (name: string) => { text: string; label: string }> = {
-    post: (name) => ({ text: 'Post', label: `Post to ${name}` }),
-    retry: (name) => ({ text: 'Retry', label: `Retry ${name}` }),
-    takeDown: (name) => ({ text: 'Take down', label: `Take down from ${name}` }),
-  };
+  // What Copy link says for two seconds after a press. Without a clipboard it says the copy failed; View posting is beside
+  // it.
+  let copied = $state<string | null>(null);
+  let copyTimer: ReturnType<typeof setTimeout> | undefined;
+  async function copyLink(url: string) {
+    clearTimeout(copyTimer);
+    try {
+      await navigator.clipboard.writeText(url);
+      copied = 'Copied';
+    } catch {
+      copied = 'Could not copy';
+    }
+    copyTimer = setTimeout(() => (copied = null), 2000);
+  }
+  $effect(() => () => clearTimeout(copyTimer));
 </script>
 
-<!-- The tab's count says how many boards the job is on, so the panel's title has none (W4). -->
-<Panel title="Postings" flush footer={failure ? messages : undefined}>
-  {#if rows.length === 0}
+<!-- The tab's count says how many boards the job went to, so the panel's title has none (W4). -->
+<Panel title="Job postings" flush footer={failure ? messages : undefined}>
+  {#if boardList.length === 0}
     <p class="px-4.5 py-4 text-muted-foreground max-md:px-4">No job boards are set up.</p>
   {:else}
-    <ul>
-      {#each rows as row (row.boardId)}
-        {@const view = describePosting(row.posting, now)}
-        {@const action = boardAction(job.status, row.board, row.posting)}
-        <li data-board={row.boardId} class="flex min-w-0 flex-col gap-1.5 border-b border-border-subtle px-4.5 py-3 last:border-0 max-md:px-4">
-          <div class="flex min-h-8 min-w-0 items-center gap-2">
-            <TruncatedText text={row.name} class="font-semibold" />
-            {#if action}
-              {@const text = actionLabels[action](row.name)}
-              <Button
-                variant="outline"
-                class="ml-auto"
-                aria-label={text.label}
-                disabled={busyBoard === row.boardId}
-                onclick={() => act(action, row.boardId, row.name)}>{text.text}</Button
-              >
+    <!-- relative: the Actions header's sr-only label is absolute, and would escape the scroller and widen the page (F1). -->
+    <div class="relative overflow-x-auto">
+      <table aria-label="Job postings" class="w-full border-collapse text-left">
+        <!-- A phone has no header: each row carries its dates under the board's name, as a list item does (section 8). -->
+        <thead class="bg-muted max-md:hidden">
+          {#each table.getHeaderGroups() as group (group.id)}
+            <tr>
+              {#each group.headers as header (header.id)}
+                <SortHeader
+                  {header}
+                  class={[
+                    'px-3',
+                    (header.id === 'status' || header.id === 'actions') && 'px-4',
+                    header.id === 'actions' && 'w-14',
+                    (header.id === 'posted' || header.id === 'updatedAt' || header.id === 'actions') && 'text-right',
+                  ]}
+                />
+              {/each}
+            </tr>
+          {/each}
+        </thead>
+        {#each rows as row (row.id)}
+          {@const view = describePosting(row.original.posting, now)}
+          <!-- One body per board, so a posting's problem stays with its row whichever way the table sorts. -->
+          <tbody data-board={row.id} class="border-b border-border-subtle last:border-b-0 hover:bg-muted">
+            <tr class="h-12">
+              {#each row.getAllCells() as cell (cell.id)}
+                <td
+                  class={[
+                    'px-3 whitespace-nowrap max-md:py-2',
+                    (cell.column.id === 'status' || cell.column.id === 'actions') && 'px-4',
+                    // The board takes the room the other columns leave. A long name is cut, whole in its tooltip (F5).
+                    cell.column.id === 'board' && 'w-full max-w-0 min-w-40',
+                    (cell.column.id === 'posted' || cell.column.id === 'updatedAt') && 'text-right text-muted-foreground tabular-nums max-md:hidden',
+                    cell.column.id === 'actions' && 'text-right',
+                  ]}
+                >
+                  <FlexRender {cell} />
+                </td>
+              {/each}
+            </tr>
+            <!-- What is wrong, in words, under the board's name (E2). A calm state's meaning is in its tooltip and for
+                 screen readers. -->
+            {#if needsAttention(view.status)}
+              <tr>
+                <td></td>
+                <td colspan={row.getAllCells().length - 1} class="px-3 pb-3">
+                  <p data-posting-problem class="text-body text-muted-foreground">
+                    {view.detail}
+                    <!-- Issues the board's checks found are in the job's own details, which is where they are fixed. -->
+                    {#if row.original.posting?.state === 'Draft' && job.status !== 'Closed'}
+                      <a href={`/jobs/${job.id}/edit`} class="font-semibold text-primary underline underline-offset-2">Edit details</a>
+                    {/if}
+                  </p>
+                </td>
+              </tr>
             {/if}
-          </div>
-          <!-- Status first, then the board's estimate (T2). The badge's tooltip says what the state means. -->
-          <div class="flex min-w-0 flex-wrap items-center gap-1.5">
-            <Hint content={view.detail}>
-              {#snippet children({ props })}
-                <span {...props} data-posting-state class="inline-flex rounded-full">
-                  <StatusBadge status={view.status} label={view.label} quiet={!needsAttention(view.status)} />
-                </span>
-              {/snippet}
-            </Hint>
-            <!-- The estimate's exact time is in its tooltip (T5). -->
-            {#if view.eta && row.posting?.expectedBy}
-              {@const expected = row.posting.expectedBy}
-              <Hint content={formatDateTime(expected)}>
-                {#snippet children({ props })}
-                  <span {...props} class="inline-flex rounded-full"><Badge variant="muted">{view.eta}</Badge></span>
-                {/snippet}
-              </Hint>
-            {/if}
-          </div>
-          <!-- What is wrong, in words (E2); a calm state's meaning is in its tooltip and for screen readers. -->
-          {#if needsAttention(view.status)}
-            <p data-posting-problem class="text-body text-muted-foreground">
-              {view.detail}
-              <!-- Issues the board's checks found are in the job's own details, which is where they are fixed. -->
-              {#if row.posting?.state === 'Draft' && job.status !== 'Closed'}
-                <a href={`/jobs/${job.id}/edit`} class="font-semibold text-primary underline underline-offset-2">Edit details</a>
-              {/if}
-            </p>
-          {:else}
-            <span class="sr-only">{view.detail}</span>
-          {/if}
-        </li>
-      {/each}
-    </ul>
+          </tbody>
+        {/each}
+      </table>
+    </div>
   {/if}
 </Panel>
 
 {#snippet messages()}
   <FailureText message={failure} />
+{/snippet}
+
+{#snippet statusCell(row: BoardRow)}
+  {@const view = describePosting(row.posting, now)}
+  <!-- Status first, then the board's estimate as plain text (T2, L1). The badge's tooltip says what the state means. -->
+  <span class="flex items-center gap-2">
+    <Hint content={view.detail}>
+      {#snippet children({ props })}
+        <span {...props} data-posting-state class="inline-flex rounded-full">
+          <StatusBadge status={view.status} label={view.label} quiet={!needsAttention(view.status)} />
+        </span>
+      {/snippet}
+    </Hint>
+    <!-- The estimate's exact time is in its tooltip (T5). -->
+    {#if view.eta && row.posting?.expectedBy}
+      {@const expected = row.posting.expectedBy}
+      <Hint content={formatDateTime(expected)}>
+        {#snippet children({ props })}<span {...props} data-posting-eta class="text-muted-foreground tabular-nums">{view.eta}</span>{/snippet}
+      </Hint>
+    {/if}
+  </span>
+  {#if !needsAttention(view.status)}<span class="sr-only">{view.detail}</span>{/if}
+{/snippet}
+
+{#snippet boardCell(row: BoardRow)}
+  {@const posted = postedAt(row.posting)}
+  <TruncatedText text={row.name} class="font-semibold" />
+  {#if posted && row.posting}
+    <span class="flex flex-col text-caption text-muted-foreground md:hidden">
+      <span>Posted <DateText at={posted} /></span>
+      <span>Updated <DateText at={row.posting.updatedAt} /></span>
+    </span>
+  {/if}
+{/snippet}
+
+{#snippet postedCell(row: BoardRow)}
+  {@const posted = postedAt(row.posting)}
+  {#if posted}<DateText at={posted} />{/if}
+{/snippet}
+
+{#snippet updatedCell(row: BoardRow)}
+  {#if row.posting}<DateText at={row.posting.updatedAt} />{/if}
+{/snippet}
+
+{#snippet actionsHeader()}<span class="sr-only">Actions</span>{/snippet}
+
+{#snippet actionsCell(row: BoardRow)}
+  {@const action = boardAction(job.status, row.board, row.posting)}
+  {@const url = row.posting?.viewUrl}
+  {@const fixable = row.posting?.state === 'Draft' && job.status !== 'Closed'}
+  <!-- A board that only closes with the job has nothing to do, and its menu says why (E3). -->
+  {@const locked = job.status === 'Open' && isPosted(row.posting) && !action}
+  {#if url || fixable || action || locked}
+    <MoreMenu label={`Actions for ${row.name}`} size="icon" quiet>
+      {#if url}
+        <DropdownMenu.Item>
+          {#snippet child({ props })}
+            <a {...props} href={url} target="_blank" rel="noopener"><ExternalLinkIcon aria-hidden="true" />View posting<span class="sr-only"> (opens in a new tab)</span></a>
+          {/snippet}
+        </DropdownMenu.Item>
+        <!-- Stays open, so the item can say the copy worked. -->
+        <DropdownMenu.Item closeOnSelect={false} onSelect={() => copyLink(url)}><CopyIcon aria-hidden="true" />{copied ?? 'Copy link'}</DropdownMenu.Item>
+      {/if}
+      {#if fixable}
+        <DropdownMenu.Item>
+          {#snippet child({ props })}<a {...props} href={`/jobs/${job.id}/edit`}><PencilIcon aria-hidden="true" />Edit details</a>{/snippet}
+        </DropdownMenu.Item>
+      {/if}
+      {#if url && (action || locked)}<DropdownMenu.Separator />{/if}
+      {#if action}
+        {@const item = actionItem(action, row.posting)}
+        <DropdownMenu.Item disabled={busyBoard === row.boardId} onSelect={() => act(action, row.boardId, row.name)}><item.icon aria-hidden="true" />{item.label}</DropdownMenu.Item>
+      {:else if locked}
+        <DropdownMenu.Item disabled>Stays on while the job is open</DropdownMenu.Item>
+      {/if}
+    </MoreMenu>
+  {/if}
 {/snippet}

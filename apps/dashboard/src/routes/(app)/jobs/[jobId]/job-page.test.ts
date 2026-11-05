@@ -81,7 +81,7 @@ afterEach(() => {
   navigation.goto.mockClear();
 });
 
-/** Opens the page on its Postings tab, as the notice's link and a reload of that tab do. */
+/** Opens the page on its Job postings tab, as the notice's link and a reload of that tab do. */
 function onPostingsTab(tabValue = 'postings') {
   (page as unknown as { url: URL }).url = new URL(`http://dashboard.test/jobs/${jobId}?tab=${tabValue}`);
 }
@@ -128,7 +128,7 @@ describe('job page', () => {
     expect(within(band).queryByRole('button', { name: /^Publish/ })).not.toBeInTheDocument();
     // The work area first, with no side column beside it (S7).
     expect(await screen.findByRole('region', { name: 'Pipeline' })).toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: 'Postings' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Job postings' })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Selected candidate' })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Authenticity' })).not.toBeInTheDocument();
   });
@@ -146,37 +146,37 @@ describe('job page', () => {
     expect(terms()).toEqual(['Location', 'Type', 'Salary', 'Created', 'Last updated']);
   });
 
-  it('has a Candidates tab with its count and a Postings tab whose count says how many boards the job is on (E2)', async () => {
+  it('has a Candidates tab with its count and a Job postings tab whose count says how many boards the job went to (E2)', async () => {
     stub({ ...job, postings: [posting('careers', 'Careers page', { state: 'Live' })] });
 
     await waitFor(() => expect(tab(/^Candidates/)).toHaveTextContent(`Candidates ${applications.length}`));
-    await waitFor(() => expect(tab(/^Postings/)).toHaveAccessibleName(/^Postings ?posted on 1 of 2 boards$/));
+    await waitFor(() => expect(tab(/^Job postings/)).toHaveAccessibleName(/^Job postings ?1$/));
     expect(tab(/^Candidates/)).toHaveAttribute('aria-selected', 'true');
 
-    await fireEvent.mouseDown(tab(/^Postings/));
-    await fireEvent.click(tab(/^Postings/));
+    await fireEvent.mouseDown(tab(/^Job postings/));
+    await fireEvent.click(tab(/^Job postings/));
     // The tab is in the address, changed without a navigation.
     await waitFor(() =>
       expect(navigation.goto).toHaveBeenCalledWith(expect.objectContaining({ search: '?tab=postings' }), expect.objectContaining({ shallow: true, replace: true })),
     );
   });
 
-  it('opens the Postings tab from the address, with the boards', async () => {
+  it('opens the Job postings tab from the address, with the boards', async () => {
     onPostingsTab();
     stub(job);
 
-    const distribution = await screen.findByRole('region', { name: 'Postings' });
-    expect(tab(/^Postings/)).toHaveAttribute('aria-selected', 'true');
+    const distribution = await screen.findByRole('region', { name: 'Job postings' });
+    expect(tab(/^Job postings/)).toHaveAttribute('aria-selected', 'true');
     await waitFor(() => expect(distribution.querySelector('[data-board=careers]')).not.toBeNull());
     expect(screen.queryByRole('region', { name: 'Pipeline' })).not.toBeInTheDocument();
   });
 
-  it('opens Postings from its old address, ?tab=distribution', async () => {
+  it('opens Job postings from its old address, ?tab=distribution', async () => {
     onPostingsTab('distribution');
     stub(job);
 
-    expect(await screen.findByRole('region', { name: 'Postings' })).toBeInTheDocument();
-    expect(tab(/^Postings/)).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByRole('region', { name: 'Job postings' })).toBeInTheDocument();
+    expect(tab(/^Job postings/)).toHaveAttribute('aria-selected', 'true');
   });
 
   it('says a board did not take the posting, naming it, with the issue and a link to the fix (E2)', async () => {
@@ -185,8 +185,8 @@ describe('job page', () => {
     await waitFor(() => expect(document.querySelector('[data-slot=notice]')).not.toBeNull());
     const notice = document.querySelector<HTMLElement>('[data-slot=notice]')!;
     expect(notice).toHaveTextContent('Sandbox board did not take this job. Sandbox board needs a city.');
-    expect(within(notice).getByRole('link', { name: 'Fix on Postings' })).toHaveAttribute('href', '?tab=postings');
-    await waitFor(() => expect(tab(/^Postings/)).toHaveAccessibleName(/^Postings ?posted on 1 of 2 boards$/));
+    expect(within(notice).getByRole('link', { name: 'Fix on Job postings' })).toHaveAttribute('href', '?tab=postings');
+    await waitFor(() => expect(tab(/^Job postings/)).toHaveAccessibleName(/^Job postings ?1$/));
   });
 
   it("says a board refused the posting with the board's reason, and nothing while every posting is fine", async () => {
@@ -199,7 +199,7 @@ describe('job page', () => {
     stub(job);
 
     await screen.findByRole('region', { name: 'Pipeline' });
-    await waitFor(() => expect(tab(/^Postings/)).toHaveAccessibleName(/posted on/));
+    await waitFor(() => expect(tab(/^Job postings/)).toHaveAccessibleName(/^Job postings ?\d+$/));
     expect(document.querySelector('[data-slot=notice]')).toBeNull();
   });
 
@@ -267,7 +267,7 @@ describe('job page', () => {
     expect(screen.getAllByRole('status').some((status) => status.textContent?.includes('Saved. The careers page shows it now'))).toBe(true);
   });
 
-  it("says why publishing failed where the person is, not only on the Postings tab", async () => {
+  it("says why publishing failed where the person is, not only on the Job postings tab", async () => {
     stub({ ...job, status: 'Draft', publishedAt: null, postings: [] }, { [`POST /v1/jobs/${jobId}/publish`]: () => Response.json({ detail: 'The job changed meanwhile.' }, { status: 409 }) });
 
     await fireEvent.click(await screen.findByRole('button', { name: 'Publish to 2 boards' }));
@@ -280,14 +280,14 @@ describe('job page', () => {
     onPostingsTab();
     const fetchMock = stub(job, { 'GET /v1/boards': () => new Response(null, { status: 503 }) });
 
-    const distribution = await screen.findByRole('region', { name: 'Postings' });
+    const distribution = await screen.findByRole('region', { name: 'Job postings' });
     await waitFor(() => expect(within(distribution).getByRole('button', { name: /try again/i })).toBeInTheDocument());
     expect(distribution).not.toHaveTextContent('No job boards are set up.');
 
     fetchMock.mockImplementation(apiStub({ 'GET /v1/boards': () => Response.json(boards) }));
     await fireEvent.click(within(distribution).getByRole('button', { name: /try again/i }));
     // The loaded panel replaces the error one.
-    await waitFor(() => expect(screen.getByRole('region', { name: 'Postings' }).querySelector('[data-board=careers]')).not.toBeNull());
+    await waitFor(() => expect(screen.getByRole('region', { name: 'Job postings' }).querySelector('[data-board=careers]')).not.toBeNull());
   });
 
   it('says when the job does not exist', async () => {
