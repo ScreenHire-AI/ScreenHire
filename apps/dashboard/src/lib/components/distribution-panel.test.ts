@@ -102,6 +102,16 @@ describe('distribution panel', () => {
     }
   });
 
+  it('offers the headers choices in a Sort chip for a phone, where the table has no header (L2)', async () => {
+    renderPanel({ id: jobId, status: 'Open', postings: [posting('careers', 'Careers page', { updatedAt: '2026-11-03T09:00:00Z' })] });
+
+    const chip = screen.getByRole('button', { name: 'Sort' });
+    expect(chip.closest('div')).toHaveClass('md:hidden');
+    await fireEvent.pointerDown(chip, { button: 0, pointerType: 'mouse' });
+    const choices = (await screen.findAllByRole('menuitemradio')).map((choice) => choice.textContent?.replace(/,.*$/, '').trim());
+    expect(choices).toEqual(['Status', 'Board', 'Posted', 'Last updated']);
+  });
+
   it('says in words what is wrong with a posting that needs fixes, and where its issues are fixed (E2)', () => {
     renderPanel({
       id: jobId,

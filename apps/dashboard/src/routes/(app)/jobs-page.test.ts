@@ -41,7 +41,8 @@ describe('jobs page', () => {
     renderPage();
 
     expect((await dataRows()).map(cellTexts)).toEqual([
-      ['Draft', 'Customer Success Lead', 'Manchester, UK', 'Full-time', '-', 'Oct 19, 2026', ''],
+      // A draft was never published: the cell is blank, with its words for screen readers only (L1).
+      ['Draft', 'Customer Success Lead', 'Manchester, UK', 'Full-time', 'Not published', 'Oct 19, 2026', ''],
       ['Open', 'Senior .NET Engineer', 'Remote (GB, IE)', 'Full-time', 'Oct 18, 2026', 'Oct 18, 2026', ''],
     ]);
     expect(screen.getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/jobs/${jobs[1]!.id}`);
@@ -168,6 +169,16 @@ describe('jobs page', () => {
 });
 
 describe('jobs page actions', () => {
+  it('opens Edit details from the row menu as a link, before the action that changes the job (A5)', async () => {
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json(jobs) })));
+    renderPage();
+
+    const menu = await openRowMenu('Customer Success Lead');
+
+    expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Edit details', 'Publish to every board']);
+    expect(within(menu).getByRole('menuitem', { name: 'Edit details' })).toHaveAttribute('href', `/jobs/${jobs[0]!.id}/edit`);
+  });
+
   it('publishes a draft from its row menu and refetches the list', async () => {
     const url = `/v1/jobs/${jobs[0]!.id}/publish`;
     const fetchMock = vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json(jobs), [`POST ${url}`]: () => Response.json({}) }));

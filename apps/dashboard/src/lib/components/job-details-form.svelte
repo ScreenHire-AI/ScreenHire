@@ -135,7 +135,7 @@
 </script>
 
 <form method="POST" use:enhance novalidate aria-label="Edit job details">
-  <Panel title="Details">
+  <Panel title="Edit details">
     <div class="@container flex flex-col gap-4">
       <Field.Field data-invalid={$errors.title ? true : undefined}>
         <Field.Label for="job-title">Title</Field.Label>
@@ -243,6 +243,9 @@
       <div class="flex flex-wrap items-center justify-end gap-2">
         {#if $errors._errors}
           <FailureText message={$errors._errors[0]} class="mr-auto" />
+        {:else if job.status === 'Open'}
+          <!-- How far Save reaches, before it is pressed: the careers page is live, the other boards wait (E3). -->
+          <p class="mr-auto text-muted-foreground">Saving updates the careers page now. Publish again to update the other boards.</p>
         {/if}
         <Button href={cancelHref} variant="outline" size="lg">Cancel</Button>
         <Button type="submit" size="lg" disabled={$submitting}><SaveIcon aria-hidden="true" />Save details</Button>

@@ -41,6 +41,7 @@
   import WorkflowTabs from '#lib/components/workflow/workflow-tabs.svelte';
   import { createHistoryPages } from '#lib/history-pages.svelte.js';
   import { describeError, invalidatePath } from '#lib/query.js';
+  import { jobStatus } from '#lib/job-status.js';
   import { jobsPath } from '#lib/realtime.js';
   import { cn } from '#lib/utils.js';
   import { createWorkflowDraft } from '#lib/workflow-draft.svelte.js';
@@ -139,7 +140,7 @@
 </script>
 
 <svelte:head>
-  <title>Workflow: {detail?.title ?? 'Job'} · ScreenHire</title>
+  <title>{detail?.title ?? 'Job'} workflow · ScreenHire</title>
 </svelte:head>
 
 <TopBar
@@ -179,14 +180,14 @@
     <p class="sr-only" role="status">Loading the workflow…</p>
   {:else}
     <Tabs.Root bind:value={tab}>
-      <HeaderBand title={`Workflow: ${detail.title}`}>
+      <!-- The job's name and its status first, then the check on the workflow (S2, T2). What saving did goes in the band's
+           line under the title, so a long message never pushes the actions onto a second row (S8). -->
+      <HeaderBand title={`${detail.title} workflow`} details={notice || failure ? outcome : undefined}>
         {#snippet status()}
+          <StatusBadge {...jobStatus[detail.status]} />
           <ValidationBadge errors={draft.errors} checking={draft.checking} editable={!readonly} />
-          {#if readonly}<StatusBadge status="closed" label="Job closed" />{/if}
         {/snippet}
         {#snippet actions()}
-          <p role="status" class="text-muted-foreground empty:hidden">{notice}</p>
-          <FailureText message={failure} />
           <!-- The one primary action; a phone has it in the action bar (section 8). -->
           {#if !readonly && !sidebar.isMobile}{@render saveButton()}{/if}
           {#if draft.outdated}
@@ -255,6 +256,11 @@
     currentUserId={page.data.user?.id}
   />
 {/if}
+
+{#snippet outcome()}
+  <p role="status" class="text-muted-foreground empty:hidden">{notice}</p>
+  <FailureText message={failure} />
+{/snippet}
 
 {#snippet saveButton()}
   <Button size="lg" onclick={saveWorkflow} disabled={save.isPending}><SaveIcon aria-hidden="true" />Save workflow</Button>

@@ -1,5 +1,6 @@
 <script lang="ts">
   import BriefcaseIcon from '~icons/lucide/briefcase';
+  import PencilIcon from '~icons/lucide/pencil';
   import PlusIcon from '~icons/lucide/plus';
   import type { JobStatus, JobSummary } from '@screenhire/api-client';
   import { createListJobs, createPublishJob } from '@screenhire/api-client/svelte-query';
@@ -207,9 +208,7 @@
           <Empty.Header>
             <Empty.Media variant="icon"><BriefcaseIcon /></Empty.Media>
             <Empty.Title>{filtering ? 'No jobs match' : 'No jobs yet'}</Empty.Title>
-            <Empty.Description>
-              {filtering ? 'Nothing matches this search and status.' : 'A new job starts as a draft that only your team sees.'}
-            </Empty.Description>
+            {#if !filtering}<Empty.Description>A new job starts as a draft that only your team sees.</Empty.Description>{/if}
           </Empty.Header>
           <Empty.Content>
             {#if filtering}
@@ -225,7 +224,7 @@
             {@const job = row.original}
             <ListItem href={`/jobs/${job.id}`} title={job.title}>
               {#snippet status()}<StatusBadge {...jobStatus[job.status]} quiet />{/snippet}
-              {#snippet meta()}{@render published(job)}{/snippet}
+              {#snippet meta()}{#if job.publishedAt}<DateText at={job.publishedAt} />{/if}{/snippet}
               {#snippet facts()}
                 <!-- A long location is cut to the item's width, whole in its tooltip (F5). relative: above the item's
                      link, so the tooltip opens on tap. -->
@@ -314,7 +313,10 @@
 
 {#snippet locationCell(job: JobSummary)}<span class="relative block min-w-0"><TruncatedText text={job.location} /></span>{/snippet}
 
-{#snippet publishedCell(job: JobSummary)}<span class="relative">{@render published(job)}</span>{/snippet}
+<!-- A draft was never published, so its cell is blank, its words for screen readers only (L1). -->
+{#snippet publishedCell(job: JobSummary)}
+  {#if job.publishedAt}<span class="relative"><DateText at={job.publishedAt} /></span>{:else}<span class="sr-only">Not published</span>{/if}
+{/snippet}
 
 {#snippet updatedCell(job: JobSummary)}
   {#if job.lastUpdated.at}<span class="relative"><DateText at={job.lastUpdated.at} /></span>{/if}
@@ -328,16 +330,13 @@
   {/if}
 {/snippet}
 
-{#snippet published(job: JobSummary)}
-  {#if job.publishedAt}
-    <DateText at={job.publishedAt} />
-  {:else}
-    -
-  {/if}
-{/snippet}
-
 {#snippet rowMenu(job: JobSummary)}
   <MoreMenu label={`Actions for ${job.title}`} size="icon" quiet onclosed={onMenuClosed}>
+    <!-- Items that go to a page are links (A5). -->
+    <DropdownMenu.Item>
+      {#snippet child({ props })}<a {...props} href={`/jobs/${job.id}/edit`}><PencilIcon aria-hidden="true" />Edit details</a>{/snippet}
+    </DropdownMenu.Item>
+    <DropdownMenu.Separator />
     {#if job.status === 'Draft'}
       <DropdownMenu.Item disabled={busyJobId === job.id} onSelect={() => publishJob(job)}>Publish to every board</DropdownMenu.Item>
     {:else}

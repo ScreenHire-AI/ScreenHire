@@ -42,7 +42,13 @@ describe('edit job details page', () => {
     renderPage({ [`GET /v1/jobs/${jobId}`]: () => Response.json(job), [`PUT /v1/jobs/${jobId}`]: () => Response.json(job) });
 
     const form = await screen.findByRole('form', { name: 'Edit job details' });
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Edit job details');
+    // The header names the job and its status first (S2); the panel and the crumb say what the page does.
+    const band = document.querySelector<HTMLElement>('[data-slot=header-band]')!;
+    expect(within(band).getByRole('heading', { level: 1 })).toHaveTextContent(job.title);
+    expect(within(band).getByText('Open')).toHaveAttribute('data-slot', 'badge');
+    expect(screen.getByRole('region', { name: 'Edit details' })).toBeInTheDocument();
+    // Save says how far it reaches before it is pressed (E3).
+    expect(within(form).getByText('Saving updates the careers page now. Publish again to update the other boards.')).toBeInTheDocument();
     await fireEvent.input(within(form).getByLabelText('To'), { target: { value: '95000' } });
     await fireEvent.click(within(form).getByRole('button', { name: 'Save details' }));
 
