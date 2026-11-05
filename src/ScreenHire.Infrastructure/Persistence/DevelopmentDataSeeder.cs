@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Jobs;

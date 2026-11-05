@@ -1,4 +1,5 @@
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Publishing;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Expressions;
@@ -11,9 +12,9 @@ using Azure.Provisioning.Storage;
 /// Run mode never reaches this file; the local stack in AppHost.cs is unchanged.
 ///
 /// The output must not depend on the machine or the configuration it is generated on, because CI regenerates it and
-/// compares (the infra job). So every setting is a parameter that the deployment supplies, never a read of
-/// configuration, and every provider's parameters exist whether or not the provider is used. An empty value means the
-/// provider is not configured and stays hidden, as it does locally.
+/// compares (the infra job). So every setting is a Bicep parameter whose value comes in at deployment, from configuration
+/// (Parameters:{name}), and every provider's parameters exist whether or not the provider is used. An empty value means
+/// the provider is not configured and stays hidden, as it does locally.
 ///
 /// Left out of publish on purpose: Mailpit, Dev SSO and every sandbox (Development only), and the Caddy sites. The
 /// marketing site and the dashboard are static builds on Cloudflare Pages. No private endpoint, virtual network or
@@ -31,8 +32,12 @@ internal static class AzurePublish
         // (the app has no Entra token provider). The admin login is the table owner: only the migrator uses it.
         var adminLogin = builder.AddParameter("postgres-admin-login", "screenhire_owner", publishValueAsDefault: true);
         var adminPassword = builder.AddParameter("postgres-admin-password", secret: true);
+        // Aspire writes the admin's connection strings into a Key Vault and gives every app that uses the server a role on
+        // it, which would hand the API and worker the owner's password. So this vault is a separate one with no default
+        // roles: no app reads it.
+        var ownerVault = builder.AddAzureKeyVault("postgres-kv").ClearDefaultRoleAssignments();
         var postgres = builder.AddAzurePostgresFlexibleServer("postgres")
-            .WithPasswordAuthentication(adminLogin, adminPassword)
+            .WithPasswordAuthentication(ownerVault, adminLogin, adminPassword)
             .ConfigureInfrastructure(infrastructure =>
             {
                 var server = infrastructure.GetProvisionableResources().OfType<PostgreSqlFlexibleServer>().Single();
@@ -121,7 +126,7 @@ internal static class AzurePublish
         // provider unconfigured and hidden (every options class tests IsNullOrWhiteSpace).
         IResourceBuilder<ParameterResource> Required(string name) => builder.AddParameter(name);
         IResourceBuilder<ParameterResource> Optional(string name, string fallback = "") =>
-            builder.AddParameter(name, fallback, publishValueAsDefault: true);
+            builder.AddParameter(name, new FallbackValue(fallback));
         IResourceBuilder<ParameterResource> Secret(string name) => builder.AddParameter(name, secret: true);
 
         // Secrets the apps cannot start without. They go into the vault under their configuration key, with two dashes for each
@@ -137,14 +142,17 @@ internal static class AzurePublish
         var api = builder.AddProject<Projects.ScreenHire_Api>("api")
             .WithReference(appDatabase)
             .WithReference(blobs)
+            .WithRoleAssignments(storage, StorageRoles)
             .WithReference(vault)
             .WithRoleAssignments(vault, VaultRoles)
             // The API reads X-Forwarded-For once, itself, from the proxies it is told to trust (AuthenticationSetup). This switch
             // makes ASP.NET Core read forwarded headers a second time, from any sender, before that.
             .WithEnvironment("ASPNETCORE_FORWARDEDHEADERS_ENABLED", "false")
             .WithExternalHttpEndpoints()
-            .WithHttpProbe(ProbeType.Liveness, "/alive")
-            .WithHttpProbe(ProbeType.Readiness, "/health")
+            // Aspire's defaults (5 seconds' delay, 1 second's timeout) would restart a container still starting: it reads the
+            // vault and compiles Wolverine's handlers on half a vCPU, and /health queries a Burstable server.
+            .WithHttpProbe(ProbeType.Liveness, "/alive", initialDelaySeconds: 60, timeoutSeconds: 3)
+            .WithHttpProbe(ProbeType.Readiness, "/health", timeoutSeconds: 5)
             .PublishAsAzureContainerApp((infrastructure, app) =>
             {
                 // One replica: the SignalR hub is in-process and one consumer reads the real-time queue (realtime.md).
@@ -154,6 +162,7 @@ internal static class AzurePublish
         var worker = builder.AddProject<Projects.ScreenHire_Worker>("worker")
             .WithReference(appDatabase)
             .WithReference(blobs)
+            .WithRoleAssignments(storage, StorageRoles)
             .WithReference(vault)
             .WithRoleAssignments(vault, VaultRoles)
             .PublishAsAzureContainerApp((infrastructure, app) =>
@@ -235,11 +244,23 @@ internal static class AzurePublish
             .WithEnvironment("ScreenHire__Verification__Llm__ConsistencyModel", Optional("verification-llm-consistency-model"));
     }
 
+    // The value of a parameter when configuration has none. AddParameter's string overload would not do: it sets the value
+    // and never reads Parameters:{name}, so a deployment could not set the parameter at all.
+    private sealed class FallbackValue(string value) : ParameterDefault
+    {
+        public override string GetDefaultValue() => value;
+
+        public override void WriteToManifest(ManifestPublishingContext context) => context.Writer.WriteString("value", value);
+    }
+
     // A raw string literal keeps the line endings of the source file, and the Bicep must not depend on which checkout wrote it.
     private static string Lf(string text) => text.Replace("\r\n", "\n", StringComparison.Ordinal);
 
     // Read the vault's secrets into configuration at start, and use its key to protect the Data Protection key ring.
     private static readonly KeyVaultBuiltInRole[] VaultRoles = [KeyVaultBuiltInRole.KeyVaultSecretsUser, KeyVaultBuiltInRole.KeyVaultCryptoUser];
+
+    // Blobs only, in place of Aspire's default of table and queue roles too. It also lets the API sign user-delegation SAS links.
+    private static readonly StorageBuiltInRole[] StorageRoles = [StorageBuiltInRole.StorageBlobDataContributor];
 
     private static void Size(ContainerApp app, int minReplicas, int maxReplicas, double cpu, string memory)
     {

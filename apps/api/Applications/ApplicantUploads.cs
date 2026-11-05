@@ -20,8 +20,8 @@ namespace ScreenHire.Api.Applications;
 /// A blob's name is <c>{organizationId}/{jobId}/{questionId}/{uploadId}/{fileName}</c>. Every lookup builds the prefix
 /// from the organization and job in the route, so an upload id from another organization or job is simply not found.
 /// The link cannot cap the size of what is written, so <see cref="CheckAsync"/> deletes anything too large or of the
-/// wrong type, and uploads never claimed by an application are left to the container's lifecycle rule
-/// (docs/architecture/apply-flow.md).
+/// wrong type, and uploads never claimed by an application go in the worker's daily sweep,
+/// <c>PurgeExpiredApplicantUploads</c> (docs/architecture/apply-flow.md).
 /// </remarks>
 internal sealed class ApplicantUploads(BlobServiceClient blobs, IOptions<ApplyOptions> options, TimeProvider time)
 {

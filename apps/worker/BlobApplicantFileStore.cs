@@ -38,7 +38,11 @@ internal sealed class BlobApplicantFileStore(BlobServiceClient blobs, IConfigura
         var found = new List<StoredUploadBlob>();
         await foreach (var item in blobs.GetBlobContainerClient(container).GetBlobsAsync(BlobTraits.None, BlobStates.None, prefix, cancellationToken))
         {
-            found.Add(new StoredUploadBlob(item.Name, item.Properties.CreatedOn ?? DateTimeOffset.UtcNow));
+            // A blob with no creation time is left out, so the sweep never counts it as old.
+            if (item.Properties.CreatedOn is { } createdOn)
+            {
+                found.Add(new StoredUploadBlob(item.Name, createdOn));
+            }
         }
 
         return found;

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using ScreenHire.Infrastructure.Hosting;
 
 namespace ScreenHire.Api.Configuration;
 
@@ -44,8 +45,7 @@ public sealed class AuthOptions
     public int ForwardLimit { get; set; } = 1;
 
     /// <summary>The proxies as single entries: <see cref="TrustedProxies"/> split on commas, blanks dropped.</summary>
-    public IEnumerable<string> TrustedProxyEntries() => TrustedProxies
-        .SelectMany(entry => entry.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
+    public IEnumerable<string> TrustedProxyEntries() => ProductionSettings.TrustedProxyEntries(TrustedProxies);
 }
 
 public sealed class OidcClientOptions

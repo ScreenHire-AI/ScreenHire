@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using ScreenHire.Infrastructure.Persistence;
 
 namespace ScreenHire.Infrastructure.Hosting;
 
@@ -21,8 +22,6 @@ public static class ProductionSettings
 {
     /// <summary>The shortest device hash key accepted (<c>ScreenHire:Verification:DeviceHashKey</c>).</summary>
     public const int MinimumDeviceHashKeyLength = 32;
-
-    private const string DataProtectionKeySetting = "ScreenHire:DataProtection:KeyVaultKeyUri";
 
     /// <summary>
     /// Stops the host with one message naming every problem, unless it is running in Development, where the AppHost
@@ -59,7 +58,7 @@ public static class ProductionSettings
         // Explicitly allowing the key ring to stay unencrypted is for a test stack that runs as Production; a deployment sets the key.
         if (!(bool.TryParse(configuration["ScreenHire:DataProtection:AllowUnprotectedKeys"], out var allowUnprotected) && allowUnprotected))
         {
-            Require(configuration, problems, DataProtectionKeySetting, "the Key Vault key that protects the Data Protection key ring");
+            Require(configuration, problems, DataProtectionRegistration.KeyVaultKeyUriSetting, "the Key Vault key that protects the Data Protection key ring");
         }
 
         if (kind == HostKind.Api)
@@ -71,8 +70,7 @@ public static class ProductionSettings
                     + "device duplicates are not checked.");
             }
 
-            if (!configuration.GetSection("ScreenHire:Auth:TrustedProxies").GetChildren().Any(proxy =>
-                    proxy.Value?.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Length > 0))
+            if (!TrustedProxyEntries(configuration.GetSection("ScreenHire:Auth:TrustedProxies").GetChildren().Select(proxy => proxy.Value)).Any())
             {
                 problems.Add("ScreenHire:Auth:TrustedProxies is empty (parameter auth-trusted-proxies): behind the platform's ingress "
                     + "every visitor would share one rate-limit bucket.");
@@ -92,6 +90,13 @@ public static class ProductionSettings
         Off(configuration, problems, "ScreenHire:Distribution:Sandbox:Enabled");
         return problems;
     }
+
+    /// <summary>
+    /// The trusted proxies as single entries. A configured entry may list several separated by commas, because one
+    /// environment variable carries them. Blanks are dropped.
+    /// </summary>
+    public static IEnumerable<string> TrustedProxyEntries(IEnumerable<string?> entries) => entries
+        .SelectMany(entry => (entry ?? "").Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
 
     private static void Require(IConfiguration configuration, List<string> problems, string key, string what, bool inVault = false)
     {

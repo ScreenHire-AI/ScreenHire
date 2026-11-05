@@ -13,8 +13,7 @@ namespace ScreenHire.IntegrationTests.Production;
 /// "Deploy prerequisites"): it migrates, gives the application role its login and provisions Wolverine's tables before the
 /// API starts. Production has no <c>appsettings.Development.json</c>, so the fixture gives the domains a deployment would
 /// (example.com placeholders), and it leaves out Dev SSO's plain-http authority, which the API refuses outside
-/// Development. The worker is left out. Production maps
-/// <c>/health</c> now, but this stack still waits on nothing: the API needs no healthy wait to answer the tests.
+/// Development. The worker is left out, and nothing waits for the API to report healthy before the tests start.
 /// </summary>
 public sealed class ProductionApiFixture : AppHostFixture
 {

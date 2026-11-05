@@ -46,6 +46,14 @@ module aca 'aca/aca.bicep' = {
   }
 }
 
+module postgres_kv 'postgres-kv/postgres-kv.bicep' = {
+  name: 'postgres-kv'
+  scope: rg
+  params: {
+    location: location
+  }
+}
+
 module postgres 'postgres/postgres.bicep' = {
   name: 'postgres'
   scope: rg
@@ -54,14 +62,6 @@ module postgres 'postgres/postgres.bicep' = {
     administratorLogin: postgres_admin_login
     administratorLoginPassword: postgres_admin_password
     postgres_kv_outputs_name: postgres_kv.outputs.name
-  }
-}
-
-module postgres_kv 'postgres-kv/postgres-kv.bicep' = {
-  name: 'postgres-kv'
-  scope: rg
-  params: {
-    location: location
   }
 }
 
@@ -102,32 +102,22 @@ module api_identity 'api-identity/api-identity.bicep' = {
   }
 }
 
-module api_roles_vault 'api-roles-vault/api-roles-vault.bicep' = {
-  name: 'api-roles-vault'
-  scope: rg
-  params: {
-    location: location
-    vault_outputs_name: vault.outputs.name
-    principalId: api_identity.outputs.principalId
-  }
-}
-
-module api_roles_postgres_kv 'api-roles-postgres-kv/api-roles-postgres-kv.bicep' = {
-  name: 'api-roles-postgres-kv'
-  scope: rg
-  params: {
-    location: location
-    postgres_kv_outputs_name: postgres_kv.outputs.name
-    principalId: api_identity.outputs.principalId
-  }
-}
-
 module api_roles_storage 'api-roles-storage/api-roles-storage.bicep' = {
   name: 'api-roles-storage'
   scope: rg
   params: {
     location: location
     storage_outputs_name: storage.outputs.name
+    principalId: api_identity.outputs.principalId
+  }
+}
+
+module api_roles_vault 'api-roles-vault/api-roles-vault.bicep' = {
+  name: 'api-roles-vault'
+  scope: rg
+  params: {
+    location: location
+    vault_outputs_name: vault.outputs.name
     principalId: api_identity.outputs.principalId
   }
 }
@@ -140,32 +130,22 @@ module worker_identity 'worker-identity/worker-identity.bicep' = {
   }
 }
 
-module worker_roles_vault 'worker-roles-vault/worker-roles-vault.bicep' = {
-  name: 'worker-roles-vault'
-  scope: rg
-  params: {
-    location: location
-    vault_outputs_name: vault.outputs.name
-    principalId: worker_identity.outputs.principalId
-  }
-}
-
-module worker_roles_postgres_kv 'worker-roles-postgres-kv/worker-roles-postgres-kv.bicep' = {
-  name: 'worker-roles-postgres-kv'
-  scope: rg
-  params: {
-    location: location
-    postgres_kv_outputs_name: postgres_kv.outputs.name
-    principalId: worker_identity.outputs.principalId
-  }
-}
-
 module worker_roles_storage 'worker-roles-storage/worker-roles-storage.bicep' = {
   name: 'worker-roles-storage'
   scope: rg
   params: {
     location: location
     storage_outputs_name: storage.outputs.name
+    principalId: worker_identity.outputs.principalId
+  }
+}
+
+module worker_roles_vault 'worker-roles-vault/worker-roles-vault.bicep' = {
+  name: 'worker-roles-vault'
+  scope: rg
+  params: {
+    location: location
+    vault_outputs_name: vault.outputs.name
     principalId: worker_identity.outputs.principalId
   }
 }

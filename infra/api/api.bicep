@@ -101,10 +101,10 @@ resource api 'Microsoft.App/containerApps@2025-10-02-preview' = {
                 port: int(api_containerport)
                 scheme: 'HTTP'
               }
-              initialDelaySeconds: 5
+              initialDelaySeconds: 60
               periodSeconds: 5
               successThreshold: 1
-              timeoutSeconds: 1
+              timeoutSeconds: 3
               type: 'Liveness'
             }
             {
@@ -117,7 +117,7 @@ resource api 'Microsoft.App/containerApps@2025-10-02-preview' = {
               initialDelaySeconds: 5
               periodSeconds: 5
               successThreshold: 1
-              timeoutSeconds: 1
+              timeoutSeconds: 5
               type: 'Readiness'
             }
           ]

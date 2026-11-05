@@ -79,7 +79,7 @@ if (builder.ExecutionContext.IsPublishMode)
     return;
 }
 
-var settings =builder.Configuration.GetSection("ScreenHire");
+var settings = builder.Configuration.GetSection("ScreenHire");
 var persistData = !bool.TryParse(settings["PersistData"], out var persist) || persist;
 var pinPorts = !bool.TryParse(settings["PinPorts"], out var pin) || pin;
 var frontends = settings["Frontends"] is not { } frontendsSetting

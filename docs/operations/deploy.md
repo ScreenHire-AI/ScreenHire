@@ -29,7 +29,7 @@ Expect to correct a flag or two on the first pass and fix this page when you do.
 | Careers site | Container Apps, external ingress, 1 to 2 replicas | 0.25 vCPU, 0.5 GiB |
 | Database | PostgreSQL Flexible Server 17, Burstable B1ms, 32 GB, 7-day backups, password login, `pg_trgm` allowed | |
 | Files | Blob Storage, locally redundant, three private containers, CORS for the browser's direct uploads | |
-| Secrets and keys | Key Vault: required secrets, the Data Protection key | |
+| Secrets and keys | Key Vault: required secrets, the Data Protection key. A second vault (`postgreskv-...`) holds the Postgres owner's connection strings, which Aspire writes there. No app has a role on it. | |
 | Images | Azure Container Registry (Basic), created by the Container Apps environment | |
 | Marketing and dashboard | Cloudflare Pages, built from this repository | |
 | Edge | Cloudflare in front of everything | |
@@ -43,7 +43,10 @@ Where this differs from ADR-0007:
 - Images live in Azure Container Registry (about $5 a month), not GitHub Container Registry.
 - The database has a password login, not Entra ID, because the API and worker sign in as `screenhire_app` with a password.
 - Log Analytics ingestion is a cost line. The Aspire dashboard on the Container Apps environment is off.
-- The server's firewall allows all Azure addresses (Aspire's default). Tighten it when you can name the ingress addresses.
+- The server's firewall allows all Azure addresses (Aspire's default), not a restricted list. Any resource in any Azure subscription can
+  reach the port, so the two passwords are all that stands in the way: generate them as below and keep them long. An app on Consumption
+  has no fixed outbound address to allow, and a virtual network is what ADR-0007 warns against. Decide this before real candidates
+  apply: the choice is this risk or the virtual network's cost.
 
 ## Files that matter
 
@@ -89,7 +92,7 @@ The file holds passwords. Keep it out of backups and delete it when the deployme
 
 | Parameter | What it is | Required |
 |---|---|---|
-| `postgres-admin-login`, `postgres-admin-password` | The server's owner login (default login `screenhire_owner`). Only the migrator uses it. | password |
+| `postgres-admin-password` | The password of the server's owner login. The login is fixed at `screenhire_owner` (setting `postgres-admin-login` does nothing). Only the migrator uses it. | yes |
 | `screenhire-app-password` | The password `screenhire_app` gets. The API and worker use it. | yes |
 | `domains-base-domain` | The company's own domain, for default From addresses | yes |
 | `domains-app-host` | The dashboard host, e.g. `app.example.org` | yes |
@@ -281,7 +284,8 @@ and worker start knowing only `screenhire_app`.
 
 ### 8. Providers
 
-Each is optional. Set its parameter, put its secret in the vault (step 4), then restart the apps so they read it:
+Each is optional. A changed parameter reaches the apps through a deploy, so after setting one run step 6 again. A secret in the vault
+(step 4) is read when an app starts, so if you changed only secrets, restart the apps:
 
 ```bash
 for app in api worker; do
@@ -382,6 +386,8 @@ That is the last resort. It loses everything written since that time.
   and `TorExitListFile` need a file mounted into the worker, generic `ScreenHire:Auth:Oidc:*` providers are not parameters (add
   them as environment variables of the API in `AzurePublish.cs` when a customer needs one), and
   `ScreenHire:ApiKeys:PermitsPerMinute` keeps its default, which is right for one API replica.
+- The owner login on Azure is not a superuser, unlike the local one, so `FORCE ROW LEVEL SECURITY` binds it. A migration that changes
+  rows has to lift it (`/add-migration` says how). One that forgets passes locally and updates no rows here, with no error.
 - Do not add a one-day lifecycle rule to the uploads container. An age rule cannot tell a claimed file from an unclaimed one and
   would delete every submitted resume. The worker's daily sweep (`PurgeExpiredApplicantUploads`, 03:47 UTC) removes uploads no
   application claimed, a day after they were made; its storage role is the one the worker already has.
