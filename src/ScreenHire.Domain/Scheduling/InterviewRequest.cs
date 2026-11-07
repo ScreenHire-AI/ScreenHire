@@ -331,12 +331,19 @@ public sealed class InterviewRequest : IApplicationScoped
     }
 
     /// <summary>
+    /// Whether the team's offer of new times still waits for the candidate at <paramref name="now"/>. The offered days end it:
+    /// after them there is nothing left to pick, and the booked time stands.
+    /// </summary>
+    public bool HasPendingNewTimes(DateTimeOffset now) =>
+        Status == InterviewStatus.Booked && NewTimesOfferedAt is not null && now < WindowEnd;
+
+    /// <summary>
     /// Whether the candidate may reschedule or cancel at <paramref name="now"/>: booked, and at least
-    /// <paramref name="minNotice"/> before the start. When the team has offered new times the candidate may always, because
-    /// the team asked for the move, even inside the notice or after the old time has passed.
+    /// <paramref name="minNotice"/> before the start. While new times are pending (<see cref="HasPendingNewTimes"/>) the
+    /// candidate may whatever the notice, because the team asked for the move, even after the old time has passed.
     /// </summary>
     public bool CanBeChangedByCandidate(DateTimeOffset now, TimeSpan minNotice) =>
-        Status == InterviewStatus.Booked && (NewTimesOfferedAt is not null || (StartsAt is { } starts && now <= starts - minNotice));
+        Status == InterviewStatus.Booked && (HasPendingNewTimes(now) || (StartsAt is { } starts && now <= starts - minNotice));
 
     /// <summary>Whether an interview starting at <paramref name="start"/> fits inside the window.</summary>
     public bool FitsWindow(DateTimeOffset start) => start >= WindowStart && start + Duration <= WindowEnd;

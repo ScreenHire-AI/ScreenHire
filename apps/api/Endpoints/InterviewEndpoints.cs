@@ -390,5 +390,5 @@ internal static class InterviewEndpoints
             interview.CreatedAt,
             interview.CreatedByUserId,
             interview.CancelledByCandidate,
-            interview.NewTimesOfferedAt);
+            interview.HasPendingNewTimes(now) ? interview.NewTimesOfferedAt : null);
 }

@@ -9,10 +9,12 @@ import {
   durationLabel,
   newTimesSchema,
   scheduleSchema,
+  timeLabel,
   timeOptions,
   timeZoneOptions,
   toggleInterviewer,
   windowInstants,
+  zoneLabel,
   zonedMidnight,
 } from '#lib/schedule-interview.js';
 
@@ -184,6 +186,14 @@ describe('what the selects offer', () => {
     expect(newYork?.label).toMatch(/^New York \(.+\)$/);
     expect(options.some((option) => option.value === 'UTC')).toBe(true);
     expect(options.some((option) => option.value === 'Asia/Kolkata')).toBe(true);
+  });
+
+  it('words a zone and a time of day as the selects do', () => {
+    expect(zoneLabel('America/New_York')).toBe('New York (Eastern Time)');
+    expect(zoneLabel('UTC')).toMatch(/^UTC/);
+    expect(zoneLabel('Not/A_Zone')).toBe('A Zone');
+    expect(timeLabel('09:00')).toBe('9:00 AM');
+    expect(timeLabel('09:15')).toBe('09:15');
   });
 
   it('words the lengths', () => {

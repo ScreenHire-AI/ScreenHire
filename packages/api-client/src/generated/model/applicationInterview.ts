@@ -14,7 +14,8 @@ import type { InterviewStatus } from './interviewStatus.ts';
  * been booked. `meetingUrl` is the organizer's Meet or Teams link, once their event made it. `cancelledByCandidate`
  * is true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.
  * `newTimesOfferedAt` is set while the team's offer of new times for a booked interview waits for the candidate: the
- * booked time (`startsAt`) stays held, and `windowStart` and `windowEnd` are the new window.
+ * booked time (`startsAt`) stays held, and `windowStart` and `windowEnd` are the new window. The end of that
+ * window ends the offer.
  */
 export interface ApplicationInterview {
   id: string;

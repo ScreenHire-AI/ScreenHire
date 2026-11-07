@@ -41,7 +41,8 @@ public sealed record InterviewParticipant(Guid UserId, string DisplayName, bool 
 /// been booked. <c>meetingUrl</c> is the organizer's Meet or Teams link, once their event made it. <c>cancelledByCandidate</c>
 /// is true when the candidate cancelled it. <c>createdByUserId</c> is null when a workflow action offered it.
 /// <c>newTimesOfferedAt</c> is set while the team's offer of new times for a booked interview waits for the candidate: the
-/// booked time (<c>startsAt</c>) stays held, and <c>windowStart</c> and <c>windowEnd</c> are the new window.
+/// booked time (<c>startsAt</c>) stays held, and <c>windowStart</c> and <c>windowEnd</c> are the new window. The end of that
+/// window ends the offer.
 /// </summary>
 public sealed record ApplicationInterview(
     Guid Id,
@@ -91,8 +92,8 @@ public enum PublicInterviewState
 /// the zone the team chose). <c>slotsUnavailable</c> is true when the team's calendars could not be read just now, so no
 /// times are offered; trying again later may work. <c>minNoticeHours</c> is how long before the start the candidate can
 /// still move or cancel. <c>newTimesOffered</c> is true while the team's offer of new times waits for the candidate: the
-/// booked time stays until they pick, and they may move or cancel it whatever the notice. Nothing about the interviewers,
-/// and nothing from verification.
+/// booked time stays until they pick, and they may move or cancel it whatever the notice, until the offered days end.
+/// Nothing about the interviewers, and nothing from verification.
 /// </summary>
 public sealed record PublicInterview(
     PublicOrganization Organization,

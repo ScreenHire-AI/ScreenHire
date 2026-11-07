@@ -285,10 +285,12 @@ An offer is not a change to the booking, so it leaves `StartsAt`, `Revision`, th
 just after a booking must not turn the booking's still-queued `CreateInterviewEvents` into a no-op. The old time stays held
 for the same reason a booking is: its row is still Booked, so nobody else is offered it, and its events are still on the
 calendars. The interview keeps its reminders too, because they are about the booked time. If the candidate never picks, the
-interview stays at that time. Nothing ends an offer by the clock.
+interview stays at that time. The end of the offered days ends the offer: nothing is left to pick, so the page and the panel
+stop saying new times wait, and the usual notice applies again (`HasPendingNewTimes`).
 
 While an offer is pending the candidate may move or cancel the interview whatever the minimum notice, even after the old
-time has passed, because the team asked for the move (`CanBeChangedByCandidate`). The pick is the ordinary reschedule route:
+time has passed, because the team asked for the move (`CanBeChangedByCandidate`). New days can end before the booked time,
+so a link issued for a booked interview reads until the later of the two, plus the usual 30 days. The pick is the ordinary reschedule route:
 the same `UpdateInterviewEvents` moves each interviewer's event, the candidate gets `interview-confirmation` for the new
 time, the new time gets its own reminders, and `Reschedule` clears `NewTimesOfferedAt`. Cancelling clears it too.
 
@@ -408,7 +410,8 @@ and a move back to the same time is the same reminder.
 - **Every interviewer** gets an email for `DayBefore` only, in ScreenHire's own wording (`InterviewReminderEmail`, like the mention
   email, not a template an organization edits): the candidate's name, the job, the time in the interview's zone, the meeting
   link and a link to the application. `InterviewAttendee.RemindedForStart` records the start it was sent for, so a redelivery
-  sends nothing and a move starts again. A member who has left, or no longer sees the job (ADR-0015), is skipped.
+  sends nothing and a move starts again. The interviewers' emails and the candidate's commit together, so a failed send repeats
+  on retry the ones already sent in that attempt. A member who has left, or no longer sees the job (ADR-0015), is skipped.
 
 The email goes before its record commits, so a crash between the two can repeat one email once, as with the other emails.
 A worker that was down at the due time sends the reminder when it returns, unless the interview has started by then.

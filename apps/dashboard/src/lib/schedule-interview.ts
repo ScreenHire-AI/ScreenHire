@@ -212,6 +212,9 @@ export const timeOptions: { value: string; label: string }[] = (() => {
   });
 })();
 
+/** A time of day as the From and To selects word it, or as it came when it is off their half-hour steps. */
+export const timeLabel = (value: string): string => timeOptions.find((time) => time.value === value)?.label ?? value;
+
 export const defaultDayStart = '09:00';
 export const defaultDayEnd = '17:00';
 
@@ -222,6 +225,18 @@ export const durationLabel = (minutes: number): string =>
 let zones: { value: string; label: string }[] | undefined;
 let zonesFor = '';
 
+/** A zone as the Time zone select words it: its place and its common name, or the place alone (W8). */
+export function zoneLabel(value: string): string {
+  let name = '';
+  try {
+    name = new Intl.DateTimeFormat(locales, { timeZone: value, timeZoneName: 'longGeneric' }).formatToParts(new Date(0)).find((part) => part.type === 'timeZoneName')?.value ?? '';
+  } catch {
+    // The id stays as its own label.
+  }
+  const place = value === 'UTC' ? 'UTC' : value.split('/').pop()!.replaceAll('_', ' ');
+  return name && name !== place ? `${place} (${name})` : place;
+}
+
 /**
  * Every zone the browser knows, by its place and its common name ("New York (Eastern Time)", W8), sorted by place, with
  * the IANA id as the value. `current` stays in the list even if the browser's own list leaves it out.
@@ -231,16 +246,7 @@ export function timeZoneOptions(current: string = zoneName()): { value: string; 
   const known: string[] = typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : [];
   const ids = new Set([...known, 'UTC', ...(knowsZone(current) ? [current] : [])]);
   zones = [...ids]
-    .map((value) => {
-      let name = '';
-      try {
-        name = new Intl.DateTimeFormat(locales, { timeZone: value, timeZoneName: 'longGeneric' }).formatToParts(new Date(0)).find((part) => part.type === 'timeZoneName')?.value ?? '';
-      } catch {
-        // The id stays as its own label.
-      }
-      const place = value === 'UTC' ? 'UTC' : value.split('/').pop()!.replaceAll('_', ' ');
-      return { value, label: name && name !== place ? `${place} (${name})` : place };
-    })
+    .map((value) => ({ value, label: zoneLabel(value) }))
     .toSorted((a, b) => a.label.localeCompare(b.label, locales));
   zonesFor = current;
   return zones;

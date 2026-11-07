@@ -127,7 +127,7 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
         InterviewLink().IsMatch((await WaitForEmailAsync(scene.Candidate, "New times to talk")).Text).Should().BeTrue();
         await Page.GotoAsync(scene.Link);
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("The team offered new times");
-        await Expect(Page.Locator("main")).ToContainTextAsync("would like to find another time. Your booked time stays until you pick a new one, and you can keep it.");
+        await Expect(Page.Locator("main")).ToContainTextAsync("Your booked time stays until you pick a new one, and you can keep it.");
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Your time" })).ToBeVisibleAsync();
         (await Page.Locator("script:not([type='application/ld+json'])").CountAsync()).Should().Be(0, "the page ships no JavaScript");
         await ExpectNoAccessibilityViolationsAsync();

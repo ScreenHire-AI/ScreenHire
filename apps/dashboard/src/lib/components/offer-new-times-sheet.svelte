@@ -14,7 +14,7 @@
   import { applyValidationProblem } from '#lib/forms.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { applicationsPath } from '#lib/realtime.js';
-  import { defaultDays, durationLabel, newTimesSchema, windowInstants } from '#lib/schedule-interview.js';
+  import { defaultDays, durationLabel, newTimesSchema, timeLabel, windowInstants, zoneLabel } from '#lib/schedule-interview.js';
   import { cn } from '#lib/utils.js';
 
   // Offer new times (docs/architecture/interview-scheduling.md), in a sheet (design system section 9): the days the candidate may
@@ -87,7 +87,7 @@
   <Sheet.Content side="right" class="w-full overflow-y-auto data-[side=right]:sm:max-w-xl">
     <Sheet.Header>
       <Sheet.Title>Offer new times</Sheet.Title>
-      <Sheet.Description>{candidateName} gets a link to pick another time. The booked time stays until they do.</Sheet.Description>
+      <Sheet.Description>{candidateName} gets a link to pick another time.</Sheet.Description>
     </Sheet.Header>
     <form method="POST" use:enhance novalidate class="flex flex-col gap-5 px-4 pb-4" data-offer-new-times>
       <div class="grid gap-5 sm:grid-cols-2">
@@ -117,8 +117,8 @@
         </Field.Field>
       </div>
       <p class="min-w-0 break-words text-muted-foreground">
-        Days are in {interview.timeZone}, from {interview.dayStart} to {interview.dayEnd} on weekdays, {durationLabel(interview.durationMinutes)} long, as before. If
-        they never pick, the interview stays where it is.
+        Same hours as before: {timeLabel(interview.dayStart)} to {timeLabel(interview.dayEnd)} on weekdays, {zoneLabel(interview.timeZone)}, {durationLabel(interview.durationMinutes)}.
+        The booked time stays until they pick.
       </p>
       <FailureText message={$errors._errors?.[0]} />
       <div class="flex justify-end gap-2">

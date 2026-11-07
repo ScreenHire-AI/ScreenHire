@@ -283,6 +283,9 @@ public sealed class InterviewRequestTests
 
         request.CanBeChangedByCandidate(inside, notice).Should().BeTrue("the team asked for the move");
         request.CanBeChangedByCandidate(starts.AddHours(1), notice).Should().BeTrue("even after the old time has passed");
+        request.HasPendingNewTimes(Now.AddDays(17).AddMinutes(-1)).Should().BeTrue();
+        request.HasPendingNewTimes(Now.AddDays(17)).Should().BeFalse("the offered days are over");
+        request.CanBeChangedByCandidate(Now.AddDays(17), notice).Should().BeFalse("with the offer over, the old time has passed");
 
         var picked = Now.AddDays(11).AddHours(1);
         request.Reschedule(picked, inside);
@@ -295,6 +298,21 @@ public sealed class InterviewRequestTests
         other.OfferNewTimes(Now.AddDays(10), Now.AddDays(17), Now);
         other.Cancel(Now, byCandidate: true);
         other.NewTimesOfferedAt.Should().BeNull();
+    }
+
+    [Fact]
+    public void Offered_days_that_end_before_the_booked_time_end_the_offer_and_the_usual_notice_applies()
+    {
+        var notice = TimeSpan.FromHours(24);
+        var (_, request) = Requested();
+        var starts = WindowEnd.AddHours(-1);
+        request.Book(starts, Now);
+
+        request.OfferNewTimes(Now.AddHours(1), Now.AddDays(2), Now);
+
+        request.HasPendingNewTimes(Now.AddDays(2)).Should().BeFalse();
+        request.CanBeChangedByCandidate(Now.AddDays(2), notice).Should().BeTrue("the booked time is still more than the notice away");
+        request.CanBeChangedByCandidate(starts - TimeSpan.FromHours(2), notice).Should().BeFalse("inside the notice, with no offer pending");
     }
 
     [Fact]

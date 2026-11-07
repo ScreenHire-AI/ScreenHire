@@ -14,8 +14,8 @@ import type { PublicOrganization } from './publicOrganization.ts';
  * the zone the team chose). `slotsUnavailable` is true when the team's calendars could not be read just now, so no
  * times are offered; trying again later may work. `minNoticeHours` is how long before the start the candidate can
  * still move or cancel. `newTimesOffered` is true while the team's offer of new times waits for the candidate: the
- * booked time stays until they pick, and they may move or cancel it whatever the notice. Nothing about the interviewers,
- * and nothing from verification.
+ * booked time stays until they pick, and they may move or cancel it whatever the notice, until the offered days end.
+ * Nothing about the interviewers, and nothing from verification.
  */
 export interface PublicInterview {
   organization: PublicOrganization;

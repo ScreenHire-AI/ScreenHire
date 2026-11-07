@@ -132,7 +132,7 @@ internal static class PublicInterviewEndpoints
             unavailable,
             canChange,
             calendar.Options.Interviews.MinNoticeHours,
-            status == InterviewStatus.Booked && interview.NewTimesOfferedAt is not null));
+            interview.HasPendingNewTimes(now)));
     }
 
     private static Task<Results<NoContent, NotFound, ProblemHttpResult>> BookPublicInterview(

@@ -125,7 +125,7 @@ const closed = !interview || state === 'Cancelled' || state === 'Expired';
         {
           newTimes && !changing && (
             <div class="mt-5">
-              <Notice kind="info" message={`${employer.name} would like to find another time. Your booked time stays until you pick a new one, and you can keep it.`} />
+              <Notice kind="info" message="Your booked time stays until you pick a new one, and you can keep it." />
             </div>
           )
         }

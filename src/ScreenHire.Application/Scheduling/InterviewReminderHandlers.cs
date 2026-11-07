@@ -126,8 +126,9 @@ public static class InterviewReminderEmail
 /// start time (<see cref="SendInterviewReminder"/>), so it sends only while the interview is still Booked at that time and
 /// has not begun. Idempotent in two layers beyond <c>[Deduplicated]</c>: the candidate's reminder is a timeline entry with
 /// an id derived from the interview, the kind and the start, and an interviewer's is
-/// <see cref="InterviewAttendee.RemindedForStart"/>. The email goes before the entry commits, so a crash between the two can
-/// repeat one email once, as with the other emails. An interviewer who has left, or no longer sees the job, is not emailed.
+/// <see cref="InterviewAttendee.RemindedForStart"/>. Each email goes before its record commits, and all of them commit
+/// together, so a failed send to one interviewer repeats on retry the reminders already sent in that attempt. An interviewer
+/// who has left, or no longer sees the job, is not emailed.
 /// </summary>
 public static partial class SendInterviewReminderHandler
 {

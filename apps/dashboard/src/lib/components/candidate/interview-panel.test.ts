@@ -239,8 +239,9 @@ describe('Interview panel', () => {
     });
 
     const dialog = await chooseOffer();
-    expect(dialog).toHaveTextContent('Casey Morgan gets a link to pick another time. The booked time stays until they do.');
-    expect(dialog).toHaveTextContent('Days are in America/New_York, from 09:00 to 17:00 on weekdays, 30 minutes long, as before.');
+    expect(dialog).toHaveTextContent('Casey Morgan gets a link to pick another time.');
+    expect(dialog).toHaveTextContent('Same hours as before: 9:00 AM to 5:00 PM on weekdays, New York (Eastern Time), 30 minutes.');
+    expect(dialog).toHaveTextContent('The booked time stays until they pick.');
     await fireEvent.input(within(dialog).getByLabelText('First day'), { target: { value: '2026-11-09' } });
     await fireEvent.input(within(dialog).getByLabelText('Last day'), { target: { value: '2026-11-13' } });
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Send new times' }));

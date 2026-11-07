@@ -145,7 +145,8 @@ public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : Browser
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Offer new times" }).ClickAsync();
         var offer = Page.GetByRole(AriaRole.Dialog, new() { Name = "Offer new times" });
         await Expect(offer).ToBeVisibleAsync();
-        await Expect(offer).ToContainTextAsync("Riley Chen gets a link to pick another time. The booked time stays until they do.");
+        await Expect(offer).ToContainTextAsync("Riley Chen gets a link to pick another time.");
+        await Expect(offer).ToContainTextAsync("The booked time stays until they pick.");
         await Expect(offer.GetByLabel("First day")).Not.ToHaveValueAsync("");
         await Page.Mouse.MoveAsync(0, 0);
         await Expect(Page.Locator("[data-slot=tooltip-content]")).ToHaveCountAsync(0);
