@@ -563,7 +563,7 @@ Every route is tenant-scoped (another organization's application is 404). No res
 | `POST .../verification/assessments/{assessmentId}/signals/{signalId}/undo-explanation` | takes an explanation back; only its author (403 otherwise), and only while the assessment is not dismissed |
 | `POST .../verification/notes` | a note on the application's verification or one assessment |
 | `POST .../verification/request-verification` | always 409 until phase 2 |
-| `GET /v1/organization/verification-settings` | the organization's settings (§10.11): the consistency check, the model and whether a key is saved (never the key), the budget and tokens used this month, the groups of checks, the default AI-use policy, the device check, the trusted domains and networks, and the alerts |
+| `GET /v1/organization/verification-settings` | the organization's settings (§10.11): the consistency check, the model and whether a key is saved (never the key; the model's address only for members with Edit settings, because its path can hold a token), the budget and tokens used this month, the groups of checks, the default AI-use policy, the device check, the trusted domains and networks, and the alerts |
 | `PUT /v1/organization/verification-settings` | replaces them (organization admins, in the dashboard's Hiring setup > Verification). A new or changed key, provider, address or model is tested first and refused with a field error when it fails |
 | `POST /v1/organization/verification-settings/llm/models` | lists the models a provider offers for a key, or says it offers no list |
 | `POST /v1/organization/verification-settings/llm/test` | one small request with the key and model; answers with a word, never the provider's text |
@@ -779,7 +779,8 @@ organization's own key: Anthropic, or any endpoint that speaks the OpenAI chat A
 organization types. One model id serves both steps of the check. The page lists the provider's own models through
 `.../llm/models` (Anthropic `/v1/models`, OpenAI-compatible `/models`) and takes a typed id when the provider offers no list;
 no model name is kept in the code. With an own key the budget does not apply and usage still shows, and the provider handles
-the data under the organization's own terms rather than ScreenHire's (docs/research/legal.md).
+the data under the organization's own terms rather than ScreenHire's (docs/research/legal.md). The candidate privacy page says the
+model comes from ScreenHire's provider or one the employer chose, and that the no-training promise covers only the first.
 
 The key is write-only. It is protected with Data Protection under a purpose per organization (`LlmKeys`), held in
 `verification_settings.protected_llm_api_key`, and appears in no response, log, problem body or History line (History keeps
@@ -787,7 +788,8 @@ a count of replacements and says "saved", "replaced" or "removed the API key"). 
 model is tested with one small request before the row is saved, whether or not the page's Test connection button ran. A new
 provider or address needs a new key, so a saved key is never sent to a new host. Going back to the included model erases the
 key. Every call goes through the same public-only HTTP handler webhooks use (`PublicOnlyHandler`: https, the connection
-refuses a non-public address, no redirects, no proxy), so an address someone typed cannot reach ScreenHire's own network. A key
+refuses a non-public address, no redirects, no proxy), so an address someone typed cannot reach ScreenHire's own network, and
+`ModelResponseLimit` fails an answer over 4 MB. A key
 that no longer decrypts makes the check unavailable, with a note that says to enter it again. The two outbound routes are rate
 limited like the sign-in routes.
 
@@ -796,8 +798,10 @@ limited like the sign-in routes.
 (`automation`, `behavioural`). A group that is off is not run: the pipeline writes the analyzer's run with no signals and the
 note "<Group> checks are turned off in this organization's settings", the consistency check is recorded as off so no source
 is sent to a model, and `checksNotRun` shows the reviewer which groups did not look. A re-check never runs a group that is off.
-Turning Form use off also stops the apply page collecting form telemetry (the form is issued no session token, and the careers page then skips the device fingerprint too; the API still decides at submit), and turning
-Duplicates off stops the device fingerprint, which feeds only that check. The ruleset is untouched: form use alone still never
+Turning Form use off stops the apply page collecting form telemetry: the form is issued no session token, ingest keeps nothing
+a page opened earlier still sends, and the submission drops what the page sent. The device fingerprint comes from the same page
+module, so the device basis is `Off` then too, no consent box shows, and the `duplicates` run says the device was not compared.
+Turning Duplicates off stops the device fingerprint as well, which feeds only that check. The ruleset is untouched: form use alone still never
 raises a level (§10.3) and nothing rejects on a verification signal.
 
 **Policy.** The default AI-use policy is what a job starts with when it does not start from a template; a template carries its
@@ -812,8 +816,8 @@ still counts. The run's note says what was left out. A network no wider than /16
 list holds 50 entries at most.
 
 **Alerts.** Each of two alerts goes by email, by Slack or both. Verification suggested goes once, when an application first
-reaches that level (not at each later stage of evidence), to members who hold Review verification and see the job. The budget
-alert goes once a month when the month's tokens pass 80% of the included-model budget (the month is kept on the settings row),
+reaches that level (not at each later stage of evidence, and not again if the level falls and returns), to members who hold Review verification and see the job. The budget
+alert goes once a month when the month's tokens pass 80% of the included-model budget (the handler claims the month on the settings row),
 to members who can edit settings; an own key never triggers it. Slack gets a direct message to a member who linked Slack, never
 a channel post, because a channel skips permission and job scoping. Neither carries a level, reason, evidence or candidate name:
 the email and the Slack message both name the job, say the application needs a closer look and link to it.
