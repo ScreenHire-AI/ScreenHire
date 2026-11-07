@@ -2,8 +2,9 @@
 // The page for any address that has no page, and for an organization that does not exist. Astro renders it in place of a
 // blank body whenever a page returns `new Response(null, { status: 404 })` (an unknown organization does, on every
 // route). It is the same page for a mistyped name and for an organization that was never here, and it names no
-// organization, so it cannot tell a visitor whether one exists. It carries no branding, no link into a board and no
-// script. Endpoints (`.ts` routes) keep their own bare 404.
+// organization, so it says nothing about whether one exists. It carries no branding, no link into a board and no
+// script. Endpoints (`.ts` routes) keep their own bare 404, and an existing organization's unknown or closed job keeps
+// its `JobUnavailable` page.
 import '../styles/global.css';
 ---
 

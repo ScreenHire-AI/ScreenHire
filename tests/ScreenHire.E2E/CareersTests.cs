@@ -82,14 +82,14 @@ public sealed class CareersTests(E2EFixture fixture) : BrowserTest(fixture)
         await ExpectNoAccessibilityViolationsAsync();
     }
 
-    // An unknown organization gets a neutral page, not a blank 404. It must read the same as any other address with no
-    // page, so a visitor cannot tell a mistyped name from an organization that was never here.
+    // An unknown organization gets a neutral page, not a blank 404, and it reads the same as an existing organization's
+    // address with no route. The page names nothing the visitor typed. A job's own 404 is JobUnavailable.
     [Theory]
     [InlineData("/no-such-organization")]
     [InlineData("/no-such-organization/jobs/anything")]
     [InlineData("/no-such-organization/privacy")]
     [InlineData("/brightwater/no-such-organization")]
-    public async Task Unknown_organization_gets_a_neutral_not_found_page(string path)
+    public async Task An_address_with_no_page_gets_a_neutral_not_found_page(string path)
     {
         var response = await OpenAsync("careers", path);
 
