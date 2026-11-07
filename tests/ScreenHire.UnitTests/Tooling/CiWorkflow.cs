@@ -6,7 +6,7 @@ namespace ScreenHire.UnitTests.Tooling;
 /// <summary>
 /// The rules <c>.github/</c> must keep, as checks over file text, so the tests run them on the repository and on the
 /// same files edited in memory. Every job runs on the pinned Ubuntu and has a timeout; <c>Gate</c> needs every test
-/// job; nothing reads a secret or runs on a self-hosted runner (the repository's logs are public, and a self-hosted
+/// job and <c>tested-tree</c>, and every job but those two answers to <c>tested-tree</c>; nothing reads a secret or runs on a self-hosted runner (the repository's logs are public, and a self-hosted
 /// runner would run any pull request's code); and the images CI pulls before the tests are the ones
 /// <c>apps/apphost/AppHost.cs</c> runs. <see cref="Problems"/> returns what breaks a rule, empty when nothing does.
 /// </summary>
@@ -16,12 +16,24 @@ internal static partial class CiWorkflow
 
     public const string CiPath = ".github/workflows/ci.yml";
 
-    /// <summary>Jobs outside the gate on purpose: the gate itself, and Lighthouse, which only reports.</summary>
-    public static readonly string[] OutsideGate = ["gate", "lighthouse"];
+    /// <summary>
+    /// The job that says whether a push to main landed a tree its pull request already tested
+    /// (<c>scripts/tested-tree.mjs</c>). The gate needs it for the answer, and every other job needs it to be skipped.
+    /// </summary>
+    public const string TestedTreeJob = "tested-tree";
+
+    /// <summary>What every job but <see cref="TestedTreeJob"/> and the gate must say, or it runs when its tree was tested.</summary>
+    public const string SkipCondition = "needs.tested-tree.outputs.tested != 'true'";
+
+    /// <summary>
+    /// Jobs outside the gate's list on purpose: the gate itself, Lighthouse, which only reports, and the job that decides
+    /// whether the others run.
+    /// </summary>
+    public static readonly string[] OutsideGate = ["gate", "lighthouse", TestedTreeJob];
 
     public sealed record Job(
         string Id, string? Name, IReadOnlyList<string> RunsOn, string? TimeoutMinutes, IReadOnlyList<string> Needs, string? If,
-        IReadOnlyList<string> Shard, IReadOnlyList<string> Shards);
+        IReadOnlyList<string> Shard, IReadOnlyList<string> Shards, IReadOnlyDictionary<string, string> Permissions);
 
     /// <summary>Every file under <c>.github/</c> in the repository, by its '/'-separated repo path.</summary>
     public static Dictionary<string, string> RepositoryGitHubFiles()
@@ -94,9 +106,10 @@ internal static partial class CiWorkflow
         else
         {
             var testJobs = jobs.Select(job => job.Id).Except(OutsideGate).Order(StringComparer.Ordinal).ToList();
-            if (!gate.Needs.Order(StringComparer.Ordinal).SequenceEqual(testJobs))
+            var gateNeeds = testJobs.Append(TestedTreeJob).Order(StringComparer.Ordinal).ToList();
+            if (!gate.Needs.Order(StringComparer.Ordinal).SequenceEqual(gateNeeds))
             {
-                problems.Add($"{CiPath}: gate needs [{string.Join(", ", gate.Needs)}], not every test job [{string.Join(", ", testJobs)}]");
+                problems.Add($"{CiPath}: gate needs [{string.Join(", ", gate.Needs)}], not every test job and {TestedTreeJob} [{string.Join(", ", gateNeeds)}]");
             }
 
             if (gate.Name != "Gate")
@@ -107,6 +120,39 @@ internal static partial class CiWorkflow
             if (gate.If?.Contains("always()", StringComparison.Ordinal) != true)
             {
                 problems.Add($"{CiPath}: the gate job must run with if: always(), or a failed job skips it and nothing fails");
+            }
+        }
+
+        if (jobs.SingleOrDefault(job => job.Id == TestedTreeJob) is not { } testedTree)
+        {
+            problems.Add($"{CiPath} has no '{TestedTreeJob}' job");
+        }
+        else
+        {
+            if (testedTree.If?.Contains("github.event_name == 'push'", StringComparison.Ordinal) != true)
+            {
+                problems.Add($"{CiPath}: the {TestedTreeJob} job must run only on a push, where a tree can already have been tested");
+            }
+
+            foreach (var scope in new[] { "checks", "contents", "pull-requests" })
+            {
+                if (!testedTree.Permissions.TryGetValue(scope, out var level) || level != "read")
+                {
+                    problems.Add($"{CiPath}: the {TestedTreeJob} job needs {scope}: read to read the pull request's checks");
+                }
+            }
+
+            // A job that does not wait for the answer, or ignores it, runs its tests on a tree that was already tested.
+            foreach (var job in jobs.Where(job => job.Id is not (TestedTreeJob or "gate")))
+            {
+                if (!job.Needs.Contains(TestedTreeJob))
+                {
+                    problems.Add($"{CiPath}: job '{job.Id}' does not need {TestedTreeJob}, so it cannot be skipped for a tested tree");
+                }
+                else if (job.If is null || !job.If.Contains(SkipCondition, StringComparison.Ordinal) || !job.If.Contains("!cancelled()", StringComparison.Ordinal))
+                {
+                    problems.Add($"{CiPath}: job '{job.Id}' must run with if: !cancelled() && {SkipCondition}");
+                }
             }
         }
 
@@ -145,7 +191,8 @@ internal static partial class CiWorkflow
                 Strings(Child(job, "needs")),
                 Scalar(Child(job, "if")),
                 Strings(Child(Child(Child(job, "strategy"), "matrix"), "shard")),
-                Strings(Child(Child(Child(job, "strategy"), "matrix"), "shards")));
+                Strings(Child(Child(Child(job, "strategy"), "matrix"), "shards")),
+                Permissions(Child(job, "permissions")));
         }).ToList();
     }
 
@@ -207,6 +254,13 @@ internal static partial class CiWorkflow
         node is YamlMappingNode mapping && mapping.Children.TryGetValue(new YamlScalarNode(key), out var child) ? child : null;
 
     private static string? Scalar(YamlNode? node) => (node as YamlScalarNode)?.Value;
+
+    private static Dictionary<string, string> Permissions(YamlNode? node) =>
+        node is YamlMappingNode mapping
+            ? mapping.Children
+                .Where(entry => entry.Key is YamlScalarNode && entry.Value is YamlScalarNode)
+                .ToDictionary(entry => ((YamlScalarNode)entry.Key).Value!, entry => ((YamlScalarNode)entry.Value).Value ?? "", StringComparer.Ordinal)
+            : [];
 
     private static List<string> Strings(YamlNode? node) => node switch
     {

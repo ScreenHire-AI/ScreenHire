@@ -6,7 +6,7 @@ tags: [adr, ci, testing, process, kangentic]
 ---
 # ADR-0020: The test gate runs on GitHub Actions, and agents run only fast checks and their own tests locally
 
-- **Status:** Accepted (2026-10-31)
+- **Status:** Accepted (2026-10-31), amended (2026-11-07)
 - **Deciders:** Owner, through task #80 on the board
 - **Amends:** ADR-0003's Lighthouse enforcement (report-only in CI until it is calibrated on the runners)
 - **Detail:** [`docs/process/testing.md`](../process/testing.md#continuous-integration),
@@ -61,6 +61,13 @@ one check, `Gate`. It made CI a second opinion. This decision makes it the gate.
 11. **This task could edit the process files** (`kangentic.json`, `.claude/settings.json` and the `verify`,
     `task-review`, `pull-request` and `merge-pull-request` skills), which `unattended-runs.md` normally forbids,
     because the change is about them.
+12. **A push to `main` skips its tests when a pull request already passed that tree.** Amended 2026-11-07, after the
+    overnight run: 15 pushes to `main` used 865 job-minutes, 28% of the night, and 8 of them carried a tree a pull
+    request run had passed; two overlapping runs fill the account's 40 running jobs and a third queues. The
+    `tested-tree` job (`scripts/tested-tree.mjs`) compares the pushed tree with the tree of the merged PR's head and
+    asks for a successful `Gate` there. Equal trees skip every other job, and `Gate` accepts the skip. Different trees
+    (a squash of a branch that was behind `main`), a direct push, a manual run and any doubt run everything. The trees
+    are compared, not the branch's age, because we squash and do not require up-to-date branches.
 
 ## Rejected options
 
@@ -84,3 +91,7 @@ one check, `Gate`. It made CI a second opinion. This decision makes it the gate.
   check `Gate` themselves. Making it a required check, without "Require branches to be up to date", is an owner
   action. With the up-to-date rule on, every merge after `main` moved would need another CI run, which decision 7
   avoids.
+- `main` no longer gets a second look at a flake on a tree a pull request already passed (decision 12). The one case
+  in the overnight run, `bbe200b`, was a test race that the next pull request run containing that code would have
+  shown, where a rerun once and the flake history handle it. What decision 7 leaves to the push run, two green branches
+  that break each other, always has a tree no pull request ran, so that push still runs in full.

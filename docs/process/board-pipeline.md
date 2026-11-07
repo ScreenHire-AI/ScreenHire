@@ -60,8 +60,8 @@ when its condition holds, alone, with nothing after it.
   and never merges.
 - **Merge** ([`merge-pull-request`](../../.claude/skills/merge-pull-request/SKILL.md)) requires `Gate` to be green on
   the PR's head and the PR to be mergeable, then squash-merges with `--match-head-commit`. It does not run CI again
-  when `main` has moved: the PR run already tested the head merged with `main`, and CI on every push to `main` is the
-  backstop. Only a conflict sends it back: merge `origin/main`, `pnpm verify:fast`, push, one CI run. Then it confirms
+  when `main` has moved: the PR run already tested the head merged with `main`, and CI on a push to `main` is the
+  backstop, except for a tree a PR already passed, which that run skips (ADR-0020, decision 12). Only a conflict sends it back: merge `origin/main`, `pnpm verify:fast`, push, one CI run. Then it confirms
   the merge commit is on `origin/main`, resets the worktree to `origin/main`, and fast-forwards the root checkout
   when it is on `main`.
 - **Done** removes the worktree and starts every task waiting on this one. Kangentic cuts new worktrees from
