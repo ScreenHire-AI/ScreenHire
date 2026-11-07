@@ -160,7 +160,7 @@
   <QuestionnaireBuilder bind:workflow {errors} />
 </Tabs.Content>
 <Tabs.Content value="simulate">
-  <SimulatePanel {workflow} onshow={showTested} />
+  <SimulatePanel {workflow} onshow={showTested} onadd={() => graphActions.add(null)} />
 </Tabs.Content>
 
 <Sheet.Root bind:open={drawerOpen}>

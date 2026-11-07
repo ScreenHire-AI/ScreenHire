@@ -9,6 +9,8 @@ sources:
   - resource: src/ScreenHire.Domain/Hiring/HiringTemplate.cs
   - resource: src/ScreenHire.Domain/Hiring/DefinitionValidator.cs
   - resource: apps/dashboard/src/lib/form-sections.ts
+  - resource: apps/dashboard/src/lib/simulate.ts
+  - resource: apps/dashboard/src/lib/components/workflow/guided-test.svelte
   - resource: src/ScreenHire.Domain/Hiring/FactSchema.cs
   - resource: src/ScreenHire.Domain/Hiring/SystemTemplates.cs
   - resource: src/ScreenHire.Domain/Automations/ApplicationTask.cs
@@ -283,8 +285,17 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   objective eligibility check, never AI use or an accommodation). The automation form offers "Send a questionnaire" and
   the "questionnaire answered" trigger's picker only when the workflow has a follow-up to name. A version that cannot be
   edited reads its questions as content, with the same switch.
-- **Simulate:** a sample application's answers, tags, source, hours in stage and verification levels through
-  `POST /v1/workflows/simulate`, unsaved changes included.
+- **Simulate:** a guided test, three questions one at a time (`guided-test.svelte`, rules in `#lib/simulate.ts`, design
+  system section 11, Guided test). What happened: a moment in plain words, offered only where an automation that is on
+  reacts to it, with a second question (which stage or questionnaire) only when automations react in more than one. Who
+  is the candidate: ready-made candidates built from the workflow (one who meets every requirement, one who fails a
+  knockout, and others only where an automation reads what they change), each one press, or Customize, which opens only
+  the facts those automations read. What would happen: a timeline of the automations of that moment, those that would
+  run first with their actions in order, the others with one line on why not. It sends the facts through
+  `POST /v1/workflows/simulate` on the unsaved workflow and touches no real candidate. Verification levels are words and
+  appear only where an automation reads one; the endpoint refuses a workflow whose verification-driven automation
+  rejects, so no result does. A workflow with no automation says there is nothing to test yet and, in the editor, offers
+  to add one.
 
 Every change is checked with `POST /v1/workflows/validate` after a short pause, and each message shows on the control
 its path names, so the guardrail refusal of a verification-driven rejection appears on that action. A draft that does
