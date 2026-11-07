@@ -186,7 +186,8 @@ API keys (Owners and Admins) manages keys in a session, on the dashboard's Setti
   `mcp` policy authenticates the `ApiKey` scheme alone, so a session cookie gets 401 there
   ([MCP server](mcp-server.md)). Its write tools check the same scope rule as the routes
   (`HiringAuthorization.KeyRefusal`), its verification tools need the `VerificationRead` scope, and its report and
-  saved-candidate tools need only `Read` and call the read services of session-only routes.
+  saved-candidate tools need only `Read`. The report tool reads what the reports routes read, and the saved-candidate
+  tool calls the read service of session-only routes.
 - **The tenant** is the key's organization, with no user (`TenantResolutionMiddleware`, which runs after
   authorization because the hiring policy replaces the request's user there). Writes by a key record no user; the
   application timeline records the key as `actorApiKeyId`.

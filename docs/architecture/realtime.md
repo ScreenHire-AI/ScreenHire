@@ -171,15 +171,15 @@ and the cookie applies.
 
 ## Who made a change
 
-An event a person causes carries `ActorUserId`: the member who made the change, or null when no member did (an API
-key, an automation, the candidate, the demo's setup). `ApplicationMoved`, `ApplicationSubmitted` (a candidate added by
-hand), `ApplicationNoteAdded`, `ApplicationTagsChanged`, `ScorecardSubmitted`, `ApplicationEmailed`, the three task
-events and `HiringTemplateVersionPublished` have it, and `TeammateMentioned` has its `AuthorUserId`. The task events
-also carry `AssigneeUserId` (null for anyone on the hiring team), and `HiringTemplateVersionPublished` and
-`TemplateChanged` carry `PreviousEditorUserId`: the member who changed the template last, read from its change history before the publish
-(`ChangeHistoryQueries.LastAsync`), and null when that was the publisher, an API key or ScreenHire. They are ids, like everything else in an
-event. Each was added last with a null default, so an envelope queued before it still deserializes, and the Zod side
-reads a missing one as no member.
+An event a person causes carries `ActorUserId`: the member who made the change, or null when no member did (an API key,
+an automation, the candidate, the demo's setup). `ApplicationMoved`, `ApplicationSubmitted` (a candidate added by hand),
+`ApplicationNoteAdded`, `ApplicationTagsChanged`, `ScorecardSubmitted`, `ApplicationEmailed`, the three task events and
+`HiringTemplateVersionPublished` have it, and `TeammateMentioned` has its `AuthorUserId`. The task events also carry
+`AssigneeUserId` (null for anyone on the hiring team), and `HiringTemplateVersionPublished` and `TemplateChanged` carry
+`PreviousEditorUserId`: the member who changed the template last, read from its change history before the publish
+(`ChangeHistoryQueries.LastAsync`), and null when that was the publisher, an API key or ScreenHire. They are ids, like
+everything else in an event. Each was added last with a null default, so an envelope queued before it still
+deserializes, and the Zod side reads a missing one as no member.
 
 ## Teammates' changes as toasts
 
@@ -197,20 +197,22 @@ feeds every event to `TeammateToasts` (`apps/dashboard/src/lib/teammate-toasts.t
 Every toast needs an `ActorUserId` that is not the person's own. A change by an API key, an automation or the candidate
 never toasts: it is not a teammate's, and a key may be the person's own AI assistant. Any event the table does not name
 never toasts, so a verification result (`VerificationAssessed`) cannot. Every edit of a hiring, email or scorecard
-template (create, change, archive, restore, delete or reset, and a hiring template's default team) raises `TemplateChanged`
-so open dashboards refresh the template lists and pickers. It toasts for an email template or a scorecard, to the member
-who changed it last before this edit ("Jordan Ellis changed the email template Stage change", linking to it), and never
-for a hiring template: its edits are drafts, and only its publish toasts. A template deleted since has no name to read,
-so its toast is dropped. Several edits of one template within the group window make one toast.
+template (create, change, archive, restore, delete or reset, and a hiring template's default team) raises
+`TemplateChanged` so open dashboards refresh the template lists and pickers. It toasts for an email template or a
+scorecard, to the member who changed it last before this edit ("Jordan Ellis changed the email template Stage change",
+linking to it), and never for a hiring template: its edits are drafts, and only its publish toasts. A template deleted
+since has no name to read, so its toast is dropped. Several edits of one template within the group window make one
+toast.
 
 `TemplateChanged(OrganizationId, Kind, TemplateId, ChangedAt, ActorUserId, PreviousEditorUserId)` carries no content.
 `Kind` is `HiringTemplate`, `EmailTemplate` or `ScorecardTemplate`, and `TemplateId` is text because a built-in email
 template or scorecard has a name for an id. `PreviousEditorUserId` is the member who changed an email template or a
-scorecard last, read from its change history before the save (`TemplateChangeEvents`), and null when that was the actor, an
-API key or ScreenHire, when nobody had, and always for a hiring template. The API raises it with the save that changed the template, through `IDbContextOutbox`
-(`TemplateChangeEvents.SaveTemplateChangeAsync`), only when something changed, and publishing a version raises
-`HiringTemplateVersionPublished` instead. The dashboard maps it to `/v1/templates`, `/v1/email-templates`,
-`/v1/scorecard-templates` and the usage list: an event is mapped by type, so one edit refetches all of them.
+scorecard last, read from its change history before the save (`TemplateChangeEvents`), and null when that was the actor,
+an API key or ScreenHire, when nobody had, and always for a hiring template. The API raises it with the save that
+changed the template, through `IDbContextOutbox` (`TemplateChangeEvents.SaveTemplateChangeAsync`), only when something
+changed, and publishing a version raises `HiringTemplateVersionPublished` instead. The dashboard maps it to
+`/v1/templates`, `/v1/email-templates`, `/v1/scorecard-templates` and the usage list: an event is mapped by type, so one
+edit refetches all of them.
 
 Each change waits one second under its kind, its actor and its job before anything is read: one becomes a toast about
 the candidate, read with `GET /v1/applications/{id}`; several become one toast about the job, so a bulk move or a bulk

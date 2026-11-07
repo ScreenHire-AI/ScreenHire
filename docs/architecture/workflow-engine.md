@@ -331,10 +331,11 @@ redelivered domain event gives the same id and the unique index on (endpoint, ev
 nothing twice.
 
 **Signing.** Each endpoint's secret is `whsec_` and the hex HMAC-SHA256 of `webhook-endpoint:{endpointId}:{version}`
-under the platform key `ScreenHire:Webhooks:SigningKey` (`WebhookSignature.EndpointSecret`). The database keeps only
-the version and the time of the last rotation, in a row of their own (`webhook_endpoint_secrets`, one per endpoint,
-which change history reads only as the time of a rotation), and rotating bumps the version. The API derives the secret to show it once; the worker derives it to sign. Both
-hold the platform key, and no response or log carries it. Every delivery carries:
+under the platform key `ScreenHire:Webhooks:SigningKey` (`WebhookSignature.EndpointSecret`). The database keeps only the
+version and the time of the last rotation, in a row of their own (`webhook_endpoint_secrets`, one per endpoint, which
+change history reads only as the time of a rotation), and rotating bumps the version. The API derives the secret to show
+it once; the worker derives it to sign. Both hold the platform key, and no response or log carries it. Every delivery
+carries:
 
 - `ScreenHire-Signature: t={unix seconds},v1={hex}`, the hex HMAC-SHA256 of `{t}.{raw body}` keyed with the secret.
   `t` is the attempt's time, so a receiver can refuse old requests while retries still pass.
