@@ -46,7 +46,7 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         var plan = Page.GetByRole(AriaRole.Region, new() { Name = "Plan", Exact = true });
         await Expect(plan).ToContainTextAsync("Growth");
         await Expect(plan).ToContainTextAsync("Trial ends");
-        await Expect(plan).ToContainTextAsync("0 of 50 open jobs");
+        await Expect(plan).ToContainTextAsync("0 of 50");
 
         var plans = Page.GetByRole(AriaRole.Region, new() { Name = "Plans", Exact = true });
         await Expect(plans).ToContainTextAsync("Starter");
@@ -68,8 +68,7 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(band.GetByRole(AriaRole.Button, new() { Name = "Manage billing" })).ToBeVisibleAsync();
         await Expect(plan).ToContainTextAsync("Starter");
         await Expect(plan).ToContainTextAsync("Next payment");
-        await Expect(plan).ToContainTextAsync("0 of 1 open job");
-        await Expect(plans.GetByText("Current plan")).ToBeVisibleAsync();
+        await Expect(plan).ToContainTextAsync("0 of 1");
         await Expect(plans.GetByRole(AriaRole.Button, new() { NameRegex = new("^Choose") })).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-settings-billing-active-1440");
@@ -121,7 +120,7 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await notice.GetByRole(AriaRole.Link, new() { Name = "Upgrade plan" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/billing"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Billing");
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Plan", Exact = true })).ToContainTextAsync("1 of 1 open job");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Plan", Exact = true })).ToContainTextAsync("1 of 1");
     }
 
     [Fact]

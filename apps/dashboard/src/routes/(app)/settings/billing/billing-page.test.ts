@@ -104,7 +104,7 @@ describe('billing page', () => {
     expect(await screen.findByText('Free trial')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1, name: 'Billing' })).toBeInTheDocument();
     expect(screen.getByText('Trial ends', { selector: 'dt' }).nextElementSibling).toHaveTextContent('Nov 20, 2026');
-    expect(screen.getByText('3 of 25 open jobs')).toBeInTheDocument();
+    expect(screen.getByText('Open jobs', { selector: 'dt' }).nextElementSibling).toHaveTextContent(/^3 of 25$/);
     expect(within(plans()).getByText('$49 a month')).toBeInTheDocument();
     expect(within(plans()).getByText('Up to 5 open jobs')).toBeInTheDocument();
     expect(within(plans()).getByText('$99 a month')).toBeInTheDocument();
@@ -155,8 +155,8 @@ describe('billing page', () => {
 
     expect(await screen.findByText('Active', { selector: '[data-slot="badge"]' })).toBeInTheDocument();
     expect(screen.getByText('Next payment', { selector: 'dt' }).nextElementSibling).toHaveTextContent('$49 on Dec 5, 2026');
-    expect(screen.getByText('3 of 5 open jobs')).toBeInTheDocument();
-    expect(within(plans()).getByText('Current plan')).toBeInTheDocument();
+    expect(screen.getByText('Open jobs', { selector: 'dt' }).nextElementSibling).toHaveTextContent(/^3 of 5$/);
+    expect(within(plans()).queryByText('Current plan')).toBeNull();
     expect(within(plans()).queryByRole('button')).toBeNull();
     expect(screen.getByText('To change your plan, use Manage billing.')).toBeInTheDocument();
     expect(primaryButtons().map((button) => button.textContent?.trim())).toEqual(['Manage billing']);
@@ -180,10 +180,10 @@ describe('billing page', () => {
     expect(screen.queryByText('Next payment')).toBeNull();
   });
 
-  it('says there is no limit when the plan has none', async () => {
+  it('shows only the count when the plan has no limit', async () => {
     renderPage({ ...active, currentPlan: unlimited, activeJobLimit: null, openJobs: 3 });
 
-    expect(await screen.findByText('3 open jobs, no limit')).toBeInTheDocument();
+    expect((await screen.findByText('Open jobs', { selector: 'dt' })).nextElementSibling).toHaveTextContent(/^3$/);
   });
 
   it('tells an owner a failed payment needs new details, with the payment status beside the title', async () => {
@@ -195,15 +195,12 @@ describe('billing page', () => {
     await expectNoAxeViolations();
   });
 
-  it('tells an owner an ended subscription still reads and keeps open jobs, and offers the plans again', async () => {
+  it('tells an owner that open jobs stay open once it has ended, whatever ended, and offers the plans again', async () => {
     renderPage({ ...trial, state: 'Ended', currentPlan: null, trialEndsAt: null, activeJobLimit: null });
 
-    expect(
-      await screen.findByText(
-        'Your subscription has ended. Open jobs stay open and everything is still readable, but you cannot publish new jobs until you choose a plan.',
-      ),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Open jobs stay open, but you cannot publish new jobs until you choose a plan.')).toBeInTheDocument();
     expect(screen.getByText('Ended', { selector: '[data-slot="badge"]' })).toBeInTheDocument();
+    expect(screen.getByText('Open jobs', { selector: 'dt' }).nextElementSibling).toHaveTextContent(/^3$/);
     expect(within(plans()).getAllByRole('button')).toHaveLength(3);
     await expectNoAxeViolations();
   });

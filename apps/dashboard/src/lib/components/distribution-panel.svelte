@@ -175,7 +175,8 @@
 </script>
 
 <!-- The tab's count says how many boards the job went to, so the panel's title has none (W4). -->
-<Panel title="Job postings" flush footer={failure || refused ? messages : undefined}>
+{#if refused}<PlanProblemNotice problem={refused} />{/if}
+<Panel title="Job postings" flush footer={failure ? messages : undefined}>
   {#if boardList.length === 0}
     <p class="px-4.5 py-4 text-muted-foreground max-md:px-4">No job boards are set up.</p>
   {:else}
@@ -233,7 +234,7 @@
 {/if}
 
 {#snippet messages()}
-  {#if refused}<PlanProblemNotice problem={refused} />{:else}<FailureText message={failure} />{/if}
+  <FailureText message={failure} />
 {/snippet}
 
 {#snippet statusCell(row: BoardRow)}

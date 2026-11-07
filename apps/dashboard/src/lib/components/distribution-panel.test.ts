@@ -356,6 +356,7 @@ describe('distribution panel', () => {
       const notice = (await post()).closest('[data-slot="notice"]')!;
 
       expect(within(notice as HTMLElement).getByRole('link', { name: 'Upgrade plan' })).toHaveAttribute('href', '/settings/billing');
+      expect(notice.closest('[data-slot="panel"]')).toBeNull();
       expect(screen.queryByRole('alert')).toBeNull();
     });
 

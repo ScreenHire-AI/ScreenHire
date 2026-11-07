@@ -110,10 +110,8 @@
         {#if standing === 'PastDue'}
           <Notice>Your last payment failed. Update your payment details to keep publishing.</Notice>
         {:else if standing === 'Ended'}
-          <Notice>
-            Your subscription has ended. Open jobs stay open and everything is still readable, but you cannot publish new jobs until you
-            choose a plan.
-          </Notice>
+          <!-- The badge beside the title says Ended, for a subscription or a trial that ran out alike. -->
+          <Notice>Open jobs stay open, but you cannot publish new jobs until you choose a plan.</Notice>
         {/if}
         <FailureText message={failure} />
         {#if billing.isError}<FailureText message={describeError(billing.error, 'Could not refresh billing')} />{/if}
@@ -143,10 +141,7 @@
             {#each overview.plans as plan (plan.key)}
               <li class="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border-subtle py-3 last:border-0">
                 <div class="flex min-w-0 flex-[1_1_12rem] flex-col gap-0.5">
-                  <p class="flex flex-wrap items-center gap-2 font-semibold">
-                    {plan.name}
-                    {#if subscribed && plan.key === overview.currentPlan?.key}<StatusBadge status="done" label="Current plan" quiet />{/if}
-                  </p>
+                  <p class="font-semibold">{plan.name}</p>
                   <p class="text-muted-foreground">{priceText(plan)}</p>
                   <p class="text-muted-foreground">{planLimitText(plan)}</p>
                 </div>

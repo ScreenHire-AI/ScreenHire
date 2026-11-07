@@ -269,6 +269,8 @@ describe('jobs page actions', () => {
 
       expect(within(notice).getByRole('link', { name: 'Upgrade plan' })).toHaveAttribute('href', '/settings/billing');
       expect(screen.queryByRole('alert')).toBeNull();
+      // A full-width row above the table, not a card in the panel's footer (S4).
+      expect(notice.closest('[data-slot="panel"]')).toBeNull();
     });
 
     it('shows a recruiter the same sentence with no link, since only an owner can upgrade', async () => {

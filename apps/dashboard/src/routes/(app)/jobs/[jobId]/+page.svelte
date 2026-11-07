@@ -208,7 +208,7 @@
     <Tabs.Root value={tab} onValueChange={showTab} class={['gap-0', boardFills && 'min-h-0 flex-1']}>
       <!-- What saving the details or publishing did, in the band's line under the title, so a long message never pushes
            the actions onto a second row. -->
-      <HeaderBand title={detail.title} details={page.state.saved || publishFailure || publishRefused || boardsUpdated || added ? outcome : undefined}>
+      <HeaderBand title={detail.title} details={page.state.saved || publishFailure || boardsUpdated || added ? outcome : undefined}>
         {#snippet status()}<StatusBadge {...jobStatus[detail.status]} />{/snippet}
         {#snippet actions()}
           <!-- The one primary action; on a phone it sits in the action bar at the bottom of the screen (section 8). -->
@@ -312,6 +312,7 @@
 
       <!-- The work area first, filling the window (S6), with no side column beside the table or the board (S7). -->
       <div class={['flex w-full flex-col gap-4 px-4 py-6 md:px-6', boardFills && 'min-h-0 flex-1']}>
+        {#if publishRefused}<PlanProblemNotice problem={publishRefused} />{/if}
         <!-- Above the tabs, because they are about the job, not one view of it. On Job postings the fix is on this page. -->
         {#each problems as problem (problem.kind)}
           <Notice href={tab === 'postings' ? undefined : '?tab=postings'} link="Fix on Job postings">{problem.text}</Notice>
@@ -384,5 +385,5 @@
   <p role="status" class="empty:hidden" data-added>
     {#if added}Added <a href={`/applications/${added.applicationId}`} class="underline underline-offset-2">{added.name}</a> to this job.{/if}
   </p>
-  {#if publishRefused}<PlanProblemNotice problem={publishRefused} />{:else}<FailureText message={publishFailure} />{/if}
+  <FailureText message={publishFailure} />
 {/snippet}

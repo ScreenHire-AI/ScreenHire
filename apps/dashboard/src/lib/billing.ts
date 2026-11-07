@@ -30,9 +30,9 @@ export function planLimitText(plan: BillingPlan): string {
   return plan.activeJobs === null ? 'Open job limit not set' : `Up to ${jobs(plan.activeJobs)}`;
 }
 
-/** The open jobs against the plan's limit: `3 of 5 open jobs`, or `3 open jobs, no limit`. */
+/** The open jobs, under an Open jobs label: `3 of 5` against the plan's limit, or `3` with none (no plan after it ends, or an unlimited one). */
 export function openJobsText(overview: Pick<BillingOverview, 'openJobs' | 'activeJobLimit'>): string {
-  return overview.activeJobLimit === null ? `${jobs(overview.openJobs)}, no limit` : `${overview.openJobs} of ${jobs(overview.activeJobLimit)}`;
+  return overview.activeJobLimit === null ? `${overview.openJobs}` : `${overview.openJobs} of ${overview.activeJobLimit}`;
 }
 
 /** Whether someone without a subscription can start one here: on the trial, or after the subscription ended. */

@@ -175,7 +175,8 @@
   <!-- The content container (S6): the list template's one table panel. -->
   <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
     <SetupChecklist user={page.data.user} />
-    <Panel title={panelTitle} flush footer={failure || refused ? failureFooter : undefined}>
+    {#if refused}<PlanProblemNotice problem={refused} />{/if}
+    <Panel title={panelTitle} flush footer={failure ? failureFooter : undefined}>
       {#snippet tools()}
         <SearchField bind:value={search} label="Search jobs" class="ml-auto flex-[0_1_15rem]" />
       {/snippet}
@@ -357,7 +358,7 @@
 {/snippet}
 
 {#snippet failureFooter()}
-  {#if refused}<PlanProblemNotice problem={refused} />{:else}<FailureText message={failure} />{/if}
+  <FailureText message={failure} />
 {/snippet}
 
 <CloseJobDialog jobId={closingId} bind:open={confirmClose} />
