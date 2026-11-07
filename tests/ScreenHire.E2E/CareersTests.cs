@@ -81,4 +81,25 @@ public sealed class CareersTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "About the role" })).ToContainTextAsync("Join Brightwater Studio");
         await ExpectNoAccessibilityViolationsAsync();
     }
+
+    // An unknown organization gets a neutral page, not a blank 404, and it reads the same as an existing organization's
+    // address with no route. The page names nothing the visitor typed. A job's own 404 is JobUnavailable.
+    [Theory]
+    [InlineData("/no-such-organization")]
+    [InlineData("/no-such-organization/jobs/anything")]
+    [InlineData("/no-such-organization/privacy")]
+    [InlineData("/brightwater/no-such-organization")]
+    public async Task An_address_with_no_page_gets_a_neutral_not_found_page(string path)
+    {
+        var response = await OpenAsync("careers", path);
+
+        response.Status.Should().Be(404);
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("We could not find this page");
+        (await Page.TitleAsync()).Should().Be("Page not found");
+        (await Page.ContentAsync()).Should().NotContain("no-such-organization", "the page names nothing the visitor typed");
+        await Expect(Page.Locator("meta[name='robots']")).ToHaveAttributeAsync("content", "noindex");
+        await Expect(Page.Locator("script")).ToHaveCountAsync(0);
+        await Expect(Page.GetByRole(AriaRole.Link)).ToHaveCountAsync(0);
+        await ExpectNoAccessibilityViolationsAsync();
+    }
 }

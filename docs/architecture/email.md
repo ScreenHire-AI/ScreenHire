@@ -101,8 +101,9 @@ render, the template's own addresses and the questionnaire link become links tha
 cannot carry a script, an image or a tracking pixel, and a candidate's name cannot inject markup. A link may have its
 own text ("Apply here"), and the text part then prints its address after it; a link's address may not hold a variable,
 so a candidate's details never go to another site in a URL. ScreenHire adds no click tracking. The text part is the
-HTML as plain text. In the dashboard, each variable in the message is a chip. ScreenHire puts the organization's header
-first in the HTML part, after the body is sanitized: its logo, a plain image at one address for every recipient, or its
+HTML as plain text. In the dashboard, each variable in the message is a chip, and in a template's subject too, where it
+is one line of plain text (`SubjectEditor`) stored as the Liquid text. ScreenHire puts the organization's header first
+in the HTML part, after the body is sanitized: its logo, a plain image at one address for every recipient, or its
 name, on its second colour (`EmailHeader`, [branding.md](branding.md) section 6). That logo is the only image an email
 carries, and a template cannot add one. The rendered subject is one line, cut at
 1,000 characters (`ApplicationEmail.MaxSubjectLength`): variables can make it far longer than its 200-character wording.

@@ -93,6 +93,8 @@ import type {
   HttpValidationProblemDetails,
   Interviewer,
   InvitationAcceptance,
+  InvitationDetails,
+  InvitationLookup,
   InvitationPreviewRequest,
   InvitationRequest,
   InvitationsQueued,
@@ -871,6 +873,60 @@ return apiFetch<completeOnboardingResponse>(getCompleteOnboardingUrl(),
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(onboardingRequest)
+  }
+);}
+
+
+
+export type lookUpInvitationResponse200 = {
+  data: InvitationDetails
+  status: 200
+}
+
+export type lookUpInvitationResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type lookUpInvitationResponseSuccess = (lookUpInvitationResponse200) & {
+  headers: Headers;
+};
+export type lookUpInvitationResponseError = (lookUpInvitationResponse400) & {
+  headers: Headers;
+};
+
+export type lookUpInvitationResponse = (lookUpInvitationResponseSuccess | lookUpInvitationResponseError)
+
+export const getLookUpInvitationUrl = () => {
+
+
+
+
+  return `/v1/auth/invitations/lookup`
+}
+
+export const lookUpInvitation = async (invitationLookup: InvitationLookup, options?: Parameters<typeof apiFetch>[1]): Promise<lookUpInvitationResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<lookUpInvitationResponse>(getLookUpInvitationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(invitationLookup)
   }
 );}
 

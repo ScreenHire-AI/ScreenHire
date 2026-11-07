@@ -48,6 +48,8 @@ internal static class AuthEndpoints
         mutations.MapPost("/magic-link", RequestMagicLink).WithName("RequestMagicLink").AllowAnonymous();
         mutations.MapPost("/magic-link/verify", VerifyMagicLink).WithName("VerifyMagicLink").AllowAnonymous();
         mutations.MapPost("/onboarding", CompleteOnboarding).WithName("CompleteOnboarding").Produces(StatusCodes.Status401Unauthorized);
+        // A POST, not a GET: the token stays out of URLs and logs, as it does in the emailed link's fragment.
+        mutations.MapPost("/invitations/lookup", LookUpInvitation).WithName("LookUpInvitation").AllowAnonymous();
         mutations.MapPost("/invitations/accept", AcceptInvitation).WithName("AcceptInvitation").AllowAnonymous();
         mutations.MapPost("/switch-organization", SwitchOrganization).WithName("SwitchOrganization").Produces(StatusCodes.Status401Unauthorized);
         // Cast: a handler taking only HttpContext would otherwise bind as a RequestDelegate and drop its result.
@@ -234,6 +236,39 @@ internal static class AuthEndpoints
         }
 
         return TypedResults.Ok(await DescribeAsync(user, tenant, db, cancellationToken));
+    }
+
+    // Names the organization and role an open invitation offers, so the page can say what accepting does. Knowing the
+    // token is what grants this, as it does accepting; every unusable token answers as accepting does, so the answer never
+    // says whether an organization exists. It changes nothing, so a mail scanner that calls it cannot use the invitation up.
+    private static async Task<Results<Ok<InvitationDetails>, ValidationProblem>> LookUpInvitation(
+        InvitationLookup request, IValidator<InvitationLookup> validator, TenantContext tenant, ScreenHireDbContext db,
+        TimeProvider time, CancellationToken cancellationToken)
+    {
+        if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
+        {
+            return TypedResults.ValidationProblem(problems);
+        }
+
+        if (Invitations.OrganizationOf(request.Token) is not { } organizationId)
+        {
+            return InvitationRefused();
+        }
+
+        tenant.SetOrganization(organizationId);
+        var hash = MagicLinks.Hash(request.Token);
+        var now = time.GetUtcNow();
+        var invitation = await db.OrganizationInvitations.AsNoTracking()
+            .SingleOrDefaultAsync(i => i.TokenHash == hash && i.AcceptedAt == null && i.RevokedAt == null && i.ExpiresAt > now, cancellationToken);
+        if (invitation is null
+            || await RoleAccess.ForRoleAsync(db, invitation.Role, invitation.CustomRoleId, cancellationToken) is not { } role)
+        {
+            return InvitationRefused();
+        }
+
+        var organizationName = await db.Organizations.AsNoTracking()
+            .Where(o => o.Id == organizationId).Select(o => o.Name).SingleOrDefaultAsync(cancellationToken);
+        return organizationName is null ? InvitationRefused() : TypedResults.Ok(new InvitationDetails(organizationName, role.Name));
     }
 
     // The emailed link signs in as the invited address, whoever this browser was signed in as: following it proves the

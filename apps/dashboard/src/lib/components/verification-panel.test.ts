@@ -222,6 +222,22 @@ describe('verification panel', () => {
     expect(ai.querySelector('[data-slot="badge"]')!.className).not.toMatch(/status-(review|verify)/);
   });
 
+  it('keeps a calm AI assistance header to its level and the job policy (W10)', async () => {
+    serve(genuineVerification());
+    renderPanel();
+
+    const ai = await screen.findByRole('region', { name: 'AI assistance' });
+    // Both copies of the pills (the wide header's and the narrow body's) lose the meter and Informational.
+    const pills = [...ai.querySelectorAll<HTMLElement>('[data-level-pills]')];
+    expect(pills).toHaveLength(2);
+    for (const row of pills) {
+      expect(within(row).getByText('No signs of AI help')).toBeInTheDocument();
+      expect(within(row).getByText(/AI allowed with disclosure/)).toHaveTextContent('Job policy: AI allowed with disclosure');
+      expect(within(row).queryByRole('img', { name: /the lowest of 3/ })).toBeNull();
+    }
+    expect(within(ai).queryByText('Informational')).toBeNull();
+  });
+
   it('offers no reject control, no score and no percentage, and says no decision was made', async () => {
     serve(botVerification());
     const { container } = renderPanel();

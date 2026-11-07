@@ -302,6 +302,10 @@
   <!-- AI assistance carries four pills, more than a fixed-height header holds on a narrow panel (F1, F5). There they
        move to the body's first line, so the policy, which the summary no longer repeats, never leaves the screen. -->
   {@const pillsInBody = kind === 'aiAssistance'}
+  <!-- A calm AI result is the shortest one (W10): its level and the job's policy, which the summary does not repeat. The
+       meter's lowest step and the Informational pill add nothing to "No signs of AI help", so a concern or a dismissed
+       result keeps them and a calm one drops them. -->
+  {@const calmAi = kind === 'aiAssistance' && level.rank === 0}
   <!-- One skeleton for every assessment (section 16): its name, level and, for AI assistance, the job's policy as pills
        in the header; what to do and why; its reasons; then Dismiss and the audit details. The next step leads, as a
        callout in the level's colour, when the level needs a look; a calm result is one quiet line. No labels: each part
@@ -310,7 +314,7 @@
     <!-- An authenticity level that needs a look is already the candidate's status in the page header, so here it is
          only its place on the three-step scale (W7). A calm or dismissed one, and AI assistance, show nowhere else. -->
     {#if kind !== 'authenticity' || level.rank === 0 || view.dismissal}<StatusBadge status={level.status} label={level.label} />{/if}
-    <LevelScale {levels} current={level} name={assessmentNames[kind]} compact />
+    {#if !calmAi}<LevelScale {levels} current={level} name={assessmentNames[kind]} compact />{/if}
     <!-- The job's policy, so a reader sees why AI help is or is not a concern. The candidate's own declaration is on
          the Application tab (W7). -->
     {#if 'policy' in view}<Badge variant="muted"><span class="sr-only">Job policy:</span> AI {aiPolicyLabels[view.policy].toLocaleLowerCase()}</Badge>{/if}
@@ -324,14 +328,14 @@
       {/if}
     {/snippet}
     {#snippet actions()}
-      {#if pillsInBody}<Badge variant="muted" class="hidden @3xl:inline-flex">Informational</Badge>{/if}
+      {#if pillsInBody && !calmAi}<Badge variant="muted" class="hidden @3xl:inline-flex">Informational</Badge>{/if}
       {#if all.length > 0}{@render expandAll(all)}{/if}
     {/snippet}
     <div class="flex flex-col gap-5">
       {#if pillsInBody}
         <div class="flex flex-wrap items-center gap-2 @3xl:hidden" data-level-pills>
           {@render levelPills()}
-          <Badge variant="muted">Informational</Badge>
+          {#if !calmAi}<Badge variant="muted">Informational</Badge>{/if}
         </div>
       {/if}
       <!-- The plain-language summary and suggested next step every result carries (CLAUDE.md non-negotiable 1). -->

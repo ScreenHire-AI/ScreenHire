@@ -47,7 +47,7 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.SetViewportSizeAsync(1440, 1040);
         await SignInAsync(Page, scene.Email);
         await GoToJobAsync(scene.JobId);
-        var pipeline = Page.GetByRole(AriaRole.Region, new() { Name = "Pipeline" });
+        var pipeline = Page.GetByRole(AriaRole.Region, new() { Name = "Candidates", Exact = true });
         var table = Page.GetByRole(AriaRole.Table, new() { Name = $"Candidates for {scene.Title}" });
         await Expect(Chip(bot.FullName)).ToContainTextAsync("Authenticity: Verification suggested", Assessed);
         await Expect(Chip(genuine.FullName)).ToContainTextAsync("Authenticity: No concerns", Assessed);
@@ -222,7 +222,7 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.SetViewportSizeAsync(1920, 1080);
         await SignInAsync(Page, scene.Email);
         await GoToJobAsync(scene.JobId);
-        await Page.GetByRole(AriaRole.Region, new() { Name = "Pipeline" }).GetByRole(AriaRole.Button, new() { Name = "Board", Exact = true }).ClickAsync();
+        await Page.GetByRole(AriaRole.Region, new() { Name = "Candidates", Exact = true }).GetByRole(AriaRole.Button, new() { Name = "Board", Exact = true }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Applied stage" })).ToBeVisibleAsync();
 
         var fit = await Page.EvaluateAsync<JsonElement>(
@@ -324,7 +324,7 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
     private async Task GoToJobAsync(Guid jobId)
     {
         await Page.GotoAsync(DashboardUrl($"/jobs/{jobId}"));
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Pipeline" })).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Candidates", Exact = true })).ToBeVisibleAsync();
     }
 
     private ILocator Chip(string candidate) =>

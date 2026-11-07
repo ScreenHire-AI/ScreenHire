@@ -109,6 +109,8 @@ import type {
   HttpValidationProblemDetails,
   Interviewer,
   InvitationAcceptance,
+  InvitationDetails,
+  InvitationLookup,
   InvitationPreviewRequest,
   InvitationRequest,
   InvitationsQueued,
@@ -1510,6 +1512,105 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getCompleteOnboardingMutationOptions(options?.()) }), queryClient);
+    }
+
+export type lookUpInvitationResponse200 = {
+  data: InvitationDetails
+  status: 200
+}
+
+export type lookUpInvitationResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type lookUpInvitationResponseSuccess = (lookUpInvitationResponse200) & {
+  headers: Headers;
+};
+export type lookUpInvitationResponseError = (lookUpInvitationResponse400) & {
+  headers: Headers;
+};
+
+export const getLookUpInvitationUrl = () => {
+
+
+
+
+  return `/v1/auth/invitations/lookup`
+}
+
+export const lookUpInvitation = async (invitationLookup: InvitationLookup, options?: Parameters<typeof apiQueryFetch>[1]): Promise<lookUpInvitationResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<lookUpInvitationResponseSuccess>(getLookUpInvitationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(invitationLookup)
+  }
+);}
+
+
+
+
+
+export const getLookUpInvitationMutationKey = () => ['lookUpInvitation'] as const;
+
+export const getLookUpInvitationMutationOptions = <TError = ErrorType<HttpValidationProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof lookUpInvitation>>, TError,LookUpInvitationMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof lookUpInvitation>>, TError,LookUpInvitationMutationVariables, TContext> => {
+
+const mutationKey = getLookUpInvitationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof lookUpInvitation>>, LookUpInvitationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  lookUpInvitation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LookUpInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof lookUpInvitation>>>
+    export type LookUpInvitationMutationBody = InvitationLookup
+    export type LookUpInvitationMutationError = ErrorType<HttpValidationProblemDetails>
+    export type LookUpInvitationMutationVariables = {data: InvitationLookup}
+
+    export const createLookUpInvitation = <TError = ErrorType<HttpValidationProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof lookUpInvitation>>, TError,LookUpInvitationMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof lookUpInvitation>>,
+        TError,
+        LookUpInvitationMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getLookUpInvitationMutationOptions(options?.()) }), queryClient);
     }
 
 export type acceptInvitationResponse200 = {

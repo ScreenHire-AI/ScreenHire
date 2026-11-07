@@ -15,15 +15,15 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
+  import SubjectEditor from '#lib/components/subject-editor.svelte';
   import { Input } from '#lib/components/ui/input/index.js';
-  import { insertAt, variableTag } from '#lib/email.js';
   import { applyValidationProblem } from '#lib/forms.js';
   import { describeError } from '#lib/query.js';
   import { isBlank } from '#lib/rich-text.js';
 
   // An email template's wording in the email template editor (design system section 7, builder; A8): Edit shows a name
   // for the organization's own, the subject and the rich-text message in Liquid over a fixed list of variables, each a
-  // chip in the message (docs/architecture/rich-text.md); Preview shows the
+  // chip in the subject and in the message (docs/architecture/rich-text.md); Preview shows the
   // email as the sample candidate receives it, with a test send to yourself. Side by side where both fit, else the Edit /
   // Preview switch, with the window button that opens the preview in a second window (`onpopout`).
   // The form stays mounted in both, so the page's Save (`form={formId}`) submits it from either; a submit with problems
@@ -112,41 +112,25 @@
     dirty = $form.name !== saved.name || $form.subject !== saved.subject || $form.body !== saved.body;
   });
 
-  // Insert a variable where the caret was in the subject or the message, whichever had focus last: `{{ name }}` text in
-  // the subject, a chip in the message.
-  let subjectInput = $state<HTMLInputElement | null>(null);
+  // Insert a variable where the caret was in the subject or the message, whichever had focus last: a chip in either.
+  let subjectEditor = $state<ReturnType<typeof SubjectEditor> | null>(null);
   let bodyEditor = $state<ReturnType<typeof RichTextEditor> | null>(null);
   let lastField: 'subject' | 'body' = 'body';
   // Insert variable is a menu, as in the email composer (section 11): the pick goes in at the caret of the field last
   // used, and the focus returns there once the menu has closed.
-  let caret: number | undefined;
   let inserted = false;
+  const lastEditor = () => (lastField === 'body' ? bodyEditor : subjectEditor);
   function insert(name: string) {
     inserted = true;
-    if (lastField === 'body') {
-      bodyEditor?.insertVariable(name);
-      return;
-    }
-
-    const current = $form.subject;
-    const next = insertAt(current, subjectInput?.selectionStart ?? current.length, subjectInput?.selectionEnd ?? current.length, variableTag(name));
-    $form.subject = next.text;
-    caret = next.caret;
+    lastEditor()?.insertVariable(name);
   }
 
   async function focusAfterInsert(event: Event) {
     if (!inserted) return;
     event.preventDefault();
     inserted = false;
-    const at = caret;
-    caret = undefined;
     await tick();
-    if (lastField === 'body') {
-      bodyEditor?.focus();
-    } else if (at !== undefined) {
-      subjectInput?.focus();
-      subjectInput?.setSelectionRange(at, at);
-    }
+    lastEditor()?.focus();
   }
 
   // The preview follows the wording as it is typed, a moment after typing stops, in either mode, so Preview and the
@@ -219,18 +203,16 @@
         {/if}
 
         <Field.Field data-invalid={$errors.subject ? true : undefined}>
-          <Field.Label for="email-template-subject">Subject</Field.Label>
-          <Input
-            id="email-template-subject"
-            name="subject"
-            maxlength={200}
-            autocomplete="off"
-            required
-            bind:ref={subjectInput}
+          <Field.Label id="email-template-subject-label" for="email-template-subject" onclick={() => subjectEditor?.focus()}>Subject</Field.Label>
+          <SubjectEditor
+            bind:this={subjectEditor}
             bind:value={$form.subject}
+            id="email-template-subject"
+            labelledBy="email-template-subject-label"
+            describedBy={describedBy('email-template-subject-error', $errors.subject)}
+            invalid={!!$errors.subject}
+            variables={usable}
             onfocus={() => (lastField = 'subject')}
-            aria-invalid={$errors.subject ? 'true' : undefined}
-            aria-describedby={describedBy('email-template-subject-error', $errors.subject)}
           />
           <Field.Error id="email-template-subject-error" errors={$errors.subject?.map((message) => ({ message }))} />
         </Field.Field>
@@ -269,8 +251,17 @@
       <!-- Read only: labels and values, never disabled inputs (section 7). -->
       <dl class="flex flex-col gap-4">
         <div class="flex flex-col gap-1">
-          <dt class="text-caption font-semibold text-muted-foreground">Subject</dt>
-          <dd class="break-words">{$form.subject}</dd>
+          <dt id="email-template-subject-label" class="text-caption font-semibold text-muted-foreground">Subject</dt>
+          <dd>
+            <SubjectEditor
+              value={$form.subject}
+              id="email-template-subject"
+              labelledBy="email-template-subject-label"
+              editable={false}
+              variables={usable}
+              class="h-auto min-h-6 border-transparent px-0"
+            />
+          </dd>
         </div>
         <div class="flex flex-col gap-1">
           <dt id="email-template-body-label" class="text-caption font-semibold text-muted-foreground">Message</dt>

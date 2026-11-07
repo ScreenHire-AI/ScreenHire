@@ -93,6 +93,7 @@ organization API key in place of the session ("API keys" below).
 | `POST /v1/auth/magic-link/verify` | Redeems a link's token and signs in. |
 | `POST /v1/auth/onboarding` | Creates the user's organization (name and slug) with them as Owner. |
 | `POST /v1/auth/invitations/accept` | Redeems an emailed invitation: signs in as the invited address and joins its organization. |
+| `POST /v1/auth/invitations/lookup` | Names the organization and role an open invitation offers, for the accept page. It uses nothing up, and answers an unusable token as accepting does. |
 | `GET /v1/auth/organizations` | Every organization the signed-in user belongs to, with their role in each. A custom role is named only in the one they work in: row-level security hides other organizations' roles. |
 | `POST /v1/auth/switch-organization` | Makes another of the user's organizations the one they work in. |
 | `POST /v1/auth/sign-out` | Ends the session. |
@@ -212,7 +213,8 @@ API keys (Owners and Admins) manages keys in a session, on the dashboard's Setti
 - **The API reference** (Scalar at `/scalar`) and the OpenAPI file (`/openapi/v1.json`) are public in every
   environment, at the same paths: they document the public API and hold no data. `GET /v1/meta` reports the API's
   public origin (`ScreenHire:Domains:ApiHost`), and the dashboard's API keys and Webhooks pages build their base URL and
-  reference links from it. The public page calls no third party: Scalar's telemetry, its CDN fonts, its AI chat and its MCP
+  reference links from it. It also reports `careersUrlPattern`, a tenant's careers address with `{tenant}` where the slug goes
+  (`DomainOptions.CareersUrlPattern`), which onboarding fills in to show the address a name will get. The public page calls no third party: Scalar's telemetry, its CDN fonts, its AI chat and its MCP
   server are off (`apps/api/Program.cs`). `ApiReferenceTests` reaches both with the API in Production and checks the
   first two.
 
@@ -310,7 +312,7 @@ created as well, for a role that manages keys (ADR-0011). The API stays the judg
 
 | Route | Who | What it does |
 |---|---|---|
-| `GET /members` | Any member | The organization's members with their email, name, role and role name, their job access, whether they see all jobs, and how many of the jobs the reader sees they are on. |
+| `GET /members` | Any member | The organization's members with their email, name, role and role name, their job access, whether they see all jobs, how many of the jobs the reader sees they are on, and, to a reader who manages the team, `lastUpdated`: the newest role or job access change and who made it (null until one happens). |
 | `GET /members/{memberId}/jobs` | Any member | The jobs whose hiring team the member is on, among those the reader sees. |
 | `PUT /members/{memberId}/role` | Manage the team | Gives a member another role: a built-in one, or `Custom` with `customRoleId`. |
 | `PUT /members/{memberId}/job-access` | Manage the team | Sets `All` or `HiringTeamOnly`. 400 for an Owner or Admin, who see all jobs anyway. |

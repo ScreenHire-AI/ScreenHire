@@ -559,8 +559,8 @@
 <!-- A candidate header's three mini cards: Contact, Application, then Also applied to (or Rating once someone scored them). -->
 {#snippet candidateCards()}
   <div class="@container">
-    <div class="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] gap-3">
-      <MiniCard title="Contact">
+    <div class="-m-1 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto p-1 [scrollbar-width:none] @xl:m-0 @xl:grid @xl:snap-none @xl:grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] @xl:overflow-visible @xl:p-0">
+      <MiniCard class="w-64 shrink-0 snap-start @xl:w-auto" title="Contact">
         <div class="flex min-w-0 items-center gap-1">
           <TruncatedText text="samuel.okonkwo@example.com" href="mailto:samuel.okonkwo@example.com" icon={MailIcon} underlined />
           <CopyButton value="samuel.okonkwo@example.com" label="Copy email address" />
@@ -570,11 +570,11 @@
           <CopyButton value="+1 555 0142" label="Copy phone number" />
         </div>
       </MiniCard>
-      <MiniCard title="Application">
+      <MiniCard class="w-64 shrink-0 snap-start @xl:w-auto" title="Application">
         <TruncatedText text="Senior product designer" href="#mini-card" underlined />
         <p class="text-muted-foreground">Applied <RelativeTime at={ago(6 * day)} class="inline" /> via the careers page</p>
       </MiniCard>
-      <MiniCard title="Also applied to">
+      <MiniCard class="w-64 shrink-0 snap-start @xl:w-auto" title="Also applied to">
         <p class="text-muted-foreground">2 other jobs</p>
         <a href="#mini-card" class="inline-flex min-h-6 w-fit items-center underline underline-offset-2 pointer-coarse:min-h-11">Candidate profile</a>
       </MiniCard>

@@ -174,7 +174,7 @@
 <!-- V is a shortcut for the focusable rows and cards inside, whose key presses bubble to the panel. On a phone the
      header has no room for a usable search beside the view switch, so the search takes its own row under it (F5). The
      board fills the panel, which fills the page's height, so it scrolls inside itself. -->
-<Panel title="Pipeline" flush fill={!sidebar.isMobile} class={sidebar.isMobile ? undefined : 'min-h-0 flex-1'} {onkeydown}>
+<Panel title="Candidates" flush fill={!sidebar.isMobile} class={sidebar.isMobile ? undefined : 'min-h-0 flex-1'} {onkeydown}>
   {#snippet tools()}
     {#if !sidebar.isMobile}{@render searchField('flex-[0_1_15rem] @max-3xl/panel:flex-1')}{/if}
   {/snippet}

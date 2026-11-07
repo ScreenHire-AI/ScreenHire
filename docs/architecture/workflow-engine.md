@@ -208,8 +208,8 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   (`scorecard-builder.svelte`), or through `/v1/scorecard-templates`. An archived scorecard leaves the picker unless the
   stage already names it. A stage that ends the application offers no
   scorecard. Automations whose trigger
-  has no stage (an arriving application, the verification checks, a manual run, any stage's time limit) sit in a "Whole
-  workflow" panel under the stages. "A stage's time limit passes" offers the stages that have one, and only the four reminder actions. The drawer's forms offer only the triggers and actions v1 runs, and the facts
+  has no stage (an arriving application, the verification checks, a manual run, any stage's time limit) sit in a "Workflow
+  automations" panel under the stages. "A stage's time limit passes" offers the stages that have one, and only the four reminder actions. The drawer's forms offer only the triggers and actions v1 runs, and the facts
   and operators `FactSchema` allows.
 - **Graph:** @xyflow/svelte, rebuilt from the workflow on every change by `toGraph` (`#lib/workflow-graph.ts`): a
   "Whole workflow" lane and the stages along the top, one row per automation from trigger to conditions to actions,

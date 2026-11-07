@@ -45,6 +45,8 @@
   const saved = $derived(Boolean(detail.keptInMindAt));
   // The newest of the candidate's emails, sent or received, about any of their applications.
   const lastContacted = $derived(emails?.reduce<string | undefined>((newest, email) => (!newest || Date.parse(email.sentAt) > Date.parse(newest) ? email.sentAt : newest), undefined));
+  // On a phone each card is a fixed 16rem that snaps into the row; from 36rem the grid sizes them (see the row below).
+  const cardClass = 'w-64 shrink-0 snap-start @xl:w-auto';
   const rated = $derived(detail.rating != null && detail.rating.state !== 'NotRated');
 </script>
 
@@ -53,9 +55,18 @@
   <a href={`/candidates/${detail.candidate.id}`} class="inline-flex min-h-6 w-fit items-center underline underline-offset-2 pointer-coarse:min-h-11">Candidate profile</a>
 {/snippet}
 
-<!-- As many columns as hold a card of 16rem or more, so a card keeps its two lines: three across in a wide band, two at a laptop, one on a phone (F2). -->
-<div class="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] gap-3">
-  <MiniCard title="Contact">
+<!-- As many columns as hold a card of 16rem or more, so a card keeps its two lines: three across in a wide band, two at a
+     laptop (F2). In a band narrower than 36rem, a phone's, the cards would stack to about 580px before the tabs, so they sit
+     in one row that scrolls sideways, each snapping into place, and the next card's edge shows that there is more, so it
+     needs no scrollbar of its own above the tabs' one. The padding and the matching negative margin keep the links' focus
+     rings inside the scrolling row. The row is the containing
+     block of the cards' screen-reader-only text (position: absolute), or that text, laid out beyond the window, would make
+     the page scroll sideways. -->
+<div
+  class="relative -m-1 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto p-1 [scrollbar-width:none] @xl:m-0 @xl:grid @xl:snap-none @xl:grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] @xl:overflow-visible @xl:p-0"
+  data-header-cards
+>
+  <MiniCard class={cardClass} title="Contact">
     <div class="flex min-w-0 items-center gap-1">
       <TruncatedText
         text={detail.candidate.email}
@@ -86,7 +97,7 @@
     {/if}
   </MiniCard>
 
-  <MiniCard title="Application">
+  <MiniCard class={cardClass} title="Application">
     <TruncatedText text={detail.jobTitle} href={`/jobs/${detail.jobId}`} underlined />
     <!-- When and where from, as one phrase that reads without a label. -->
     <p class="text-muted-foreground">
@@ -97,13 +108,13 @@
   </MiniCard>
 
   {#if rated}
-    <MiniCard title="Rating">
+    <MiniCard class={cardClass} title="Rating">
       <!-- From people's scorecards only (ADR-0013); it opens to each scorecard. -->
       <div class="flex min-w-0"><Rating rating={detail.rating} {scorecards} {stageName} {members} {currentUserId} /></div>
       {@render profileLink()}
     </MiniCard>
   {:else}
-    <MiniCard title="Also applied to">
+    <MiniCard class={cardClass} title="Also applied to">
       <p class="min-h-6 text-muted-foreground">{othersText}</p>
       {@render profileLink()}
     </MiniCard>
@@ -111,7 +122,7 @@
 
   {#if interview?.startsAt}
     <!-- A booked interview is a fact here and not said again in the Interview panel (W7). -->
-    <MiniCard title="Interview">
+    <MiniCard class={cardClass} title="Interview">
       <p class="min-h-6"><time datetime={interview.startsAt}>{formatDateTime(interview.startsAt)}</time></p>
       <p class="min-h-6 text-muted-foreground">{interview.durationMinutes} minutes with {interview.interviewers.length === 1 ? '1 interviewer' : `${interview.interviewers.length} interviewers`}</p>
     </MiniCard>
