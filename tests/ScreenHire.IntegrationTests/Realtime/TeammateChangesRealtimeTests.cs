@@ -1,13 +1,15 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using ScreenHire.Domain.Hiring;
+using ScreenHire.IntegrationTests.Messaging;
 
 namespace ScreenHire.IntegrationTests.Realtime;
 
 /// <summary>
 /// Who made a change, on the wire: the events behind "teammates' changes as toasts" carry <c>actorUserId</c> (the member
 /// who did it, null for an API key, an automation or a candidate), task events add <c>assigneeUserId</c>, and a published
-/// hiring template version adds <c>previousEditorUserId</c>, the member who changed the template last when that is not the
-/// publisher.
+/// hiring template version and an edited email template or scorecard add <c>previousEditorUserId</c>, the member who changed
+/// the template last when that is not the one acting.
 /// The dashboard filters on these ids; they reach only their own organization's dashboards.
 /// </summary>
 public sealed class TeammateChangesRealtimeTests(AppHostFixture fixture)
@@ -150,6 +152,58 @@ public sealed class TeammateChangesRealtimeTests(AppHostFixture fixture)
         theirClient.ReceivedAnythingAbout(published).Should().BeFalse("another organization's template events never reach us");
         theirClient.ReceivedAnythingAbout(aloneVersion).Should().BeFalse();
     }
+
+    [Fact]
+    public async Task An_edited_email_template_or_scorecard_names_the_member_who_changed_it_last_and_a_hiring_template_edit_names_no_one()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var admin = await fixture.InviteAndJoinAsync(owner, "Admin");
+        using var secondAdmin = await fixture.InviteAndJoinAsync(owner, "Admin");
+        using var theirs = await fixture.SignedInWithOrganizationAsync();
+        await using var ownerClient = await EventsConnection.ConnectAsync(owner.Session, Ct);
+        await using var theirClient = await EventsConnection.ConnectAsync(theirs.Session, Ct);
+
+        // The owner rewords a built-in email template, the admin rewords it after them, then again: the second edit has
+        // the owner as the member who changed it last, the third has only the admin, who made it too. The owner then saves
+        // the wording as it stands, which is no edit and raises nothing, and a second admin rewords it after that.
+        var subjects = new[] { "Next steps for {{ jobTitle }}", "Your next steps for {{ jobTitle }}", "Your next steps, {{ candidateName }}", "Next, {{ candidateName }}" };
+        foreach (var (tenant, subject) in new[] { (owner, subjects[0]), (admin, subjects[1]), (admin, subjects[2]), (owner, subjects[2]), (secondAdmin, subjects[3]) })
+        {
+            (await tenant.PutAsync($"/v1/email-templates/{EmailTemplateIds.StageChange}", new JsonObject
+            {
+                ["subject"] = subject, ["body"] = "Hi {{ candidateName }}",
+            })).Expect(HttpStatusCode.OK);
+        }
+
+        await WaitForEditsAsync(ownerClient, EmailTemplateIds.StageChange, 4);
+        var edits = EditsOf(ownerClient, EmailTemplateIds.StageChange);
+        // Events are delivered in parallel, so only the set of them is known, not their order.
+        edits.Select(e => (Actor: ActorOf(e), Previous: PreviousEditorOf(e))).Should().BeEquivalentTo(
+            [(Actor: (Guid?)owner.UserId, Previous: (Guid?)null), (admin.UserId, owner.UserId), (admin.UserId, null), (secondAdmin.UserId, admin.UserId)]);
+
+        // A library scorecard works the same way.
+        var scorecard = await ScorecardSupport.CreateScorecardAsync(owner, "Platform interview", ScorecardSupport.Rating5("depth"));
+        var body = new JsonObject { ["name"] = "Platform interview, v2", ["questions"] = ScorecardSupport.Questions(ScorecardSupport.Rating5("depth")) };
+        (await admin.PutAsync($"/v1/scorecard-templates/{scorecard}", body)).Expect(HttpStatusCode.OK);
+        await WaitForEditsAsync(ownerClient, scorecard, 2);
+        EditsOf(ownerClient, scorecard).Select(PreviousEditorOf).Should().BeEquivalentTo([(Guid?)null, owner.UserId]);
+
+        // A hiring template's edits are drafts: no one is named, though the owner made the last change.
+        var template = (await owner.CreateTemplateAsync("Platform roles")).Id();
+        (await admin.PutAsync($"/v1/templates/{template}", new JsonObject { ["name"] = "Platform roles, renamed" })).Expect(HttpStatusCode.OK);
+        await WaitForEditsAsync(ownerClient, template.ToString("D"), 2);
+        EditsOf(ownerClient, template.ToString("D")).Select(PreviousEditorOf).Should().OnlyContain(editor => editor == null);
+
+        theirClient.Received.Should().NotContain(e => e.Type == "TemplateChanged", "another organization's edits never reach us");
+    }
+
+    private static async Task WaitForEditsAsync(EventsConnection client, string templateId, int count) =>
+        await WolverineStore.WaitUntilAsync(() => Task.FromResult(EditsOf(client, templateId).Count >= count), $"{count} TemplateChanged events for {templateId}", Ct);
+
+    private static List<JsonElement> EditsOf(EventsConnection client, string templateId) =>
+        [.. client.Received.Where(e => e.Type == "TemplateChanged" && e.Data.GetProperty("templateId").GetString() == templateId).Select(e => e.Data)];
+
+    private static Guid? PreviousEditorOf(JsonElement data) => data.Has("previousEditorUserId") ? data.GetProperty("previousEditorUserId").GetGuid() : null;
 
     private static Guid? ActorOf(JsonElement data) => data.Has("actorUserId") ? data.GetProperty("actorUserId").GetGuid() : null;
 

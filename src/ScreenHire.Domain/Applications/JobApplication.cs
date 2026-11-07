@@ -265,6 +265,10 @@ public sealed class JobApplication : IJobScoped
     public ApplicationEvent InterviewCancelled(InterviewRequest interview, DateTimeOffset now, Guid? actorUserId = null) =>
         InterviewEntry(ApplicationEventType.InterviewCancelled, interview, now, actorUserId);
 
+    /// <summary>The timeline entry for offering new times for a booked interview, at the time still held.</summary>
+    public ApplicationEvent InterviewNewTimesOffered(InterviewRequest interview, DateTimeOffset now, Guid? actorUserId) =>
+        InterviewEntry(ApplicationEventType.InterviewNewTimesOffered, interview, now, actorUserId);
+
     private ApplicationEvent InterviewEntry(ApplicationEventType type, InterviewRequest interview, DateTimeOffset now, Guid? actorUserId)
     {
         ArgumentNullException.ThrowIfNull(interview);

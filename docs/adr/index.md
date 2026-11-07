@@ -28,12 +28,13 @@ Architecture decision records, oldest first. A changed decision is a new or amen
 * [ADR-0024: Interview scheduling runs on the Google Calendar and Microsoft Graph APIs](0024-interview-scheduling-on-calendar-apis.md) - Interviews are scheduled on members' own calendars through the free Google Calendar and Microsoft Graph APIs behind one provider interface and a Postgres-backed sandbox: calendar OAuth kept apart from sign-in with free/busy and event scopes only, encrypted per-member tokens, a no-account booking link on the careers site, one event per interviewer, double-booking prevented by advisory locks, lazy expiry, and why Cal.com, Nylas, Cronofy and a calendar of our own were rejected.
 * [ADR-0025: The pipeline tracker is a bar of stages](0025-pipeline-tracker-is-a-bar-of-stages.md) - The pipeline tracker in a candidate's header is a bordered bar of stages with the current stage as a solid block, in place of a row of dots, so a person's stage is the first thing read.
 * [ADR-0026: Editors switch to their preview](0026-editors-switch-to-their-preview.md) - An editor and its preview no longer share the screen: every editor uses the Edit / Preview switch at every width, so the editor has the room and the preview is one press away.
+* [ADR-0027: The candidate portal is a page reached by an emailed link, with no account](0027-candidate-portal-by-email-link.md) - A candidate sees their applications, a generic four-step status, anything waiting and their messages on a careers page opened by a signed, time-limited emailed link, with no account or password; a reply from the page and a reply by email share one ingest and one thread, and every email to a candidate ends with the link.
 
 ## Status
 
 | ADR | Status |
 |---|---|
-| 0001, 0002, 0006, 0008, 0012, 0014 to 0016, 0018 to 0024 | Accepted |
+| 0001, 0002, 0006, 0008, 0012, 0014 to 0016, 0018 to 0024, 0027 | Accepted |
 | 0007 | Accepted, the Email row amended by 0022 (SendGrid through the Azure Marketplace; ACS Email stays a possible sender) |
 | 0003 | Accepted, Lighthouse enforcement amended by 0020 (report-only in CI until calibrated on the runners) |
 | 0004 | Accepted, terminology amended by 0019 (integrity is called verification) |

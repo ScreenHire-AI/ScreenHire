@@ -868,8 +868,9 @@ export const GetPublicInterviewResponse = zod.object({
   "slots": zod.array(zod.iso.datetime({"offset":true})),
   "slotsUnavailable": zod.boolean(),
   "canChange": zod.boolean(),
-  "minNoticeHours": zod.int()
-}).describe('The interview as the candidate\'s page shows it. `slots` are the start times offered, as UTC instants in order, each\n`durationMinutes` long: for an Open interview, and for a Booked one the candidate may still change. The page writes\nthem in `timeZone` (the `tz` asked for when it is a zone the server knows, otherwise `defaultTimeZone`,\nthe zone the team chose). `slotsUnavailable` is true when the team\'s calendars could not be read just now, so no\ntimes are offered; trying again later may work. `minNoticeHours` is how long before the start the candidate can\nstill move or cancel. Nothing about the interviewers, and nothing from verification.')
+  "minNoticeHours": zod.int(),
+  "newTimesOffered": zod.boolean()
+}).describe('The interview as the candidate\'s page shows it. `slots` are the start times offered, as UTC instants in order, each\n`durationMinutes` long: for an Open interview, and for a Booked one the candidate may still change. The page writes\nthem in `timeZone` (the `tz` asked for when it is a zone the server knows, otherwise `defaultTimeZone`,\nthe zone the team chose). `slotsUnavailable` is true when the team\'s calendars could not be read just now, so no\ntimes are offered; trying again later may work. `minNoticeHours` is how long before the start the candidate can\nstill move or cancel. `newTimesOffered` is true while the team\'s offer of new times waits for the candidate: the\nbooked time stays until they pick, and they may move or cancel it whatever the notice, until the offered days end.\nNothing about the interviewers, and nothing from verification.')
 
 
 export const BookPublicInterviewParams = zod.object({
@@ -1018,6 +1019,101 @@ export const GetPublicDataDownloadParams = zod.object({
 export const GetPublicDataDownloadResponse = zod.object({
   "url": zod.string()
 }).describe('A short-lived address that downloads the candidate\'s copy.')
+
+
+export const GetPublicPortalFormParams = zod.object({
+  "organizationSlug": zod.string()
+})
+
+export const GetPublicPortalFormResponse = zod.object({
+  "organizationName": zod.string(),
+  "enabled": zod.boolean(),
+  "turnstileSiteKey": zod.string().nullable()
+}).describe('What the careers portal page needs before it asks for an address. `enabled` is false where the deployment sends no\nemail or has no careers host to link to: the page then says the portal is not available here.\n`turnstileSiteKey` is null unless the bot challenge is configured.')
+
+
+export const RequestPublicPortalLinkParams = zod.object({
+  "organizationSlug": zod.string()
+})
+
+export const RequestPublicPortalLinkBody = zod.object({
+  "email": zod.string(),
+  "botCheckToken": zod.string().nullish()
+}).describe('The address a candidate types to be sent the link to their page. The answer to it is the same whether or not the\naddress has applied, so it tells nobody who has.')
+
+export const RequestPublicPortalLinkResponse = zod.void()
+
+
+export const GetPublicPortalParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string()
+})
+
+export const GetPublicPortalResponse = zod.object({
+  "organizationName": zod.string(),
+  "firstName": zod.string(),
+  "applications": zod.array(zod.object({
+  "id": zod.uuid(),
+  "jobTitle": zod.string(),
+  "appliedAt": zod.iso.datetime({"offset":true}),
+  "funnel": zod.object({
+  "steps": zod.array(zod.string()),
+  "current": zod.int().nullable(),
+  "ended": zod.enum(['None', 'Hired', 'NotMovingForward', 'Withdrawn']).describe('How an application ended, in the words a candidate sees. The employer\'s own stage names never reach the page.')
+}).describe('Where an application stands on the four fixed steps every job shares. `current` is an index into `steps`, or\nnull once the application ended, and then `ended` says how. Nothing about the employer\'s own stages is in it.'),
+  "waiting": zod.array(zod.object({
+  "kind": zod.enum(['Questionnaire', 'Interview']).describe('What something is waiting on the candidate for.'),
+  "token": zod.string()
+}).describe('Something the candidate can act on, with the token of the existing careers page for it\n(`/questionnaires/{token}` or `/interviews/{token}`). The name of a questionnaire is the team\'s wording for it\nand is not sent.')),
+  "hasMessages": zod.boolean(),
+  "canReply": zod.boolean()
+}).describe('One of the candidate\'s applications to this organization.')),
+  "drafts": zod.array(zod.object({
+  "jobTitle": zod.string(),
+  "jobSlug": zod.string(),
+  "token": zod.string(),
+  "expiresAt": zod.iso.datetime({"offset":true})
+}).describe('An application the candidate started and saved to finish later; `token` opens the job\'s apply page with it.'))
+}).describe('Everything a candidate\'s page shows on its first screen.')
+
+
+export const GetPublicPortalMessagesParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string(),
+  "applicationId": zod.uuid()
+})
+
+export const GetPublicPortalMessagesResponse = zod.object({
+  "jobTitle": zod.string(),
+  "messages": zod.array(zod.object({
+  "direction": zod.enum(['FromTeam', 'FromYou']).describe('Who wrote a message on the page: the team (an email ScreenHire sent for them) or the candidate.'),
+  "subject": zod.string(),
+  "body": zod.string(),
+  "at": zod.iso.datetime({"offset":true}),
+  "attachmentCount": zod.int()
+}).describe('One message in an application\'s thread: the email as the candidate got it, or their reply. Plain text only.')),
+  "canReply": zod.boolean(),
+  "bodyMax": zod.int(),
+  "maxAttachments": zod.int()
+}).describe('An application\'s thread, oldest first. `canReply` is false until the team has written once.')
+
+
+export const SendPublicPortalReplyParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string(),
+  "applicationId": zod.uuid()
+})
+
+export const SendPublicPortalReplyBody = zod.object({
+  "body": zod.string(),
+  "key": zod.string(),
+  "attachments": zod.array(zod.object({
+  "fileName": zod.string(),
+  "contentBase64": zod.string()
+}).describe('A file sent with a reply, as base64 text.')).nullish()
+}).describe('A reply written on the page. `key` is the form\'s own random id (32 hex digits), so sending the same form twice stores one\nreply.')
+
+export const SendPublicPortalReplyResponse = zod.void()
 
 
 export const listJobsResponseLastUpdatedCreatedDefault = false;
@@ -4417,7 +4513,7 @@ export const GetApplicationTimelineParams = zod.object({
 
 export const GetApplicationTimelineResponseItem = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'EmailReceived']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'InterviewNewTimesOffered', 'EmailReceived']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -4458,7 +4554,7 @@ export const AddApplicationNoteBody = zod.object({
 
 export const AddApplicationNoteResponse = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'EmailReceived']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'InterviewNewTimesOffered', 'EmailReceived']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -4859,7 +4955,7 @@ export const GetCandidateHistoryResponseItem = zod.object({
   "jobTitle": zod.string(),
   "entry": zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'EmailReceived']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'InterviewNewTimesOffered', 'EmailReceived']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -8480,6 +8576,8 @@ export const ListWebhookEventTypesResponseItem = zod.string()
 export const ListWebhookEventTypesResponse = zod.array(ListWebhookEventTypesResponseItem)
 
 
+export const listWebhookEndpointsResponseLastUpdatedCreatedDefault = false;
+
 export const ListWebhookEndpointsResponseItem = zod.object({
   "id": zod.uuid(),
   "url": zod.string(),
@@ -8491,7 +8589,14 @@ export const ListWebhookEndpointsResponseItem = zod.object({
   "disabledReason": zod.string().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}),
-  "secretRotatedAt": zod.iso.datetime({"offset":true})
+  "secretRotatedAt": zod.iso.datetime({"offset":true}),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(listWebhookEndpointsResponseLastUpdatedCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
 }).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.')
 export const ListWebhookEndpointsResponse = zod.array(ListWebhookEndpointsResponseItem)
 
@@ -8501,6 +8606,8 @@ export const CreateWebhookEndpointBody = zod.object({
   "events": zod.array(zod.string()),
   "description": zod.string().nullish()
 }).describe('A new webhook endpoint: where to post, and which events (`GET /v1/webhooks/event-types` lists them).')
+
+export const createWebhookEndpointResponseEndpointLastUpdatedCreatedDefault = false;
 
 export const CreateWebhookEndpointResponse = zod.object({
   "endpoint": zod.object({
@@ -8514,7 +8621,14 @@ export const CreateWebhookEndpointResponse = zod.object({
   "disabledReason": zod.string().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}),
-  "secretRotatedAt": zod.iso.datetime({"offset":true})
+  "secretRotatedAt": zod.iso.datetime({"offset":true}),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(createWebhookEndpointResponseEndpointLastUpdatedCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
 }).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.'),
   "signingSecret": zod.string()
 }).describe('An endpoint with its signing secret, returned only when the secret is new (create, rotate). Store it now: the API\ncannot show it again. Check each delivery\'s `ScreenHire-Signature: t={unix seconds},v1={hex}`, the hex\nHMAC-SHA256 of `{t}.{raw body}` keyed with this secret.')
@@ -8523,6 +8637,8 @@ export const CreateWebhookEndpointResponse = zod.object({
 export const GetWebhookEndpointParams = zod.object({
   "endpointId": zod.uuid()
 })
+
+export const getWebhookEndpointResponseLastUpdatedCreatedDefault = false;
 
 export const GetWebhookEndpointResponse = zod.object({
   "id": zod.uuid(),
@@ -8535,7 +8651,14 @@ export const GetWebhookEndpointResponse = zod.object({
   "disabledReason": zod.string().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}),
-  "secretRotatedAt": zod.iso.datetime({"offset":true})
+  "secretRotatedAt": zod.iso.datetime({"offset":true}),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(getWebhookEndpointResponseLastUpdatedCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
 }).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.')
 
 
@@ -8550,6 +8673,8 @@ export const UpdateWebhookEndpointBody = zod.object({
   "description": zod.string().nullish()
 }).describe('Replaces an endpoint\'s settings. A body without `enabled` keeps the endpoint on or off as it is. Turning it\nback on clears an automatic disable and its failure count; deliveries skipped while it was off stay skipped and can\nbe replayed.')
 
+export const updateWebhookEndpointResponseLastUpdatedCreatedDefault = false;
+
 export const UpdateWebhookEndpointResponse = zod.object({
   "id": zod.uuid(),
   "url": zod.string(),
@@ -8561,7 +8686,14 @@ export const UpdateWebhookEndpointResponse = zod.object({
   "disabledReason": zod.string().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}),
-  "secretRotatedAt": zod.iso.datetime({"offset":true})
+  "secretRotatedAt": zod.iso.datetime({"offset":true}),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(updateWebhookEndpointResponseLastUpdatedCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
 }).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.')
 
 
@@ -8572,9 +8704,45 @@ export const DeleteWebhookEndpointParams = zod.object({
 export const DeleteWebhookEndpointResponse = zod.void()
 
 
+export const GetWebhookEndpointHistoryParams = zod.object({
+  "endpointId": zod.uuid()
+})
+
+export const GetWebhookEndpointHistoryQueryParams = zod.object({
+  "before": zod.uuid().optional(),
+  "limit": zod.int().optional()
+})
+
+export const GetWebhookEndpointHistoryResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "id": zod.uuid(),
+  "at": zod.iso.datetime({"offset":true}),
+  "by": zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)]),
+  "userId": zod.uuid().nullable(),
+  "apiKeyId": zod.uuid().nullable(),
+  "lines": zod.array(zod.object({
+  "text": zod.string(),
+  "parts": zod.array(zod.object({
+  "text": zod.string(),
+  "strong": zod.boolean()
+})),
+  "details": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string().nullable(),
+  "after": zod.string().nullable(),
+  "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
+}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
+}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
+}).describe('Everything one save changed in the object: who, when, and a line per change.')),
+  "nextBefore": zod.uuid().nullable()
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
+
+
 export const RotateWebhookSecretParams = zod.object({
   "endpointId": zod.uuid()
 })
+
+export const rotateWebhookSecretResponseEndpointLastUpdatedCreatedDefault = false;
 
 export const RotateWebhookSecretResponse = zod.object({
   "endpoint": zod.object({
@@ -8588,7 +8756,14 @@ export const RotateWebhookSecretResponse = zod.object({
   "disabledReason": zod.string().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}),
-  "secretRotatedAt": zod.iso.datetime({"offset":true})
+  "secretRotatedAt": zod.iso.datetime({"offset":true}),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(rotateWebhookSecretResponseEndpointLastUpdatedCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
 }).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.'),
   "signingSecret": zod.string()
 }).describe('An endpoint with its signing secret, returned only when the secret is new (create, rotate). Store it now: the API\ncannot show it again. Check each delivery\'s `ScreenHire-Signature: t={unix seconds},v1={hex}`, the hex\nHMAC-SHA256 of `{t}.{raw body}` keyed with this secret.')
@@ -8828,8 +9003,9 @@ export const ScheduleInterviewResponse = zod.object({
 }).describe('One interviewer on an interview and the state of their calendar event. `syncStatus` is `Pending` (not on the\ncalendar yet, or being changed), `Synced` or `Failed`; `syncProblem` says why in plain words when it\nfailed. `displayName` is "Former member" for someone who left the organization.')),
   "createdAt": zod.iso.datetime({"offset":true}),
   "createdByUserId": zod.uuid().nullable(),
-  "cancelledByCandidate": zod.boolean()
-}).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.')
+  "cancelledByCandidate": zod.boolean(),
+  "newTimesOfferedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.\n`newTimesOfferedAt` is set while the team\'s offer of new times for a booked interview waits for the candidate: the\nbooked time (`startsAt`) stays held, and `windowStart` and `windowEnd` are the new window. The end of that\nwindow ends the offer.')
 
 
 export const ListApplicationInterviewsParams = zod.object({
@@ -8857,8 +9033,9 @@ export const ListApplicationInterviewsResponseItem = zod.object({
 }).describe('One interviewer on an interview and the state of their calendar event. `syncStatus` is `Pending` (not on the\ncalendar yet, or being changed), `Synced` or `Failed`; `syncProblem` says why in plain words when it\nfailed. `displayName` is "Former member" for someone who left the organization.')),
   "createdAt": zod.iso.datetime({"offset":true}),
   "createdByUserId": zod.uuid().nullable(),
-  "cancelledByCandidate": zod.boolean()
-}).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.')
+  "cancelledByCandidate": zod.boolean(),
+  "newTimesOfferedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.\n`newTimesOfferedAt` is set while the team\'s offer of new times for a booked interview waits for the candidate: the\nbooked time (`startsAt`) stays held, and `windowStart` and `windowEnd` are the new window. The end of that\nwindow ends the offer.')
 export const ListApplicationInterviewsResponse = zod.array(ListApplicationInterviewsResponseItem)
 
 
@@ -8887,8 +9064,44 @@ export const CancelInterviewResponse = zod.object({
 }).describe('One interviewer on an interview and the state of their calendar event. `syncStatus` is `Pending` (not on the\ncalendar yet, or being changed), `Synced` or `Failed`; `syncProblem` says why in plain words when it\nfailed. `displayName` is "Former member" for someone who left the organization.')),
   "createdAt": zod.iso.datetime({"offset":true}),
   "createdByUserId": zod.uuid().nullable(),
-  "cancelledByCandidate": zod.boolean()
-}).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.')
+  "cancelledByCandidate": zod.boolean(),
+  "newTimesOfferedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.\n`newTimesOfferedAt` is set while the team\'s offer of new times for a booked interview waits for the candidate: the\nbooked time (`startsAt`) stays held, and `windowStart` and `windowEnd` are the new window. The end of that\nwindow ends the offer.')
+
+
+export const OfferNewInterviewTimesParams = zod.object({
+  "interviewId": zod.uuid()
+})
+
+export const OfferNewInterviewTimesBody = zod.object({
+  "windowStart": zod.iso.datetime({"offset":true}),
+  "windowEnd": zod.iso.datetime({"offset":true})
+}).describe('Offers the candidate new times for a booked interview: they pick from `windowStart` to `windowEnd` (at most 90\ndays), in the interview\'s own length, working hours and zone. The booked time stays held until they pick, and the\nevents in every calendar then move. Offering again replaces the window.')
+
+export const OfferNewInterviewTimesResponse = zod.object({
+  "id": zod.uuid(),
+  "status": zod.enum(['Open', 'Booked', 'Cancelled', 'Expired']),
+  "startsAt": zod.iso.datetime({"offset":true}).nullable(),
+  "endsAt": zod.iso.datetime({"offset":true}).nullable(),
+  "windowStart": zod.iso.datetime({"offset":true}),
+  "windowEnd": zod.iso.datetime({"offset":true}),
+  "timeZone": zod.string(),
+  "durationMinutes": zod.int(),
+  "dayStart": zod.string(),
+  "dayEnd": zod.string(),
+  "meetingUrl": zod.string().nullable(),
+  "interviewers": zod.array(zod.object({
+  "userId": zod.uuid(),
+  "displayName": zod.string(),
+  "isOrganizer": zod.boolean(),
+  "syncStatus": zod.enum(['Pending', 'Synced', 'Failed']).describe('Where one interviewer\'s calendar event stands.'),
+  "syncProblem": zod.string().nullable()
+}).describe('One interviewer on an interview and the state of their calendar event. `syncStatus` is `Pending` (not on the\ncalendar yet, or being changed), `Synced` or `Failed`; `syncProblem` says why in plain words when it\nfailed. `displayName` is "Former member" for someone who left the organization.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "createdByUserId": zod.uuid().nullable(),
+  "cancelledByCandidate": zod.boolean(),
+  "newTimesOfferedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.\n`newTimesOfferedAt` is set while the team\'s offer of new times for a booked interview waits for the candidate: the\nbooked time (`startsAt`) stays held, and `windowStart` and `windowEnd` are the new window. The end of that\nwindow ends the offer.')
 
 
 export const listEmailTemplatesResponseTemplatesItemLastUpdatedCreatedDefault = false;

@@ -171,6 +171,8 @@ deletes each expired copy's blob through `IDataExportStore.DeleteAsync`, clears 
 
 ### Messages to the candidate and the team
 
+The link, the copy and the decline emails to a candidate end with the link to their own page like every other email to them ([candidate portal](candidate-portal.md#the-link-every-email-carries)).
+
 `SendDataRequestDeclined(OrganizationId, RequestId)` carries ids only. Its handler reads the reason from the request and mails it
 in ScreenHire's words around the team's, with no statement about the law. It skips quietly when the candidate is gone, the
 request is not Declined, the address is flagged or there is no email sender. A stable key (`declined:{requestId}`) keeps it to

@@ -194,9 +194,10 @@ public sealed record ApplicationFileSummary(
 /// <c>poolExit</c>: For <c>LeftTalentPool</c>, why the candidate left saved candidates. <c>otherJobId</c>,
 /// <c>otherApplicationId</c>: For <c>InvitedToApply</c>, the job they were invited to; for <c>LeftTalentPool</c>, the job
 /// and application they were added to or applied with. For <c>KeptInMind</c>, <c>note</c> says why the team saved them.
-/// <c>interviewId</c>, <c>startsAt</c>, <c>endsAt</c>: For <c>InterviewInvited</c>, <c>InterviewBooked</c>, <c>InterviewRescheduled</c> and
-/// <c>InterviewCancelled</c>, the interview and its time as UTC instants: the new time for a booking or a reschedule, the
-/// time it had for the cancellation of a booked interview, and none for an invitation.
+/// <c>interviewId</c>, <c>startsAt</c>, <c>endsAt</c>: For <c>InterviewInvited</c>, <c>InterviewBooked</c>, <c>InterviewRescheduled</c>,
+/// <c>InterviewNewTimesOffered</c> and <c>InterviewCancelled</c>, the interview and its time as UTC instants: the new time
+/// for a booking or a reschedule, the time it had for the cancellation of a booked interview, the time still held when new
+/// times were offered, and none for an invitation.
 /// </remarks>
 public sealed record ApplicationTimelineEntry(
     Guid Id,

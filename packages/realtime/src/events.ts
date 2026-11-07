@@ -135,6 +135,8 @@ export const realtimeEventSchemas = {
     templateId: z.string(),
     changedAt: instant,
     actorUserId: actor,
+    // The member who changed an email template or a scorecard last, when not the actor, whose dashboard can say so.
+    previousEditorUserId: id.nullish(),
   }),
   // Levels only, never evidence: the dashboard reads the assessment itself through the API. Enums are the C#
   // AuthenticityLevel and AiAssistanceLevel.

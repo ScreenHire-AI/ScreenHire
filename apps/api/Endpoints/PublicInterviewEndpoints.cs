@@ -131,7 +131,8 @@ internal static class PublicInterviewEndpoints
             slots,
             unavailable,
             canChange,
-            calendar.Options.Interviews.MinNoticeHours));
+            calendar.Options.Interviews.MinNoticeHours,
+            interview.HasPendingNewTimes(now)));
     }
 
     private static Task<Results<NoContent, NotFound, ProblemHttpResult>> BookPublicInterview(

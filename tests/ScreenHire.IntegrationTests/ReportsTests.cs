@@ -312,16 +312,67 @@ public sealed class ReportsTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task Reports_are_for_signed_in_people_only()
+    public async Task Reports_need_a_signed_in_person_or_an_organization_key()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
-        var created = await owner.CreateKeyAsync("Everything", ["Read", "Write"]);
-        using var key = new KeyClient(fixture, created.Text("token"));
         using var visitor = new ApiSession(fixture);
+        using var stranger = new KeyClient(fixture, "not-a-key");
 
-        (await key.GetAsync($"/v1/reports/hiring?{Range}")).Status.Should().Be(HttpStatusCode.Unauthorized, "reports are not part of the hiring API");
         using var anonymous = await visitor.Client.GetAsync($"/v1/reports/hiring?{Range}", Ct);
         anonymous.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await stranger.GetAsync($"/v1/reports/hiring?{Range}")).Status.Should().Be(HttpStatusCode.Unauthorized, "a token that is not a key is no one");
+    }
+
+    [Fact]
+    public async Task A_read_key_gets_the_same_report_and_funnel_list_as_a_member_who_sees_every_job()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var (platform, data) = await SeedAsync(owner.OrganizationId);
+        using var viewer = await fixture.InviteAndJoinAsync(owner, "Viewer", jobAccess: "HiringTeamOnly");
+        await owner.SetHiringTeamAsync(platform, await owner.MemberIdAsync(viewer.UserId));
+        using var key = new KeyClient(fixture, (await owner.CreateKeyAsync("Reporting", ["Read"])).Text("token"));
+
+        var viaKey = (await key.GetAsync($"/v1/reports/hiring?{Range}")).Expect(HttpStatusCode.OK);
+        var viaSession = (await owner.GetAsync($"/v1/reports/hiring?{Range}")).Expect(HttpStatusCode.OK);
+
+        Funnel(viaKey).Should().Equal(Funnel(viaSession)).And.Equal(
+            ("Applied", 7, 6), ("Screening", 6, 6), ("Assessment", 6, 5), ("Interview", 5, 4), ("Offer", 4, 3), ("Hired", 3, null));
+        Jobs(viaKey).Should().BeEquivalentTo([(platform, 3, 30.0), (data, 2, 9.5)], "a key sees every job, as the MCP tool does (ADR-0015)");
+        Sources(viaKey).Should().Equal(Sources(viaSession));
+        viaKey.At("headline.hires").GetInt32().Should().Be(5);
+        viaKey.Body.GetRawText().Should().NotContainEquivalentOf("verification", "a report opens nothing of verification to a Read key (ADR-0021)");
+        Jobs((await viewer.GetAsync($"/v1/reports/hiring?{Range}")).Expect(HttpStatusCode.OK)).Select(j => j.Item1).Should().Equal(platform)
+            .And.NotBeEquivalentTo(Jobs(viaKey).Select(j => j.Item1), "a member on Only jobs they're on sees less than a key");
+
+        var narrowed = (await key.GetAsync($"/v1/reports/hiring?{Range}&jobId={data}&timeZone=Europe/London")).Expect(HttpStatusCode.OK);
+        Jobs(narrowed).Should().Equal((data, 2, 9.5));
+
+        var interview = (await key.GetAsync($"/v1/reports/hiring/funnel/Interview/applications?{Range}")).Expect(HttpStatusCode.OK);
+        interview.Body.EnumerateArray().Select(id => id.GetGuid()).Should().BeEquivalentTo(
+            (await owner.GetAsync($"/v1/reports/hiring/funnel/Interview/applications?{Range}")).Expect(HttpStatusCode.OK)
+                .Body.EnumerateArray().Select(id => id.GetGuid()));
+        (await key.GetAsync($"/v1/reports/hiring?from={Uri.EscapeDataString(Now.ToString("O"))}&to={Uri.EscapeDataString(Now.ToString("O"))}"))
+            .Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("to");
+    }
+
+    [Fact]
+    public async Task A_key_reads_only_its_own_organizations_numbers()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var other = await fixture.SignedInWithOrganizationAsync();
+        await SeedAsync(other.OrganizationId);
+        var (platform, _) = await SeedAsync(owner.OrganizationId);
+        using var key = new KeyClient(fixture, (await owner.CreateKeyAsync("Reporting", ["Read"])).Text("token"));
+        using var theirKey = new KeyClient(fixture, (await other.CreateKeyAsync("Reporting", ["Read"])).Text("token"));
+
+        var ours = (await key.GetAsync($"/v1/reports/hiring?{Range}")).Expect(HttpStatusCode.OK);
+        var theirs = (await theirKey.GetAsync($"/v1/reports/hiring?{Range}")).Expect(HttpStatusCode.OK);
+
+        ours.At("headline.hires").GetInt32().Should().Be(5, "the other organization's equal history adds nothing");
+        Jobs(ours).Select(j => j.Item1).Should().Contain(platform);
+        Jobs(theirs).Select(j => j.Item1).Should().NotContain(platform);
+        (await key.GetAsync($"/v1/reports/hiring?{Range}&jobId={Jobs(theirs).First().Item1}")).Expect(HttpStatusCode.OK)
+            .Count("funnel").Should().Be(0, "another organization's job adds nothing");
     }
 
     /// <summary>

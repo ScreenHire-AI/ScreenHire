@@ -4,6 +4,7 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { LastUpdate } from './lastUpdate.ts';
 
 /**
  * One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.
@@ -24,4 +25,5 @@ export interface WebhookEndpointEntry {
   createdAt: string;
   updatedAt: string;
   secretRotatedAt: string;
+  lastUpdated: LastUpdate;
 }

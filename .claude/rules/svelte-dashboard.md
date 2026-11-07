@@ -66,6 +66,10 @@ new route is the `/add-dashboard-page` skill.
   fails WCAG 1.4.1. Every status is a name in `statuses` (`#lib/status.ts`), which holds its icon and colour;
   `StatusBadge` takes the name and a label. A new status takes the row whose meaning it shares and joins the table in
   section 3.2.
+- Every file input is the Drop area (`DropArea` from `@screenhire/ui/questions`, design system A12): a click or a dropped
+  file chooses, the name and size show with Remove, and a wrong type or a file too large is refused in the field's error
+  through `onproblem`. Never write `<input type="file">`; `src/tokens-only.test.ts` fails on it, and the shadcn `Input` has
+  no file type.
 - Verification UI shows levels, reasons and evidence. It never shows a numeric score or a percentage, and it has no
   reject control (ADR-0004). No bulk action pairs a verification filter with a stage that ends a candidacy: bulk moves
   take their stages from `bulkMoveStages` (`#lib/verification.ts`).

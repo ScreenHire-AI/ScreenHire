@@ -108,7 +108,7 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
 
         await Expect(Page.Locator("#step-heading")).ToHaveTextAsync("Questions");
         await Page.GetByLabel("A work sample").SetInputFilesAsync(new FilePayload { Name = "Work sample.pdf", MimeType = "application/pdf", Buffer = Pdf });
-        await Expect(Page.GetByText("Uploaded: Work sample.pdf")).ToBeVisibleAsync();
+        await Expect(Page.GetByText("Work sample.pdf")).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to review" }).ClickAsync();
 

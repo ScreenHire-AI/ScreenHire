@@ -1572,6 +1572,7 @@ describe('application page', () => {
       createdAt: '2026-10-20T12:00:00Z',
       createdByUserId: user.id,
       cancelledByCandidate: false,
+      newTimesOfferedAt: null,
       ...overrides,
     });
     const startsAt = '2026-11-05T15:00:00Z';
