@@ -356,10 +356,9 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
         // Back on the request, which names the assistant and the organization.
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync($"Connect {clientName} to {organizationName}");
         await Expect(Page.GetByText("claude.ai", new() { Exact = true })).ToBeVisibleAsync();
-        var read = Page.GetByRole(AriaRole.Checkbox, new() { NameRegex = new("^Read") });
         var write = Page.GetByRole(AriaRole.Checkbox, new() { NameRegex = new("^Write") });
-        await Expect(read).ToBeCheckedAsync();
-        await Expect(read).ToBeDisabledAsync();
+        await Expect(Page.GetByText("Always on.")).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Checkbox, new() { NameRegex = new("^Read") })).ToHaveCountAsync(0);
         await Expect(write).Not.ToBeCheckedAsync();
         await Expect(Page.GetByRole(AriaRole.Checkbox, new() { NameRegex = new("^Verification read") })).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();

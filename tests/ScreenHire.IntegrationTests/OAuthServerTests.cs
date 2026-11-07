@@ -114,12 +114,15 @@ public sealed class OAuthServerTests(AppHostFixture fixture)
         var valid = await owner.ConnectAsync(app, "Another assistant", ["Read"]);
         await fixture.ExpireAccessTokensAsync(owner.OrganizationId);
         var working = (await app.RefreshAsync(valid.Request.ClientId, valid.RefreshToken)).Expect(HttpStatusCode.OK).Text("access_token");
+        var revoked = await owner.ConnectAsync(app, "A third assistant", ["Read"]);
+        (await owner.PostAsync($"/v1/organization/oauth-connections/{revoked.ConnectionId}/revoke")).Expect(HttpStatusCode.OK);
 
         // One more than the default ScreenHire:ApiKeys:FailedAttemptsPerMinute: every client does this once an hour, and a
         // hosted assistant's address is shared by everyone who uses it.
         for (var attempt = 0; attempt < 31; attempt++)
         {
-            (await app.McpAsync(expired.AccessToken)).Status.Should().Be(HttpStatusCode.Unauthorized);
+            var token = attempt % 2 == 0 ? expired.AccessToken : revoked.AccessToken;
+            (await app.McpAsync(token)).Status.Should().Be(HttpStatusCode.Unauthorized);
         }
 
         (await app.McpAsync(working)).Status.Should().Be(HttpStatusCode.OK, "the address was not locked out");
