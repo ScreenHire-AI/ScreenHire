@@ -91,6 +91,7 @@ public sealed partial class RolePermissionsTests
         ["ListWebhookEndpoints"] = Permission.ManageWebhooks,
         ["CreateWebhookEndpoint"] = Permission.ManageWebhooks,
         ["GetWebhookEndpoint"] = Permission.ManageWebhooks,
+        ["GetWebhookEndpointHistory"] = Permission.ManageWebhooks,
         ["UpdateWebhookEndpoint"] = Permission.ManageWebhooks,
         ["DeleteWebhookEndpoint"] = Permission.ManageWebhooks,
         ["RotateWebhookSecret"] = Permission.ManageWebhooks,
