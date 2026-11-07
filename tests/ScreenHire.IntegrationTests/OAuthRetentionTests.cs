@@ -11,8 +11,12 @@ namespace ScreenHire.IntegrationTests;
 /// day, and each organization's codes and tokens go a day after they expire. The worker has no tenant of its own, so the
 /// daily message hands each organization to a tenant message, and these tests send both through the real worker. Rows are
 /// aged through the owner connection, as state no endpoint can reach (docs/process/testing.md). Other tests expire their
-/// rows by a minute, never by a day, so a sweep that reaches every organization takes nothing they use.
+/// rows by a minute, never by a day, so a sweep that reaches every organization takes nothing they use. The two tests
+/// here do send that sweep, and with every test in parallel the second test's daily message reached the first test's
+/// organizations while it had rows aged two days, deleting one before it asserted that it stayed. They share a collection
+/// that xUnit runs alone, after the parallel tests.
 /// </summary>
+[Collection<OAuthRetention>]
 public sealed class OAuthRetentionTests(AppHostFixture fixture)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
@@ -183,3 +187,7 @@ public sealed class OAuthRetentionTests(AppHostFixture fixture)
         return connection;
     }
 }
+
+/// <summary>The OAuth retention tests, which send the daily sweep to every organization. Run alone, after the parallel tests.</summary>
+[CollectionDefinition(DisableParallelization = true)]
+public sealed class OAuthRetention;
