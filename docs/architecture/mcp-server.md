@@ -173,7 +173,7 @@ the tools.
 **A client that signs in only with OAuth**, such as a claude.ai custom connector, needs only the server URL. It finds the
 authorization server from the 401, registers itself, and sends the person to a consent page in the dashboard, where an
 Owner or Admin chooses what the assistant may do (Read always; Write and Verification read if they hold them
-themselves). The connection then shows under Settings > MCP server, where it can be disconnected at once. The flow, the
+themselves). The connection then shows under Integrations > MCP server, where it can be disconnected at once. The flow, the
 tokens and the limits are in [OAuth sign-in](oauth-server.md) (ADR-0028, which closes ADR-0011 decision 6). It needs the
 API on a public HTTPS host; locally the integration tests and the MCP client exercise it.
 
