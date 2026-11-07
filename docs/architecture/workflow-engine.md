@@ -24,6 +24,7 @@ sources:
   - resource: src/ScreenHire.Domain/Applications/QuestionnaireRequest.cs
   - resource: src/ScreenHire.Domain/Webhooks/WebhookDelivery.cs
   - resource: src/ScreenHire.Domain/Webhooks/WebhookEndpoint.cs
+  - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/WebhookConfiguration.cs
   - resource: src/ScreenHire.Application/Automations/ApplicationTaskCompleted.cs
   - resource: src/ScreenHire.Application/Automations/ApplicationTaskReopened.cs
   - resource: src/ScreenHire.Application/Automations/ApplicationTaskCreated.cs
@@ -56,6 +57,7 @@ sources:
   - resource: apps/api/Hiring/TemplateReferences.cs
   - resource: apps/api/Hiring/InterviewerReferences.cs
   - resource: apps/api/Endpoints/WebhookEndpoints.cs
+  - resource: apps/api/Contracts/WebhookContracts.cs
   - resource: apps/api/Endpoints/PublicQuestionnaireEndpoints.cs
   - resource: apps/dashboard/src/lib/workflow.ts
   - resource: apps/dashboard/src/lib/workflow-graph.ts
