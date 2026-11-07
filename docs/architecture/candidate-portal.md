@@ -27,7 +27,8 @@ sources:
   - resource: apps/careers/src/layouts/CareersLayout.astro
   - resource: apps/careers/src/pages/[organization]/my-applications/index.astro
   - resource: apps/careers/src/pages/[organization]/my-applications/sent.astro
-  - resource: apps/careers/src/pages/[organization]/my-applications/expired.astro
+  - resource: apps/careers/src/pages/[organization]/jobs/[job]/applied.astro
+  - resource: apps/careers/src/components/PortalLinkProblem.astro
   - resource: apps/careers/src/pages/[organization]/my-applications/[token]/index.astro
   - resource: apps/careers/src/pages/[organization]/my-applications/[token]/[application].astro
   - resource: apps/careers/src/pages/[organization]/privacy.astro
@@ -122,7 +123,10 @@ made (non-negotiables 1 to 4), and an integration test scans the page's payload 
 emails sent to the candidate (the kept copy of each email that has an `EmailSent` entry) and their replies, except automatic
 ones. A kept copy says "[the candidate's link, not kept in this copy]" where the candidate's own link was; on the
 candidate's own page `PortalMessageText` shows "(your link is in the email we sent you)" instead. Messages show the
-organization's name and "You", never a team member's name.
+organization's name and "You", never a team member's name. A mail to the signed reply address from another address reads as
+"You" too: only the candidate was sent that address. The thread is every email the candidate got, so a saved candidate still sees
+the invitation they were sent; only the status stays silent about it. Dates are shown without a time, because the server does
+not know the candidate's time zone and a label never names one (design system section 2).
 
 `POST` on the same path is a reply. It goes through the same ingest as an emailed reply (`InboundEmailIngest.IngestForAsync`),
 so a reply from the page and a reply by email are one thing: an `inbound_emails` row, an `EmailReceived` entry in Activity, up
@@ -136,13 +140,14 @@ the same sent email.
   server takes 12 MB from a form), PDF, Word, PNG or JPEG. The careers server posts them to the API as base64 in JSON, and the
   existing `AttachmentFiles` checks (extension and first bytes) and malware scan apply.
 - **Idempotency.** The form carries its own random id (32 hex digits, made when the page renders). The reply is stored under
-  the `Message-ID` `<portal-{id}@portal.invalid>`, so sending the same form twice, or a retry after a lost answer, stores one
+  the `Message-ID` `<portal-{application}-{id}@portal.invalid>`, so sending the same form twice, or a retry after a lost answer, stores one
   reply. A problem re-renders the page with the same id.
 - **A reply from the page never clears a bounce or spam flag.** The ingest's step that turns email back on for an address that
   writes from it (`clearsEmailIssue`) is on for an email and off for the page: a footer link sent before a bounce still opens
   the page, and typing there says nothing about the mailbox.
 - **Limits.** `RepliesPerDay` per application (the day's `portal-` replies are counted; the next is a 429) and the per-address
-  `portal` rate limit bound what a leaked link can do to the people who are told about each reply. A reply is at most
+  `portal` rate limit bound what a leaked link can do to the people who are told about each reply. The count is read and then
+  written, so posts at the same instant can pass it by a few: a soft cap, with the rate limit as the hard one. A reply is at most
   `ReplyBodyMax` characters.
 
 ## The link every email carries
@@ -151,7 +156,9 @@ the same sent email.
 link. ScreenHire's fixed wording, added after an organization's template is rendered and sanitized (as the header is), so a
 template cannot change or remove it. `MailRoute` carries it (`PortalLink`), and `MailRoute.Apply` adds it to the email that
 goes out. `TransactionalEmail` returns the email as rendered, so the copy the team keeps never holds the link: it opens the
-candidate's page, so it goes to the candidate alone, as the follow-up questionnaire link does.
+candidate's page, so it goes to the candidate alone, as the follow-up questionnaire link does. A reply by email usually quotes
+that footer, so ingest cuts the link back to `/my-applications` before it stores a reply (`PortalMessageText.WithoutPortalToken`).
+The HTML line goes inside the document's `<body>`, because a rendered template is a whole document.
 
 Where it is added: every application email (a person's send, an automation's `SendEmail`, `Reject` and `SendQuestionnaire`, the
 stage-change and application-received templates), the three interview emails, the invitation to apply, and the three data
@@ -176,11 +183,10 @@ the visitor's address, so the API's rate limit counts the visitor and not the ca
 | `sent.astro` | The one answer after asking: "If we have an application from that address, we have emailed a link". The same for an address that applied, one that did not and one in its cooldown. |
 | `[token]/index.astro` | The overview: saved applications to finish, then each application with its job, date and four steps (icon, text and `aria-current`, never colour alone) or its ended status, anything waiting as a button, and a link to its messages. |
 | `[token]/[application].astro` | The thread and a reply form. A redirect after a send (`?sent=1`) so a refresh never posts twice. |
-| `expired.astro` | A token-free page for a link that no longer works, with a link to ask for a new one. |
 
 A forged, expired, wrong-organization or erased-candidate link, or a malformed one, shows "This link has expired or is not valid"
-with a link back to the form (status 404); a busy network shows a short message (429). The footer of every careers page links to
-`/my-applications`.
+with a link back to the form and the line to reply to the last email (status 404); a busy network says the same in a `Notice`
+(429). Both come from `PortalLinkProblem`. The footer of every careers page links to `/my-applications`.
 
 ## Notice
 
