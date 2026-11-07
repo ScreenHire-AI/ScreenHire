@@ -4,8 +4,9 @@ namespace ScreenHire.Domain.Webhooks;
 
 /// <summary>
 /// One URL an organization's integration receives events at (docs/architecture/workflow-engine.md §5). Each endpoint
-/// has its own signing secret, derived from the platform key and <see cref="SecretVersion"/>, so the database never
-/// holds it and rotating means a new version.
+/// has its own signing secret, derived from the platform key and the version in its <see cref="WebhookEndpointSecret"/>
+/// row, so the database never holds the secret. That row is separate so change history can track this one
+/// (docs/architecture/change-history.md, "Secrets"). Its URL can carry a token, which history records as a host alone.
 /// </summary>
 public sealed class WebhookEndpoint : ITenantOwned
 {
@@ -28,9 +29,6 @@ public sealed class WebhookEndpoint : ITenantOwned
 
     public bool Enabled { get; private set; } = true;
 
-    /// <summary>Which secret signs deliveries: version 1 at creation, one more on each rotation.</summary>
-    public int SecretVersion { get; private set; } = 1;
-
     /// <summary>
     /// Deliveries in a row that failed every attempt. A success resets it; reaching the configured limit disables the
     /// endpoint. The worker updates it in one statement, so parallel deliveries never lose a count.
@@ -45,8 +43,6 @@ public sealed class WebhookEndpoint : ITenantOwned
     public required DateTimeOffset CreatedAt { get; init; }
 
     public DateTimeOffset UpdatedAt { get; set; }
-
-    public DateTimeOffset SecretRotatedAt { get; private set; }
 
     /// <summary>Turns the endpoint on or off by hand. Turning it on clears an automatic disable and its failure count.</summary>
     public void SetEnabled(bool enabled, DateTimeOffset now)
@@ -63,14 +59,6 @@ public sealed class WebhookEndpoint : ITenantOwned
         UpdatedAt = now;
     }
 
-    /// <summary>A new secret signs every delivery from now on, retries of earlier events included. The old one stops at once.</summary>
-    public void RotateSecret(DateTimeOffset now)
-    {
-        SecretVersion++;
-        SecretRotatedAt = now;
-        UpdatedAt = now;
-    }
-
     public static WebhookEndpoint Create(Guid organizationId, string url, string? description, IEnumerable<string> events, DateTimeOffset now) =>
         new()
         {
@@ -80,8 +68,37 @@ public sealed class WebhookEndpoint : ITenantOwned
             Events = [.. events.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)],
             CreatedAt = now,
             UpdatedAt = now,
-            SecretRotatedAt = now,
         };
+}
+
+/// <summary>
+/// The inputs of an endpoint's signing secret, in a row of its own so change history, which reads only what it tracks,
+/// never sees them (ADR-0016). The secret itself is derived from the platform key, the endpoint id and
+/// <see cref="Version"/>, and is never stored. The key is the endpoint's id: one row each, made with the endpoint.
+/// </summary>
+public sealed class WebhookEndpointSecret : ITenantOwned
+{
+    public Guid OrganizationId { get; init; }
+
+    public Guid EndpointId { get; init; }
+
+    /// <summary>Which secret signs deliveries: version 1 at creation, one more on each rotation.</summary>
+    public int Version { get; private set; } = 1;
+
+    public required DateTimeOffset RotatedAt { get; set; }
+
+    /// <summary>A new secret signs every delivery from now on, retries of earlier events included. The old one stops at once.</summary>
+    public void Rotate(DateTimeOffset now)
+    {
+        Version++;
+        RotatedAt = now;
+    }
+
+    public static WebhookEndpointSecret For(WebhookEndpoint endpoint, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+        return new() { OrganizationId = endpoint.OrganizationId, EndpointId = endpoint.Id, RotatedAt = now };
+    }
 }
 
 /// <summary>The events an endpoint can subscribe to, by their name on the wire.</summary>

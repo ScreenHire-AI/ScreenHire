@@ -28,7 +28,9 @@ decision the system did not record, and the review's brief says to follow the cl
 2. **A record whose row holds a secret has no change history.** Change history reads only the entities on its
    allow-list, and nothing that holds a secret is on it (`docs/architecture/change-history.md`). A webhook endpoint's
    row holds its signing secret, so its header shows when it was added and when its secret was last rotated instead
-   of Last updated with History. Splitting the secret into its own row is the way to give it a history later.
+   of Last updated with History. Splitting the secret into its own row is the way to give it a history later. That
+   is done (2026-11-07): the secret is derived, not stored, so what moved is its inputs, the version and the time of the
+   last rotation, into `webhook_endpoint_secrets`, and an endpoint now has Last updated and History.
 3. **A form keeps its actions at its end on a phone.** Section 8 puts a phone's primary action in a bar at the bottom;
    section 7 puts a form's actions at its end. On a form page the second wins: Cancel and the primary follow the
    fields they act on.
@@ -40,4 +42,4 @@ decision the system did not record, and the review's brief says to follow the cl
 ## Consequences
 
 - `design-review` holds these screens to the amended rules from its next run, because it reads section 2 each time.
-- A webhook endpoint's history is a roadmap item, not a review finding.
+- A webhook endpoint's history was a roadmap item, not a review finding, and has landed.

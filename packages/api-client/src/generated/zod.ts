@@ -8441,6 +8441,8 @@ export const ListWebhookEventTypesResponseItem = zod.string()
 export const ListWebhookEventTypesResponse = zod.array(ListWebhookEventTypesResponseItem)
 
 
+export const listWebhookEndpointsResponseLastUpdatedCreatedDefault = false;
+
 export const ListWebhookEndpointsResponseItem = zod.object({
   "id": zod.uuid(),
   "url": zod.string(),
@@ -8452,7 +8454,14 @@ export const ListWebhookEndpointsResponseItem = zod.object({
   "disabledReason": zod.string().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}),
-  "secretRotatedAt": zod.iso.datetime({"offset":true})
+  "secretRotatedAt": zod.iso.datetime({"offset":true}),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(listWebhookEndpointsResponseLastUpdatedCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
 }).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.')
 export const ListWebhookEndpointsResponse = zod.array(ListWebhookEndpointsResponseItem)
 
@@ -8462,6 +8471,8 @@ export const CreateWebhookEndpointBody = zod.object({
   "events": zod.array(zod.string()),
   "description": zod.string().nullish()
 }).describe('A new webhook endpoint: where to post, and which events (`GET /v1/webhooks/event-types` lists them).')
+
+export const createWebhookEndpointResponseEndpointLastUpdatedCreatedDefault = false;
 
 export const CreateWebhookEndpointResponse = zod.object({
   "endpoint": zod.object({
@@ -8475,7 +8486,14 @@ export const CreateWebhookEndpointResponse = zod.object({
   "disabledReason": zod.string().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}),
-  "secretRotatedAt": zod.iso.datetime({"offset":true})
+  "secretRotatedAt": zod.iso.datetime({"offset":true}),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(createWebhookEndpointResponseEndpointLastUpdatedCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
 }).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.'),
   "signingSecret": zod.string()
 }).describe('An endpoint with its signing secret, returned only when the secret is new (create, rotate). Store it now: the API\ncannot show it again. Check each delivery\'s `ScreenHire-Signature: t={unix seconds},v1={hex}`, the hex\nHMAC-SHA256 of `{t}.{raw body}` keyed with this secret.')
@@ -8484,6 +8502,8 @@ export const CreateWebhookEndpointResponse = zod.object({
 export const GetWebhookEndpointParams = zod.object({
   "endpointId": zod.uuid()
 })
+
+export const getWebhookEndpointResponseLastUpdatedCreatedDefault = false;
 
 export const GetWebhookEndpointResponse = zod.object({
   "id": zod.uuid(),
@@ -8496,7 +8516,14 @@ export const GetWebhookEndpointResponse = zod.object({
   "disabledReason": zod.string().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}),
-  "secretRotatedAt": zod.iso.datetime({"offset":true})
+  "secretRotatedAt": zod.iso.datetime({"offset":true}),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(getWebhookEndpointResponseLastUpdatedCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
 }).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.')
 
 
@@ -8511,6 +8538,8 @@ export const UpdateWebhookEndpointBody = zod.object({
   "description": zod.string().nullish()
 }).describe('Replaces an endpoint\'s settings. A body without `enabled` keeps the endpoint on or off as it is. Turning it\nback on clears an automatic disable and its failure count; deliveries skipped while it was off stay skipped and can\nbe replayed.')
 
+export const updateWebhookEndpointResponseLastUpdatedCreatedDefault = false;
+
 export const UpdateWebhookEndpointResponse = zod.object({
   "id": zod.uuid(),
   "url": zod.string(),
@@ -8522,7 +8551,14 @@ export const UpdateWebhookEndpointResponse = zod.object({
   "disabledReason": zod.string().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}),
-  "secretRotatedAt": zod.iso.datetime({"offset":true})
+  "secretRotatedAt": zod.iso.datetime({"offset":true}),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(updateWebhookEndpointResponseLastUpdatedCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
 }).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.')
 
 
@@ -8533,9 +8569,45 @@ export const DeleteWebhookEndpointParams = zod.object({
 export const DeleteWebhookEndpointResponse = zod.void()
 
 
+export const GetWebhookEndpointHistoryParams = zod.object({
+  "endpointId": zod.uuid()
+})
+
+export const GetWebhookEndpointHistoryQueryParams = zod.object({
+  "before": zod.uuid().optional(),
+  "limit": zod.int().optional()
+})
+
+export const GetWebhookEndpointHistoryResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "id": zod.uuid(),
+  "at": zod.iso.datetime({"offset":true}),
+  "by": zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)]),
+  "userId": zod.uuid().nullable(),
+  "apiKeyId": zod.uuid().nullable(),
+  "lines": zod.array(zod.object({
+  "text": zod.string(),
+  "parts": zod.array(zod.object({
+  "text": zod.string(),
+  "strong": zod.boolean()
+})),
+  "details": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string().nullable(),
+  "after": zod.string().nullable(),
+  "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
+}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
+}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
+}).describe('Everything one save changed in the object: who, when, and a line per change.')),
+  "nextBefore": zod.uuid().nullable()
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
+
+
 export const RotateWebhookSecretParams = zod.object({
   "endpointId": zod.uuid()
 })
+
+export const rotateWebhookSecretResponseEndpointLastUpdatedCreatedDefault = false;
 
 export const RotateWebhookSecretResponse = zod.object({
   "endpoint": zod.object({
@@ -8549,7 +8621,14 @@ export const RotateWebhookSecretResponse = zod.object({
   "disabledReason": zod.string().nullable(),
   "createdAt": zod.iso.datetime({"offset":true}),
   "updatedAt": zod.iso.datetime({"offset":true}),
-  "secretRotatedAt": zod.iso.datetime({"offset":true})
+  "secretRotatedAt": zod.iso.datetime({"offset":true}),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(rotateWebhookSecretResponseEndpointLastUpdatedCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
 }).describe('One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did.'),
   "signingSecret": zod.string()
 }).describe('An endpoint with its signing secret, returned only when the secret is new (create, rotate). Store it now: the API\ncannot show it again. Check each delivery\'s `ScreenHire-Signature: t={unix seconds},v1={hex}`, the hex\nHMAC-SHA256 of `{t}.{raw body}` keyed with this secret.')

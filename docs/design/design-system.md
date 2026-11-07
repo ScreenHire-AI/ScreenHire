@@ -211,9 +211,9 @@ Authors check their screens against this list, and the `design-review` agent rep
   Avery Quinn") with History beside it, and a Last updated column in its list. ScreenHire's own templates and roles
   say "by ScreenHire". Something nothing has changed since it was created says so: the fact is Created, "2 hours ago by
   Avery Quinn", never Updated with nobody, and no second Created fact repeats it (W7). History opens a sheet with every change, newest first and grouped by day: who, when and what,
-  with before and after on request. The one exception is a record whose row holds a secret (a webhook endpoint):
-  change history never reads it, so its header says when it was added and when its secret was last rotated instead
-  (ADR-0016).
+  with before and after on request. A record whose row holds a secret gets a history only once the secret
+  (or what derives it) moves to a row of its own, as a webhook endpoint's did (ADR-0016), and the History never shows it. A webhook endpoint's header
+  also keeps Secret rotated beside Last updated.
 
 **Icons and shortcuts**
 
@@ -974,6 +974,7 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   view the table is on; its dialog asks for a name and Share with the team, off by default (`docs/architecture/saved-views.md`).
 - **API keys and webhooks:** each page says what it is for, how to call it and where the reference is. The API
   reference is served in production. API keys has Last updated and History on its title's row: each key created and
-  revoked, with its name, access and who. A webhook endpoint keeps Added and Secret rotated instead (T6).
+  revoked, with its name, access and who. A webhook endpoint's page has Last updated and History (its address by host, its
+  events, its switch and each rotation of its secret) beside Secret rotated (T6).
 - **MCP server:** the values any MCP client needs (this deployment's server URL, the transport, the header), the
   key's access, the tools as pills, one generic config and a link to API keys. Never one client's setup steps.

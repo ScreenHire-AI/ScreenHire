@@ -97,6 +97,7 @@ import type {
   GetSavedNoteHistoryParams,
   GetScorecardTemplateHistoryParams,
   GetTeamHistoryParams,
+  GetWebhookEndpointHistoryParams,
   HiringReport,
   HiringTeamMember,
   HiringTeamRequest,
@@ -17247,10 +17248,15 @@ export type getHiringReportResponse401 = {
   status: 401
 }
 
+export type getHiringReportResponse429 = {
+  data: void
+  status: 429
+}
+
 export type getHiringReportResponseSuccess = (getHiringReportResponse200) & {
   headers: Headers;
 };
-export type getHiringReportResponseError = (getHiringReportResponse400 | getHiringReportResponse401) & {
+export type getHiringReportResponseError = (getHiringReportResponse400 | getHiringReportResponse401 | getHiringReportResponse429) & {
   headers: Headers;
 };
 
@@ -17360,10 +17366,15 @@ export type getFunnelApplicationsResponse404 = {
   status: 404
 }
 
+export type getFunnelApplicationsResponse429 = {
+  data: void
+  status: 429
+}
+
 export type getFunnelApplicationsResponseSuccess = (getFunnelApplicationsResponse200) & {
   headers: Headers;
 };
-export type getFunnelApplicationsResponseError = (getFunnelApplicationsResponse400 | getFunnelApplicationsResponse401 | getFunnelApplicationsResponse404) & {
+export type getFunnelApplicationsResponseError = (getFunnelApplicationsResponse400 | getFunnelApplicationsResponse401 | getFunnelApplicationsResponse404 | getFunnelApplicationsResponse429) & {
   headers: Headers;
 };
 
@@ -19170,6 +19181,122 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return createMutation(() => ({ ...getDeleteWebhookEndpointMutationOptions(options?.()) }), queryClient);
     }
+
+export type getWebhookEndpointHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getWebhookEndpointHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getWebhookEndpointHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getWebhookEndpointHistoryResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getWebhookEndpointHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getWebhookEndpointHistoryResponseSuccess = (getWebhookEndpointHistoryResponse200) & {
+  headers: Headers;
+};
+export type getWebhookEndpointHistoryResponseError = (getWebhookEndpointHistoryResponse400 | getWebhookEndpointHistoryResponse401 | getWebhookEndpointHistoryResponse403 | getWebhookEndpointHistoryResponse404) & {
+  headers: Headers;
+};
+
+export const getGetWebhookEndpointHistoryUrl = (endpointId: string,
+    params?: GetWebhookEndpointHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/webhooks/${endpointId}/history?${stringifiedParams}` : `/v1/webhooks/${endpointId}/history`
+}
+
+export const getWebhookEndpointHistory = async (endpointId: string,
+    params?: GetWebhookEndpointHistoryParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getWebhookEndpointHistoryResponseSuccess> => {
+
+  return apiQueryFetch<getWebhookEndpointHistoryResponseSuccess>(getGetWebhookEndpointHistoryUrl(endpointId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWebhookEndpointHistoryQueryKey = (endpointId: string,
+    params?: GetWebhookEndpointHistoryParams,) => {
+    return [
+    'v1','webhooks',endpointId,'history', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetWebhookEndpointHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getWebhookEndpointHistory>>, TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>>(endpointId: string,
+    params?: GetWebhookEndpointHistoryParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getWebhookEndpointHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWebhookEndpointHistoryQueryKey(endpointId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWebhookEndpointHistory>>> = ({ signal }) => getWebhookEndpointHistory(endpointId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: endpointId !== null && endpointId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getWebhookEndpointHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetWebhookEndpointHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getWebhookEndpointHistory>>>
+export type GetWebhookEndpointHistoryQueryError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+
+
+
+export function createGetWebhookEndpointHistory<TData = Awaited<ReturnType<typeof getWebhookEndpointHistory>>, TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>>(
+ endpointId: () =>  string,
+    params?: () =>  GetWebhookEndpointHistoryParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getWebhookEndpointHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetWebhookEndpointHistoryQueryOptions(endpointId(),
+    params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
 
 export type rotateWebhookSecretResponse200 = {
   data: WebhookEndpointWithSecret

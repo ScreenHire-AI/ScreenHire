@@ -20,6 +20,7 @@ const endpoint = (id: string, overrides: Partial<WebhookEndpointEntry> = {}): We
   createdAt: '2026-10-01T09:00:00Z',
   updatedAt: '2026-10-01T09:00:00Z',
   secretRotatedAt: '2026-10-01T09:00:00Z',
+  lastUpdated: { at: '2026-10-01T09:00:00Z', by: 'Member', userId: 'u1', created: true },
   ...overrides,
 });
 

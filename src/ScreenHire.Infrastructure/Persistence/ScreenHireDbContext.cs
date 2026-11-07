@@ -161,6 +161,8 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<WebhookEndpoint> WebhookEndpoints => Set<WebhookEndpoint>();
 
+    public DbSet<WebhookEndpointSecret> WebhookEndpointSecrets => Set<WebhookEndpointSecret>();
+
     public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
 
     /// <summary>An organization's Slack workspace, one at most (docs/architecture/slack.md).</summary>

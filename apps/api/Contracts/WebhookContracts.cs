@@ -29,7 +29,8 @@ public sealed record WebhookEndpointEntry(
     string? DisabledReason,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
-    DateTimeOffset SecretRotatedAt);
+    DateTimeOffset SecretRotatedAt,
+    LastUpdate LastUpdated);
 
 /// <summary>
 /// An endpoint with its signing secret, returned only when the secret is new (create, rotate). Store it now: the API
@@ -59,9 +60,12 @@ public sealed record WebhookDeliveryEntry(
 
 internal static class WebhookMappings
 {
-    public static WebhookEndpointEntry ToEntry(this WebhookEndpoint e) => new(
+    /// <param name="e">The endpoint.</param>
+    /// <param name="secretRotatedAt">When its signing secret last changed: the secret's inputs are a row of their own.</param>
+    /// <param name="lastUpdated">Its newest recorded change.</param>
+    public static WebhookEndpointEntry ToEntry(this WebhookEndpoint e, DateTimeOffset secretRotatedAt, LastUpdate lastUpdated) => new(
         e.Id, e.Url, e.Description, e.Events, e.Enabled, e.ConsecutiveFailures, e.DisabledAt, e.DisabledReason, e.CreatedAt, e.UpdatedAt,
-        e.SecretRotatedAt);
+        secretRotatedAt, lastUpdated);
 
     public static WebhookDeliveryEntry ToEntry(this WebhookDelivery d) => new(
         d.Id, d.EventId, d.EventType, d.Status, d.Attempts, d.LastStatusCode, d.LastError, d.ReplayOfId, d.CreatedAt, d.LastAttemptAt,

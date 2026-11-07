@@ -81,6 +81,7 @@ import type {
   GetSavedNoteHistoryParams,
   GetScorecardTemplateHistoryParams,
   GetTeamHistoryParams,
+  GetWebhookEndpointHistoryParams,
   HiringReport,
   HiringTeamMember,
   HiringTeamRequest,
@@ -9616,10 +9617,15 @@ export type getHiringReportResponse401 = {
   status: 401
 }
 
+export type getHiringReportResponse429 = {
+  data: void
+  status: 429
+}
+
 export type getHiringReportResponseSuccess = (getHiringReportResponse200) & {
   headers: Headers;
 };
-export type getHiringReportResponseError = (getHiringReportResponse400 | getHiringReportResponse401) & {
+export type getHiringReportResponseError = (getHiringReportResponse400 | getHiringReportResponse401 | getHiringReportResponse429) & {
   headers: Headers;
 };
 
@@ -9681,10 +9687,15 @@ export type getFunnelApplicationsResponse404 = {
   status: 404
 }
 
+export type getFunnelApplicationsResponse429 = {
+  data: void
+  status: 429
+}
+
 export type getFunnelApplicationsResponseSuccess = (getFunnelApplicationsResponse200) & {
   headers: Headers;
 };
-export type getFunnelApplicationsResponseError = (getFunnelApplicationsResponse400 | getFunnelApplicationsResponse401 | getFunnelApplicationsResponse404) & {
+export type getFunnelApplicationsResponseError = (getFunnelApplicationsResponse400 | getFunnelApplicationsResponse401 | getFunnelApplicationsResponse404 | getFunnelApplicationsResponse429) & {
   headers: Headers;
 };
 
@@ -10688,6 +10699,70 @@ export const deleteWebhookEndpoint = async (endpointId: string, options?: Parame
   {
     ...options,
     method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type getWebhookEndpointHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getWebhookEndpointHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getWebhookEndpointHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getWebhookEndpointHistoryResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getWebhookEndpointHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getWebhookEndpointHistoryResponseSuccess = (getWebhookEndpointHistoryResponse200) & {
+  headers: Headers;
+};
+export type getWebhookEndpointHistoryResponseError = (getWebhookEndpointHistoryResponse400 | getWebhookEndpointHistoryResponse401 | getWebhookEndpointHistoryResponse403 | getWebhookEndpointHistoryResponse404) & {
+  headers: Headers;
+};
+
+export type getWebhookEndpointHistoryResponse = (getWebhookEndpointHistoryResponseSuccess | getWebhookEndpointHistoryResponseError)
+
+export const getGetWebhookEndpointHistoryUrl = (endpointId: string,
+    params?: GetWebhookEndpointHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/webhooks/${endpointId}/history?${stringifiedParams}` : `/v1/webhooks/${endpointId}/history`
+}
+
+export const getWebhookEndpointHistory = async (endpointId: string,
+    params?: GetWebhookEndpointHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getWebhookEndpointHistoryResponse> => {
+
+  return apiFetch<getWebhookEndpointHistoryResponse>(getGetWebhookEndpointHistoryUrl(endpointId,params),
+  {
+    ...options,
+    method: 'GET'
 
 
   }

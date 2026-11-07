@@ -22,6 +22,21 @@ internal sealed class WebhookEndpointConfiguration : IEntityTypeConfiguration<We
     }
 }
 
+internal sealed class WebhookEndpointSecretConfiguration : IEntityTypeConfiguration<WebhookEndpointSecret>
+{
+    public void Configure(EntityTypeBuilder<WebhookEndpointSecret> builder)
+    {
+        builder.HasKey(s => s.EndpointId);
+
+        // One row per endpoint, of its own organization, and it goes with the endpoint. The foreign key's unique index starts with
+        // the organization, as every tenant table's index does.
+        builder.HasOne<WebhookEndpoint>().WithOne()
+            .HasForeignKey<WebhookEndpointSecret>(s => new { s.OrganizationId, s.EndpointId })
+            .HasPrincipalKey<WebhookEndpoint>(e => new { e.OrganizationId, e.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
 internal sealed class WebhookDeliveryConfiguration : IEntityTypeConfiguration<WebhookDelivery>
 {
     public void Configure(EntityTypeBuilder<WebhookDelivery> builder)

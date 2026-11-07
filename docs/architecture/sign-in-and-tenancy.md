@@ -167,7 +167,7 @@ API keys (Owners and Admins) manages keys in a session, on the dashboard's Setti
   shk_...`. It reads the organization from the key, sets it as the tenant in a DI scope of its own and looks the hash
   up there, so the lookup runs under row-level security like every other tenant query. A key naming the wrong
   organization finds nothing. `last_used_at` is written at most once a minute.
-- **Where keys work.** The hiring API (jobs, applications, candidates and templates) uses the `hiring-api`
+- **Where keys work.** The hiring API (jobs, applications, candidates, templates and reports) uses the `hiring-api`
   authorization policy, whose scheme `SessionOrApiKey` forwards to the key handler when the request has an
   `Authorization` header and to the cookie otherwise. A request is judged by one credential: a bad key with a good
   cookie is 401. Every other route keeps the cookie-only default and fallback policies, so a key gets 401 on sign-in,
