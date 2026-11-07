@@ -66,9 +66,10 @@ This file is the one source of truth for how ScreenHire looks, reads and behaves
 design, change this file (and its ADR when a decision changes); everything else follows.
 
 **Scope.** Everything here applies to the recruiter dashboard. Candidate and marketing pages follow the principles
-(section 1), the review checklist where it applies, colour (section 3.4), shape and space (section 5), layers
-(section 6), words (section 12) and employer branding (section 18), and keep their own type scale (section 4.3) and the
-public-page rule (`.claude/rules/astro-public.md`).
+(section 1), the review checklist where it applies, colour (section 3.4), the radii and spacing of section 5, layers
+(section 6), words (section 12) and employer branding (section 18), and keep their own type scale (section 4.3), their
+own page widths (S6 is the dashboard's: a careers page is one centred reading column) and the public-page rule
+(`.claude/rules/astro-public.md`).
 
 ## 1. Principles
 
@@ -423,11 +424,13 @@ answered" in the hint size, the step semibold; each page's heading is its sectio
 questionnaire preview shows the candidate base with `text-candidate-body`.
 
 A careers page's `h1` is `font-display text-candidate-title` (30 / 36, weight 700, -0.02em), so every title takes the
-employer's heading font. A panel's title is `text-heading` (16 / 24), a card's or step's title is `font-display
-text-panel-title` (20 / 28), and a reading line is `text-candidate-body`. Careers markup uses no Tailwind size
+employer's heading font. A panel's title is `font-display text-heading` (16 / 24), and only the privacy notice keeps its
+title in the body font (section 18). A card's or step's title is `font-display text-panel-title` (20 / 28), and a reading
+line is `text-candidate-body`. Careers markup uses no Tailwind size
 (`text-sm`, `text-lg`, `text-xl`, `text-3xl`). Marketing titles use Tailwind's scale in this order: the `h1` at
-`text-4xl` and `sm:text-6xl`, a section's `h2` at `text-3xl` (`text-4xl` on the home page), a band's `h2` at `text-2xl`,
-a card's `h3` at `text-xl`, a lead at `text-xl`, body at `text-base`, small text at `text-sm` and captions at `text-xs`.
+`text-4xl` (`text-5xl` on the home page) and `sm:text-6xl`, a section's `h2` at `text-3xl` (`text-4xl` on the home page), a
+band's `h2` at `text-2xl`, a card's `h3` at `text-xl`, a home page step at `text-lg`, a lead at `text-xl`, body at
+`text-base`, small text at `text-sm` and captions at `text-xs`.
 
 ### 4.4 Rules for public pages
 
@@ -455,11 +458,12 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
 - Shape and space come from section 5. Radius is a token: 8px for buttons and inputs (`rounded-lg`), 12px for panels
   (`rounded-panel`), full for chips and badges, and never `rounded-[...]`. Margins, padding and gaps sit on the 4px grid
   (4, 8, 12, 16, 20, 24, 32, 40, 48, which is `1`, `2`, `3`, `4`, `5`, `6`, `8`, `10` and `12`): no half steps, no `7`,
-  `9` or `11`. A control is 44px high (`min-h-11` on careers pages, `h-11` on marketing pages).
+  `9` or `11`. A button is 44px high (`min-h-11` on careers pages, `h-11` on marketing pages), and a careers input or
+  choice is 48px (`min-h-12`).
 - A section is a panel (S3, section 6): the card colour, a 1px edge, `rounded-panel` and `shadow-surface`, with its
   title inside a 56px header. Careers pages draw one with `Panel.astro` (`title` and `id`, or only a screen-reader
-  `label`, an `action` slot for a Change button, a `footer` slot) in the neutral candidate tokens, so employer branding
-  never restyles it. A job card on the board, `Notice` and the error summary take the same surface and shadow. Marketing
+  `label`, an `action` slot for a Change button, a `footer` slot) in the neutral candidate tokens, so employer colours
+  never restyle it. Its title takes the employer's heading font, except in the privacy notice (`neutral`). A job card on the board, `Notice` and the error summary take the same surface and shadow. Marketing
   cards are `rounded-panel border border-border bg-card shadow-surface`. A list of reasons inside a panel is an inset
   (`bg-secondary`, no edge). The shared question controls stay unpanelled in their form. `public-style.test.ts` fails on
   a panel without the shadow.
