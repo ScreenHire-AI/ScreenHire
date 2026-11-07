@@ -208,19 +208,20 @@
         </div>
         <p class="sr-only" role="status">Loading jobs…</p>
       {:else if shown.length === 0}
-        <Empty.Root>
-          <Empty.Header>
-            <Empty.Media variant="icon"><BriefcaseIcon /></Empty.Media>
-            <Empty.Title>{filtering ? 'No jobs match' : 'No jobs yet'}</Empty.Title>
-            {#if !filtering}<Empty.Description>A new job starts as a draft that only your team sees.</Empty.Description>{/if}
-          </Empty.Header>
-          <Empty.Content>
-            {#if filtering}
-              <Button variant="outline" size="lg" onclick={clearFilters}>Clear filters</Button>
-            {:else}
+        <Empty.Root class="gap-3 p-6">
+          {#if filtering}
+            <Empty.Description>No jobs match these filters.</Empty.Description>
+            <Button variant="outline" size="lg" onclick={clearFilters}>Clear filters</Button>
+          {:else}
+            <Empty.Header>
+              <Empty.Media variant="icon"><BriefcaseIcon /></Empty.Media>
+              <Empty.Title>No jobs yet</Empty.Title>
+              <Empty.Description>A new job starts as a draft that only your team sees.</Empty.Description>
+            </Empty.Header>
+            <Empty.Content>
               <Button href="/jobs/new" variant="outline" size="lg"><PlusIcon aria-hidden="true" />New job</Button>
-            {/if}
-          </Empty.Content>
+            </Empty.Content>
+          {/if}
         </Empty.Root>
       {:else if sidebar.isMobile}
         <ul aria-label="Jobs">

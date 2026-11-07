@@ -130,7 +130,8 @@ describe('jobs page', () => {
     expect((await dataRows()).map((row) => cellTexts(row)[1])).toEqual(['Customer Success Lead']);
 
     await fireEvent.input(screen.getByLabelText('Search jobs'), { target: { value: 'nothing like this' } });
-    expect(screen.getByText('No jobs match')).toBeInTheDocument();
+    expect(screen.getByText('No jobs match these filters.')).toBeInTheDocument();
+    expect(screen.queryByText('No jobs yet')).toBeNull();
     await fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
     expect(await dataRows()).toHaveLength(3);
   });
