@@ -49,6 +49,9 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/pipeline-view.svelte
   - resource: apps/careers/src/components/JobFacts.astro
   - resource: apps/careers/src/components/Notice.astro
+  - resource: apps/careers/src/components/Panel.astro
+  - resource: apps/careers/src/styles/global.css
+  - resource: apps/marketing/src/components/StatusBadge.astro
   - resource: apps/careers/src/lib/public-style.test.ts
   - resource: apps/marketing/src/styles/global.css
 ---
@@ -58,16 +61,19 @@ sources:
 > [ADR-0010](../adr/0010-design-system-v0-2.md), [ADR-0013](../adr/0013-design-system-v0-3.md) and
 > [ADR-0016](../adr/0016-design-system-v0-3-review-amendments.md). Visual reference: the
 > owner's "ScreenHire design v0.3 review" canvas; where it and this file differ, this file wins. The dashboard is
-> built to v0.3: every screen, and every component in section 11 with its example in the style guide. Section 21
-> records what v0.3 changed on each screen.
+> built to v0.3: every screen, and every component in section 11 with its example in the style guide. The careers and
+> marketing pages are built to it too, as sections 4.3 and 4.4 describe. Section 21 records what v0.3 changed on each
+> screen.
 
 This file is the one source of truth for how ScreenHire looks, reads and behaves on screen. CLAUDE.md, the rules in
 `.claude/rules/`, the page skills and the `design-review` agent point here and do not restate it. To change the
 design, change this file (and its ADR when a decision changes); everything else follows.
 
 **Scope.** Everything here applies to the recruiter dashboard. Candidate and marketing pages follow the principles
-(section 1), the review checklist where it applies, colour (section 3.4), words (section 12) and employer branding
-(section 18), and keep their own type scale (section 4.3) and the public-page rule (`.claude/rules/astro-public.md`).
+(section 1), the review checklist where it applies, colour (section 3.4), the radii and spacing of section 5, layers
+(section 6), words (section 12) and employer branding (section 18), and keep their own type scale (section 4.3), their
+own page widths (S6 is the dashboard's: a careers page is one centred reading column) and the public-page rule
+(`.claude/rules/astro-public.md`).
 
 ## 1. Principles
 
@@ -424,6 +430,15 @@ Titles take the employer's heading font where one is set (section 18), otherwise
 answered" in the hint size, the step semibold; each page's heading is its section's name. Marketing display goes up to 64px (the home page's title is 60px, `text-6xl`). The dashboard's
 questionnaire preview shows the candidate base with `text-candidate-body`.
 
+A careers page's `h1` is `font-display text-candidate-title` (30 / 36, weight 700, -0.02em), so every title takes the
+employer's heading font. A `Panel` title is `font-display text-heading` (16 / 24), and only the privacy notice keeps its
+title in the body font (section 18). A card's or step's title is `font-display text-panel-title` (20 / 28), and a reading
+line is `text-candidate-body`. Careers markup uses no Tailwind size
+(`text-sm`, `text-lg`, `text-xl`, `text-3xl`). Marketing titles use Tailwind's scale in this order: the `h1` at
+`text-4xl` (`text-5xl` on the home page) and `sm:text-6xl`, a section's `h2` at `text-3xl` (`text-4xl` on the home page), a
+band's `h2` at `text-2xl`, a card's `h3` at `text-xl`, a home page step at `text-lg`, a lead at `text-xl`, body at
+`text-base`, small text at `text-sm` and captions at `text-xs`.
+
 ### 4.4 Rules for public pages
 
 The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with these additions. `public-style.test.ts`
@@ -447,6 +462,28 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
 - A long page of prose (the privacy page) starts with an "On this page" list of links to its headings.
 - Header, breadcrumb and footer links are 44px tall on a coarse pointer and at least 24px with a mouse (WCAG 2.5.8):
   `pointer-coarse:min-h-11` on marketing pages. Careers pages use a plain `min-h-11`, so they are 44px on any pointer.
+- Shape and space come from section 5. Radius is a token: 8px for buttons and inputs (`rounded-lg`), 12px for panels
+  (`rounded-panel`), full for chips and badges, and never `rounded-[...]`. Margins, padding and gaps sit on the 4px grid
+  (4, 8, 12, 16, 20, 24, 32, 40, 48, which is `1`, `2`, `3`, `4`, `5`, `6`, `8`, `10` and `12`): no half steps, no `7`,
+  `9` or `11`. A button is 44px high (`min-h-11` on careers pages, `h-11` on marketing pages), and a careers input or
+  choice is 48px (`min-h-12`).
+- A section is a panel (S3, section 6): the card colour, a 1px edge, `rounded-panel` and `shadow-surface`, with its
+  title inside a 56px header. Careers pages draw one with `Panel.astro` (`title` and `id`, or only a screen-reader
+  `label`, an `action` slot for a Change button, a `footer` slot) in the neutral candidate tokens, so employer colours
+  never restyle it. Its title takes the employer's heading font, except in the privacy notice (`neutral`). A job card on the board, `Notice` and the error summary take the same surface and shadow. Marketing
+  cards are `rounded-panel border border-border bg-card shadow-surface`. A list of reasons inside a panel is an inset
+  (`bg-secondary`, no edge). The shared question controls stay unpanelled in their form. `public-style.test.ts` fails on
+  a panel without the shadow.
+- Employer colours sit on the page background and on the white panel, and the contrast check covers both
+  (`BrandPalette`): the brand colour used as text and for borders and focus rings is checked on `#fbf6ee` and on `#ffffff`
+  before it saves.
+- A status on a marketing page is `StatusBadge.astro` (T1): the 24px badge with its icon in the mark colour and the
+  label in 12px semibold, or `quiet` for a calm state in a list (T3), the same as the dashboard's. A page never builds
+  its own chip from `bg-status-*`. Careers pages show no status badge: each page names its state in its title and in
+  `Notice`, and the verification result is never shown to a candidate.
+- A marketing button is `.button-primary` (filled) or `.button-secondary` (outline), 44px high with an 8px radius. A
+  careers button is `.button-primary` or `.button-secondary` in the careers stylesheet, the same size, filled with the
+  employer's brand colour.
 - A careers form with steps has one row of buttons: the primary button first in the document and at the right on a wide
   screen, Back beside it, and Save and finish later at the left. A page with one action leaves it at the left, under its
   content.
@@ -645,7 +682,7 @@ in a development build, shows every component in each state, and its test fails 
 | Picker | shadcn `Popover` and `Command` | An outline button with a verb ("Add a person", "Copy from another job") that opens a searchable list; typing filters by name, a pick closes it. The list keeps a 16px gutter from the window's edge. Nothing left to pick is said in the list, never by disabling the button (A3) |
 | Country picker | `CountryPicker` on bits-ui `Combobox`; the codes and names in `#lib/countries.ts` | Several countries for one field (a remote job's countries, W8): a search field labelled by the form that finds countries by name in the person's languages, ignoring case and accents, and each chosen country a fact pill with its own Remove button beside it (A5). The arrow keys move through the matches, Enter or a click adds one and the list stays open for the next; a ticked country in the list is already chosen, and picking it again takes it away. Focus goes to the next pill's Remove button after a removal, and a live region says what was added or removed. One country is a native select of the same names. The value is always the ISO 3166-1 alpha-2 codes |
 | Colour field | `ColorField` on shadcn `Field` and `Input` | A colour for Branding: the native colour picker beside a hex field (16px on touch, F4), empty for its default (its placeholder names it: "ScreenHire's" for the brand colour, "None" for the second colour), with one line saying where the colour goes. As someone types a whole colour, the API checks it (section 18); each pair it fails is a line under the field in words ("Links in #ffd400 are hard to read on the page: 1.4:1, and they need 4.5:1."), and the nearest passing shade is an outline button on that row (F6), "Use #8a6d00", which fills the field. A refused save's messages take the same place |
-| Drop area | `DropArea` in `@screenhire/ui/questions` (`packages/ui/src/questions/DropArea.svelte`), shared by the dashboard and the careers apply form; `FileField` is the question that uses it | The one way to choose a file (A12). A dashed area with 12px padding (`rounded-lg`, `border-input` on `secondary` in the app; `rounded-xl` and the candidate tokens on the careers pages) with a real file input inside it, so the keyboard (Tab to the input, Enter or Space), screen readers and phones work. Empty, it says "Drop a file here or" and shows Choose file; with a file it shows the name and size with Replace file and Remove (outline buttons), and it keeps a polite live region for "Uploading...". It answers to its own width (F2): under 448px the words sit above full-width buttons, so nothing wraps. Sizes are 1024-based (`describeSize`), as every upload limit is, so "10 MB" means the same in the limit and in the name. A refused area has a destructive edge beside the words. The whole area is the target: a click anywhere opens the picker, and while a file from outside the page is over it the edge turns solid in the ring colour on the accent fill (dragging text or a link does nothing). The first dropped file is taken when several are, because a field holds one. A type or size the field does not take is refused in words ("Upload a PDF or DOCX file.", "This file is larger than 10 MB.") through the field's own error, never as a toast, and the refused file is not kept. Replace file and Choose file look like buttons but are not: the input is the one control, so assistive technology finds one picker, and Remove is a real button. On a careers page rendered without JavaScript it is only the named input in its dashed frame and posts with the form; once the page's script runs the area takes over, and a field that posts with its form gets a dropped file put into its input. Tokens only, no inline styles, and the hand cursor comes from the theme (A10) |
+| Drop area | `DropArea` in `@screenhire/ui/questions` (`packages/ui/src/questions/DropArea.svelte`), shared by the dashboard and the careers apply form; `FileField` is the question that uses it | The one way to choose a file (A12). A dashed area with 12px padding (`rounded-lg` in both: `border-input` on `secondary` in the app, a 2px edge in the candidate tokens on the careers pages) with a real file input inside it, so the keyboard (Tab to the input, Enter or Space), screen readers and phones work. Empty, it says "Drop a file here or" and shows Choose file; with a file it shows the name and size with Replace file and Remove (outline buttons), and it keeps a polite live region for "Uploading...". It answers to its own width (F2): under 448px the words sit above full-width buttons, so nothing wraps. Sizes are 1024-based (`describeSize`), as every upload limit is, so "10 MB" means the same in the limit and in the name. A refused area has a destructive edge beside the words. The whole area is the target: a click anywhere opens the picker, and while a file from outside the page is over it the edge turns solid in the ring colour on the accent fill (dragging text or a link does nothing). The first dropped file is taken when several are, because a field holds one. A type or size the field does not take is refused in words ("Upload a PDF or DOCX file.", "This file is larger than 10 MB.") through the field's own error, never as a toast, and the refused file is not kept. Replace file and Choose file look like buttons but are not: the input is the one control, so assistive technology finds one picker, and Remove is a real button. On a careers page rendered without JavaScript it is only the named input in its dashed frame and posts with the form; once the page's script runs the area takes over, and a field that posts with its form gets a dropped file put into its input. Tokens only, no inline styles, and the hand cursor comes from the theme (A10) |
 | Image field | `ImageField` on shadcn `Field` and the Drop area; `BrandImageSlot` in `#lib/brand-images.svelte.ts` for the upload | A brand image as a tile showing it where it is used, at its real proportions: a logo on a light checkerboard (the candidate surfaces, light in both themes), a favicon at 32px inside a small browser-tab mock, a sharing image as the card a shared link shows. The tile is the Drop area, so the picture is part of the target: empty, it says "No logo yet" and "Drop a file here or Upload logo"; set, it gives the pixel size, names the file and its file size with Remove, and a click or a dropped file replaces the image (nothing changes for anyone until Save). A file that is not a PNG or JPEG, or is over the kind's limit (the API's `BrandImageRules`), is refused in the field's error. While the malware scan runs it shows the grey Scanning badge (T3) and the page's Save waits, saying why (A3); a file the scan blocked says so with `FailureText`. The upload goes straight to storage, as a candidate's does |
 | Branding preview | `BrandingPreview` in `PreviewFrame` | Branding's result beside its form (A8): the careers page (the tab with the favicon, the header band, a heading and a job in the heading font, a brand link and the Apply button), the shared link card with the sharing image, and the top of an email. It draws the form's values as typed, failing ones included, so the person sees the problem the check names. Its screen-size frame opens on Desktop once the pane has room for a tablet frame (800px with the inset's padding), else on Phone, so a phone frame never leaves a blank half; a size the person picks stays |
 
