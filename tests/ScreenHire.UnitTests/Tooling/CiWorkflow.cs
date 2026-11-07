@@ -6,8 +6,9 @@ namespace ScreenHire.UnitTests.Tooling;
 /// <summary>
 /// The rules <c>.github/</c> must keep, as checks over file text, so the tests run them on the repository and on the
 /// same files edited in memory. Every job runs on the pinned Ubuntu and has a timeout; <c>Gate</c> needs every test
-/// job and <c>tested-tree</c>, and every job but those two answers to <c>tested-tree</c>; nothing reads a secret or runs on a self-hosted runner (the repository's logs are public, and a self-hosted
-/// runner would run any pull request's code); and the images CI pulls before the tests are the ones
+/// job and <c>tested-tree</c>, and every job but those two answers to <c>tested-tree</c>; nothing reads a secret or runs
+/// on a self-hosted runner (the repository's logs are public, and a self-hosted runner would run any pull request's
+/// code); and the images CI pulls before the tests are the ones
 /// <c>apps/apphost/AppHost.cs</c> runs. <see cref="Problems"/> returns what breaks a rule, empty when nothing does.
 /// </summary>
 internal static partial class CiWorkflow

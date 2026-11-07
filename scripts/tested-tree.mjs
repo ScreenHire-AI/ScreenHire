@@ -10,6 +10,9 @@
 // exists for: two green branches that break each other. A push with no merged PR behind it (a direct /merge-back, or
 // GitHub not yet listing the PR for the new commit) runs in full too.
 //
+// One gap, accepted in ADR-0020, decision 12: the PR run tested the head merged with main as it was then, so a change on
+// main reverted between that run and the merge leaves equal trees on a tree the run did not test.
+//
 // Any doubt runs the tests. An API error, a check still running, a head with no passing `Gate`: each answers false, and
 // the reason is printed on every run. A required check counts only when GitHub Actions posted it, so another app's check
 // of the same name passes nothing.
@@ -92,15 +95,15 @@ function describe(error) {
 }
 
 export function githubApi(repository, token, fetchResponse = fetch) {
-  const request = async (path) => {
-    const response = await fetchResponse(`https://api.github.com/repos/${repository}/${path}`, {
+  const request = async (route) => {
+    const response = await fetchResponse(`https://api.github.com/repos/${repository}/${route}`, {
       headers: {
         Accept: 'application/vnd.github+json',
         Authorization: `Bearer ${token}`,
         'X-GitHub-Api-Version': '2022-11-28',
       },
     });
-    if (!response.ok) throw new Error(`${path} answered ${response.status}`);
+    if (!response.ok) throw new Error(`${route} answered ${response.status}`);
     return response.json();
   };
   return {
