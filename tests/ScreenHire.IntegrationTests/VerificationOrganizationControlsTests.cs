@@ -298,7 +298,15 @@ public sealed class VerificationOrganizationControlsTests(AppHostFixture fixture
         notRun.Select(n => n.GetProperty("label").GetString()).Should().Equal("Network", "Answers");
         notRun.Should().OnlyContain(n => n.GetProperty("kind").GetString() == "TurnedOff");
         notRun[0].GetProperty("note").GetString().Should().Be("Network checks are turned off in this organization's settings.");
-        verification.Text("consistencyCheck.status").Should().Be("Disabled", "no source is sent to a model with the answers checks off");
+        // With Answers off the pipeline does not wait for the consistency check, so its outcome is read once the worker has recorded it.
+        await Messaging.WolverineStore.WaitUntilAsync(
+            async () =>
+            {
+                var latest = (await tenant.GetAsync($"/v1/applications/{applicationId}/verification")).Expect(HttpStatusCode.OK);
+                return latest.At("consistencyCheck").ValueKind == JsonValueKind.Object && latest.Text("consistencyCheck.status") == "Disabled";
+            },
+            "the consistency check to be recorded as off, so no source is sent to a model with the answers checks off",
+            Ct);
 
         await using var db = await VerificationSupport.TenantDbAsync(fixture, tenant.OrganizationId);
         var run = await db.VerificationAnalyzerRuns.AsNoTracking().SingleAsync(r => r.ApplicationId == applicationId && r.Analyzer == "network", Ct);
