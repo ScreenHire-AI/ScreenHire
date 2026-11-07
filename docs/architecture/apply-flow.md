@@ -77,8 +77,8 @@ challenge's site key. Every form asks for a resume: the questionnaire's own `res
 (`ApplicationForm.DefaultResumeQuestion`).
 
 The fields are the shared question components in `packages/ui/src/questions` (`TextField`, `ChoiceField`,
-`QuestionField`, `FileField`, and the `DropArea` that `FileField` draws), the same Svelte components the dashboard's form builder previews, so the
-preview is the form (workflow-engine.md §4). The apply page renders them on the server with no client directive, so
+`QuestionField`, `FileField`, and the `DropArea` that `FileField` draws), the same Svelte components the dashboard's
+form builder previews, so the preview is the form (workflow-engine.md §4). The apply page renders them on the server with no client directive, so
 they ship no JavaScript; only file questions hydrate, as `FileField` islands. Their field names (`q:{id}`,
 `file:{id}`, `upload:{id}`) and element ids (`field-...`) come from `packages/ui/src/questions/model.ts`, which
 `src/lib/apply.ts` re-exports, so the error summary's links and the posted names cannot drift apart.
@@ -147,10 +147,11 @@ through the API. The link writes its blob once and cannot replace it, so the fil
 
 With JavaScript, the `FileField` Svelte island (`packages/ui/src/questions/FileField.svelte`) does this from the
 browser, for a file chosen or dropped on its drop area (`DropArea.svelte`, which refuses a wrong type or a file too large
-in the field's error before anything is sent) through the careers `/uploads` endpoint (a bare `fetch`, which keeps the page under its ~20 KB JavaScript
-budget) and leaves only the upload id in the form.
-Without JavaScript the field is the plain named file input in its dashed frame, and the file posts with the step and the careers server does the same three calls. Either way the
-candidate hears about a wrong or oversized file at the step where they chose it. A file whose application is never sent is
+in the field's error before anything is sent), through the careers `/uploads` endpoint (a bare `fetch`, which keeps the
+page under its ~20 KB JavaScript budget), and leaves only the upload id in the form. Remove takes that id out of the
+form, and the next post of the step drops the file from the application.
+Without JavaScript the field is the plain named file input in its dashed frame, and the file posts with the step and
+the careers server does the same three calls. Either way the candidate hears about a wrong or oversized file at the step where they chose it. A file whose application is never sent is
 removed a day later: `PurgeExpiredApplicantUploads` runs daily (03:47 UTC) and fans out one
 `PurgeOrganizationApplicantUploads` per organization, which deletes the blobs under that organization's prefix that are a day
 old and that no `ApplicationFile` row names (it asks again just before each delete, so a candidate who sends the application
