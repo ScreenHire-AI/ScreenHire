@@ -2,6 +2,14 @@
 
 ## 2026-11-07
 
+**CI skips a push to `main` whose tree a pull request already passed, and the PR body has one path.** The overnight run
+spent 28% of its job-minutes on pushes to `main`, and 8 of 15 carried a tree a PR run had passed, while two overlapping runs
+filled the account's 40 running jobs. A `tested-tree` job now compares the pushed tree with the merged PR's head and, when
+they are equal and `Gate` passed there, skips the rest; any other case runs in full, and the cost (no second look at a
+flake on a green tree) is in [testing](process/testing.md#a-push-to-main-that-is-already-tested) and ADR-0020, decision 12.
+The `pull-request` skill now writes the PR body to an absolute path in the worktree, because a relative one landed in the
+root checkout for 5 of 15 agents.
+
 **The audit of the overnight run's fixes.** The workflow graph opens at full size, because fitting a workflow took its text
 down to 6px; Fit still shows the whole of it. End stages stand apart with no arrows into them, because Hired does not lead
 to Rejected. The privacy page no longer says what the checks look at or what the AI model compares, and the notice version

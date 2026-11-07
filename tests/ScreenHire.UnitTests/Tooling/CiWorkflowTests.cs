@@ -4,9 +4,9 @@ namespace ScreenHire.UnitTests.Tooling;
 
 /// <summary>
 /// The CI workflow keeps its rules (<see cref="CiWorkflow"/>): the pinned runner, a timeout on every job, a Gate that
-/// needs every test job, no secrets and no self-hosted runner, and the AppHost's images pulled before the tests. Each
-/// red case edits the real files in memory and runs the same check the repository test runs, so a check that cannot
-/// fail would show here.
+/// needs every test job, every job answering to the job that skips a tested tree, no secrets and no self-hosted runner,
+/// and the AppHost's images pulled before the tests. Each red case edits the real files in memory and runs the same
+/// check the repository test runs, so a check that cannot fail would show here.
 /// </summary>
 public sealed class CiWorkflowTests
 {
@@ -22,7 +22,7 @@ public sealed class CiWorkflowTests
         var files = CiWorkflow.RepositoryGitHubFiles();
         var jobs = CiWorkflow.Jobs(files[CiWorkflow.CiPath]);
 
-        jobs.Select(job => job.Id).Should().Contain(["checks", "vitest", "integration", "e2e", "infra", "lighthouse", "gate"]);
+        jobs.Select(job => job.Id).Should().Contain(["tested-tree", "checks", "vitest", "integration", "e2e", "infra", "lighthouse", "gate"]);
         jobs.Where(job => job.Shard.Count > 0).Select(job => job.Id).Should().Equal(["vitest", "integration", "e2e"],
             "the shard check reads the matrices");
         jobs.Should().AllSatisfy(job => job.RunsOn.Should().NotBeEmpty());
@@ -35,7 +35,13 @@ public sealed class CiWorkflowTests
     [InlineData("runs-on: ubuntu-24.04\n    timeout-minutes: 15", "runs-on: ubuntu-latest\n    timeout-minutes: 15", "job 'vitest' runs on [ubuntu-latest]")]
     [InlineData("runs-on: ubuntu-24.04\n    timeout-minutes: 20", "runs-on: [self-hosted, linux]\n    timeout-minutes: 20", "job 'lighthouse' runs on a self-hosted runner")]
     [InlineData("    timeout-minutes: 20\n", "", "job 'lighthouse' has no positive timeout-minutes")]
-    [InlineData("needs: [checks, vitest, integration, e2e, infra]", "needs: [checks, integration, e2e, infra]", "gate needs [checks, integration, e2e, infra]")]
+    [InlineData("needs: [tested-tree, checks, vitest, integration, e2e, infra]", "needs: [tested-tree, checks, integration, e2e, infra]", "gate needs [tested-tree, checks, integration, e2e, infra]")]
+    [InlineData("needs: [tested-tree, checks, vitest, integration, e2e, infra]", "needs: [checks, vitest, integration, e2e, infra]", "gate needs [checks, vitest, integration, e2e, infra]")]
+    [InlineData("name: Vitest, dashboard (${{ matrix.shard }}/${{ matrix.shards }})\n    needs: [tested-tree]\n", "name: Vitest, dashboard (${{ matrix.shard }}/${{ matrix.shards }})\n", "job 'vitest' does not need tested-tree")]
+    [InlineData("name: Azure definition (aspire publish)\n    needs: [tested-tree]\n    if: ${{ !cancelled() && needs.tested-tree.outputs.tested != 'true' }}", "name: Azure definition (aspire publish)\n    needs: [tested-tree]\n    if: ${{ !cancelled() }}", "job 'infra' must run with if: !cancelled() && needs.tested-tree.outputs.tested != 'true'")]
+    [InlineData("name: Lighthouse (report-only)\n    needs: [tested-tree]\n    if: ${{ !cancelled() && needs.tested-tree.outputs.tested != 'true' }}", "name: Lighthouse (report-only)\n    needs: [tested-tree]\n    if: ${{ needs.tested-tree.outputs.tested != 'true' }}", "job 'lighthouse' must run with if: !cancelled()")]
+    [InlineData("if: ${{ github.event_name == 'push' }}", "if: ${{ true }}", "the tested-tree job must run only on a push")]
+    [InlineData("      pull-requests: read\n", "", "tested-tree job needs pull-requests: read")]
     [InlineData("shard: [1, 2]\n        shards: [2]", "shard: [1]\n        shards: [2]", "job 'vitest' runs shards [1] of [2]")]
     [InlineData("shard: [1, 2]\n        shards: [2]", "shard: [1, 2]", "job 'vitest' runs shards [1, 2] of []")]
     [InlineData("if: ${{ always() }}\n    runs-on", "runs-on", "if: always()")]
