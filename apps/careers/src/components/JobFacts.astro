@@ -12,6 +12,6 @@ const { job, class: extra } = Astro.props;
 ---
 
 {/* Spans, not a list: the board is a list of jobs, and a list inside each job would count as more of them. */}
-<div class:list={['flex flex-wrap gap-1.5 text-candidate-hint font-semibold text-candidate-chip-foreground', extra]}>
-  {jobFacts(job).map((fact) => <span class="rounded-full bg-candidate-chip px-2.5 py-1">{fact}</span>)}
+<div class:list={['flex flex-wrap gap-2 text-candidate-hint font-semibold text-candidate-chip-foreground', extra]}>
+  {jobFacts(job).map((fact) => <span class="rounded-full bg-candidate-chip px-3 py-1">{fact}</span>)}
 </div>

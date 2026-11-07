@@ -1,7 +1,7 @@
 ---
 // The hero illustration: what a recruiter sees on a flagged application. Fictional applicant, real reason codes from
 // docs/architecture/verification-engine.md. Status is its icon, colour and label (design system section 3.2).
-import StatusIcon from './StatusIcon.astro';
+import StatusBadge from './StatusBadge.astro';
 
 const evidence = [
   { code: 'NET_DATACENTER_IP', text: 'Applied from a hosting-provider network, not a home or mobile connection.' },
@@ -13,44 +13,40 @@ const boards = ['Google for Jobs', 'Careers page', '3 job boards'];
 ---
 
 <figure class="flex min-w-0 flex-1 basis-[440px] flex-col gap-3">
-  <div class="overflow-hidden rounded-xl border border-border bg-card">
-    <div class="flex items-center gap-2.5 border-b border-border-subtle px-4 py-3.5">
-      <span aria-hidden="true" class="grid size-[38px] place-items-center rounded-full bg-accent text-sm font-bold text-accent-foreground">JW</span>
+  <div class="overflow-hidden rounded-panel border border-border bg-card shadow-surface">
+    <div class="flex items-center gap-3 border-b border-border-subtle px-4 py-4">
+      <span aria-hidden="true" class="grid size-10 place-items-center rounded-full bg-accent text-sm font-bold text-accent-foreground">JW</span>
       <div class="flex min-w-0 flex-1 flex-col">
         <span class="font-display text-lg font-bold">Jonas Weber</span>
         <span class="text-sm text-muted-foreground">Senior Product Designer, applied 3 hours ago</span>
       </div>
-      <span class="inline-flex items-center gap-1.5 rounded-full bg-status-review-soft px-2.5 py-0.5 text-xs font-bold text-status-review">
-        <StatusIcon status="review" class="text-status-review-mark" />Review suggested
-      </span>
+      <StatusBadge status="review" label="Review suggested" />
     </div>
-    <ul class="flex flex-col gap-2 px-4 py-3.5 text-sm">
+    <ul class="flex flex-col gap-2 px-4 py-4 text-sm">
       {
         evidence.map((item) => (
-          <li class="flex flex-col gap-px rounded-[10px] border border-border-subtle bg-muted px-3 py-2">
+          <li class="flex flex-col gap-px rounded-lg bg-secondary px-3 py-2">
             <span class="font-mono text-xs text-muted-foreground">{item.code}</span>
             <span class="font-semibold">{item.text}</span>
           </li>
         ))
       }
-      <li class="mt-0.5 border-l-2 border-border pl-3 text-sm">
+      <li class="mt-1 border-l-2 border-border pl-3 text-sm">
         <span class="font-semibold">Counter-evidence:</span> the phone number is a UK mobile, not a VoIP line.
       </li>
     </ul>
-    <p class="border-t border-border-subtle bg-muted px-4 py-2.5 text-sm text-secondary-foreground">
+    <p class="border-t border-border-subtle bg-muted px-4 py-3 text-sm text-secondary-foreground">
       Network, identity and answer signals point the same way, and one detail points against them.
       <span class="mt-1 block font-semibold text-foreground">Suggested next step: a short video call before the portfolio review.</span>
     </p>
   </div>
-  <div class="ml-0 flex flex-wrap items-center overflow-hidden rounded-xl border border-border bg-card text-sm sm:ml-10">
+  <div class="ml-0 flex flex-wrap items-center overflow-hidden rounded-panel border border-border bg-card text-sm shadow-surface sm:ml-10">
     <span class="border-r border-border-subtle px-3 py-2 text-xs font-semibold text-muted-foreground">Posted to</span>
     {
       boards.map((board) => (
-        <span class="inline-flex items-center gap-1.5 border-r border-border-subtle px-3 py-2 font-semibold last:border-r-0">
+        <span class="inline-flex items-center gap-2 border-r border-border-subtle px-3 py-2 font-semibold last:border-r-0">
           {board}
-          <span class="inline-flex items-center gap-1 text-xs font-bold text-status-clear">
-            <StatusIcon status="open" class="text-status-clear-mark" />Live
-          </span>
+          <StatusBadge status="open" label="Live" quiet />
         </span>
       ))
     }
