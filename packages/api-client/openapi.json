@@ -9586,6 +9586,9 @@
           }
         ],
         "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
           "200": {
             "description": "OK",
             "content": {
@@ -9613,6 +9616,9 @@
         "security": [
           {
             "session": [ ]
+          },
+          {
+            "apiKey": [ ]
           }
         ]
       }
@@ -9661,6 +9667,9 @@
           }
         ],
         "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
           "200": {
             "description": "OK",
             "content": {
@@ -9695,6 +9704,9 @@
         "security": [
           {
             "session": [ ]
+          },
+          {
+            "apiKey": [ ]
           }
         ]
       }
@@ -10653,6 +10665,84 @@
           },
           "404": {
             "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/webhooks/{endpointId}/history": {
+      "get": {
+        "tags": [
+          "Webhooks"
+        ],
+        "operationId": "GetWebhookEndpointHistory",
+        "parameters": [
+          {
+            "name": "endpointId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
           },
           "403": {
             "description": "Forbidden",
@@ -24931,7 +25021,8 @@
           "disabledReason",
           "createdAt",
           "updatedAt",
-          "secretRotatedAt"
+          "secretRotatedAt",
+          "lastUpdated"
         ],
         "type": "object",
         "properties": {
@@ -24985,6 +25076,9 @@
           "secretRotatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "lastUpdated": {
+            "$ref": "#/components/schemas/LastUpdate"
           }
         },
         "description": "One webhook endpoint. The signing secret is never part of it: it appears once, in the create and rotate responses.\nstring? WebhookEndpointEntry.DisabledReason says why the worker turned the endpoint off, when it did."
@@ -25135,7 +25229,7 @@
       },
       "apiKey": {
         "type": "http",
-        "description": "An organization API key, created by an owner or admin. Works on jobs, applications, candidates and templates, and, with the VerificationRead scope an owner gives it, on verification results.",
+        "description": "An organization API key, created by an owner or admin. Works on jobs, applications, candidates, templates and reports, and, with the VerificationRead scope an owner gives it, on verification results.",
         "scheme": "bearer",
         "bearerFormat": "shk_..."
       }

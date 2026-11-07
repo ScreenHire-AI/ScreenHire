@@ -45,6 +45,12 @@ public enum ChangeSubjectKind
 
     /// <summary>The organization's record retention, on Settings, Data requests: whether ended applications are deleted, and after how many months.</summary>
     RetentionSettings,
+
+    /// <summary>
+    /// A webhook endpoint, on its page under Settings, Webhooks: its address (by host), its events, whether it is on, and
+    /// each rotation of its signing secret. The subject is the endpoint.
+    /// </summary>
+    WebhookEndpoint,
 }
 
 /// <summary>

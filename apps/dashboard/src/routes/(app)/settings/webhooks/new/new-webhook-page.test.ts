@@ -23,6 +23,7 @@ const created: WebhookEndpointEntry = {
   createdAt: '2026-10-20T09:00:00Z',
   updatedAt: '2026-10-20T09:00:00Z',
   secretRotatedAt: '2026-10-20T09:00:00Z',
+  lastUpdated: { at: '2026-10-01T09:00:00Z', by: 'Member', userId: 'u1', created: true },
 };
 
 const signingSecret = 'whsec_0123456789abcdef0123456789abcdef';

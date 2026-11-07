@@ -43,6 +43,11 @@ const mentioned: RealtimeEvent = {
   data: { organizationId, applicationId: applicationId(1), jobId: job, noteId: applicationId(9), mentionId: applicationId(8), mentionedUserId: me, authorUserId: jordan, mentionedAt: at },
 };
 
+const emailEdited = (previousEditorUserId: string | null): RealtimeEvent => ({
+  type: 'TemplateChanged',
+  data: { organizationId, kind: 'EmailTemplate', templateId: 'stage-change', changedAt: at, actorUserId: jordan, previousEditorUserId },
+});
+
 describe('teammate toasts', () => {
   let shown: Toast[];
   beforeEach(() => {
@@ -68,6 +73,21 @@ describe('teammate toasts', () => {
 
     expect(shown.map((toast) => toast.sentence.join(''))).toEqual(['Jordan Ellis moved 5 candidates on Platform Engineer']);
     expect(source.application).not.toHaveBeenCalled();
+  });
+
+  it("names the edited template by reading it by its kind, and shows several edits of it in a moment as one toast", async () => {
+    const source = { ...sources(), templateName: vi.fn(async () => 'Stage change') };
+    const toasts = new TeammateToasts(source, (toast) => shown.push(toast));
+    await toasts.receive(emailEdited(me));
+    await toasts.receive(emailEdited(me));
+    await vi.advanceTimersByTimeAsync(groupWindow);
+
+    expect(shown.map((toast) => toast.sentence.join(''))).toEqual(['Jordan Ellis changed the email template Stage change']);
+    expect(source.templateName).toHaveBeenCalledWith('EmailTemplate', 'stage-change');
+
+    await toasts.receive(emailEdited(jordan));
+    await vi.advanceTimersByTimeAsync(groupWindow);
+    expect(shown).toHaveLength(1);
   });
 
   it('leaves a note that mentions the person to the mention card, whichever event comes first', async () => {

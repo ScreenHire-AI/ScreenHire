@@ -6,11 +6,14 @@ export type CandidateKind = Exclude<ToastKind, 'Tasks' | 'Templates'>;
 
 export type TaskAction = 'created' | 'completed' | 'reopened';
 
+/** The templates a teammate's change can be about: a published hiring template version, or an edit of an email template or a scorecard. */
+export type TemplateType = 'HiringTemplate' | 'EmailTemplate' | 'ScorecardTemplate';
+
 /** A teammate's change that the person may want to hear about, from one live event (ids only, as the event has them). */
 export type TeammateChange =
   | { kind: CandidateKind; actorUserId: string; applicationId: string; jobId: string }
   | { kind: 'Tasks'; actorUserId: string; applicationId: string; jobId: string; taskId: string; action: TaskAction }
-  | { kind: 'Templates'; actorUserId: string; templateId: string; version: number };
+  | { kind: 'Templates'; actorUserId: string; templateType: TemplateType; templateId: string; version?: number };
 
 /** What decides whether a change is for this person. */
 export interface ChangeContext {
@@ -50,7 +53,13 @@ function describe(event: RealtimeEvent, context: ChangeContext): TeammateChange 
     case 'HiringTemplateVersionPublished': {
       const { actorUserId, previousEditorUserId, templateId, version } = event.data;
       if (!actorUserId || !previousEditorUserId || previousEditorUserId !== me) return undefined;
-      return { kind: 'Templates', actorUserId, templateId, version };
+      return { kind: 'Templates', actorUserId, templateType: 'HiringTemplate', templateId, version };
+    }
+    case 'TemplateChanged': {
+      // A hiring template's other edits are drafts: only its publish tells the person who last changed it.
+      const { actorUserId, previousEditorUserId, templateId, kind } = event.data;
+      if (kind === 'HiringTemplate' || !actorUserId || !previousEditorUserId || previousEditorUserId !== me) return undefined;
+      return { kind: 'Templates', actorUserId, templateType: kind, templateId };
     }
     default: {
       const kind = candidateEvents[event.type];
@@ -83,7 +92,7 @@ export function groupKey(change: TeammateChange): string {
     case 'Tasks':
       return `Tasks:${change.taskId}:${change.action}`;
     case 'Templates':
-      return `Templates:${change.templateId}:${change.version}`;
+      return `Templates:${change.templateType}:${change.templateId}:${change.version ?? 'edited'}`;
     default:
       return `${change.kind}:${change.actorUserId}:${change.jobId}`;
   }
@@ -110,6 +119,23 @@ export interface ChangeFacts {
   templateName?: string;
 }
 
+// The sentence and link of a template change: a published hiring template version, or an edit of an email template or a scorecard.
+function templateWords(
+  change: Extract<TeammateChange, { kind: 'Templates' }>,
+  actor: string,
+  name: string | undefined,
+): Pick<Toast, 'sentence' | 'href'> {
+  const id = encodeURIComponent(change.templateId);
+  switch (change.templateType) {
+    case 'EmailTemplate':
+      return { sentence: [`${actor} changed the email template `, name ?? 'an email template', ''], href: `/templates/emails/${id}` };
+    case 'ScorecardTemplate':
+      return { sentence: [`${actor} changed the scorecard `, name ?? 'a scorecard', ''], href: `/templates/scorecards/${id}` };
+    default:
+      return { sentence: [`${actor} published version ${change.version} of `, name ?? 'a hiring template', ''], href: `/templates/${id}` };
+  }
+}
+
 const taskWords: Record<TaskAction, string> = {
   created: 'gave you a task on ',
   completed: 'completed your task on ',
@@ -131,13 +157,7 @@ export function toastFor(id: string, change: TeammateChange, facts: ChangeFacts)
         context: job,
       };
     case 'Templates':
-      return {
-        id,
-        kind: change.kind,
-        sentence: [`${actor} published version ${change.version} of `, facts.templateName ?? 'a hiring template', ''],
-        href: `/templates/${change.templateId}`,
-        context: '',
-      };
+      return { id, kind: change.kind, ...templateWords(change, actor, facts.templateName), context: '' };
     default: {
       const href = `/applications/${change.applicationId}`;
       const words: Record<CandidateKind, [string, string, string]> = {

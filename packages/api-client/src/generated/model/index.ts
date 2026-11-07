@@ -149,6 +149,7 @@ export * from './getRoleHistoryParams.ts';
 export * from './getSavedNoteHistoryParams.ts';
 export * from './getScorecardTemplateHistoryParams.ts';
 export * from './getTeamHistoryParams.ts';
+export * from './getWebhookEndpointHistoryParams.ts';
 export * from './headingFont.ts';
 export * from './hiringReport.ts';
 export * from './hiringTeamMember.ts';

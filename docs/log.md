@@ -10,6 +10,19 @@ messages with a reply box. A reply typed there and a reply by email are one thin
 scanned. Every email to a candidate now ends with a link to the page, and the interview emails carry a Reply-To, which they
 did not before. The notice version is `2026-11-07.1`. ([candidate portal](architecture/candidate-portal.md), ADR-0027)
 
+**A webhook endpoint has a change history.** An endpoint's signing secret was never stored (it is derived from the platform key,
+the endpoint's id and a version), but its version and the time of its last rotation sat on the endpoint's row, which kept the row
+off the history's allow-list. They now live in `webhook_endpoint_secrets`, one row per endpoint, so the endpoint's page shows
+Last updated and History: its address by host (an address often carries a token), its events, its switch and each rotation.
+The migration copies every version, so no endpoint's signatures change.
+
+**Email template and scorecard edits toast.** A teammate's edit of an email template or a scorecard shows as a toast to the member
+who changed it last, as a published hiring template version does. `TemplateChanged` now carries that member. A hiring template's
+other edits are drafts and stay quiet.
+
+**API keys can read reports over HTTP.** `GET /v1/reports/hiring` and the funnel list accept an organization API key with the Read
+scope, as the MCP report tool already did. A key sees every job and only its own organization's numbers.
+
 ## 2026-11-05
 
 **Design rule S9: design for how many there could be.** Tabs and toggles are for sets that cannot grow. Anything that can

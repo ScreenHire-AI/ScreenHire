@@ -249,7 +249,14 @@ internal static class EmailEndpoints
         }
         else
         {
-            row.Name = builtIn ? null : request.Name?.Trim() ?? row.Name;
+            // A save that changes nothing raises no event, so the member who changed the template last hears of no edit.
+            var name = builtIn ? null : request.Name?.Trim() ?? row.Name;
+            if (name == row.Name && request.Subject == row.Subject && body == row.Body)
+            {
+                return TypedResults.Ok(await EntryAsync(db, (await store.FindAsync(db, templateId, cancellationToken))!, cancellationToken));
+            }
+
+            row.Name = name;
             row.Subject = request.Subject;
             row.Body = body;
             row.UpdatedAt = now;

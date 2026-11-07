@@ -24,10 +24,11 @@ one that lists the applications behind a funnel row.
 
 `GET /v1/reports/hiring` (`apps/api/Endpoints/ReportEndpoints.cs`), named `GetHiringReport`.
 
-- **Session only over HTTP.** `.RequireAuthorization()`: API keys reach only the hiring API groups (ADR-0011), so a key
-  gets 401. The MCP server's `get_hiring_report` tool reads the same numbers for any key with the Read scope, by calling
-  `ReportEndpoints.Problems` and `HiringReportReads.ReadAsync` directly (ADR-0021 decision 6). A key sees every job
-  (ADR-0015), so the tool's numbers are not narrowed by job access.
+- **Members and API keys.** `.AllowApiKeys()`: a signed-in member, or an organization API key with the Read scope
+  (ADR-0011), reads both routes; the key's rate limit applies, and anything else gets 401. The MCP server's
+  `get_hiring_report` tool reads the same numbers for the same keys, by calling `ReportEndpoints.Problems` and
+  `HiringReportReads.ReadAsync` directly (ADR-0021 decision 6). A key sees every job (ADR-0015), so its numbers are not
+  narrowed by job access, over HTTP or through the tool, and they are its own organization's only (row-level security).
 - **Every member.** No `.RequirePermission`: reads stay open to every member (ADR-0014), and See jobs and candidates is
   in every role. Job access (ADR-0015) narrows the numbers, never the page.
 - **The range is two instants**, `from` inclusive and `to` exclusive, both required. The API never computes "the last
@@ -148,4 +149,3 @@ the report arrives and while it is empty.
   Adzuna, Jooble and the sandbox board. Google for Jobs and the public job-board API must keep their canonical URLs, so
   their applicants count as Careers page, as do applications finished from a saved draft link, which drops the tag.
 - **Weeks follow Monday.** The first day of the week is not taken from the person's locale.
-- **No key access over HTTP** (section 1). Only the MCP tool reads reports for a key.
