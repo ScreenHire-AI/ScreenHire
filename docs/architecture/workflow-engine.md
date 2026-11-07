@@ -295,7 +295,7 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   `POST /v1/workflows/simulate` on the unsaved workflow and touches no real candidate. Verification levels are words and
   appear only where an automation reads one; the endpoint refuses a workflow whose verification-driven automation
   rejects, so no result does. A workflow with no automation says there is nothing to test yet and, in the editor, offers
-  to add one.
+  to add one. A result says when the workflow changed after it ran and offers to run it again.
 
 Every change is checked with `POST /v1/workflows/validate` after a short pause, and each message shows on the control
 its path names, so the guardrail refusal of a verification-driven rejection appears on that action. A draft that does
