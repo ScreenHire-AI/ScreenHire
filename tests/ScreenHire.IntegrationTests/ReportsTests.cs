@@ -339,6 +339,7 @@ public sealed class ReportsTests(AppHostFixture fixture)
         Jobs(viaKey).Should().BeEquivalentTo([(platform, 3, 30.0), (data, 2, 9.5)], "a key sees every job, as the MCP tool does (ADR-0015)");
         Sources(viaKey).Should().Equal(Sources(viaSession));
         viaKey.At("headline.hires").GetInt32().Should().Be(5);
+        viaKey.Body.GetRawText().Should().NotContainEquivalentOf("verification", "a report opens nothing of verification to a Read key (ADR-0021)");
         Jobs((await viewer.GetAsync($"/v1/reports/hiring?{Range}")).Expect(HttpStatusCode.OK)).Select(j => j.Item1).Should().Equal(platform)
             .And.NotBeEquivalentTo(Jobs(viaKey).Select(j => j.Item1), "a member on Only jobs they're on sees less than a key");
 

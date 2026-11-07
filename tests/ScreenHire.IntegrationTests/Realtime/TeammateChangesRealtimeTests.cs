@@ -8,8 +8,8 @@ namespace ScreenHire.IntegrationTests.Realtime;
 /// <summary>
 /// Who made a change, on the wire: the events behind "teammates' changes as toasts" carry <c>actorUserId</c> (the member
 /// who did it, null for an API key, an automation or a candidate), task events add <c>assigneeUserId</c>, and a published
-/// hiring template version adds <c>previousEditorUserId</c>, the member who changed the template last when that is not the
-/// publisher.
+/// hiring template version and an edited email template or scorecard add <c>previousEditorUserId</c>, the member who changed
+/// the template last when that is not the one acting.
 /// The dashboard filters on these ids; they reach only their own organization's dashboards.
 /// </summary>
 public sealed class TeammateChangesRealtimeTests(AppHostFixture fixture)
@@ -163,9 +163,10 @@ public sealed class TeammateChangesRealtimeTests(AppHostFixture fixture)
         await using var theirClient = await EventsConnection.ConnectAsync(theirs.Session, Ct);
 
         // The owner rewords a built-in email template, the admin rewords it after them, then again: the second edit has
-        // the owner as the member who changed it last, the third has only the admin, who made it too.
-        var subjects = new[] { "Next steps for {{ jobTitle }}", "Your next steps for {{ jobTitle }}", "Your next steps, {{ candidateName }}" };
-        foreach (var (tenant, subject) in new[] { (owner, subjects[0]), (admin, subjects[1]), (admin, subjects[2]) })
+        // the owner as the member who changed it last, the third has only the admin, who made it too. The owner then saves
+        // the wording as it stands, which is no edit and raises nothing, and rewords it, with the admin as the last editor.
+        var subjects = new[] { "Next steps for {{ jobTitle }}", "Your next steps for {{ jobTitle }}", "Your next steps, {{ candidateName }}", "Next, {{ candidateName }}" };
+        foreach (var (tenant, subject) in new[] { (owner, subjects[0]), (admin, subjects[1]), (admin, subjects[2]), (owner, subjects[2]), (owner, subjects[3]) })
         {
             (await tenant.PutAsync($"/v1/email-templates/{EmailTemplateIds.StageChange}", new JsonObject
             {
@@ -173,11 +174,11 @@ public sealed class TeammateChangesRealtimeTests(AppHostFixture fixture)
             })).Expect(HttpStatusCode.OK);
         }
 
-        await WaitForEditsAsync(ownerClient, EmailTemplateIds.StageChange, 3);
+        await WaitForEditsAsync(ownerClient, EmailTemplateIds.StageChange, 4);
         var edits = EditsOf(ownerClient, EmailTemplateIds.StageChange);
         // Events are delivered in parallel, so only the set of them is known, not their order.
         edits.Select(e => (Actor: ActorOf(e), Previous: PreviousEditorOf(e))).Should().BeEquivalentTo(
-            [(Actor: (Guid?)owner.UserId, Previous: (Guid?)null), (admin.UserId, owner.UserId), (admin.UserId, null)]);
+            [(Actor: (Guid?)owner.UserId, Previous: (Guid?)null), (admin.UserId, owner.UserId), (admin.UserId, null), (owner.UserId, admin.UserId)]);
 
         // A library scorecard works the same way.
         var scorecard = await ScorecardSupport.CreateScorecardAsync(owner, "Platform interview", ScorecardSupport.Rating5("depth"));

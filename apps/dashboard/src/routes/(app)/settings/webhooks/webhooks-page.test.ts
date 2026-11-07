@@ -71,6 +71,14 @@ describe('webhooks page', () => {
     await expectNoAxeViolations();
   });
 
+  it('has a Last updated column with the date of the newest change (T6)', async () => {
+    renderPage([endpoint('e1', { lastUpdated: { at: '2026-10-02T09:00:00Z', by: 'Member', userId: 'u1', created: false } })]);
+
+    expect(await screen.findByRole('columnheader', { name: 'Last updated' })).toBeInTheDocument();
+    const dates = screen.getByRole('table').querySelectorAll('time');
+    expect([...dates].map((time) => time.getAttribute('datetime'))).toEqual(['2026-10-02T09:00:00Z']);
+  });
+
   it('labels an endpoint that is on, one a person turned off, and one the worker turned off after failures', async () => {
     renderPage([
       endpoint('e1'),
