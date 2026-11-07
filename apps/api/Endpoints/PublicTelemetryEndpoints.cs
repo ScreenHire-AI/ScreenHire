@@ -1,11 +1,13 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using ScreenHire.Api.Applications;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
+using ScreenHire.Infrastructure.Verification;
 
 namespace ScreenHire.Api.Endpoints;
 
@@ -45,6 +47,7 @@ internal static class PublicTelemetryEndpoints
         TelemetrySnapshotInput snapshot,
         IValidator<TelemetrySnapshotInput> validator,
         TelemetrySessions sessions,
+        IOptions<VerificationOptions> verification,
         ScreenHireDbContext db,
         TenantContext tenant,
         TimeProvider time,
@@ -69,6 +72,12 @@ internal static class PublicTelemetryEndpoints
         if (sessions.Read(snapshot.SessionToken, job.OrganizationId, job.Id) is not { } sessionId)
         {
             return TypedResults.ValidationProblem(ValidationExtensions.Problem("sessionToken", "This form session has ended. Reload the form."));
+        }
+
+        // Form use checks turned off after this page opened: its session is still good for 12 hours, and nothing it sends is kept.
+        if (!(await TelemetrySessions.CollectionForAsync(job, verification.Value, db, cancellationToken)).FormTelemetry)
+        {
+            return TypedResults.Accepted((string?)null);
         }
 
         var known = TelemetrySessions.FieldIdsFor(job);

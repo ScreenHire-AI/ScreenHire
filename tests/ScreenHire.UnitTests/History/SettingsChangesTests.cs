@@ -80,6 +80,63 @@ public sealed class SettingsChangesTests
     }
 
     [Fact]
+    public void The_verification_settings_name_the_model_the_groups_the_policy_the_trusted_entries_and_the_alerts_without_ever_showing_the_key()
+    {
+        var before = new VerificationSettings { TrustedDomains = ["old.example.com"], TrustedNetworks = ["203.0.113.0/24"] };
+        var after = new VerificationSettings
+        {
+            LlmSource = LlmSource.OwnKey,
+            LlmProvider = ModelProvider.OpenAiCompatible,
+            LlmBaseUrl = "https://acme.example.com/secret-path-token/v1/",
+            LlmModel = "model-one",
+            ProtectedLlmApiKey = "CfDJ8-protected-key-text",
+            LlmKeyVersion = 1,
+            CheckDocuments = false,
+            CheckFormUse = false,
+            DefaultAiUse = ScreenHire.Domain.Hiring.AiUsePolicy.NotAllowed,
+            DeviceCheck = DeviceCheckBasis.Consent,
+            TrustedDomains = ["partner.example.com"],
+            TrustedNetworks = [],
+            SuggestedAlertEmail = true,
+            BudgetAlertSlack = true,
+        };
+
+        var lines = Sentences(SettingsChanges.Verification(before, after)).ToList();
+
+        lines.Should().Equal(
+            "switched to your own AI key",
+            "set the AI provider to OpenAI-compatible",
+            "set the AI endpoint to acme.example.com",
+            "set the AI model to model-one",
+            "saved an API key",
+            "turned off documents checks",
+            "turned off form use checks",
+            "set the default AI use for new jobs to Not allowed",
+            "set the device check to Ask for consent",
+            "trusted the domain partner.example.com",
+            "stopped trusting the domain old.example.com",
+            "stopped trusting the network 203.0.113.0/24",
+            "turned on the Verification suggested alert by email",
+            "turned on the budget alert on Slack");
+        string.Join(' ', lines).Should().NotContain("CfDJ8").And.NotContain("secret-path-token", "an address can carry a token in its path, so History names the host alone");
+    }
+
+    [Fact]
+    public void Replacing_or_removing_the_key_is_a_line_and_changing_nothing_else_about_it_is_not()
+    {
+        var saved = new VerificationSettings { LlmSource = LlmSource.OwnKey, LlmProvider = ModelProvider.Anthropic, LlmModel = "m", ProtectedLlmApiKey = "a", LlmKeyVersion = 1 };
+        var replaced = new VerificationSettings { LlmSource = LlmSource.OwnKey, LlmProvider = ModelProvider.Anthropic, LlmModel = "m", ProtectedLlmApiKey = "b", LlmKeyVersion = 2 };
+        var removed = new VerificationSettings();
+
+        Sentences(SettingsChanges.Verification(saved, replaced)).Should().Equal("replaced the API key");
+        Sentences(SettingsChanges.Verification(replaced, removed)).Should().Equal("switched to ScreenHire's included AI model", "removed the API key");
+        SettingsChanges.Verification(saved, saved).Should().BeEmpty();
+        // The budget alert month is bookkeeping on the row, not a change anyone made.
+        var alerted = new VerificationSettings { BudgetAlertMonth = "2026-11" };
+        SettingsChanges.Verification(removed, alerted).Should().BeEmpty();
+    }
+
+    [Fact]
     public void The_sending_domain_says_when_it_is_added_verified_no_longer_verified_and_removed_and_nothing_for_a_check_that_found_the_same()
     {
         var pending = new SendingDomain { Domain = "acme.example.org" };

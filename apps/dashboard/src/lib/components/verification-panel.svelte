@@ -406,6 +406,23 @@
   {:else}
     {#if detail.authenticity}{@render assessment('authenticity', detail.authenticity, authenticityLevels[detail.authenticity.level], authenticityOrder.map((id) => authenticityLevels[id]), !detail.aiAssistance)}{/if}
     {#if detail.aiAssistance}{@render assessment('aiAssistance', detail.aiAssistance, aiAssistanceLevels[detail.aiAssistance.level], aiAssistanceOrder.map((id) => aiAssistanceLevels[id]), true)}{/if}
+    <!-- What the organization's settings kept the checks from doing, so a result without signals from a group is never read as
+         a clean one: a group turned off, or a domain or network the organization trusts. Status is icon, colour and label. -->
+    {#if detail.checksNotRun && detail.checksNotRun.length > 0}
+      <Panel title="Not checked" data-not-run>
+        <ul class="flex flex-col gap-3">
+          {#each detail.checksNotRun as check (check.group)}
+            <li class="flex flex-col gap-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <h3 class="min-w-0 font-semibold">{check.label}</h3>
+                <StatusBadge status="notInEffect" label={check.kind === 'TurnedOff' ? 'Turned off' : 'Not counted'} />
+              </div>
+              <p class="max-w-measure text-muted-foreground">{check.note}</p>
+            </li>
+          {/each}
+        </ul>
+      </Panel>
+    {/if}
   {/if}
 </div>
 

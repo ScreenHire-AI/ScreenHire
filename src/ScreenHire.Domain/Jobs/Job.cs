@@ -183,6 +183,23 @@ public sealed class Job : ITenantOwned
     }
 
     /// <summary>
+    /// Starts a new job that did not come from a template with the organization's default AI-use policy. It is the job's first
+    /// workflow, not an edit of one, so the workflow version stays as it is. A published job keeps its workflow.
+    /// </summary>
+    public void StartWithAiUse(AiUsePolicy policy)
+    {
+        if (PublishedAt is not null)
+        {
+            throw new InvalidOperationException("A published job keeps its workflow; the default applies to new jobs.");
+        }
+
+        if (Workflow.VerificationPolicy.AiUse != policy)
+        {
+            Workflow = Workflow with { VerificationPolicy = new VerificationPolicy(policy) };
+        }
+    }
+
+    /// <summary>
     /// Replaces the job's workflow with a recruiter's edit of it and starts a new workflow version. The caller has
     /// validated <paramref name="workflow"/> and checked that no application sits in a stage it drops. The source
     /// template stays recorded, so the template diff shows this job's edits against the template's newest version.

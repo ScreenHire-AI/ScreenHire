@@ -5,6 +5,7 @@ description: "The organization's Slack workspace: the OAuth install from Integra
 tags: [slack, integrations, notifications]
 sources:
   - resource: src/ScreenHire.Domain/Slack/SlackInstallation.cs
+  - resource: src/ScreenHire.Application/Verification/Models/VerificationAlerts.cs
   - resource: src/ScreenHire.Domain/Slack/SlackAccountLink.cs
   - resource: src/ScreenHire.Domain/Slack/SlackMessageRecord.cs
   - resource: src/ScreenHire.Application/Slack/SlackOptions.cs
@@ -133,8 +134,12 @@ record, and nothing else:
 A message never carries a stage name, an automation's name or error, a teammate's name, or a note's or task's text.
 Stage and automation names can carry a verification outcome: a routing automation on Verification facts may move
 someone to a stage named for a check, or be called "Route suspected bots", so "moved to {stage}" in a channel would be a
-verdict. Nothing in `SlackMessages` takes verification output, and there is no verification event. One exposure stays: that
-an event happened at all. If a team's automation moves candidates on a Verification fact, the channel sees that a
+verdict. No channel message takes verification output, and there is no verification event. Two direct messages are the
+exception, added at the owner's request (Settings, Verification, Alerts), and each goes only to a member who linked Slack: "An
+application for {job} needs a closer look" goes to members who hold Review verification and see the job when an application
+first reaches Verification suggested, and "Verification tokens are at 80% of this month's budget" goes to members who can edit
+settings. Neither names the candidate and neither carries a level, reason or evidence, and neither is ever a channel post,
+because a channel skips permission and job scoping. One exposure stays: that an event happened at all. If a team's automation moves candidates on a Verification fact, the channel sees that a
 candidate's stage changed, without where to or why. That is accepted: the move is a hiring step the team chose to
 announce, and it carries no level, reason or evidence. Names are escaped
 (`&`, `<` and `>`), so a candidate called `<!channel>` pings nobody. Links have no previews (`unfurl_links` off): they

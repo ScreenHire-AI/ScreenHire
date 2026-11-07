@@ -41,7 +41,9 @@ public static class TrackedKinds
         // its own, and a save that changes only one of them records nothing for the other.
         Track<Organization>(ChangeSubjectKind.Organization, o => o.Id.ToString("D"), SettingsChanges.Name),
         Track<Organization>(ChangeSubjectKind.Branding, o => o.Id.ToString("D"), SettingsChanges.Branding),
-        Track<VerificationSettings>(ChangeSubjectKind.VerificationSettings, s => s.OrganizationId.ToString("D"), SettingsChanges.Verification),
+        // The row holds the encrypted API key, so History sees it only through a view without it.
+        Track<VerificationSettings, VerificationSettingsFacts>(
+            ChangeSubjectKind.VerificationSettings, s => s.OrganizationId.ToString("D"), VerificationSettingsFacts.Of, SettingsChanges.Verification),
         // Record retention deletes data, so who turned it on or changed its period is worth a history. Run results are not on
         // this row (the team log has them), so the schedule never writes it.
         Track<RetentionSettings>(ChangeSubjectKind.RetentionSettings, s => s.OrganizationId.ToString("D"), SettingsChanges.Retention),

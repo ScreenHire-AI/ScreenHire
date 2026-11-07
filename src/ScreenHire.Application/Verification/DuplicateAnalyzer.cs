@@ -26,10 +26,31 @@ public sealed class DuplicateAnalyzer(IApplicantDirectory directory) : IVerifica
     public async Task<AnalyzerResult> AnalyzeAsync(VerificationContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
-        var matches = await directory.FindSharedAsync(context, cancellationToken);
+        var found = await directory.FindSharedAsync(context, cancellationToken);
+        // What the organization trusts stops that one signal repeating: a staffing partner sending candidates from one mailbox,
+        // or an office or kiosk whose device several candidates used. Phone numbers and resume files still count, and the
+        // run says what was left out so a reviewer is never misled by a quiet result.
+        var trust = context.Config.Trusted;
+        var skippedEmail = found.Any(m => m.Kind == SharedIdentifier.Email) && trust.TrustsEmail(context.Candidate.Email);
+        var skippedDevice = found.Any(m => m.Kind == SharedIdentifier.Device) && trust.TrustsAddress(context.Observation?.IpAddress);
+        var matches = found
+            .Where(m => !(skippedEmail && m.Kind == SharedIdentifier.Email) && !(skippedDevice && m.Kind == SharedIdentifier.Device))
+            .ToList();
+        // With form use checks off the apply page sends no device code, so this application has no device to compare.
+        var noDevice = !context.Config.FormUse && context.Observation?.DeviceHash is null;
+        var note = (skippedEmail, skippedDevice, noDevice) switch
+        {
+            (true, true, _) => RunNotes.TrustedEmailAndDevice,
+            (true, false, true) => RunNotes.TrustedEmailAndDeviceNotCompared,
+            (true, false, false) => RunNotes.TrustedEmail,
+            (false, true, _) => RunNotes.TrustedDevice,
+            (false, false, true) => RunNotes.DeviceNotCompared,
+            _ => null,
+        };
+        var related = found.SelectMany(m => m.ApplicationIds).Distinct().ToList();
         if (matches.Count == 0)
         {
-            return AnalyzerResult.Nothing();
+            return new AnalyzerResult([], note) { RelatedApplicationIds = related };
         }
 
         var strong = matches.Any(m => m.Kind is SharedIdentifier.Device or SharedIdentifier.ResumeFile);
@@ -50,9 +71,9 @@ public sealed class DuplicateAnalyzer(IApplicantDirectory directory) : IVerifica
                     ["others"] = Count(others),
                 },
                 Weight: strong ? SignalWeight.High : SignalWeight.Medium),
-        ])
+        ], note)
         {
-            RelatedApplicationIds = [.. matches.SelectMany(m => m.ApplicationIds).Distinct()],
+            RelatedApplicationIds = related,
         };
     }
 

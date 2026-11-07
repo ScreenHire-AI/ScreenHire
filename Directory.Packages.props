@@ -73,6 +73,9 @@
          System.Text.Json) are MIT. -->
     <PackageVersion Include="Microsoft.Extensions.AI" Version="10.11.0" />
     <PackageVersion Include="Anthropic" Version="12.58.0" />
+    <!-- An organization's own OpenAI-compatible endpoint (OpenAI, Azure OpenAI): Microsoft's adapter from the OpenAI .NET
+         SDK to IChatClient. Both are MIT; the SDK (OpenAI) comes in as its dependency. -->
+    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.11.0" />
   </ItemGroup>
   <ItemGroup Label="Messaging">
     <!-- Wolverine (ADR-0008): MIT, as are its JasperFx, Weasel and Cronos dependencies; NewId is Apache-2.0. -->

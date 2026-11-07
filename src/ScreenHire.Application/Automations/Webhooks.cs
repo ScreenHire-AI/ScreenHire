@@ -227,6 +227,23 @@ public sealed class HttpWebhookSender(IOptions<WebhookOptions> options) : IWebho
     private static SocketsHttpHandler CreateHandler(IOptions<WebhookOptions> options)
     {
         ArgumentNullException.ThrowIfNull(options);
+        return PublicOnlyHandler.Create(() => options.Value.AllowLoopback, host => new WebhookAddressRefusedException(host));
+    }
+}
+
+/// <summary>
+/// The one outbound HTTP handler for addresses a person typed in: webhook receivers and an organization's own model
+/// endpoint. It resolves the host itself and connects only to a public address, so a name that points inside the network
+/// (or that is rebound to such an address after a check) is refused where the connection is made.
+/// </summary>
+public static class PublicOnlyHandler
+{
+    /// <param name="allowLoopback">Whether loopback may be reached (the local stack's own receivers); read on each connection.</param>
+    /// <param name="refused">Builds the exception thrown for a host with no reachable address.</param>
+    public static SocketsHttpHandler Create(Func<bool> allowLoopback, Func<string, Exception> refused)
+    {
+        ArgumentNullException.ThrowIfNull(allowLoopback);
+        ArgumentNullException.ThrowIfNull(refused);
         return new SocketsHttpHandler
         {
             PooledConnectionLifetime = TimeSpan.FromMinutes(5), // picks up DNS changes
@@ -235,10 +252,10 @@ public sealed class HttpWebhookSender(IOptions<WebhookOptions> options) : IWebho
             UseProxy = false,
             ConnectCallback = async (context, cancellationToken) =>
             {
-                var allowLoopback = options.Value.AllowLoopback;
+                var loopback = allowLoopback();
                 var addresses = await Dns.GetHostAddressesAsync(context.DnsEndPoint.Host, cancellationToken);
-                var address = addresses.FirstOrDefault(a => WebhookAddresses.MayReach(a, allowLoopback))
-                    ?? throw new WebhookAddressRefusedException(context.DnsEndPoint.Host);
+                var address = addresses.FirstOrDefault(a => WebhookAddresses.MayReach(a, loopback))
+                    ?? throw refused(context.DnsEndPoint.Host);
                 var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
                 try
                 {

@@ -344,7 +344,8 @@ creating or rotating.
 At most 20 endpoints per organization; a 21st is a 409. A URL is absolute `https`, with no user info or fragment, and an
 IP literal must be public. `ScreenHire:Webhooks:AllowLoopback` (the local stack and the tests only) also accepts plain
 `http` to loopback, so a receiver on the same machine works. The worker checks the address again on the resolved IP at
-connect time (`WebhookAddresses`), so DNS cannot point a public name at a private address.
+connect time (`WebhookAddresses`), so DNS cannot point a public name at a private address. The same handler
+(`PublicOnlyHandler`) serves an organization's own model endpoint, so there is one copy of this guard.
 
 **Events.** Each comes from a domain event that already exists; that event's worker handler cascades a
 `FanOutWebhook` message (`WebhookEvents`), which writes one delivery row per enabled endpoint that subscribes and sends

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ScreenHire.Domain.Applications;
+using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
@@ -243,6 +244,26 @@ internal sealed class VerificationSettingsConfiguration : IEntityTypeConfigurati
     {
         builder.ToTable("verification_settings");
         builder.HasKey(s => s.OrganizationId);
+        builder.Property(s => s.LlmSource).HasConversion<string>().HasMaxLength(20).HasDefaultValue(LlmSource.Included);
+        builder.Property(s => s.LlmProvider).HasConversion<string>().HasMaxLength(20);
+        builder.Property(s => s.LlmBaseUrl).HasMaxLength(VerificationSettings.MaxBaseUrlLength);
+        builder.Property(s => s.LlmModel).HasMaxLength(VerificationSettings.MaxModelLength);
+        builder.Property(s => s.ProtectedLlmApiKey).HasMaxLength(VerificationSettings.MaxProtectedKeyLength);
+        builder.Property(s => s.CheckNetwork).HasDefaultValue(true);
+        builder.Property(s => s.CheckContact).HasDefaultValue(true);
+        builder.Property(s => s.CheckDocuments).HasDefaultValue(true);
+        builder.Property(s => s.CheckAnswers).HasDefaultValue(true);
+        builder.Property(s => s.CheckDuplicates).HasDefaultValue(true);
+        builder.Property(s => s.CheckFormUse).HasDefaultValue(true);
+        // The sentinel names the column default: Allowed is the enum's zero, and EF would otherwise read a saved Allowed as
+        // "not set" on insert and store AllowedWithDisclosure instead.
+        builder.Property(s => s.DefaultAiUse).HasConversion<string>().HasMaxLength(30)
+            .HasDefaultValue(AiUsePolicy.AllowedWithDisclosure).HasSentinel(AiUsePolicy.AllowedWithDisclosure);
+        builder.Property(s => s.DeviceCheck).HasConversion<string>().HasMaxLength(20);
+        // Native text[], replaced as a whole on each save.
+        builder.PrimitiveCollection(s => s.TrustedDomains).HasColumnType("text[]").HasDefaultValueSql("'{}'");
+        builder.PrimitiveCollection(s => s.TrustedNetworks).HasColumnType("text[]").HasDefaultValueSql("'{}'");
+        builder.Property(s => s.BudgetAlertMonth).HasMaxLength(7);
         builder.HasOne<Organization>().WithOne()
             .HasForeignKey<VerificationSettings>(s => s.OrganizationId)
             .OnDelete(DeleteBehavior.Cascade);

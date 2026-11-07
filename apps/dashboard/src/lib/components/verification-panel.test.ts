@@ -616,6 +616,43 @@ describe('verification panel', () => {
     expect(screen.queryByText(/Checks are still running/)).not.toBeInTheDocument();
   });
 
+  // The organization's settings (turned-off groups, trusted domains and networks) are listed, so a result without signals from a
+  // group is never read as a clean one.
+  it('lists what the settings kept the checks from doing, each with an icon, a label and its note', async () => {
+    serve({
+      ...genuineVerification(),
+      checksNotRun: [
+        { group: 'Documents', label: 'Documents', kind: 'TurnedOff', note: "Documents checks are turned off in this organization's settings." },
+        { group: 'Network', label: 'Network', kind: 'Trusted', note: 'The address is on a network the organization trusts, so no network signal was raised.' },
+      ],
+    });
+    renderPanel();
+
+    const list = await screen.findByRole('region', { name: 'Not checked' });
+    expect(within(list).getByText("Documents checks are turned off in this organization's settings.")).toBeInTheDocument();
+    expect(within(list).getByText('Turned off')).toBeInTheDocument();
+    expect(within(list).getByText('Not counted')).toBeInTheDocument();
+    expect(within(list).getByText(/network the organization trusts/)).toBeInTheDocument();
+    expect(list.querySelectorAll('[data-status-icon]')).toHaveLength(2);
+    expect(list).not.toHaveTextContent(/%|score/i);
+  });
+
+  it('shows no Not checked list when the settings kept nothing back', async () => {
+    serve({ ...genuineVerification(), checksNotRun: [] });
+    renderPanel();
+
+    await screen.findByRole('region', { name: 'Authenticity' });
+    expect(screen.queryByRole('region', { name: 'Not checked' })).not.toBeInTheDocument();
+  });
+
+  it('shows no Not checked list when the API sends none', async () => {
+    serve({ ...genuineVerification(), checksNotRun: null });
+    renderPanel();
+
+    await screen.findByRole('region', { name: 'Authenticity' });
+    expect(screen.queryByRole('region', { name: 'Not checked' })).not.toBeInTheDocument();
+  });
+
   it('says the checks are still running while they are', async () => {
     serve(pendingVerification());
     renderPanel();

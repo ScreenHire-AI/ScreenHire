@@ -192,6 +192,66 @@ public sealed class TelemetryTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_snapshot_from_a_form_opened_before_form_use_checks_were_turned_off_is_taken_and_not_kept()
+    {
+        var (organization, jobs) = await OrganizationWithJobsAsync(("engineer", ["GB"]));
+        var job = jobs[0];
+        using var client = fixture.CreateHttpClient("api");
+        var token = await TokenAsync(client, organization, job);
+
+        await SaveSettingsAsync(new VerificationSettings { OrganizationId = organization.Id, CheckFormUse = false, UpdatedAt = DateTimeOffset.UtcNow });
+
+        (await PostAsync(client, organization, job, Snapshot(token))).StatusCode.Should().Be(HttpStatusCode.Accepted, "a page already open is refused nothing");
+        await using var db = await TenantDbAsync(organization.Id);
+        (await db.TelemetrySnapshots.AnyAsync(s => s.JobId == job.Id, Ct)).Should().BeFalse("the organization stopped this collection");
+    }
+
+    [Theory]
+    [InlineData("consent without the tick", DeviceCheckBasis.Consent, true, false)]
+    [InlineData("the device check off", DeviceCheckBasis.Off, true, true)]
+    [InlineData("duplicates off", DeviceCheckBasis.Notice, false, true)]
+    public async Task What_the_organization_stopped_is_dropped_at_submission_whatever_the_page_sends(
+        string because, DeviceCheckBasis basis, bool duplicates, bool consent)
+    {
+        var (organization, jobs) = await OrganizationWithJobsAsync(("uk", ["GB"]));
+        await SaveSettingsAsync(new VerificationSettings
+        {
+            OrganizationId = organization.Id, DeviceCheck = basis, CheckDuplicates = duplicates, UpdatedAt = DateTimeOffset.UtcNow,
+        });
+        using var client = fixture.CreateHttpClient("api");
+
+        var application = await ApplyAsync(client, organization, jobs[0], "ari.moss@example.com", fingerprint: Fingerprint('a'), deviceCheckConsent: consent);
+
+        await using var db = await TenantDbAsync(organization.Id);
+        (await db.SubmissionObservations.SingleAsync(o => o.ApplicationId == application, Ct)).DeviceHash.Should().BeNull(because);
+    }
+
+    [Fact]
+    public async Task With_form_use_checks_off_nothing_about_the_form_is_kept_whatever_the_page_sends()
+    {
+        var (organization, jobs) = await OrganizationWithJobsAsync(("uk", ["GB"]));
+        var job = jobs[0];
+        using var client = fixture.CreateHttpClient("api");
+        var token = await TokenAsync(client, organization, job);
+        await SaveSettingsAsync(new VerificationSettings { OrganizationId = organization.Id, CheckFormUse = false, UpdatedAt = DateTimeOffset.UtcNow });
+
+        var application = await ApplyAsync(client, organization, job, "kim.lowe@example.com", token, Snapshot(token), fingerprint: Fingerprint('b'), markers: ["webdriver"]);
+
+        await using var db = await TenantDbAsync(organization.Id);
+        var observation = await db.SubmissionObservations.SingleAsync(o => o.ApplicationId == application, Ct);
+        observation.AutomationMarkers.Should().BeEmpty();
+        observation.DeviceHash.Should().BeNull("the device code comes from the same page module, so it stops with form use checks");
+        (await db.TelemetrySnapshots.AnyAsync(s => s.JobId == job.Id, Ct)).Should().BeFalse();
+    }
+
+    private async Task SaveSettingsAsync(VerificationSettings settings)
+    {
+        await using var db = await TenantDbAsync(settings.OrganizationId);
+        db.VerificationSettings.Add(settings);
+        await db.SaveChangesAsync(Ct);
+    }
+
+    [Fact]
     public async Task Telemetry_is_purged_once_its_retention_ends()
     {
         var (organization, jobs) = await OrganizationWithJobsAsync(("engineer", ["GB"]));

@@ -4210,13 +4210,129 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("organization_id");
 
+                    b.Property<bool>("BudgetAlertEmail")
+                        .HasColumnType("boolean")
+                        .HasColumnName("budget_alert_email");
+
+                    b.Property<string>("BudgetAlertMonth")
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)")
+                        .HasColumnName("budget_alert_month");
+
+                    b.Property<bool>("BudgetAlertSlack")
+                        .HasColumnType("boolean")
+                        .HasColumnName("budget_alert_slack");
+
+                    b.Property<bool>("CheckAnswers")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("check_answers");
+
+                    b.Property<bool>("CheckContact")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("check_contact");
+
+                    b.Property<bool>("CheckDocuments")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("check_documents");
+
+                    b.Property<bool>("CheckDuplicates")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("check_duplicates");
+
+                    b.Property<bool>("CheckFormUse")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("check_form_use");
+
+                    b.Property<bool>("CheckNetwork")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("check_network");
+
+                    b.Property<string>("DefaultAiUse")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("AllowedWithDisclosure")
+                        .HasColumnName("default_ai_use");
+
+                    b.Property<string>("DeviceCheck")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("device_check");
+
+                    b.Property<string>("LlmBaseUrl")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("llm_base_url");
+
                     b.Property<bool>("LlmConsistencyCheckEnabled")
                         .HasColumnType("boolean")
                         .HasColumnName("llm_consistency_check_enabled");
 
+                    b.Property<int>("LlmKeyVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("llm_key_version");
+
+                    b.Property<string>("LlmModel")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("llm_model");
+
+                    b.Property<string>("LlmProvider")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("llm_provider");
+
+                    b.Property<string>("LlmSource")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Included")
+                        .HasColumnName("llm_source");
+
                     b.Property<long?>("MonthlyTokenBudget")
                         .HasColumnType("bigint")
                         .HasColumnName("monthly_token_budget");
+
+                    b.Property<string>("ProtectedLlmApiKey")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("protected_llm_api_key");
+
+                    b.Property<bool>("SuggestedAlertEmail")
+                        .HasColumnType("boolean")
+                        .HasColumnName("suggested_alert_email");
+
+                    b.Property<bool>("SuggestedAlertSlack")
+                        .HasColumnType("boolean")
+                        .HasColumnName("suggested_alert_slack");
+
+                    b.PrimitiveCollection<string[]>("TrustedDomains")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text[]")
+                        .HasColumnName("trusted_domains")
+                        .HasDefaultValueSql("'{}'");
+
+                    b.PrimitiveCollection<string[]>("TrustedNetworks")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text[]")
+                        .HasColumnName("trusted_networks")
+                        .HasDefaultValueSql("'{}'");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")

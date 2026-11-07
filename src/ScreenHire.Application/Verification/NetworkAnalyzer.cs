@@ -25,6 +25,13 @@ public sealed class NetworkAnalyzer(IIpIntelligence intelligence) : IVerificatio
             return Task.FromResult(AnalyzerResult.Nothing("No network address was recorded for this application."));
         }
 
+        // An office or a partner's network the organization trusts: its hosting, proxy or location say nothing about a candidate
+        // there. The run says so, so the missing signal reads as trusted, not as clean.
+        if (context.Config.Trusted.TrustsAddress(ip))
+        {
+            return Task.FromResult(AnalyzerResult.Nothing(RunNotes.TrustedNetwork));
+        }
+
         if (!intelligence.IsConfigured)
         {
             return Task.FromResult(AnalyzerResult.Nothing("No IP intelligence source is configured."));

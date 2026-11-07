@@ -241,6 +241,9 @@ import type {
   UploadedFile,
   ValidateWorkflowRequest,
   VerificationMatches,
+  VerificationModelList,
+  VerificationModelRequest,
+  VerificationModelTest,
   ViewList,
   WebhookDeliveryEntry,
   WebhookEndpointEntry,
@@ -13604,6 +13607,224 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getUpdateOrganizationVerificationSettingsMutationOptions(options?.()) }), queryClient);
+    }
+
+export type listVerificationModelsResponse200 = {
+  data: VerificationModelList
+  status: 200
+}
+
+export type listVerificationModelsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type listVerificationModelsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listVerificationModelsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listVerificationModelsResponseSuccess = (listVerificationModelsResponse200) & {
+  headers: Headers;
+};
+export type listVerificationModelsResponseError = (listVerificationModelsResponse400 | listVerificationModelsResponse401 | listVerificationModelsResponse403) & {
+  headers: Headers;
+};
+
+export const getListVerificationModelsUrl = () => {
+
+
+
+
+  return `/v1/organization/verification-settings/llm/models`
+}
+
+export const listVerificationModels = async (verificationModelRequest: VerificationModelRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<listVerificationModelsResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<listVerificationModelsResponseSuccess>(getListVerificationModelsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(verificationModelRequest)
+  }
+);}
+
+
+
+
+
+export const getListVerificationModelsMutationKey = () => ['listVerificationModels'] as const;
+
+export const getListVerificationModelsMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof listVerificationModels>>, TError,ListVerificationModelsMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof listVerificationModels>>, TError,ListVerificationModelsMutationVariables, TContext> => {
+
+const mutationKey = getListVerificationModelsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof listVerificationModels>>, ListVerificationModelsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  listVerificationModels(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ListVerificationModelsMutationResult = NonNullable<Awaited<ReturnType<typeof listVerificationModels>>>
+    export type ListVerificationModelsMutationBody = VerificationModelRequest
+    export type ListVerificationModelsMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type ListVerificationModelsMutationVariables = {data: VerificationModelRequest}
+
+    export const createListVerificationModels = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof listVerificationModels>>, TError,ListVerificationModelsMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof listVerificationModels>>,
+        TError,
+        ListVerificationModelsMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getListVerificationModelsMutationOptions(options?.()) }), queryClient);
+    }
+
+export type testVerificationModelResponse200 = {
+  data: VerificationModelTest
+  status: 200
+}
+
+export type testVerificationModelResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type testVerificationModelResponse401 = {
+  data: void
+  status: 401
+}
+
+export type testVerificationModelResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type testVerificationModelResponseSuccess = (testVerificationModelResponse200) & {
+  headers: Headers;
+};
+export type testVerificationModelResponseError = (testVerificationModelResponse400 | testVerificationModelResponse401 | testVerificationModelResponse403) & {
+  headers: Headers;
+};
+
+export const getTestVerificationModelUrl = () => {
+
+
+
+
+  return `/v1/organization/verification-settings/llm/test`
+}
+
+export const testVerificationModel = async (verificationModelRequest: VerificationModelRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<testVerificationModelResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<testVerificationModelResponseSuccess>(getTestVerificationModelUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(verificationModelRequest)
+  }
+);}
+
+
+
+
+
+export const getTestVerificationModelMutationKey = () => ['testVerificationModel'] as const;
+
+export const getTestVerificationModelMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof testVerificationModel>>, TError,TestVerificationModelMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof testVerificationModel>>, TError,TestVerificationModelMutationVariables, TContext> => {
+
+const mutationKey = getTestVerificationModelMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testVerificationModel>>, TestVerificationModelMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  testVerificationModel(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TestVerificationModelMutationResult = NonNullable<Awaited<ReturnType<typeof testVerificationModel>>>
+    export type TestVerificationModelMutationBody = VerificationModelRequest
+    export type TestVerificationModelMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type TestVerificationModelMutationVariables = {data: VerificationModelRequest}
+
+    export const createTestVerificationModel = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof testVerificationModel>>, TError,TestVerificationModelMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof testVerificationModel>>,
+        TError,
+        TestVerificationModelMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getTestVerificationModelMutationOptions(options?.()) }), queryClient);
     }
 
 export type listTeamMembersResponse200 = {

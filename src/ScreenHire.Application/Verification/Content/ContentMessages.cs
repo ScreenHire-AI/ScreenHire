@@ -146,7 +146,9 @@ public static partial class CheckApplicationConsistencyHandler
         CheckApplicationConsistency message,
         ScreenHireDbContext db,
         ConsistencyChecker checker,
-        LlmAccess llm,
+        LlmAccess deployment,
+        OrganizationModels models,
+        LlmKeys keys,
         IOptions<VerificationOptions> options,
         TimeProvider time,
         ILogger<CheckApplicationConsistency> logger,
@@ -187,6 +189,8 @@ public static partial class CheckApplicationConsistencyHandler
         var job = await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == application.JobId, cancellationToken);
         var sources = Sources(documents, ApplicationText.AnswersSource(job, application.Answers));
         var settings = await db.VerificationSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+        // ScreenHire's model, or the organization's own key and model.
+        var llm = models.AccessFor(settings, deployment, keys);
         var early = await EarlyOutcomeAsync(db, settings, sources, llm, options.Value.Llm, now, cancellationToken);
 
         if (check is null)
@@ -213,15 +217,26 @@ public static partial class CheckApplicationConsistencyHandler
             return []; // another delivery claimed it first, and will finish it
         }
 
+        OutgoingMessages messages = [new AnalyzeApplicationVerification(message.OrganizationId, message.ApplicationId)];
         if (early is null)
         {
-            var outcome = await checker.CheckAsync(sources, cancellationToken);
+            var outcome = await checker.CheckAsync(sources, llm, cancellationToken);
             check.Complete(outcome, time.GetUtcNow());
             await db.SaveChangesAsync(cancellationToken);
+
+            // The budget alert: once the month's tokens pass 80% of the budget. Its handler keeps the month on the settings
+            // row, so a message sent again for the same month tells nobody twice. An own key has no ScreenHire budget.
+            if (settings is { UsesOwnKey: false } && time.GetUtcNow() is var finished
+                && await db.TokensUsedThisMonthAsync(finished, cancellationToken)
+                    >= (settings.MonthlyTokenBudget ?? options.Value.Llm.DefaultMonthlyTokenBudget) * VerificationAlertWording.BudgetThreshold
+                && settings.BudgetAlertMonth != ConsistencyBudget.Month(finished))
+            {
+                messages.Add(new NotifyBudgetThreshold(message.OrganizationId, ConsistencyBudget.Month(finished)));
+            }
         }
 
         LogChecked(logger, application.Id, check.Status, check.Contradictions.Count);
-        return [new AnalyzeApplicationVerification(message.OrganizationId, message.ApplicationId)];
+        return messages;
     }
 
     /// <summary>
@@ -267,6 +282,12 @@ public static partial class CheckApplicationConsistencyHandler
             return new ConsistencyCheckOutcome(ConsistencyCheckStatus.Disabled, "The organization has the consistency check turned off.");
         }
 
+        // The answers checks include this one: with them off, no source is sent to a model.
+        if (!settings.CheckAnswers)
+        {
+            return new ConsistencyCheckOutcome(ConsistencyCheckStatus.Disabled, CheckGroups.TurnedOffNote(CheckGroup.Answers));
+        }
+
         if (sources.Count(s => !string.IsNullOrWhiteSpace(s.Text)) < 2)
         {
             return new ConsistencyCheckOutcome(ConsistencyCheckStatus.NotEnoughSources, "Fewer than two sources have text to compare.");
@@ -275,6 +296,12 @@ public static partial class CheckApplicationConsistencyHandler
         if (llm.Client is null)
         {
             return new ConsistencyCheckOutcome(ConsistencyCheckStatus.Unavailable, llm.UnavailableReason);
+        }
+
+        // With its own key, the provider bills the organization: ScreenHire's budget does not apply (usage still counts and shows).
+        if (settings.UsesOwnKey)
+        {
+            return null;
         }
 
         var used = await db.TokensUsedThisMonthAsync(now, cancellationToken);

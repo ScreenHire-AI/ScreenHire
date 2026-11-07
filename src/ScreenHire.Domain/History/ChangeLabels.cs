@@ -1,5 +1,6 @@
 using System.Globalization;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 
@@ -88,6 +89,21 @@ public static class ChangeLabels
         AiUsePolicy.AllowedWithDisclosure => "Allowed with disclosure",
         AiUsePolicy.NotAllowed => "Not allowed",
         _ => policy.ToString(),
+    };
+
+    /// <summary>The device check basis in the dashboard's words; null follows the region.</summary>
+    public static string DeviceCheck(DeviceCheckBasis? basis) => basis switch
+    {
+        null => "By region",
+        DeviceCheckBasis.Notice => "On, with notice",
+        DeviceCheckBasis.Consent => "Ask for consent",
+        _ => "Off",
+    };
+
+    public static string ModelProvider(ModelProvider provider) => provider switch
+    {
+        Verification.ModelProvider.Anthropic => "Anthropic",
+        _ => "OpenAI-compatible",
     };
 
     public static string Employment(EmploymentType type) => type switch

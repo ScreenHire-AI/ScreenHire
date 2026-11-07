@@ -121,12 +121,14 @@ careers server passes on as `userAgent` because the API only sees the server's, 
 each page as the careers server measured them (§7; kept in the step state, so they round-trip through the browser and
 are only a hint, and never sent with the switch on). The telemetry module fills `automationMarkers` and `deviceFingerprint` on the review step, and the careers
 server passes them on with the session token and the module's last snapshot. The API hashes a fingerprint per
-organization and never stores it as sent, and keeps it only on the job's device-check basis: where that is `Consent`
+organization and never stores it as sent, and keeps it only on the job's device-check basis (the more protective of its region's and the organization's own choice in
+Settings, Verification; where the organization turned the duplicates checks off there is none, and where it turned form use
+off the form is issued no telemetry session): where that is `Consent`
 (the EU and EEA by default), the details step shows an optional "Check this device for repeat applications" box and the
 fingerprint is kept only when it is ticked. The observation and the telemetry are deleted after 30 days. The notice and
 the privacy page say all of this, and that the employer may email a follow-up questionnaire whose page keeps the
 answers only, that a saved draft keeps the details and answers only, for 30 days, and that an application through
-the form on the employer's own website notes which website. `NOTICE_VERSION` is `2026-11-07.1`, bumped when the privacy page gained "Your page" ([candidate portal](candidate-portal.md#notice)). Before that it was `2026-11-05.2`, bumped when the notice on the job and apply pages and the privacy page were cut to say that applications are checked and what is collected, not how a check works. The owner wants them only as descriptive as the law requires, so a check's rules stay out of anything a candidate reads.
+the form on the employer's own website notes which website. `NOTICE_VERSION` is `2026-11-07.2`, bumped when the privacy page said the AI model can come from a provider the employer chose, under the employer's own terms ([what an organization controls](verification-engine.md#1011-what-an-organization-controls)). Before that it was `2026-11-07.1`, bumped when the privacy page gained "Your page" ([candidate portal](candidate-portal.md#notice)), and before that `2026-11-05.2`, bumped when the notice on the job and apply pages and the privacy page were cut to say that applications are checked and what is collected, not how a check works. The owner wants them only as descriptive as the law requires, so a check's rules stay out of anything a candidate reads.
 
 The review step also asks, optionally and unticked, "Keep my details for future roles", with one line saying the
 employer keeps their details until they ask, or the employer removes them, and may invite them to apply for other

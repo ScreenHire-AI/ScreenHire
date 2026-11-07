@@ -60,6 +60,11 @@ public sealed partial class TrackedKindsTests
         TrackedKinds.FindAll(typeof(OrganizationInvitation)).Single().ViewType.Should().Be<InvitationFacts>();
         typeof(ApiKeyFacts).GetProperties().Select(p => p.Name).Should().NotContain([nameof(ApiKey.SecretHash), nameof(ApiKey.Prefix)]);
         typeof(InvitationFacts).GetProperties().Select(p => p.Name).Should().NotContain(nameof(OrganizationInvitation.TokenHash));
+
+        // An organization's own model key is held encrypted on its settings row; History sees only that one is saved.
+        TrackedKinds.FindAll(typeof(VerificationSettings)).Single().ViewType.Should().Be<VerificationSettingsFacts>();
+        typeof(VerificationSettingsFacts).GetProperties().Select(p => p.Name)
+            .Should().NotContain([nameof(VerificationSettings.ProtectedLlmApiKey), nameof(VerificationSettings.LlmBaseUrl), nameof(VerificationSettings.BudgetAlertMonth)]);
     }
 
     [Fact]

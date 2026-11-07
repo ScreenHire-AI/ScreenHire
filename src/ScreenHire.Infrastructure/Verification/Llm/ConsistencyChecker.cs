@@ -17,7 +17,7 @@ namespace ScreenHire.Infrastructure.Verification.Llm;
 /// <see cref="ConsistencyCheckStatus.Unavailable"/>: a missing signal, never a failed application. No source text is
 /// ever logged.
 /// </remarks>
-public sealed partial class ConsistencyChecker(LlmAccess llm, ILogger<ConsistencyChecker> logger)
+public sealed partial class ConsistencyChecker(LlmAccess deployment, ILogger<ConsistencyChecker> logger)
 {
     /// <summary>The longest source text sent, in characters. Longer text is cut, and the check says so.</summary>
     public const int MaxSourceLength = 30_000;
@@ -29,9 +29,16 @@ public sealed partial class ConsistencyChecker(LlmAccess llm, ILogger<Consistenc
 
     private const int MaxClaimsPerSource = 60;
 
-    public async Task<ConsistencyCheckOutcome> CheckAsync(IReadOnlyList<ConsistencySourceText> sources, CancellationToken cancellationToken)
+    /// <summary>Checks with the deployment's model (ScreenHire's included model).</summary>
+    public Task<ConsistencyCheckOutcome> CheckAsync(IReadOnlyList<ConsistencySourceText> sources, CancellationToken cancellationToken) =>
+        CheckAsync(sources, deployment, cancellationToken);
+
+    /// <summary>Checks with <paramref name="llm"/>: the deployment's model, or an organization's own.</summary>
+    public async Task<ConsistencyCheckOutcome> CheckAsync(
+        IReadOnlyList<ConsistencySourceText> sources, LlmAccess llm, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(sources);
+        ArgumentNullException.ThrowIfNull(llm);
         var usable = sources.Where(s => !string.IsNullOrWhiteSpace(s.Text)).GroupBy(s => s.Source).Select(g => g.First()).ToList();
         if (usable.Count < 2)
         {

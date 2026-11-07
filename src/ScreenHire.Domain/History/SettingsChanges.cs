@@ -103,29 +103,113 @@ public static class SettingsChanges
 
     /// <param name="before">The settings before the save; null on the first save, which compares with the defaults.</param>
     /// <param name="after">The settings after the save.</param>
-    public static IReadOnlyList<ChangeLine> Verification(VerificationSettings? before, VerificationSettings? after)
+    public static IReadOnlyList<ChangeLine> Verification(VerificationSettings? before, VerificationSettings? after) =>
+        Verification(before is null ? null : VerificationSettingsFacts.Of(before), after is null ? null : VerificationSettingsFacts.Of(after));
+
+    /// <summary>
+    /// The lines for a save, from the view History sees: it holds no key, only that one is saved and how often it was
+    /// replaced, so a line can say "replaced the API key" and never show it.
+    /// </summary>
+    public static IReadOnlyList<ChangeLine> Verification(VerificationSettingsFacts? before, VerificationSettingsFacts? after)
     {
         if (after is null)
         {
             return [];
         }
 
+        var was = before ?? VerificationSettingsFacts.Default;
         var lines = new List<ChangeLine>();
-        var wasOn = before?.LlmConsistencyCheckEnabled ?? false;
-        if (wasOn != after.LlmConsistencyCheckEnabled)
+        if (was.ConsistencyCheck != after.ConsistencyCheck)
         {
-            lines.Add(ChangeLine.Of(after.LlmConsistencyCheckEnabled ? "turned on " : "turned off ", "the consistency check"));
+            lines.Add(ChangeLine.Of(after.ConsistencyCheck ? "turned on " : "turned off ", "the consistency check"));
         }
 
-        var budget = before?.MonthlyTokenBudget;
-        if (budget != after.MonthlyTokenBudget)
+        if (was.MonthlyTokenBudget != after.MonthlyTokenBudget)
         {
             lines.Add(after.MonthlyTokenBudget is { } tokens
                 ? ChangeLine.Of("set the monthly token budget to ", tokens.ToString("N0", CultureInfo.InvariantCulture))
                 : ChangeLine.Plain("went back to ScreenHire's default token budget"));
         }
 
+        if (was.Source != after.Source)
+        {
+            lines.Add(after.Source == LlmSource.OwnKey
+                ? ChangeLine.Of("switched to ", "your own AI key")
+                : ChangeLine.Of("switched to ", "ScreenHire's included AI model"));
+        }
+
+        if (after.Source == LlmSource.OwnKey)
+        {
+            if (was.Provider != after.Provider && after.Provider is { } provider)
+            {
+                lines.Add(ChangeLine.Of("set the AI provider to ", ChangeLabels.ModelProvider(provider)));
+            }
+
+            if (was.Host != after.Host && after.Host is { } host)
+            {
+                lines.Add(ChangeLine.Of("set the AI endpoint to ", host));
+            }
+
+            if (was.Model != after.Model && after.Model is { } model)
+            {
+                lines.Add(ChangeLine.Of("set the AI model to ", model));
+            }
+        }
+
+        // The key itself is never in a line. Replacing it with the same text still counts: the version moved.
+        if (!was.HasApiKey && after.HasApiKey)
+        {
+            lines.Add(ChangeLine.Plain("saved an API key"));
+        }
+        else if (was.HasApiKey && !after.HasApiKey)
+        {
+            lines.Add(ChangeLine.Plain("removed the API key"));
+        }
+        else if (after.HasApiKey && was.ApiKeyVersion != after.ApiKeyVersion)
+        {
+            lines.Add(ChangeLine.Plain("replaced the API key"));
+        }
+
+        foreach (var group in Enum.GetValues<CheckGroup>())
+        {
+            if (was.Runs(group) != after.Runs(group))
+            {
+                lines.Add(ChangeLine.Of(after.Runs(group) ? "turned on " : "turned off ", $"{CheckGroups.Label(group).ToLowerInvariant()} checks"));
+            }
+        }
+
+        if (was.DefaultAiUse != after.DefaultAiUse)
+        {
+            lines.Add(ChangeLine.Of("set the default AI use for new jobs to ", ChangeLabels.AiUse(after.DefaultAiUse)));
+        }
+
+        if (was.DeviceCheck != after.DeviceCheck)
+        {
+            lines.Add(ChangeLine.Of("set the device check to ", ChangeLabels.DeviceCheck(after.DeviceCheck)));
+        }
+
+        AddTrusted(lines, was.TrustedDomains, after.TrustedDomains, "domain");
+        AddTrusted(lines, was.TrustedNetworks, after.TrustedNetworks, "network");
+
+        AddAlert(lines, was.SuggestedAlertEmail, after.SuggestedAlertEmail, "the Verification suggested alert by email");
+        AddAlert(lines, was.SuggestedAlertSlack, after.SuggestedAlertSlack, "the Verification suggested alert on Slack");
+        AddAlert(lines, was.BudgetAlertEmail, after.BudgetAlertEmail, "the budget alert by email");
+        AddAlert(lines, was.BudgetAlertSlack, after.BudgetAlertSlack, "the budget alert on Slack");
         return lines;
+    }
+
+    private static void AddTrusted(List<ChangeLine> lines, IReadOnlyList<string> was, IReadOnlyList<string> now, string kind)
+    {
+        lines.AddRange(now.Except(was, StringComparer.Ordinal).Order(StringComparer.Ordinal).Select(entry => ChangeLine.Of($"trusted the {kind} ", entry)));
+        lines.AddRange(was.Except(now, StringComparer.Ordinal).Order(StringComparer.Ordinal).Select(entry => ChangeLine.Of($"stopped trusting the {kind} ", entry)));
+    }
+
+    private static void AddAlert(List<ChangeLine> lines, bool was, bool now, string name)
+    {
+        if (was != now)
+        {
+            lines.Add(ChangeLine.Of(now ? "turned on " : "turned off ", name));
+        }
     }
 
     /// <param name="before">The settings before the save; null on the first save, which compares with the default (off).</param>

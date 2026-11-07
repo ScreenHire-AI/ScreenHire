@@ -142,6 +142,9 @@ internal static class PublicJobEndpoints
             return job is { Status: JobStatus.Closed, PublishedAt: not null } ? Gone() : TypedResults.NotFound();
         }
 
+        // The organization's settings can turn form telemetry off (an empty session token: the careers page then collects none)
+        // and can ask for a more protective device check than the region needs.
+        var collection = await TelemetrySessions.CollectionForAsync(job, verification.Value, db, cancellationToken);
         return TypedResults.Ok(new PublicApplicationForm(
             await organization.ToPublicAsync(db, domains.Value, cancellationToken),
             job.ToPublicJob(domains.Value.CareersJobUrl(organization.Slug, job.Slug)),
@@ -150,7 +153,7 @@ internal static class PublicJobEndpoints
             new PublicUploadSettings(uploads.MaxBytes, uploads.Origin),
             turnstile.SiteKey,
             new PublicTelemetrySettings(
-                telemetry.Issue(job.OrganizationId, job.Id, time.GetUtcNow()), TelemetrySessions.DeviceCheckFor(job, verification.Value)),
+                collection.FormTelemetry ? telemetry.Issue(job.OrganizationId, job.Id, time.GetUtcNow()) : "", collection.DeviceCheck),
             job.Workflow.Questionnaire.Sections is { Count: > 0 } sections ? sections : null,
             organization.QuestionsPerPage,
             drafts.IsEnabled));

@@ -195,6 +195,11 @@ internal static class JobEndpoints
         {
             job.UseTemplate(template, scorecards);
         }
+        else if (await db.VerificationSettings.AsNoTracking().Select(s => (AiUsePolicy?)s.DefaultAiUse).SingleOrDefaultAsync(cancellationToken) is { } aiUse)
+        {
+            // No template: the organization's default AI-use policy (Settings > Verification). A template carries its own.
+            job.StartWithAiUse(aiUse);
+        }
 
         // The job starts with its template's default hiring team and the person who creates it (ADR-0015), in the same
         // insert: the creator's id is in the row, so even a member on Only jobs they're on sees the job they just made.
