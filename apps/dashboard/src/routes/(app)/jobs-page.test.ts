@@ -244,3 +244,43 @@ describe('jobs page actions', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Adzuna needs a longer description.');
   });
 });
+
+describe('jobs page, setup checklist', () => {
+  const stubSetup = (rows = jobs) =>
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        apiStub({
+          'GET /v1/jobs': () => Response.json(rows),
+          'GET /v1/organization/members': () => Response.json([{ id: 'avery' }]),
+          'GET /v1/organization/invitations': () => Response.json([]),
+          'GET /v1/organization/branding': () => Response.json({ brandColor: null, secondColor: null, headingFont: null, logo: null, favicon: null, sharingImage: null }),
+          'GET /v1/organization': () => Response.json({ embedOrigins: [], lastUpdated: { at: null, by: null, created: true } }),
+          'GET /v1/organization/sending-domain': () => Response.json({ available: false, sandbox: false, domain: null }),
+        }),
+      ),
+    );
+
+  it('shows an Owner the Set up your organization panel above the jobs, with the steps the data leaves open', async () => {
+    stubSetup(jobs.map((job) => ({ ...job, publishedAt: null })));
+    renderPage();
+
+    const panel = await screen.findByRole('region', { name: 'Set up your organization' });
+    expect(within(panel).getAllByRole('link').map((link) => link.textContent?.trim())).toEqual([
+      'Invite your team',
+      'Set your branding',
+      'Set up your careers site',
+      'Publish your first job',
+    ]);
+    expect(panel.compareDocumentPosition(await screen.findByRole('region', { name: 'All jobs' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('shows a Recruiter no panel', async () => {
+    page.data = { user: userAs('Recruiter') };
+    stubSetup();
+    renderPage();
+
+    await dataRows();
+    expect(screen.queryByRole('region', { name: 'Set up your organization' })).toBeNull();
+  });
+});

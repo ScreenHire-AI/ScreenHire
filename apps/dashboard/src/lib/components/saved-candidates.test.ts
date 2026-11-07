@@ -1,15 +1,15 @@
 import type { CurrentUser, TalentPoolMember } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { expectNoAxeViolations } from '../../../test-support/axe.js';
-import { apiStub, jobs, user, userAs } from '../../../test-support/fixtures.js';
-import { editRichText } from '../../../test-support/rich-text.js';
-import { stubViewport } from '../../../test-support/viewport.js';
-import WithQueryClient from '../../../test-support/with-query-client.svelte';
-import Page from './+page.svelte';
+import { expectNoAxeViolations } from '../../test-support/axe.js';
+import { apiStub, jobs, user, userAs } from '../../test-support/fixtures.js';
+import { editRichText } from '../../test-support/rich-text.js';
+import { stubViewport } from '../../test-support/viewport.js';
+import WithQueryClient from '../../test-support/with-query-client.svelte';
+import Page from './saved-candidates.svelte';
 
 // Signed in as the Owner unless a test changes it.
-const appPage = vi.hoisted(() => ({ url: new URL('http://dashboard.test/saved'), data: {} as Record<string, unknown> }));
+const appPage = vi.hoisted(() => ({ url: new URL('http://dashboard.test/candidates?list=saved'), data: {} as Record<string, unknown> }));
 vi.mock('$app/state', () => ({ page: appPage, navigating: { to: null } }));
 // The Add to a job sheet leaves for the new application's page through goto.
 // Superforms (the note sheet) needs the rest of the module (beforeNavigate).
@@ -122,7 +122,7 @@ describe('saved candidates page', () => {
     expect(within(row).getByText('Oct 28, 2026')).toHaveAttribute('datetime', casey.lastContactedAt);
     // There is no permission end any more: a saved candidate stays until the team removes them or they ask to stop.
     expect(screen.queryByRole('columnheader', { name: /permission/i })).toBeNull();
-    expect(screen.getByRole('heading', { level: 1, name: 'Saved candidates' }).closest('[data-slot="header-band"]')).toHaveTextContent('3 people');
+    expect(screen.getByRole('heading', { level: 1, name: 'Candidates' }).closest('[data-slot="header-band"]')).toHaveTextContent('3 people');
   });
 
   it('shows the rating from the scorecards, and "After yours" while the reviewer owes their own scorecard', async () => {
@@ -186,7 +186,7 @@ describe('saved candidates page', () => {
 
     await search('jordan');
     expect(nameLinks()).toEqual(['Jordan Lee']);
-    expect(screen.getByRole('heading', { level: 1, name: 'Saved candidates' }).closest('[data-slot="header-band"]')).toHaveTextContent('1 person');
+    expect(screen.getByRole('heading', { level: 1, name: 'Candidates' }).closest('[data-slot="header-band"]')).toHaveTextContent('1 person');
 
     await search('wrong timing');
     expect(nameLinks()).toEqual(['Casey Morgan']);

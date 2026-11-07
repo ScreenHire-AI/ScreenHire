@@ -382,3 +382,40 @@ describe('candidates page views', () => {
     expect(screen.getByRole('button', { name: 'Save view' })).toBeDisabled();
   });
 });
+
+// Saved candidates are the Saved choice on this page (docs/architecture/talent-pool.md), kept in the address.
+describe('candidates page, Current and Saved', () => {
+  const choice = (name: 'Current' | 'Saved') => within(screen.getByRole('group', { name: 'List' })).getByRole('link', { name });
+
+  it('shows the switch beside the title with Current the current one, each choice a link to its address', async () => {
+    render_();
+    await screen.findByRole('link', { name: 'Casey Morgan' });
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Candidates' }).closest('[data-slot="header-band"]')).toContainElement(screen.getByRole('group', { name: 'List' }));
+    expect(choice('Current')).toHaveAttribute('aria-current', 'page');
+    expect(choice('Saved')).not.toHaveAttribute('aria-current');
+    // A link starts the other list clean: nothing of this list's view or filters is carried over (A5).
+    expect(choice('Current')).toHaveAttribute('href', '/candidates');
+    expect(choice('Saved')).toHaveAttribute('href', '/candidates?list=saved');
+  });
+
+  it('shows the saved people under the same header when the address says so, and links back to Current from there', async () => {
+    appPage.url = new URL('http://dashboard.test/candidates?list=saved');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        apiStub({
+          'GET /v1/talent-pool': () => Response.json({ people: [] }),
+          'GET /v1/email-templates': () => Response.json({ sendingEnabled: true, templates: [], variables: [] }),
+        }),
+      ),
+    );
+    render(WithQueryClient, { props: { component: Page, props: {} } });
+
+    expect(await screen.findByText(/Nobody has been saved yet/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Candidates' })).toBeInTheDocument();
+    expect(choice('Saved')).toHaveAttribute('aria-current', 'page');
+    expect(choice('Current')).not.toHaveAttribute('aria-current');
+    expect(choice('Current')).toHaveAttribute('href', '/candidates');
+  });
+});

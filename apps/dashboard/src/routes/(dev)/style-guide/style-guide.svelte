@@ -78,7 +78,10 @@
   import ScorecardList from '#lib/components/scorecard-list.svelte';
   import SearchField from '#lib/components/search-field.svelte';
   import SecretDialog from '#lib/components/secret-dialog.svelte';
+  import CandidatesListSwitch from '#lib/components/candidates-list-switch.svelte';
+  import IntegrationRow from '#lib/components/integration-row.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
+  import SetupSteps from '#lib/components/setup-steps.svelte';
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import SignalEvidence from '#lib/components/signal-evidence.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
@@ -116,6 +119,8 @@
   import type { TrayItem } from '#lib/notifications.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { counted } from '#lib/reports.js';
+  import { integrations } from '#lib/integrations.js';
+  import { settingsAreas } from '#lib/settings.js';
   import { sections } from '#lib/shell.js';
   import type { StatusName } from '#lib/status.js';
   import EditPreviewDemo from './edit-preview-demo.svelte';
@@ -983,12 +988,26 @@
                     <Sidebar.Content>
                       <Sidebar.Group>
                         <Sidebar.Menu>
-                          {#each sections as section, index (section.href)}
+                          {#each sections.filter((section) => section.sidebar !== false) as section, index (section.href)}
                             {@const Icon = section.icon}
                             <Sidebar.MenuItem>
                               <Sidebar.MenuButton isActive={index === 0} tooltipContent={section.label}>
                                 {#snippet child({ props })}
                                   <a href="#sidebar" {...props}><Icon aria-hidden="true" /><span>{section.label}</span></a>
+                                {/snippet}
+                              </Sidebar.MenuButton>
+                            </Sidebar.MenuItem>
+                          {/each}
+                        </Sidebar.Menu>
+                      </Sidebar.Group>
+                      <Sidebar.Group>
+                        <Sidebar.Menu>
+                          {#each settingsAreas as area (area.group)}
+                            {@const Icon = area.icon}
+                            <Sidebar.MenuItem>
+                              <Sidebar.MenuButton tooltipContent={area.label}>
+                                {#snippet child({ props })}
+                                  <a href="#sidebar" {...props}><Icon aria-hidden="true" /><span>{area.label}</span></a>
                                 {/snippet}
                               </Sidebar.MenuButton>
                             </Sidebar.MenuItem>
@@ -1317,6 +1336,41 @@
         <SettingsMenu current="/settings/team">
           <Panel title="Members"><p>A settings page's panels sit here, beside the menu.</p></Panel>
         </SettingsMenu>
+      </section>
+
+      <div class="flex flex-wrap items-start gap-5">
+        <Panel title="Candidates list switch" class="flex-[1_1_320px]">
+          <div class="flex flex-wrap gap-x-8 gap-y-4">
+            <figure class="flex flex-col gap-2">
+              <figcaption class="text-caption text-muted-foreground">Current</figcaption>
+              <CandidatesListSwitch list="current" />
+            </figure>
+            <figure class="flex flex-col gap-2">
+              <figcaption class="text-caption text-muted-foreground">Saved</figcaption>
+              <CandidatesListSwitch list="saved" />
+            </figure>
+          </div>
+        </Panel>
+        <Panel title="Integration row" flush class="flex-[999_1_520px]">
+          <ul>
+            {#each integrations as integration, index (integration.href)}
+              <IntegrationRow {integration} state={integration.label === 'MCP server' ? undefined : index % 2 === 0 ? 'connected' : 'notConnected'} />
+            {/each}
+          </ul>
+        </Panel>
+      </div>
+
+      <section aria-label="Setup checklist" class="max-w-form">
+        <SetupSteps
+          steps={[
+            { id: 'team', label: 'Invite your team', href: '#setup-checklist', done: true },
+            { id: 'branding', label: 'Set your branding', href: '#setup-checklist', done: false },
+            { id: 'careers', label: 'Set up your careers site', href: '#setup-checklist', done: false },
+            { id: 'email', label: 'Add your email domain', href: '#setup-checklist', done: false },
+            { id: 'job', label: 'Publish your first job', href: '#setup-checklist', done: false },
+          ]}
+          ondismiss={() => {}}
+        />
       </section>
 
       <div class="flex flex-wrap items-start gap-5">

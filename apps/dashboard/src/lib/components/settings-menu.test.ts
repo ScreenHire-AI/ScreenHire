@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/svelte';
+import { cleanup, render, screen, within } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
@@ -24,46 +24,60 @@ describe('settings menu', () => {
     state.user = userAs('Owner');
   });
 
-  it('lists every settings page in order, in its named group, beside the page content, and marks the current one', async () => {
-    render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: { slack: true } } });
-    const menu = screen.getByRole('navigation', { name: 'Settings' });
+  const linksOf = (name: string) =>
+    within(screen.getByRole('navigation', { name }))
+      .getAllByRole('link')
+      .map((link) => link.textContent?.trim());
 
-    const groups = within(menu).getAllByRole('list');
-    expect(groups.map((group) => [group.getAttribute('aria-labelledby') && document.getElementById(group.getAttribute('aria-labelledby')!)?.textContent, within(group).getAllByRole('link').map((link) => link.textContent?.trim())])).toEqual([
-      ['Organization', ['General', 'Team', 'Roles', 'Data requests']],
-      ['Hiring', ['Careers site', 'Branding', 'Verification', 'Email domain']],
-      ['Integrations', ['Slack', 'MCP server', 'Webhooks', 'API keys']],
-    ]);
+  it('lists only the pages of its area, beside the page content, and marks the current one', async () => {
+    render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: { slack: true } } });
+    const menu = screen.getByRole('navigation', { name: 'Organization' });
+
+    expect(linksOf('Organization')).toEqual(['General', 'Team', 'Roles', 'Data requests']);
     expect(within(menu).getByRole('link', { name: 'Team' })).toHaveAttribute('aria-current', 'page');
     expect(within(menu).getByRole('link', { name: 'Roles' })).toHaveAttribute('href', '/settings/roles');
+    expect(screen.queryByRole('navigation', { name: 'Settings' })).toBeNull();
     expect(screen.getByText('Page content')).toBeInTheDocument();
     await expectNoAxeViolations();
   });
 
-  it('leaves Slack out of the menu where no Slack app is set up, and while that is not yet known (A3)', () => {
-    for (const features of [{ slack: false }, {}]) {
-      const { unmount } = render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features } });
-      const labels = within(screen.getByRole('navigation', { name: 'Settings' }))
-        .getAllByRole('link')
-        .map((link) => link.textContent?.trim());
+  it('lists the Hiring setup pages on one of them, and leaves Email domain out where there is no email provider (A3)', () => {
+    render(WithShell, { props: { component: SettingsMenu, props: { children: content, current: '/settings/branding' }, features: {} } });
+    expect(linksOf('Hiring setup')).toEqual(['Careers site', 'Branding', 'Verification', 'Email domain']);
+    cleanup();
 
-      expect(labels).not.toContain('Slack');
-      expect(labels).toContain('MCP server');
+    render(WithShell, { props: { component: SettingsMenu, props: { children: content, current: '/settings/branding' }, features: { sendingDomain: false } } });
+    expect(linksOf('Hiring setup')).toEqual(['Careers site', 'Branding', 'Verification']);
+  });
+
+  it('has no menu on an integration, whose pages are records of the directory (S9), and still shows the content', () => {
+    for (const current of ['/settings/slack', '/settings/webhooks', '/settings/integrations']) {
+      const { unmount } = render(WithShell, { props: { component: SettingsMenu, props: { children: content, current }, features: { slack: true } } });
+
+      expect(screen.queryByRole('navigation')).toBeNull();
+      expect(screen.getByText('Page content')).toBeInTheDocument();
       unmount();
     }
   });
 
   it('lists only the pages the role may use', () => {
+    state.user = userAs('Admin');
+    render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: { slack: true } } });
+
+    expect(linksOf('Organization')).toEqual(['General', 'Team', 'Roles', 'Data requests']);
+    cleanup();
+
+    state.user = { ...userAs('Admin'), organization: { ...userAs('Admin').organization!, permissions: ['EditSettings'] } };
+    render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: { slack: true } } });
+    expect(linksOf('Organization')).toEqual(['General']);
+  });
+
+  it('shows only the content to someone whose role has no page in the area', () => {
     state.user = userAs('Recruiter');
     render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: { slack: true } } });
-    const labels = within(screen.getByRole('navigation', { name: 'Settings' }))
-      .queryAllByRole('link')
-      .map((link) => link.textContent?.trim());
 
-    expect(labels).not.toContain('Team');
-    expect(labels).not.toContain('Roles');
-    expect(labels).not.toContain('API keys');
-    expect(labels).not.toContain('Data requests');
+    expect(screen.queryByRole('navigation')).toBeNull();
+    expect(screen.getByText('Page content')).toBeInTheDocument();
   });
 
   it('scrolls the row, which may hide the current entry past its edge, to centre it', () => {
@@ -84,10 +98,10 @@ describe('settings menu', () => {
     const scrolledTo: number[] = [];
     Object.defineProperty(Element.prototype, 'scrollLeft', { configurable: true, get: () => 0, set: (value: number) => scrolledTo.push(value) });
     try {
-      render(WithShell, { props: { component: SettingsMenu, props: { children: content, current: '/settings/webhooks' }, features: { slack: true } } });
+      render(WithShell, { props: { component: SettingsMenu, props: { children: content, current: '/settings/data-requests' }, features: { slack: true } } });
 
-      // Webhooks is the eleventh entry, at 1000px: the row scrolls to 950 so it sits in the middle.
-      expect(scrolledTo).toEqual([950]);
+      // Data requests is the fourth entry, at 300px: the row scrolls to 250 so it sits in the middle.
+      expect(scrolledTo).toEqual([250]);
     } finally {
       Object.defineProperty(HTMLElement.prototype, 'offsetLeft', offsetLeft);
       Object.defineProperty(HTMLElement.prototype, 'offsetWidth', offsetWidth);

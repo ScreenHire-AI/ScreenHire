@@ -167,7 +167,7 @@
   <title>{title} · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Webhooks', href: '/settings/webhooks' }, { label: title }]} back />
+<TopBar crumbs={[{ label: 'Settings' }, { label: 'Integrations', href: '/settings/integrations' }, { label: 'Webhooks', href: '/settings/webhooks' }, { label: title }]} back />
 
 <main class={['flex flex-col', sidebar.isMobile && detail && !detail.enabled && 'pb-28']}>
   {#if endpoint.isError && !detail}

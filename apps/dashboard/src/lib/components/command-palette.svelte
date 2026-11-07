@@ -11,7 +11,7 @@
   import { jobStatus } from '#lib/job-status.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { signOutAndRedirect } from '#lib/session.js';
-  import { visibleSettingsSections } from '#lib/settings.js';
+  import { integrationsHref, visibleSettingsSections } from '#lib/settings.js';
   import { getShell, sections } from '#lib/shell.js';
   import { keptInMindLabel } from '#lib/talent-pool.js';
 
@@ -68,6 +68,15 @@
     if (at < 0) return 0;
     return /[\s.@-]/.test(words[at - 1]) ? 0.8 : 0.5;
   }
+
+  // Every Settings page the person may use, and the Integrations directory when one of its integrations is among them.
+  const settingsPages = $derived.by(() => {
+    const pages = visibleSettingsSections(page.data?.user, shell?.features());
+    const directory = pages.some((entry) => entry.group === 'Integrations')
+      ? [{ label: 'Integrations', href: integrationsHref, group: 'Integrations' as const }]
+      : [];
+    return [...pages, ...directory];
+  });
 
   function run(action: () => unknown) {
     open = false;
@@ -129,10 +138,11 @@
         </Command.Item>
       {/each}
     </Command.Group>
-    {#if visibleSettingsSections(page.data?.user, shell?.features()).length > 0}
+    {#if settingsPages.length > 0}
       <Command.Group heading="Settings">
-        {#each visibleSettingsSections(page.data?.user, shell?.features()) as setting (setting.href)}
-          <Command.Item value={`${setting.label} settings`} onSelect={() => run(() => goto(setting.href))}>{setting.label}</Command.Item>
+        <!-- The area's name is in each value, so "organization" finds Team and Roles, and "integrations" finds the directory too. -->
+        {#each settingsPages as setting (setting.href)}
+          <Command.Item value={`${setting.label} ${setting.group} settings`} onSelect={() => run(() => goto(setting.href))}>{setting.label}</Command.Item>
         {/each}
       </Command.Group>
     {/if}

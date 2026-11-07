@@ -9,7 +9,6 @@
   import PencilIcon from '~icons/lucide/pencil';
   import Trash2Icon from '~icons/lucide/trash-2';
   import UsersIcon from '~icons/lucide/users';
-  import SettingsIcon from '~icons/lucide/settings';
   import type { Attachment } from 'svelte/attachments';
   import { SvelteSet } from 'svelte/reactivity';
   import { goto } from '$app/navigation';
@@ -29,7 +28,7 @@
   import { preferences } from '#lib/preferences.svelte.js';
   import type { SidebarView } from '#lib/sidebar-views.js';
   import { signOutAndRedirect } from '#lib/session.js';
-  import { visibleSettingsSections } from '#lib/settings.js';
+  import { settingsAreaOf, visibleSettingsAreas } from '#lib/settings.js';
   import { calendarFailure, isCalendarOutcome } from '#lib/calendar.js';
   import { slackFailure } from '#lib/slack.js';
   import { getShell, sections } from '#lib/shell.js';
@@ -76,7 +75,7 @@
   async function run(work: Promise<string | null>) {
     viewFailure = (await work) ?? '';
   }
-  const settingsPages = $derived(visibleSettingsSections(user, shell.features()));
+  const settingsAreaItems = $derived(visibleSettingsAreas(user, shell.features()));
 
   // Each person's own Slack account, in their menu while the organization's workspace is connected (docs/architecture/slack.md).
   const slackConnected = $derived(Boolean(slack?.available && slack.workspace));
@@ -192,7 +191,7 @@
     <nav aria-label="Main" class="flex min-h-0 flex-col">
       <Sidebar.Group>
         <Sidebar.Menu>
-          {#each sections as section (section.href)}
+          {#each sections.filter((section) => section.sidebar !== false) as section (section.href)}
             {@const Icon = section.icon}
             <Sidebar.MenuItem>
               <Sidebar.MenuButton
@@ -242,26 +241,30 @@
         <FailureText message={viewFailure} class="px-2 group-data-[collapsible=icon]:hidden" />
       </Sidebar.Group>
 
-      {#if settingsPages.length > 0}
-        <!-- One item for anyone whose role may change a setting; it opens the first page they may use. The pages share the
-             Settings menu (section 11), and say so to anyone else who opens one by its address. -->
-        <Sidebar.Group>
+      {#if settingsAreaItems.length > 0}
+        <!-- Up to three items at the bottom: Organization, Hiring setup and Integrations. Each shows for anyone whose role
+             has a permission for a page in it, and opens the first page they may use. A group's pages share the Settings
+             menu (section 11), and say so to anyone else who opens one by its address. -->
+        <Sidebar.Group class="sticky bottom-0 mt-auto bg-sidebar">
           <Sidebar.Menu>
-            <Sidebar.MenuItem>
-              <Sidebar.MenuButton
-                isActive={page.url.pathname.startsWith('/settings/')}
-                tooltipContent="Settings"
-                tooltipContentProps={tooltipFor('settings')}
-                onclick={closeSheet}
-              >
-                {#snippet child({ props })}
-                  <a href={settingsPages[0]!.href} {...props}>
-                    <SettingsIcon aria-hidden="true" />
-                    <span {@attach truncation('settings')} class="min-w-0 truncate group-data-[collapsible=icon]:sr-only">Settings</span>
-                  </a>
-                {/snippet}
-              </Sidebar.MenuButton>
-            </Sidebar.MenuItem>
+            {#each settingsAreaItems as area (area.group)}
+              {@const Icon = area.icon}
+              <Sidebar.MenuItem>
+                <Sidebar.MenuButton
+                  isActive={settingsAreaOf(page.url.pathname) === area.group}
+                  tooltipContent={area.label}
+                  tooltipContentProps={tooltipFor(area.group)}
+                  onclick={closeSheet}
+                >
+                  {#snippet child({ props })}
+                    <a href={area.href} {...props}>
+                      <Icon aria-hidden="true" />
+                      <span {@attach truncation(area.group)} class="min-w-0 truncate group-data-[collapsible=icon]:sr-only">{area.label}</span>
+                    </a>
+                  {/snippet}
+                </Sidebar.MenuButton>
+              </Sidebar.MenuItem>
+            {/each}
           </Sidebar.Menu>
         </Sidebar.Group>
       {/if}

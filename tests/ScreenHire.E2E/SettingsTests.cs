@@ -20,6 +20,8 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
 
     private static readonly string[] JobPublished = ["job.published"];
 
+    private static readonly string[] SettingsAreas = ["Organization", "Hiring setup", "Integrations"];
+
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
@@ -28,13 +30,17 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
         var (owner, _) = await OwnerAsync();
         await SignInAsync(owner);
 
-        // Settings is one sidebar item; its pages are in the Settings menu.
+        // Settings is three sidebar items; the pages of Organization are in its menu.
         var main = Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" });
-        await Expect(main.GetByRole(AriaRole.Link, new() { Name = "Settings" })).ToHaveCountAsync(1);
+        foreach (var area in SettingsAreas)
+        {
+            await Expect(main.GetByRole(AriaRole.Link, new() { Name = area, Exact = true })).ToHaveCountAsync(1);
+        }
+
         await Expect(main.GetByRole(AriaRole.Link, new() { Name = "Team" })).ToHaveCountAsync(0);
-        await main.GetByRole(AriaRole.Link, new() { Name = "Settings" }).ClickAsync();
+        await main.GetByRole(AriaRole.Link, new() { Name = "Organization", Exact = true }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("General");
-        var menu = Page.GetByRole(AriaRole.Navigation, new() { Name = "Settings" });
+        var menu = Page.GetByRole(AriaRole.Navigation, new() { Name = "Organization", Exact = true });
         await menu.GetByRole(AriaRole.Link, new() { Name = "Team" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/team"));
         await Expect(menu.GetByRole(AriaRole.Link, new() { Name = "Team" })).ToHaveAttributeAsync("aria-current", "page");
@@ -302,7 +308,11 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
         const string recruiter = "jordan@brightwater.example.com"; // the seeded Brightwater Recruiter (DevSso/config.json)
         await SignInAsync(recruiter);
 
-        await Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Settings" })).ToHaveCountAsync(0);
+        foreach (var area in SettingsAreas)
+        {
+            await Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = area, Exact = true })).ToHaveCountAsync(0);
+        }
+
         await GoToAsync("dashboard", "/settings/team");
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Not in your role" })).ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Members" })).ToHaveCountAsync(0);
@@ -350,8 +360,8 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
 
         if (width is >= 768 and < 1024)
         {
-            // The icon rail scrolls, so its Settings item, the last, is reachable on a short window.
-            var settings = Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Settings" });
+            // The icon rail scrolls, so its last Settings item, Integrations, is reachable on a short window.
+            var settings = Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Integrations", Exact = true });
             await settings.ScrollIntoViewIfNeededAsync();
             var box = await settings.BoundingBoxAsync();
             box.Should().NotBeNull();
@@ -371,6 +381,7 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
             ("/settings/verification", "Verification"),
             ("/settings/api-keys", "API keys"),
             ("/settings/webhooks", "Webhooks"),
+            ("/settings/integrations", "Integrations"),
             ("/settings/mcp-server", "MCP server"),
             ("/settings/slack", "Slack"),
             ("/settings/webhooks/new", "Add endpoint"),
@@ -389,6 +400,81 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
             var name = path.Replace(endpointId, "endpoint", StringComparison.Ordinal).Replace(roleId, "custom", StringComparison.Ordinal).Replace('/', '-');
             await SaveScreenshotAsync(Page, $"dashboard-settings{name}-{width}");
         }
+    }
+
+    [Fact]
+    public async Task An_area_menu_lists_only_its_own_pages_and_moving_between_them_keeps_the_frame_still()
+    {
+        var (owner, _) = await OwnerAsync();
+        await Page.SetViewportSizeAsync(1440, 900);
+        await SignInAsync(owner);
+
+        await GoToAsync("dashboard", "/settings/team");
+        var organization = Page.GetByRole(AriaRole.Navigation, new() { Name = "Organization", Exact = true });
+        (await organization.GetByRole(AriaRole.Link).AllInnerTextsAsync()).Select(text => text.Trim())
+            .Should().Equal("General", "Team", "Roles", "Data requests");
+        await Expect(organization.GetByRole(AriaRole.Link, new() { Name = "Branding" })).ToHaveCountAsync(0);
+        var team = await FrameAsync();
+
+        await organization.GetByRole(AriaRole.Link, new() { Name = "Roles" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Roles");
+        var roles = await FrameAsync();
+
+        // S8: the header band and the menu start at the same place and size on each page.
+        roles.MenuX.Should().BeApproximately(team.MenuX, 0.5);
+        roles.MenuY.Should().BeApproximately(team.MenuY, 0.5);
+        roles.MenuWidth.Should().BeApproximately(team.MenuWidth, 0.5);
+        roles.BandHeight.Should().BeApproximately(team.BandHeight, 0.5);
+
+        // Hiring setup is its own area, with its own pages.
+        await Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Hiring setup", Exact = true }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Careers site");
+        var hiring = Page.GetByRole(AriaRole.Navigation, new() { Name = "Hiring setup", Exact = true });
+        (await hiring.GetByRole(AriaRole.Link).AllInnerTextsAsync()).Select(text => text.Trim())
+            .Should().Equal("Careers site", "Branding", "Verification", "Email domain");
+        await ExpectNoAccessibilityViolationsAsync();
+    }
+
+    [Fact]
+    public async Task The_integrations_directory_lists_each_integration_with_its_state_and_opens_its_page()
+    {
+        var owner = ApiSession.NewEmail("e2e-owner");
+        using (var session = new ApiSession(Fixture))
+        {
+            await session.SignInWithDevSsoAsync(owner, Ct);
+            await session.OnboardAsync(Ct);
+            using var key = await session.PostAsync("/v1/organization/api-keys", new { name = "Payroll sync", scopes = ReadOnly }, Ct);
+            key.StatusCode.Should().Be(HttpStatusCode.Created);
+        }
+
+        await Page.SetViewportSizeAsync(1440, 900);
+        await SignInAsync(owner);
+        await Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Integrations", Exact = true }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/integrations"));
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Integrations");
+
+        // Slack, the MCP server, webhooks and API keys: a row each, with what it does, and its state where one can be told.
+        var rows = Page.GetByRole(AriaRole.List, new() { Name = "Integrations" }).GetByRole(AriaRole.Listitem);
+        await Expect(rows).ToHaveCountAsync(4);
+        await Expect(rows.Filter(new() { HasText = "API keys" })).ToContainTextAsync("Connected");
+        await Expect(rows.Filter(new() { HasText = "Webhooks" })).ToContainTextAsync("Not connected");
+        await Expect(rows.Filter(new() { HasText = "MCP server" })).Not.ToContainTextAsync("connected");
+        await ExpectNoAccessibilityViolationsAsync();
+
+        await rows.Filter(new() { HasText = "Webhooks" }).GetByRole(AriaRole.Link).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/webhooks"));
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Webhooks");
+        // An integration's page is a record of the directory, not a page of a menu.
+        await Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Breadcrumb" }).GetByRole(AriaRole.Link, new() { Name = "Integrations" })).ToHaveAttributeAsync("href", "/settings/integrations");
+    }
+
+    private async Task<(double MenuX, double MenuY, double MenuWidth, double BandHeight)> FrameAsync()
+    {
+        var menu = await Page.GetByRole(AriaRole.Navigation, new() { Name = "Organization", Exact = true }).BoundingBoxAsync();
+        var band = await Page.Locator("[data-slot=header-band]").BoundingBoxAsync();
+        menu.Should().NotBeNull();
+        band.Should().NotBeNull();
+        return (menu!.X, menu.Y, menu.Width, band!.Height);
     }
 
     private async Task<HttpStatusCode> JobsWithKeyAsync(string token)

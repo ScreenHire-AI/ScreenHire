@@ -1,16 +1,15 @@
 import FileLockIcon from '~icons/lucide/file-lock';
 import GlobeIcon from '~icons/lucide/globe';
 import Building2Icon from '~icons/lucide/building-2';
-import HashIcon from '~icons/lucide/hash';
-import KeyRoundIcon from '~icons/lucide/key-round';
 import PlugIcon from '~icons/lucide/plug';
 import MailCheckIcon from '~icons/lucide/mail-check';
 import PaletteIcon from '~icons/lucide/palette';
 import ShieldUserIcon from '~icons/lucide/shield-user';
 import ShieldCheckIcon from '~icons/lucide/shield-check';
+import SlidersHorizontalIcon from '~icons/lucide/sliders-horizontal';
 import UsersRoundIcon from '~icons/lucide/users-round';
-import WebhookIcon from '~icons/lucide/webhook';
 import type { CurrentUser, JobAccess, OrganizationRole, Permission, RoleSummary } from '@screenhire/api-client';
+import { integrations } from '#lib/integrations.js';
 import { can, seesAllJobs } from '#lib/permissions.js';
 import type { LucideIcon } from '#lib/shell.js';
 
@@ -18,13 +17,16 @@ import type { LucideIcon } from '#lib/shell.js';
 export const teamPath = '/v1/organization/team';
 
 /**
- * The Settings menu's pages (design system section 11), each with the permission its changes need, in three groups the
- * menu heads with their names: the organization and its people, how hiring looks and works, and what connects to it.
- * The sidebar's one Settings item opens the first page the person may use, and the command palette lists those. Kept
- * apart from `sections`, which every member sees and which the G chords read. Email templates live on the Templates
- * page (section 21), and their old addresses here redirect there.
+ * The Settings pages (design system section 11), each with the permission its changes need, in three groups that are
+ * three sidebar items (`settingsAreas`): the organization and its people, how hiring is set up, and what connects to
+ * it. Each item opens the first page the person may use, and the command palette lists them all. Kept apart from
+ * `sections`, which every member sees and which the G chords read. Email templates live on the Templates page
+ * (section 21), and their old addresses here redirect there.
  */
-export type SettingsGroup = 'Organization' | 'Hiring' | 'Integrations';
+export type SettingsGroup = 'Organization' | 'Hiring setup' | 'Integrations';
+
+/** The Integrations directory: every integration as a row, past search and filters by kind (design system S9). */
+export const integrationsHref = '/settings/integrations';
 
 /**
  * A feature the installation may not have. Slack needs a Slack app set up where ScreenHire is hosted (`GET /v1/slack` says
@@ -68,17 +70,31 @@ export const settingsSections: readonly {
   // A request is about one candidate whatever job they applied to, and retention deletes across every job, so the page
   // needs Erase candidates and all jobs, as the API does.
   { label: 'Data requests', href: '/settings/data-requests', icon: FileLockIcon, permission: 'EraseCandidates', group: 'Organization', allJobs: true },
-  { label: 'Careers site', href: '/settings/careers-site', icon: GlobeIcon, permission: 'EditSettings', group: 'Hiring' },
-  { label: 'Branding', href: '/settings/branding', icon: PaletteIcon, permission: 'EditSettings', group: 'Hiring' },
-  { label: 'Verification', href: '/settings/verification', icon: ShieldCheckIcon, permission: 'EditSettings', group: 'Hiring' },
-  { label: 'Email domain', href: '/settings/sending-domain', icon: MailCheckIcon, permission: 'EditSettings', group: 'Hiring', feature: 'sendingDomain' },
-  // A channel post reaches everyone in the channel, whatever jobs they see, so Slack needs all jobs too. Each person links
-  // their own account from their menu (SlackAccountSheet), not here.
-  { label: 'Slack', href: '/settings/slack', icon: HashIcon, permission: 'ManageIntegrations', group: 'Integrations', allJobs: true, feature: 'slack' },
-  // The MCP server signs in with an API key, so it needs what API keys need.
-  { label: 'MCP server', href: '/settings/mcp-server', icon: PlugIcon, permission: 'ManageApiKeys', group: 'Integrations', allJobs: true },
-  { label: 'Webhooks', href: '/settings/webhooks', icon: WebhookIcon, permission: 'ManageWebhooks', group: 'Integrations', allJobs: true },
-  { label: 'API keys', href: '/settings/api-keys', icon: KeyRoundIcon, permission: 'ManageApiKeys', group: 'Integrations', allJobs: true },
+  { label: 'Careers site', href: '/settings/careers-site', icon: GlobeIcon, permission: 'EditSettings', group: 'Hiring setup' },
+  { label: 'Branding', href: '/settings/branding', icon: PaletteIcon, permission: 'EditSettings', group: 'Hiring setup' },
+  { label: 'Verification', href: '/settings/verification', icon: ShieldCheckIcon, permission: 'EditSettings', group: 'Hiring setup' },
+  { label: 'Email domain', href: '/settings/sending-domain', icon: MailCheckIcon, permission: 'EditSettings', group: 'Hiring setup', feature: 'sendingDomain' },
+  // The Integrations group is the integrations list, so a new integration is one entry there (#lib/integrations.ts).
+  ...integrations.map(({ label, href, icon, permission, allJobs, feature }) => ({
+    label,
+    href,
+    icon,
+    permission,
+    group: 'Integrations' as const,
+    ...(allJobs && { allJobs }),
+    ...(feature && { feature }),
+  })),
+];
+
+/**
+ * The three items the sidebar shows in place of one Settings item, each opening the first page the person may use in its
+ * group (Integrations opens its directory). A group's pages share the Settings menu, except Integrations, whose pages are
+ * records of the directory. An item shows for anyone whose role has a permission for at least one of its pages.
+ */
+export const settingsAreas: readonly { group: SettingsGroup; label: string; icon: LucideIcon; href?: string }[] = [
+  { group: 'Organization', label: 'Organization', icon: Building2Icon },
+  { group: 'Hiring setup', label: 'Hiring setup', icon: SlidersHorizontalIcon },
+  { group: 'Integrations', label: 'Integrations', icon: PlugIcon, href: integrationsHref },
 ];
 
 /**
@@ -94,6 +110,25 @@ export const visibleSettingsSections = (user: CurrentUser | null | undefined, fe
 /** The Settings page a path belongs to, such as Roles for `/settings/roles/compare`. */
 export const settingsSectionOf = (path: string) =>
   settingsSections.find((section) => path === section.href || path.startsWith(`${section.href}/`));
+
+/** The integrations this person may open: the directory lists them, and a feature that is off leaves its entry out (A3). */
+export const visibleIntegrations = (user: CurrentUser | null | undefined, features: SettingsFeatures = {}) => {
+  const hrefs = new Set(visibleSettingsSections(user, features).map((section) => section.href));
+  return integrations.filter((integration) => hrefs.has(integration.href));
+};
+
+/** The sidebar items to show: the areas that have a page this person may use, each with where it opens. */
+export const visibleSettingsAreas = (user: CurrentUser | null | undefined, features: SettingsFeatures = {}) => {
+  const pages = visibleSettingsSections(user, features);
+  return settingsAreas.flatMap((area) => {
+    const first = pages.find((page) => page.group === area.group);
+    return first ? [{ ...area, href: area.href ?? first.href }] : [];
+  });
+};
+
+/** The area a path belongs to: its page's group, or Integrations for the directory itself. */
+export const settingsAreaOf = (path: string): SettingsGroup | undefined =>
+  path === integrationsHref ? 'Integrations' : settingsSectionOf(path)?.group;
 
 /**
  * A role as one key: a built-in role's name in lower case (`viewer`), or a custom role's id. It is the role page's
