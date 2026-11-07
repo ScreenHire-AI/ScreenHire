@@ -148,7 +148,7 @@ describe('verification settings page', () => {
       expect(screen.queryByLabelText('API key')).not.toBeInTheDocument();
       expect(await budget()).toBeInTheDocument();
 
-      await fireEvent.click(await screen.findByRole('radio', { name: 'Your own key' }));
+      await fireEvent.click(await screen.findByRole('radio', { name: /^Your own key/ }));
 
       expect(await apiKey()).toHaveAttribute('type', 'password');
       expect(screen.queryByLabelText(/Monthly token budget/)).not.toBeInTheDocument();
@@ -194,7 +194,7 @@ describe('verification settings page', () => {
 
     it('needs a key before the first save of an own key, and sends nothing', async () => {
       const bodies = renderPage(settingsWith());
-      await fireEvent.click(await screen.findByRole('radio', { name: 'Your own key' }));
+      await fireEvent.click(await screen.findByRole('radio', { name: /^Your own key/ }));
       await type(await model(), 'claude-test');
 
       await fireEvent.click(await save());
@@ -217,7 +217,7 @@ describe('verification settings page', () => {
 
     it('asks for an https endpoint for an OpenAI-compatible provider, and sends it with the key', async () => {
       const bodies = renderPage(settingsWith());
-      await fireEvent.click(await screen.findByRole('radio', { name: 'Your own key' }));
+      await fireEvent.click(await screen.findByRole('radio', { name: /^Your own key/ }));
       await fireEvent.change(await screen.findByLabelText('Provider'), { target: { value: 'OpenAiCompatible' } });
       await type(await model(), 'gpt-test');
       await type(await apiKey(), 'sk-test');
@@ -405,12 +405,12 @@ describe('verification settings page', () => {
       expect(bodies[0]).toMatchObject({ alerts: { suggestedEmail: true, suggestedSlack: false, budgetEmail: false, budgetSlack: true } });
     });
 
-    it('hides email it cannot send, disables Slack until it is connected, and links to Slack', async () => {
+    it('hides email it cannot send and Slack until it is connected, and links to Slack', async () => {
       renderPage(settingsWith({ emailAvailable: false, slackConnected: false }));
 
       const suggested = within(await screen.findByRole('group', { name: 'Verification suggested' }));
       expect(suggested.queryByRole('checkbox', { name: 'By email' })).not.toBeInTheDocument();
-      expect(suggested.getByRole('checkbox', { name: 'On Slack, as a direct message' })).toBeDisabled();
+      expect(suggested.queryByRole('checkbox', { name: 'On Slack, as a direct message' })).not.toBeInTheDocument();
       expect(screen.getByRole('link', { name: /Connect it in Settings/ })).toHaveAttribute('href', '/settings/slack');
       await expectNoAxeViolations();
     });

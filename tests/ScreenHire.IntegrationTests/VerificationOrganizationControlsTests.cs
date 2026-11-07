@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Application.Verification;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Domain.Organizations;
 using ScreenHire.Domain.Verification;
 using ScreenHire.Infrastructure.Verification.Llm;
 
@@ -79,6 +80,44 @@ public sealed class VerificationOrganizationControlsTests(AppHostFixture fixture
         var history = (await tenant.GetAsync($"{Settings}/history")).Expect(HttpStatusCode.OK).Body.GetRawText();
         history.Should().Contain("documents checks").And.Contain("form use checks").And.Contain("partner.example.com").And.Contain("203.0.113.0/24");
         history.Should().Contain("Verification suggested alert by email");
+    }
+
+    [Fact]
+    public async Task A_first_save_keeps_every_value_that_differs_from_the_column_defaults()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+
+        (await tenant.PutAsync(Settings, new JsonObject
+        {
+            ["llmConsistencyCheck"] = false,
+            ["defaultAiUse"] = "Allowed",
+            ["checks"] = new JsonObject { ["network"] = false, ["contact"] = false, ["documents"] = false, ["answers"] = false, ["duplicates"] = false, ["formUse"] = false },
+        })).Expect(HttpStatusCode.OK);
+
+        var body = (await tenant.GetAsync(Settings)).Expect(HttpStatusCode.OK).Body;
+        body.GetProperty("defaultAiUse").GetString().Should().Be("Allowed");
+        foreach (var group in new[] { "network", "contact", "documents", "answers", "duplicates", "formUse" })
+        {
+            body.GetProperty("checks").GetProperty(group).GetBoolean().Should().BeFalse(group);
+        }
+    }
+
+    [Fact]
+    public async Task A_member_who_cannot_change_settings_does_not_read_the_saved_model_address()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        var put = OwnKey(Secret);
+        put["provider"] = "OpenAiCompatible";
+        put["baseUrl"] = "https://example-resource.example.com/path-token-0001/v1";
+        (await tenant.PutAsync(Settings, put)).Expect(HttpStatusCode.OK).Body.GetProperty("baseUrl").GetString().Should().Contain("path-token-0001");
+
+        using var viewer = await ViewerOfAsync(tenant.OrganizationId);
+        var read = (await viewer.GetAsync(Settings)).Expect(HttpStatusCode.OK);
+
+        read.Body.GetRawText().Should().NotContain("path-token-0001");
+        read.Body.GetProperty("baseUrl").ValueKind.Should().Be(JsonValueKind.Null);
+        read.Body.GetProperty("modelSource").GetString().Should().Be("OwnKey", "the rest of the page still reads");
+        (await tenant.GetAsync(Settings)).Body.GetProperty("baseUrl").GetString().Should().Contain("path-token-0001", "the people who edit it see it");
     }
 
     [Fact]
@@ -268,6 +307,21 @@ public sealed class VerificationOrganizationControlsTests(AppHostFixture fixture
     }
 
     [Fact]
+    public async Task With_form_use_checks_off_the_duplicates_result_says_the_device_was_not_compared()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        (await tenant.PutAsync(Settings, new JsonObject { ["llmConsistencyCheck"] = false, ["checks"] = new JsonObject { ["formUse"] = false } })).Expect(HttpStatusCode.OK);
+        var (slug, jobId) = await VerificationSupport.OpenJobAsync(fixture, tenant, SystemTemplates.SoftwareEngineerVersion2);
+
+        var applicationId = await VerificationSupport.ApplyAsync(fixture, slug, jobId, SyntheticApplicants.Bot, answers: SyntheticApplicants.Bot.Answers);
+        var verification = await VerificationSupport.SettledAsync(fixture, tenant, applicationId);
+
+        var duplicates = verification.At("checksNotRun").EnumerateArray().Single(n => n.GetProperty("label").GetString() == "Duplicates");
+        duplicates.GetProperty("kind").GetString().Should().Be("TurnedOff");
+        duplicates.GetProperty("note").GetString().Should().Be(RunNotes.DeviceNotCompared);
+    }
+
+    [Fact]
     public async Task Nothing_in_the_result_is_a_score_and_turning_groups_off_adds_no_way_to_reject()
     {
         using var tenant = await fixture.SignedInWithOrganizationAsync();
@@ -305,7 +359,11 @@ public sealed class VerificationOrganizationControlsTests(AppHostFixture fixture
             .Expect(HttpStatusCode.OK);
         var closed = await client.GetFromJsonAsync<JsonElement>(form, Ct);
         closed.GetProperty("telemetry").GetProperty("sessionToken").GetString().Should().BeEmpty("with form use checks off, the careers page collects no form telemetry");
-        closed.GetProperty("telemetry").GetProperty("deviceCheck").GetString().Should().Be("Consent", "the organization asked for more protection than a Notice region");
+        closed.GetProperty("telemetry").GetProperty("deviceCheck").GetString().Should().Be("Off", "the page module that makes the device code does not run, so no consent box is offered");
+
+        (await tenant.PutAsync(Settings, new JsonObject { ["llmConsistencyCheck"] = false, ["deviceCheck"] = "Consent" })).Expect(HttpStatusCode.OK);
+        (await client.GetFromJsonAsync<JsonElement>(form, Ct)).GetProperty("telemetry").GetProperty("deviceCheck").GetString()
+            .Should().Be("Consent", "the organization asked for more protection than a Notice region");
 
         (await tenant.PutAsync(Settings, new JsonObject { ["llmConsistencyCheck"] = false, ["deviceCheck"] = "Notice", ["checks"] = new JsonObject { ["duplicates"] = false } }))
             .Expect(HttpStatusCode.OK);
@@ -408,6 +466,26 @@ public sealed class VerificationOrganizationControlsTests(AppHostFixture fixture
             Ct);
         await Task.Delay(TimeSpan.FromSeconds(2), Ct); // a second copy, if there were one, would have arrived by now
         return [.. (await fixture.Mailpit.MessagesAsync(address, Ct)).Where(m => m.Subject == VerificationAlertWording.SuggestedSubject)];
+    }
+
+    // A second person, signed in as a Viewer of the organization.
+    private async Task<Tenant> ViewerOfAsync(Guid organizationId)
+    {
+        var session = new ApiSession(fixture);
+        try
+        {
+            await session.SignInWithMagicLinkAsync(ApiSession.NewEmail("viewer"), Ct);
+            var userId = (await session.CurrentUserAsync(Ct))!.Value.GetProperty("id").GetGuid();
+            await using var db = await VerificationSupport.TenantDbAsync(fixture, organizationId);
+            db.OrganizationMembers.Add(OrganizationMember.Create(organizationId, userId, OrganizationRole.Viewer, DateTimeOffset.UtcNow));
+            await db.SaveChangesAsync(Ct);
+            return new Tenant(session, organizationId, userId);
+        }
+        catch
+        {
+            session.Dispose();
+            throw;
+        }
     }
 
     private async Task<string> EmailOfAsync(Tenant tenant)

@@ -35,6 +35,8 @@ public sealed class OrganizationControlsTests
         CheckGroups.TurnedOffNote(CheckGroup.FormUse).Should().Be("Form use checks are turned off in this organization's settings.");
         RunNotes.KindOf("behavioural", CheckGroups.TurnedOffNote(CheckGroup.FormUse)).Should().Be(CheckNotRunKind.TurnedOff);
         RunNotes.KindOf("network", RunNotes.TrustedNetwork).Should().Be(CheckNotRunKind.Trusted);
+        RunNotes.KindOf("duplicates", RunNotes.DeviceNotCompared).Should().Be(CheckNotRunKind.TurnedOff);
+        RunNotes.KindOf("duplicates", RunNotes.TrustedEmailAndDeviceNotCompared).Should().Be(CheckNotRunKind.Trusted);
         RunNotes.KindOf("network", "No IP intelligence source is configured.").Should().BeNull("only the organization's own settings are listed as not checked");
         RunNotes.KindOf("network", null).Should().BeNull();
     }

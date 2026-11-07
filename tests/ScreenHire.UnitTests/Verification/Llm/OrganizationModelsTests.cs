@@ -153,6 +153,38 @@ public sealed class OrganizationModelsTests
         models.AccessFor(null, deployment, keys).Should().BeSameAs(deployment);
     }
 
+    [Fact]
+    public async Task Anthropic_is_asked_for_its_whole_list_of_models()
+    {
+        string? query = null;
+        var handler = new Replay(request =>
+        {
+            query = request.RequestUri!.Query;
+            return Json("""{"data":[{"id":"zeta-2","created_at":"2026-01-01T00:00:00Z","display_name":"Zeta","type":"model"},{"id":"alpha-1","created_at":"2026-01-01T00:00:00Z","display_name":"Alpha","type":"model"}],"first_id":"zeta-2","has_more":false,"last_id":"alpha-1"}""");
+        });
+        using var models = new OrganizationModels(Options(LlmProvider.Anthropic), new HttpClient(handler));
+
+        var listing = await models.ListAsync(new ModelEndpoint(ModelProvider.Anthropic, null, "key", null), Ct);
+
+        listing.Models.Should().Equal("alpha-1", "zeta-2");
+        query.Should().Contain("limit=1000");
+    }
+
+    [Fact]
+    public async Task An_answer_past_the_limit_fails_and_one_within_it_reads()
+    {
+        var size = ModelResponseLimit.MaxBytes;
+        using var invoker = new HttpMessageInvoker(new ModelResponseLimit(new Replay(request =>
+            new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(new byte[size]) })));
+        using var fits = await invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "https://models.example.com/"), Ct);
+        (await fits.Content.ReadAsByteArrayAsync(Ct)).Length.Should().Be(size);
+
+        size++;
+        var tooBig = () => invoker.SendAsync(new HttpRequestMessage(HttpMethod.Get, "https://models.example.com/"), Ct);
+
+        await tooBig.Should().ThrowAsync<HttpRequestException>();
+    }
+
     private static IOptions<VerificationOptions> Options(LlmProvider provider) =>
         Microsoft.Extensions.Options.Options.Create(new VerificationOptions { Llm = new LlmOptions { Provider = provider, Timeout = TimeSpan.FromSeconds(5) } });
 

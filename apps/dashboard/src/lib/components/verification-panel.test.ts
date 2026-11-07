@@ -631,7 +631,7 @@ describe('verification panel', () => {
     const list = await screen.findByRole('region', { name: 'Not checked' });
     expect(within(list).getByText("Documents checks are turned off in this organization's settings.")).toBeInTheDocument();
     expect(within(list).getByText('Turned off')).toBeInTheDocument();
-    expect(within(list).getByText('Trusted')).toBeInTheDocument();
+    expect(within(list).getByText('Not counted')).toBeInTheDocument();
     expect(within(list).getByText(/network the organization trusts/)).toBeInTheDocument();
     expect(list.querySelectorAll('[data-status-icon]')).toHaveLength(2);
     expect(list).not.toHaveTextContent(/%|score/i);

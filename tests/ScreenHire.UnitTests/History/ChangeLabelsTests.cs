@@ -1,4 +1,6 @@
 using System.Text.RegularExpressions;
+using ScreenHire.Api.Endpoints;
+using ScreenHire.Application.Verification;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.History;
 using ScreenHire.Domain.Jobs;
@@ -55,6 +57,15 @@ public sealed partial class ChangeLabelsTests
     [Fact]
     public void Employment_types_match_the_dashboard() =>
         Map(Format, "employmentLabels").Should().BeEquivalentTo(Enum.GetValues<EmploymentType>().ToDictionary(t => t.ToString(), ChangeLabels.Employment));
+
+    [Fact]
+    public void A_connection_problem_reads_the_same_in_a_test_and_a_refused_save()
+    {
+        foreach (var problem in Enum.GetValues<ModelProblem>())
+        {
+            VerificationSettingsLabels.Should().Contain(VerificationSettingsHandlers.Describe(problem).Message);
+        }
+    }
 
     [Fact]
     public void Verification_check_groups_match_the_dashboard() =>
