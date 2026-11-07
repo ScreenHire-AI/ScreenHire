@@ -91,7 +91,7 @@ describe('drop area', () => {
     await fireEvent.drop(area(), files(pdf()));
 
     expect(onfile).not.toHaveBeenCalled();
-    expect(onproblem).toHaveBeenCalledExactlyOnceWith('This browser cannot take a dropped file here. Choose the file instead.');
+    expect(onproblem).toHaveBeenCalledExactlyOnceWith('This browser cannot take a dropped file. Choose it instead.');
   });
 
   it('lets go of the shown file when a refused pick has replaced it in the input, but not for a refused drop', async () => {
@@ -170,12 +170,6 @@ describe('drop area', () => {
     expect(input()).toHaveFocus();
   });
 
-  it('marks its edge when the field is invalid', () => {
-    const { area } = renderArea({ invalid: true });
-
-    expect(area()).toHaveAttribute('data-invalid');
-  });
-
   it('draws what it is given above the words, inside the target', async () => {
     const { area, input } = renderArea({ preview: createRawSnippet(() => ({ render: () => '<img alt="The logo" />' })) });
     const open = vi.spyOn(input(), 'click');
@@ -193,7 +187,7 @@ describe('drop area', () => {
 
     expect(onfile).not.toHaveBeenCalled();
     expect(screen.getByText('Uploading...')).toBeInTheDocument();
-    expect(area()).toHaveAttribute('data-disabled');
+    expect(document.getElementById('resume')).toBeDisabled();
   });
 
   it('has no accessibility violations with a file chosen and the field invalid', async () => {

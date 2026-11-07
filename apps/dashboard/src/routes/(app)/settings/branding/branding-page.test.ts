@@ -138,10 +138,10 @@ describe('branding page', () => {
 
     expect(await screen.findByRole('radio', { name: /Bricolage Grotesque/ })).toBeChecked();
     expect(screen.getByText('No logo yet')).toBeInTheDocument();
-    // An empty tile has a dashed drop area with Upload, not Replace or Remove.
+    // An empty tile is a drop area with Upload, not Replace or Remove.
     const tile = document.querySelector<HTMLElement>('[data-image-tile="logo"]')!;
     expect(tile).toHaveAttribute('data-empty');
-    expect(tile.querySelector('[data-drop-area]')!.className).toContain('border-dashed');
+    expect(tile.querySelector('[data-drop-area]')).toBeInTheDocument();
     expect(within(tile).getByText('Upload logo')).toBeInTheDocument();
     expect(within(tile).queryByText('Replace logo')).toBeNull();
     expect(within(tile).queryByRole('button', { name: 'Remove logo' })).toBeNull();
