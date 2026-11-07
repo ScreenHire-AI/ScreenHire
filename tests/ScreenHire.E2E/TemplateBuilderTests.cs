@@ -375,7 +375,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save draft" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Saved version 1." })).ToBeVisibleAsync();
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Whole workflow" }))
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Workflow automations" }))
             .ToContainTextAsync("When an application arrives, if 1 condition holds: add the tag \"fast-track\".");
 
         // The graph at a laptop's and a tablet's width, and on a phone, where it is for reading. It opens at full size.
