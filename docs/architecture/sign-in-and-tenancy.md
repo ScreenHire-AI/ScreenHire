@@ -151,7 +151,7 @@ waits for SMTP; moving the send to a worker message is a later change.
 ## API keys
 
 Integrators call the hiring API with an organization API key instead of a session (ADR-0011). A role with Manage
-API keys (Owners and Admins) manages keys in a session, on the dashboard's Settings > API keys page, which shows a new key once.
+API keys (Owners and Admins) manages keys in a session, on the dashboard's Integrations > API keys page, which shows a new key once.
 
 | Route | What it does |
 |---|---|

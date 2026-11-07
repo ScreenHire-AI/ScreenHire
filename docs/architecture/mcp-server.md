@@ -135,8 +135,8 @@ asks, and never because of a level. The timeline records the key that moved them
 
 ## Connecting a client
 
-Settings > MCP server shows what any MCP client needs, with this deployment's address filled in. An Owner or Admin
-creates a key in Settings > API keys: Read for a client that only looks, Write for one that also changes things. Only an
+Integrations > MCP server shows what any MCP client needs, with this deployment's address filled in. An Owner or Admin
+creates a key in Integrations > API keys: Read for a client that only looks, Write for one that also changes things. Only an
 Owner can add Verification read, for a client that should read verification results too. The
 server's address is the API's origin, which `GET /v1/meta` reports as `apiOrigin` (`ScreenHire:Domains:ApiHost`),
 followed by `/v1/mcp`. The example uses `https://api.example.com`.

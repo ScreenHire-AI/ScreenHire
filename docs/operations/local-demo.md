@@ -117,7 +117,7 @@ a user. No password anywhere.
 The Email link panel's **Email me a sign-in link** works too: the link arrives in Mailpit, and opening it asks for
 one more click (**Sign in**) so a mail scanner cannot use it up.
 
-Avery manages the team in **Settings > Team**: **Invite** sends the invitation to Mailpit. Its link opens the
+Avery manages the team in **Organization > Team**: **Invite** sends the invitation to Mailpit. Its link opens the
 dashboard's **Join your team** page, and **Accept invitation** signs the invitee in to Brightwater with the invited
 role. Open the link in a private window so Avery stays signed in. Jordan, a Recruiter, and Robin, an Interviewer, have
 no Settings in the sidebar.
@@ -314,7 +314,7 @@ organization's Owner or Admin also sees **Set up your organization** on Jobs, wi
 | Malware scanning | `NoMalwareScanner`, which records every file as "not scanned" | `IMalwareScanner` |
 | Email provider | Mailpit sends; no SendGrid. Replies come through the sandbox route `/v1/dev/inbound-email`, and a sending domain verifies once `/v1/dev/sending-domains/publish` publishes it | `ScreenHire:Email` |
 | Google and Outlook calendars | The sandbox calendar, on in `pnpm dev`, whose provider buttons are hidden unless the real client ids and secrets are set; busy time lives in Postgres and the meeting link is on `meet.example.org` | `ScreenHire:Calendar` |
-| Slack | Off, so Settings > Slack says it is not set up; the sandbox workspace when turned on, whose messages `/v1/slack/sandbox/messages` lists | `ScreenHire:Slack` |
+| Slack | Off, so Integrations > Slack says it is not set up; the sandbox workspace when turned on, whose messages `/v1/slack/sandbox/messages` lists | `ScreenHire:Slack` |
 
 The [MVP status](../status.md#owner-actions) lists what each of these needs before real use.
 
