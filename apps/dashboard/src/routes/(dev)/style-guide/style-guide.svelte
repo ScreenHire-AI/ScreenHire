@@ -128,6 +128,7 @@
   import AddCandidateDemo from './add-candidate-demo.svelte';
   import CustomizePostingDemo from './customize-posting-demo.svelte';
   import BrandingDemo from './branding-demo.svelte';
+  import GraphDemo from './graph-demo.svelte';
   import DropAreaDemo from './drop-area-demo.svelte';
   import EmailComposerDemo, { demoEmail } from './email-composer-demo.svelte';
   import FormBuilderDemo from './form-builder-demo.svelte';
@@ -856,6 +857,10 @@
             </StepLine>
           </figure>
         </div>
+      </Panel>
+
+      <Panel title="Workflow graph" flush>
+        <GraphDemo />
       </Panel>
 
       <Panel title="Stage flow">
