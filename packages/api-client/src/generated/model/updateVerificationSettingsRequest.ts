@@ -4,12 +4,36 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { AiUsePolicy } from './aiUsePolicy.ts';
+import type { DeviceCheckBasis } from './deviceCheckBasis.ts';
+import type { LlmSource } from './llmSource.ts';
+import type { ModelProvider } from './modelProvider.ts';
+import type { VerificationAlerts } from './verificationAlerts.ts';
+import type { VerificationChecks } from './verificationChecks.ts';
 
 /**
- * Turns the LLM consistency check on or off and sets its monthly token budget (null for the deployment's default).
+ * Replaces the organization's verification settings. `apiKey` is the one place a key travels: null keeps the saved key,
+ * text replaces it. Changing the provider or the address needs a new key, and a change to the key, provider, address or
+ * model is tested before it is saved. `modelSource` `Included` erases the saved key and provider fields.
  */
 export interface UpdateVerificationSettingsRequest {
   llmConsistencyCheck: boolean;
   /** @nullable */
   monthlyTokenBudget?: number | null;
+  modelSource?: LlmSource;
+  provider?: null | ModelProvider;
+  /** @nullable */
+  baseUrl?: string | null;
+  /** @nullable */
+  model?: string | null;
+  /** @nullable */
+  apiKey?: string | null;
+  checks?: null | VerificationChecks;
+  defaultAiUse?: AiUsePolicy;
+  deviceCheck?: null | DeviceCheckBasis;
+  /** @nullable */
+  trustedDomains?: string[] | null;
+  /** @nullable */
+  trustedNetworks?: string[] | null;
+  alerts?: null | VerificationAlerts;
 }

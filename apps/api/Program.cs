@@ -19,6 +19,7 @@ using ScreenHire.Application.Automations;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Application.Privacy;
+using ScreenHire.Application.Verification;
 using ScreenHire.Application.Scheduling;
 using ScreenHire.Application.SendingDomains;
 using ScreenHire.Application.Slack;
@@ -103,6 +104,7 @@ builder.Services.AddScreenHirePortal();
 builder.Services.AddOptions<CareersEmbeddingOptions>().BindConfiguration(CareersEmbeddingOptions.Section);
 // Slack (docs/architecture/slack.md): connecting a workspace and linking accounts happen here; the worker posts.
 builder.Services.AddScreenHireSlack();
+builder.Services.AddOrganizationModels();
 
 // Replies, bounces and the organization's sending domain (docs/architecture/email.md, ADR-0022): SendGrid's webhooks, the
 // reply store, and the sending-domain provider, each hidden until configured, with a local sandbox for each.

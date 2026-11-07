@@ -6,6 +6,7 @@
  */
 import type { AiAssistanceAssessmentView } from './aiAssistanceAssessmentView.ts';
 import type { AuthenticityAssessmentView } from './authenticityAssessmentView.ts';
+import type { CheckNotRun } from './checkNotRun.ts';
 import type { ConsistencyCheckView } from './consistencyCheckView.ts';
 import type { VerificationActionAvailability } from './verificationActionAvailability.ts';
 import type { VerificationReviewEntry } from './verificationReviewEntry.ts';
@@ -25,4 +26,6 @@ export interface ApplicationVerification {
   reviewLog: VerificationReviewEntry[];
   requestVerification: VerificationActionAvailability;
   consistencyCheck: null | ConsistencyCheckView;
+  /** @nullable */
+  checksNotRun?: CheckNotRun[] | null;
 }

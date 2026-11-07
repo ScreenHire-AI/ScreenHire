@@ -4,14 +4,21 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { AiUsePolicy } from './aiUsePolicy.ts';
+import type { DeviceCheckBasis } from './deviceCheckBasis.ts';
 import type { LastUpdate } from './lastUpdate.ts';
+import type { LlmSource } from './llmSource.ts';
+import type { ModelProvider } from './modelProvider.ts';
+import type { VerificationAlerts } from './verificationAlerts.ts';
+import type { VerificationChecks } from './verificationChecks.ts';
 
 /**
- * The organization's verification settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the
- * resume, answers and any LinkedIn export to the deployment's model provider; it is off until an admin turns it on.
- * `monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment's default.
- * `tokensUsedThisMonth` is what the check has used so far this month. `lastUpdated` is the settings' last
- * change ("by ScreenHire" while they are the defaults); their history is `/verification-settings/history`.
+ * The organization's verification settings (verification-engine.md §10). `llmConsistencyCheck` turns on the LLM
+ * consistency check, which sends the resume, answers and any LinkedIn export to the model provider; it is off until an admin
+ * turns it on. `monthlyTokenBudget` caps the tokens it may use per calendar month (UTC) with ScreenHire's included
+ * model; null uses the deployment's default, which is `effectiveMonthlyTokenBudget`. `budgetApplies` is false
+ * with the organization's own key, which the provider bills. `tokensUsedThisMonth` is what the check has used so far
+ * this month, either way.
  */
 export interface OrganizationVerificationSettings {
   llmConsistencyCheck: boolean;
@@ -19,4 +26,21 @@ export interface OrganizationVerificationSettings {
   monthlyTokenBudget: number | null;
   tokensUsedThisMonth: number;
   lastUpdated: LastUpdate;
+  modelSource: LlmSource;
+  provider: null | ModelProvider;
+  /** @nullable */
+  baseUrl: string | null;
+  /** @nullable */
+  model: string | null;
+  apiKeySaved: boolean;
+  budgetApplies: boolean;
+  effectiveMonthlyTokenBudget: number;
+  checks: VerificationChecks;
+  defaultAiUse: AiUsePolicy;
+  deviceCheck: null | DeviceCheckBasis;
+  trustedDomains: string[];
+  trustedNetworks: string[];
+  alerts: VerificationAlerts;
+  emailAvailable: boolean;
+  slackConnected: boolean;
 }

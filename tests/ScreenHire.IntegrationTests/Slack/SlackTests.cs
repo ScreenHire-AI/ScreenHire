@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.Slack;
+using ScreenHire.Application.Verification;
 using ScreenHire.Domain.Slack;
 using ScreenHire.Infrastructure.Tenancy;
 using ScreenHire.IntegrationTests.Automations;
@@ -430,6 +431,27 @@ public sealed class SlackTests(AppHostFixture fixture)
         var task = await WaitForMessageAsync(owner, robinDm, "You have a new task", "the task's direct message");
         task.Should().Contain("Robin Ellis").And.Contain("Platform Engineer").And.Contain($"/applications/{application}");
         task.Should().NotContain("heliotrope");
+    }
+
+    [Fact]
+    public async Task Verification_suggested_reaches_a_linked_reviewer_as_a_direct_message_with_no_level_candidate_or_channel_post()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        await ConnectAsync(owner);
+        await LinkAccountAsync(owner);
+        (await owner.PutAsync("/v1/organization/verification-settings", new JsonObject
+            { ["llmConsistencyCheck"] = false, ["alerts"] = new JsonObject { ["suggestedSlack"] = true } })).Expect(HttpStatusCode.OK);
+        var (slug, jobId) = await VerificationSupport.OpenJobAsync(fixture, owner, ScreenHire.Domain.Hiring.SystemTemplates.SoftwareEngineerVersion2);
+        var bot = SyntheticApplicants.Bot;
+
+        var applicationId = await VerificationSupport.ApplyAsync(fixture, slug, jobId, bot, answers: bot.Answers);
+        (await VerificationSupport.SettledAsync(fixture, owner, applicationId)).Text("authenticity.level").Should().Be("VerificationRecommended");
+
+        var text = await WaitForMessageAsync(owner, DirectMessageOf(owner), "needs a closer look", "the Verification suggested direct message");
+        text.Should().Contain("Platform Engineer").And.Contain($"/applications/{applicationId}");
+        text.Should().NotContain(bot.FullName).And.NotContainEquivalentOf("verification").And.NotContainEquivalentOf("suggested");
+        (await ChannelMessagesAsync(owner)).Should().NotContain(message => message.Contains("closer look", StringComparison.Ordinal), "never a channel post");
+        (await ChannelMessagesAsync(owner, DirectMessageOf(owner))).Should().ContainSingle();
     }
 
     [Fact]

@@ -16,6 +16,9 @@ public static class ConsistencyBudget
         return new DateTimeOffset(utc.Year, utc.Month, 1, 0, 0, 0, TimeSpan.Zero);
     }
 
+    /// <summary>The UTC calendar month <paramref name="now"/> falls in, as <c>yyyy-MM</c>: what the budget alert keeps to send once a month.</summary>
+    public static string Month(DateTimeOffset now) => now.ToUniversalTime().ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture);
+
     /// <summary>Tokens the organization's checks started this month have used. A check still running counts nothing yet.</summary>
     public static Task<long> TokensUsedThisMonthAsync(this ScreenHireDbContext db, DateTimeOffset now, CancellationToken cancellationToken)
     {

@@ -155,7 +155,10 @@ time of the last rotation are a row of their own, `webhook_endpoint_secrets` (`W
 endpoint's row can be tracked. History sees that row only as `SigningRotation`, the time of a rotation. An API key and
 an invitation hold a secret too, but they are on it through a view: their describers see `ApiKeyFacts` (name, scopes,
 rate limit, revocation) and `InvitationFacts` (address, role, job access, revocation), never the key's hash or prefix or
-the invitation's token hash. `TrackedKindsTests` fails when what a describer sees has a secret-like property (a monthly
+the invitation's token hash. The verification settings row holds an organization's own model API key, encrypted, so its
+describer sees `VerificationSettingsFacts`: whether a key is saved and how often it was replaced, and the model endpoint as its
+host alone (a full address can carry a token in its path). Its lines say "saved", "replaced" or "removed the API key", never the
+key; the budget alert's month on the same row is bookkeeping and changes no line. `TrackedKindsTests` fails when what a describer sees has a secret-like property (a monthly
 token budget counts a model's tokens and is the one exception it allows; a key's prefix counts as secret-like), and
 `ChangeHistoryTests` checks the stored lines and both new history routes against a real key, its prefix and hash,
 invitation tokens and their hashes, and a webhook secret.

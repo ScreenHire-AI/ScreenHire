@@ -20,7 +20,15 @@ public sealed record McpVerification(
     McpAssessment? Authenticity,
     McpAssessment? AiAssistance,
     IReadOnlyList<McpReviewEntry> ReviewLog,
+    IReadOnlyList<McpCheckNotRun> ChecksNotRun,
     string Guidance);
+
+/// <summary>
+/// A group of checks that did not run, or did not count something, because of the organization's settings: <c>kind</c> is
+/// <c>TurnedOff</c> or <c>Trusted</c>, and <c>note</c> says which. No signals from a group listed here means the check did not
+/// look, never that it looked and found nothing. ScreenHire's own wording, not applicant-written.
+/// </summary>
+public sealed record McpCheckNotRun(string Group, string Kind, string Note);
 
 /// <summary>
 /// One assessment. <c>level</c> is a name: NoConcerns, ReviewSuggested or VerificationRecommended for authenticity;
@@ -141,6 +149,7 @@ internal static class McpVerificationMappings
                     ai.Policy, ai.Declaration, ai.PolicyContext)
                 : null,
             [.. verification.ReviewLog.Select(ToMcp)],
+            [.. (verification.ChecksNotRun ?? []).Select(c => new McpCheckNotRun(c.Label, c.Kind.ToString(), c.Note))],
             Guidance);
 
     public static McpVerificationMatches ToMcp(this VerificationMatches matches) =>

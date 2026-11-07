@@ -56,7 +56,9 @@ public sealed class VerificationPipeline(ScreenHireDbContext db, IEnumerable<IVe
                 continue;
             }
 
-            var result = await analyzer.AnalyzeAsync(context, cancellationToken);
+            // A group the organization turned off is not run, and the run says so: a reviewer who finds nothing from it must be
+            // able to tell that the check did not look, never that it looked and found nothing.
+            var result = TurnedOff(analyzer, context) ?? await analyzer.AnalyzeAsync(context, cancellationToken);
             if (!result.Ready)
             {
                 continue; // its input is still being prepared; the stage preparing it publishes this message again
@@ -117,6 +119,11 @@ public sealed class VerificationPipeline(ScreenHireDbContext db, IEnumerable<IVe
         if (latest is null)
         {
             return []; // never analyzed: the normal pipeline will run it and see everything there is
+        }
+
+        if (TurnedOff(analyzer, context) is not null)
+        {
+            return []; // a re-check never runs a group the organization turned off
         }
 
         var result = await analyzer.AnalyzeAsync(context, cancellationToken);
@@ -194,8 +201,15 @@ public sealed class VerificationPipeline(ScreenHireDbContext db, IEnumerable<IVe
         var job = await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == application.JobId, cancellationToken);
         var observation = await db.SubmissionObservations.AsNoTracking().SingleOrDefaultAsync(o => o.ApplicationId == applicationId, cancellationToken);
         var files = await db.ApplicationFiles.AsNoTracking().Where(f => f.ApplicationId == applicationId).ToListAsync(cancellationToken);
-        return new VerificationContext(application, candidate, job, observation, files, time.GetUtcNow());
+        var settings = await db.VerificationSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+        return new VerificationContext(application, candidate, job, observation, files, time.GetUtcNow(), VerificationConfig.From(settings));
     }
+
+    /// <summary>The result that records an analyzer did not run because its group is off; null when its group runs.</summary>
+    private static AnalyzerResult? TurnedOff(IVerificationAnalyzer analyzer, VerificationContext context) =>
+        CheckGroups.Of(analyzer.Name) is { } group && !context.Config.Runs(group)
+            ? AnalyzerResult.Nothing(CheckGroups.TurnedOffNote(group))
+            : null;
 
     /// <summary>
     /// The signals the assessment counts: those of each analyzer's latest run (its newest version, then its newest
@@ -335,7 +349,7 @@ public sealed class VerificationPipeline(ScreenHireDbContext db, IEnumerable<IVe
         };
         db.ApplicationEvents.Add(entry);
 
-        return new(
+        OutgoingMessages messages =
         [
             new VerificationAssessed(
                 application.OrganizationId, application.Id, application.JobId,
@@ -343,7 +357,18 @@ public sealed class VerificationPipeline(ScreenHireDbContext db, IEnumerable<IVe
                 VerificationRuleset.Version, entry.Id, now),
             // The workflow engine's VerificationAssessed trigger. Automations it runs may only route and step up (ADR-0004).
             new RunAutomations(application.OrganizationId, application.Id, TriggerType.VerificationAssessed, null, entry.Id, now),
-        ], added);
+        ];
+
+        // The Verification suggested alert (verification-engine.md §10): once when the application first reaches that level, not
+        // at every stage that lands afterwards. The handler reads the organization's alert settings; it carries ids only.
+        var suggested = nameof(AuthenticityLevel.VerificationRecommended);
+        if (authenticity == suggested
+            && !(previous.TryGetValue(VerificationAssessmentKind.Authenticity, out var was) && was == suggested))
+        {
+            messages.Add(new NotifyVerificationSuggested(application.OrganizationId, application.Id, application.JobId, entry.Id));
+        }
+
+        return new(messages, added);
     }
 
     /// <summary>The messages an assessment announces, and the assessment rows it added.</summary>

@@ -35,6 +35,17 @@ public static class SlackMessages
     public static string TaskGiven(string candidate, string job, Uri? application) =>
         $"You have a new task on {Link(application, candidate)} for {Escape(job)}";
 
+    /// <summary>
+    /// A direct message to a person who reviews verification, when an application first reaches Verification suggested. It names
+    /// the job and links to the application, never the candidate, the level or why (docs/architecture/slack.md).
+    /// </summary>
+    public static string VerificationSuggested(string job, Uri? application) =>
+        $"An application for {Escape(job)} needs a closer look: {Link(application, "Open it")}";
+
+    /// <summary>A direct message to a person who can change settings, when the month's tokens pass 80% of the budget.</summary>
+    public static string VerificationBudget(Uri? settings) =>
+        $"Verification tokens are at 80% of this month's budget: {Link(settings, "Open Verification settings")}";
+
     /// <summary>The line Send test message posts.</summary>
     public const string Test = "ScreenHire is connected. The events your team picked will post here.";
 

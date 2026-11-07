@@ -74,9 +74,23 @@ internal sealed class TelemetrySessions(IDataProtectionProvider dataProtection)
 
     private static readonly string[] FixedFields = ["firstName", "lastName", "email", "phone", "aiUseDetails"];
 
-    /// <summary>The device-check basis where <paramref name="job"/> is: its locations and the countries it hires from.</summary>
-    public static DeviceCheckBasis DeviceCheckFor(Job job, VerificationOptions options) =>
-        options.DeviceCheck.BasisFor(job.Locations.Select(l => l.Country).Concat(job.ApplicantLocationRequirements));
+    /// <summary>
+    /// What the apply flow may collect for <paramref name="job"/>: the device-check basis (the more protective of where the
+    /// job is and what the organization asked for, and off when duplicates are not checked, since the fingerprint feeds
+    /// only that) and whether form telemetry is collected at all (off when the organization turned form use checks off).
+    /// The tenant is already set by the caller.
+    /// </summary>
+    public static async Task<Collection> CollectionForAsync(
+        Job job, VerificationOptions options, ScreenHireDbContext db, CancellationToken cancellationToken)
+    {
+        var settings = await db.VerificationSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+        var basis = options.DeviceCheck.Resolve(job.Locations.Select(l => l.Country).Concat(job.ApplicantLocationRequirements), settings?.DeviceCheck);
+        return new Collection(settings is { CheckDuplicates: false } ? DeviceCheckBasis.Off : basis, settings?.CheckFormUse ?? true);
+    }
+
+    /// <param name="DeviceCheck">The footing for the device fingerprint.</param>
+    /// <param name="FormTelemetry">Whether form-use telemetry and automation markers are collected.</param>
+    public sealed record Collection(DeviceCheckBasis DeviceCheck, bool FormTelemetry);
 
     /// <summary>
     /// Stores a snapshot, replacing the page view's earlier one only when <see cref="TelemetrySnapshotInput.Sequence"/> is

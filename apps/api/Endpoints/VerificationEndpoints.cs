@@ -362,6 +362,22 @@ internal static class VerificationReads
             .Where(c => c.ApplicationId == applicationId && c.PromptVersion == ConsistencyPrompts.Version)
             .SingleOrDefaultAsync(cancellationToken);
 
+        // What the organization's settings kept the checks from doing (a group turned off, a trusted domain or network), from each
+        // analyzer's latest run, so a result without a signal is never read as a clean one.
+        var runs = await db.VerificationAnalyzerRuns.AsNoTracking()
+            .Where(r => r.ApplicationId == applicationId)
+            .Select(r => new { r.Analyzer, r.AnalyzerVersion, r.Revision, r.Note })
+            .ToListAsync(cancellationToken);
+        var notRun = runs
+            .GroupBy(r => r.Analyzer)
+            .Select(g => g.OrderByDescending(r => r.AnalyzerVersion).ThenByDescending(r => r.Revision).First())
+            .Select(r => (Run: r, Kind: RunNotes.KindOf(r.Analyzer, r.Note)))
+            .Where(r => r.Kind is not null && CheckGroups.Of(r.Run.Analyzer) is not null)
+            .OrderBy(r => CheckGroups.Of(r.Run.Analyzer))
+            .Select(r => new CheckNotRun(CheckGroups.Of(r.Run.Analyzer)!.Value, CheckGroups.Label(CheckGroups.Of(r.Run.Analyzer)!.Value), r.Kind!.Value, r.Run.Note!))
+            .DistinctBy(n => (n.Group, n.Note)) // two analyzers of one group (answers, consistency) say the same thing once
+            .ToList();
+
         VerificationDismissal? DismissalOf(VerificationAssessment assessment) =>
             actions.LastOrDefault(a => a.AssessmentId == assessment.Id && a.Type == VerificationReviewActionType.Dismissed) is { } action
                 ? new VerificationDismissal(action.Id, action.DismissReason!.Value, action.Note, action.ActorUserId!.Value, NameOf(action.ActorUserId), action.OccurredAt)
@@ -410,7 +426,8 @@ internal static class VerificationReads
             check is null || check.Status == ConsistencyCheckStatus.Running
                 ? null
                 : new ConsistencyCheckView(
-                    check.Status, check.Note, check.PromptVersion, check.ExtractionModel, check.ConsistencyModel, check.Contradictions.Count, check.CompletedAt));
+                    check.Status, check.Note, check.PromptVersion, check.ExtractionModel, check.ConsistencyModel, check.Contradictions.Count, check.CompletedAt),
+            notRun);
     }
 
     /// <summary>The chips for each application in <paramref name="applicationIds"/> that has been assessed.</summary>

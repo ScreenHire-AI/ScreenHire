@@ -24,7 +24,15 @@ public sealed record ApplicationVerification(
     AiAssistanceAssessmentView? AiAssistance,
     IReadOnlyList<VerificationReviewEntry> ReviewLog,
     VerificationActionAvailability RequestVerification,
-    ConsistencyCheckView? ConsistencyCheck);
+    ConsistencyCheckView? ConsistencyCheck,
+    IReadOnlyList<CheckNotRun>? ChecksNotRun = null);
+
+/// <summary>
+/// A group of checks that did not run, or did not count something, because of the organization's settings: its group was turned
+/// off, or a domain or network it trusts stopped a signal. <c>note</c> says which. A result without signals from this group is
+/// not a clean result, and a reviewer reads this before relying on it.
+/// </summary>
+public sealed record CheckNotRun(CheckGroup Group, string Label, CheckNotRunKind Kind, string Note);
 
 /// <summary>
 /// The LLM consistency check for an application: its status, why it did not run (<c>note</c>), and the prompt version and

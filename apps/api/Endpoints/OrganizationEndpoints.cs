@@ -61,11 +61,23 @@ internal static class OrganizationEndpoints
             .RequirePermission(Permission.EditSettings)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/branding/images/{imageId:guid}", GetBrandImage).WithName("GetBrandImage").Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/verification-settings", GetVerificationSettings).WithName("GetOrganizationVerificationSettings")
+        group.MapGet("/verification-settings", VerificationSettingsHandlers.Get).WithName("GetOrganizationVerificationSettings")
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPut("/verification-settings", UpdateVerificationSettings).WithName("UpdateOrganizationVerificationSettings")
+        group.MapPut("/verification-settings", VerificationSettingsHandlers.Update).WithName("UpdateOrganizationVerificationSettings")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditSettings)
+            .Produces(StatusCodes.Status401Unauthorized);
+        // The AI model panel: list the models a provider offers for a key, and prove a key and model work. Both reach out to a
+        // typed-in address, so they are rate limited as the sign-in routes are.
+        group.MapPost("/verification-settings/llm/models", VerificationSettingsHandlers.ListModels).WithName("ListVerificationModels")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.EditSettings)
+            .RequireRateLimiting(AuthenticationSetup.RateLimitPolicy)
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/verification-settings/llm/test", VerificationSettingsHandlers.TestModel).WithName("TestVerificationModel")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.EditSettings)
+            .RequireRateLimiting(AuthenticationSetup.RateLimitPolicy)
             .Produces(StatusCodes.Status401Unauthorized);
         return app;
     }
@@ -168,69 +180,6 @@ internal static class OrganizationEndpoints
     private static Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> HistoryAsync(
         ChangeSubjectKind kind, Guid? before, int? limit, ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
         ChangeHistoryRoutes.OrganizationPageAsync(kind, before, limit, db, tenant, cancellationToken);
-
-    private static async Task<Ok<OrganizationVerificationSettings>> GetVerificationSettings(
-        ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken)
-    {
-        var settings = await db.VerificationSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        return TypedResults.Ok(await ToVerificationSettingsAsync(db, settings, time.GetUtcNow(), cancellationToken));
-    }
-
-    // Upserts the organization's row. The check runs per application when it is next triggered; turning it on does not
-    // reach back to applications already checked or skipped.
-    private static async Task<Results<Ok<OrganizationVerificationSettings>, ValidationProblem>> UpdateVerificationSettings(
-        UpdateVerificationSettingsRequest request, ScreenHireDbContext db, ITenantContext tenant, TimeProvider time, CancellationToken cancellationToken)
-    {
-        if (request.MonthlyTokenBudget is { } budget && budget is < 1 or > VerificationSettings.MaxMonthlyTokenBudget)
-        {
-            return TypedResults.ValidationProblem(ValidationExtensions.Problem(
-                "monthlyTokenBudget", $"A monthly budget is between 1 and {VerificationSettings.MaxMonthlyTokenBudget.ToString("N0", CultureInfo.InvariantCulture)} tokens."));
-        }
-
-        var now = time.GetUtcNow();
-        var settings = await db.VerificationSettings.SingleOrDefaultAsync(cancellationToken);
-        if (settings is null)
-        {
-            settings = new VerificationSettings { OrganizationId = tenant.OrganizationId!.Value };
-            db.VerificationSettings.Add(settings);
-        }
-
-        Apply(settings, request, now);
-        try
-        {
-            await db.SaveChangesAsync(cancellationToken);
-        }
-        catch (DbUpdateException exception) when (exception.IsUniqueViolation())
-        {
-            // Two first saves at once: the other created the row. A PUT replaces the settings, so this one is applied
-            // on top of it (last write wins) instead of failing.
-            db.Entry(settings).State = EntityState.Detached;
-            settings = await db.VerificationSettings.SingleAsync(cancellationToken);
-            Apply(settings, request, now);
-            await db.SaveChangesAsync(cancellationToken);
-        }
-
-        return TypedResults.Ok(await ToVerificationSettingsAsync(db, settings, now, cancellationToken));
-    }
-
-    private static void Apply(VerificationSettings settings, UpdateVerificationSettingsRequest request, DateTimeOffset now)
-    {
-        settings.LlmConsistencyCheckEnabled = request.LlmConsistencyCheck;
-        settings.MonthlyTokenBudget = request.MonthlyTokenBudget;
-        settings.UpdatedAt = now;
-    }
-
-    private static async Task<OrganizationVerificationSettings> ToVerificationSettingsAsync(
-        ScreenHireDbContext db, VerificationSettings? settings, DateTimeOffset now, CancellationToken cancellationToken)
-    {
-        var used = await db.TokensUsedThisMonthAsync(now, cancellationToken);
-        var last = settings is null
-            ? null
-            : await ChangeHistoryQueries.LastAsync(db, ChangeSubjectKind.VerificationSettings, SubjectId(settings.OrganizationId), cancellationToken);
-        // No row is ScreenHire's defaults, which nobody in the organization has changed.
-        var lastUpdated = settings is null ? LastUpdate.ByScreenHire(null) : LastUpdate.FromChange(last, settings.UpdatedAt);
-        return new OrganizationVerificationSettings(settings?.LlmConsistencyCheckEnabled ?? false, settings?.MonthlyTokenBudget, used, lastUpdated);
-    }
 
     private static async Task<Results<Ok<OrganizationBranding>, NotFound>> GetBranding(
         ScreenHireDbContext db, ITenantContext tenant, IOptions<DomainOptions> domains, CancellationToken cancellationToken)

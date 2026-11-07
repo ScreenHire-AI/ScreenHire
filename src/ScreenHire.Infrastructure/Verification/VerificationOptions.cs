@@ -1,3 +1,5 @@
+using ScreenHire.Domain.Verification;
+
 namespace ScreenHire.Infrastructure.Verification;
 
 /// <summary>
@@ -111,24 +113,6 @@ public sealed class SignalNetworkOptions
     public string KeyId { get; set; } = "k1";
 }
 
-/// <summary>
-/// On which footing the careers page may compute a device fingerprint (docs/research/legal.md, "Device / browser
-/// fingerprint"; verification-engine.md §3). ePrivacy Art. 5(3) needs consent for fingerprinting unless it is strictly
-/// necessary, and data protection authorities differ on whether fraud prevention is, so the basis is configuration per
-/// country rather than code.
-/// </summary>
-public enum DeviceCheckBasis
-{
-    /// <summary>No device fingerprint at all.</summary>
-    Off,
-
-    /// <summary>After the notice, with no separate opt-in: legitimate interest, or "strictly necessary" for fraud prevention.</summary>
-    Notice,
-
-    /// <summary>Only when the candidate ticks the device-check box on the form.</summary>
-    Consent,
-}
-
 /// <summary>The device-check basis per country, decided by where the job is (its locations and the countries it hires from).</summary>
 public sealed class DeviceCheckOptions
 {
@@ -159,6 +143,17 @@ public sealed class DeviceCheckOptions
         return bases.Contains(DeviceCheckBasis.Off) ? DeviceCheckBasis.Off
             : bases.Contains(DeviceCheckBasis.Consent) ? DeviceCheckBasis.Consent
             : DeviceCheckBasis.Notice;
+    }
+
+    /// <summary>
+    /// The basis for a job in <paramref name="countries"/> when the organization asks for <paramref name="organizationChoice"/>:
+    /// the more protective of the two, so an organization can ask for consent or turn the check off anywhere but never
+    /// lower what its region needs. Null follows the region (<see cref="BasisFor"/>).
+    /// </summary>
+    public DeviceCheckBasis Resolve(IEnumerable<string?> countries, DeviceCheckBasis? organizationChoice)
+    {
+        var region = BasisFor(countries);
+        return organizationChoice is { } choice ? DeviceCheckBases.MoreProtective(region, choice) : region;
     }
 }
 

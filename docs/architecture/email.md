@@ -5,6 +5,7 @@ description: "Organization email templates in Liquid with a rich-text body over 
 tags: [email, templates, liquid]
 sources:
   - resource: src/ScreenHire.Domain/Hiring/EmailTemplate.cs
+  - resource: src/ScreenHire.Application/Verification/Models/VerificationAlerts.cs
   - resource: src/ScreenHire.Infrastructure/Email/EmailTemplates.cs
   - resource: src/ScreenHire.Infrastructure/Email/EmailTemplateStore.cs
   - resource: apps/dashboard/src/routes/(app)/templates/emails/[templateId]/+page.svelte
@@ -228,6 +229,16 @@ so a redelivered message sends nothing; a mention removed, a note deleted, a per
 the job (ADR-0015) before the worker gets to it gets no email. A note can mention only someone who sees the candidate.
 Someone who linked their Slack account also gets the mention as a Slack direct message, its own message beside this
 one, so a failing email never holds it up ([slack.md](slack.md)).
+
+## Verification alerts
+
+Two emails go to teammates when an organization turns them on in Settings, Verification, Alerts
+(`VerificationAlertWording`, ScreenHire's own wording like the mention email, not a template). "An application needs a closer
+look" goes once, when an application first reaches Verification suggested, to members who hold Review verification and see the
+job (ADR-0015); it names the job, says the application needs a closer look and links to it, and carries no level, candidate name,
+reason or evidence. "Verification tokens are at 80% of this month's budget" goes once a month to members who can edit settings.
+Nothing is sent when the host has no email sender or no dashboard address, and a Slack direct message can go beside either
+([slack.md](slack.md), [verification engine](verification-engine.md) section 10.11).
 
 ## The link to finish a saved application
 

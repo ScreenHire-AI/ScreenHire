@@ -520,7 +520,7 @@ export const GetPublicApplicationFormResponse = zod.object({
   "turnstileSiteKey": zod.string().nullable(),
   "telemetry": zod.object({
   "sessionToken": zod.string(),
-  "deviceCheck": zod.enum(['Off', 'Notice', 'Consent']).describe('On which footing the careers page may compute a device fingerprint (docs/research/legal.md, "Device / browser\nfingerprint"; verification-engine.md §3). ePrivacy Art. 5(3) needs consent for fingerprinting unless it is strictly\nnecessary, and data protection authorities differ on whether fraud prevention is, so the basis is configuration per\ncountry rather than code.')
+  "deviceCheck": zod.enum(['Off', 'Notice', 'Consent']).describe('On which footing the careers page may compute a device fingerprint (docs/research/legal.md, "Device / browser\nfingerprint"; verification-engine.md §3). ePrivacy Art. 5(3) needs consent for fingerprinting unless it is strictly\nnecessary, and data protection authorities differ on whether fraud prevention is, so the basis is configuration per\ncountry rather than code. An organization may also choose one, but only to be more protective than its region\n(<see cref="!:Protectiveness" />).')
 }).describe('What the careers page\'s telemetry module may do on this form (verification-engine.md §3): `sessionToken` binds its\nsnapshots to one way through the form, and `deviceCheck` is the footing for the device fingerprint where the job\nis (`Off`, `Notice`, or `Consent`, which needs the candidate\'s tick).'),
   "sections": zod.array(zod.object({
   "id": zod.string(),
@@ -5351,7 +5351,13 @@ export const GetApplicationVerificationResponse = zod.object({
   "consistencyModel": zod.string().nullable(),
   "contradictions": zod.int(),
   "completedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')])
+}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')]),
+  "checksNotRun": zod.array(zod.object({
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
+  "label": zod.string(),
+  "kind": zod.enum(['TurnedOff', 'Trusted']).describe('Why an analyzer\'s run says it did not look, or did not count something, because of the organization\'s settings.'),
+  "note": zod.string()
+}).describe('A group of checks that did not run, or did not count something, because of the organization\'s settings: its group was turned\noff, or a domain or network it trusts stopped a signal. `note` says which. A result without signals from this group is\nnot a clean result, and a reviewer reads this before relying on it.')).nullish()
 }).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\n`reviewLog`.')
 
 
@@ -5609,7 +5615,13 @@ export const DismissVerificationAssessmentResponse = zod.object({
   "consistencyModel": zod.string().nullable(),
   "contradictions": zod.int(),
   "completedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')])
+}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')]),
+  "checksNotRun": zod.array(zod.object({
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
+  "label": zod.string(),
+  "kind": zod.enum(['TurnedOff', 'Trusted']).describe('Why an analyzer\'s run says it did not look, or did not count something, because of the organization\'s settings.'),
+  "note": zod.string()
+}).describe('A group of checks that did not run, or did not count something, because of the organization\'s settings: its group was turned\noff, or a domain or network it trusts stopped a signal. `note` says which. A result without signals from this group is\nnot a clean result, and a reviewer reads this before relying on it.')).nullish()
 }).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\n`reviewLog`.')
 
 
@@ -5839,7 +5851,13 @@ export const ExplainVerificationReasonResponse = zod.object({
   "consistencyModel": zod.string().nullable(),
   "contradictions": zod.int(),
   "completedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')])
+}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')]),
+  "checksNotRun": zod.array(zod.object({
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
+  "label": zod.string(),
+  "kind": zod.enum(['TurnedOff', 'Trusted']).describe('Why an analyzer\'s run says it did not look, or did not count something, because of the organization\'s settings.'),
+  "note": zod.string()
+}).describe('A group of checks that did not run, or did not count something, because of the organization\'s settings: its group was turned\noff, or a domain or network it trusts stopped a signal. `note` says which. A result without signals from this group is\nnot a clean result, and a reviewer reads this before relying on it.')).nullish()
 }).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\n`reviewLog`.')
 
 
@@ -6064,7 +6082,13 @@ export const UndoVerificationReasonExplanationResponse = zod.object({
   "consistencyModel": zod.string().nullable(),
   "contradictions": zod.int(),
   "completedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')])
+}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')]),
+  "checksNotRun": zod.array(zod.object({
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
+  "label": zod.string(),
+  "kind": zod.enum(['TurnedOff', 'Trusted']).describe('Why an analyzer\'s run says it did not look, or did not count something, because of the organization\'s settings.'),
+  "note": zod.string()
+}).describe('A group of checks that did not run, or did not count something, because of the organization\'s settings: its group was turned\noff, or a domain or network it trusts stopped a signal. `note` says which. A result without signals from this group is\nnot a clean result, and a reviewer reads this before relying on it.')).nullish()
 }).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\n`reviewLog`.')
 
 
@@ -6292,7 +6316,13 @@ export const AddVerificationNoteResponse = zod.object({
   "consistencyModel": zod.string().nullable(),
   "contradictions": zod.int(),
   "completedAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')])
+}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')]),
+  "checksNotRun": zod.array(zod.object({
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
+  "label": zod.string(),
+  "kind": zod.enum(['TurnedOff', 'Trusted']).describe('Why an analyzer\'s run says it did not look, or did not count something, because of the organization\'s settings.'),
+  "note": zod.string()
+}).describe('A group of checks that did not run, or did not count something, because of the organization\'s settings: its group was turned\noff, or a domain or network it trusts stopped a signal. `note` says which. A result without signals from this group is\nnot a clean result, and a reviewer reads this before relying on it.')).nullish()
 }).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\n`reviewLog`.')
 
 
@@ -6908,6 +6938,16 @@ export const GetBrandImageResponse = zod.object({
 
 
 export const getOrganizationVerificationSettingsResponseLastUpdatedCreatedDefault = false;
+export const getOrganizationVerificationSettingsResponseChecksNetworkDefault = true;
+export const getOrganizationVerificationSettingsResponseChecksContactDefault = true;
+export const getOrganizationVerificationSettingsResponseChecksDocumentsDefault = true;
+export const getOrganizationVerificationSettingsResponseChecksAnswersDefault = true;
+export const getOrganizationVerificationSettingsResponseChecksDuplicatesDefault = true;
+export const getOrganizationVerificationSettingsResponseChecksFormUseDefault = true;
+export const getOrganizationVerificationSettingsResponseAlertsSuggestedEmailDefault = false;
+export const getOrganizationVerificationSettingsResponseAlertsSuggestedSlackDefault = false;
+export const getOrganizationVerificationSettingsResponseAlertsBudgetEmailDefault = false;
+export const getOrganizationVerificationSettingsResponseAlertsBudgetSlackDefault = false;
 
 export const GetOrganizationVerificationSettingsResponse = zod.object({
   "llmConsistencyCheck": zod.boolean(),
@@ -6919,16 +6959,87 @@ export const GetOrganizationVerificationSettingsResponse = zod.object({
   "userId": zod.uuid().nullish(),
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(getOrganizationVerificationSettingsResponseLastUpdatedCreatedDefault)
-}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
-}).describe('The organization\'s verification settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the\nresume, answers and any LinkedIn export to the deployment\'s model provider; it is off until an admin turns it on.\n`monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment\'s default.\n`tokensUsedThisMonth` is what the check has used so far this month. `lastUpdated` is the settings\' last\nchange ("by ScreenHire" while they are the defaults); their history is `/verification-settings/history`.')
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "modelSource": zod.enum(['Included', 'OwnKey']).describe('Whose model answers the consistency check.'),
+  "provider": zod.union([zod.null(),zod.union([zod.literal('Anthropic'),zod.literal('OpenAiCompatible'),zod.literal(null)])]),
+  "baseUrl": zod.string().nullable(),
+  "model": zod.string().nullable(),
+  "apiKeySaved": zod.boolean(),
+  "budgetApplies": zod.boolean(),
+  "effectiveMonthlyTokenBudget": zod.int(),
+  "checks": zod.object({
+  "network": zod.boolean().default(getOrganizationVerificationSettingsResponseChecksNetworkDefault),
+  "contact": zod.boolean().default(getOrganizationVerificationSettingsResponseChecksContactDefault),
+  "documents": zod.boolean().default(getOrganizationVerificationSettingsResponseChecksDocumentsDefault),
+  "answers": zod.boolean().default(getOrganizationVerificationSettingsResponseChecksAnswersDefault),
+  "duplicates": zod.boolean().default(getOrganizationVerificationSettingsResponseChecksDuplicatesDefault),
+  "formUse": zod.boolean().default(getOrganizationVerificationSettingsResponseChecksFormUseDefault)
+}).describe('Which groups of checks run. A group that is off is recorded on each result it would have contributed to.'),
+  "defaultAiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
+  "deviceCheck": zod.union([zod.null(),zod.enum(['Off', 'Notice', 'Consent']).describe('On which footing the careers page may compute a device fingerprint (docs/research/legal.md, "Device / browser\nfingerprint"; verification-engine.md §3). ePrivacy Art. 5(3) needs consent for fingerprinting unless it is strictly\nnecessary, and data protection authorities differ on whether fraud prevention is, so the basis is configuration per\ncountry rather than code. An organization may also choose one, but only to be more protective than its region\n(<see cref="!:Protectiveness" />).')]),
+  "trustedDomains": zod.array(zod.string()),
+  "trustedNetworks": zod.array(zod.string()),
+  "alerts": zod.object({
+  "suggestedEmail": zod.boolean().default(getOrganizationVerificationSettingsResponseAlertsSuggestedEmailDefault),
+  "suggestedSlack": zod.boolean().default(getOrganizationVerificationSettingsResponseAlertsSuggestedSlackDefault),
+  "budgetEmail": zod.boolean().default(getOrganizationVerificationSettingsResponseAlertsBudgetEmailDefault),
+  "budgetSlack": zod.boolean().default(getOrganizationVerificationSettingsResponseAlertsBudgetSlackDefault)
+}).describe('The two notifications and the channels each goes to. Slack messages are direct messages to the people who can act.'),
+  "emailAvailable": zod.boolean(),
+  "slackConnected": zod.boolean()
+}).describe('The organization\'s verification settings (verification-engine.md §10). `llmConsistencyCheck` turns on the LLM\nconsistency check, which sends the resume, answers and any LinkedIn export to the model provider; it is off until an admin\nturns it on. `monthlyTokenBudget` caps the tokens it may use per calendar month (UTC) with ScreenHire\'s included\nmodel; null uses the deployment\'s default, which is `effectiveMonthlyTokenBudget`. `budgetApplies` is false\nwith the organization\'s own key, which the provider bills. `tokensUsedThisMonth` is what the check has used so far\nthis month, either way.')
 
+
+export const updateOrganizationVerificationSettingsBodyChecksTwoNetworkDefault = true;
+export const updateOrganizationVerificationSettingsBodyChecksTwoContactDefault = true;
+export const updateOrganizationVerificationSettingsBodyChecksTwoDocumentsDefault = true;
+export const updateOrganizationVerificationSettingsBodyChecksTwoAnswersDefault = true;
+export const updateOrganizationVerificationSettingsBodyChecksTwoDuplicatesDefault = true;
+export const updateOrganizationVerificationSettingsBodyChecksTwoFormUseDefault = true;
+export const updateOrganizationVerificationSettingsBodyAlertsTwoSuggestedEmailDefault = false;
+export const updateOrganizationVerificationSettingsBodyAlertsTwoSuggestedSlackDefault = false;
+export const updateOrganizationVerificationSettingsBodyAlertsTwoBudgetEmailDefault = false;
+export const updateOrganizationVerificationSettingsBodyAlertsTwoBudgetSlackDefault = false;
 
 export const UpdateOrganizationVerificationSettingsBody = zod.object({
   "llmConsistencyCheck": zod.boolean(),
-  "monthlyTokenBudget": zod.int().nullish()
-}).describe('Turns the LLM consistency check on or off and sets its monthly token budget (null for the deployment\'s default).')
+  "monthlyTokenBudget": zod.int().nullish(),
+  "modelSource": zod.enum(['Included', 'OwnKey']).optional().describe('Whose model answers the consistency check.'),
+  "provider": zod.union([zod.null(),zod.union([zod.literal('Anthropic'),zod.literal('OpenAiCompatible'),zod.literal(null)])]).optional(),
+  "baseUrl": zod.string().nullish(),
+  "model": zod.string().nullish(),
+  "apiKey": zod.string().nullish(),
+  "checks": zod.union([zod.null(),zod.object({
+  "network": zod.boolean().default(updateOrganizationVerificationSettingsBodyChecksTwoNetworkDefault),
+  "contact": zod.boolean().default(updateOrganizationVerificationSettingsBodyChecksTwoContactDefault),
+  "documents": zod.boolean().default(updateOrganizationVerificationSettingsBodyChecksTwoDocumentsDefault),
+  "answers": zod.boolean().default(updateOrganizationVerificationSettingsBodyChecksTwoAnswersDefault),
+  "duplicates": zod.boolean().default(updateOrganizationVerificationSettingsBodyChecksTwoDuplicatesDefault),
+  "formUse": zod.boolean().default(updateOrganizationVerificationSettingsBodyChecksTwoFormUseDefault)
+}).describe('Which groups of checks run. A group that is off is recorded on each result it would have contributed to.')]).optional(),
+  "defaultAiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).optional().describe('What the employer allows candidates to do with AI tools while applying.'),
+  "deviceCheck": zod.union([zod.null(),zod.enum(['Off', 'Notice', 'Consent']).describe('On which footing the careers page may compute a device fingerprint (docs/research/legal.md, "Device / browser\nfingerprint"; verification-engine.md §3). ePrivacy Art. 5(3) needs consent for fingerprinting unless it is strictly\nnecessary, and data protection authorities differ on whether fraud prevention is, so the basis is configuration per\ncountry rather than code. An organization may also choose one, but only to be more protective than its region\n(<see cref="!:Protectiveness" />).')]).optional(),
+  "trustedDomains": zod.array(zod.string()).nullish(),
+  "trustedNetworks": zod.array(zod.string()).nullish(),
+  "alerts": zod.union([zod.null(),zod.object({
+  "suggestedEmail": zod.boolean().default(updateOrganizationVerificationSettingsBodyAlertsTwoSuggestedEmailDefault),
+  "suggestedSlack": zod.boolean().default(updateOrganizationVerificationSettingsBodyAlertsTwoSuggestedSlackDefault),
+  "budgetEmail": zod.boolean().default(updateOrganizationVerificationSettingsBodyAlertsTwoBudgetEmailDefault),
+  "budgetSlack": zod.boolean().default(updateOrganizationVerificationSettingsBodyAlertsTwoBudgetSlackDefault)
+}).describe('The two notifications and the channels each goes to. Slack messages are direct messages to the people who can act.')]).optional()
+}).describe('Replaces the organization\'s verification settings. `apiKey` is the one place a key travels: null keeps the saved key,\ntext replaces it. Changing the provider or the address needs a new key, and a change to the key, provider, address or\nmodel is tested before it is saved. `modelSource` `Included` erases the saved key and provider fields.')
 
 export const updateOrganizationVerificationSettingsResponseLastUpdatedCreatedDefault = false;
+export const updateOrganizationVerificationSettingsResponseChecksNetworkDefault = true;
+export const updateOrganizationVerificationSettingsResponseChecksContactDefault = true;
+export const updateOrganizationVerificationSettingsResponseChecksDocumentsDefault = true;
+export const updateOrganizationVerificationSettingsResponseChecksAnswersDefault = true;
+export const updateOrganizationVerificationSettingsResponseChecksDuplicatesDefault = true;
+export const updateOrganizationVerificationSettingsResponseChecksFormUseDefault = true;
+export const updateOrganizationVerificationSettingsResponseAlertsSuggestedEmailDefault = false;
+export const updateOrganizationVerificationSettingsResponseAlertsSuggestedSlackDefault = false;
+export const updateOrganizationVerificationSettingsResponseAlertsBudgetEmailDefault = false;
+export const updateOrganizationVerificationSettingsResponseAlertsBudgetSlackDefault = false;
 
 export const UpdateOrganizationVerificationSettingsResponse = zod.object({
   "llmConsistencyCheck": zod.boolean(),
@@ -6940,8 +7051,61 @@ export const UpdateOrganizationVerificationSettingsResponse = zod.object({
   "userId": zod.uuid().nullish(),
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(updateOrganizationVerificationSettingsResponseLastUpdatedCreatedDefault)
-}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
-}).describe('The organization\'s verification settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the\nresume, answers and any LinkedIn export to the deployment\'s model provider; it is off until an admin turns it on.\n`monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment\'s default.\n`tokensUsedThisMonth` is what the check has used so far this month. `lastUpdated` is the settings\' last\nchange ("by ScreenHire" while they are the defaults); their history is `/verification-settings/history`.')
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "modelSource": zod.enum(['Included', 'OwnKey']).describe('Whose model answers the consistency check.'),
+  "provider": zod.union([zod.null(),zod.union([zod.literal('Anthropic'),zod.literal('OpenAiCompatible'),zod.literal(null)])]),
+  "baseUrl": zod.string().nullable(),
+  "model": zod.string().nullable(),
+  "apiKeySaved": zod.boolean(),
+  "budgetApplies": zod.boolean(),
+  "effectiveMonthlyTokenBudget": zod.int(),
+  "checks": zod.object({
+  "network": zod.boolean().default(updateOrganizationVerificationSettingsResponseChecksNetworkDefault),
+  "contact": zod.boolean().default(updateOrganizationVerificationSettingsResponseChecksContactDefault),
+  "documents": zod.boolean().default(updateOrganizationVerificationSettingsResponseChecksDocumentsDefault),
+  "answers": zod.boolean().default(updateOrganizationVerificationSettingsResponseChecksAnswersDefault),
+  "duplicates": zod.boolean().default(updateOrganizationVerificationSettingsResponseChecksDuplicatesDefault),
+  "formUse": zod.boolean().default(updateOrganizationVerificationSettingsResponseChecksFormUseDefault)
+}).describe('Which groups of checks run. A group that is off is recorded on each result it would have contributed to.'),
+  "defaultAiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
+  "deviceCheck": zod.union([zod.null(),zod.enum(['Off', 'Notice', 'Consent']).describe('On which footing the careers page may compute a device fingerprint (docs/research/legal.md, "Device / browser\nfingerprint"; verification-engine.md §3). ePrivacy Art. 5(3) needs consent for fingerprinting unless it is strictly\nnecessary, and data protection authorities differ on whether fraud prevention is, so the basis is configuration per\ncountry rather than code. An organization may also choose one, but only to be more protective than its region\n(<see cref="!:Protectiveness" />).')]),
+  "trustedDomains": zod.array(zod.string()),
+  "trustedNetworks": zod.array(zod.string()),
+  "alerts": zod.object({
+  "suggestedEmail": zod.boolean().default(updateOrganizationVerificationSettingsResponseAlertsSuggestedEmailDefault),
+  "suggestedSlack": zod.boolean().default(updateOrganizationVerificationSettingsResponseAlertsSuggestedSlackDefault),
+  "budgetEmail": zod.boolean().default(updateOrganizationVerificationSettingsResponseAlertsBudgetEmailDefault),
+  "budgetSlack": zod.boolean().default(updateOrganizationVerificationSettingsResponseAlertsBudgetSlackDefault)
+}).describe('The two notifications and the channels each goes to. Slack messages are direct messages to the people who can act.'),
+  "emailAvailable": zod.boolean(),
+  "slackConnected": zod.boolean()
+}).describe('The organization\'s verification settings (verification-engine.md §10). `llmConsistencyCheck` turns on the LLM\nconsistency check, which sends the resume, answers and any LinkedIn export to the model provider; it is off until an admin\nturns it on. `monthlyTokenBudget` caps the tokens it may use per calendar month (UTC) with ScreenHire\'s included\nmodel; null uses the deployment\'s default, which is `effectiveMonthlyTokenBudget`. `budgetApplies` is false\nwith the organization\'s own key, which the provider bills. `tokensUsedThisMonth` is what the check has used so far\nthis month, either way.')
+
+
+export const ListVerificationModelsBody = zod.object({
+  "provider": zod.union([zod.literal('Anthropic'),zod.literal('OpenAiCompatible'),zod.literal(null)]),
+  "baseUrl": zod.string().nullish(),
+  "apiKey": zod.string().nullish(),
+  "model": zod.string().nullish()
+}).describe('An own-key endpoint to list models for or test. A null `apiKey` uses the saved key when `provider` and\n`baseUrl` match what is saved, so the page never needs the key back. `model` is needed to test.')
+
+export const ListVerificationModelsResponse = zod.object({
+  "listed": zod.boolean(),
+  "models": zod.array(zod.string())
+}).describe('The models the provider lists for the key. `listed` is false when it offers no list or could not be asked; type\nthe model id then.')
+
+
+export const TestVerificationModelBody = zod.object({
+  "provider": zod.union([zod.literal('Anthropic'),zod.literal('OpenAiCompatible'),zod.literal(null)]),
+  "baseUrl": zod.string().nullish(),
+  "apiKey": zod.string().nullish(),
+  "model": zod.string().nullish()
+}).describe('An own-key endpoint to list models for or test. A null `apiKey` uses the saved key when `provider` and\n`baseUrl` match what is saved, so the page never needs the key back. `model` is needed to test.')
+
+export const TestVerificationModelResponse = zod.object({
+  "ok": zod.boolean(),
+  "problem": zod.union([zod.null(),zod.union([zod.literal('InvalidKey'),zod.literal('ModelNotFound'),zod.literal('Unreachable'),zod.literal('AddressNotAllowed'),zod.literal('Other'),zod.literal(null)])])
+}).describe('Whether the endpoint answered a tiny request with the key and model. `problem` is a word, never the provider\'s text.')
 
 
 export const listTeamMembersResponseLastUpdatedTwoCreatedDefault = false;

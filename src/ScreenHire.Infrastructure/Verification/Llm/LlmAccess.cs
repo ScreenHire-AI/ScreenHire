@@ -38,6 +38,14 @@ public sealed class LlmAccess
 
     public static LlmAccess Unavailable(string reason) => new(null, "", "", reason);
 
+    /// <summary>An organization's own model: one client and one model id serve extraction and comparison alike.</summary>
+    public static LlmAccess ForClient(IChatClient client, string model)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentException.ThrowIfNullOrWhiteSpace(model);
+        return new LlmAccess(client, model, model, "");
+    }
+
     /// <summary>Builds the access <paramref name="options"/> describe. <paramref name="http"/> replaces the SDK's HTTP client in tests.</summary>
     public static LlmAccess Create(LlmOptions options, HttpClient? http = null)
     {

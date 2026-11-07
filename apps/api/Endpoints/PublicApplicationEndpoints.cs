@@ -9,6 +9,7 @@ using ScreenHire.Application.Distribution;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Domain.Verification;
 using ScreenHire.Infrastructure.Verification;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -227,13 +228,18 @@ internal static class PublicApplicationEndpoints
         }
 
         // The device check's footing where the job is (verification-engine.md §3): the page is not trusted to have asked.
-        var fingerprint = TelemetrySessions.DeviceCheckFor(job, verification.Value) switch
+        // The organization's settings can ask for more protection than the region needs, or turn form use checks off, in
+        // which case nothing the page sent about how the form was filled in is kept.
+        var collection = await TelemetrySessions.CollectionForAsync(job, verification.Value, outbox.DbContext, cancellationToken);
+        var fingerprint = collection.DeviceCheck switch
         {
             DeviceCheckBasis.Notice => request.DeviceFingerprint,
             DeviceCheckBasis.Consent when request.DeviceCheckConsent => request.DeviceFingerprint,
             _ => null,
         };
-        var binding = await TelemetryBindingAsync(request, job, telemetry, telemetryValidator, cancellationToken);
+        var binding = collection.FormTelemetry
+            ? await TelemetryBindingAsync(request, job, telemetry, telemetryValidator, cancellationToken)
+            : null;
 
         var remoteAddress = http.Connection.RemoteIpAddress?.ToString();
         var now = time.GetUtcNow();
@@ -253,7 +259,9 @@ internal static class PublicApplicationEndpoints
             outbox, job, ApplicationSubmission.CandidateDetails.From(request.Candidate),
             new ApplicationDeclarations(request.AccommodationRequested, request.AiUseDeclaration, request.AiUseDetails),
             intake, files, now, actorUserId: null, cancellationToken,
-            new SubmissionSession(remoteAddress, request.UserAgent, fingerprint, request.PageTimes, request.AutomationMarkers),
+            new SubmissionSession(
+                remoteAddress, request.UserAgent, fingerprint,
+                collection.FormTelemetry ? request.PageTimes : null, collection.FormTelemetry ? request.AutomationMarkers : null),
             verification.Value,
             binding);
         if (submitted is not { } created)

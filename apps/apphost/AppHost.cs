@@ -23,9 +23,10 @@
 //                               GoogleIndexing:Mode is Off unless set (Local is the fake); in Google mode the key comes
 //                               from the secret parameter google-indexing-service-account-key, never from these keys.
 //   Verification:Llm:*             the consistency check's model (ScreenHire.Infrastructure LlmOptions), forwarded to the
-//                               worker. The worker's Development settings use the deterministic fake model; Provider
-//                               None turns the check into "unavailable"; in Anthropic mode the key comes from the secret
-//                               parameter anthropic-api-key, never from these keys.
+//                               worker. The worker's and the API's Development settings use the deterministic fake model
+//                               (the API tests an organization's own key with it); Provider None turns the check into
+//                               "unavailable"; in Anthropic mode the key comes from the secret parameter
+//                               anthropic-api-key, never from these keys.
 //   Webhooks:*                  webhook settings (ScreenHire.Application WebhookOptions), forwarded to the API and the
 //                               worker: AllowLoopback (appsettings.Development.json turns it on, so a receiver on this
 //                               machine works; never in production), RetryDelays:0..n and DisableAfterFailedDeliveries

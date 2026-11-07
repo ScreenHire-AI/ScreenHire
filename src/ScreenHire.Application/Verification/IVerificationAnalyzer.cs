@@ -37,8 +37,15 @@ public sealed record VerificationContext(
     Job Job,
     SubmissionObservation? Observation,
     IReadOnlyList<ApplicationFile> Files,
-    DateTimeOffset Now)
+    DateTimeOffset Now,
+    VerificationConfig? Settings = null)
 {
+    /// <summary>
+    /// The organization's verification settings that analyzers read: which groups run (the pipeline skips an analyzer whose
+    /// group is off) and what is trusted. The defaults when none are given.
+    /// </summary>
+    public VerificationConfig Config => Settings ?? VerificationConfig.Default;
+
     /// <summary>
     /// The one country the job is in or hires from, or null when it names none or several. Used as the region for a
     /// phone number written without a country code.

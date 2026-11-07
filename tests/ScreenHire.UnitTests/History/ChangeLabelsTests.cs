@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.History;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Domain.Verification;
 
 namespace ScreenHire.UnitTests.History;
 
@@ -13,6 +14,7 @@ public sealed partial class ChangeLabelsTests
 {
     private static readonly string Workflow = File.ReadAllText(RepositoryFiles.PathTo("apps", "dashboard", "src", "lib", "workflow.ts"));
     private static readonly string Format = File.ReadAllText(RepositoryFiles.PathTo("apps", "dashboard", "src", "lib", "format.ts"));
+    private static readonly string VerificationSettingsLabels = File.ReadAllText(RepositoryFiles.PathTo("apps", "dashboard", "src", "lib", "verification-settings.ts"));
 
     [Fact]
     public void Question_types_match_the_dashboard() =>
@@ -53,6 +55,28 @@ public sealed partial class ChangeLabelsTests
     [Fact]
     public void Employment_types_match_the_dashboard() =>
         Map(Format, "employmentLabels").Should().BeEquivalentTo(Enum.GetValues<EmploymentType>().ToDictionary(t => t.ToString(), ChangeLabels.Employment));
+
+    [Fact]
+    public void Verification_check_groups_match_the_dashboard() =>
+        Map(VerificationSettingsLabels, "checkGroupLabels").Should().BeEquivalentTo(
+            Enum.GetValues<CheckGroup>().ToDictionary(g => g.ToString(), CheckGroups.Label));
+
+    [Fact]
+    public void Device_check_choices_match_the_dashboard()
+    {
+        var labels = Map(VerificationSettingsLabels, "deviceCheckLabels");
+
+        labels["ByRegion"].Should().Be(ChangeLabels.DeviceCheck(null));
+        foreach (var basis in Enum.GetValues<DeviceCheckBasis>())
+        {
+            labels[basis.ToString()].Should().Be(ChangeLabels.DeviceCheck(basis));
+        }
+    }
+
+    [Fact]
+    public void Model_providers_match_the_dashboard() =>
+        Map(VerificationSettingsLabels, "modelProviderLabels").Should().BeEquivalentTo(
+            Enum.GetValues<ModelProvider>().ToDictionary(p => p.ToString(), ChangeLabels.ModelProvider));
 
     // `export const name: Record<...> = { Key: 'Label', ... };` as a dictionary.
     private static Dictionary<string, string> Map(string source, string name)

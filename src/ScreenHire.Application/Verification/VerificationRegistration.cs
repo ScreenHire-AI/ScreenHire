@@ -33,6 +33,7 @@ public static class VerificationRegistration
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<VerificationOptions>, FakeModelGate>());
         services.TryAddSingleton(provider => LlmAccess.Create(provider.GetRequiredService<IOptions<VerificationOptions>>().Value.Llm));
         services.TryAddSingleton<ConsistencyChecker>();
+        services.AddOrganizationModels();
 
         // The order analyzers run in. Each is keyed by its own name and version, so adding one never re-runs the others.
         services.AddScoped<IVerificationAnalyzer, NetworkAnalyzer>();
@@ -43,6 +44,22 @@ public static class VerificationRegistration
         services.AddScoped<IVerificationAnalyzer, DocumentAnalyzer>();
         services.AddScoped<IVerificationAnalyzer, AnswerAnalyzer>();
         services.AddScoped<IVerificationAnalyzer, ConsistencyAnalyzer>();
+        return services;
+    }
+
+    /// <summary>
+    /// What an organization's own model needs (verification-engine.md §10.10): the key protector and the service that builds
+    /// clients, tests a key and lists models. Registered by the worker, which runs the checks, and by the API, which tests
+    /// a key before it is saved.
+    /// </summary>
+    public static IServiceCollection AddOrganizationModels(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        services.TryAddSingleton<LlmKeys>();
+        services.TryAddSingleton<OrganizationModels>();
+        // The API tests an own key, so it reads the deployment's provider too: with the fake, no test needs a real key, and a
+        // host outside Development refuses to start with it, as the worker does.
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<VerificationOptions>, FakeModelGate>());
         return services;
     }
 
