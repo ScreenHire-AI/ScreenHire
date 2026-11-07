@@ -24,7 +24,7 @@
   <Tabs.Root bind:value={current}>
     <WorkflowTabs />
     {#if mode === 'editor'}
-      <WorkflowEditor bind:workflow={edited} {errors} tab={current} />
+      <WorkflowEditor bind:workflow={edited} {errors} bind:tab={current} />
     {:else}
       <WorkflowSummary workflow={edited} {errors} tab={current} />
     {/if}

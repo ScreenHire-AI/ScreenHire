@@ -1,12 +1,12 @@
 <script lang="ts">
-  import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
-  import { tick } from 'svelte';
+  import type { DefinitionError, EvaluationOutcome, HiringWorkflow, WorkflowSimulationResult } from '@screenhire/api-client';
+  import { tick, untrack } from 'svelte';
   import Panel from '#lib/components/panel.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Sheet from '#lib/components/ui/sheet/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
   import { laneOf, removeAt } from '#lib/workflow.js';
-  import { LANE_NODE, addAutomation, connect, removeAutomation, stageNode, triggerNode } from '#lib/workflow-graph.js';
+  import { LANE_NODE, addAction, addAutomation, addCondition, connect, definitionStamp, focusGraphNode, stageNode, triggerNode } from '#lib/workflow-graph.js';
   import AutomationForm from './automation-form.svelte';
   import PipelineView from './pipeline-view.svelte';
   import ProblemsPanel from './problems-panel.svelte';
@@ -23,8 +23,26 @@
   let {
     workflow = $bindable(),
     errors,
-    tab,
+    tab = $bindable(),
   }: { workflow: HiringWorkflow; errors: readonly DefinitionError[]; tab: string } = $props();
+
+  // The last test's outcome per automation, lit on the graph once the person asks to see it there. The graph tab mounts
+  // only while it is shown, and a test is about the workflow as it was, so an edit clears it.
+  let tested = $state<ReadonlyMap<string, EvaluationOutcome> | undefined>();
+  const stamp = $derived(definitionStamp(workflow));
+  $effect(() => {
+    void stamp;
+    untrack(() => (tested = undefined));
+  });
+
+  async function showTested(result: WorkflowSimulationResult) {
+    tested = new Map(result.automations.map((automation) => [automation.automationId, automation.outcome]));
+    tab = 'graph';
+    // The button that asked leaves with its tab, so the focus goes to Clear, beside the words saying what is lit. On a
+    // node it would light that node's path in place of the test's.
+    await tick();
+    document.querySelector<HTMLElement>('[data-graph-clear]')?.focus();
+  }
 
   let drawerOpen = $state(false);
   let scorecardOpen = $state(false);
@@ -63,33 +81,37 @@
   // The graph's edits: each one a change to the workflow from #lib/workflow-graph.ts, or the automation's own form.
   const graphActions: GraphActions = {
     edit: openAutomation,
+    openLane(stageId) {
+      openLane(stageId);
+      returnTo = { node: stageId ? stageNode(stageId) : LANE_NODE, opener: document.activeElement };
+    },
     add(stageId) {
       const added = addAutomation(workflow, stageId);
       workflow.automations = added.workflow.automations;
       const index = workflow.automations.findIndex((automation) => automation.id === added.id);
-      // A new automation's form starts at its name; closing it goes to its trigger node, not back to Add.
+      // A new automation's form starts at its name; closing it goes to its trigger node, not back to the plus.
       openAutomation(index, `automations[${index}]`);
       returnTo = { node: triggerNode(added.id), opener: null };
     },
-    async remove(automationId) {
-      const automation = workflow.automations.find((candidate) => candidate.id === automationId);
-      if (!automation) return;
-      const lane = laneOf(automation);
-      workflow.automations = removeAutomation(workflow, automationId).automations;
-      // Its nodes are gone with it, so the focus goes to the lane or stage it was on.
-      await tick();
-      focusNode(lane && workflow.stages.some((stage) => stage.id === lane) ? stageNode(lane) : LANE_NODE);
+    addCondition(automationId) {
+      const added = addCondition(workflow, automationId);
+      if (added) openChanged(added, automationId);
+    },
+    addAction(automationId) {
+      const added = addAction(workflow, automationId);
+      if (added) openChanged(added, automationId);
     },
     connect(source, target) {
       workflow.automations = connect(workflow, source, target).automations;
     },
   };
 
-  function focusNode(id: string): boolean {
-    const node = document.querySelector(`.svelte-flow__node[data-id="${CSS.escape(id)}"]`);
-    if (!(node instanceof HTMLElement)) return false;
-    node.focus();
-    return true;
+  // The form of an automation the graph just changed, at the part it added; closing it goes to the automation's trigger.
+  function openChanged(added: { workflow: HiringWorkflow; path: string }, automationId: string) {
+    workflow.automations = added.workflow.automations;
+    const index = workflow.automations.findIndex((automation) => automation.id === automationId);
+    openAutomation(index, added.path);
+    returnTo = { node: triggerNode(automationId), opener: null };
   }
 
   function onOpenAutoFocus(event: Event) {
@@ -104,7 +126,7 @@
     focusPath = null;
     returnTo = null;
     if (!back || (back.opener?.isConnected && back.opener !== document.body)) return;
-    if (focusNode(back.node)) event.preventDefault();
+    if (focusGraphNode(document, back.node)) event.preventDefault();
   }
 
   function openLane(stageId: string | null) {
@@ -131,14 +153,14 @@
   <!-- Mounted only while shown: the tab panels stay in the page when hidden, and the graph measures its nodes when
        it mounts, which it cannot do while hidden. -->
   <Panel title="Stages and automations" flush>
-    {#if tab === 'graph'}<WorkflowGraph {workflow} {errors} actions={graphActions} />{/if}
+    {#if tab === 'graph'}<WorkflowGraph {workflow} {errors} actions={graphActions} {tested} onclear={() => (tested = undefined)} />{/if}
   </Panel>
 </Tabs.Content>
 <Tabs.Content value="questionnaire">
   <QuestionnaireBuilder bind:workflow {errors} />
 </Tabs.Content>
 <Tabs.Content value="simulate">
-  <SimulatePanel {workflow} />
+  <SimulatePanel {workflow} onshow={showTested} />
 </Tabs.Content>
 
 <Sheet.Root bind:open={drawerOpen}>

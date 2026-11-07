@@ -205,15 +205,17 @@
         </thead>
         <tbody>
           {#each rows as row (row.id)}
-            <!-- A row keeps one height (L1): a problem is the notice above the tabs, its fixes are in the row's menu. -->
-            <tr data-board={row.id} class="h-12 border-b border-border-subtle last:border-b-0 hover:bg-muted">
+            <!-- A row keeps one height (L1): a problem is the notice above the tabs, its fixes are in the row's menu. On a
+                 phone a row with dates has two more lines, so a row without them is held to the same height. -->
+            <tr data-board={row.id} class="h-12 border-b border-border-subtle last:border-b-0 hover:bg-muted max-md:h-17">
               {#each row.getAllCells() as cell (cell.id)}
                 <td
                   class={[
                     'px-3 whitespace-nowrap max-md:py-2',
                     (cell.column.id === 'status' || cell.column.id === 'actions') && 'px-4',
-                    // The board takes the room the other columns leave. A long name is cut, whole in its tooltip (F5).
-                    cell.column.id === 'board' && 'w-full max-w-0 min-w-40',
+                    // The board takes the room the other columns leave. A long name is cut, whole in its tooltip (F5). On a
+                    // phone it has no minimum, or the row menu is pushed past the panel's edge.
+                    cell.column.id === 'board' && 'w-full max-w-0 min-w-40 max-md:min-w-0',
                     (cell.column.id === 'posted' || cell.column.id === 'updatedAt') && 'text-right text-muted-foreground tabular-nums max-md:hidden',
                     cell.column.id === 'actions' && 'text-right',
                   ]}

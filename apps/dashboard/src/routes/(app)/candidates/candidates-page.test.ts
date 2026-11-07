@@ -412,7 +412,7 @@ describe('candidates page, Current and Saved', () => {
     );
     render(WithQueryClient, { props: { component: Page, props: {} } });
 
-    expect(await screen.findByText(/Nobody has been saved yet/)).toBeInTheDocument();
+    expect(await screen.findByText(/Nobody saved yet/)).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1, name: 'Candidates' })).toBeInTheDocument();
     expect(choice('Saved')).toHaveAttribute('aria-current', 'page');
     expect(choice('Current')).not.toHaveAttribute('aria-current');

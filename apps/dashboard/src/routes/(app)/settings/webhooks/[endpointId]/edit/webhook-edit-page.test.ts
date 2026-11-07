@@ -41,6 +41,29 @@ describe('edit webhook endpoint page', () => {
     expect(screen.queryByText(/This endpoint is off/)).not.toBeInTheDocument();
   });
 
+  it("is headed with the endpoint's name and status, as Edit details is with the job's (S2)", async () => {
+    renderPage(endpoint());
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Applicant sync' })).toBeInTheDocument();
+    expect(screen.getByText('Delivering')).toBeInTheDocument();
+  });
+
+  it('is headed with the address when the endpoint has no description, and shows that it is off', async () => {
+    renderPage(endpoint({ description: null, enabled: false }));
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'https://hooks.example.com/applicants' })).toBeInTheDocument();
+    expect(screen.getByText('Off')).toBeInTheDocument();
+  });
+
+  it('says once that the endpoint could not load, in a panel with no title of its own', async () => {
+    vi.stubGlobal('fetch', vi.fn(apiStub({ [`GET /v1/webhooks/${endpointId}`]: () => Response.json({ title: 'Server error', status: 500 }, { status: 500 }) })));
+    render(WithQueryClient, { props: { component: Page, props: { params: { endpointId } } } });
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Endpoint' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 2, name: 'Could not load the endpoint' })).toBeNull();
+  });
+
   it('says that saving does not turn an endpoint on while it is off, and links to where it is turned on', async () => {
     renderPage(endpoint({ enabled: false, disabledReason: 'Ten deliveries in a row failed.', disabledAt: '2026-10-19T09:00:00Z' }));
 

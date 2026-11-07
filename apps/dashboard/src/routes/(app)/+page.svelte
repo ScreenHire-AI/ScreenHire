@@ -216,19 +216,20 @@
         </div>
         <p class="sr-only" role="status">Loading jobs…</p>
       {:else if shown.length === 0}
-        <Empty.Root>
-          <Empty.Header>
-            <Empty.Media variant="icon"><BriefcaseIcon /></Empty.Media>
-            <Empty.Title>{filtering ? 'No jobs match' : 'No jobs yet'}</Empty.Title>
-            {#if !filtering}<Empty.Description>A new job starts as a draft that only your team sees.</Empty.Description>{/if}
-          </Empty.Header>
-          <Empty.Content>
-            {#if filtering}
-              <Button variant="outline" size="lg" onclick={clearFilters}>Clear filters</Button>
-            {:else}
+        <Empty.Root class="gap-3 p-6">
+          {#if filtering}
+            <Empty.Description>No jobs match these filters.</Empty.Description>
+            <Button variant="outline" size="lg" onclick={clearFilters}>Clear filters</Button>
+          {:else}
+            <Empty.Header>
+              <Empty.Media variant="icon"><BriefcaseIcon /></Empty.Media>
+              <Empty.Title>No jobs yet</Empty.Title>
+              <Empty.Description>A new job starts as a draft that only your team sees.</Empty.Description>
+            </Empty.Header>
+            <Empty.Content>
               <Button href="/jobs/new" variant="outline" size="lg"><PlusIcon aria-hidden="true" />New job</Button>
-            {/if}
-          </Empty.Content>
+            </Empty.Content>
+          {/if}
         </Empty.Root>
       {:else if sidebar.isMobile}
         <ul aria-label="Jobs">
@@ -262,7 +263,7 @@
                         'px-3',
                         (header.id === 'status' || header.id === 'actions') && 'px-4',
                         header.id === 'status' && 'sticky left-0 bg-muted',
-                        header.id === 'actions' && 'w-14',
+                        header.id === 'actions' && 'sticky right-0 w-14 bg-muted',
                         (header.id === 'published' || header.id === 'updatedAt' || header.id === 'actions') && 'text-right',
                       ]}
                     />
@@ -273,8 +274,9 @@
             <tbody>
               {#each rows as row (row.id)}
                 <!-- The whole row is the link (section 9): the title's link covers it, and the cells with their own
-                     controls sit above it. The Status column sticks while a tablet scrolls the table (section 8). It has
-                     no z-index, so the link's cover and the later cells' raised spans still paint above it. -->
+                     controls sit above it. The Status column sticks while a tablet scrolls the table (section 8). It has no z-index,
+                     so the link's cover and the later cells' raised spans still paint above it. The Actions column sticks too;
+                     it comes last, so it paints above the cover and lets clicks through to it, all but its menu's. -->
                 <tr class="group relative h-12 border-b border-border-subtle last:border-b-0 hover:bg-muted">
                   {#each row.getAllCells() as cell (cell.id)}
                     <td
@@ -289,7 +291,9 @@
                         cell.column.id === 'location' && 'max-w-32 text-muted-foreground @4xl/jobs:max-w-60',
                         (cell.column.id === 'type' || cell.column.id === 'published' || cell.column.id === 'updatedAt') && 'text-muted-foreground',
                         (cell.column.id === 'published' || cell.column.id === 'updatedAt') && 'text-right tabular-nums',
-                        cell.column.id === 'actions' && 'text-right',
+                        // The row menu sticks at the right edge as Status does at the left, so a tablet that scrolls the table
+                        // still reaches it (section 8). The cell around the menu stays part of the row's link.
+                        cell.column.id === 'actions' && 'pointer-events-none sticky right-0 bg-card text-right group-hover:bg-muted',
                       ]}
                     >
                       <FlexRender {cell} />
@@ -338,7 +342,7 @@
 
 {#snippet actionsCell(job: JobSummary)}
   {#if mayEdit && job.status !== 'Closed'}
-    <span class="relative inline-flex">{@render rowMenu(job)}</span>
+    <span class="pointer-events-auto relative inline-flex">{@render rowMenu(job)}</span>
   {/if}
 {/snippet}
 

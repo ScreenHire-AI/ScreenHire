@@ -189,7 +189,7 @@
   {#if endpoint.isError && !detail}
     <HeaderBand title={notFound ? 'Endpoint not found' : 'Endpoint'} />
     <div class="w-full px-4 py-6 md:px-6">
-      <Panel title={notFound ? 'Endpoint not found' : 'Could not load the endpoint'}>
+      <Panel title={notFound ? 'Endpoint not found' : undefined} label="Endpoint">
         {#if notFound}
           <Empty.Root>
             <Empty.Header>
@@ -280,7 +280,7 @@
         <ul class="flex flex-col gap-2" aria-label="Event types">
           {#each detail.events as type (type)}
             <!-- Each event in words, then its type as the code a receiver reads (W2), as the Webhooks page lists them. -->
-            <li class="min-w-0 break-words">{eventLabel(type)} <span class="font-mono text-code break-all text-muted-foreground">{type}</span></li>
+            <li class="min-w-0 break-words">{eventLabel(type)} <span class="font-mono text-code whitespace-nowrap text-muted-foreground">{type}</span></li>
           {/each}
         </ul>
       </Panel>
