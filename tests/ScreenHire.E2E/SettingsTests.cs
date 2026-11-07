@@ -508,7 +508,7 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
             ("/settings/slack", "Slack"),
             ("/settings/webhooks/new", "Add endpoint"),
             ($"/settings/webhooks/{endpointId}", "Applicant sync"),
-            ($"/settings/webhooks/{endpointId}/edit", "Edit endpoint"),
+            ($"/settings/webhooks/{endpointId}/edit", "Applicant sync"),
         ];
         foreach (var (path, title) in pages)
         {

@@ -106,7 +106,7 @@ public sealed partial class TalentPoolTests(E2EFixture fixture) : BrowserTest(fi
         await SignInAsync(scene.Owner);
         await Page.GotoAsync(DashboardUrl("/talent-pool"));
         await Expect(Page).ToHaveURLAsync(new Regex("/saved$")); // the old address lands on the new page
-        await Expect(Page.GetByText("Nobody has been saved yet.")).ToBeVisibleAsync();
+        await Expect(Page.GetByText("Nobody saved yet")).ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Casey Morgan" })).ToHaveCountAsync(0);
 
         // The new application's Overview links back to the one they were kept from.

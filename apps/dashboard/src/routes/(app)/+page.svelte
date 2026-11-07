@@ -254,7 +254,7 @@
                         'px-3',
                         (header.id === 'status' || header.id === 'actions') && 'px-4',
                         header.id === 'status' && 'sticky left-0 bg-muted',
-                        header.id === 'actions' && 'w-14',
+                        header.id === 'actions' && 'sticky right-0 w-14 bg-muted',
                         (header.id === 'published' || header.id === 'updatedAt' || header.id === 'actions') && 'text-right',
                       ]}
                     />
@@ -265,7 +265,7 @@
             <tbody>
               {#each rows as row (row.id)}
                 <!-- The whole row is the link (section 9): the title's link covers it, and the cells with their own
-                     controls sit above it. The Status column sticks while a tablet scrolls the table (section 8). It has
+                     controls sit above it. The Status and Actions columns stick while a tablet scrolls the table (section 8). They have
                      no z-index, so the link's cover and the later cells' raised spans still paint above it. -->
                 <tr class="group relative h-12 border-b border-border-subtle last:border-b-0 hover:bg-muted">
                   {#each row.getAllCells() as cell (cell.id)}
@@ -281,7 +281,9 @@
                         cell.column.id === 'location' && 'max-w-32 text-muted-foreground @4xl/jobs:max-w-60',
                         (cell.column.id === 'type' || cell.column.id === 'published' || cell.column.id === 'updatedAt') && 'text-muted-foreground',
                         (cell.column.id === 'published' || cell.column.id === 'updatedAt') && 'text-right tabular-nums',
-                        cell.column.id === 'actions' && 'text-right',
+                        // The row menu sticks at the right edge as Status does at the left, so a tablet that scrolls the table
+                        // still reaches it (section 8).
+                        cell.column.id === 'actions' && 'sticky right-0 bg-card text-right group-hover:bg-muted',
                       ]}
                     >
                       <FlexRender {cell} />
