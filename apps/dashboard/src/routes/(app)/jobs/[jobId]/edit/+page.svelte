@@ -42,7 +42,7 @@
   <div class="mx-auto w-full max-w-form px-4 py-6 md:px-6">
     <!-- A failed refetch keeps the form and what was typed in it; the error shows only when there is no job yet. -->
     {#if job.isError && !detail}
-      <Panel title={notFound ? 'Job not found' : 'Could not load the job'}>
+      <Panel title={notFound ? 'Job not found' : undefined} label="Job">
         {#if notFound}
           <Empty.Root>
             <Empty.Header>

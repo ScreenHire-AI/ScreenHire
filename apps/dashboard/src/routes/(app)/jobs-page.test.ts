@@ -58,6 +58,16 @@ describe('jobs page', () => {
     expect(screen.getByRole('link', { name: 'New job' })).toHaveAttribute('href', '/jobs/new');
   });
 
+  it('keeps the row menu reachable while a tablet scrolls the table, and the cell around it part of the row link', async () => {
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json(jobs) })));
+    renderPage();
+
+    const menu = await screen.findByRole('button', { name: `Actions for ${jobs[0]!.title}` });
+    const cell = menu.closest('td')!;
+    expect(cell).toHaveClass('sticky', 'right-0', 'pointer-events-none');
+    expect(cell.querySelector('span')).toHaveClass('pointer-events-auto');
+  });
+
   it('sorts by every column, opens on Last updated newest first, and remembers the sort (L2)', async () => {
     vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json([...jobs, closed]) })));
     const { unmount } = renderPage();
@@ -121,7 +131,8 @@ describe('jobs page', () => {
     expect((await dataRows()).map((row) => cellTexts(row)[1])).toEqual(['Customer Success Lead']);
 
     await fireEvent.input(screen.getByLabelText('Search jobs'), { target: { value: 'nothing like this' } });
-    expect(screen.getByText('No jobs match')).toBeInTheDocument();
+    expect(screen.getByText('No jobs match these filters.')).toBeInTheDocument();
+    expect(screen.queryByText('No jobs yet')).toBeNull();
     await fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
     expect(await dataRows()).toHaveLength(3);
   });

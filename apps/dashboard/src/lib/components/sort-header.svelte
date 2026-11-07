@@ -44,7 +44,8 @@
       {:else if sorted === 'asc'}
         <ArrowUpIcon aria-hidden="true" class="size-3 shrink-0" />
       {:else}
-        <ChevronsUpDownIcon aria-hidden="true" class="size-3 shrink-0 opacity-60" />
+        <!-- A faint colour, not opacity: opacity makes a stacking context, which paints the icon over a sticky column's header. -->
+        <ChevronsUpDownIcon aria-hidden="true" class="size-3 shrink-0 text-current/60" />
       {/if}
     </button>
   {:else}

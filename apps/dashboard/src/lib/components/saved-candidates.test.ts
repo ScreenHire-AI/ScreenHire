@@ -234,7 +234,7 @@ describe('saved candidates page', () => {
   it('says nobody has been saved and offers no filters, with no filters offered', async () => {
     renderPage({ who: [] });
 
-    expect(await screen.findByText(/^Nobody has been saved yet./)).toBeInTheDocument();
+    expect(await screen.findByText('Nobody saved yet')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull();
     expect(screen.queryByRole('button', { name: /^Saved from/ })).toBeNull();
   });
@@ -245,7 +245,7 @@ describe('saved candidates page', () => {
 
     await search('nobody by this name');
     expect(screen.getByText('Nobody in saved candidates matches these filters.')).toBeInTheDocument();
-    expect(screen.queryByText(/^Nobody has been saved yet./)).toBeNull();
+    expect(screen.queryByText('Nobody saved yet')).toBeNull();
 
     await fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
     expect(nameLinks()).toEqual(['Casey Morgan', 'Jordan Lee', 'Sam Taylor']);
@@ -546,7 +546,7 @@ describe('saved candidates page', () => {
 
   it('has no accessibility violations in its empty state', async () => {
     const { container } = renderPage({ who: [] });
-    await screen.findByText(/^Nobody has been saved yet./);
+    await screen.findByText('Nobody saved yet');
 
     await expectNoAxeViolations(container);
   });
