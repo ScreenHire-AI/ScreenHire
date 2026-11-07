@@ -114,7 +114,8 @@ nothing is gained by signing, and revocation takes effect on the next request.
 `ScreenHire:OAuth:*` (`OAuthOptions`): `AccessTokenLifetime`, `RefreshTokenLifetime`, `CodeLifetime`, `RegistrationsPerHour`
 (per address, 20), `TokenRequestsPerMinute` (per address, 60) and `MaxUnapprovedClients` (2000; past it registration answers
 429). Counts are per API instance. Only the API reads them. The cap is global, so someone registering from many addresses can
-hold new connections back until the daily purge; lower the purge age or the limit per address if that happens.
+hold new connections back until the daily purge. If that happens, lower `RegistrationsPerHour` or shorten `Grace` in
+`OAuthRetention`.
 
 A registration body is limited to 16 KB by the server's request size limit, and `client_name` keeps no control or invisible
 formatting characters, because it appears on the consent page. The dashboard's `_headers` stops another site framing any
