@@ -36,7 +36,7 @@ internal static class ApiKeyAuthentication
     /// </summary>
     public const string SessionOrApiKeyScheme = "SessionOrApiKey";
 
-    /// <summary>The scheme for an OAuth access token (ADR-0027). Registered, but only <see cref="McpCredentialsScheme"/> reaches it.</summary>
+    /// <summary>The scheme for an OAuth access token (ADR-0028). Registered, but only <see cref="McpCredentialsScheme"/> reaches it.</summary>
     public const string OAuthScheme = "OAuth";
 
     /// <summary>

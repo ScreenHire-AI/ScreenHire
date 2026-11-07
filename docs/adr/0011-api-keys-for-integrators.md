@@ -7,7 +7,7 @@ tags: [adr, api-keys, auth]
 # ADR-0011: Organization API keys now, OAuth client credentials later
 
 - **Status:** Accepted (2026-10-22). Decisions 3 and 4 are amended by ADR-0021: a third scope, Verification read, that
-  only an Owner can give, opens verification to the key that has it. Decision 6 is closed for the MCP server by ADR-0027:
+  only an Owner can give, opens verification to the key that has it. Decision 6 is closed for the MCP server by ADR-0028:
   OAuth sign-in for AI assistants, through the authorization code flow and written here rather than with OpenIddict.
   OpenIddict stays the named route for client credentials and third-party apps.
 - **Deciders:** Owner

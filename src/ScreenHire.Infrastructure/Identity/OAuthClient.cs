@@ -1,7 +1,7 @@
 namespace ScreenHire.Infrastructure.Identity;
 
 /// <summary>
-/// An OAuth client that registered itself (RFC 7591, ADR-0027): an AI assistant such as a claude.ai custom connector.
+/// An OAuth client that registered itself (RFC 7591, ADR-0028): an AI assistant such as a claude.ai custom connector.
 /// It belongs to no organization, because it registers before anyone signs in, so the table has no row-level security
 /// and holds nothing but what the client sent: a name and the redirect URIs it may be sent back to. Public clients only,
 /// so there is no client secret.

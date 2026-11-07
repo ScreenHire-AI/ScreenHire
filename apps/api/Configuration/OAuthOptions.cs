@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace ScreenHire.Api.Configuration;
 
 /// <summary>
-/// OAuth sign-in for the MCP server, <c>ScreenHire:OAuth:*</c> (docs/architecture/oauth-server.md, ADR-0027). The API
+/// OAuth sign-in for the MCP server, <c>ScreenHire:OAuth:*</c> (docs/architecture/oauth-server.md, ADR-0028). The API
 /// reads these; the worker's purge keeps rows past their own expiry and does not read them.
 /// </summary>
 public sealed class OAuthOptions

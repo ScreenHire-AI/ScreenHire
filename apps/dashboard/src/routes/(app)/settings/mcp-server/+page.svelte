@@ -42,7 +42,7 @@
   // The MCP server (docs/architecture/mcp-server.md), on the settings template: the values any MCP client needs, with no
   // client's own setup steps, and a link to API keys for the key it signs in with. The address comes from the API
   // (ScreenHire:Domains:ApiHost through /v1/meta), never from a host written here. Under it, the assistants people
-  // connected by signing in (ADR-0027).
+  // connected by signing in (ADR-0028).
   const meta = createGetMeta();
   const apiOrigin = $derived(meta.data?.data.apiOrigin);
   const serverUrl = $derived(apiOrigin ? `${apiOrigin}/v1/mcp` : undefined);

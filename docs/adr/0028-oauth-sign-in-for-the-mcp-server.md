@@ -1,10 +1,10 @@
 ---
 type: Decision
-title: "ADR-0027: OAuth sign-in for the MCP server"
+title: "ADR-0028: OAuth sign-in for the MCP server"
 description: "The MCP server also accepts OAuth access tokens, so a client that signs in only with OAuth, such as a claude.ai custom connector, can connect: an authorization server on the API (discovery, dynamic client registration, authorization code with PKCE, rotating refresh tokens), a consent page in the dashboard, a connection that is a key row holding the same scopes as an API key, opaque hashed tokens that work on the MCP endpoint only, written by hand rather than with OpenIddict because its tables sit outside row-level security."
 tags: [adr, mcp, oauth, auth, api-keys]
 ---
-# ADR-0027: OAuth sign-in for the MCP server
+# ADR-0028: OAuth sign-in for the MCP server
 
 - **Status:** Accepted (2026-11-07)
 - **Deciders:** Owner

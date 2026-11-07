@@ -12,7 +12,7 @@ namespace ScreenHire.Api.OAuth;
 
 /// <summary>
 /// The protocol endpoints of the OAuth authorization server that signs AI assistants in to the MCP server
-/// (docs/architecture/oauth-server.md, ADR-0027): the two discovery documents, dynamic client registration (RFC 7591),
+/// (docs/architecture/oauth-server.md, ADR-0028): the two discovery documents, dynamic client registration (RFC 7591),
 /// the token endpoint and revocation. All are anonymous, because an assistant calls them before it holds a credential,
 /// rate limited by client address, and open to any origin for browser-based clients such as the MCP Inspector. None is in
 /// the OpenAPI document: the dashboard never calls them, and OAuth describes them itself. The consent routes, which need

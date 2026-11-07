@@ -1,7 +1,7 @@
 namespace ScreenHire.Domain.Organizations;
 
 /// <summary>
-/// An authorization code the consent page issued to an OAuth client (ADR-0027): single use, short-lived, bound to the
+/// An authorization code the consent page issued to an OAuth client (ADR-0028): single use, short-lived, bound to the
 /// redirect URI and the PKCE challenge of the request that asked for it. Only the SHA-256 hash of the code is stored.
 /// </summary>
 public sealed class OAuthCode : ITenantOwned
@@ -41,7 +41,7 @@ public enum OAuthTokenKind
 }
 
 /// <summary>
-/// An access or refresh token of an OAuth connection (ADR-0027). Only the SHA-256 hash is stored. Every token belongs to
+/// An access or refresh token of an OAuth connection (ADR-0028). Only the SHA-256 hash is stored. Every token belongs to
 /// one connection, which is also its family: a refresh token presented twice means it leaked, so every token of the
 /// connection is revoked.
 /// </summary>

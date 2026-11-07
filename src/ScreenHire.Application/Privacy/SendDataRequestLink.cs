@@ -37,6 +37,7 @@ public static partial class SendDataRequestLinkHandler
         ScreenHireDbContext db,
         TransactionalEmail email,
         DataRequestLinks links,
+        Applications.CandidateMailRouting routing,
         ILogger<SendDataRequestLink> logger,
         CancellationToken cancellationToken)
     {
@@ -55,7 +56,8 @@ public static partial class SendDataRequestLinkHandler
         }
 
         var link = links.LinkUrl(organization!.Slug, links.IssueLink(organization.Id, candidate!.Id));
-        await email.SendAsync(DataRequestEmails.LinkEmail(candidate.Email, organization.Name, link, links.LinkLifetime), cancellationToken);
+        var route = await routing.PortalOnlyAsync(db, organization.Id, candidate.Id, cancellationToken);
+        await email.SendAsync(route.Apply(DataRequestEmails.LinkEmail(candidate.Email, organization.Name, link, links.LinkLifetime)), cancellationToken);
         LogSent(logger, message.CandidateId);
     }
 

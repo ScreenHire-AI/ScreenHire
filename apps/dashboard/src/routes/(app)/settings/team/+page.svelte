@@ -97,7 +97,7 @@
   const mayRevokeKeys = $derived(can(data.user, 'ManageApiKeys'));
   const keys = createListApiKeys(() => ({ query: { enabled: mayRevokeKeys } }));
   const revokeKey = createRevokeApiKey(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, '/v1/organization/api-keys') } }));
-  // The assistants a member connected by signing in (ADR-0027) are offered the same way, for the same reason.
+  // The assistants a member connected by signing in (ADR-0028) are offered the same way, for the same reason.
   const connections = createListOAuthConnections(() => ({ query: { enabled: mayRevokeKeys } }));
   const revokeConnection = createRevokeOAuthConnection(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, '/v1/organization/oauth-connections') } }));
   const catalogue = createListRoles();

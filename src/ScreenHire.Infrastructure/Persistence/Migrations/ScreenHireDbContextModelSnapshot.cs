@@ -1271,6 +1271,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("phone");
 
+                    b.Property<DateTimeOffset?>("PortalLinkSentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("portal_link_sent_at");
+
                     b.HasKey("Id")
                         .HasName("pk_candidates");
 

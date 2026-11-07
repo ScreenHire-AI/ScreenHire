@@ -24,6 +24,7 @@ const sections = [
   { id: 'applying', title: 'When you apply' },
   { id: 'saving', title: 'If you save to finish later' },
   { id: 'after', title: 'After you apply' },
+  { id: 'your-page', title: 'Your page' },
   { id: 'future-roles', title: 'Future roles' },
   { id: 'checks', title: 'What we check, and what we never do' },
   { id: 'assistive', title: 'Assistive technology' },
@@ -111,6 +112,20 @@ const sections = [
         page keeps your answers and nothing else: no information about how the form was used, no device code and no checks.
         You can save your answers there to finish later through the same link; we delete them when you send them, or 30
         days after you first saved them.
+      </p>
+    </Panel>
+
+    <Panel id="your-page" title="Your page" bodyClass="flex flex-col gap-3 [&_li]:mt-1 [&_ul]:list-disc [&_ul]:pl-5">
+      <p>
+        {employer.name} may email you a link to your own page, and every email about an application ends with one. You can
+        also ask for the link on <a href={`${base}/my-applications`} class="text-link">the page for your applications</a>,
+        with the address you applied with. The page shows your applications to {employer.name}, a saved application you can
+        finish, anything waiting for you, and the messages between you and the team. The link works for a limited time and only
+        for you, so do not forward the email. If you write a reply on that page, with or without files, we keep it with your
+        application like a reply by email, and the team can read it. The page keeps what you type and nothing else: no
+        information about how the page was used, no device code and no checks. We use the address you give there only to
+        find your applications and to send the link. The page where you enter your address may ask your browser to complete the
+        same bot challenge from Cloudflare.
       </p>
     </Panel>
 

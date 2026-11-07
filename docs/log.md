@@ -2,12 +2,20 @@
 
 ## 2026-11-07
 
+**Candidates have a page of their own.** A candidate asks for a link on the careers site with the address they applied with
+and gets one only if we have an application from it; the page says the same either way. The link opens each application with
+a four-step status (Applied, In review, Interview, Decision, then Hired, Not moving forward or Withdrawn) that never shows an
+employer's own stage names, a saved application to finish, a follow-up questionnaire or an interview to book, and the
+messages with a reply box. A reply typed there and a reply by email are one thing, in Messages and Activity, with attachments
+scanned. Every email to a candidate now ends with a link to the page, and the interview emails carry a Reply-To, which they
+did not before. The notice version is `2026-11-07.1`. ([candidate portal](architecture/candidate-portal.md), ADR-0027)
+
 **An AI assistant that signs in only with OAuth can now connect to the MCP server.** A claude.ai custom connector needs only the
 server URL: it finds the authorization server from the 401, registers itself, and sends an Owner or Admin to a consent page in
 the dashboard, where they choose what it may do (Read always; Write and Verification read only if they hold them, both opt-in).
 The approval is a connection with an API key's scopes, rate limit and audit trail; its tokens work on `/v1/mcp` only, and
 Settings, MCP server lists each connection and disconnects it at once. The authorization server is written here rather than
-with OpenIddict because OpenIddict's token tables would sit outside row-level security (ADR-0027, which closes ADR-0011
+with OpenIddict because OpenIddict's token tables would sit outside row-level security (ADR-0028, which closes ADR-0011
 decision 6; [OAuth sign-in](architecture/oauth-server.md)). An emailed sign-in link now keeps the page it was asked from.
 
 **A webhook endpoint has a change history.** An endpoint's signing secret was never stored (it is derived from the platform key,

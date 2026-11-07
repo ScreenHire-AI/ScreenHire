@@ -1,0 +1,130 @@
+---
+// The messages about one application (docs/architecture/candidate-portal.md): the emails the team sent to the candidate and
+// their replies, oldest first, with a box to reply from the page. A reply written here and a reply sent by email land in the
+// same place for the team, with attachments scanned. One native multipart form posted to the `sendPortalReply` action, so it
+// works with JavaScript off and ships no script. The reply form's own id makes sending it twice store one reply. The link is
+// the candidate's alone: never cached, indexed or sent on as a referrer. It collects the words and files and nothing else.
+import { actions } from 'astro:actions';
+import Notice from '../../../../components/Notice.astro';
+import PortalLinkProblem from '../../../../components/PortalLinkProblem.astro';
+import CareersLayout from '../../../../layouts/CareersLayout.astro';
+import { getPublicOrganization, getPublicPortalMessages } from '../../../../lib/api';
+import { forwardedFor } from '../../../../lib/apply-server';
+import { longDate } from '../../../../lib/drafts';
+import { basePath } from '../../../../lib/host';
+import { FILE_TYPES, isGuid, isToken, MAX_FILES, newReplyKey, REPLY_MESSAGES } from '../../../../lib/portal';
+
+const { organization, token, application } = Astro.params;
+const base = basePath(Astro.request, organization!);
+const mine = `${base}/my-applications/${token}`;
+const result = Astro.getActionResult(actions.sendPortalReply);
+if (result?.data?.outcome === 'sent' && isToken(token) && isGuid(application)) {
+  return Astro.redirect(`${mine}/${application}?sent=1`, 303);
+}
+
+Astro.response.headers.set('Cache-Control', 'no-store');
+
+// A token or an id of the wrong shape is never put into an API path.
+const [employerResponse, thread] = await Promise.all([
+  getPublicOrganization(organization!),
+  isToken(token) && isGuid(application) ? getPublicPortalMessages(organization!, token, application, forwardedFor(Astro.clientAddress)) : null,
+]);
+if (employerResponse.status !== 200) {
+  return new Response(null, { status: 404 });
+}
+
+const employer = employerResponse.data;
+const messages = thread?.status === 200 ? thread.data : null;
+const outcome = result?.data?.outcome;
+const status = thread?.status === 429 ? 'busy' : !messages || outcome === 'expired' ? 'expired' : 'open';
+Astro.response.status = status === 'open' ? 200 : status === 'busy' ? 429 : 404;
+
+const sent = Astro.url.searchParams.get('sent') === '1';
+const problem = result?.error ? REPLY_MESSAGES.error : outcome && outcome !== 'sent' && outcome !== 'expired' ? REPLY_MESSAGES[outcome] : undefined;
+const key = result?.data?.key ?? newReplyKey();
+const heading = { open: messages?.jobTitle ?? 'Messages', busy: 'Too many attempts', expired: 'This link has expired or is not valid' }[status];
+---
+
+<CareersLayout
+  title={`Messages: ${heading} | ${employer.name}`}
+  description={`Your messages with ${employer.name} about an application.`}
+  organizationName={employer.name}
+  organizationSlug={employer.slug}
+  branding={employer.branding}
+  noindex
+>
+  <meta slot="head" name="referrer" content="no-referrer" />
+
+  {status === 'open' && <p class="text-candidate-hint"><a href={mine} class="text-link inline-flex min-h-11 items-center">Back to your applications</a></p>}
+  <h1 class="font-display text-candidate-title">{heading}</h1>
+
+  {status !== 'open' && <PortalLinkProblem status={status} employerName={employer.name} base={base} />}
+
+  {
+    messages && status === 'open' && (
+      <>
+        {sent && <div class="mt-5"><Notice kind="success" message="Your message was sent." detail="The team has been told." /></div>}
+
+        <section aria-labelledby="thread" class="mt-6">
+          <h2 id="thread" class="sr-only">Messages</h2>
+          <ol class="flex flex-col gap-4">
+            {messages.messages.map((message) => (
+              <li class:list={['rounded-2xl border border-candidate-border p-5', message.direction === 'FromYou' ? 'bg-candidate-background' : 'bg-candidate-surface']}>
+                <p class="text-candidate-hint text-candidate-muted-foreground">
+                  <span class="font-semibold text-candidate-foreground">{message.direction === 'FromYou' ? 'You' : employer.name}</span>
+                  {' '}on <time datetime={message.at}>{longDate(message.at)}</time>
+                </p>
+                <p class="mt-1 font-semibold">{message.subject}</p>
+                <p class="mt-2 break-words whitespace-pre-wrap">{message.body}</p>
+                {message.attachmentCount > 0 && (
+                  <p class="mt-2 text-candidate-hint text-candidate-muted-foreground">
+                    {message.attachmentCount === 1 ? '1 file attached.' : `${message.attachmentCount} files attached.`}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        {messages.canReply ? (
+          <section aria-labelledby="reply-heading" class="mt-8">
+            <h2 id="reply-heading" class="font-display text-panel-title">Reply</h2>
+            <p class="mt-1 text-candidate-hint text-candidate-muted-foreground">You can also reply to the email you received.</p>
+            <form method="POST" action={actions.sendPortalReply} enctype="multipart/form-data" novalidate class="mt-4 flex flex-col gap-4">
+              <input type="hidden" name="organization" value={employer.slug} />
+              <input type="hidden" name="token" value={token} />
+              <input type="hidden" name="application" value={application} />
+              <input type="hidden" name="key" value={key} />
+              <input type="hidden" name="bodyMax" value={messages.bodyMax} />
+              {problem && <Notice kind="problem" message={problem} />}
+              <div class="flex flex-col gap-2">
+                <label for="body" class="text-candidate-body font-bold">Your message</label>
+                <textarea id="body" name="body" rows="6" required maxlength={messages.bodyMax} class="field-input">{result?.data?.body ?? ''}</textarea>
+              </div>
+              <div class="flex flex-col gap-2">
+                <label for="files" class="text-candidate-body font-bold">
+                  Files <span class="font-medium text-candidate-muted-foreground">(optional)</span>
+                </label>
+                <p id="files-hint" class="text-candidate-hint text-candidate-muted-foreground">
+                  Up to {MAX_FILES} files, 10 MB in all. PDF, Word, PNG or JPEG. We scan every file before the team can open it.
+                </p>
+                <input id="files" name="files" type="file" multiple accept={FILE_TYPES} aria-describedby="files-hint" class="field-input" />
+              </div>
+              <div class="flex flex-col gap-3 sm:flex-row">
+                <button type="submit" class="button-primary">Send message</button>
+              </div>
+            </form>
+          </section>
+        ) : (
+          <p class="mt-8 text-candidate-body text-candidate-muted-foreground">
+            When the team writes to you about this application, you can answer here.
+          </p>
+        )}
+      </>
+    )
+  }
+
+  <p class="mt-8 text-candidate-hint">
+    <a href={`${base}/privacy`} class="text-link inline-flex min-h-11 items-center">What we collect and why</a>
+  </p>
+</CareersLayout>

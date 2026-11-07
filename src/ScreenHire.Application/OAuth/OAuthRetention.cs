@@ -7,7 +7,7 @@ using Wolverine;
 namespace ScreenHire.Application.OAuth;
 
 /// <summary>
-/// Daily: OAuth client registrations nobody approved, and codes and tokens past their own expiry (ADR-0027). Client
+/// Daily: OAuth client registrations nobody approved, and codes and tokens past their own expiry (ADR-0028). Client
 /// registration is open to anyone, so a registration no person approved within a day goes. The worker sees no
 /// organization's rows without a tenant, so it hands each organization's sweep to a tenant message, as
 /// <c>PurgeExpiredSlackMessages</c> does. A used refresh token stays until it would have expired: reuse detection needs it.

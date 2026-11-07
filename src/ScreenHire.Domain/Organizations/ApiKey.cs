@@ -31,7 +31,7 @@ public sealed class ApiKey : ITenantOwned
     public Guid? CreatedByUserId { get; init; }
 
     /// <summary>
-    /// The OAuth client this row stands for, when a person connected an AI assistant through the consent page (ADR-0027).
+    /// The OAuth client this row stands for, when a person connected an AI assistant through the consent page (ADR-0028).
     /// Such a row is the connection: it carries the granted scopes, is the actor on the timeline and the verification
     /// review log, and revoking it ends every token of the connection. Its secret is generated and thrown away, so it can
     /// never sign in as an <c>shk_</c> key. Null for a key a person made on the API keys page.

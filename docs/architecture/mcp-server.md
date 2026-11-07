@@ -30,7 +30,7 @@ server on the API (roadmap item 6). It finds jobs and candidates, reads an appli
 candidates, adds notes, tags and tasks, and moves a candidate to a stage. A key an Owner gave the Verification read scope
 also reads an application's verification and lists applications by level (ADR-0021). It signs in with an organization
 API key ([sign-in and tenancy](sign-in-and-tenancy.md), "API keys"; ADR-0011), or, for a client that signs in only with
-OAuth, with an access token for a connection a person approved ([OAuth sign-in](oauth-server.md); ADR-0027). Either way
+OAuth, with an access token for a connection a person approved ([OAuth sign-in](oauth-server.md); ADR-0028). Either way
 the key's organization, scope and rate limit apply to everything it does: a connection is a key row.
 
 ## The endpoint
@@ -174,7 +174,7 @@ the tools.
 authorization server from the 401, registers itself, and sends the person to a consent page in the dashboard, where an
 Owner or Admin chooses what the assistant may do (Read always; Write and Verification read if they hold them
 themselves). The connection then shows under Settings > MCP server, where it can be disconnected at once. The flow, the
-tokens and the limits are in [OAuth sign-in](oauth-server.md) (ADR-0027, which closes ADR-0011 decision 6). It needs the
+tokens and the limits are in [OAuth sign-in](oauth-server.md) (ADR-0028, which closes ADR-0011 decision 6). It needs the
 API on a public HTTPS host; locally the integration tests and the MCP client exercise it.
 
 ## Tests

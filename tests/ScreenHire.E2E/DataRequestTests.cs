@@ -111,7 +111,7 @@ public sealed partial class DataRequestTests(E2EFixture fixture) : BrowserTest(f
         using var applied = await anonymous.PostAsJsonAsync($"/v1/public/organizations/{slug}/jobs/{jobId}/applications", new JsonObject
         {
             ["candidate"] = new JsonObject { ["firstName"] = "Casey", ["lastName"] = "Morgan", ["email"] = email },
-            ["privacyNoticeVersion"] = "2026-11-05.2",
+            ["privacyNoticeVersion"] = "2026-11-07.1",
             ["answers"] = new JsonArray(),
             ["aiUseDeclaration"] = "DidNotUse",
         }, Ct);

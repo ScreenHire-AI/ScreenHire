@@ -12,7 +12,7 @@ namespace ScreenHire.Api.OAuth;
 
 /// <summary>
 /// Authenticates <c>Authorization: Bearer sho_...</c>, an access token an OAuth client got for a connection a person
-/// approved (ADR-0027). Only the MCP endpoint reaches it (<see cref="ApiKeyAuthentication.McpCredentialsScheme"/>). It
+/// approved (ADR-0028). Only the MCP endpoint reaches it (<see cref="ApiKeyAuthentication.McpCredentialsScheme"/>). It
 /// works like the API key handler: the token names its organization, which becomes the tenant in a scope of its own before
 /// the lookup, so the lookup runs under row-level security. The principal it returns is the connection's key row, so
 /// scopes, the rate limit, the timeline and the verification review log treat the connection exactly as a key. A token

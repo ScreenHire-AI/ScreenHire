@@ -11,7 +11,7 @@ namespace ScreenHire.Api.OAuth;
 
 /// <summary>
 /// The routes a signed-in person uses to decide on an assistant's request and to manage what is connected
-/// (docs/architecture/oauth-server.md, ADR-0027). They are session-only, like the API keys page: an assistant cannot call
+/// (docs/architecture/oauth-server.md, ADR-0028). They are session-only, like the API keys page: an assistant cannot call
 /// them. The same people may connect an assistant as may make an API key, <see cref="Permission.ManageApiKeys"/>, and a
 /// connection never holds more than they do. The dashboard's consent page, on the origin where the sign-in cookie is,
 /// calls these; the protocol endpoints are in <see cref="OAuthEndpoints"/>.

@@ -5,7 +5,7 @@ using ScreenHire.Api.Configuration;
 namespace ScreenHire.Api.OAuth;
 
 /// <summary>
-/// Options, rate limits and CORS for the OAuth authorization server (docs/architecture/oauth-server.md, ADR-0027). The
+/// Options, rate limits and CORS for the OAuth authorization server (docs/architecture/oauth-server.md, ADR-0028). The
 /// sign-in handler and the policies that use it are in <see cref="Auth.ApiKeyAuthentication"/>, beside the key handler.
 /// </summary>
 internal static class OAuthSetup

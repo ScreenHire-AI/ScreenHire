@@ -42,6 +42,10 @@ public sealed class InterviewJourneyTests(AppHostFixture fixture)
         var invitation = await world.WaitForEmailAsync(world.CandidateEmail, "Pick a time");
         var token = InterviewWorld.TokenIn(invitation.Text);
         invitation.Text.Should().Contain(world.Slug).And.Contain("30 minutes");
+        // Like every email about an application it carries a reply address, so an emailed answer lands in Messages, and the
+        // candidate's link to their own page, which the team's copy never holds.
+        invitation.ReplyTo.Should().NotBeNull("an interview email can be answered by email");
+        invitation.Text.Should().Contain(ScreenHire.Infrastructure.Email.CandidatePortalFooter.Sentence).And.Contain("/my-applications/");
         await world.WaitForTimelineAsync("InterviewInvited");
         await world.WaitForTimelineAsync("EmailSent");
         var timeline = (await world.Owner.GetAsync($"/v1/applications/{world.ApplicationId}/timeline")).Expect(HttpStatusCode.OK).Body.EnumerateArray().ToList();
@@ -50,6 +54,7 @@ public sealed class InterviewJourneyTests(AppHostFixture fixture)
         var copy = (await world.Owner.GetAsync($"/v1/emails/{sent.GetProperty("emailId").GetGuid()}")).Expect(HttpStatusCode.OK);
         copy.Text("text").Should().Contain("[the candidate's link, not kept in this copy]").And.NotContain(token);
         copy.Text("html").Should().NotContain(token);
+        copy.Text("text").Should().NotContain("/my-applications/");
 
         // The candidate's page: the offered times, nothing about the interviewers, and a busy block takes a time away.
         var page = (await world.PublicGetAsync(token)).Expect(HttpStatusCode.OK);

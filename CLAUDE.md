@@ -88,7 +88,9 @@ subsystem.
   parameter, `Sandbox:Enabled` is the local sandbox calendar, on in `pnpm dev` and the test stacks) goes to the API and worker alike; see
   [`docs/architecture/interview-scheduling.md`](docs/architecture/interview-scheduling.md). `ScreenHire:DataRequests:*` (due days, link and copy lifetimes,
   the rate limit, the copies' container) and `ScreenHire:Retention:*` (`BatchSize`) go to the API and worker alike; see
-  [`docs/architecture/data-requests.md`](docs/architecture/data-requests.md). `ScreenHire:PersistData` (default `true`) keeps Postgres, Azurite and
+  [`docs/architecture/data-requests.md`](docs/architecture/data-requests.md). `ScreenHire:Portal:*` (the candidate's own page:
+  `LinkLifetime`, `LinkCooldown`, `PermitsPerMinute`, `ReplyBodyMax`, `RepliesPerDay`) goes to the API and worker alike; see
+  [`docs/architecture/candidate-portal.md`](docs/architecture/candidate-portal.md). `ScreenHire:PersistData` (default `true`) keeps Postgres, Azurite and
   Mailpit data in per-worktree volumes; `false` starts with none, as the tests do. `ScreenHire:Demo` (default: on with `Dev`
   frontends only) seeds the local demo's data on Brightwater, and the API is healthy only once it is in. The header of `apps/apphost/AppHost.cs`
   describes every setting.
@@ -218,7 +220,7 @@ Detail: `.claude/rules/dotnet-api.md` and `.claude/rules/utc-timestamps.md`. Pro
   calls `.AllowAnonymous()`; cookie-authenticated POSTs need `.RequireAntiforgeryToken()`. Hiring API groups (jobs,
   applications, candidates, templates) use `.AllowApiKeys()`, which also accepts an organization API key (ADR-0011);
   the verification read routes use `.AllowVerificationApiKeys()`, which accepts only a key with the `VerificationRead`
-  scope an Owner gave it (ADR-0021); nothing else accepts a key, except `/v1/mcp`, which takes a key or an OAuth access token (ADR-0027). Tenant-owned entities implement `ITenantOwned` and get
+  scope an Owner gave it (ADR-0021); nothing else accepts a key, except `/v1/mcp`, which takes a key or an OAuth access token (ADR-0028). Tenant-owned entities implement `ITenantOwned` and get
   a row-level security policy in their migration; a row under one job implements `IJobScoped` or `IApplicationScoped` and gets a restrictive `job_scope`
   policy too, and an event that carries a `JobId` implements `IJobEvent` (ADR-0015). The API and worker connect as
   `screenhire_app` (bound by RLS); handlers never filter by organization themselves. Google, Microsoft and generic OIDC providers appear only when their client id and secret are in user

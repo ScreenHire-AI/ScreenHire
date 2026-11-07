@@ -6,7 +6,7 @@ using ScreenHire.Application.Verification;
 namespace ScreenHire.IntegrationTests;
 
 /// <summary>
-/// OAuth sign-in for the MCP server (ADR-0027, docs/architecture/oauth-server.md), driven as claude.ai or Claude Code drives
+/// OAuth sign-in for the MCP server (ADR-0028, docs/architecture/oauth-server.md), driven as claude.ai or Claude Code drives
 /// it: discovery, dynamic client registration, a signed-in person's consent, the token endpoint, and then a real MCP client
 /// with the access token. Expected values come from the MCP authorization spec and RFC 6749, 7009, 7591, 7636, 8252,
 /// 8414, 8707, 9207 and 9728, and from the plan's decisions, never from what the code returns. Every test makes its own

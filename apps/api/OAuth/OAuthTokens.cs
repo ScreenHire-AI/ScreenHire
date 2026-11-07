@@ -7,7 +7,7 @@ using ScreenHire.Api.Auth;
 
 namespace ScreenHire.Api.OAuth;
 
-// Why this is hand-written rather than OpenIddict (ADR-0027, .claude/rules/cli-features-over-custom-layers.md): an API key
+// Why this is hand-written rather than OpenIddict (ADR-0028, .claude/rules/cli-features-over-custom-layers.md): an API key
 // names its organization inside the token, so authentication sets the tenant first and the lookup runs under row-level
 // security (CLAUDE.md non-negotiable 6). OpenIddict finds a reference token by its hash alone, with no organization to
 // set before the query, so its tables would have to sit outside row-level security.

@@ -12,7 +12,7 @@ namespace ScreenHire.Api.Mcp;
 /// <summary>
 /// The remote MCP server for a team's AI assistant at <c>/v1/mcp</c> (docs/architecture/mcp-server.md): Streamable HTTP
 /// in stateless mode, signed in with an organization API key or with an OAuth access token a person approved for a
-/// connection (ADR-0027), behind the key's own rate limit. The SDK does the protocol; <see cref="HiringTools"/> calls the
+/// connection (ADR-0028), behind the key's own rate limit. The SDK does the protocol; <see cref="HiringTools"/> calls the
 /// hiring API's services.
 /// </summary>
 /// <remarks>

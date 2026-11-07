@@ -40,7 +40,7 @@ internal sealed record OAuthTokenResponse(
     [property: JsonPropertyName("scope")] string Scope);
 
 /// <summary>
-/// The authorization server's rules (docs/architecture/oauth-server.md, ADR-0027): checking an authorization request,
+/// The authorization server's rules (docs/architecture/oauth-server.md, ADR-0028): checking an authorization request,
 /// recording a person's decision as a connection and a code, and exchanging a code or a refresh token for tokens. One
 /// scoped service so the consent routes and the token endpoint apply the same checks. The consent routes run for a
 /// signed-in person, whose organization is already the tenant; the token endpoint sets the tenant from the code or token

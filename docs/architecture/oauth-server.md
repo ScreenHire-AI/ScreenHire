@@ -28,7 +28,7 @@ sources:
 # OAuth sign-in for the MCP server
 
 A client that signs in only with OAuth, such as a claude.ai custom connector, cannot paste an API key. The API therefore
-runs a small OAuth 2.1 authorization server for the [MCP server](mcp-server.md) (ADR-0027). A person approves the
+runs a small OAuth 2.1 authorization server for the [MCP server](mcp-server.md) (ADR-0028). A person approves the
 assistant in the dashboard, and the assistant then works through `/v1/mcp` with the same scopes, rate limit and audit trail
 as an API key ([sign-in and tenancy](sign-in-and-tenancy.md), "API keys").
 
@@ -107,7 +107,7 @@ nothing is gained by signing, and revocation takes effect on the next request.
   address in the key handler's `FailedAttempts` and answers 429 when it runs out. An expired or revoked token gets 401
   without counting: every client holds an expired one once an hour, and a hosted assistant's address is shared.
 - **Why not OpenIddict.** It finds a reference token by its hash alone, so its tables would sit outside row-level security
-  (ADR-0027).
+  (ADR-0028).
 
 ## Limits and settings
 
