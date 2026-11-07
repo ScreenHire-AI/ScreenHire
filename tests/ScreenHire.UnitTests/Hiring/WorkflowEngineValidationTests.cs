@@ -271,13 +271,15 @@ public sealed class WorkflowEngineValidationTests
         ]);
 
         DefinitionValidator.Validate(workflow).Should().ContainSingle(e => e.Path == "automations[0].actions[0].emailTemplate")
-            .Which.Message.Should().Contain("application-received, application-rejected, interview-cancelled, interview-confirmation, interview-invitation, questionnaire-request, stage-change");
+            .Which.Message.Should().Contain("application-received, application-rejected, interview-cancelled, interview-confirmation, interview-invitation, interview-new-times, interview-reminder, questionnaire-request, stage-change");
     }
 
     [Theory]
     [InlineData("interview-invitation")]
     [InlineData("interview-confirmation")]
     [InlineData("interview-cancelled")]
+    [InlineData("interview-new-times")]
+    [InlineData("interview-reminder")]
     public void The_interview_emails_are_sent_only_by_scheduling_never_by_a_send_email_action(string template)
     {
         var workflow = Workflow([WorkAuthorization],

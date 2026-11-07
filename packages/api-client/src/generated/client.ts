@@ -81,6 +81,7 @@ import type {
   GetSavedNoteHistoryParams,
   GetScorecardTemplateHistoryParams,
   GetTeamHistoryParams,
+  GetWebhookEndpointHistoryParams,
   HiringReport,
   HiringTeamMember,
   HiringTeamRequest,
@@ -120,6 +121,7 @@ import type {
   MembershipLogEntry,
   MoveApplicationRequest,
   MyOrganization,
+  OfferNewInterviewTimesRequest,
   OnboardingRequest,
   OrganizationBranding,
   OrganizationProfile,
@@ -148,6 +150,11 @@ import type {
   PublicJob,
   PublicJobBoard,
   PublicOrganization,
+  PublicPortal,
+  PublicPortalForm,
+  PublicPortalLinkRequest,
+  PublicPortalMessages,
+  PublicPortalReplyRequest,
   PublicQuestionnaire,
   PublicQuestionnaireAnswers,
   PublicTalentPoolStatus,
@@ -2405,6 +2412,291 @@ export const getPublicDataDownload = async (organizationSlug: string,
     method: 'GET'
 
 
+  }
+);}
+
+
+
+export type getPublicPortalFormResponse200 = {
+  data: PublicPortalForm
+  status: 200
+}
+
+export type getPublicPortalFormResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicPortalFormResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getPublicPortalFormResponseSuccess = (getPublicPortalFormResponse200) & {
+  headers: Headers;
+};
+export type getPublicPortalFormResponseError = (getPublicPortalFormResponse404 | getPublicPortalFormResponse429) & {
+  headers: Headers;
+};
+
+export type getPublicPortalFormResponse = (getPublicPortalFormResponseSuccess | getPublicPortalFormResponseError)
+
+export const getGetPublicPortalFormUrl = (organizationSlug: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/portal`
+}
+
+export const getPublicPortalForm = async (organizationSlug: string, options?: Parameters<typeof apiFetch>[1]): Promise<getPublicPortalFormResponse> => {
+
+  return apiFetch<getPublicPortalFormResponse>(getGetPublicPortalFormUrl(organizationSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type requestPublicPortalLinkResponse202 = {
+  data: void
+  status: 202
+}
+
+export type requestPublicPortalLinkResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type requestPublicPortalLinkResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type requestPublicPortalLinkResponse404 = {
+  data: void
+  status: 404
+}
+
+export type requestPublicPortalLinkResponse429 = {
+  data: void
+  status: 429
+}
+
+export type requestPublicPortalLinkResponseSuccess = (requestPublicPortalLinkResponse202) & {
+  headers: Headers;
+};
+export type requestPublicPortalLinkResponseError = (requestPublicPortalLinkResponse400 | requestPublicPortalLinkResponse403 | requestPublicPortalLinkResponse404 | requestPublicPortalLinkResponse429) & {
+  headers: Headers;
+};
+
+export type requestPublicPortalLinkResponse = (requestPublicPortalLinkResponseSuccess | requestPublicPortalLinkResponseError)
+
+export const getRequestPublicPortalLinkUrl = (organizationSlug: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/portal/links`
+}
+
+export const requestPublicPortalLink = async (organizationSlug: string,
+    publicPortalLinkRequest: PublicPortalLinkRequest, options?: Parameters<typeof apiFetch>[1]): Promise<requestPublicPortalLinkResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<requestPublicPortalLinkResponse>(getRequestPublicPortalLinkUrl(organizationSlug),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicPortalLinkRequest)
+  }
+);}
+
+
+
+export type getPublicPortalResponse200 = {
+  data: PublicPortal
+  status: 200
+}
+
+export type getPublicPortalResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicPortalResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getPublicPortalResponseSuccess = (getPublicPortalResponse200) & {
+  headers: Headers;
+};
+export type getPublicPortalResponseError = (getPublicPortalResponse404 | getPublicPortalResponse429) & {
+  headers: Headers;
+};
+
+export type getPublicPortalResponse = (getPublicPortalResponseSuccess | getPublicPortalResponseError)
+
+export const getGetPublicPortalUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/portal/${token}`
+}
+
+export const getPublicPortal = async (organizationSlug: string,
+    token: string, options?: Parameters<typeof apiFetch>[1]): Promise<getPublicPortalResponse> => {
+
+  return apiFetch<getPublicPortalResponse>(getGetPublicPortalUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getPublicPortalMessagesResponse200 = {
+  data: PublicPortalMessages
+  status: 200
+}
+
+export type getPublicPortalMessagesResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicPortalMessagesResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getPublicPortalMessagesResponseSuccess = (getPublicPortalMessagesResponse200) & {
+  headers: Headers;
+};
+export type getPublicPortalMessagesResponseError = (getPublicPortalMessagesResponse404 | getPublicPortalMessagesResponse429) & {
+  headers: Headers;
+};
+
+export type getPublicPortalMessagesResponse = (getPublicPortalMessagesResponseSuccess | getPublicPortalMessagesResponseError)
+
+export const getGetPublicPortalMessagesUrl = (organizationSlug: string,
+    token: string,
+    applicationId: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/portal/${token}/applications/${applicationId}/messages`
+}
+
+export const getPublicPortalMessages = async (organizationSlug: string,
+    token: string,
+    applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getPublicPortalMessagesResponse> => {
+
+  return apiFetch<getPublicPortalMessagesResponse>(getGetPublicPortalMessagesUrl(organizationSlug,token,applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type sendPublicPortalReplyResponse202 = {
+  data: void
+  status: 202
+}
+
+export type sendPublicPortalReplyResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type sendPublicPortalReplyResponse404 = {
+  data: void
+  status: 404
+}
+
+export type sendPublicPortalReplyResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type sendPublicPortalReplyResponse429 = {
+  data: void
+  status: 429
+}
+
+export type sendPublicPortalReplyResponseSuccess = (sendPublicPortalReplyResponse202) & {
+  headers: Headers;
+};
+export type sendPublicPortalReplyResponseError = (sendPublicPortalReplyResponse400 | sendPublicPortalReplyResponse404 | sendPublicPortalReplyResponse409 | sendPublicPortalReplyResponse429) & {
+  headers: Headers;
+};
+
+export type sendPublicPortalReplyResponse = (sendPublicPortalReplyResponseSuccess | sendPublicPortalReplyResponseError)
+
+export const getSendPublicPortalReplyUrl = (organizationSlug: string,
+    token: string,
+    applicationId: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/portal/${token}/applications/${applicationId}/messages`
+}
+
+export const sendPublicPortalReply = async (organizationSlug: string,
+    token: string,
+    applicationId: string,
+    publicPortalReplyRequest: PublicPortalReplyRequest, options?: Parameters<typeof apiFetch>[1]): Promise<sendPublicPortalReplyResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<sendPublicPortalReplyResponse>(getSendPublicPortalReplyUrl(organizationSlug,token,applicationId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicPortalReplyRequest)
   }
 );}
 
@@ -9616,10 +9908,15 @@ export type getHiringReportResponse401 = {
   status: 401
 }
 
+export type getHiringReportResponse429 = {
+  data: void
+  status: 429
+}
+
 export type getHiringReportResponseSuccess = (getHiringReportResponse200) & {
   headers: Headers;
 };
-export type getHiringReportResponseError = (getHiringReportResponse400 | getHiringReportResponse401) & {
+export type getHiringReportResponseError = (getHiringReportResponse400 | getHiringReportResponse401 | getHiringReportResponse429) & {
   headers: Headers;
 };
 
@@ -9681,10 +9978,15 @@ export type getFunnelApplicationsResponse404 = {
   status: 404
 }
 
+export type getFunnelApplicationsResponse429 = {
+  data: void
+  status: 429
+}
+
 export type getFunnelApplicationsResponseSuccess = (getFunnelApplicationsResponse200) & {
   headers: Headers;
 };
-export type getFunnelApplicationsResponseError = (getFunnelApplicationsResponse400 | getFunnelApplicationsResponse401 | getFunnelApplicationsResponse404) & {
+export type getFunnelApplicationsResponseError = (getFunnelApplicationsResponse400 | getFunnelApplicationsResponse401 | getFunnelApplicationsResponse404 | getFunnelApplicationsResponse429) & {
   headers: Headers;
 };
 
@@ -10688,6 +10990,70 @@ export const deleteWebhookEndpoint = async (endpointId: string, options?: Parame
   {
     ...options,
     method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type getWebhookEndpointHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getWebhookEndpointHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getWebhookEndpointHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getWebhookEndpointHistoryResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getWebhookEndpointHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getWebhookEndpointHistoryResponseSuccess = (getWebhookEndpointHistoryResponse200) & {
+  headers: Headers;
+};
+export type getWebhookEndpointHistoryResponseError = (getWebhookEndpointHistoryResponse400 | getWebhookEndpointHistoryResponse401 | getWebhookEndpointHistoryResponse403 | getWebhookEndpointHistoryResponse404) & {
+  headers: Headers;
+};
+
+export type getWebhookEndpointHistoryResponse = (getWebhookEndpointHistoryResponseSuccess | getWebhookEndpointHistoryResponseError)
+
+export const getGetWebhookEndpointHistoryUrl = (endpointId: string,
+    params?: GetWebhookEndpointHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/webhooks/${endpointId}/history?${stringifiedParams}` : `/v1/webhooks/${endpointId}/history`
+}
+
+export const getWebhookEndpointHistory = async (endpointId: string,
+    params?: GetWebhookEndpointHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getWebhookEndpointHistoryResponse> => {
+
+  return apiFetch<getWebhookEndpointHistoryResponse>(getGetWebhookEndpointHistoryUrl(endpointId,params),
+  {
+    ...options,
+    method: 'GET'
 
 
   }
@@ -11704,6 +12070,81 @@ export const cancelInterview = async (interviewId: string, options?: Parameters<
     method: 'POST'
 
 
+  }
+);}
+
+
+
+export type offerNewInterviewTimesResponse200 = {
+  data: ApplicationInterview
+  status: 200
+}
+
+export type offerNewInterviewTimesResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type offerNewInterviewTimesResponse401 = {
+  data: void
+  status: 401
+}
+
+export type offerNewInterviewTimesResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type offerNewInterviewTimesResponse404 = {
+  data: void
+  status: 404
+}
+
+export type offerNewInterviewTimesResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type offerNewInterviewTimesResponseSuccess = (offerNewInterviewTimesResponse200) & {
+  headers: Headers;
+};
+export type offerNewInterviewTimesResponseError = (offerNewInterviewTimesResponse400 | offerNewInterviewTimesResponse401 | offerNewInterviewTimesResponse403 | offerNewInterviewTimesResponse404 | offerNewInterviewTimesResponse409) & {
+  headers: Headers;
+};
+
+export type offerNewInterviewTimesResponse = (offerNewInterviewTimesResponseSuccess | offerNewInterviewTimesResponseError)
+
+export const getOfferNewInterviewTimesUrl = (interviewId: string,) => {
+
+
+
+
+  return `/v1/interviews/${interviewId}/new-times`
+}
+
+export const offerNewInterviewTimes = async (interviewId: string,
+    offerNewInterviewTimesRequest: OfferNewInterviewTimesRequest, options?: Parameters<typeof apiFetch>[1]): Promise<offerNewInterviewTimesResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<offerNewInterviewTimesResponse>(getOfferNewInterviewTimesUrl(interviewId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(offerNewInterviewTimesRequest)
   }
 );}
 

@@ -96,9 +96,11 @@ public sealed class InterviewRowLevelSecurityTests(AppHostFixture fixture)
 
         // The composite foreign key (organization_id, application_id) refuses a request that crosses organizations.
         var now = SchedulingTestSupport.Now();
-        var crossing = new InterviewRequestBuilder(application, other.OrganizationId, now).Build();
+        var crossing = InterviewRequest.Create(application, 30, now, now.AddDays(7), "UTC", null, now);
         await using var db = await fixture.ContextAsync(other.OrganizationId, Ct);
         db.InterviewRequests.Add(crossing);
+        // A request built for one organization's application but stamped with another organization, which only a bug could do.
+        db.Entry(crossing).Property(r => r.OrganizationId).CurrentValue = other.OrganizationId;
 
         var save = () => db.SaveChangesAsync(Ct);
 
@@ -143,21 +145,5 @@ public sealed class InterviewRowLevelSecurityTests(AppHostFixture fixture)
     {
         await using var db = await fixture.ContextAsync(organizationId, Ct);
         return await db.Applications.AsNoTracking().SingleAsync(a => a.Id == applicationId, Ct);
-    }
-
-    // A request built for one organization's application but stamped with another organization, which only a bug could do.
-    private sealed class InterviewRequestBuilder(JobApplication application, Guid organizationId, DateTimeOffset now)
-    {
-        public InterviewRequest Build() => new()
-        {
-            OrganizationId = organizationId,
-            JobId = application.JobId,
-            ApplicationId = application.Id,
-            DurationMinutes = 30,
-            WindowStart = now,
-            WindowEnd = now.AddDays(7),
-            TimeZone = "UTC",
-            CreatedAt = now,
-        };
     }
 }

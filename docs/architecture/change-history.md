@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Change history"
-description: "Who changed a hiring template, an email template, a job, a custom role, an organization setting, the team or the API keys, when and what: change records written by an EF Core interceptor in the same save, lines in plain words matched by element ids, secret-holding rows seen through views, Last updated (or Created) on each read contract, the paged history routes, and how to track another kind."
+description: "Who changed a hiring template, an email template, a job, a custom role, an organization setting, the team, the API keys or a webhook endpoint, when and what: change records written by an EF Core interceptor in the same save, lines in plain words matched by element ids, secret-holding rows seen through views, Last updated (or Created) on each read contract, the paged history routes, and how to track another kind."
 tags: [history, audit, templates, jobs]
 sources:
   - resource: src/ScreenHire.Domain/History/ChangeRecord.cs
@@ -16,6 +16,8 @@ sources:
   - resource: src/ScreenHire.Domain/History/RoleChanges.cs
   - resource: src/ScreenHire.Domain/History/TeamChanges.cs
   - resource: src/ScreenHire.Domain/History/ApiKeyChanges.cs
+  - resource: src/ScreenHire.Domain/History/WebhookEndpointChanges.cs
+  - resource: src/ScreenHire.Domain/Webhooks/WebhookEndpoint.cs
   - resource: src/ScreenHire.Domain/History/ChangeLabels.cs
   - resource: src/ScreenHire.Domain/History/Archive.cs
   - resource: src/ScreenHire.Domain/History/RichTextToPlain.cs
@@ -33,21 +35,20 @@ sources:
 ---
 # Change history
 
-Anything people edit says who updated it last and how long ago, and its History sheet lists every change in plain
-words (design system T6). This doc is how that is recorded and read. History covers configuration only: hiring
-templates, email templates, scorecard templates, jobs, custom roles and the organization's settings today: its name,
-its branding, its verification settings and its record retention, each with a history of its own (`/v1/organization/history`,
-`/branding/history`, `/verification-settings/history`, `/v1/organization/data-retention/history`). The Team page and the API keys page have one history each: the
-team's members, roles, job access and invitations, and every key created and revoked. A saved candidate's note has one
-history per saved entry ([saved candidates](talent-pool.md)); the sending domain has one too
-(`/v1/organization/sending-domain/history`): added, verified, no longer verified and removed, and nothing for a check that
-only refreshes its records. The retired talent pool settings (the permission period) keep the `TalentPoolSettings` kind so
-their old rows still read, and nothing writes it now. Built-in roles never change, so
-they have no history. A webhook
-endpoint has none either: its row holds the signing secret, which the allow-list keeps out (Secrets, below), so its page
-shows when it was added and when its secret was last rotated instead. It never holds
-candidate data, so it has no retention limit. A job's hiring team and a template's default team are left out: who
-was added or removed is the membership log's to record (ADR-0015).
+Anything people edit says who updated it last and how long ago, and its History sheet lists every change in plain words
+(design system T6). This doc is how that is recorded and read. History covers configuration only: hiring templates,
+email templates, scorecard templates, jobs, custom roles and the organization's settings today: its name, its branding,
+its verification settings and its record retention, each with a history of its own (`/v1/organization/history`,
+`/branding/history`, `/verification-settings/history`, `/v1/organization/data-retention/history`). The Team page and the
+API keys page have one history each: the team's members, roles, job access and invitations, and every key created and
+revoked. A saved candidate's note has one history per saved entry ([saved candidates](talent-pool.md)); the sending
+domain has one too (`/v1/organization/sending-domain/history`): added, verified, no longer verified and removed, and
+nothing for a check that only refreshes its records. A webhook endpoint has one (`/v1/webhooks/{id}/history`): its
+address by host, its events, its switch and each rotation of its signing secret (Secrets, below). The retired talent
+pool settings (the permission period) keep the `TalentPoolSettings` kind so their old rows still read, and nothing
+writes it now. Built-in roles never change, so they have no history. History never holds candidate data, so it has no
+retention limit. A job's hiring team and a template's default team are left out: who was added or removed is the
+membership log's to record (ADR-0015).
 
 ## What is recorded
 
@@ -55,7 +56,7 @@ One `change_records` row (`ChangeRecord`) per object per save:
 
 | Column | Holds |
 |---|---|
-| `subject_kind`, `subject_id` | The object: `HiringTemplate`, `EmailTemplate`, `ScorecardTemplate`, `Job`, `Role`, `Organization`, `Branding`, `VerificationSettings`, `RetentionSettings`, `SendingDomain`, `Team`, `ApiKeys` or `TalentPoolEntry` (and the retired `TalentPoolSettings`), and its id (the organization's id for the settings kinds, the sending domain, the team and the keys; the saved entry's own id for `TalentPoolEntry`). A built-in email template's id is its built-in id (`stage-change`), because restoring deletes its row and the next edit adds a new one. A template version belongs to its template |
+| `subject_kind`, `subject_id` | The object: `HiringTemplate`, `EmailTemplate`, `ScorecardTemplate`, `Job`, `Role`, `Organization`, `Branding`, `VerificationSettings`, `RetentionSettings`, `SendingDomain`, `Team`, `ApiKeys`, `WebhookEndpoint` or `TalentPoolEntry` (and the retired `TalentPoolSettings`), and its id (the organization's id for the settings kinds, the sending domain, the team and the keys; the saved entry's own id for `TalentPoolEntry`; the endpoint's id for `WebhookEndpoint`). A built-in email template's id is its built-in id (`stage-change`), because restoring deletes its row and the next edit adds a new one. A template version belongs to its template |
 | `actor_user_id`, `actor_api_key_id` | The member who made it, or the organization API key. Neither means ScreenHire: the worker, an automation, the demo's setup |
 | `occurred_at` | From `TimeProvider`, when the save ran |
 | `created` | Whether the save created the object: its first line says so, and Last updated says Created until a later change |
@@ -114,11 +115,16 @@ The describers in `src/ScreenHire.Domain/History` are pure functions from the en
   questionnaires are matched by their stable ids, so a renamed question is one rename. Question ids are unique across
   the apply questionnaire and every follow-up, so a question moved between them is no change. Parts without ids (an
   automation's actions and conditions) show in that automation's details. Raw JSON never reaches a line.
-- `TeamChanges` reads the Team page: "created the team", "joined the team as **Recruiter**", "changed **Sam Lee**'s
-  role from Viewer to Admin", "changed **Sam Lee**'s jobs from All jobs to Only jobs they're on", "removed **Sam Lee**
-  from the team", "invited **sam@example.com** as Viewer" and "revoked the invitation to **sam@example.com**". Who is on
-  a job's hiring team stays the membership log's (ADR-0015). `ApiKeyChanges` reads "created the key **Payroll sync**",
+- `TeamChanges` reads the Team page: "created the team", "joined the team as **Recruiter**", "changed **Sam Lee**'s role
+  from Viewer to Admin", "changed **Sam Lee**'s jobs from All jobs to Only jobs they're on", "removed **Sam Lee** from
+  the team", "invited **sam@example.com** as Viewer" and "revoked the invitation to **sam@example.com**". Who is on a
+  job's hiring team stays the membership log's (ADR-0015). `ApiKeyChanges` reads "created the key **Payroll sync**",
   with its access (Read only, Read and write) and any rate limit, and "revoked the key **Payroll sync**".
+  `WebhookEndpointChanges` reads "created the endpoint **hooks.example.com**" with its events and description, "changed
+  the address of **hooks.example.com**", "started sending **Job closed**", "turned off the endpoint
+  **hooks.example.com**" and, from the secret's own row, "rotated the signing secret". The worker turning an endpoint
+  off after failed deliveries is one statement that skips the tracker on purpose (parallel deliveries must not lose a
+  count), so History shows only what people did; the endpoint's page shows the automatic turn-off and its reason.
 - `HiringTemplateChanges`, `EmailTemplateChanges`, `JobChanges` and `RoleChanges` cover the rest. A role's lines name
   permissions as the Roles page does: "created the role from **Viewer**", "allowed **Move candidates**", "took away
   **Email candidates**". A built-in email template's first
@@ -143,18 +149,22 @@ on purpose when a task renames an answer kind on one side only: change both.
 
 ## Secrets
 
-`TrackedKinds` is an allow-list: the interceptor never reads an entity that is not on it, so a webhook endpoint's
-signing secret cannot reach the history (ADR-0016). An API key and an invitation hold a secret too, but they are on it
-through a view: their describers see `ApiKeyFacts` (name, scopes, rate limit, revocation) and `InvitationFacts`
-(address, role, job access, revocation), never the key's hash or prefix or the invitation's token hash.
-`TrackedKindsTests` fails when what a describer sees has a secret-like property (a monthly token budget counts a
-model's tokens and is the one exception it allows; a key's prefix counts as secret-like), and `ChangeHistoryTests`
-checks the stored lines and both new history routes against a real key, its prefix and hash, invitation tokens and
-their hashes, and a webhook secret.
+`TrackedKinds` is an allow-list: the interceptor never reads an entity that is not on it. A webhook endpoint's signing
+secret is never stored: it is derived from the platform key, the endpoint's id and a version, and the version and the
+time of the last rotation are a row of their own, `webhook_endpoint_secrets` (`WebhookEndpointSecret`, ADR-0016), so the
+endpoint's row can be tracked. History sees that row only as `SigningRotation`, the time of a rotation. An API key and
+an invitation hold a secret too, but they are on it through a view: their describers see `ApiKeyFacts` (name, scopes,
+rate limit, revocation) and `InvitationFacts` (address, role, job access, revocation), never the key's hash or prefix or
+the invitation's token hash. `TrackedKindsTests` fails when what a describer sees has a secret-like property (a monthly
+token budget counts a model's tokens and is the one exception it allows; a key's prefix counts as secret-like), and
+`ChangeHistoryTests` checks the stored lines and both new history routes against a real key, its prefix and hash,
+invitation tokens and their hashes, and a webhook secret.
 
 A tracked definition can hold a secret too: a webhook's address often carries its token in the path or the query. A
 "Call a webhook" action is recorded by its host alone, and a change to the rest of the address is the line "changed
-the webhook address of" the automation, with no values (`DefinitionChanges`).
+the webhook address of" the automation, with no values (`DefinitionChanges`). A webhook endpoint's own address is
+recorded the same way: its host, and "changed the address of" it for any other change (`WebhookEndpointChanges`). Its
+description is a label a person chose and is kept as typed, as a key's name is.
 
 ## Isolation
 
@@ -166,13 +176,12 @@ candidate removes the history of saved notes, whose text is about them ([candida
 ## API
 
 - `lastUpdated` on `HiringTemplateSummary`, `HiringTemplateDetail`, `EmailTemplateEntry`, `JobSummary`, `JobDetail`,
-  `RoleSummary` and `CustomRoleDetail`: `at`, `by` (`Member`, `ApiKey`, `ScreenHire`, or null when nobody was recorded), `userId`, `apiKeyId`,
-  and `created` when nothing has changed the object since it was created.
-  A system hiring template is by ScreenHire; a built-in email template nobody changed, and a built-in role, are by
-  ScreenHire with no `at`.
-  Lists read every object's newest change in one query (`ChangeHistoryQueries.LastAsync`). A published hiring template
-  version reads its template's newest change the same way before the publish, so the member who changed it last hears
-  of it when someone else publishes (realtime.md, "Teammates' changes as toasts").
+  `RoleSummary`, `CustomRoleDetail` and `WebhookEndpointEntry`: `at`, `by` (`Member`, `ApiKey`, `ScreenHire`, or null
+  when nobody was recorded), `userId`, `apiKeyId`, and `created` when nothing has changed the object since it was
+  created. A system hiring template is by ScreenHire; a built-in email template nobody changed, and a built-in role, are
+  by ScreenHire with no `at`. Lists read every object's newest change in one query (`ChangeHistoryQueries.LastAsync`). A
+  published hiring template version reads its template's newest change the same way before the publish, so the member
+  who changed it last hears of it when someone else publishes (realtime.md, "Teammates' changes as toasts").
 - The history, newest first, `?limit=` (1 to 100, default 50) and `?before=` (the previous page's `nextBefore`, the id
   of its last entry; an id that is not one of the object's entries is a 400):
   - `GET /v1/templates/{templateId}/history` (the hiring API: API keys too)
@@ -181,6 +190,7 @@ candidate removes the history of saved notes, whose text is about them ([candida
   - `GET /v1/organization/roles/{roleId}/history` (any member, as the role routes are)
   - `GET /v1/organization/team/history` (Manage the team, because it names invited addresses)
   - `GET /v1/organization/api-keys/history` (Manage API keys; signed-in members only, as the key routes are)
+  - `GET /v1/webhooks/{endpointId}/history` (Manage webhooks; signed-in members only, as the webhook routes are)
   - `GET /v1/talent-pool/{candidateId}/history` (any member who can see the saved candidate's entry). The route takes the
     candidate's id but reads the history of the candidate's current entry, whose own id is the subject: saving them again
     replaces the entry and starts a fresh note and History, so a member on Only jobs they're on never reads edits made
@@ -192,14 +202,15 @@ candidate removes the history of saved notes, whose text is about them ([candida
 
 ## Dashboard
 
-`LastUpdated` is the last fact of the header ("2 hours ago by Avery Quinn"), with a History button, and the jobs, hiring
-templates and email templates tables have a Last updated column with the date (section 13); `HistorySheet`
-groups the entries by day and shows each line, with the values before and after behind Show the change. Pages read the
-pages with `createHistoryPages` (`#lib/history-pages.svelte.ts`) over the generated query options, only while the sheet
-is open; a save that invalidates the object's path refreshes them. `#lib/history.ts` names the actor the way the rest
-of the dashboard names people (`personName`: "you", the current name, "a former teammate"). `lastUpdateWords` words the
-fact: its label is Created while `created` holds, else Last updated, and on a settings page's title row, where no label
-shows, `LastUpdated` with `lead` starts with its verb ("Created 2 hours ago by Avery Quinn", "Updated yesterday").
+`LastUpdated` is the last fact of the header ("2 hours ago by Avery Quinn"), with a History button (a webhook endpoint's
+page keeps Secret rotated beside it), and the jobs, hiring templates and email templates tables have a Last updated
+column with the date (section 13); `HistorySheet` groups the entries by day and shows each line, with the values before
+and after behind Show the change. Pages read the pages with `createHistoryPages` (`#lib/history-pages.svelte.ts`) over
+the generated query options, only while the sheet is open; a save that invalidates the object's path refreshes them.
+`#lib/history.ts` names the actor the way the rest of the dashboard names people (`personName`: "you", the current name,
+"a former teammate"). `lastUpdateWords` words the fact: its label is Created while `created` holds, else Last updated,
+and on a settings page's title row, where no label shows, `LastUpdated` with `lead` starts with its verb ("Created 2
+hours ago by Avery Quinn", "Updated yesterday").
 
 ## Tracking another kind
 

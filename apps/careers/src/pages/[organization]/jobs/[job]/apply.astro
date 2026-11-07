@@ -10,6 +10,7 @@ import ErrorSummary from '../../../../components/ErrorSummary.astro';
 import JobFacts from '../../../../components/JobFacts.astro';
 import JobUnavailable from '../../../../components/JobUnavailable.astro';
 import Notice from '../../../../components/Notice.astro';
+import Panel from '../../../../components/Panel.astro';
 import PrivacyNotice from '../../../../components/PrivacyNotice.astro';
 import QuestionField from '../../../../components/QuestionField.astro';
 import StepIndicator from '../../../../components/StepIndicator.astro';
@@ -162,8 +163,8 @@ const answerText = (questionId: string): string => {
       branding={employer.branding}
       noindex
     >
-      <div class="flex flex-col gap-2.5">
-        <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{job.title}</h1>
+      <div class="flex flex-col gap-3">
+        <h1 class="font-display text-candidate-title">{job.title}</h1>
         <JobFacts job={job} />
         <StepIndicator step={steps.indexOf(step) + 1} steps={steps.length} answered={answered} total={questions.length} />
       </div>
@@ -190,7 +191,7 @@ const answerText = (questionId: string): string => {
 
         {/* Every step names itself, so "Step 2 of 3" is never the only clue to where the candidate is. */}
         <div class="flex flex-col gap-1">
-          <h2 id="step-heading" class="font-display text-xl leading-tight font-bold">
+          <h2 id="step-heading" class="font-display text-panel-title">
             {page ? (page.name ?? 'Questions') : step === 'details' ? 'Your details' : 'Review and send'}
           </h2>
           {step === 'review' && (
@@ -231,7 +232,7 @@ const answerText = (questionId: string): string => {
               <label class="choice">
                 <input type="checkbox" name="deviceCheckConsent" checked={state.deviceCheckConsent} aria-describedby="device-check-hint" />
                 <span class="flex flex-col">
-                  <span class="text-sm font-semibold">Check this device for repeat applications (optional)</span>
+                  <span class="text-candidate-body font-semibold">Check this device for repeat applications (optional)</span>
                   <span id="device-check-hint" class="text-candidate-hint text-candidate-muted-foreground">
                     We turn your browser's settings into a one-way code, so a person can see when one device sends many applications. Deleted after 30 days.
                   </span>
@@ -256,14 +257,11 @@ const answerText = (questionId: string): string => {
 
         {step === 'review' && (
           <>
-            <section aria-labelledby="review-details" class="rounded-2xl border border-candidate-border bg-candidate-surface px-4 py-3.5">
-              <div class="flex items-baseline justify-between gap-3">
-                <h3 id="review-details" class="text-base font-bold">Your details</h3>
-                <button type="submit" name="intent" value="change:details" class="button-secondary min-h-11 shrink-0 px-4 text-sm">
-                  Change<span class="sr-only"> your details</span>
-                </button>
-              </div>
-              <dl class="mt-1 grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-[10rem_1fr]">
+            <Panel id="review-details" title="Your details" level={3}>
+              <button slot="action" type="submit" name="intent" value="change:details" class="button-secondary shrink-0">
+                Change<span class="sr-only"> your details</span>
+              </button>
+              <dl class="grid gap-x-4 gap-y-2 text-candidate-body sm:grid-cols-[10rem_1fr]">
                 <dt class="text-candidate-muted-foreground">Name</dt>
                 <dd>{[state.firstName, state.lastName].filter(Boolean).join(' ')}</dd>
                 <dt class="text-candidate-muted-foreground">Email</dt>
@@ -279,17 +277,14 @@ const answerText = (questionId: string): string => {
                   </>
                 ))}
               </dl>
-            </section>
+            </Panel>
 
             {pages.map((each, i) => (
-              <section aria-labelledby={`review-${each.step}`} class="rounded-2xl border border-candidate-border bg-candidate-surface px-4 py-3.5">
-                <div class="flex items-baseline justify-between gap-3">
-                  <h3 id={`review-${each.step}`} class="text-base font-bold">{each.name ?? (pages.length > 1 ? `Questions, page ${i + 1}` : 'Your answers')}</h3>
-                  <button type="submit" name="intent" value={`change:${each.step}`} class="button-secondary min-h-11 shrink-0 px-4 text-sm">
-                    Change<span class="sr-only"> {each.name ?? (pages.length > 1 ? `questions, page ${i + 1}` : 'your answers')}</span>
-                  </button>
-                </div>
-                <dl class="mt-1 flex flex-col gap-2 text-sm">
+              <Panel id={`review-${each.step}`} title={each.name ?? (pages.length > 1 ? `Questions, page ${i + 1}` : 'Your answers')} level={3}>
+                <button slot="action" type="submit" name="intent" value={`change:${each.step}`} class="button-secondary shrink-0">
+                  Change<span class="sr-only"> {each.name ?? (pages.length > 1 ? `questions, page ${i + 1}` : 'your answers')}</span>
+                </button>
+                <dl class="flex flex-col gap-2 text-candidate-body">
                   {each.questions.map((question) => (
                     <div>
                       <dt class="text-candidate-muted-foreground">{question.label}</dt>
@@ -297,11 +292,11 @@ const answerText = (questionId: string): string => {
                     </div>
                   ))}
                 </dl>
-              </section>
+              </Panel>
             ))}
 
             <fieldset id={fieldId('aiUseDeclaration')} tabindex="-1" aria-describedby="ai-hint" class="flex flex-col gap-2">
-              <legend class="mb-1.5 text-sm font-bold">
+              <legend class="mb-2 text-candidate-body font-semibold">
                 Did you use AI tools for this application?
                 {policy === 'Allowed' && <span class="font-medium text-candidate-muted-foreground"> (optional)</span>}
               </legend>
@@ -312,7 +307,7 @@ const answerText = (questionId: string): string => {
                     ? `${employer.name} welcomes AI help for this role, as long as you say so.`
                     : `${employer.name} welcomes AI help for this role. Telling us is up to you.`}
               </p>
-              {errors.aiUseDeclaration && <p class="text-sm font-semibold text-destructive">{errors.aiUseDeclaration}</p>}
+              {errors.aiUseDeclaration && <p class="text-candidate-body font-semibold text-destructive">{errors.aiUseDeclaration}</p>}
               <label class="choice">
                 <input type="radio" name="aiUseDeclaration" value="DidNotUse" checked={state.aiUseDeclaration === 'DidNotUse'} aria-invalid={errors.aiUseDeclaration ? 'true' : undefined} />
                 <span>No, I did not use AI tools</span>
@@ -337,7 +332,7 @@ const answerText = (questionId: string): string => {
             <label class="choice">
               <input type="checkbox" name="keepForFutureRoles" checked={state.keepForFutureRoles} aria-describedby="future-roles-hint" />
               <span class="flex flex-col">
-                <span class="text-sm font-semibold">Keep my details for future roles (optional)</span>
+                <span class="text-candidate-body font-semibold">Keep my details for future roles (optional)</span>
                 <span id="future-roles-hint" class="text-candidate-hint text-candidate-muted-foreground">
                   {employer.name} keeps your details until you ask, or they remove them, and may invite you to apply for other
                   roles. Every invitation has a link to stop, and you can ask {employer.name} at any time.

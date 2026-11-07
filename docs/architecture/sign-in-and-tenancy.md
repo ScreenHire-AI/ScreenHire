@@ -169,7 +169,7 @@ API keys (Owners and Admins) manages keys in a session, on the dashboard's Setti
   shk_...`. It reads the organization from the key, sets it as the tenant in a DI scope of its own and looks the hash
   up there, so the lookup runs under row-level security like every other tenant query. A key naming the wrong
   organization finds nothing. `last_used_at` is written at most once a minute.
-- **Where keys work.** The hiring API (jobs, applications, candidates and templates) uses the `hiring-api`
+- **Where keys work.** The hiring API (jobs, applications, candidates, templates and reports) uses the `hiring-api`
   authorization policy, whose scheme `SessionOrApiKey` forwards to the key handler when the request has an
   `Authorization` header and to the cookie otherwise. A request is judged by one credential: a bad key with a good
   cookie is 401. Every other route keeps the cookie-only default and fallback policies, so a key gets 401 on sign-in,
@@ -188,7 +188,8 @@ API keys (Owners and Admins) manages keys in a session, on the dashboard's Setti
   `mcp` policy authenticates the `ApiKey` scheme alone, so a session cookie gets 401 there
   ([MCP server](mcp-server.md)). Its write tools check the same scope rule as the routes
   (`HiringAuthorization.KeyRefusal`), its verification tools need the `VerificationRead` scope, and its report and
-  saved-candidate tools need only `Read` and call the read services of session-only routes.
+  saved-candidate tools need only `Read`. The report tool reads what the reports routes read, and the saved-candidate
+  tool calls the read service of session-only routes.
 - **The tenant** is the key's organization, with no user (`TenantResolutionMiddleware`, which runs after
   authorization because the hiring policy replaces the request's user there). Writes by a key record no user; the
   application timeline records the key as `actorApiKeyId`.

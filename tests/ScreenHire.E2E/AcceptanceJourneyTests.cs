@@ -237,7 +237,7 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         await page.GetByLabel("Phone").FillAsync(applicant.Phone!);
         await page.GetByLabel("Your CV or resume").SetInputFilesAsync(
             new FilePayload { Name = applicant.ResumeFileName, MimeType = "application/pdf", Buffer = applicant.ResumeBytes() });
-        await Expect(page.GetByText($"Uploaded: {applicant.ResumeFileName}")).ToBeVisibleAsync();
+        await Expect(page.GetByText(applicant.ResumeFileName)).ToBeVisibleAsync();
         await page.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" }).ClickAsync();
 
         await AnswerQuestionsAsync(page, notice: "Immediately");

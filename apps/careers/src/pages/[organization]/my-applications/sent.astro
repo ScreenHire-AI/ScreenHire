@@ -1,0 +1,39 @@
+---
+// Where asking for a link lands (POST, then redirect, then this GET), so a refresh never posts twice and the address
+// carries nothing about the candidate. The answer is fixed: it reads the same whether or not the address applied, and
+// never says whether it was found (docs/architecture/candidate-portal.md).
+import CareersLayout from '../../../layouts/CareersLayout.astro';
+import { getPublicOrganization } from '../../../lib/api';
+import { basePath } from '../../../lib/host';
+
+const { organization } = Astro.params;
+const response = await getPublicOrganization(organization!);
+if (response.status !== 200) {
+  return new Response(null, { status: 404 });
+}
+
+const employer = response.data;
+const base = basePath(Astro.request, employer.slug);
+---
+
+<CareersLayout
+  title={`Check your email | ${employer.name}`}
+  description={`What happens after you ask ${employer.name} for the link to your applications.`}
+  organizationName={employer.name}
+  organizationSlug={employer.slug}
+  branding={employer.branding}
+  noindex
+>
+  <h1 class="font-display text-candidate-title">Check your email</h1>
+  <p class="mt-3 text-candidate-body">
+    If we have an application from that address, we have emailed a link to your page. It works for a limited time, and only for you.
+  </p>
+  <p class="mt-3 text-candidate-body text-candidate-muted-foreground">
+    The email can take a few minutes, and may land in your spam folder. If nothing arrives, reply to the last email {employer.name}
+    sent you.
+  </p>
+  <p class="mt-6 text-candidate-hint">
+    <a href={`${base}/privacy`} class="text-link inline-flex min-h-11 items-center">What we collect and why</a>
+  </p>
+  <a href={base || '/'} class="button-secondary mt-4">See open roles</a>
+</CareersLayout>

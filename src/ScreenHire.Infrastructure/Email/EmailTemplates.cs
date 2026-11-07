@@ -99,10 +99,10 @@ public sealed partial class EmailTemplates
     /// <summary>The link to stop being kept as a saved candidate: only the invitation may use it, and must.</summary>
     public static EmailTemplateVariable RemoveLink { get; } = new("removeLink", "Stop link");
 
-    /// <summary>The link to pick an interview time: only the interview invitation may use it, and must.</summary>
+    /// <summary>The link to pick an interview time: only the interview invitation and the new times email may use it, and must.</summary>
     public static EmailTemplateVariable BookingLink { get; } = new("bookingLink", "Booking link");
 
-    /// <summary>The link to move or cancel a booked interview: only the confirmation may use it, and must.</summary>
+    /// <summary>The link to move or cancel a booked interview: only the confirmation and the reminder may use it, and must.</summary>
     public static EmailTemplateVariable ManageLink { get; } = new("manageLink", "Change link");
 
     /// <summary>The video meeting link, when the interviewer's calendar made one: only the confirmation has it.</summary>
@@ -123,6 +123,8 @@ public sealed partial class EmailTemplates
         EmailTemplateIds.InterviewInvitation => [.. Variables, BookingLink, InterviewLength],
         EmailTemplateIds.InterviewConfirmation => [.. Variables, InterviewTime, InterviewLength, ManageLink, MeetingLink],
         EmailTemplateIds.InterviewCancelled => [.. Variables, InterviewTime],
+        EmailTemplateIds.InterviewNewTimes => [.. Variables, BookingLink, InterviewTime, InterviewLength],
+        EmailTemplateIds.InterviewReminder => [.. Variables, InterviewTime, ManageLink, MeetingLink],
         _ => Variables,
     };
 
@@ -227,6 +229,26 @@ public sealed partial class EmailTemplates
             if (!used.Contains(ManageLink.Name))
             {
                 problems.Add(new("body", "The confirmation must say how to change the time: add {{ manageLink }}."));
+            }
+        }
+
+        if (templateId == EmailTemplateIds.InterviewNewTimes && problems.Count == 0 && !used.Contains(BookingLink.Name))
+        {
+            // The email exists to carry the link: without it the candidate cannot pick a new time.
+            problems.Add(new("body", "The new times email must give the link to pick a time: add {{ bookingLink }}."));
+        }
+
+        if (templateId == EmailTemplateIds.InterviewReminder && problems.Count == 0)
+        {
+            // A reminder that does not say when is no reminder, and the candidate needs the way to change the time.
+            if (!used.Contains(InterviewTime.Name))
+            {
+                problems.Add(new("body", "The reminder must give the time: add {{ interviewTime }}."));
+            }
+
+            if (!used.Contains(ManageLink.Name))
+            {
+                problems.Add(new("body", "The reminder must say how to change the time: add {{ manageLink }}."));
             }
         }
 

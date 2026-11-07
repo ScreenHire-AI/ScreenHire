@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 // Sizes and colours come from the @screenhire/ui tokens (docs/design/design-system.md, checks W1 and W2, section 3), and
 // the cursor from the theme's base layer (A10). This scans every source file in the dashboard for what a search can
 // prove: a font size or letter spacing that is not a type token, a hex colour, a colour function, a Tailwind palette
-// colour, or a component setting the cursor a control already has.
+// colour, a component setting the cursor a control already has, or a bare file input (every file input is the Drop
+// area, which takes a drop: A12).
 
 const hues = 'red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone';
 const colourUtilities = 'bg|text|border(?:-[trblxyse])?|ring|ring-offset|outline|fill|stroke|from|via|to|decoration|divide|placeholder|caret|accent|shadow';
@@ -16,6 +17,7 @@ const rules = [
   { rule: 'colour function', pattern: /\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch)\(/g },
   { rule: 'palette colour', pattern: new RegExp(`\\b(?:${colourUtilities})-(?:(?:${hues})-\\d{2,3}|black|white)\\b`, 'g') },
   { rule: 'cursor set by a component', pattern: /\bcursor-(?:pointer|default)\b/g },
+  { rule: 'file input outside the drop area', pattern: /\btype=["']file["']/g },
 ];
 
 function violations(source: string): string[] {
@@ -32,6 +34,7 @@ describe('the tokens-only check', () => {
     ['<p class="md:text-sm">', 'size off the type scale "text-sm"'],
     ['<label class="flex cursor-pointer gap-3">', 'cursor set by a component "cursor-pointer"'],
     ['"relative cursor-default select-none"', 'cursor set by a component "cursor-default"'],
+    ['<input type="file" onchange={pick} />', 'file input outside the drop area "type="file""'],
     ['<h2 class="text-2xl">', 'size off the type scale "text-2xl"'],
     ['<span class="font-mono tracking-[0.06em]">', 'letter spacing "tracking-[0.06em]"'],
     ['<span class="tracking-tight">', 'letter spacing "tracking-tight"'],

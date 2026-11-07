@@ -261,7 +261,7 @@ public sealed class CandidateErasure(IApplicantDirectory directory)
                     || (interview.Status == InterviewStatus.Cancelled && attendee.ProviderEventId is not null && attendee.SyncStatus != InterviewSyncStatus.Synced)))
             {
                 eventsByApplication[attendee.ApplicationId].Add(
-                    new InterviewEventToRemove(attendee.InterviewId, attendee.UserId, attendee.ProviderEventId, interview.WindowStart, interview.WindowEnd));
+                    new InterviewEventToRemove(attendee.InterviewId, attendee.UserId, attendee.ProviderEventId, interview.LookupStart, interview.LookupEnd));
             }
         }
 

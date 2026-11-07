@@ -24,6 +24,7 @@ sources:
   - resource: src/ScreenHire.Domain/Applications/QuestionnaireRequest.cs
   - resource: src/ScreenHire.Domain/Webhooks/WebhookDelivery.cs
   - resource: src/ScreenHire.Domain/Webhooks/WebhookEndpoint.cs
+  - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/WebhookConfiguration.cs
   - resource: src/ScreenHire.Application/Automations/ApplicationTaskCompleted.cs
   - resource: src/ScreenHire.Application/Automations/ApplicationTaskReopened.cs
   - resource: src/ScreenHire.Application/Automations/ApplicationTaskCreated.cs
@@ -56,6 +57,7 @@ sources:
   - resource: apps/api/Hiring/TemplateReferences.cs
   - resource: apps/api/Hiring/InterviewerReferences.cs
   - resource: apps/api/Endpoints/WebhookEndpoints.cs
+  - resource: apps/api/Contracts/WebhookContracts.cs
   - resource: apps/api/Endpoints/PublicQuestionnaireEndpoints.cs
   - resource: apps/dashboard/src/lib/workflow.ts
   - resource: apps/dashboard/src/lib/workflow-graph.ts
@@ -65,6 +67,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/graph-controls.svelte
   - resource: apps/dashboard/src/lib/components/workflow/workflow-editor.svelte
   - resource: apps/dashboard/src/lib/components/workflow/workflow-summary.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/stage-flow.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-form.svelte
   - resource: apps/dashboard/src/lib/components/workflow/pipeline-view.svelte
   - resource: apps/dashboard/src/lib/components/workflow/questionnaire-builder.svelte
@@ -196,7 +199,7 @@ with its preview beside it, or behind an Edit / Preview switch where both do not
 workflow builder is one editor, `#lib/components/workflow/workflow-editor.svelte`, over a template draft or a job's own
 copy, with four tabs on the page's header band. A workflow that cannot be edited there (a ScreenHire template, a
 published version, a closed job's) opens the same tabs in `workflow-summary.svelte`, which reads it as content, with no
-form controls. The validation result is a status badge beside the page title.
+form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (design system section 11, Stage flow). The validation result is a status badge beside the page title.
 
 - **Pipeline:** the stages in order (reordered by dragging a grip, or from the menu the grip opens, `ReorderList`), and an automation's actions the same way and, per stage, its automations
   in a Sheet drawer and its scorecard in another (`scorecard-picker.svelte`): a library scorecard, built-in or the
@@ -295,6 +298,7 @@ creating or rotating.
 | `GET /v1/webhooks/event-types` | The event names below |
 | `GET/POST /v1/webhooks` | List endpoints; create one (URL, events, optional description). The 201 carries the signing secret, the only time it is shown |
 | `GET/PUT/DELETE /v1/webhooks/{id}` | Read, replace (URL, events, description, and `enabled`, which keeps its value when left out) or delete an endpoint with its delivery log |
+| `GET /v1/webhooks/{id}/history?limit=&before=` | The endpoint's change history, newest first: its address by host, events, switch and each rotation of the secret ([change history](change-history.md)). `lastUpdated` is on the endpoint |
 | `POST /v1/webhooks/{id}/rotate-secret` | A new secret, shown once. The old one stops signing at once, retries of earlier events included |
 | `GET /v1/webhooks/{id}/deliveries?limit=` | The delivery log, newest first (default 50, at most 200): status, attempts, last status code, our description of the last error, the exact body |
 | `POST /v1/webhooks/{id}/deliveries/{deliveryId}/replay` | Sends a finished delivery's event again as a new delivery (`replayOfId` set, same event id and body). 409 while any delivery of that event to the endpoint still has attempts, or while the endpoint is off |
@@ -330,9 +334,11 @@ redelivered domain event gives the same id and the unique index on (endpoint, ev
 nothing twice.
 
 **Signing.** Each endpoint's secret is `whsec_` and the hex HMAC-SHA256 of `webhook-endpoint:{endpointId}:{version}`
-under the platform key `ScreenHire:Webhooks:SigningKey` (`WebhookSignature.EndpointSecret`). The database keeps only
-the version, and rotating bumps it. The API derives the secret to show it once; the worker derives it to sign. Both
-hold the platform key, and no response or log carries it. Every delivery carries:
+under the platform key `ScreenHire:Webhooks:SigningKey` (`WebhookSignature.EndpointSecret`). The database keeps only the
+version and the time of the last rotation, in a row of their own (`webhook_endpoint_secrets`, one per endpoint, which
+change history reads only as the time of a rotation), and rotating bumps the version. The API derives the secret to show
+it once; the worker derives it to sign. Both hold the platform key, and no response or log carries it. Every delivery
+carries:
 
 - `ScreenHire-Signature: t={unix seconds},v1={hex}`, the hex HMAC-SHA256 of `{t}.{raw body}` keyed with the secret.
   `t` is the attempt's time, so a receiver can refuse old requests while retries still pass.

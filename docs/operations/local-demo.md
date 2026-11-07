@@ -282,6 +282,13 @@ organization's Owner or Admin also sees **Set up your organization** on Jobs, wi
   sidebar, then has **Slack account**, which links Avery's own account. Submit an application on the careers page, or
   mention Avery in a note, and open http://localhost:5080/v1/slack/sandbox/messages in the signed-in browser to read
   what the sandbox received ([Slack](../architecture/slack.md)).
+- **The candidate's page.** Open http://localhost:4322/brightwater and use **Your applications** in the footer, or go to
+  `/brightwater/my-applications`. Type the address of a seeded candidate, such as one you found in Mailpit; the page answers the
+  same for any address and Mailpit holds "Your link to your applications at Brightwater Studio" for a real one only. The link
+  opens the page with no script: the candidate's applications with four steps, and **Read and answer your messages** once the team
+  has written. Send an email from a candidate's page in the dashboard, then answer it on the candidate's page: the reply
+  appears in that candidate's Messages and Activity, and an email reply posted to the sandbox route `/v1/dev/inbound-email` (below) joins the same thread.
+  Every email in Mailpit now ends with a link to the candidate's page ([candidate portal](../architecture/candidate-portal.md)).
 - **Interview scheduling.** The sandbox calendar is on in `pnpm dev`, so Avery's account menu has **Calendar**. Open it,
   press **Connect Sandbox calendar** and the browser comes straight back connected. Open a candidate who is still in the
   hiring process, such as Robin Ashby, and press **Schedule interview** beside Email: Avery is ticked as the interviewer

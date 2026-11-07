@@ -123,7 +123,7 @@ public static class ApplicationEmails
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
-        var route = await routing.ForAsync(db, application.OrganizationId, copy.Id, cancellationToken);
+        var route = await routing.ForAsync(db, application.OrganizationId, copy.Id, cancellationToken, application.CandidateId);
         await email.SendAsync(route.Apply(new EmailMessage(copy.To, copy.Subject, copy.TextBody, copy.HtmlBody)), cancellationToken);
         var entry = application.EmailSent(copy, now, actorUserId);
         db.ApplicationEvents.Add(entry);
@@ -180,7 +180,7 @@ public static class ApplicationEmails
         var organization = await db.Organizations.AsNoTracking().SingleAsync(o => o.Id == application.OrganizationId, cancellationToken);
         var model = ModelFor(candidate, job.Title, organization.Name, stage?.Name, reason, questionnaireLink);
         var header = await headers.ForAsync(db, organization, cancellationToken);
-        var route = await routing.ForAsync(db, application.OrganizationId, eventId, cancellationToken);
+        var route = await routing.ForAsync(db, application.OrganizationId, eventId, cancellationToken, application.CandidateId);
         var sent = await email.SendAsync(templateId, template.Content, candidate.Email, model, header, cancellationToken, route);
         var kept = questionnaireLink is null
             ? sent

@@ -222,6 +222,100 @@ public sealed class InterviewRequestTests
     }
 
     [Fact]
+    public void Offering_new_times_replaces_the_window_and_keeps_the_booked_time_and_the_revision()
+    {
+        var (_, request) = Requested();
+        request.Book(WindowStart.AddHours(10), Now);
+        var (start, end) = (Now.AddDays(10), Now.AddDays(17));
+
+        request.OfferNewTimes(start, end, Now);
+
+        request.Status.Should().Be(InterviewStatus.Booked);
+        request.StartsAt.Should().Be(WindowStart.AddHours(10), "the booked time stays held until the candidate picks");
+        request.Revision.Should().Be(1, "an offer is not a change to the booking, so the calendar messages stay current");
+        request.WindowStart.Should().Be(start);
+        request.WindowEnd.Should().Be(end);
+        request.NewTimesOfferedAt.Should().Be(Now);
+        request.LookupStart.Should().Be(WindowStart, "the lookup span keeps covering the first window");
+        request.LookupEnd.Should().Be(end);
+
+        // Offering again replaces the window again and never narrows the lookup span.
+        request.OfferNewTimes(Now.AddDays(30), Now.AddDays(33), Now.AddHours(1));
+        request.WindowStart.Should().Be(Now.AddDays(30));
+        request.NewTimesOfferedAt.Should().Be(Now.AddHours(1));
+        request.LookupStart.Should().Be(WindowStart);
+        request.LookupEnd.Should().Be(Now.AddDays(33));
+    }
+
+    [Fact]
+    public void New_times_are_offered_only_for_a_booked_interview_and_a_window_that_follows_the_request_rules()
+    {
+        var (_, open) = Requested();
+        FluentActions.Invoking(() => open.OfferNewTimes(Now.AddDays(10), Now.AddDays(17), Now)).Should().Throw<InvalidOperationException>();
+
+        var (_, booked) = Requested();
+        booked.Book(WindowStart.AddHours(10), Now);
+        booked.NewTimesProblem(Now.AddDays(10), Now.AddDays(17), Now).Should().BeNull();
+        booked.NewTimesProblem(Now.AddDays(17), Now.AddDays(10), Now).Should().Contain("end after");
+        booked.NewTimesProblem(Now.AddDays(10), Now.AddDays(101), Now).Should().Contain("90 days");
+        booked.NewTimesProblem(Now.AddDays(-5), Now.AddDays(-1), Now).Should().Contain("future");
+        FluentActions.Invoking(() => booked.OfferNewTimes(Now.AddDays(17), Now.AddDays(10), Now)).Should().Throw<ArgumentException>();
+        booked.NewTimesOfferedAt.Should().BeNull("a refused offer changes nothing");
+        booked.WindowStart.Should().Be(WindowStart);
+
+        var (_, cancelled) = Requested();
+        cancelled.Book(WindowStart.AddHours(10), Now);
+        cancelled.Cancel(Now, byCandidate: false);
+        FluentActions.Invoking(() => cancelled.OfferNewTimes(Now.AddDays(10), Now.AddDays(17), Now)).Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void While_new_times_are_offered_the_candidate_may_change_the_interview_whatever_the_notice_until_they_pick_or_it_is_cancelled()
+    {
+        var notice = TimeSpan.FromHours(24);
+        var (_, request) = Requested();
+        var starts = WindowStart.AddHours(10);
+        request.Book(starts, Now);
+        var inside = starts - TimeSpan.FromHours(2);
+        request.CanBeChangedByCandidate(inside, notice).Should().BeFalse("inside the notice, nothing was offered");
+
+        request.OfferNewTimes(Now.AddDays(10), Now.AddDays(17), inside);
+
+        request.CanBeChangedByCandidate(inside, notice).Should().BeTrue("the team asked for the move");
+        request.CanBeChangedByCandidate(starts.AddHours(1), notice).Should().BeTrue("even after the old time has passed");
+        request.HasPendingNewTimes(Now.AddDays(17).AddMinutes(-1)).Should().BeTrue();
+        request.HasPendingNewTimes(Now.AddDays(17)).Should().BeFalse("the offered days are over");
+        request.CanBeChangedByCandidate(Now.AddDays(17), notice).Should().BeFalse("with the offer over, the old time has passed");
+
+        var picked = Now.AddDays(11).AddHours(1);
+        request.Reschedule(picked, inside);
+        request.NewTimesOfferedAt.Should().BeNull("picking a new time ends the offer");
+        request.CanBeChangedByCandidate(picked - notice, notice).Should().BeTrue("the usual notice applies to the new time");
+        request.CanBeChangedByCandidate(picked.AddHours(-2), notice).Should().BeFalse("inside the notice again");
+
+        var (_, other) = Requested();
+        other.Book(starts, Now);
+        other.OfferNewTimes(Now.AddDays(10), Now.AddDays(17), Now);
+        other.Cancel(Now, byCandidate: true);
+        other.NewTimesOfferedAt.Should().BeNull();
+    }
+
+    [Fact]
+    public void Offered_days_that_end_before_the_booked_time_end_the_offer_and_the_usual_notice_applies()
+    {
+        var notice = TimeSpan.FromHours(24);
+        var (_, request) = Requested();
+        var starts = WindowEnd.AddHours(-1);
+        request.Book(starts, Now);
+
+        request.OfferNewTimes(Now.AddHours(1), Now.AddDays(2), Now);
+
+        request.HasPendingNewTimes(Now.AddDays(2)).Should().BeFalse();
+        request.CanBeChangedByCandidate(Now.AddDays(2), notice).Should().BeTrue("the booked time is still more than the notice away");
+        request.CanBeChangedByCandidate(starts - TimeSpan.FromHours(2), notice).Should().BeFalse("inside the notice, with no offer pending");
+    }
+
+    [Fact]
     public void An_attendee_tracks_whether_its_calendar_event_is_written()
     {
         var (_, request) = Requested();

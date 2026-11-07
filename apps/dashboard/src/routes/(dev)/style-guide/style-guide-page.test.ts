@@ -45,6 +45,7 @@ const panels: Record<string, string[]> = {
   'More menu': ['More menu'],
   Count: ['Count'],
   'Step marker': ['Step marker'],
+  'Stage flow': ['Stage flow'],
   'Pipeline tracker': ['Pipeline tracker'],
   'Mini card': ['Mini card'],
   'Interview panel': ['Interview panel'],
@@ -115,6 +116,7 @@ const panels: Record<string, string[]> = {
   'Country picker': ['Country picker'],
   'Rich text editor': ['Rich text editor'],
   'Colour field': ['Colour field'],
+  'Drop area': ['Drop area'],
   'Image field': ['Image field'],
   'Branding preview': ['Branding preview'],
 };

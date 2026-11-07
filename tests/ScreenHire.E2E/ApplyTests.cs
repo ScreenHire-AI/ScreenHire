@@ -93,7 +93,7 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
 
         await FillDetailsAsync("sam.lee@example.com");
         await Page.GetByLabel("Your CV or resume").SetInputFilesAsync(new FilePayload { Name = "Sam CV.pdf", MimeType = "application/pdf", Buffer = Pdf });
-        await Expect(Page.GetByText("Uploaded: Sam CV.pdf")).ToBeVisibleAsync();
+        await Expect(Page.GetByText("Sam CV.pdf")).ToBeVisibleAsync();
         // Leaving a step sends its snapshot; waiting for it to be stored keeps the test from racing the submission.
         await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" }).ClickAsync();
         await StoredSnapshotsAsync(organization.Id, 1);
@@ -155,8 +155,36 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
         // Named .pdf but not a PDF: uploaded, then refused by the API's check of its content.
         await resume.SetInputFilesAsync(new FilePayload { Name = "cv.pdf", MimeType = "application/pdf", Buffer = NotAPdf() });
         await Expect(Page.GetByText("This file is not a PDF or DOCX file.", new() { Exact = false })).ToBeVisibleAsync();
-        await Expect(Page.GetByText("Uploaded:", new() { Exact = false })).ToHaveCountAsync(0);
+        await Expect(Page.GetByText("cv.pdf")).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
+    }
+
+    [Fact]
+    public async Task A_dropped_file_uploads_and_Remove_takes_it_off_the_application()
+    {
+        var (organization, _) = await OrganizationWithEngineeringJobAsync();
+        await GoToAsync("careers", $"/{organization.Slug}/jobs/engineer/apply");
+        await Page.Locator("astro-island:not([ssr])").WaitForAsync();
+        await FillDetailsAsync("noor.ali@example.com");
+
+        // A drop from the file manager needs the operating system; this is the event the browser dispatches for one.
+        var transfer = await Page.EvaluateHandleAsync(
+            "bytes => { const data = new DataTransfer(); data.items.add(new File([new Uint8Array(bytes)], 'Noor CV.pdf', { type: 'application/pdf' })); return data; }",
+            Pdf.Select(value => (int)value).ToArray());
+        await Page.Locator("[data-drop-area]").DispatchEventAsync("drop", new { dataTransfer = transfer });
+        await Expect(Page.GetByText("Noor CV.pdf")).ToBeVisibleAsync();
+
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" }).ClickAsync();
+        await Expect(Page.Locator("#step-heading")).ToHaveTextAsync("Questions");
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Back", Exact = true }).ClickAsync();
+        await Expect(Page.GetByText("Noor CV.pdf")).ToBeVisibleAsync();
+
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Remove", Exact = true }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" }).ClickAsync();
+
+        // The file left the application as well as the page: the step asks for one again.
+        await Expect(ErrorSummary()).ToContainTextAsync("Add a file for");
+        await Expect(Page.GetByText("Noor CV.pdf")).ToHaveCountAsync(0);
     }
 
     [Fact]

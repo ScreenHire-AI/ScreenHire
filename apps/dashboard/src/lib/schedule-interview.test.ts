@@ -2,15 +2,19 @@ import { describe, expect, it } from 'vitest';
 import {
   addDays,
   checkSchedule,
+  checkWindow,
   dayIn,
   daysCovered,
   defaultDays,
   durationLabel,
+  newTimesSchema,
   scheduleSchema,
+  timeLabel,
   timeOptions,
   timeZoneOptions,
   toggleInterviewer,
   windowInstants,
+  zoneLabel,
   zonedMidnight,
 } from '#lib/schedule-interview.js';
 
@@ -126,6 +130,32 @@ describe('the choices', () => {
   });
 });
 
+describe('the days of new times', () => {
+  const issues = (windowStart: string, windowEnd: string, zone = 'America/New_York') => {
+    const found: Record<string, string> = {};
+    checkWindow({ windowStart, windowEnd }, zone, (field, message) => (found[field] = message), now);
+    return found;
+  };
+
+  it('holds a window to the same rules as a new interview, on the same fields', () => {
+    expect(issues('2026-11-03', '2026-11-16')).toEqual({});
+    expect(issues('2026-11-03', '2027-01-31')).toEqual({});
+    expect(issues('2026-11-03', '2027-02-01')).toEqual({ windowEnd: 'The window can be at most 90 days.' });
+    expect(issues('2026-11-03', '2026-11-02')).toEqual({ windowEnd: 'The last day has to be the first day or later.' });
+    expect(issues('2026-10-20', '2026-11-01')).toEqual({ windowEnd: 'The last day has to be today or later.' });
+    expect(issues('', '2026-11-16')).toEqual({ windowStart: 'Pick the first day.' });
+    expect(issues('2026-11-03', '')).toEqual({ windowEnd: 'Pick the last day.' });
+  });
+
+  it('is checked in the interview zone and reports the same problems through the schema', () => {
+    // The last day is still open: 2026-11-02 ends at midnight in New York (05:00Z on the 3rd), after the 12:00Z test clock.
+    expect(issues('2026-10-30', '2026-11-02', 'America/New_York')).toEqual({});
+    expect(newTimesSchema('America/New_York').safeParse({ windowStart: '2026-11-03', windowEnd: '2026-11-16' }).success).toBe(true);
+    const refused = newTimesSchema('America/New_York').safeParse({ windowStart: '2026-11-03', windowEnd: '2027-02-01' });
+    expect(refused.error?.issues.map((issue) => [issue.path[0], issue.message])).toEqual([['windowEnd', 'The window can be at most 90 days.']]);
+  });
+});
+
 describe('interviewers', () => {
   it('makes the first person ticked the organizer, whatever the order of the list', () => {
     let selected: string[] = [];
@@ -156,6 +186,14 @@ describe('what the selects offer', () => {
     expect(newYork?.label).toMatch(/^New York \(.+\)$/);
     expect(options.some((option) => option.value === 'UTC')).toBe(true);
     expect(options.some((option) => option.value === 'Asia/Kolkata')).toBe(true);
+  });
+
+  it('words a zone and a time of day as the selects do', () => {
+    expect(zoneLabel('America/New_York')).toBe('New York (Eastern Time)');
+    expect(zoneLabel('UTC')).toMatch(/^UTC/);
+    expect(zoneLabel('Not/A_Zone')).toBe('A Zone');
+    expect(timeLabel('09:00')).toBe('9:00 AM');
+    expect(timeLabel('09:15')).toBe('09:15');
   });
 
   it('words the lengths', () => {

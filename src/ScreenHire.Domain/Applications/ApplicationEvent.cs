@@ -83,6 +83,9 @@ public enum ApplicationEventType
     /// <summary>A person or the candidate cancelled the interview.</summary>
     InterviewCancelled,
 
+    /// <summary>A person offered the candidate new times for a booked interview. The booked time stays until the candidate picks one; <c>startsAt</c> is that held time.</summary>
+    InterviewNewTimesOffered,
+
     /// <summary>The candidate answered an email: their reply, kept as an <see cref="InboundEmail"/>.</summary>
     EmailReceived,
 }
