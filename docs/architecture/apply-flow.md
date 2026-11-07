@@ -28,6 +28,8 @@ sources:
   - resource: apps/careers/src/components/StepIndicator.astro
   - resource: packages/ui/src/questions/PageProgress.svelte
   - resource: packages/ui/src/questions/model.ts
+  - resource: packages/ui/src/questions/FileField.svelte
+  - resource: packages/ui/src/questions/DropArea.svelte
   - resource: apps/api/Applications/ApplicationDrafts.cs
   - resource: apps/api/Endpoints/PublicApplicationDraftEndpoints.cs
   - resource: src/ScreenHire.Domain/Applications/ApplicationDraft.cs
