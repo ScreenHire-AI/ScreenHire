@@ -31,6 +31,7 @@ each item names the doc that designs it. Board workflows carry the detail.
 | Connect to Slack (roadmap item 9): an Admin installs the app from Settings, a channel gets the events the team picks, and each person gets their own mentions and tasks ([Slack](architecture/slack.md)) | "After the owner's review: scorecards, verification review, candidates, reports, branding and the roadmap's next items" | #61 to #74 |
 | Candidate data requests and record retention (roadmap item 13): a candidate asks for a copy of their data or to be erased from the careers privacy page through an emailed link, the team answers in Settings, Data requests (Send a copy, Erase, Decline) against a due date, and an off-by-default retention setting deletes ended applications daily after a dry-run count ([data requests](architecture/data-requests.md)) | "Production polish: page audits, per-board postings, data requests and hosting readiness" | the data requests task |
 | Hosting readiness (roadmap item 14): the Azure definition, an AppHost publish model with the Bicep it generates under `infra/` and `azure.yaml`, a migrator that creates the schema as the database owner, production settings that stop a host naming what is missing, secrets and the Data Protection key in Key Vault, a CI check that the definition still generates, and the [deploy runbook](operations/deploy.md) (ADR-0007). Nothing is deployed | "Production polish: page audits, per-board postings, data requests and hosting readiness" | The hosting readiness task |
+| Careers and marketing pages on the current design system (v0.3): the careers titles on one token and every section a panel with the soft shadow, buttons and inputs at the 8px radius and 44px height, margins and gaps on the 4px grid, marketing cards and buttons on the same tokens, and one status badge for the marketing pages, with `public-style.test.ts` failing on a regression; employer colours are still checked on the page and the panel, and the pages still ship no JavaScript beyond the apply island ([design system](design/design-system.md) sections 4.3 and 4.4) | "Owner review of the fourth build, and the roadmap's open items" | The careers and marketing pages task |
 
 ## Next
 
@@ -53,7 +54,6 @@ each item names the doc that designs it. Board workflows carry the detail.
   ([verification engine](architecture/verification-engine.md) §9).
 - **Verification phase 3:** interview verification.
 - **Signal Network:** built and off until a legal review and DPIA (ADR-0005).
-- **Careers and marketing pages on design system v0.2.**
 
 ## Before real customers
 

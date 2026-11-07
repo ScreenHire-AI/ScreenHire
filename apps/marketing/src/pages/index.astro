@@ -49,12 +49,12 @@ const steps = [
       <div class="mt-1 flex flex-wrap gap-3">
         <a
           href={pages.pricing.path}
-          class="inline-flex h-13 items-center rounded-xl bg-primary px-6 text-lg font-bold text-primary-foreground no-underline hover:bg-primary/90"
+          class="button-primary"
           >Start hiring free</a
         >
         <a
           href={pages.detection.path}
-          class="inline-flex h-13 items-center rounded-xl border border-input bg-card px-6 text-lg font-bold text-foreground no-underline hover:border-primary"
+          class="button-secondary"
           >See how detection works</a
         >
       </div>
@@ -68,7 +68,7 @@ const steps = [
   </section>
 
   <section aria-label="Our principle" class="bg-foreground text-background">
-    <div class="mx-auto flex max-w-6xl flex-wrap items-baseline gap-x-6 gap-y-2 px-6 py-7">
+    <div class="mx-auto flex max-w-6xl flex-wrap items-baseline gap-x-6 gap-y-2 px-6 py-8">
       <p class="flex-1 basis-[520px] font-display text-3xl leading-tight font-bold tracking-[-0.015em]">
         A person decides. Every flag arrives with its evidence, the counter-evidence and a suggested next step.
       </p>
@@ -83,9 +83,9 @@ const steps = [
     <div class="grid gap-4 md:grid-cols-3">
       {
         features.map((feature) => (
-          <article class="flex flex-col gap-2.5 rounded-xl border border-border bg-card p-6">
+          <article class="flex flex-col gap-3 rounded-panel border border-border bg-card shadow-surface p-6">
             <span class="kicker">{feature.kicker}</span>
-            <h3 class="font-display text-2xl leading-snug font-bold">{feature.title}</h3>
+            <h3 class="font-display text-xl font-bold">{feature.title}</h3>
             <p class="text-secondary-foreground">{feature.body}</p>
           </article>
         ))
@@ -104,7 +104,7 @@ const steps = [
     <ol class="grid flex-2 basis-[560px] gap-4 sm:grid-cols-3">
       {
         steps.map((step, index) => (
-          <li class="flex flex-col gap-1.5 border-t-2 border-foreground pt-3">
+          <li class="flex flex-col gap-2 border-t-2 border-foreground pt-3">
             <span class="kicker">Step {index + 1}</span>
             <span class="text-lg font-bold">{step.title}</span>
             <span class="text-base text-secondary-foreground">{step.body}</span>
@@ -115,10 +115,10 @@ const steps = [
   </section>
 
   <section aria-labelledby="law-title" class="mx-auto mb-16 max-w-6xl px-6">
-    <div class="flex flex-wrap items-center justify-between gap-5 rounded-2xl border border-border bg-card p-7">
-      <div class="flex flex-1 basis-[420px] flex-col gap-2.5">
+    <div class="flex flex-wrap items-center justify-between gap-5 rounded-panel border border-border bg-card shadow-surface p-8">
+      <div class="flex flex-1 basis-[420px] flex-col gap-3">
         <h2 id="law-title" class="font-display text-3xl font-bold tracking-tight">Built for the laws you hire under</h2>
-        <ul class="flex flex-wrap gap-1.5" aria-label="Laws in the tracker">
+        <ul class="flex flex-wrap gap-2" aria-label="Laws in the tracker">
           {
             laws.map((law) => (
               <li>
@@ -135,7 +135,7 @@ const steps = [
       </div>
       <a
         href={pages.laws.path}
-        class="inline-flex h-12 items-center rounded-xl border border-input px-5 font-bold text-foreground no-underline hover:border-primary"
+        class="button-secondary"
         >Read the hiring-AI law tracker</a
       >
     </div>
@@ -143,7 +143,7 @@ const steps = [
 
   <section aria-labelledby="price-title" class="border-y border-candidate-border bg-candidate-background">
     <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-5 px-6 py-12">
-      <div class="flex flex-col gap-1.5">
+      <div class="flex flex-col gap-2">
         <h2 id="price-title" class="font-display text-4xl leading-tight font-bold tracking-tight text-candidate-foreground">
           Simple pricing for small teams.
         </h2>
@@ -151,7 +151,7 @@ const steps = [
       </div>
       <a
         href={pages.pricing.path}
-        class="inline-flex h-13 items-center rounded-xl bg-candidate-cta px-6 text-lg font-bold text-candidate-cta-foreground no-underline"
+        class="inline-flex h-11 items-center rounded-lg bg-candidate-cta px-5 font-semibold text-candidate-cta-foreground no-underline"
         >See pricing</a
       >
     </div>

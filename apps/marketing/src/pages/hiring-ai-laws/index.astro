@@ -42,9 +42,9 @@ const collectionPage = {
     <ul class="grid gap-4 md:grid-cols-2">
       {
         laws.map((law) => (
-          <li class="flex flex-col gap-2 rounded-xl border border-border bg-card p-6">
+          <li class="flex flex-col gap-2 rounded-panel border border-border bg-card shadow-surface p-6">
             <span class="kicker">{law.data.jurisdiction}</span>
-            <h3 class="font-display text-2xl leading-snug font-bold">
+            <h3 class="font-display text-xl font-bold">
               <a href={`${path}${law.id}/`} class="text-foreground no-underline hover:text-primary">
                 {law.data.title}
               </a>

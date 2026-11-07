@@ -46,6 +46,9 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/pipeline-view.svelte
   - resource: apps/careers/src/components/JobFacts.astro
   - resource: apps/careers/src/components/Notice.astro
+  - resource: apps/careers/src/components/Panel.astro
+  - resource: apps/careers/src/styles/global.css
+  - resource: apps/marketing/src/components/StatusBadge.astro
   - resource: apps/careers/src/lib/public-style.test.ts
   - resource: apps/marketing/src/styles/global.css
 ---
@@ -55,16 +58,19 @@ sources:
 > [ADR-0010](../adr/0010-design-system-v0-2.md), [ADR-0013](../adr/0013-design-system-v0-3.md) and
 > [ADR-0016](../adr/0016-design-system-v0-3-review-amendments.md). Visual reference: the
 > owner's "ScreenHire design v0.3 review" canvas; where it and this file differ, this file wins. The dashboard is
-> built to v0.3: every screen, and every component in section 11 with its example in the style guide. Section 21
-> records what v0.3 changed on each screen.
+> built to v0.3: every screen, and every component in section 11 with its example in the style guide. The careers and
+> marketing pages are built to it too, as sections 4.3 and 4.4 describe. Section 21 records what v0.3 changed on each
+> screen.
 
 This file is the one source of truth for how ScreenHire looks, reads and behaves on screen. CLAUDE.md, the rules in
 `.claude/rules/`, the page skills and the `design-review` agent point here and do not restate it. To change the
 design, change this file (and its ADR when a decision changes); everything else follows.
 
 **Scope.** Everything here applies to the recruiter dashboard. Candidate and marketing pages follow the principles
-(section 1), the review checklist where it applies, colour (section 3.4), words (section 12) and employer branding
-(section 18), and keep their own type scale (section 4.3) and the public-page rule (`.claude/rules/astro-public.md`).
+(section 1), the review checklist where it applies, colour (section 3.4), the radii and spacing of section 5, layers
+(section 6), words (section 12) and employer branding (section 18), and keep their own type scale (section 4.3), their
+own page widths (S6 is the dashboard's: a careers page is one centred reading column) and the public-page rule
+(`.claude/rules/astro-public.md`).
 
 ## 1. Principles
 
@@ -419,6 +425,15 @@ Titles take the employer's heading font where one is set (section 18), otherwise
 answered" in the hint size, the step semibold; each page's heading is its section's name. Marketing display goes up to 64px (the home page's title is 60px, `text-6xl`). The dashboard's
 questionnaire preview shows the candidate base with `text-candidate-body`.
 
+A careers page's `h1` is `font-display text-candidate-title` (30 / 36, weight 700, -0.02em), so every title takes the
+employer's heading font. A `Panel` title is `font-display text-heading` (16 / 24), and only the privacy notice keeps its
+title in the body font (section 18). A card's or step's title is `font-display text-panel-title` (20 / 28), and a reading
+line is `text-candidate-body`. Careers markup uses no Tailwind size
+(`text-sm`, `text-lg`, `text-xl`, `text-3xl`). Marketing titles use Tailwind's scale in this order: the `h1` at
+`text-4xl` (`text-5xl` on the home page) and `sm:text-6xl`, a section's `h2` at `text-3xl` (`text-4xl` on the home page), a
+band's `h2` at `text-2xl`, a card's `h3` at `text-xl`, a home page step at `text-lg`, a lead at `text-xl`, body at
+`text-base`, small text at `text-sm` and captions at `text-xs`.
+
 ### 4.4 Rules for public pages
 
 The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with these additions. `public-style.test.ts`
@@ -442,6 +457,28 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
 - A long page of prose (the privacy page) starts with an "On this page" list of links to its headings.
 - Header, breadcrumb and footer links are 44px tall on a coarse pointer and at least 24px with a mouse (WCAG 2.5.8):
   `pointer-coarse:min-h-11` on marketing pages. Careers pages use a plain `min-h-11`, so they are 44px on any pointer.
+- Shape and space come from section 5. Radius is a token: 8px for buttons and inputs (`rounded-lg`), 12px for panels
+  (`rounded-panel`), full for chips and badges, and never `rounded-[...]`. Margins, padding and gaps sit on the 4px grid
+  (4, 8, 12, 16, 20, 24, 32, 40, 48, which is `1`, `2`, `3`, `4`, `5`, `6`, `8`, `10` and `12`): no half steps, no `7`,
+  `9` or `11`. A button is 44px high (`min-h-11` on careers pages, `h-11` on marketing pages), and a careers input or
+  choice is 48px (`min-h-12`).
+- A section is a panel (S3, section 6): the card colour, a 1px edge, `rounded-panel` and `shadow-surface`, with its
+  title inside a 56px header. Careers pages draw one with `Panel.astro` (`title` and `id`, or only a screen-reader
+  `label`, an `action` slot for a Change button, a `footer` slot) in the neutral candidate tokens, so employer colours
+  never restyle it. Its title takes the employer's heading font, except in the privacy notice (`neutral`). A job card on the board, `Notice` and the error summary take the same surface and shadow. Marketing
+  cards are `rounded-panel border border-border bg-card shadow-surface`. A list of reasons inside a panel is an inset
+  (`bg-secondary`, no edge). The shared question controls stay unpanelled in their form. `public-style.test.ts` fails on
+  a panel without the shadow.
+- Employer colours sit on the page background and on the white panel, and the contrast check covers both
+  (`BrandPalette`): the brand colour used as text and for borders and focus rings is checked on `#fbf6ee` and on `#ffffff`
+  before it saves.
+- A status on a marketing page is `StatusBadge.astro` (T1): the 24px badge with its icon in the mark colour and the
+  label in 12px semibold, or `quiet` for a calm state in a list (T3), the same as the dashboard's. A page never builds
+  its own chip from `bg-status-*`. Careers pages show no status badge: each page names its state in its title and in
+  `Notice`, and the verification result is never shown to a candidate.
+- A marketing button is `.button-primary` (filled) or `.button-secondary` (outline), 44px high with an 8px radius. A
+  careers button is `.button-primary` or `.button-secondary` in the careers stylesheet, the same size, filled with the
+  employer's brand colour.
 - A careers form with steps has one row of buttons: the primary button first in the document and at the right on a wide
   screen, Back beside it, and Save and finish later at the left. A page with one action leaves it at the left, under its
   content.

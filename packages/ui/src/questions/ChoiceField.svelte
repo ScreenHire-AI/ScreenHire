@@ -25,7 +25,7 @@
 
 <!-- tabindex -1: the error summary's link focuses the group. -->
 <fieldset {id} tabindex="-1" aria-describedby={describedBy(id, hint, error)} class="flex flex-col gap-2">
-  <legend class="mb-1.5 text-candidate-body font-bold">
+  <legend class="mb-2 text-candidate-body font-semibold">
     {legend}
     {#if !required}<span class="font-medium text-candidate-muted-foreground"> (optional)</span>{/if}
   </legend>

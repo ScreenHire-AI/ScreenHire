@@ -28,10 +28,21 @@
    font (design-system W2). */
 @layer components {
   .kicker {
-    font-size: 0.875rem;
+    font-size: var(--text-sm);
     font-weight: 600;
     line-height: 1.25rem;
     color: var(--muted-foreground);
+  }
+}
+
+/* Buttons: 44px high with an 8px radius, a filled primary and an outlined secondary (design system sections 5 and 10). */
+@layer components {
+  .button-primary {
+    @apply inline-flex h-11 items-center justify-center rounded-lg bg-primary px-5 font-semibold text-primary-foreground no-underline hover:bg-primary/90;
+  }
+
+  .button-secondary {
+    @apply inline-flex h-11 items-center justify-center rounded-lg border border-input bg-card px-5 font-semibold text-foreground no-underline hover:border-primary;
   }
 }
 
@@ -39,7 +50,7 @@
 @layer components {
   .prose {
     max-width: 68ch;
-    font-size: 1.0625rem;
+    font-size: var(--text-base);
     line-height: 1.7;
     color: var(--secondary-foreground);
 
@@ -50,7 +61,7 @@
     & h2 {
       margin-top: 2em;
       font-family: var(--sh-font-display);
-      font-size: 1.75rem;
+      font-size: var(--text-3xl);
       font-weight: 700;
       line-height: 1.2;
       letter-spacing: -0.015em;
@@ -59,7 +70,7 @@
 
     & h3 {
       margin-top: 1.6em;
-      font-size: 1.2rem;
+      font-size: var(--text-xl);
       font-weight: 700;
       color: var(--foreground);
     }
@@ -104,7 +115,7 @@
     & table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.95rem;
+      font-size: var(--text-sm);
     }
 
     & th,
