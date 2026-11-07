@@ -323,7 +323,7 @@ describe('verification settings page', () => {
       const device = (await screen.findByLabelText('Device check')) as HTMLSelectElement;
       expect(device.value).toBe('ByRegion');
       expect(within(device).getByRole('option', { name: 'By region (default)' })).toBeInTheDocument();
-      expect(screen.getByText(/Region rules still apply/)).toBeInTheDocument();
+      expect(screen.getByText(/Where the law needs consent/)).toBeInTheDocument();
       await fireEvent.change(device, { target: { value: 'Consent' } });
 
       await fireEvent.click(await save());
@@ -340,6 +340,7 @@ describe('verification settings page', () => {
       const bodies = renderPage(settingsWith({ trustedDomains: ['old.example.com'] }));
       const input = (await screen.findByLabelText('Trusted email domains', { selector: 'input' })) as HTMLInputElement;
       expect(screen.getByRole('button', { name: 'Remove old.example.com' })).toBeInTheDocument();
+      expect(screen.getByText('1 of 50 domains')).toBeInTheDocument();
 
       await type(input, 'localhost');
       await fireEvent.click(screen.getByRole('button', { name: 'Add domain' }));
@@ -348,6 +349,7 @@ describe('verification settings page', () => {
       await type(input, ' Partner.Example.COM ');
       await fireEvent.click(screen.getByRole('button', { name: 'Add domain' }));
       expect(await screen.findByRole('button', { name: 'Remove partner.example.com' })).toBeInTheDocument();
+      expect(screen.getByText('2 of 50 domains')).toBeInTheDocument();
       expect(screen.queryByText('Enter a domain such as partner.example.com.')).not.toBeInTheDocument();
       await fireEvent.click(screen.getByRole('button', { name: 'Remove old.example.com' }));
 

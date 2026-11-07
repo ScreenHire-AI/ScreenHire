@@ -33,6 +33,7 @@
   import { Input } from '#lib/components/ui/input/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { Switch } from '#lib/components/ui/switch/index.js';
+  import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { checkboxClass, selectClass } from '#lib/components/workflow/controls.js';
   import { locales } from '#lib/dates.js';
   import { applyValidationProblem } from '#lib/forms.js';
@@ -535,26 +536,34 @@
                   {/each}
                 </select>
                 <Field.Description id="device-check-hint">
-                  Region rules still apply: where the law needs consent, ScreenHire asks, whatever you choose here. You can ask for more care, never less.
+                  Where the law needs consent, ScreenHire asks whatever you choose here. You can ask for more care, never less.
                 </Field.Description>
               </Field.Field>
 
               <Field.Field data-invalid={domainError || domainServerError ? true : undefined}>
                 <Field.Label for="trusted-domain">Trusted email domains</Field.Label>
                 <Field.Description id="trusted-domain-hint">
-                  A staffing partner that sends candidates from one mailbox. A shared email on a trusted domain does not raise a duplicate. Phone, device and resume matches still count.
+                  A shared email on a trusted domain, such as a staffing partner's mailbox, does not raise a duplicate.
                 </Field.Description>
                 {#if $form.trustedDomains.length > 0}
                   <ul class="flex flex-col gap-1" aria-label="Trusted email domains">
                     {#each $form.trustedDomains as domain (domain)}
                       <li class="flex items-center justify-between gap-2">
                         <span class="min-w-0 break-all">{domain}</span>
-                        <Button type="button" variant="ghost" size="icon" aria-label={`Remove ${domain}`} onclick={() => ($form.trustedDomains = $form.trustedDomains.filter((entry) => entry !== domain))}>
-                          <XIcon aria-hidden="true" />
-                        </Button>
+                        <Tooltip.Root>
+                          <Tooltip.Trigger>
+                            {#snippet child({ props })}
+                              <Button {...props} type="button" variant="ghost" size="icon" aria-label={`Remove ${domain}`} onclick={() => ($form.trustedDomains = $form.trustedDomains.filter((entry) => entry !== domain))}>
+                                <XIcon aria-hidden="true" />
+                              </Button>
+                            {/snippet}
+                          </Tooltip.Trigger>
+                          <Tooltip.Content>Remove {domain}</Tooltip.Content>
+                        </Tooltip.Root>
                       </li>
                     {/each}
                   </ul>
+                  <p class="text-muted-foreground tabular-nums">{$form.trustedDomains.length} of {maxTrustedEntries} domains</p>
                 {/if}
                 <div class="flex flex-wrap items-start gap-2">
                   <div class="min-w-48 flex-1">
@@ -577,19 +586,27 @@
               <Field.Field data-invalid={networkError || networkServerError ? true : undefined}>
                 <Field.Label for="trusted-network">Trusted networks</Field.Label>
                 <Field.Description id="trusted-network-hint">
-                  An office or a partner's network. Applications from it raise no network signal and no device-only duplicate. Use a range such as 203.0.113.0/24, no wider than /16.
+                  An office or a partner's range, such as 203.0.113.0/24 and no wider than /16, raises no network signal.
                 </Field.Description>
                 {#if $form.trustedNetworks.length > 0}
                   <ul class="flex flex-col gap-1" aria-label="Trusted networks">
                     {#each $form.trustedNetworks as network (network)}
                       <li class="flex items-center justify-between gap-2">
                         <span class="min-w-0 break-all tabular-nums">{network}</span>
-                        <Button type="button" variant="ghost" size="icon" aria-label={`Remove ${network}`} onclick={() => ($form.trustedNetworks = $form.trustedNetworks.filter((entry) => entry !== network))}>
-                          <XIcon aria-hidden="true" />
-                        </Button>
+                        <Tooltip.Root>
+                          <Tooltip.Trigger>
+                            {#snippet child({ props })}
+                              <Button {...props} type="button" variant="ghost" size="icon" aria-label={`Remove ${network}`} onclick={() => ($form.trustedNetworks = $form.trustedNetworks.filter((entry) => entry !== network))}>
+                                <XIcon aria-hidden="true" />
+                              </Button>
+                            {/snippet}
+                          </Tooltip.Trigger>
+                          <Tooltip.Content>Remove {network}</Tooltip.Content>
+                        </Tooltip.Root>
                       </li>
                     {/each}
                   </ul>
+                  <p class="text-muted-foreground tabular-nums">{$form.trustedNetworks.length} of {maxTrustedEntries} networks</p>
                 {/if}
                 <div class="flex flex-wrap items-start gap-2">
                   <div class="min-w-48 flex-1">
@@ -634,7 +651,7 @@
               <fieldset class="flex flex-col gap-2">
                 <legend class="mb-1 text-body font-medium">Budget at 80%</legend>
                 <p class="text-muted-foreground" id="alert-budget-hint">
-                  Tells the people who can change settings once a month when the consistency check has used 80% of ScreenHire's token budget. It does not apply with your own key.
+                  Tells the people who can change settings once a month when the consistency check has used 80% of ScreenHire's token budget.
                 </p>
                 {#if detail.emailAvailable}
                   <label class="flex min-w-0 items-center gap-2 pointer-coarse:min-h-11">
