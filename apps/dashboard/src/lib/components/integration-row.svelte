@@ -11,17 +11,24 @@
   const Icon = $derived(integration.icon);
 </script>
 
-<li data-slot="integration-row" class="relative flex min-h-16 min-w-0 items-center gap-3 border-b border-border-subtle px-4.5 py-3 last:border-0 hover:bg-muted max-md:px-4">
-  <span aria-hidden="true" class="grid size-9 shrink-0 place-items-center rounded-lg bg-secondary text-secondary-foreground">
-    <Icon />
-  </span>
-  <div class="flex min-w-0 flex-1 flex-col">
-    <a href={integration.href} class="min-w-0 truncate font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline">{integration.label}</a>
-    <span class="relative min-w-0 text-muted-foreground"><TruncatedText text={integration.description} /></span>
+<!-- The row's own width decides (F2): in a narrow panel the state drops under the text, so the one line keeps the width. -->
+<li data-slot="integration-row" class="@container relative min-w-0 border-b border-border-subtle last:border-0 hover:bg-muted">
+  <div class="grid min-h-16 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1 px-4.5 py-3 max-md:px-4 @md:grid-cols-[auto_minmax(0,1fr)_auto]">
+    <span aria-hidden="true" class="grid size-9 shrink-0 place-items-center rounded-lg bg-secondary text-secondary-foreground">
+      <Icon />
+    </span>
+    <div class="flex min-w-0 flex-col">
+      <a href={integration.href} class="min-w-0 truncate font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline">{integration.label}</a>
+      <span class="relative min-w-0 text-muted-foreground"><TruncatedText text={integration.description} /></span>
+    </div>
+    {#if state}
+      <div class="col-start-2 @md:col-start-3">
+        {#if state === 'connected'}
+          <StatusBadge status="done" label="Connected" quiet />
+        {:else}
+          <StatusBadge status="notInEffect" label="Not connected" quiet />
+        {/if}
+      </div>
+    {/if}
   </div>
-  {#if state === 'connected'}
-    <StatusBadge status="done" label="Connected" quiet />
-  {:else if state === 'notConnected'}
-    <StatusBadge status="notInEffect" label="Not connected" quiet />
-  {/if}
 </li>

@@ -188,7 +188,7 @@
   </Sidebar.Header>
 
   <Sidebar.Content>
-    <nav aria-label="Main" class="flex min-h-0 flex-col">
+    <nav aria-label="Main" class="flex shrink-0 grow flex-col">
       <Sidebar.Group>
         <Sidebar.Menu>
           {#each sections.filter((section) => section.sidebar !== false) as section (section.href)}

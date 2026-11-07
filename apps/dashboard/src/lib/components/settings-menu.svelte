@@ -40,7 +40,7 @@
 {#if entries.length > 0}
   <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6 lg:grid lg:grid-cols-[12.5rem_minmax(0,1fr)] lg:items-start lg:gap-6">
     <nav aria-label={area} class="min-w-0 rounded-xl border border-border bg-card p-1.5 shadow-surface">
-      <div bind:this={list} class="relative flex items-center gap-0.5 overflow-x-auto [scrollbar-width:thin] lg:flex-col lg:items-stretch lg:gap-3 lg:overflow-visible">
+      <div bind:this={list} class="relative flex items-center gap-0.5 overflow-x-auto [scrollbar-width:thin] lg:flex-col lg:items-stretch lg:overflow-visible">
         <ul class="flex gap-0.5 lg:w-full lg:flex-col">
           {#each entries as section (section.href)}
             {@const Icon = section.icon}
@@ -64,5 +64,5 @@
     <div class="flex min-w-0 flex-col gap-5">{@render children()}</div>
   </div>
 {:else}
-  <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6"><div class="flex min-w-0 flex-col gap-5">{@render children()}</div></div>
+  <div class="flex w-full min-w-0 flex-col gap-5 px-4 py-6 md:px-6">{@render children()}</div>
 {/if}

@@ -1,4 +1,5 @@
 import type { JobSummary, OrganizationBranding, OrganizationProfile, OrganizationSendingDomain, PendingInvitation, TeamMember } from '@screenhire/api-client';
+import { DEFAULT_QUESTIONS_PER_PAGE } from '@screenhire/ui/questions/model';
 
 /** One step of the Set up your organization panel. */
 export interface SetupStep {
@@ -22,7 +23,7 @@ export interface SetupInputs {
 
 /**
  * The checklist for a new organization, in the order a team does it. Each step ticks from the organization's own data,
- * never from a click: a teammate or an invitation, any branding set, an edit to the careers site, a verified email
+ * never from a click: a teammate or an invitation, any branding set, a careers site changed from its defaults, a verified email
  * domain, a published job. The email domain step is left out where this installation cannot send from a company's own
  * domain (design system A3). `undefined` while any answer is still loading, so the panel never flashes steps that are
  * already done.
@@ -45,10 +46,9 @@ export function setupSteps(inputs: SetupInputs): SetupStep[] | undefined {
       id: 'careers',
       label: 'Set up your careers site',
       href: '/settings/careers-site',
-      // The careers site starts from ScreenHire's defaults. The organization's change history records a renaming, the
-      // questions per page and the sites that may embed it (SettingsChanges.Name), so any recorded change means someone
-      // has been through the careers settings; the history of a new organization holds only its creation.
-      done: organization.embedOrigins.length > 0 || organization.lastUpdated.created === false,
+      // The careers site's own settings, away from ScreenHire's defaults. Not `lastUpdated`: renaming the organization
+      // moves it too. Someone who keeps the defaults has no data to tick, and dismisses the panel instead.
+      done: organization.embedOrigins.length > 0 || organization.questionsPerPage !== DEFAULT_QUESTIONS_PER_PAGE,
     },
   ];
   if (sendingDomain.available) {

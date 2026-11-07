@@ -17,11 +17,11 @@
   {/snippet}
   <ol aria-label="Setup steps" class="flex flex-col gap-3">
     {#each steps as step, index (step.id)}
-      <li class="flex min-w-0 items-center gap-3 pointer-coarse:min-h-11">
+      <li class="flex min-w-0 items-center gap-3">
         <StepMarker state={step.done ? 'done' : 'upcoming'}>
           {#if step.done}<CheckIcon />{:else}{index + 1}{/if}
         </StepMarker>
-        <a href={step.href} class={['min-w-0 truncate underline underline-offset-2', step.done ? 'text-muted-foreground' : 'font-semibold text-foreground']}>{step.label}</a>
+        <a href={step.href} class={['block min-w-0 truncate py-0.5 underline underline-offset-2 pointer-coarse:py-3', step.done ? 'text-muted-foreground' : 'font-semibold text-foreground']}>{step.label}</a>
         {#if step.done}<span class="sr-only">Done</span>{/if}
       </li>
     {/each}

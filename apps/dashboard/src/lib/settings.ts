@@ -16,13 +16,7 @@ import type { LucideIcon } from '#lib/shell.js';
 /** The team's history and its Last updated (`/team/history`, `/team/last-update`): invalidate it with every team change. */
 export const teamPath = '/v1/organization/team';
 
-/**
- * The Settings pages (design system section 11), each with the permission its changes need, in three groups that are
- * three sidebar items (`settingsAreas`): the organization and its people, how hiring is set up, and what connects to
- * it. Each item opens the first page the person may use, and the command palette lists them all. Kept apart from
- * `sections`, which every member sees and which the G chords read. Email templates live on the Templates page
- * (section 21), and their old addresses here redirect there.
- */
+/** The three groups of Settings pages, one sidebar item each (`settingsAreas`). */
 export type SettingsGroup = 'Organization' | 'Hiring setup' | 'Integrations';
 
 /** The Integrations directory: every integration as a row, past search and filters by kind (design system S9). */
@@ -53,6 +47,13 @@ export const featureWaits = (features: SettingsFeatures, feature: SettingsFeatur
  */
 export const slackFeature = (status: { available: boolean } | undefined, failed: boolean) => status?.available ?? (failed ? false : undefined);
 
+/**
+ * The Settings pages (design system section 11), each with the permission its changes need, in three groups that are
+ * three sidebar items (`settingsAreas`): the organization and its people, how hiring is set up, and what connects to
+ * it. Each item opens the first page the person may use, and the command palette lists them all. Kept apart from
+ * `sections`, which every member sees and which the G chords read. Email templates live on the Templates page
+ * (section 21), and their old addresses here redirect there.
+ */
 export const settingsSections: readonly {
   label: string;
   href: string;
@@ -116,6 +117,10 @@ export const visibleIntegrations = (user: CurrentUser | null | undefined, featur
   const hrefs = new Set(visibleSettingsSections(user, features).map((section) => section.href));
   return integrations.filter((integration) => hrefs.has(integration.href));
 };
+
+/** Whether the Integrations directory is open to this person. It has no permission of its own: one page it lists must be. */
+export const directoryVisible = (user: CurrentUser | null | undefined, features: SettingsFeatures = {}) =>
+  visibleSettingsSections(user, features).some((section) => section.group === 'Integrations');
 
 /** The sidebar items to show: the areas that have a page this person may use, each with where it opens. */
 export const visibleSettingsAreas = (user: CurrentUser | null | undefined, features: SettingsFeatures = {}) => {

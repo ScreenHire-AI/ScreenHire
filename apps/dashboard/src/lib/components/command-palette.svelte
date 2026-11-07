@@ -11,7 +11,7 @@
   import { jobStatus } from '#lib/job-status.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { signOutAndRedirect } from '#lib/session.js';
-  import { integrationsHref, visibleSettingsSections } from '#lib/settings.js';
+  import { directoryVisible, integrationsHref, visibleSettingsSections } from '#lib/settings.js';
   import { getShell, sections } from '#lib/shell.js';
   import { keptInMindLabel } from '#lib/talent-pool.js';
 
@@ -72,7 +72,7 @@
   // Every Settings page the person may use, and the Integrations directory when one of its integrations is among them.
   const settingsPages = $derived.by(() => {
     const pages = visibleSettingsSections(page.data?.user, shell?.features());
-    const directory = pages.some((entry) => entry.group === 'Integrations')
+    const directory = directoryVisible(page.data?.user, shell?.features())
       ? [{ label: 'Integrations', href: integrationsHref, group: 'Integrations' as const }]
       : [];
     return [...pages, ...directory];

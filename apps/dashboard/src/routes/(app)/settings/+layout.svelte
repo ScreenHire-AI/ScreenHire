@@ -8,7 +8,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { can, seesAllJobs } from '#lib/permissions.js';
-  import { featureWaits, integrationsHref, settingsSectionOf, visibleSettingsSections } from '#lib/settings.js';
+  import { directoryVisible, featureWaits, integrationsHref, settingsSectionOf, visibleSettingsSections } from '#lib/settings.js';
   import { getShell } from '#lib/shell.js';
   import type { LayoutProps } from './$types';
 
@@ -25,7 +25,7 @@
     section
       ? can(data.user, section.permission)
       : directory
-        ? visibleSettingsSections(data.user, shell?.features()).some((entry) => entry.group === 'Integrations')
+        ? directoryVisible(data.user, shell?.features())
         : visibleSettingsSections(data.user).length > 0,
   );
   // API keys and webhooks reach every job, so a person on Only jobs they're on cannot use them whatever their role says.
@@ -37,7 +37,9 @@
   const features = $derived(shell?.features() ?? {});
   const hidden = $derived(Boolean(section?.feature) && features[section!.feature!] === false);
   const waiting = $derived(permitted && Boolean(section?.feature) && featureWaits(features, section!.feature!));
-  const pending = $derived(hidden || waiting);
+  // Someone whose only integration is Slack has no directory until the shell hears that Slack is on: wait, never refuse.
+  const directoryWaits = $derived(directory && !roleAllows && featureWaits(features, 'slack') && directoryVisible(data.user, { ...features, slack: true }));
+  const pending = $derived(hidden || waiting || directoryWaits);
   const allowed = $derived(permitted && !pending);
   $effect(() => {
     if (hidden) void goto(visibleSettingsSections(data.user, features)[0]?.href ?? '/', { replaceState: true });

@@ -5,13 +5,11 @@ import WebhookIcon from '~icons/lucide/webhook';
 import { createGetSlack, createListApiKeys, createListWebhookEndpoints } from '@screenhire/api-client/svelte-query';
 import type { CurrentUser, Permission } from '@screenhire/api-client';
 import { can, seesAllJobs } from '#lib/permissions.js';
+import type { SettingsFeature } from '#lib/settings.js';
 import type { LucideIcon } from '#lib/shell.js';
 
 /** Whether an integration is set up. An integration with no way to tell has no `useConnection` and shows no state. */
 export type Connection = 'connected' | 'notConnected';
-
-/** What an integration needs from the installation, as a Settings page does (`SettingsFeature` in `#lib/settings.ts`). */
-export type IntegrationFeature = 'slack';
 
 export interface Integration {
   /** The name on its row, its Settings menu entry and its breadcrumb. */
@@ -28,7 +26,7 @@ export interface Integration {
   /** Reaches every job, so it also needs all jobs (ADR-0015). */
   allJobs?: true;
   /** The page exists only where this feature is set up (design system A3). */
-  feature?: IntegrationFeature;
+  feature?: SettingsFeature;
   /**
    * Called while the row's component starts, so it can create the query that tells whether the integration is set up. It
    * returns a getter for the answer, missing while that loads. The query is off for anyone the API would refuse.
