@@ -21,7 +21,7 @@
   type="button"
   {onclick}
   aria-current={current ? 'true' : undefined}
-  class="flex w-full min-w-0 items-center gap-3 rounded-lg border border-input p-3 text-left hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-[current=true]:border-primary aria-[current=true]:bg-accent pointer-coarse:min-h-11"
+  class="flex w-full min-w-0 items-center gap-3 rounded-lg border border-input p-3 text-left hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-[current=true]:border-primary aria-[current=true]:bg-accent pointer-coarse:min-h-11"
 >
   <span class="flex min-w-0 flex-1 flex-col gap-0.5">
     <span class="font-semibold break-words">{title}</span>

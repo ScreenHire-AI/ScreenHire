@@ -10,6 +10,7 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
+import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { describeError } from '#lib/query.js';
   import {
     blankCandidate,
@@ -199,17 +200,17 @@
     <Empty.Header>
       <Empty.Media variant="icon"><FlaskConicalIcon /></Empty.Media>
       <Empty.Title>Nothing to test yet</Empty.Title>
-      <Empty.Description>Every automation is switched off.</Empty.Description>
+      <Empty.Description>Every automation is switched off. Switch one on in Pipeline.</Empty.Description>
     </Empty.Header>
   </Empty.Root>
 {:else}
-  <div class="@container flex max-w-2xl flex-col gap-5">
+  <div class="@container flex flex-col gap-5">
     <StepMarkers label="Progress of the test" steps={progress} />
 
     <div class="flex flex-col gap-1">
       <h3 bind:this={headingElement} tabindex="-1" class="text-heading focus-visible:outline-none">{heading}</h3>
       {#if shown === 'moment'}
-        <p class="text-muted-foreground">The test runs on this workflow as it is on screen. It never touches a real candidate or sends anything.</p>
+        <p class="max-w-[72ch] text-muted-foreground">The test runs on this workflow as it is on screen. It never touches a real candidate or sends anything.</p>
       {/if}
     </div>
 
@@ -247,7 +248,7 @@
       <!-- Only what this workflow's automations read. A fact nothing reads never appears (W6). -->
       <form
         aria-label="Describe the candidate"
-        class="flex flex-col gap-4"
+        class="flex max-w-[43rem] flex-col gap-4"
         onsubmit={(event) => {
           event.preventDefault();
           testDraft();
@@ -352,9 +353,14 @@
         </div>
       </form>
     {:else}
-      <div aria-live="polite" class="flex flex-col gap-4">
+      <div class="flex flex-col gap-4">
         {#if pending}
-          <p role="status" class="text-muted-foreground">Running the test.</p>
+          <div class="flex flex-col gap-3">
+            <p role="status" class="sr-only">Running the test.</p>
+            <Skeleton class="h-5 w-1/2" />
+            <Skeleton class="h-5 w-1/3" />
+            <Skeleton class="h-12 w-full" />
+          </div>
         {:else if failure}
           <div>
             <FailureText message={failure.message} />
