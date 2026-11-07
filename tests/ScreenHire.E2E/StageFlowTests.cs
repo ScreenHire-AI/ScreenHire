@@ -1,12 +1,15 @@
 using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace ScreenHire.E2E;
 
 /// <summary>
-/// A workflow's stages on a template's page (design system section 11, Stage flow, S8, S9, F1). The choice between a
+/// A workflow's stages where they read only (design system section 11, Stage flow, S8, S9, F1). The choice between a
 /// row of columns and the vertical list is made in CSS from the container's width and the number of stages, which
-/// jsdom cannot evaluate, so it is checked here in a real browser, on the built-in Software engineer template (five
-/// stages before the ones that end a candidacy).
+/// jsdom cannot evaluate, so it is checked here in a real browser: on the built-in Software engineer template (five
+/// stages before the ones that end a candidacy) and on a closed job's workflow page with twenty.
 /// </summary>
 public sealed class StageFlowTests(E2EFixture fixture) : BrowserTest(fixture)
 {
@@ -55,6 +58,58 @@ public sealed class StageFlowTests(E2EFixture fixture) : BrowserTest(fixture)
         var narrowest = await items.EvaluateAllAsync<double>("lis => Math.min(...lis.map(li => li.getBoundingClientRect().width))");
         narrowest.Should().BeGreaterThanOrEqualTo(inARow ? 192 : 0, "a stage keeps its 12rem column");
         await ExpectNoAccessibilityViolationsAsync();
+    }
+
+    [Fact]
+    public async Task A_closed_jobs_workflow_page_draws_the_same_view_and_twenty_stages_stack_on_a_wide_screen()
+    {
+        await Page.SetViewportSizeAsync(1440, 1000);
+        var email = await NewMemberAsync();
+        var jobId = await NewClosedJobAsync(email, stages: 20);
+        await SignInAsync(email);
+        await Page.GotoAsync(DashboardUrl($"/jobs/{jobId}/workflow"));
+
+        var stages = Page.GetByRole(AriaRole.List, new() { Name = "Stages in order" });
+        await Expect(stages).ToBeVisibleAsync();
+        var items = stages.Locator(":scope > li");
+        await Expect(items).ToHaveCountAsync(20);
+
+        var boxes = await items.EvaluateAllAsync<double[][]>("lis => lis.map(li => { const box = li.getBoundingClientRect(); return [box.x, box.y]; })");
+        boxes.Select(box => box[0]).Distinct().Should().ContainSingle("twenty stages need 240rem, so they stack");
+        boxes.Select(box => box[1]).Should().BeInAscendingOrder().And.OnlyHaveUniqueItems();
+        (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth"))
+            .Should().BeTrue("twenty stages never scroll sideways");
+        await ExpectNoAccessibilityViolationsAsync();
+    }
+
+    // A closed job reads its workflow as content, with the stages that lead up to the ones that end a candidacy.
+    private async Task<Guid> NewClosedJobAsync(string email, int stages)
+    {
+        using var session = new ApiSession(Fixture);
+        await session.SignInWithDevSsoAsync(email, Ct);
+        var job = await ReadAsync(await session.PostAsync("/v1/jobs", new { title = "Long pipeline" }, Ct), HttpStatusCode.Created);
+        var jobId = job.GetProperty("id").GetGuid();
+
+        var workflow = JsonNode.Parse(job.GetProperty("workflow").GetRawText())!.AsObject();
+        var list = workflow["stages"]!.AsArray();
+        var firstEnd = list.ToList().FindIndex(stage => (string?)stage!["kind"] is "Hired" or "Rejected" or "Withdrawn");
+        for (var number = firstEnd + 1; number <= stages; number++)
+        {
+            list.Insert(number - 1, new JsonObject { ["id"] = $"round-{number}", ["name"] = $"Round {number}", ["kind"] = "Interview" });
+        }
+
+        await ReadAsync(await session.PutAsync($"/v1/jobs/{jobId}/workflow", new JsonObject { ["workflow"] = workflow, ["expectedWorkflowVersion"] = 1 }, Ct), HttpStatusCode.OK);
+        await ReadAsync(await session.PostAsync($"/v1/jobs/{jobId}/close", new { }, Ct), HttpStatusCode.OK);
+        return jobId;
+    }
+
+    private static async Task<JsonElement> ReadAsync(HttpResponseMessage response, HttpStatusCode expected)
+    {
+        using (response)
+        {
+            response.StatusCode.Should().Be(expected, await response.Content.ReadAsStringAsync(Ct));
+            return await response.Content.ReadFromJsonAsync<JsonElement>(Ct);
+        }
     }
 
     private async Task<string> NewMemberAsync()

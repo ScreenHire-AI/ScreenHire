@@ -2,8 +2,9 @@
 // what these check is the markup both layouts share: the order, the facts and what a stage with nothing attached says.
 import type { HiringWorkflow, WorkflowStage } from '@screenhire/api-client';
 import { render, screen, within } from '@testing-library/svelte';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
+import { apiStub } from '../../../test-support/fixtures.js';
 import WithQueryClient from '../../../test-support/with-query-client.svelte';
 import StageFlow from './stage-flow.svelte';
 
@@ -20,6 +21,9 @@ const automations: HiringWorkflow['automations'] = [
   { id: 'c', name: 'Tag interviewed', trigger: { type: 'StageEntered', stageId: 'interview' }, conditions: null, actions: [{ type: 'AddTag', tag: 'interviewed' }] },
   // Fires on no one stage, so no stage counts it.
   { id: 'd', name: 'Welcome', trigger: { type: 'ApplicationSubmitted' }, conditions: null, actions: [{ type: 'AddTag', tag: 'new' }] },
+  // Off, so they fire on nothing and their stages do not count them.
+  { id: 'e', name: 'Paused', enabled: false, trigger: { type: 'StageEntered', stageId: 'interview' }, conditions: null, actions: [{ type: 'AddTag', tag: 'paused' }] },
+  { id: 'f', name: 'Paused too', enabled: false, trigger: { type: 'StageEntered', stageId: 'offer' }, conditions: null, actions: [{ type: 'AddTag', tag: 'paused' }] },
 ];
 
 const renderFlow = (list: WorkflowStage[] = stages) =>
@@ -28,6 +32,8 @@ const renderFlow = (list: WorkflowStage[] = stages) =>
 const text = (element: Element) => element.textContent?.replace(/\s+/g, ' ').trim();
 
 describe('stage flow', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
   it('lists the stages in order, each with its number and name', () => {
     renderFlow();
 
@@ -55,12 +61,39 @@ describe('stage flow', () => {
     expect(facts(interview!)).toEqual(['5-day limit', '1 automation']);
   });
 
+  it('does not count an automation that is off, and a stage whose only automation is off shows its name alone', () => {
+    renderFlow();
+
+    const list = screen.getByRole('list', { name: 'Stages in order' });
+    expect(text(list.children[2]!)).toBe('3 Interview 5-day limit 1 automation');
+    expect(text(list.children[3]!)).toBe('4 Offer');
+  });
+
   it('names a scorecard from the library once the library loads, with its word for screen readers only', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        apiStub({
+          'GET /v1/scorecard-templates': () =>
+            Response.json([{ id: 'phone-screen', name: 'Phone screen', builtIn: true, questions: 2, ratingQuestions: 2, lastUpdated: { at: null, by: 'ScreenHire' } }]),
+        }),
+      ),
+    );
     renderFlow([{ id: 'screen', name: 'Screen', kind: 'Screening', scorecardTemplateId: 'phone-screen' }]);
 
-    const fact = within(screen.getByRole('list', { name: 'Stages in order' })).getByText('Scorecard:');
-    expect(fact).toHaveClass('sr-only');
-    expect(text(fact.parentElement!)).toBe('Scorecard: a scorecard from the library');
+    const list = screen.getByRole('list', { name: 'Stages in order' });
+    expect(await within(list).findByText('Phone screen')).toBeInTheDocument();
+    const word = within(list).getByText('Scorecard:');
+    expect(word).toHaveClass('sr-only');
+    expect(text(word.parentElement!)).toBe('Scorecard: Phone screen');
+  });
+
+  it('says a scorecard is from the library while the library has no name for it', () => {
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/scorecard-templates': () => new Response(null, { status: 500 }) })));
+    renderFlow([{ id: 'screen', name: 'Screen', kind: 'Screening', scorecardTemplateId: 'phone-screen' }]);
+
+    const word = within(screen.getByRole('list', { name: 'Stages in order' })).getByText('Scorecard:');
+    expect(text(word.parentElement!)).toBe('Scorecard: a scorecard from the library');
   });
 
   it('gives the list its length for the layout, so the choice between a row and a list needs no measuring', () => {
