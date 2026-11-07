@@ -13,7 +13,7 @@
   // The Last updated fact (design system T6, section 13): time ago and who, the exact time on hover, and the History
   // button that opens the sheet of every change. Built-ins say "by ScreenHire". Inside `<Fact>`, whose label is
   // `lastUpdateWords(value).label`, it is the value alone ("2 hours ago by Avery Quinn"). With `lead`, where no label
-  // shows (a settings page's title row), it says its own verb: "Created 2 hours ago by Avery Quinn" when nothing has
+  // shows (the saved note sheet), it says its own verb: "Created 2 hours ago by Avery Quinn" when nothing has
   // changed the object since, else "Updated 2 hours ago". `titleRow`, on a header band's title row (`HistoryFact`), says
   // the verb too and never wraps (S8): the words give way with an ellipsis, the whole fact and its exact time in a tooltip
   // (F5), and History keeps only its icon and a tooltip (A4) once the band is narrower than 448px (a phone), so a title
