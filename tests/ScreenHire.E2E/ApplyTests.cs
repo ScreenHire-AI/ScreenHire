@@ -160,6 +160,34 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
     }
 
     [Fact]
+    public async Task A_dropped_file_uploads_and_Remove_takes_it_off_the_application()
+    {
+        var (organization, _) = await OrganizationWithEngineeringJobAsync();
+        await GoToAsync("careers", $"/{organization.Slug}/jobs/engineer/apply");
+        await Page.Locator("astro-island:not([ssr])").WaitForAsync();
+        await FillDetailsAsync("noor.ali@example.com");
+
+        // A drop from the file manager needs the operating system; this is the event the browser dispatches for one.
+        var transfer = await Page.EvaluateHandleAsync(
+            "bytes => { const data = new DataTransfer(); data.items.add(new File([new Uint8Array(bytes)], 'Noor CV.pdf', { type: 'application/pdf' })); return data; }",
+            Pdf.Select(value => (int)value).ToArray());
+        await Page.Locator("[data-drop-area]").DispatchEventAsync("drop", new { dataTransfer = transfer });
+        await Expect(Page.GetByText("Noor CV.pdf")).ToBeVisibleAsync();
+
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" }).ClickAsync();
+        await Expect(Page.Locator("#step-heading")).ToHaveTextAsync("Questions");
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Back", Exact = true }).ClickAsync();
+        await Expect(Page.GetByText("Noor CV.pdf")).ToBeVisibleAsync();
+
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Remove", Exact = true }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" }).ClickAsync();
+
+        // The file left the application as well as the page: the step asks for one again.
+        await Expect(ErrorSummary()).ToContainTextAsync("Add a file for");
+        await Expect(Page.GetByText("Noor CV.pdf")).ToHaveCountAsync(0);
+    }
+
+    [Fact]
     public async Task Wrong_type_and_oversized_uploads_are_rejected_without_JavaScript()
     {
         await WithoutJavaScriptAsync();

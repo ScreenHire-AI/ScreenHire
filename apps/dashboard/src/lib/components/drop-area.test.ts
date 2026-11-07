@@ -1,5 +1,6 @@
-import { DropArea } from '@screenhire/ui/questions';
-import { fireEvent, render, screen } from '@testing-library/svelte';
+import { DropArea, FileField } from '@screenhire/ui/questions';
+import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { createRawSnippet } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
 
@@ -53,7 +54,7 @@ describe('drop area', () => {
   });
 
   it('takes a dropped file, and only the first of several', async () => {
-    const { area, onfile, onproblem } = renderArea();
+    const { area, onfile, onproblem } = renderArea({ keep: false });
     const first = pdf('first.pdf');
 
     await fireEvent.dragEnter(area(), files());
@@ -81,6 +82,42 @@ describe('drop area', () => {
 
     expect(added).toHaveLength(1);
     expect(assigned).toHaveBeenCalledOnce();
+  });
+
+  it('says so rather than claim a dropped file it could not put in the input of a field that posts with its form', async () => {
+    const { area, onfile, onproblem } = renderArea({ name: 'file:resume' });
+
+    // jsdom has no DataTransfer, like a browser too old for its constructor.
+    await fireEvent.drop(area(), files(pdf()));
+
+    expect(onfile).not.toHaveBeenCalled();
+    expect(onproblem).toHaveBeenCalledExactlyOnceWith('This browser cannot take a dropped file here. Choose the file instead.');
+  });
+
+  it('lets go of the shown file when a refused pick has replaced it in the input, but not for a refused drop', async () => {
+    const { area, input, onproblem, onremove } = renderArea({ file: { name: 'resume.pdf', size: 2048 } });
+
+    await fireEvent.drop(area(), files(new File(['x'], 'setup.exe')));
+    expect(onremove).not.toHaveBeenCalled();
+
+    await fireEvent.change(input(), { target: { files: [new File(['x'], 'setup.exe')] } });
+    expect(onremove).toHaveBeenCalledOnce();
+    expect(onproblem).toHaveBeenCalledTimes(2);
+  });
+
+  it('cancels a file dragged over it while busy, or the browser would open the file and lose the form, but does not highlight', async () => {
+    const { area } = renderArea({ disabled: true });
+
+    // fireEvent answers false when the handler cancelled the event.
+    expect(await fireEvent.dragEnter(area(), files())).toBe(false);
+    expect(await fireEvent.dragOver(area(), files())).toBe(false);
+    expect(area()).not.toHaveAttribute('data-over');
+  });
+
+  it('leaves a drag of text or a link to the browser', async () => {
+    const { area } = renderArea();
+
+    expect(await fireEvent.dragOver(area(), { dataTransfer: { types: ['text/plain'] } })).toBe(true);
   });
 
   it('refuses a wrong type and a file that is too large, picked or dropped, with the reason in words', async () => {
@@ -125,6 +162,30 @@ describe('drop area', () => {
     expect(onremove).toHaveBeenCalledOnce();
   });
 
+  it('moves focus to the input when Remove goes, so a keyboard user is not sent back to the top of the page', async () => {
+    const { input } = renderArea({ file: { name: 'resume.pdf', size: 2048 } });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+
+    expect(input()).toHaveFocus();
+  });
+
+  it('marks its edge when the field is invalid', () => {
+    const { area } = renderArea({ invalid: true });
+
+    expect(area()).toHaveAttribute('data-invalid');
+  });
+
+  it('draws what it is given above the words, inside the target', async () => {
+    const { area, input } = renderArea({ preview: createRawSnippet(() => ({ render: () => '<img alt="The logo" />' })) });
+    const open = vi.spyOn(input(), 'click');
+
+    await fireEvent.click(screen.getByAltText('The logo'));
+
+    expect(area()).toContainElement(screen.getByAltText('The logo'));
+    expect(open).toHaveBeenCalledOnce();
+  });
+
   it('ignores a drop while it is busy, and says what it is doing', async () => {
     const { area, onfile } = renderArea({ disabled: true, status: 'Uploading...' });
 
@@ -140,5 +201,45 @@ describe('drop area', () => {
     document.body.insertAdjacentHTML('afterbegin', '<label for="resume">Resume</label>');
     renderArea({ file: { name: 'resume.pdf', size: 2048 }, invalid: true });
     await expectNoAxeViolations();
+  });
+});
+
+describe('file question on the drop area', () => {
+  const question = { questionId: 'resume', label: 'Your CV', required: true, hint: 'PDF', accept: ['.pdf'], maxBytes: 1024 * 1024 };
+  const input = () => document.getElementById('field-file-resume') as HTMLInputElement;
+  const reference = () => document.querySelector<HTMLInputElement>('input[name="upload:resume"]');
+
+  it('stops naming a picked file once a refused pick has emptied the input, so the form cannot post nothing', async () => {
+    render(FileField, { props: question });
+
+    await fireEvent.change(input(), { target: { files: [pdf()] } });
+    expect(screen.getByText('resume.pdf')).toBeInTheDocument();
+    expect(input().required).toBe(false);
+
+    await fireEvent.change(input(), { target: { files: [new File(['x'], 'setup.exe')] } });
+
+    expect(screen.queryByText('resume.pdf')).not.toBeInTheDocument();
+    expect(input().required).toBe(true);
+    expect(screen.getByText('Upload a PDF file.')).toBeInTheDocument();
+  });
+
+  it('sends a dropped file through its endpoint, leaves only the reference in the form, and Remove takes that out', async () => {
+    const uploaded = { uploadId: '0190b5a0-0000-7000-8000-000000000001', fileName: 'resume.pdf', sizeBytes: 2048 };
+    const answers = [{ uploadId: uploaded.uploadId, uploadUrl: 'http://storage.test/blob', method: 'PUT', headers: {} }, {}, uploaded];
+    const send = vi.fn(async () => new Response(JSON.stringify(answers.shift())));
+    vi.stubGlobal('fetch', send);
+    render(FileField, { props: { ...question, endpoint: '/brightwater/uploads', jobId: 'job' } });
+    await waitFor(() => expect(input()).not.toHaveAttribute('name'));
+
+    await fireEvent.drop(document.querySelector('[data-drop-area]')!, files(pdf()));
+
+    await waitFor(() => expect(reference()).not.toBeNull());
+    expect(JSON.parse(reference()!.value)).toEqual(uploaded);
+    expect(send).toHaveBeenCalledTimes(3);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+
+    expect(reference()).toBeNull();
+    expect(input().required).toBe(true);
   });
 });
