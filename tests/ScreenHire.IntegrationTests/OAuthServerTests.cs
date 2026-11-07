@@ -686,8 +686,7 @@ public sealed class OAuthServerTests(AppHostFixture fixture)
         using var leaver = await fixture.InviteAndJoinAsync(owner, "Admin");
         var theirs = await leaver.ConnectAsync(app, "Their assistant", ["Read"]);
         var mine = await owner.ConnectAsync(app, "My assistant", ["Read"]);
-        var key = (await leaver.PostAsync("/v1/organization/api-keys", new JsonObject { ["name"] = "Their key", ["scopes"] = new JsonArray("Read") }))
-            .Expect(HttpStatusCode.Created).Id();
+        var key = (await leaver.CreateKeyAsync("Their key", ["Read"])).Id("key.id");
 
         (await owner.DeleteAsync($"/v1/organization/members/{await owner.MemberIdAsync(leaver.UserId)}")).Expect(HttpStatusCode.NoContent);
 
@@ -696,8 +695,8 @@ public sealed class OAuthServerTests(AppHostFixture fixture)
         (await app.McpAsync(mine.AccessToken)).Status.Should().Be(HttpStatusCode.OK);
 
         var connections = (await owner.GetAsync("/v1/organization/oauth-connections")).Expect(HttpStatusCode.OK).Body.EnumerateArray().ToList();
-        connections.Single(c => c.GetProperty("name").GetString() == "Their assistant").GetProperty("revokedAt").ValueKind.Should().NotBe(JsonValueKind.Null);
-        connections.Single(c => c.GetProperty("name").GetString() == "My assistant").GetProperty("revokedAt").ValueKind.Should().Be(JsonValueKind.Null);
+        connections.Single(c => c.GetProperty("clientName").GetString() == "Their assistant").GetProperty("revokedAt").ValueKind.Should().NotBe(JsonValueKind.Null);
+        connections.Single(c => c.GetProperty("clientName").GetString() == "My assistant").GetProperty("revokedAt").ValueKind.Should().Be(JsonValueKind.Null);
 
         var keys = (await owner.GetAsync("/v1/organization/api-keys")).Expect(HttpStatusCode.OK).Body.EnumerateArray();
         keys.Single(k => k.GetProperty("id").GetGuid() == key).GetProperty("revokedAt").ValueKind.Should().Be(JsonValueKind.Null, "an API key is the organization's (ADR-0011)");
