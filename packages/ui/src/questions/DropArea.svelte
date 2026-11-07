@@ -211,7 +211,7 @@
     class="file-input"
   />
   {#if mounted}
-    <div class="flex flex-col gap-3">
+    <div class="drop-area-body">
       {#if preview}{@render preview()}{/if}
       <!-- Stacked in a narrow area and in a row in a wide one, so the buttons never wrap (F2, F5). -->
       <div class="drop-area-row">
@@ -226,7 +226,7 @@
           {/if}
         </div>
         {#if !status}
-          <div class="flex w-full flex-col gap-2 @md:w-auto @md:flex-row">
+          <div class="drop-area-actions">
             <!-- Looks like a button and is not one: the input above is the control, so assistive technology finds one picker. -->
             <span aria-hidden="true" class="drop-area-button">{file ? replaceLabel : chooseLabel}</span>
             {#if file}

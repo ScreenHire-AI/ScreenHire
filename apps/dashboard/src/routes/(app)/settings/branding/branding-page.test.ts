@@ -131,6 +131,9 @@ describe('branding page', () => {
     expect(within(sharingTile).getByAltText('The sharing image').className).toContain('aspect-[1.91/1]');
     expect(within(sharingTile).getByText('Open roles at Brightwater Studio.')).toBeInTheDocument();
     expect(within(sharingTile).getByText('share.jpg')).toBeInTheDocument();
+    // A set tile's Replace and Remove share a row, so their nouns are short.
+    expect(within(faviconTile).getByRole('button', { name: 'Remove icon' })).toBeInTheDocument();
+    expect(within(sharingTile).getByRole('button', { name: 'Remove image' })).toBeInTheDocument();
   });
 
   it("offers ScreenHire's heading font while none is picked", async () => {
@@ -398,18 +401,19 @@ describe('branding page', () => {
     expect(await screen.findByRole('link', { name: /View/ })).toHaveAttribute('href', organization.careersUrl);
   });
 
-  it('gives the editor the work area, with Save in the switch row where it stays in view', async () => {
+  it('puts Save in the switch row, outside the form it submits, with the three images in the editor', async () => {
     renderPage(saved);
 
     const brand = await brandField();
-    // The edit pane is not the 688px form column, Colours and Heading font share a row, and the three images are one row.
-    const pane = brand.closest('[data-edit-pane]')!;
-    expect(pane).not.toHaveClass('max-w-form');
+    const form = brand.closest('form')!;
+    // The layout itself (the editor's width, the rows, the page not scrolling) is checked in a browser, at 1440 by 900,
+    // by SettingsTests; jsdom has no layout. Here: where the controls are.
     const row = document.querySelector<HTMLElement>('[data-edit-preview-row]')!;
-    expect(row).not.toHaveClass('max-w-form');
-    expect(row).toHaveClass('sticky');
-    expect(within(row).getByRole('button', { name: 'Save branding' })).toHaveAttribute('form', pane.querySelector('form')!.id);
-    expect(pane.querySelector('[data-image-tile="logo"]')!.closest('.grid')!.querySelectorAll('[data-image-tile]')).toHaveLength(3);
+    const saveButton = within(row).getByRole('button', { name: 'Save branding' });
+    expect(saveButton).toHaveAttribute('form', form.id);
+    expect(form).not.toContainElement(saveButton);
+    expect(form.querySelectorAll('[data-image-tile]')).toHaveLength(3);
+    expect(within(row).getByRole('button', { name: 'Edit' })).toBeInTheDocument();
   });
 
   it('keeps what was typed when switching to Preview and back, and the preview follows it as unsaved', async () => {

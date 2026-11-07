@@ -12,7 +12,9 @@
   // is the drop area (Drop area, A12), so the picture is part of the target: empty, it says "No {noun} yet"; set, it names
   // the file and its size with Remove, and a click or a dropped file replaces the image. While the malware scan runs the
   // tile says Scanning, in grey, because nobody needs to act (T3); a file the scan blocked says so. A file of the wrong type or too
-  // large is refused in the field's error before it is sent. The upload itself is the caller's (`BrandImageSlot` in
+  // large is refused in the field's error before it is sent. A set tile is compact (about 200px) so the three of them sit in
+  // one row of the wide Branding editor without the page scrolling: the sharing image's card is a thumbnail beside its
+  // words, and Replace and Remove share a row. The upload itself is the caller's (`BrandImageSlot` in
   // #lib/brand-images.svelte.ts), and removing changes nothing until the page saves. `noun` names the image in labels
   // ("logo"); `errors` are a refused save's or a failed upload's.
   let {
@@ -52,6 +54,9 @@
   const problems = $derived([...(errors ?? []), refused].filter(Boolean));
   const title = $derived(`Jobs at ${organizationName}`);
   const label = $derived(noun.charAt(0).toUpperCase() + noun.slice(1));
+  // The buttons of a set tile share one row, so their nouns are short ("Replace image" for the sharing image, "Replace icon"
+  // for the favicon); the tile's group still names the field.
+  const short = $derived(kind === 'sharing' ? 'image' : kind === 'favicon' ? 'icon' : noun);
 </script>
 
 <Field.Field data-invalid={problems.length > 0 || blocked ? true : undefined}>
@@ -70,8 +75,8 @@
       file={image ? { name: image.fileName, size: image.sizeBytes } : null}
       status={busy ? 'Uploading...' : null}
       chooseLabel={`Upload ${noun}`}
-      replaceLabel={`Replace ${noun}`}
-      removeLabel={`Remove ${noun}`}
+      replaceLabel={`Replace ${short}`}
+      removeLabel={`Remove ${short}`}
       onfile={(file) => {
         refused = '';
         onchoose(file);
@@ -87,7 +92,7 @@
           {#if kind === 'logo'}
             <!-- The checkerboard is the careers pages' own light surfaces, so it stays light in the dark theme too. -->
             <div
-              class="grid min-h-20 place-items-center rounded-md border border-border-subtle bg-candidate-background bg-[conic-gradient(var(--color-candidate-border)_25%,var(--color-candidate-background)_0_50%,var(--color-candidate-border)_0_75%,var(--color-candidate-background)_0)] bg-size-[16px_16px] p-3"
+              class="grid place-items-center rounded-md border border-border-subtle bg-candidate-background bg-[conic-gradient(var(--color-candidate-border)_25%,var(--color-candidate-background)_0_50%,var(--color-candidate-border)_0_75%,var(--color-candidate-background)_0)] bg-size-[16px_16px] p-2"
             >
               <img src={image.url} alt={`The ${noun}`} width={image.width} height={image.height} class="h-10 w-auto max-w-60 object-contain" />
             </div>
@@ -99,9 +104,9 @@
               </div>
             </div>
           {:else}
-            <div class="max-w-96 overflow-hidden rounded-lg border border-border-subtle bg-card">
-              <img src={image.url} alt={`The ${noun}`} width={image.width} height={image.height} class="aspect-[1.91/1] w-full object-cover" />
-              <div class="flex flex-col gap-0.5 px-4 py-3">
+            <div class="flex min-w-0 items-center gap-3 overflow-hidden rounded-lg border border-border-subtle bg-card pr-3">
+              <img src={image.url} alt={`The ${noun}`} width={image.width} height={image.height} class="aspect-[1.91/1] w-24 shrink-0 object-cover" />
+              <div class="flex min-w-0 flex-col">
                 <p class="truncate font-semibold">{title}</p>
                 <p class="truncate text-muted-foreground">Open roles at {organizationName}.</p>
               </div>

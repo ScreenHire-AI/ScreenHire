@@ -39,8 +39,8 @@
   // colour, each checked against WCAG 2.2 AA as it is typed and again on Save, the heading font, and the logo, favicon
   // and sharing image. The careers pages, the apply flow and every email to a candidate change only on Save, which
   // History records. Candidates see the result, so the Edit / Preview switch shows it (A8). The editor is wide: Colours and
-  // Heading font side by side and the three images in a row, so at 1440 by 900 it fits without scrolling, and each stacks
-  // where its row would be cramped. Save sits in the switch's row, which stays in view while the page scrolls.
+  // Heading font side by side and the three images in a row, so at 1440 by 900 it fits without scrolling, even with all three
+  // images set, and each stacks where its row would be cramped. Save sits in the switch's row, which stays in view while the page scrolls.
   const queryClient = useQueryClient();
   const branding = createGetOrganizationBranding();
   const organization = createGetOrganization();
@@ -179,6 +179,11 @@
     },
   ]);
 
+  // The editor's layout, shared with the loading skeleton so the page does not jump when the branding arrives. Colours and
+  // Heading font share a row from 52rem of editor width, and the three images are one row there, two from 34rem and one below.
+  const topRow = 'grid min-w-0 gap-5 @[52rem]/editor:grid-cols-[minmax(0,4fr)_minmax(0,5fr)]';
+  const imageRow = 'grid gap-6 @[34rem]/editor:grid-cols-2 @[52rem]/editor:grid-cols-3';
+
   const fonts = [
     { value: '', title: defaultHeadingFont.label, description: "ScreenHire's", family: defaultHeadingFont.family },
     ...Object.entries(headingFonts).map(([value, font]) => ({ value, title: font.label, description: undefined, family: font.family })),
@@ -206,21 +211,26 @@
         </Panel>
       </div>
     {:else if !detail}
-      <div class="flex w-full max-w-form flex-col gap-5">
-        <Panel title="Colours">
-          <div aria-hidden="true" class="flex flex-col gap-5"><Skeleton class="h-14 w-full" /><Skeleton class="h-14 w-full" /></div>
-          <p class="sr-only" role="status">Loading the branding…</p>
-        </Panel>
-        <Panel title="Heading font">
-          <div aria-hidden="true" class="@container">
-            <div class="grid gap-2 @md:grid-cols-2">
-              {#each Array.from({ length: 6 }, (_, index) => index) as index (index)}<Skeleton class="h-14 w-full" />{/each}
-            </div>
+      <div class="@container/editor flex w-full min-w-0 flex-col gap-4">
+        <div aria-hidden="true" class="flex gap-2"><Skeleton class="h-9 w-20" /><Skeleton class="h-9 w-24" /></div>
+        <div class="flex min-w-0 flex-col gap-5">
+          <div class={topRow}>
+            <Panel title="Colours">
+              <div aria-hidden="true" class="grid gap-5 @sm:grid-cols-2"><Skeleton class="h-24 w-full" /><Skeleton class="h-24 w-full" /></div>
+              <p class="sr-only" role="status">Loading the branding…</p>
+            </Panel>
+            <Panel title="Heading font">
+              <div aria-hidden="true" class="grid gap-2 @sm:grid-cols-3">
+                {#each Array.from({ length: 6 }, (_, index) => index) as index (index)}<Skeleton class="h-14 w-full" />{/each}
+              </div>
+            </Panel>
           </div>
-        </Panel>
-        <Panel title="Images">
-          <div aria-hidden="true" class="flex flex-col gap-6"><Skeleton class="h-14 w-full" /><Skeleton class="h-14 w-full" /><Skeleton class="h-14 w-full" /></div>
-        </Panel>
+          <Panel title="Images">
+            <div aria-hidden="true" class={imageRow}>
+              {#each Array.from({ length: 3 }, (_, index) => index) as index (index)}<Skeleton class="h-52 w-full" />{/each}
+            </div>
+          </Panel>
+        </div>
       </div>
     {:else}
       <EditPreviewLayout wide bind:mode onpopout={() => source.open('/preview/branding')}>
@@ -234,28 +244,30 @@
 
         {#snippet editor()}
           <form id="branding-form" method="POST" use:enhance novalidate aria-label="Branding" class="flex min-w-0 flex-col gap-5">
-            <div class="grid min-w-0 gap-5 @[52rem]/editor:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+            <div class={topRow}>
               <Panel title="Colours">
-                <div class="flex flex-col gap-5">
-                  <ColorField
-                    id="brand-color"
-                    label="Brand colour"
-                    description="Buttons and links. Empty is ScreenHire's."
-                    bind:value={$form.brandColor}
-                    check={checks?.brandColor}
-                    errors={$errors.brandColor}
-                    fallback={ctaDefault}
-                  />
-                  <ColorField
-                    id="second-color"
-                    label="Second colour"
-                    description="The top of your pages and emails. Empty is none."
-                    bind:value={$form.secondColor}
-                    check={checks?.secondColor}
-                    errors={$errors.secondColor}
-                    fallback={headerDefault}
-                    placeholder="None"
-                  />
+                <div class="@container">
+                  <div class="grid gap-5 @[22rem]:grid-cols-2">
+                    <ColorField
+                      id="brand-color"
+                      label="Brand colour"
+                      description="Buttons and links. Empty is ScreenHire's."
+                      bind:value={$form.brandColor}
+                      check={checks?.brandColor}
+                      errors={$errors.brandColor}
+                      fallback={ctaDefault}
+                    />
+                    <ColorField
+                      id="second-color"
+                      label="Second colour"
+                      description="The top of your pages and emails. Empty is none."
+                      bind:value={$form.secondColor}
+                      check={checks?.secondColor}
+                      errors={$errors.secondColor}
+                      fallback={headerDefault}
+                      placeholder="None"
+                    />
+                  </div>
                 </div>
               </Panel>
 
@@ -279,7 +291,7 @@
             </div>
 
             <Panel title="Images">
-              <div class="grid gap-6 @[48rem]/editor:grid-cols-3">
+              <div class={imageRow}>
                 {#each images as { id, kind, noun, maxBytes, description, slot, errors } (id)}
                   <ImageField
                     {id}
