@@ -85,6 +85,10 @@ public static class RunNotes
 
     public const string TrustedEmailAndDevice = "A shared email address (trusted domain) and a shared device (trusted network) were not counted.";
 
+    public const string DeviceNotCompared = "The device was not compared because form use checks are turned off in this organization's settings.";
+
+    public const string TrustedEmailAndDeviceNotCompared = "A shared email address was not counted (trusted domain), and the device was not compared because form use checks are turned off.";
+
     /// <summary>The kind of settings-made note <paramref name="note"/> is, or null for any other note.</summary>
     public static CheckNotRunKind? KindOf(string analyzer, string? note)
     {
@@ -98,6 +102,11 @@ public static class RunNotes
             return CheckNotRunKind.TurnedOff;
         }
 
-        return note is TrustedNetwork or TrustedEmail or TrustedDevice or TrustedEmailAndDevice ? CheckNotRunKind.Trusted : null;
+        return note switch
+        {
+            DeviceNotCompared => CheckNotRunKind.TurnedOff,
+            TrustedNetwork or TrustedEmail or TrustedDevice or TrustedEmailAndDevice or TrustedEmailAndDeviceNotCompared => CheckNotRunKind.Trusted,
+            _ => null,
+        };
     }
 }

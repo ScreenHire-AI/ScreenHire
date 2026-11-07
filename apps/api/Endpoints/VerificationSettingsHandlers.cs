@@ -2,11 +2,13 @@ using System.Globalization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Slack;
 using ScreenHire.Application.Verification;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.History;
+using ScreenHire.Domain.Organizations;
 using ScreenHire.Domain.Verification;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
@@ -24,12 +26,16 @@ namespace ScreenHire.Api.Endpoints;
 /// </summary>
 internal static class VerificationSettingsHandlers
 {
+    // Every member reads the settings, but the model address only with Edit settings: its path can hold a token, which is why
+    // History keeps the host alone.
     public static async Task<Ok<OrganizationVerificationSettings>> Get(
-        ScreenHireDbContext db, IOptions<VerificationOptions> verification, IServiceProvider services, SlackAccess slack, TimeProvider time,
-        CancellationToken cancellationToken)
+        ScreenHireDbContext db, ITenantContext tenant, IOptions<VerificationOptions> verification, IServiceProvider services, SlackAccess slack,
+        TimeProvider time, CancellationToken cancellationToken)
     {
         var settings = await db.VerificationSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        return TypedResults.Ok(await ToResponseAsync(db, settings, verification.Value, services, slack, time.GetUtcNow(), cancellationToken));
+        var response = await ToResponseAsync(db, settings, verification.Value, services, slack, time.GetUtcNow(), cancellationToken);
+        var edits = (await RoleAccess.PermissionsOfAsync(db, tenant, cancellationToken)).Contains(Permission.EditSettings);
+        return TypedResults.Ok(edits ? response : response with { BaseUrl = null });
     }
 
     // Upserts the organization's row. The settings apply from the next application: turning a group on or off, or the check,
@@ -154,7 +160,7 @@ internal static class VerificationSettingsHandlers
                 problems["model"] = ["That model id is too long."];
             }
 
-            if (request.ApiKey is { } key && (string.IsNullOrWhiteSpace(key) || key.Length > 2000))
+            if (request.ApiKey is { } key && (string.IsNullOrWhiteSpace(key) || key.Length > VerificationSettings.MaxApiKeyLength))
             {
                 problems["apiKey"] = ["Enter the API key, or leave it empty to keep the saved one."];
             }
@@ -213,16 +219,17 @@ internal static class VerificationSettingsHandlers
                 return (null, problems);
             }
 
-            // Keep the saved key; test again only when the model changed.
-            if (settings.LlmModel == model)
-            {
-                return (null, problems);
-            }
-
+            // Keep the saved key, which must still read: a save that hides a dead key would leave every check unavailable.
             key = keys.Unprotect(settings.OrganizationId, settings.ProtectedLlmApiKey);
             if (key is null)
             {
                 problems.Add(("apiKey", "The saved key can no longer be read. Enter it again."));
+                return (null, problems);
+            }
+
+            // Test again only when the model changed.
+            if (settings.LlmModel == model)
+            {
                 return (null, problems);
             }
         }
@@ -259,10 +266,23 @@ internal static class VerificationSettingsHandlers
         {
             problems["baseUrl"] = [urlProblem];
         }
+        else if (request.BaseUrl is { Length: > VerificationSettings.MaxBaseUrlLength })
+        {
+            problems["baseUrl"] = ["That address is too long."];
+        }
 
         if (requireModel && string.IsNullOrWhiteSpace(request.Model))
         {
             problems["model"] = ["Enter the model to use."];
+        }
+        else if (request.Model?.Trim().Length > VerificationSettings.MaxModelLength)
+        {
+            problems["model"] = ["That model id is too long."];
+        }
+
+        if (request.ApiKey is { Length: > VerificationSettings.MaxApiKeyLength })
+        {
+            problems["apiKey"] = ["That key is too long."];
         }
 
         if (problems.Count > 0)
@@ -375,7 +395,7 @@ internal static class VerificationSettingsHandlers
             new VerificationAlerts(
                 settings?.SuggestedAlertEmail ?? false, settings?.SuggestedAlertSlack ?? false,
                 settings?.BudgetAlertEmail ?? false, settings?.BudgetAlertSlack ?? false),
-            services.GetService(typeof(IEmailSender)) is not null,
+            services.GetService<IEmailSender>() is not null,
             installation is { IsDisconnected: false });
     }
 }

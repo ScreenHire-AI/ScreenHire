@@ -36,11 +36,15 @@ public sealed class DuplicateAnalyzer(IApplicantDirectory directory) : IVerifica
         var matches = found
             .Where(m => !(skippedEmail && m.Kind == SharedIdentifier.Email) && !(skippedDevice && m.Kind == SharedIdentifier.Device))
             .ToList();
-        var note = (skippedEmail, skippedDevice) switch
+        // With form use checks off the apply page sends no device code, so this application has no device to compare.
+        var noDevice = !context.Config.FormUse && context.Observation?.DeviceHash is null;
+        var note = (skippedEmail, skippedDevice, noDevice) switch
         {
-            (true, true) => RunNotes.TrustedEmailAndDevice,
-            (true, false) => RunNotes.TrustedEmail,
-            (false, true) => RunNotes.TrustedDevice,
+            (true, true, _) => RunNotes.TrustedEmailAndDevice,
+            (true, false, true) => RunNotes.TrustedEmailAndDeviceNotCompared,
+            (true, false, false) => RunNotes.TrustedEmail,
+            (false, true, _) => RunNotes.TrustedDevice,
+            (false, false, true) => RunNotes.DeviceNotCompared,
             _ => null,
         };
         var related = found.SelectMany(m => m.ApplicationIds).Distinct().ToList();

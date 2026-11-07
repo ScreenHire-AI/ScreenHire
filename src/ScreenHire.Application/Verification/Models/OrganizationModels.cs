@@ -44,6 +44,31 @@ public sealed class ModelAddressRefusedException(string host)
     : HttpRequestException($"Model host {host} does not resolve to a public address.");
 
 /// <summary>
+/// Reads a model endpoint's whole answer into memory, up to <see cref="MaxBytes"/>. The SDKs ask for the headers first, so
+/// <see cref="HttpClient.MaxResponseContentBufferSize"/> never applies, and an address someone typed could otherwise answer
+/// with gigabytes. Past the limit the call fails as an unreachable provider does.
+/// </summary>
+public sealed class ModelResponseLimit(HttpMessageHandler inner) : DelegatingHandler(inner)
+{
+    public const int MaxBytes = 4 * 1024 * 1024;
+
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        var response = await base.SendAsync(request, cancellationToken);
+        try
+        {
+            await response.Content.LoadIntoBufferAsync(MaxBytes, cancellationToken);
+            return response;
+        }
+        catch
+        {
+            response.Dispose();
+            throw;
+        }
+    }
+}
+
+/// <summary>
 /// Builds the clients for an organization's own model, tests a key and lists a provider's models. Every call goes through
 /// <see cref="PublicOnlyHandler"/>, so a base URL an administrator typed can never make ScreenHire reach into its own network.
 /// A deployment running the fake model (Development and tests) answers for every organization with the fake: no test needs
@@ -58,7 +83,7 @@ public sealed class OrganizationModels : IDisposable
     private readonly HttpClient http;
 
     public OrganizationModels(IOptions<VerificationOptions> options)
-        : this(options, new HttpClient(PublicOnlyHandler.Create(() => false, host => new ModelAddressRefusedException(host)), disposeHandler: true)
+        : this(options, new HttpClient(new ModelResponseLimit(PublicOnlyHandler.Create(() => false, host => new ModelAddressRefusedException(host))), disposeHandler: true)
         {
             Timeout = Timeout.InfiniteTimeSpan, // the SDK clients apply LlmOptions.Timeout themselves
         })
@@ -163,7 +188,8 @@ public sealed class OrganizationModels : IDisposable
             if (endpoint.Provider == ModelProvider.Anthropic)
             {
                 var anthropic = NewAnthropic(endpoint.ApiKey);
-                var page = await anthropic.Models.List(new Anthropic.Models.Models.ModelListParams(), cancellationToken);
+                // The API's largest page: the default of 20 can leave out the model someone came for.
+                var page = await anthropic.Models.List(new Anthropic.Models.Models.ModelListParams { Limit = 1000 }, cancellationToken);
                 return new ModelListing(true, [.. page.Items.Select(m => m.ID).Order(StringComparer.Ordinal)]);
             }
 

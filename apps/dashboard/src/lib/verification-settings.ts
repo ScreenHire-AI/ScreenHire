@@ -16,12 +16,12 @@ export const checkGroupLabels: Record<CheckGroup, string> = {
 
 /** What each group looks at, one line under its switch. */
 export const checkGroupHints: Record<CheckGroup, string> = {
-  Network: "Where the application came from: hosting providers, proxies and a country that differs from the phone number's.",
+  Network: 'Hosting providers, proxies and a country that differs from the phone number.',
   Contact: 'Whether the email address and phone number can be real.',
   Documents: 'Hidden text and signs of a resume generator in uploaded files.',
   Answers: 'Repeated or templated answers, and the consistency check when it is on.',
   Duplicates: 'The same email, phone number, device or resume file on another candidate.',
-  FormUse: 'How the form was filled in: automation markers and pasting, counts only. Never raises a level by itself.',
+  FormUse: 'Counts of automation and pasting, never a level alone. Off also stops device matches.',
 };
 
 /** The device check basis. `ByRegion` is no organization choice: where the job is decides. */
@@ -40,7 +40,7 @@ export const modelProviderLabels: Record<NonNullable<ModelProvider>, string> = {
   OpenAiCompatible: 'OpenAI-compatible',
 };
 
-/** A failed connection test, in a sentence. Never the provider's own words. */
+/** A failed connection test, in a sentence. Never the provider's own words. The same as a refused save: `ChangeLabelsTests` compares them. */
 export const modelProblemMessages: Record<NonNullable<ModelProblem>, string> = {
   InvalidKey: 'The provider did not accept this key.',
   ModelNotFound: 'The provider has no model with this id.',

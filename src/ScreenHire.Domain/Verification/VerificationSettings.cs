@@ -25,6 +25,8 @@ public sealed class VerificationSettings : ITenantOwned
 
     public const int MaxModelLength = 200;
 
+    public const int MaxApiKeyLength = 2000;
+
     public const int MaxProtectedKeyLength = 4000;
 
     /// <summary>The organization; one row per organization.</summary>

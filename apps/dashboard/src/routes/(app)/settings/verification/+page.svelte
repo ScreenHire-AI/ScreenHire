@@ -21,6 +21,7 @@
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import HistoryFact from '#lib/components/history-fact.svelte';
+  import ChoiceCard from '#lib/components/choice-card.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
@@ -365,17 +366,13 @@
         <form method="POST" use:enhance novalidate aria-label="Verification settings" class="flex flex-col gap-5">
           <Panel title="AI model">
             <div class="flex flex-col gap-5">
-              <fieldset class="flex flex-col gap-2">
-                <legend class="mb-1 text-body font-medium">Which model checks consistency</legend>
-                <label class="flex min-w-0 items-center gap-2 pointer-coarse:min-h-11">
-                  <input type="radio" name="modelSource" value="Included" bind:group={$form.modelSource} onchange={endpointChanged} class="size-4 shrink-0 accent-primary pointer-coarse:size-6" />
-                  ScreenHire's included model
-                </label>
-                <label class="flex min-w-0 items-center gap-2 pointer-coarse:min-h-11">
-                  <input type="radio" name="modelSource" value="OwnKey" bind:group={$form.modelSource} onchange={endpointChanged} class="size-4 shrink-0 accent-primary pointer-coarse:size-6" />
-                  Your own key
-                </label>
-              </fieldset>
+              <div class="flex flex-col gap-2">
+                <p id="model-source-label" class="text-body font-medium">Which model checks consistency</p>
+                <div role="radiogroup" aria-labelledby="model-source-label" class="grid gap-2 sm:grid-cols-2">
+                  <ChoiceCard name="modelSource" value="Included" bind:group={$form.modelSource} onchange={endpointChanged} title="ScreenHire's included model" description="Within a monthly token budget." />
+                  <ChoiceCard name="modelSource" value="OwnKey" bind:group={$form.modelSource} onchange={endpointChanged} title="Your own key" description="Anthropic or an OpenAI-compatible endpoint." />
+                </div>
+              </div>
 
               <div class="flex items-start gap-4">
                 <div class="flex min-w-0 flex-1 flex-col gap-1">
@@ -389,7 +386,7 @@
 
               {#if own}
                 <p class="text-muted-foreground">
-                  With your own key the provider handles this data under your own terms with them, and ScreenHire's monthly token budget does not apply. Usage still shows below.
+                  Your provider handles this data under your own terms with them, and ScreenHire's token budget does not apply.
                 </p>
 
                 <Field.Field>
@@ -503,7 +500,7 @@
           <Panel title="Checks">
             <div class="flex flex-col gap-5">
               <p class="text-muted-foreground">
-                A group that is turned off does not run. Each result it would have added to says so, so nobody reads a missing check as a clean one.
+                A group that is off records that it did not run, so nobody reads a missing check as clean.
               </p>
               {#each groups as group (group)}
                 {@const key = checkKeys[group]}
@@ -523,9 +520,11 @@
               <Field.Field>
                 <Field.Label for="default-ai-use">Default AI use for new jobs</Field.Label>
                 <select id="default-ai-use" name="defaultAiUse" class={selectClass} bind:value={$form.defaultAiUse} aria-describedby="default-ai-use-hint">
-                  {#each aiUses as policy (policy)}<option value={policy}>{aiUseLabels[policy]}</option>{/each}
+                  {#each aiUses as policy (policy)}<option value={policy}>{aiUseLabels[policy].split(': ')[0]}</option>{/each}
                 </select>
-                <Field.Description id="default-ai-use-hint">A job that starts from a template keeps the template's own policy.</Field.Description>
+                <Field.Description id="default-ai-use-hint">
+                  {aiUseLabels[$form.defaultAiUse].split(': ')[1]}. A job from a template keeps the template's policy.
+                </Field.Description>
               </Field.Field>
 
               <Field.Field>
@@ -536,7 +535,7 @@
                   {/each}
                 </select>
                 <Field.Description id="device-check-hint">
-                  Where the law needs consent, ScreenHire asks whatever you choose here. You can ask for more care, never less.
+                  Where the law needs consent, ScreenHire asks whatever you choose here.
                 </Field.Description>
               </Field.Field>
 
@@ -634,7 +633,7 @@
               <fieldset class="flex flex-col gap-2">
                 <legend class="mb-1 text-body font-medium">Verification suggested</legend>
                 <p class="text-muted-foreground" id="alert-suggested-hint">
-                  Tells the people who review verification and see the job when an application first reaches Verification suggested. It names the job, never the candidate or why.
+                  Tells reviewers who see the job. It names the job, never the candidate or why.
                 </p>
                 {#if detail.emailAvailable}
                   <label class="flex min-w-0 items-center gap-2 pointer-coarse:min-h-11">
@@ -642,16 +641,18 @@
                     By email
                   </label>
                 {/if}
-                <label class="flex min-w-0 items-center gap-2 pointer-coarse:min-h-11">
-                  <input type="checkbox" name="suggestedSlack" bind:checked={$form.alerts.suggestedSlack} disabled={!detail.slackConnected} aria-describedby="alert-suggested-hint" class={checkboxClass} />
-                  On Slack, as a direct message
-                </label>
+                {#if detail.slackConnected}
+                  <label class="flex min-w-0 items-center gap-2 pointer-coarse:min-h-11">
+                    <input type="checkbox" name="suggestedSlack" bind:checked={$form.alerts.suggestedSlack} aria-describedby="alert-suggested-hint" class={checkboxClass} />
+                    On Slack, as a direct message
+                  </label>
+                {/if}
               </fieldset>
 
               <fieldset class="flex flex-col gap-2">
                 <legend class="mb-1 text-body font-medium">Budget at 80%</legend>
                 <p class="text-muted-foreground" id="alert-budget-hint">
-                  Tells the people who can change settings once a month when the consistency check has used 80% of ScreenHire's token budget.
+                  Tells people who can change settings, once a month, at 80% of ScreenHire's token budget.
                 </p>
                 {#if detail.emailAvailable}
                   <label class="flex min-w-0 items-center gap-2 pointer-coarse:min-h-11">
@@ -659,10 +660,12 @@
                     By email
                   </label>
                 {/if}
-                <label class="flex min-w-0 items-center gap-2 pointer-coarse:min-h-11">
-                  <input type="checkbox" name="budgetSlack" bind:checked={$form.alerts.budgetSlack} disabled={!detail.slackConnected} aria-describedby="alert-budget-hint" class={checkboxClass} />
-                  On Slack, as a direct message
-                </label>
+                {#if detail.slackConnected}
+                  <label class="flex min-w-0 items-center gap-2 pointer-coarse:min-h-11">
+                    <input type="checkbox" name="budgetSlack" bind:checked={$form.alerts.budgetSlack} aria-describedby="alert-budget-hint" class={checkboxClass} />
+                    On Slack, as a direct message
+                  </label>
+                {/if}
               </fieldset>
 
               {#if !detail.slackConnected}

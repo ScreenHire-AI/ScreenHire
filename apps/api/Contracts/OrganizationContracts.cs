@@ -16,7 +16,8 @@ namespace ScreenHire.Api.Contracts;
 /// </summary>
 /// <remarks>
 /// <c>modelSource</c> says whose model answers. For <c>OwnKey</c>, <c>provider</c>, <c>baseUrl</c> (OpenAI-compatible only)
-/// and <c>model</c> describe it. <c>apiKeySaved</c> says a key is held; the key itself is write-only and never returned.
+/// and <c>model</c> describe it; <c>baseUrl</c> is null for a member who cannot edit settings, because its path can hold a token.
+/// <c>apiKeySaved</c> says a key is held; the key itself is write-only and never returned.
 /// <c>checks</c> says which groups of checks run, <c>defaultAiUse</c> is the AI-use policy a new job without a template starts
 /// with, <c>deviceCheck</c> is the footing the organization asks for (null follows the region, which is always a floor),
 /// <c>trustedDomains</c> and <c>trustedNetworks</c> are what stops a shared mailbox, office or partner network repeating a

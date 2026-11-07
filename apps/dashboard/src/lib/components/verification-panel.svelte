@@ -415,7 +415,7 @@
             <li class="flex flex-col gap-1">
               <div class="flex flex-wrap items-center gap-2">
                 <h3 class="min-w-0 font-semibold">{check.label}</h3>
-                <StatusBadge status="notInEffect" label={check.kind === 'TurnedOff' ? 'Turned off' : 'Trusted'} />
+                <StatusBadge status="notInEffect" label={check.kind === 'TurnedOff' ? 'Turned off' : 'Not counted'} />
               </div>
               <p class="max-w-measure text-muted-foreground">{check.note}</p>
             </li>

@@ -319,10 +319,11 @@ public sealed class VerificationPipeline(ScreenHireDbContext db, IEnumerable<IVe
         }
 
         // The levels until now: the newest assessment of each kind. Read before the new rows are added.
-        var previous = (await db.VerificationAssessments.AsNoTracking()
-                .Where(a => a.ApplicationId == application.Id)
-                .Select(a => new { a.Kind, a.Level, a.AssessedAt, a.Id })
-                .ToListAsync(cancellationToken))
+        var earlier = await db.VerificationAssessments.AsNoTracking()
+            .Where(a => a.ApplicationId == application.Id)
+            .Select(a => new { a.Kind, a.Level, a.AssessedAt, a.Id })
+            .ToListAsync(cancellationToken);
+        var previous = earlier
             .GroupBy(a => a.Kind)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.AssessedAt).ThenByDescending(a => a.Id).First().Level);
         var added = changed.Select(r => r.ToAssessment(application.OrganizationId, application.Id, inputs, now)).ToList();
@@ -360,10 +361,11 @@ public sealed class VerificationPipeline(ScreenHireDbContext db, IEnumerable<IVe
         ];
 
         // The Verification suggested alert (verification-engine.md §10): once when the application first reaches that level, not
-        // at every stage that lands afterwards. The handler reads the organization's alert settings; it carries ids only.
+        // at every stage that lands afterwards, and not again if the level falls and comes back. The handler reads the
+        // organization's alert settings; it carries ids only.
         var suggested = nameof(AuthenticityLevel.VerificationRecommended);
         if (authenticity == suggested
-            && !(previous.TryGetValue(VerificationAssessmentKind.Authenticity, out var was) && was == suggested))
+            && !earlier.Any(a => a.Kind == VerificationAssessmentKind.Authenticity && a.Level == suggested))
         {
             messages.Add(new NotifyVerificationSuggested(application.OrganizationId, application.Id, application.JobId, entry.Id));
         }

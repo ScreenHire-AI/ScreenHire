@@ -8,19 +8,21 @@
     group = $bindable(),
     title,
     description,
+    onchange,
   }: {
     name: string;
     value: T;
     group: T | undefined;
     title: string;
     description?: string;
+    onchange?: () => void;
   } = $props();
 </script>
 
 <label
   class="flex items-start gap-3 rounded-lg border border-input p-3 has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring"
 >
-  <input type="radio" {name} {value} bind:group class="mt-0.5 size-4 shrink-0 accent-primary" />
+  <input type="radio" {name} {value} bind:group {onchange} class="mt-0.5 size-4 shrink-0 accent-primary" />
   <span class="flex min-w-0 flex-col gap-0.5">
     <span class="font-semibold break-words">{title}</span>
     {#if description}<span class="text-muted-foreground">{description}</span>{/if}

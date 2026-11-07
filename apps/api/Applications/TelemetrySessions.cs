@@ -76,16 +76,17 @@ internal sealed class TelemetrySessions(IDataProtectionProvider dataProtection)
 
     /// <summary>
     /// What the apply flow may collect for <paramref name="job"/>: the device-check basis (the more protective of where the
-    /// job is and what the organization asked for, and off when duplicates are not checked, since the fingerprint feeds
-    /// only that) and whether form telemetry is collected at all (off when the organization turned form use checks off).
-    /// The tenant is already set by the caller.
+    /// job is and what the organization asked for; off when duplicates are not checked, since the fingerprint feeds only
+    /// that, and off when form use checks are off, since the page module that makes the fingerprint then does not run and
+    /// a consent box would promise nothing) and whether form telemetry is collected at all. The tenant is already set by
+    /// the caller.
     /// </summary>
     public static async Task<Collection> CollectionForAsync(
         Job job, VerificationOptions options, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         var settings = await db.VerificationSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
         var basis = options.DeviceCheck.Resolve(job.Locations.Select(l => l.Country).Concat(job.ApplicantLocationRequirements), settings?.DeviceCheck);
-        return new Collection(settings is { CheckDuplicates: false } ? DeviceCheckBasis.Off : basis, settings?.CheckFormUse ?? true);
+        return new Collection(settings is { CheckDuplicates: false } or { CheckFormUse: false } ? DeviceCheckBasis.Off : basis, settings?.CheckFormUse ?? true);
     }
 
     /// <param name="DeviceCheck">The footing for the device fingerprint.</param>

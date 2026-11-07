@@ -255,7 +255,10 @@ internal sealed class VerificationSettingsConfiguration : IEntityTypeConfigurati
         builder.Property(s => s.CheckAnswers).HasDefaultValue(true);
         builder.Property(s => s.CheckDuplicates).HasDefaultValue(true);
         builder.Property(s => s.CheckFormUse).HasDefaultValue(true);
-        builder.Property(s => s.DefaultAiUse).HasConversion<string>().HasMaxLength(30).HasDefaultValue(AiUsePolicy.AllowedWithDisclosure);
+        // The sentinel names the column default: Allowed is the enum's zero, and EF would otherwise read a saved Allowed as
+        // "not set" on insert and store AllowedWithDisclosure instead.
+        builder.Property(s => s.DefaultAiUse).HasConversion<string>().HasMaxLength(30)
+            .HasDefaultValue(AiUsePolicy.AllowedWithDisclosure).HasSentinel(AiUsePolicy.AllowedWithDisclosure);
         builder.Property(s => s.DeviceCheck).HasConversion<string>().HasMaxLength(20);
         // Native text[], replaced as a whole on each save.
         builder.PrimitiveCollection(s => s.TrustedDomains).HasColumnType("text[]").HasDefaultValueSql("'{}'");

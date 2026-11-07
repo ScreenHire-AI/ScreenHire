@@ -114,8 +114,9 @@ public static partial class NotifyVerificationSuggestedHandler
 }
 
 /// <summary>
-/// Tells the people who can change settings that the month's tokens passed 80% of the budget, once a month: the month is
-/// kept on the settings row, so a redelivery finds it and sends nothing.
+/// Tells the people who can change settings that the month's tokens passed 80% of the budget, once a month: the handler claims
+/// the month on the settings row, so of two checks that finish together one sends, and a redelivery after the commit finds
+/// the month taken. A crash between the sends and the commit sends again, as with <see cref="NotifyVerificationSuggestedHandler"/>.
 /// </summary>
 public static partial class NotifyBudgetThresholdHandler
 {
@@ -130,7 +131,7 @@ public static partial class NotifyBudgetThresholdHandler
         ILogger<NotifyBudgetThreshold> logger,
         CancellationToken cancellationToken)
     {
-        var settings = await db.VerificationSettings.SingleOrDefaultAsync(cancellationToken);
+        var settings = await db.VerificationSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
         if (settings is null || settings.UsesOwnKey || settings.BudgetAlertMonth == message.Month
             || settings is not { BudgetAlertEmail: true } and not { BudgetAlertSlack: true })
         {
@@ -145,9 +146,17 @@ public static partial class NotifyBudgetThresholdHandler
             return;
         }
 
-        // Recorded first, on the row, so a redelivery after the sends finds the month taken. UpdatedAt is left alone: this is
-        // bookkeeping, not a change anyone made, and History does not read this column.
-        settings.BudgetAlertMonth = message.Month;
+        // One conditional statement in the handler's transaction, so a second check's message waits on the row and then changes
+        // nothing. An update outside the change tracker, and UpdatedAt left alone, because this is bookkeeping: nobody made this
+        // change, and History does not read this column.
+        var claimed = await db.VerificationSettings
+            .Where(s => s.BudgetAlertMonth == null || s.BudgetAlertMonth != message.Month)
+            .ExecuteUpdateAsync(set => set.SetProperty(s => s.BudgetAlertMonth, message.Month), cancellationToken);
+        if (claimed == 0)
+        {
+            return;
+        }
+
         var recipients = await VerificationRecipients.WithPermissionAsync(db, Permission.EditSettings, message.OrganizationId, null, cancellationToken);
         if (settings.BudgetAlertEmail && email.IsConfigured)
         {
