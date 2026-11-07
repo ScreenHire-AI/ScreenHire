@@ -88,6 +88,9 @@ describe('stepStates', () => {
 describe('ended applications', () => {
   it('reads a saved candidate as not moving forward, with no word about a list or a reason', () => {
     expect(ENDED.NotMovingForward.label).toBe('Not moving forward');
+    expect(ENDED.Hired.mark).toBe('check');
+    expect(ENDED.NotMovingForward.mark).toBe('minus');
+    expect(ENDED.Withdrawn.mark).toBe('minus');
     expect(JSON.stringify(ENDED).toLowerCase()).not.toMatch(/list|saved|talent|pool|reject|verif|score|rating/);
   });
 });

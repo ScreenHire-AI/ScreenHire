@@ -4,11 +4,13 @@
 // follow-up questionnaire, an interview to book) and a link to the messages. Server rendered with no client JavaScript.
 // The link is the candidate's alone: never cached, indexed or sent on as a referrer. It collects nothing about the browser.
 // It shows the employer's name and the job's title, never a stage name, a rating, a note or anything about verification.
+import PortalLinkProblem from '../../../../components/PortalLinkProblem.astro';
 import CareersLayout from '../../../../layouts/CareersLayout.astro';
 import { getPublicOrganization, getPublicPortal } from '../../../../lib/api';
 import { forwardedFor } from '../../../../lib/apply-server';
+import { longDate } from '../../../../lib/drafts';
 import { basePath } from '../../../../lib/host';
-import { dateText, ENDED, isToken, stepStates } from '../../../../lib/portal';
+import { ENDED, isToken, stepStates } from '../../../../lib/portal';
 
 const { organization, token } = Astro.params;
 const base = basePath(Astro.request, organization!);
@@ -47,30 +49,13 @@ const waitingPath = { Questionnaire: 'questionnaires', Interview: 'interviews' }
 
   <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{heading}</h1>
 
-  {
-    status === 'expired' && (
-      <>
-        <p class="mt-3 text-candidate-body text-candidate-muted-foreground">
-          Links to your page stop working after a while, and the link may be incomplete. You can ask for a new one.
-        </p>
-        <a href={`${base}/my-applications`} class="button-primary mt-4">Ask for a new link</a>
-      </>
-    )
-  }
-
-  {
-    status === 'busy' && (
-      <p class="mt-3 text-candidate-body text-candidate-muted-foreground">
-        Too many attempts from your network. Wait a minute, then open the link in your email again.
-      </p>
-    )
-  }
+  {status !== 'open' && <PortalLinkProblem status={status} employerName={employer.name} base={base} />}
 
   {
     portal && (
       <>
         <p class="mt-3 text-candidate-body">
-          Hi {portal.firstName}. This is where your applications to {portal.organizationName} stand. Only you can see this page.
+          Hi {portal.firstName}. Only you can see this page.
         </p>
 
         {portal.drafts.length > 0 && (
@@ -81,9 +66,9 @@ const waitingPath = { Questionnaire: 'questionnaires', Interview: 'interviews' }
                 <li class="rounded-2xl border border-candidate-border bg-candidate-surface p-5">
                   <p class="font-semibold">{draft.jobTitle}</p>
                   <p class="mt-1 text-candidate-hint text-candidate-muted-foreground">
-                    Saved until {dateText(draft.expiresAt)}. Your files are attached again when you finish.
+                    Saved until {longDate(draft.expiresAt)}. Your files are attached again when you finish.
                   </p>
-                  <a href={`${base}/jobs/${draft.jobSlug}/apply?draft=${draft.token}`} class="button-primary mt-3">Finish this application</a>
+                  <a href={`${base}/jobs/${draft.jobSlug}/apply?draft=${draft.token}`} class="button-secondary mt-3">Finish this application</a>
                 </li>
               ))}
             </ul>
@@ -101,13 +86,11 @@ const waitingPath = { Questionnaire: 'questionnaires', Interview: 'interviews' }
               return (
                 <li class="rounded-2xl border border-candidate-border bg-candidate-surface p-5">
                   <h3 class="font-display text-lg leading-tight font-bold">{application.jobTitle}</h3>
-                  <p class="mt-1 text-candidate-hint text-candidate-muted-foreground">Applied {dateText(application.appliedAt)}</p>
-
                   {ended ? (
                     <div class="mt-4 flex items-start gap-3" role="status">
-                      <svg aria-hidden="true" class="mt-0.5 size-5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <svg aria-hidden="true" class:list={['mt-0.5 size-5 flex-none', ended.tone]} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10" />
-                        <path d="M9 12l2 2 4-4" />
+                        <path d={ended.mark === 'check' ? 'M9 12l2 2 4-4' : 'M8 12h8'} />
                       </svg>
                       <div>
                         <p class="font-semibold">{ended.label}</p>
@@ -118,7 +101,7 @@ const waitingPath = { Questionnaire: 'questionnaires', Interview: 'interviews' }
                     <ol class="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4" aria-label="Where your application is">
                       {stepStates(application.funnel.steps, application.funnel.current).map((step) => (
                         <li class="flex items-center gap-2" aria-current={step.state === 'current' ? 'step' : undefined}>
-                          <svg aria-hidden="true" class:list={['size-5 flex-none', step.state === 'upcoming' && 'text-candidate-muted-foreground']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <svg aria-hidden="true" class:list={['size-5 flex-none', { done: 'text-status-clear-mark', current: 'text-candidate-brand-text', upcoming: 'text-candidate-muted-foreground' }[step.state]]} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10" />
                             {step.state === 'done' && <path d="M9 12l2 2 4-4" />}
                             {step.state === 'current' && <circle cx="12" cy="12" r="4" fill="currentColor" />}
@@ -132,11 +115,13 @@ const waitingPath = { Questionnaire: 'questionnaires', Interview: 'interviews' }
                     </ol>
                   )}
 
+                  <p class="mt-3 text-candidate-hint text-candidate-muted-foreground">Applied {longDate(application.appliedAt)}</p>
+
                   {application.waiting.length > 0 && (
                     <ul class="mt-4 flex flex-col gap-2">
                       {application.waiting.map((item) => (
                         <li>
-                          <a href={`${base}/${waitingPath[item.kind]}/${item.token}`} class="button-primary">{waitingText[item.kind]}</a>
+                          <a href={`${base}/${waitingPath[item.kind]}/${item.token}`} class="button-secondary">{waitingText[item.kind]}</a>
                         </li>
                       ))}
                     </ul>
@@ -158,7 +143,7 @@ const waitingPath = { Questionnaire: 'questionnaires', Interview: 'interviews' }
     )
   }
 
-  <p class="mt-8 text-sm">
-    <a href={`${base}/privacy`} class="text-link">What we collect and why</a>
+  <p class="mt-8 text-candidate-hint">
+    <a href={`${base}/privacy`} class="text-link inline-flex min-h-11 items-center">What we collect and why</a>
   </p>
 </CareersLayout>

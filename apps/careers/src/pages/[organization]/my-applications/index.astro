@@ -4,6 +4,7 @@
 // with JavaScript off. The only script is Cloudflare's bot check, when the deployment has one. The answer is the same fixed
 // page whether or not the address applied (`sent`). Nothing on it collects anything about the browser.
 import { actions } from 'astro:actions';
+import Notice from '../../../components/Notice.astro';
 import CareersLayout from '../../../layouts/CareersLayout.astro';
 import { getPublicOrganization, getPublicPortalForm } from '../../../lib/api';
 import { forwardedFor } from '../../../lib/apply-server';
@@ -62,8 +63,8 @@ const formProblem = emailProblem ? undefined : problem;
         <p class="mt-3 text-candidate-body">
           This page is not available right now. To reach the team at {employer.name}, reply to the last email they sent you.
         </p>
-        <p class="mt-6 text-sm">
-          <a href={`${base}/privacy`} class="text-link">What we collect and why</a>
+        <p class="mt-6 text-candidate-hint">
+          <a href={`${base}/privacy`} class="text-link inline-flex min-h-11 items-center">What we collect and why</a>
         </p>
       </>
     )
@@ -97,7 +98,7 @@ const formProblem = emailProblem ? undefined : problem;
         <form method="POST" action={actions.requestPortalLink} novalidate class="mt-6 flex flex-col gap-4" aria-labelledby="request-heading">
           <h2 id="request-heading" class="sr-only">Email me a link</h2>
           <input type="hidden" name="organization" value={employer.slug} />
-          {formProblem && <p role="alert" class="text-candidate-body font-semibold text-destructive">{formProblem}</p>}
+          {formProblem && <Notice kind="problem" message={formProblem} />}
           <TextField
             name="email"
             label="Email address"
@@ -129,8 +130,8 @@ const formProblem = emailProblem ? undefined : problem;
         <p class="mt-6 text-candidate-body text-candidate-muted-foreground">
           Cannot use this page? Reply to the last email {employer.name} sent you.
         </p>
-        <p class="mt-4 text-sm">
-          <a href={`${base}/privacy`} class="text-link">What we collect and why</a>
+        <p class="mt-4 text-candidate-hint">
+          <a href={`${base}/privacy`} class="text-link inline-flex min-h-11 items-center">What we collect and why</a>
         </p>
       </>
     )

@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Application.Applications;
+using ScreenHire.Application.Portal;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
 using ScreenHire.Infrastructure.Content;
@@ -198,8 +199,9 @@ internal sealed partial class InboundEmailIngest(
 
     private static (string Text, string Html) Bodies(ParsedInboundEmail mail)
     {
-        var html = mail.Html is { Length: > 0 } rawHtml ? RichText.Sanitize(Cut(rawHtml, InboundEmail.MaxBodyLength)) : "";
-        var text = mail.Text is { Length: > 0 } rawText ? Cut(rawText, InboundEmail.MaxBodyLength) : "";
+        // What is stored is what the team reads, so a quoted footer gives up the candidate's own link here.
+        var html = mail.Html is { Length: > 0 } rawHtml ? PortalMessageText.WithoutPortalToken(RichText.Sanitize(Cut(rawHtml, InboundEmail.MaxBodyLength))) : "";
+        var text = mail.Text is { Length: > 0 } rawText ? PortalMessageText.WithoutPortalToken(Cut(rawText, InboundEmail.MaxBodyLength)) : "";
         if (string.IsNullOrWhiteSpace(text) && html.Length > 0)
         {
             text = RichText.ToPlainText(html);

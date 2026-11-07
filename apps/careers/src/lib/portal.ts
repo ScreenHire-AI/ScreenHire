@@ -13,7 +13,7 @@ export { isToken };
 export type LinkOutcome = 'sent' | 'bad-email' | 'bot-check-failed' | 'busy' | 'unavailable' | 'error';
 
 /** What the thread page says after a reply. `sent` redirects to the thread; `expired` shows the expired view. */
-export type ReplyOutcome = 'sent' | 'empty' | 'too-long' | 'too-many-files' | 'files-too-large' | 'nothing-to-reply-to' | 'too-many-today' | 'expired' | 'busy' | 'error';
+export type ReplyOutcome = 'sent' | 'empty' | 'too-long' | 'too-many-files' | 'files-too-large' | 'nothing-to-reply-to' | 'too-many-today' | 'expired' | 'error';
 
 export interface LinkResult {
   outcome: LinkOutcome;
@@ -72,7 +72,6 @@ export const REPLY_MESSAGES: Record<Exclude<ReplyOutcome, 'sent' | 'expired'>, s
   'files-too-large': 'Your files add up to more than 10 MB. Attach fewer or smaller files.',
   'nothing-to-reply-to': 'The team has not written to you about this application yet, so there is nothing to reply to.',
   'too-many-today': 'You have sent several messages today. Wait a while, or reply to the email you were sent.',
-  busy: 'Too many attempts from your network. Wait a minute, then try again.',
   error: 'Something went wrong on our side. Your message was not sent. Try again in a moment.',
 };
 
@@ -118,7 +117,7 @@ export function filesOf(form: FormData, name = 'files'): File[] {
 }
 
 /** Checks a reply before it is sent: words and files. Null when it can go. */
-export function replyProblem(body: string, files: readonly File[], bodyMax: number): Exclude<ReplyOutcome, 'sent' | 'expired' | 'busy' | 'error'> | null {
+export function replyProblem(body: string, files: readonly File[], bodyMax: number): Exclude<ReplyOutcome, 'sent' | 'expired' | 'error'> | null {
   if (body.trim().length === 0) return 'empty';
   if (body.length > bodyMax) return 'too-long';
   if (files.length > MAX_FILES) return 'too-many-files';
@@ -182,19 +181,17 @@ export function stepStates(steps: readonly string[], current: number | null | un
   }));
 }
 
-/** How an ended application reads. A saved candidate reads as Not moving forward and nothing says why. */
-export const ENDED: Record<'Hired' | 'NotMovingForward' | 'Withdrawn', { label: string; detail: string }> = {
-  Hired: { label: 'Hired', detail: 'The team has marked you as hired for this role.' },
-  NotMovingForward: { label: 'Not moving forward', detail: 'The team has decided not to move forward with this application.' },
-  Withdrawn: { label: 'Withdrawn', detail: 'This application was withdrawn.' },
+/**
+ * How an ended application reads, with the status mark design-system section 3.2 gives it: a tick for Hired only, and the grey
+ * minus for the two ways of leaving a job. A saved candidate reads as Not moving forward and nothing says why.
+ */
+export const ENDED: Record<'Hired' | 'NotMovingForward' | 'Withdrawn', { label: string; detail: string; mark: 'check' | 'minus'; tone: string }> = {
+  Hired: { label: 'Hired', detail: 'The team has marked you as hired for this role.', mark: 'check', tone: 'text-status-clear-mark' },
+  NotMovingForward: {
+    label: 'Not moving forward',
+    detail: 'The team has decided not to move forward with this application.',
+    mark: 'minus',
+    tone: 'text-candidate-muted-foreground',
+  },
+  Withdrawn: { label: 'Withdrawn', detail: 'This application was withdrawn.', mark: 'minus', tone: 'text-candidate-muted-foreground' },
 };
-
-/** A date as the page writes it, in the candidate's own words and the server's locale-free form. */
-export function dateText(value: string | Date): string {
-  return new Intl.DateTimeFormat('en-US', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(value));
-}
-
-/** A date and time as the page writes a message's time, in UTC with the zone named, since the server does not know the candidate's. */
-export function dateTimeText(value: string | Date): string {
-  return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }).format(new Date(value)) + ' UTC';
-}

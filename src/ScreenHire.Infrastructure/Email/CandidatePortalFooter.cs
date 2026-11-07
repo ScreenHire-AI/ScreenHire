@@ -27,9 +27,15 @@ public static class CandidatePortalFooter
         }
 
         var text = $"{message.TextBody.TrimEnd()}\n\n{Sentence} {link}\n";
-        var html = message.HtmlBody is { Length: > 0 } body
-            ? $"{body}\n<p>{Sentence} <a href=\"{WebUtility.HtmlEncode(link)}\">{LinkText}</a></p>"
-            : null;
+        var line = $"<p>{Sentence} <a href=\"{WebUtility.HtmlEncode(link)}\">{LinkText}</a></p>";
+        var html = message.HtmlBody is { Length: > 0 } body ? InBody(body, line) : null;
         return message with { TextBody = text, HtmlBody = html };
+    }
+
+    // A rendered template is a whole document, so the line goes inside its body. ScreenHire's own emails are a fragment.
+    private static string InBody(string html, string line)
+    {
+        var end = html.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
+        return end < 0 ? $"{html}\n{line}" : $"{html[..end]}{line}\n{html[end..]}";
     }
 }

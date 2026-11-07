@@ -364,7 +364,7 @@ internal static class PublicPortalEndpoints
             PortalMessageText.ReplySubject(latest.Subject),
             request.Body.Trim(),
             Html: null,
-            PortalMessageText.MessageIdFor(request.Key),
+            PortalMessageText.MessageIdFor(applicationId, request.Key),
             AutoReply: false,
             attachments);
         var outcome = await ingest.IngestForAsync(
