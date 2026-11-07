@@ -1,6 +1,6 @@
 import type { ApplicationInterview } from '@screenhire/api-client';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
 import { apiStub, user } from '../../../test-support/fixtures.js';
 import WithQueryClient from '../../../test-support/with-query-client.svelte';
@@ -8,11 +8,14 @@ import { formatDateTime } from '#lib/dates.js';
 import InterviewPanel from './interview-panel.svelte';
 
 vi.mock('$app/state', () => ({ page: { data: { user }, url: new URL('http://dashboard.test/') }, navigating: { to: null } }));
+// Superforms needs the rest of the module (beforeNavigate).
+vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await importOriginal()), goto: vi.fn(async () => {}) }));
 
 const applicationId = '01a157d4-0000-7000-8000-000000000300';
 const interviewId = '01a157d4-0000-7000-8000-000000000400';
 const listUrl = `/v1/applications/${applicationId}/interviews`;
 const cancelUrl = `/v1/interviews/${interviewId}/cancel`;
+const offerUrl = `/v1/interviews/${interviewId}/new-times`;
 
 const interview = (overrides: Partial<ApplicationInterview>): ApplicationInterview => ({
   id: interviewId,
@@ -33,24 +36,40 @@ const interview = (overrides: Partial<ApplicationInterview>): ApplicationIntervi
   createdAt: '2026-10-20T12:00:00Z',
   createdByUserId: 'u1',
   cancelledByCandidate: false,
+  newTimesOfferedAt: null,
   ...overrides,
 });
 const booked = (overrides: Partial<ApplicationInterview> = {}) =>
   interview({ status: 'Booked', startsAt: '2026-11-05T15:00:00Z', endsAt: '2026-11-05T15:30:00Z', meetingUrl: 'https://meet.example.org/abc-defg', ...overrides });
 
+beforeEach(() => {
+  // Only the clock: the form checks that the window is still open against the date.
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-11-02T12:00:00Z'));
+});
+
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
-function renderPanel(list: ApplicationInterview[], routes: Parameters<typeof apiStub>[0] = {}, mayCancel = true) {
+function renderPanel(list: ApplicationInterview[], routes: Parameters<typeof apiStub>[0] = {}, mayChange = true) {
   const calls: string[] = [];
   const stub = apiStub({ [`GET ${listUrl}`]: () => Response.json(list), ...routes });
   vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
     calls.push(`${(init?.method ?? 'GET').toUpperCase()} ${String(input)}`);
     return stub(input, init);
   });
-  render(WithQueryClient, { props: { component: InterviewPanel, props: { applicationId, mayCancel } } });
-  return { calls, panel: () => screen.findByRole('region', { name: 'Interview' }) };
+  const ondone = vi.fn();
+  render(WithQueryClient, { props: { component: InterviewPanel, props: { applicationId, candidateName: 'Casey Morgan', mayChange, ondone } } });
+  return { calls, ondone, panel: () => screen.findByRole('region', { name: 'Interview' }) };
+}
+
+async function chooseOffer() {
+  const trigger = await screen.findByRole('button', { name: 'Interview actions' });
+  await fireEvent.pointerDown(trigger, { button: 0, pointerType: 'mouse' });
+  await fireEvent.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Offer new times' }));
+  return screen.findByRole('dialog', { name: 'Offer new times' });
 }
 
 async function chooseCancel() {
@@ -185,10 +204,78 @@ describe('Interview panel', () => {
     expect(await panel()).toHaveTextContent('The candidate did not pick a time before Nov 16, 2026.');
   });
 
-  it('offers no way to cancel to someone who cannot email candidates', async () => {
+  it('offers no way to cancel or move to someone who cannot email candidates', async () => {
     const { panel } = renderPanel([booked()], {}, false);
 
     await panel();
     expect(screen.queryByRole('button', { name: 'Interview actions' })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'Offer new times' })).toBeNull();
+  });
+
+  it('offers new times only for a booked interview, from the same menu as Cancel', async () => {
+    renderPanel([interview({})]);
+
+    const trigger = await screen.findByRole('button', { name: 'Interview actions' });
+    await fireEvent.pointerDown(trigger, { button: 0, pointerType: 'mouse' });
+    const items = within(await screen.findByRole('menu')).getAllByRole('menuitem').map((item) => item.textContent?.trim());
+    expect(items).toEqual(['Cancel interview']);
+  });
+
+  it('says the offer is waiting while the candidate has new times, and that the booked time stays', async () => {
+    const { panel } = renderPanel([booked({ newTimesOfferedAt: '2026-11-02T12:00:00Z', windowStart: '2026-11-09T05:00:00Z', windowEnd: '2026-11-17T05:00:00Z' })]);
+
+    const region = await panel();
+    expect(region).toHaveTextContent('Booked');
+    expect(region).toHaveTextContent('Waiting for a new time');
+    expect(region).toHaveTextContent('The booked time stays until Casey Morgan picks one. New times from Nov 9, 2026 to Nov 16, 2026.');
+    expect(within(region).getByText('Waiting for a new time').closest('[data-status]')).toHaveAttribute('data-status', 'neutral');
+    await expectNoAxeViolations();
+  });
+
+  it('offers new times for the days chosen in the interview zone, closes, and says so', async () => {
+    const bodies: unknown[] = [];
+    const { calls, ondone } = renderPanel([booked()], {
+      [`POST ${offerUrl}`]: (init) => (bodies.push(JSON.parse(String(init?.body))), Response.json(booked({ newTimesOfferedAt: '2026-11-02T12:00:00Z' }))),
+    });
+
+    const dialog = await chooseOffer();
+    expect(dialog).toHaveTextContent('Casey Morgan gets a link to pick another time. The booked time stays until they do.');
+    expect(dialog).toHaveTextContent('Days are in America/New_York, from 09:00 to 17:00 on weekdays, 30 minutes long, as before.');
+    await fireEvent.input(within(dialog).getByLabelText('First day'), { target: { value: '2026-11-09' } });
+    await fireEvent.input(within(dialog).getByLabelText('Last day'), { target: { value: '2026-11-13' } });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Send new times' }));
+
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    // Midnight in New York: 05:00Z before the clock change on 2026-11-01 ended, so EST is 5 hours behind.
+    expect(bodies[0]).toEqual({ windowStart: '2026-11-09T05:00:00.000Z', windowEnd: '2026-11-14T05:00:00.000Z' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(ondone).toHaveBeenCalledWith('Offered Casey Morgan new times to choose from.');
+    expect(calls.filter((call) => call.startsWith('POST'))).toEqual([`POST ${offerUrl}`]);
+  });
+
+  it('refuses a window of more than 90 days in words and posts nothing', async () => {
+    const { calls } = renderPanel([booked()]);
+
+    const dialog = await chooseOffer();
+    await fireEvent.input(within(dialog).getByLabelText('First day'), { target: { value: '2026-11-09' } });
+    await fireEvent.input(within(dialog).getByLabelText('Last day'), { target: { value: '2027-03-09' } });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Send new times' }));
+
+    const last = within(dialog).getByLabelText('Last day');
+    await waitFor(() => expect(last).toHaveAttribute('aria-invalid', 'true'));
+    expect(document.getElementById(last.getAttribute('aria-describedby')!)).toHaveTextContent('The window can be at most 90 days.');
+    expect(calls.filter((call) => call.startsWith('POST'))).toEqual([]);
+  });
+
+  it("keeps the sheet open with the API's words when it refuses", async () => {
+    renderPanel([booked()], {
+      [`POST ${offerUrl}`]: () => Response.json({ title: 'Conflict', detail: 'New times can be offered only for a booked interview.', status: 409 }, { status: 409 }),
+    });
+
+    const dialog = await chooseOffer();
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Send new times' }));
+
+    await waitFor(() => expect(dialog).toHaveTextContent('New times can be offered only for a booked interview.'));
+    expect(screen.getByRole('dialog', { name: 'Offer new times' })).toBeInTheDocument();
   });
 });

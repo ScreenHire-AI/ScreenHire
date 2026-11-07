@@ -114,11 +114,17 @@ describe('activity', () => {
       expect(describeEvent(entry('d', { type: 'InterviewCancelled' }), names)).toBe('Interview cancelled');
     });
 
-    it('lists the four interview entries under Interviews, with an icon each, and names the team member who cancelled', () => {
-      const types = ['InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled'] as const;
+    it('says the team offered new times, with the time still held when the entry has one', () => {
+      const startsAt = '2026-11-03T14:30:00Z';
+      expect(describeEvent(entry('n', { type: 'InterviewNewTimesOffered', startsAt }), names)).toBe(`Offered new times for the interview on ${formatDateTime(startsAt)}`);
+      expect(describeEvent(entry('o', { type: 'InterviewNewTimesOffered' }), names)).toBe('Offered new interview times');
+    });
+
+    it('lists the five interview entries under Interviews, with an icon each, and names the team member who cancelled', () => {
+      const types = ['InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'InterviewNewTimesOffered'] as const;
       const interviews = types.map((type) => entry(type, { type }));
-      expect(kindCounts(interviews)).toEqual({ all: 4, notes: 0, emails: 0, scorecards: 0, interviews: 4, stage: 0 });
-      expect(new Set(types.map((type) => eventIcons[type])).size).toBe(4);
+      expect(kindCounts(interviews)).toEqual({ all: 5, notes: 0, emails: 0, scorecards: 0, interviews: 5, stage: 0 });
+      expect(new Set(types.map((type) => eventIcons[type])).size).toBe(5);
       const cancelled = entry('x', { type: 'InterviewCancelled', actorUserId: 'u1' });
       expect(actorText(cancelled, [{ id: 'm', userId: 'u1', email: 'a@example.com', displayName: 'Avery Quinn', role: 'Admin', customRoleId: null, roleName: 'Admin', joinedAt: base.occurredAt, jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 }], 'me')).toBe('by Avery Quinn');
       // The candidate booking or cancelling has no actor: Activity says nothing about who.

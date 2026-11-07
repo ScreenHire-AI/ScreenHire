@@ -40,6 +40,7 @@ public static class ApplicationActivity
         ApplicationEventType.InterviewBooked,
         ApplicationEventType.InterviewRescheduled,
         ApplicationEventType.InterviewCancelled,
+        ApplicationEventType.InterviewNewTimesOffered,
     ];
 
     /// <summary>

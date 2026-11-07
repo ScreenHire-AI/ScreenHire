@@ -123,6 +123,29 @@ export function windowInstants(first: string, last: string, zone: string): { win
   return { windowStart: new Date(start).toISOString(), windowEnd: new Date(capped).toISOString() };
 }
 
+/** The first and last day of a window, as the Schedule interview form and the Offer new times form both take them. */
+export interface WindowValues {
+  windowStart: string;
+  windowEnd: string;
+}
+
+/** What is wrong with a window's days in `zone`, each on its field. The API names the same fields. */
+export function checkWindow(value: WindowValues, zone: string, issue: (field: keyof WindowValues, message: string) => void, now: number): void {
+  const first = parseDay(value.windowStart);
+  const last = parseDay(value.windowEnd);
+  if (!first) issue('windowStart', 'Pick the first day.');
+  if (!last) issue('windowEnd', 'Pick the last day.');
+  if (first && last) {
+    const covered = daysCovered(value.windowStart, value.windowEnd)!;
+    if (covered < 1) issue('windowEnd', 'The last day has to be the first day or later.');
+    else if (covered > maxWindowDays) issue('windowEnd', `The window can be at most ${maxWindowDays} days.`);
+    else {
+      const instants = knowsZone(zone) ? windowInstants(value.windowStart, value.windowEnd, zone) : null;
+      if (instants && Date.parse(instants.windowEnd) <= now) issue('windowEnd', 'The last day has to be today or later.');
+    }
+  }
+}
+
 const minutesOf = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
 
 export interface ScheduleValues {
@@ -141,19 +164,7 @@ export interface ScheduleValues {
  */
 export function checkSchedule(value: ScheduleValues, issue: (field: keyof ScheduleValues, message: string) => void, now: number): void {
   if (!knowsZone(value.timeZone)) issue('timeZone', 'Choose a time zone.');
-  const first = parseDay(value.windowStart);
-  const last = parseDay(value.windowEnd);
-  if (!first) issue('windowStart', 'Pick the first day.');
-  if (!last) issue('windowEnd', 'Pick the last day.');
-  if (first && last) {
-    const covered = daysCovered(value.windowStart, value.windowEnd)!;
-    if (covered < 1) issue('windowEnd', 'The last day has to be the first day or later.');
-    else if (covered > maxWindowDays) issue('windowEnd', `The window can be at most ${maxWindowDays} days.`);
-    else {
-      const instants = knowsZone(value.timeZone) ? windowInstants(value.windowStart, value.windowEnd, value.timeZone) : null;
-      if (instants && Date.parse(instants.windowEnd) <= now) issue('windowEnd', 'The last day has to be today or later.');
-    }
-  }
+  checkWindow(value, value.timeZone, issue, now);
   if (minutesOf(value.dayEnd) <= minutesOf(value.dayStart)) issue('dayEnd', 'Working hours have to end after they start.');
   else if (minutesOf(value.dayEnd) - minutesOf(value.dayStart) < value.durationMinutes) issue('dayEnd', 'Working hours are shorter than the interview.');
 }
@@ -175,6 +186,12 @@ export const scheduleSchema = z
   })
   .superRefine((value, context) => {
     checkSchedule(value, (field, message) => context.addIssue({ code: 'custom', path: [field], message }), Date.now());
+  });
+
+/** The Offer new times form: the days the candidate may pick from, in the interview's own zone. */
+export const newTimesSchema = (zone: string) =>
+  z.object({ windowStart: z.string(), windowEnd: z.string() }).superRefine((value, context) => {
+    checkWindow(value, zone, (field, message) => context.addIssue({ code: 'custom', path: [field], message }), Date.now());
   });
 
 /**

@@ -140,6 +140,28 @@ public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : Browser
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Activity", Exact = true })).ToContainTextAsync("Interview booked for", new() { Timeout = 30_000 });
         await Page.GotoAsync(applicationUrl);
 
+        // Offering new times is in the same menu: the booked time stays, and the panel says it waits for a new one.
+        await panel.GetByRole(AriaRole.Button, new() { Name = "Interview actions" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Offer new times" }).ClickAsync();
+        var offer = Page.GetByRole(AriaRole.Dialog, new() { Name = "Offer new times" });
+        await Expect(offer).ToBeVisibleAsync();
+        await Expect(offer).ToContainTextAsync("Riley Chen gets a link to pick another time. The booked time stays until they do.");
+        await Expect(offer.GetByLabel("First day")).Not.ToHaveValueAsync("");
+        await Page.Mouse.MoveAsync(0, 0);
+        await Expect(Page.Locator("[data-slot=tooltip-content]")).ToHaveCountAsync(0);
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "offer-new-times-sheet-1280");
+        await offer.GetByRole(AriaRole.Button, new() { Name = "Send new times" }).ClickAsync();
+        await Expect(offer).ToHaveCountAsync(0);
+        await Expect(panel).ToContainTextAsync("Waiting for a new time", new() { Timeout = 30_000 });
+        await Expect(panel).ToContainTextAsync("The booked time stays until Riley Chen picks one.");
+        await Expect(length).ToBeVisibleAsync();
+        await ExpectNoAccessibilityViolationsAsync();
+        await WaitForEmailAsync(candidate, "New times to talk");
+        await Page.GotoAsync($"{applicationUrl}?tab=activity");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Activity", Exact = true })).ToContainTextAsync("Offered new times for the interview on", new() { Timeout = 30_000 });
+        await Page.GotoAsync(applicationUrl);
+
         // Cancelling is in the panel's menu, behind a dialog; the header's time goes and the panel says how it ended.
         await panel.GetByRole(AriaRole.Button, new() { Name = "Interview actions" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Cancel interview" }).ClickAsync();

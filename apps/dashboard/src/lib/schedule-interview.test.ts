@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   addDays,
   checkSchedule,
+  checkWindow,
   dayIn,
   daysCovered,
   defaultDays,
   durationLabel,
+  newTimesSchema,
   scheduleSchema,
   timeOptions,
   timeZoneOptions,
@@ -123,6 +125,32 @@ describe('the choices', () => {
     expect(result({ interviewerUserIds: ['a', 'b', 'c', 'd', 'e'] }).success).toBe(true);
     expect(result({ interviewerUserIds: ['a', 'b', 'c', 'd', 'e', 'f'] }).error?.issues[0]?.message).toBe('Choose 1 to 5 interviewers.');
     expect(result({ durationMinutes: 40 }).error?.issues[0]?.message).toBe('Choose how long it lasts.');
+  });
+});
+
+describe('the days of new times', () => {
+  const issues = (windowStart: string, windowEnd: string, zone = 'America/New_York') => {
+    const found: Record<string, string> = {};
+    checkWindow({ windowStart, windowEnd }, zone, (field, message) => (found[field] = message), now);
+    return found;
+  };
+
+  it('holds a window to the same rules as a new interview, on the same fields', () => {
+    expect(issues('2026-11-03', '2026-11-16')).toEqual({});
+    expect(issues('2026-11-03', '2027-01-31')).toEqual({});
+    expect(issues('2026-11-03', '2027-02-01')).toEqual({ windowEnd: 'The window can be at most 90 days.' });
+    expect(issues('2026-11-03', '2026-11-02')).toEqual({ windowEnd: 'The last day has to be the first day or later.' });
+    expect(issues('2026-10-20', '2026-11-01')).toEqual({ windowEnd: 'The last day has to be today or later.' });
+    expect(issues('', '2026-11-16')).toEqual({ windowStart: 'Pick the first day.' });
+    expect(issues('2026-11-03', '')).toEqual({ windowEnd: 'Pick the last day.' });
+  });
+
+  it('is checked in the interview zone and reports the same problems through the schema', () => {
+    // The last day is still open: 2026-11-02 ends at midnight in New York (05:00Z on the 3rd), after the 12:00Z test clock.
+    expect(issues('2026-10-30', '2026-11-02', 'America/New_York')).toEqual({});
+    expect(newTimesSchema('America/New_York').safeParse({ windowStart: '2026-11-03', windowEnd: '2026-11-16' }).success).toBe(true);
+    const refused = newTimesSchema('America/New_York').safeParse({ windowStart: '2026-11-03', windowEnd: '2027-02-01' });
+    expect(refused.error?.issues.map((issue) => [issue.path[0], issue.message])).toEqual([['windowEnd', 'The window can be at most 90 days.']]);
   });
 });
 

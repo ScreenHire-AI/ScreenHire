@@ -37,6 +37,7 @@
     questions,
     manualAutomations,
     tagsEditable,
+    oninterviewchanged,
   }: {
     detail: ApplicationDetail;
     timeline: readonly ApplicationTimelineEntry[] | undefined;
@@ -53,6 +54,8 @@
     manualAutomations: readonly Automation[];
     /** The person may add and remove tags. */
     tagsEditable: boolean;
+    /** After the interview was changed from its panel (new times offered): a sentence for the page's status line. */
+    oninterviewchanged?: (message: string) => void;
   } = $props();
 
   // AutomationRunFinished and task completions refetch them live (#lib/realtime.ts).
@@ -131,7 +134,7 @@
 </Panel>
 
 <!-- The interview offered to the candidate, once there is one (docs/architecture/interview-scheduling.md). -->
-<InterviewPanel applicationId={detail.id} mayCancel={permissions.includes('EmailCandidates')} />
+<InterviewPanel applicationId={detail.id} candidateName={detail.candidate.fullName} mayChange={permissions.includes('EmailCandidates')} ondone={oninterviewchanged} />
 
 {#if permissions.includes('RunAutomations') && manualAutomations.length > 0}
   <ManualAutomations applicationId={detail.id} automations={manualAutomations} />

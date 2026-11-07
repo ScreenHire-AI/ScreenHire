@@ -105,6 +105,53 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
     }
 
     [Fact]
+    public async Task A_candidate_whose_team_offered_new_times_keeps_the_booked_time_until_they_pick_one_without_javascript()
+    {
+        using var scene = await SceneAsync();
+        await WithoutJavaScriptAsync();
+        await Page.GotoAsync(scene.Link);
+        await Page.GetByRole(AriaRole.Radio).First.CheckAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Book this time" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Your interview is booked");
+        var interviewId = (await scene.Interview(Ct)).GetProperty("id").GetGuid();
+
+        // The recruiter offers new times a week and more ahead.
+        var from = DateTimeOffset.UtcNow.AddDays(8).UtcDateTime.Date;
+        using (var offered = await scene.Owner.PostAsync(
+            $"/v1/interviews/{interviewId}/new-times", new { windowStart = new DateTimeOffset(from, TimeSpan.Zero), windowEnd = new DateTimeOffset(from.AddDays(7), TimeSpan.Zero) }, Ct))
+        {
+            offered.StatusCode.Should().Be(HttpStatusCode.OK, await offered.Content.ReadAsStringAsync(Ct));
+        }
+
+        // The email carries the link, and the page says the booked time stays until the candidate picks.
+        InterviewLink().IsMatch((await WaitForEmailAsync(scene.Candidate, "New times to talk")).Text).Should().BeTrue();
+        await Page.GotoAsync(scene.Link);
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("The team offered new times");
+        await Expect(Page.Locator("main")).ToContainTextAsync("would like to find another time. Your booked time stays until you pick a new one, and you can keep it.");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Your time" })).ToBeVisibleAsync();
+        (await Page.Locator("script:not([type='application/ld+json'])").CountAsync()).Should().Be(0, "the page ships no JavaScript");
+        await ExpectNoAccessibilityViolationsAsync();
+        await ShotsAsync(scene.Link, "interview-new-times-offered");
+
+        await Page.GetByRole(AriaRole.Link, new() { Name = "Pick a new time" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Pick a new time");
+        await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Keep my current time" }).First).ToBeVisibleAsync();
+        await ExpectNoAccessibilityViolationsAsync();
+        var firstDay = (await Page.Locator("fieldset legend").First.InnerTextAsync()).Trim();
+        await Page.GetByRole(AriaRole.Radio).First.CheckAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Move to this time" }).ClickAsync();
+
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Your interview is booked");
+        await Expect(Page.Locator("main")).ToContainTextAsync("Moved to the new time.");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Your time" })).ToContainTextAsync(firstDay.Split(',')[0]);
+        await ExpectNoAccessibilityViolationsAsync();
+
+        var after = await scene.Interview(Ct);
+        after.GetProperty("newTimesOfferedAt").ValueKind.Should().Be(JsonValueKind.Null, "picking a time ends the offer");
+        after.GetProperty("startsAt").GetDateTimeOffset().Should().BeAfter(new DateTimeOffset(from, TimeSpan.Zero));
+    }
+
+    [Fact]
     public async Task A_link_that_was_never_issued_or_belongs_to_nobody_says_so_plainly()
     {
         using var scene = await SceneAsync();

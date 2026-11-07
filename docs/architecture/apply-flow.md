@@ -343,7 +343,9 @@ whole life. The page asks the API for the interview (`GET .../interviews/{token}
   calendar that cannot be read, gets a calm notice that says to try again later or reply to the email.
 - **Booked.** The time with its day, year, range and the zone's name, and "The video link is in your calendar invitation"
   (the page never shows a link of its own). While the candidate can still change it, "Pick another time" opens the
-  picker (`?change=1`, posting to `interviewReschedule`). "Cancel this interview" is a `details` element that opens one line
+  picker (`?change=1`, posting to `interviewReschedule`). When the team has offered new times (`newTimesOffered`) the heading
+  is "The team offered new times", a notice says the booked time stays until the candidate picks one, the button reads "Pick a
+  new time", and the picker offers the new days whatever the notice. "Cancel this interview" is a `details` element that opens one line
   on what happens and a "Yes, cancel it" button posting to `interviewCancel`, so a stray tap ends nothing and no script is
   needed. Inside the minimum notice the page says changes close that many hours before the start and to reply to the email.
 - **Cancelled or expired.** "This interview is cancelled" or "This link has expired" (410), the employer's name and a
