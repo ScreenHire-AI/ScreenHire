@@ -35,14 +35,10 @@
     file?: { name: string; size: number } | null;
     /** A line in place of the file, such as "Uploading...". */
     status?: string | null;
-    /** The words before Choose file. */
-    prompt?: string;
     chooseLabel?: string;
     /** The word on the area once a file is chosen; a click or drop still replaces it. */
     replaceLabel?: string;
     removeLabel?: string;
-    /** A small picture before the prompt (the dashboard passes a Lucide icon; this package has none). */
-    icon?: Snippet;
     /** The file as it will be used, above the words and part of the target (the image field's picture). */
     preview?: Snippet;
     /**
@@ -50,7 +46,6 @@
      * the bytes itself says false, and the input is cleared once `onfile` has the file, so picking it again still fires.
      */
     keep?: boolean;
-    input?: HTMLInputElement | undefined;
     /** A file that passed the checks, whether it was picked or dropped. */
     onfile: (file: File) => void;
     /** Why a file was refused, in words for the person. */
@@ -65,48 +60,25 @@
     accept = [],
     maxBytes,
     tone = 'candidate',
-    required = false,
-    disabled = false,
-    invalid = false,
+    required,
+    disabled,
+    invalid,
     describedby,
-    file = null,
-    status = null,
-    prompt = 'Drop a file here or',
+    file,
+    status,
     chooseLabel = 'Choose file',
     replaceLabel = 'Replace file',
     removeLabel = 'Remove',
-    icon,
     preview,
     keep = true,
-    input = $bindable(),
     onfile,
     onproblem,
     onremove,
   }: Props = $props();
 
-  // Full class strings, so Tailwind finds them through questions.css's @source line.
-  const looks = {
-    candidate: {
-      frame:
-        '@container min-w-0 rounded-xl border-[1.5px] border-dashed border-candidate-input-border bg-candidate-surface p-3 text-candidate-body text-candidate-foreground has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-candidate-brand-ui data-[invalid]:border-destructive data-[over]:border-solid data-[over]:border-candidate-brand-ui data-[over]:bg-candidate-background',
-      row: 'flex min-h-11 flex-col items-center justify-center gap-3 @md:flex-row',
-      button:
-        'inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-candidate-input-border bg-candidate-background px-4 font-bold text-candidate-foreground',
-      quiet: 'text-candidate-hint text-candidate-muted-foreground',
-    },
-    app: {
-      frame:
-        '@container min-w-0 rounded-lg border border-dashed border-input bg-secondary p-3 text-body has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50 data-[invalid]:border-destructive data-[over]:border-solid data-[over]:border-ring data-[over]:bg-accent',
-      row: 'flex min-h-9 pointer-coarse:min-h-11 flex-col items-center justify-center gap-3 @md:flex-row',
-      button:
-        'inline-flex h-9 pointer-coarse:h-11 items-center justify-center gap-2 rounded-lg border border-input bg-background px-3 font-medium text-foreground',
-      quiet: 'text-caption text-muted-foreground',
-    },
-  } as const;
-  const look = $derived(looks[tone]);
-
   // Before the page's JavaScript runs the input is shown as the browser draws it, inside the same frame.
   let mounted = $state(false);
+  let input = $state<HTMLInputElement>();
   let over = $state(false);
   // dragenter and dragleave fire again for every child the pointer crosses, so the area counts them.
   let depth = 0;
@@ -118,8 +90,6 @@
     if (early) untrack(() => take(early, false));
   });
 
-  const hasFiles = (event: DragEvent) => event.dataTransfer?.types.includes('Files') ?? false;
-
   function clear() {
     if (input) input.value = '';
   }
@@ -127,11 +97,10 @@
   // Puts a dropped file into the input, so a field that posts with its form posts it too. A single-file input never
   // gets the whole dropped list, only the first file. False in a browser without the DataTransfer constructor.
   function put(dropped: File): boolean {
-    if (!input) return false;
     try {
       const transfer = new DataTransfer();
       transfer.items.add(dropped);
-      input.files = transfer.files;
+      input!.files = transfer.files;
       return true;
     } catch {
       return false;
@@ -155,7 +124,7 @@
 
     // Told it was taken with nothing in its input, a field that posts with its form would post no file.
     if (keep && dropped && !put(chosen)) {
-      onproblem?.('This browser cannot take a dropped file here. Choose the file instead.');
+      onproblem?.('This browser cannot take a dropped file. Choose it instead.');
       return;
     }
 
@@ -163,20 +132,20 @@
     if (!keep) clear();
   }
 
-  // A file's drag is cancelled even while disabled: left alone, a file dropped here opens in the tab and loses the form.
-  function ondragenter(event: DragEvent) {
-    if (!hasFiles(event)) return;
+  // Without cancelling the drag the browser never fires drop. A file's drag is cancelled even while disabled: left alone,
+  // a file dropped here opens in the tab and loses the form.
+  function ondragover(event: DragEvent) {
+    const files = event.dataTransfer?.types.includes('Files');
+    if (!files) return false;
     event.preventDefault();
-    if (disabled) return;
-    depth += 1;
-    over = true;
+    event.dataTransfer!.dropEffect = disabled ? 'none' : 'copy';
+    return !disabled;
   }
 
-  function ondragover(event: DragEvent) {
-    if (!hasFiles(event)) return;
-    // Without this the browser never fires drop.
-    event.preventDefault();
-    if (event.dataTransfer) event.dataTransfer.dropEffect = disabled ? 'none' : 'copy';
+  function ondragenter(event: DragEvent) {
+    if (!ondragover(event)) return;
+    depth += 1;
+    over = true;
   }
 
   function ondragleave() {
@@ -192,14 +161,17 @@
     take(event.dataTransfer?.files[0], true);
   }
 
-  // The whole area opens the picker; the Remove button keeps its own click.
-  function onclick(event: MouseEvent) {
-    // The input's own click bubbles up here too: leave it alone, or it would open the picker twice.
-    if (disabled || event.target === input || (event.target as Element).closest('button')) return;
-    input?.click();
-  }
+  // The whole area opens the picker, and Remove is handled here too. This is one capture listener because Svelte's
+  // delegated click handling would add about 300 bytes to the careers island, whose budget is tight.
+  function onclickcapture(event: MouseEvent) {
+    const target = event.target as Element;
+    // The input's own click passes through here too: leave it alone, or it would open the picker twice.
+    if (disabled || target === input) return;
+    if (!target.closest('button')) {
+      input?.click();
+      return;
+    }
 
-  function remove() {
     clear();
     onremove?.();
     // The Remove button goes with the file: focus moves to the input, or it would fall back to the page.
@@ -211,16 +183,13 @@
 <div
   data-drop-area
   data-tone={tone}
-  data-over={mounted && over ? '' : undefined}
-  data-filled={file ? '' : undefined}
-  data-disabled={disabled ? '' : undefined}
-  data-invalid={invalid ? '' : undefined}
-  class={mounted ? look.frame : 'rounded-xl border-[1.5px] border-dashed border-candidate-input-border bg-candidate-surface p-3'}
+  data-over={over ? '' : undefined}
+  class="drop-area"
   {ondragenter}
   {ondragover}
   {ondragleave}
   {ondrop}
-  {onclick}
+  {onclickcapture}
 >
   <input
     bind:this={input}
@@ -239,38 +208,36 @@
       if (chosen) take(chosen, false);
       else if (file) onremove?.();
     }}
-    class={mounted ? 'sr-only' : 'file-input'}
+    class="file-input"
   />
-  {#if !mounted && file}
-    <!-- Without JavaScript the input says "No file chosen" (hidden by .file-input[data-uploaded]), so the file is named here. -->
-    <p class="mt-2 font-semibold text-candidate-body">{file.name} ({describeSize(file.size)})</p>
-  {/if}
   {#if mounted}
     <div class="flex flex-col gap-3">
       {#if preview}{@render preview()}{/if}
       <!-- Stacked in a narrow area and in a row in a wide one, so the buttons never wrap (F2, F5). -->
-      <div class={look.row}>
-        {#if icon}<span aria-hidden="true" class={look.quiet}>{@render icon()}</span>{/if}
+      <div class="drop-area-row">
         <div aria-live="polite" class="flex max-w-full min-w-0 flex-col items-center text-center">
           {#if status}
             <span class="font-semibold">{status}</span>
           {:else if file}
             <span class="max-w-full truncate font-semibold" title={file.name}>{file.name}</span>
-            <span class={look.quiet}>{describeSize(file.size)}</span>
+            <span class="drop-area-quiet">{describeSize(file.size)}</span>
           {:else}
-            <span>{prompt}</span>
+            <span>Drop a file here or</span>
           {/if}
         </div>
         {#if !status}
           <div class="flex w-full flex-col gap-2 @md:w-auto @md:flex-row">
             <!-- Looks like a button and is not one: the input above is the control, so assistive technology finds one picker. -->
-            <span aria-hidden="true" class={look.button}>{file ? replaceLabel : chooseLabel}</span>
+            <span aria-hidden="true" class="drop-area-button">{file ? replaceLabel : chooseLabel}</span>
             {#if file}
-              <button type="button" {disabled} onclick={remove} class={look.button}>{removeLabel}</button>
+              <button type="button" class="drop-area-button">{removeLabel}</button>
             {/if}
           </div>
         {/if}
       </div>
     </div>
+  {:else if file}
+    <!-- Without JavaScript the input says "No file chosen" (hidden by .file-input[data-uploaded]), so the file is named here. -->
+    <p class="mt-2 font-semibold text-candidate-body">{file.name} ({describeSize(file.size)})</p>
   {/if}
 </div>

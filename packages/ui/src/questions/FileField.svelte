@@ -70,8 +70,6 @@
   }
 
   async function upload(file: File) {
-    if (!endpoint) return;
-    error = null;
     uploading = true;
     try {
       const ticket = await call<{ uploadId: string; uploadUrl: string; method: string; headers: Record<string, string> }>({
@@ -125,7 +123,7 @@
     required={required && !current && !picked}
     disabled={uploading}
     invalid={!!error}
-    describedby={[hintId, error ? errorId : null].filter(Boolean).join(' ')}
+    describedby={error ? `${hintId} ${errorId}` : hintId}
     file={current ? { name: current.fileName, size: current.sizeBytes } : picked}
     status={uploading ? 'Uploading...' : null}
     onfile={choose}

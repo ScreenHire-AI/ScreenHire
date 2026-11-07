@@ -1,5 +1,4 @@
 <script lang="ts">
-  import UploadIcon from '~icons/lucide/upload';
   import { DropArea } from '@screenhire/ui/questions';
   import * as Field from '#lib/components/ui/field/index.js';
   import Panel from '#lib/components/panel.svelte';
@@ -52,9 +51,7 @@
         file={null}
         onfile={() => (refused = '')}
         onproblem={(message) => (refused = message)}
-      >
-        {#snippet icon()}<UploadIcon class="size-5" />{/snippet}
-      </DropArea>
+      />
       <Field.Error errors={refused ? [{ message: refused }] : []} />
     </Field.Field>
     <Field.Field>
