@@ -23,10 +23,55 @@
     @apply w-full text-candidate-body file:mr-3 file:min-h-11 file:rounded-lg file:border file:border-candidate-input-border file:bg-candidate-background file:px-4 file:font-semibold file:text-candidate-foreground;
   }
 
-  /* Once a file is uploaded the status line below says which one, so the browser's own "No file chosen" is hidden (the
-     button keeps its colour). */
+  /* Once a file is uploaded the drop area names it, so the browser's own "No file chosen" is hidden (the button keeps its
+     colour). */
   .file-input[data-uploaded] {
     color: transparent;
+  }
+
+  /* The drop area (questions/DropArea.svelte). Its classes live here, not in the component, because they would otherwise
+     ship in the careers island's JavaScript, both tones of them. Both tones are the same shape in different tokens. */
+  .drop-area {
+    @apply @container min-w-0 rounded-lg border-2 border-dashed border-candidate-input-border bg-candidate-surface p-3 text-candidate-body text-candidate-foreground has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-candidate-brand-ui data-[over]:border-solid data-[over]:border-candidate-brand-ui data-[over]:bg-candidate-background;
+  }
+
+  /* Until the page's JavaScript draws the row the input is shown as the browser draws it; then the area is its face. */
+  .drop-area:has(.drop-area-row) input[type="file"] {
+    @apply sr-only;
+  }
+
+  /* A refused area has this edge in both tones, except while a new file is over it. */
+  .drop-area:has(input[aria-invalid]):not([data-over]) {
+    @apply border-destructive;
+  }
+
+  .drop-area[data-tone="app"] {
+    @apply rounded-lg border border-input bg-secondary text-body text-foreground has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50 has-[input:focus-visible]:outline-0 data-[over]:border-ring data-[over]:bg-accent;
+  }
+
+  /* Stacked in a narrow area and in a row in a wide one, so the buttons never wrap. */
+  .drop-area-row {
+    @apply flex min-h-11 flex-col items-center justify-center gap-3 @md:flex-row;
+  }
+
+  [data-tone="app"] .drop-area-row {
+    @apply min-h-9 pointer-coarse:min-h-11;
+  }
+
+  .drop-area-button {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-candidate-input-border bg-candidate-background px-4 font-semibold text-candidate-foreground;
+  }
+
+  [data-tone="app"] .drop-area-button {
+    @apply h-9 min-h-0 rounded-lg border-input bg-background px-3 font-medium text-foreground pointer-coarse:h-11;
+  }
+
+  .drop-area-quiet {
+    @apply text-candidate-hint text-candidate-muted-foreground;
+  }
+
+  [data-tone="app"] .drop-area-quiet {
+    @apply text-caption text-muted-foreground;
   }
 
   .choice {

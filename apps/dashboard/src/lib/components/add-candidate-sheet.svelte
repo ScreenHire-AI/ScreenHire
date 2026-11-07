@@ -10,6 +10,7 @@
 <script lang="ts">
   import UserPlusIcon from '~icons/lucide/user-plus';
   import type { HttpValidationProblemDetails, JobSummary } from '@screenhire/api-client';
+  import { DEFAULT_MAX_FILE_BYTES, DropArea } from '@screenhire/ui/questions';
   import { ApiError, createCreateApplication, createCreateResumeUpload, createListJobs } from '@screenhire/api-client/svelte-query';
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
@@ -59,9 +60,9 @@
     resume: z.string(),
   });
   const empty = () => ({ jobId: job?.id ?? '', firstName: '', lastName: '', email: '', phone: '', resume: '' });
-  // The file types the job's resume question takes are checked by the API, which names them when a file does not fit.
+  // The size is checked in the drop area, as a candidate's is. The file types the job's resume question takes are the API's
+  // to check, and it names them when a file does not fit (the sheet does not load the question).
   let resume = $state<File | null>(null);
-  let fileInput = $state<HTMLInputElement | null>(null);
 
   // The API names the candidate's fields under `candidate.` and the file by its upload's fields; the form is flat.
   const field = (name: string) =>
@@ -120,7 +121,6 @@
     if (open) {
       reset({ data: empty() });
       resume = null;
-      if (fileInput) fileInput.value = '';
     }
   });
 
@@ -214,17 +214,23 @@
       </Field.Field>
       <Field.Field data-invalid={$errors.resume ? true : undefined}>
         <Field.Label for="add-candidate-resume">Resume <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
-        <Input
-          bind:ref={fileInput}
+        <DropArea
+          tone="app"
+          keep={false}
           id="add-candidate-resume"
-          name="resume"
-          type="file"
-          onchange={(event) => {
-            resume = event.currentTarget.files?.[0] ?? null;
+          maxBytes={DEFAULT_MAX_FILE_BYTES}
+          invalid={!!$errors.resume}
+          describedby={describedBy('add-candidate-resume-error', $errors.resume)}
+          file={resume ? { name: resume.name, size: resume.size } : null}
+          onfile={(file) => {
+            resume = file;
             $errors.resume = undefined;
           }}
-          aria-invalid={$errors.resume ? 'true' : undefined}
-          aria-describedby={describedBy('add-candidate-resume-error', $errors.resume)}
+          onproblem={(message) => ($errors.resume = [message])}
+          onremove={() => {
+            resume = null;
+            $errors.resume = undefined;
+          }}
         />
         <Field.Error id="add-candidate-resume-error" errors={$errors.resume?.map((message) => ({ message }))} />
       </Field.Field>
