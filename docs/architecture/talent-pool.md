@@ -174,7 +174,7 @@ of the built-in `talent-pool-invitation` template ([email](email.md)), with:
 - `{{ removeLink }}`, the signed link to stop being kept.
 
 It sends nothing to an address the email provider flagged as bounced or marked as spam. It sends the email, then keeps the copy for Messages with "[the candidate's link, not kept in this copy]" in place of
-the remove link, because that link acts for the candidate. It records `InvitedToApply` and `EmailSent` on the saved
+the remove link, because that link acts for the candidate. Like every email to a candidate it ends with the link to their own page, which the copy does not hold ([candidate portal](candidate-portal.md)). It records `InvitedToApply` and `EmailSent` on the saved
 application, so an invitation also moves Last contacted. Only Invite to apply sends this template: the email composer
 never offers it, and no automation names it. Its wording is edited on Templates, not per send. The sheet previews it
 (`POST /v1/talent-pool/invitations/preview`).

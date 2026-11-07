@@ -330,7 +330,9 @@ automation trigger (`RunAutomations`, keyed on the interview), so an automation 
 ## The worker
 
 `SendInterviewInvitation` issues the link in the worker, sends `interview-invitation` and keeps a copy that hides the link.
-The timeline entry of the email has the send's id, so a redelivery sends nothing twice.
+The timeline entry of the email has the send's id, so a redelivery sends nothing twice. Like every email about an application, the
+invitation, the confirmation and the cancellation go out with a reply address (so an emailed answer lands in Messages) and end with
+the link to the candidate's own page ([email](email.md), [candidate portal](candidate-portal.md)).
 
 `CreateInterviewEvents`, `UpdateInterviewEvents` and `CancelInterviewEvents` write one event per interviewer on their own
 calendar, so it lands natively whichever provider each uses. The organizer's event invites the candidate by address and
