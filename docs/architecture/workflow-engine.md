@@ -65,6 +65,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/graph-controls.svelte
   - resource: apps/dashboard/src/lib/components/workflow/workflow-editor.svelte
   - resource: apps/dashboard/src/lib/components/workflow/workflow-summary.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/stage-flow.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-form.svelte
   - resource: apps/dashboard/src/lib/components/workflow/pipeline-view.svelte
   - resource: apps/dashboard/src/lib/components/workflow/questionnaire-builder.svelte
@@ -196,7 +197,7 @@ with its preview beside it, or behind an Edit / Preview switch where both do not
 workflow builder is one editor, `#lib/components/workflow/workflow-editor.svelte`, over a template draft or a job's own
 copy, with four tabs on the page's header band. A workflow that cannot be edited there (a ScreenHire template, a
 published version, a closed job's) opens the same tabs in `workflow-summary.svelte`, which reads it as content, with no
-form controls. The validation result is a status badge beside the page title.
+form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (design system section 11, Stage flow). The validation result is a status badge beside the page title.
 
 - **Pipeline:** the stages in order (reordered by dragging a grip, or from the menu the grip opens, `ReorderList`), and an automation's actions the same way and, per stage, its automations
   in a Sheet drawer and its scorecard in another (`scorecard-picker.svelte`): a library scorecard, built-in or the
