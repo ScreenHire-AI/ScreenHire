@@ -28,7 +28,7 @@
    font (design-system W2). */
 @layer components {
   .kicker {
-    font-size: 0.875rem;
+    font-size: var(--text-sm);
     font-weight: 600;
     line-height: 1.25rem;
     color: var(--muted-foreground);
@@ -50,7 +50,7 @@
 @layer components {
   .prose {
     max-width: 68ch;
-    font-size: 1.0625rem;
+    font-size: var(--text-base);
     line-height: 1.7;
     color: var(--secondary-foreground);
 
@@ -61,7 +61,7 @@
     & h2 {
       margin-top: 2em;
       font-family: var(--sh-font-display);
-      font-size: 1.75rem;
+      font-size: var(--text-3xl);
       font-weight: 700;
       line-height: 1.2;
       letter-spacing: -0.015em;
@@ -70,7 +70,7 @@
 
     & h3 {
       margin-top: 1.6em;
-      font-size: 1.2rem;
+      font-size: var(--text-xl);
       font-weight: 700;
       color: var(--foreground);
     }
@@ -115,7 +115,7 @@
     & table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.95rem;
+      font-size: var(--text-sm);
     }
 
     & th,

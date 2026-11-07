@@ -50,7 +50,7 @@
           <span class="min-w-0 truncate">Jobs at {draft.organizationName}</span>
         </div>
         <div class="flex h-16 items-center justify-between gap-4 border-b border-candidate-border bg-candidate-header px-5 text-candidate-header-foreground">
-          <span class="flex min-w-0 items-center gap-2.5 font-bold">
+          <span class="flex min-w-0 items-center gap-3 font-bold">
             {#if logo}
               <img src={logo.url} alt={draft.organizationName} width={logo.width} height={logo.height} class="h-10 w-auto max-w-60 object-contain object-left" />
             {:else}

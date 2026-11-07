@@ -39,7 +39,7 @@
      controls keep their own line height. */
   --text-candidate-input: 1rem;
   --text-candidate-hint: 0.8125rem;
-  /* A candidate or marketing page's title (section 4.3): 30px in the heading font, the one h1 size on the careers pages. */
+  /* A careers page's title (section 4.3): 30px in the heading font, the one h1 size on the careers pages. */
   --text-candidate-title: 1.875rem;
   --text-candidate-title--line-height: 2.25rem;
   --text-candidate-title--font-weight: 700;

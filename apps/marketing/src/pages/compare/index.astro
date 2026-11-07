@@ -19,7 +19,7 @@ const comparisons = (await getCollection('comparisons')).sort((a, b) => a.data.c
       {
         comparisons.map((comparison) => (
           <li class="flex flex-col gap-2 rounded-panel border border-border bg-card shadow-surface p-6">
-            <h3 class="font-display text-2xl font-bold">
+            <h3 class="font-display text-xl font-bold">
               <a href={`${path}${comparison.id}/`} class="text-foreground no-underline hover:text-primary">
                 {comparison.data.competitor} alternative
               </a>
