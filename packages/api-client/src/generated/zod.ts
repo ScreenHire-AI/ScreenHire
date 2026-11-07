@@ -6868,7 +6868,7 @@ export const ListTeamMembersResponseItem = zod.object({
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(listTeamMembersResponseLastUpdatedTwoCreatedDefault)
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.')]).optional()
-}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.\n`lastUpdated` is the newest change to their membership (a role or job access change) and who made it; null when\nnothing has changed since they joined, which `joinedAt` already says.')
+}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.\n`lastUpdated` is the newest change to their membership (a role or job access change) and who made it; null when\nnothing has changed since they joined, which `joinedAt` already says, and for a reader who cannot manage the team.')
 export const ListTeamMembersResponse = zod.array(ListTeamMembersResponseItem)
 
 
@@ -7013,7 +7013,7 @@ export const ChangeMemberRoleResponse = zod.object({
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(changeMemberRoleResponseLastUpdatedTwoCreatedDefault)
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.')]).optional()
-}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.\n`lastUpdated` is the newest change to their membership (a role or job access change) and who made it; null when\nnothing has changed since they joined, which `joinedAt` already says.')
+}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.\n`lastUpdated` is the newest change to their membership (a role or job access change) and who made it; null when\nnothing has changed since they joined, which `joinedAt` already says, and for a reader who cannot manage the team.')
 
 
 export const ChangeMemberJobAccessParams = zod.object({
@@ -7045,7 +7045,7 @@ export const ChangeMemberJobAccessResponse = zod.object({
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(changeMemberJobAccessResponseLastUpdatedTwoCreatedDefault)
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.')]).optional()
-}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.\n`lastUpdated` is the newest change to their membership (a role or job access change) and who made it; null when\nnothing has changed since they joined, which `joinedAt` already says.')
+}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.\n`lastUpdated` is the newest change to their membership (a role or job access change) and who made it; null when\nnothing has changed since they joined, which `joinedAt` already says, and for a reader who cannot manage the team.')
 
 
 export const RemoveMemberParams = zod.object({

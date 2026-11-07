@@ -14,7 +14,7 @@ import type { OrganizationRole } from './organizationRole.ts';
  * `jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever
  * it says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.
  * `lastUpdated` is the newest change to their membership (a role or job access change) and who made it; null when
- * nothing has changed since they joined, which `joinedAt` already says.
+ * nothing has changed since they joined, which `joinedAt` already says, and for a reader who cannot manage the team.
  */
 export interface TeamMember {
   id: string;
