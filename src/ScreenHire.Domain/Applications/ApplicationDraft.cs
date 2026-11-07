@@ -11,7 +11,7 @@ namespace ScreenHire.Domain.Applications;
 /// <remarks>
 /// Answers only: the contact details, the answers to the non-file questions, the assistive-technology switch (so a
 /// resumed form never starts telemetry on someone who switched it on) and the AI-use answer. Never files, telemetry, the
-/// device check, a fingerprint or time on the form. A draft is found by its link, not by its email, so nobody who knows
+/// device check, a fingerprint or time on the form. A draft is opened and saved by its link, not by its email, so nobody who knows
 /// an address can replace the answers saved under it. Sending the application deletes the job's drafts for that email;
 /// the daily sweep deletes the rest at <see cref="ExpiresAt"/>.
 /// </remarks>

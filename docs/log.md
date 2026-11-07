@@ -1,5 +1,15 @@
 # Log
 
+## 2026-11-07
+
+**Candidates have a page of their own.** A candidate asks for a link on the careers site with the address they applied with
+and gets one only if we have an application from it; the page says the same either way. The link opens each application with
+a four-step status (Applied, In review, Interview, Decision, then Hired, Not moving forward or Withdrawn) that never shows an
+employer's own stage names, a saved application to finish, a follow-up questionnaire or an interview to book, and the
+messages with a reply box. A reply typed there and a reply by email are one thing, in Messages and Activity, with attachments
+scanned. Every email to a candidate now ends with a link to the page, and the interview emails carry a Reply-To, which they
+did not before. The notice version is `2026-11-07.1`. ([candidate portal](architecture/candidate-portal.md), ADR-0027)
+
 ## 2026-11-05
 
 **Design rule S9: design for how many there could be.** Tabs and toggles are for sets that cannot grow. Anything that can

@@ -66,7 +66,10 @@ public sealed class RejectionEmailTests(AppHostFixture fixture)
             .And.Contain($"Why: {Reason}")
             .And.Contain("This decision was made automatically")
             .And.Contain($"contact the hiring team at {organizationName}");
-        sent[0].Text.TrimEnd().Should().EndWith("a person will review your application.", "the notice follows the organization's wording");
+        // The notice follows the organization's wording; ScreenHire's line with the link to the candidate's page comes after it.
+        var portalLine = sent[0].Text.IndexOf(ScreenHire.Infrastructure.Email.CandidatePortalFooter.Sentence, StringComparison.Ordinal);
+        portalLine.Should().BeGreaterThan(0, "every email to a candidate ends with the link to their page");
+        sent[0].Text[..portalLine].TrimEnd().Should().EndWith("a person will review your application.", "the notice follows the organization's wording");
 
         // The email reaches Mailpit just before the worker commits its timeline entry, so await the entry.
         JsonElement entry = default;

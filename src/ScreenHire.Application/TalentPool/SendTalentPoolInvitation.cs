@@ -83,7 +83,7 @@ public static partial class SendTalentPoolInvitationHandler
             RemoveLink = links.RemoveUrl(organization.Slug, links.Issue(organization.Id, candidate.Id)),
         };
         var header = await headers.ForAsync(db, organization, cancellationToken);
-        var route = await routing.ForAsync(db, application!.OrganizationId, message.SendId, cancellationToken);
+        var route = await routing.ForAsync(db, application!.OrganizationId, message.SendId, cancellationToken, candidate.Id);
         await email.SendAsync(EmailTemplateIds.TalentPoolInvitation, template.Content, candidate.Email, model, header, cancellationToken, route);
 
         // The team's copy says where the candidate's own link was: it lets whoever holds it stop the candidate being kept.

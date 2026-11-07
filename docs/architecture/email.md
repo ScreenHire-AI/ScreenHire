@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Email to candidates"
-description: "Organization email templates in Liquid with a rich-text body over fixed variables, the email composer (a template or a blank email changed for one send, previewed with the candidate's details), each email kept as it went for Messages, sending through the worker, the rules that the rejection email goes only with Reject, the follow-up questions email only with SendQuestionnaire and the invitation to apply only with Invite to apply, the link to finish a saved application, sending through SendGrid, candidates' replies with their attachments, bounces and spam complaints, the company's own sending domain, and what is not built (an inbox, attachments on outgoing mail, scheduled sends)."
+description: "Organization email templates in Liquid with a rich-text body over fixed variables, the email composer (a template or a blank email changed for one send, previewed with the candidate's details), each email kept as it went for Messages, sending through the worker, the rules that the rejection email goes only with Reject, the follow-up questions email only with SendQuestionnaire and the invitation to apply only with Invite to apply, the link to finish a saved application, the link to the candidate's own page that every email to a candidate ends with, sending through SendGrid, candidates' replies with their attachments, bounces and spam complaints, the company's own sending domain, and what is not built (an inbox, attachments on outgoing mail, scheduled sends)."
 tags: [email, templates, liquid]
 sources:
   - resource: src/ScreenHire.Domain/Hiring/EmailTemplate.cs
@@ -60,6 +60,8 @@ sources:
   - resource: apps/dashboard/src/lib/sending-domain.ts
   - resource: apps/api/Email/AttachmentFiles.cs
   - resource: src/ScreenHire.Infrastructure/Email/TransactionalEmail.cs
+  - resource: src/ScreenHire.Infrastructure/Email/CandidatePortalFooter.cs
+  - resource: src/ScreenHire.Application/Scheduling/InterviewHandlers.cs
 ---
 # Email to candidates
 
@@ -229,6 +231,18 @@ Like a sign-in link it goes out inside the request, because its token lets whoev
 sit in the outbox's message table, and it is never kept as a copy or shown in Messages. An address gets at most 5 a day
 in one organization. With no `IEmailSender`, saving is hidden on the careers page.
 
+## The link to the candidate's page
+
+Every email to a candidate about an application ends with a link to their own page, where they see where each application
+stands and read and answer their messages ([candidate portal](candidate-portal.md)). `CandidatePortalFooter` adds ScreenHire's
+fixed sentence and the link after an organization's template is rendered and sanitized, as the header is, so a template cannot
+change or remove it. The link is a capability, so it is added to the email that goes out (`MailRoute.PortalLink`, which
+`CandidateMailRouting.ForAsync` fills with the candidate's signed link) and never to the copy kept for Messages, as with the
+follow-up questions email's own link. The worker issues the token when it sends. The three interview emails, the invitation to
+apply and the three data request emails carry it as well. The saved-application link and mail to the team do not. The composer's
+preview and a template's test send show the line with the page where anyone asks for a link, since only the worker can issue a
+candidate's own.
+
 ## Sending provider
 
 [ADR-0022](../adr/0022-sendgrid-through-azure-marketplace.md): ScreenHire sends through SendGrid, bought on the Azure
@@ -250,7 +264,7 @@ Another provider (Azure Communication Services Email) would be one more class be
 ## Replies
 
 Every email about an application goes out with `Reply-To: reply+<token>@<reply host>` (`ReplyAddresses`,
-`CandidateMailRouting`). The token is lowercase base32 of the organization, the send (the `application_emails` id) and a
+`CandidateMailRouting`), the three interview emails included. The token is lowercase base32 of the organization, the send (the `application_emails` id) and a
 4-byte HMAC under the generated `email-reply-key`: 58 characters, so the local part is exactly 64, the limit. The send's
 id, not the application's, so the original sender is known. The sign-in, invitation and saved-application emails carry
 none: they are not correspondence on an application. The talent pool invitation does, and a flagged address gets none. Without a reply key and a reply host
@@ -278,6 +292,12 @@ nothing and still answers 200, so SendGrid does not retry it. In one transaction
   in the tray, and the worker's `CandidateRepliedHandler` emails them once (the reply's `notified_at`): fixed wording, a
   link to Messages, never the reply's text, and only if they can still see the job. An email an automation sent has
   no one to email, so every member who sees the job gets the card and nobody gets mail.
+
+A candidate can also write from their own page. `InboundEmailIngest.IngestForAsync` takes the reply's target (the organization and
+the send) directly, so a reply from the page runs the same steps as one from the webhook: the reply, its `EmailReceived` entry, its
+attachments and their scans, and the event that tells the sender. The page names the target itself (the latest email that went for
+the application), uses a `Message-ID` of its own form id so sending a form twice stores one reply, and never clears a bounce or
+spam flag. The two stay in one thread because both answer the same sent email.
 
 Messages lists sent and received together, newest first (`direction`); a reply opens to who it is from, the message and its
 files. `GET /v1/replies/{replyId}` and its attachment route are read like sent mail, row-level security and job access

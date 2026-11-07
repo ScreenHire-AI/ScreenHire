@@ -148,6 +148,11 @@ import type {
   PublicJob,
   PublicJobBoard,
   PublicOrganization,
+  PublicPortal,
+  PublicPortalForm,
+  PublicPortalLinkRequest,
+  PublicPortalMessages,
+  PublicPortalReplyRequest,
   PublicQuestionnaire,
   PublicQuestionnaireAnswers,
   PublicTalentPoolStatus,
@@ -2405,6 +2410,291 @@ export const getPublicDataDownload = async (organizationSlug: string,
     method: 'GET'
 
 
+  }
+);}
+
+
+
+export type getPublicPortalFormResponse200 = {
+  data: PublicPortalForm
+  status: 200
+}
+
+export type getPublicPortalFormResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicPortalFormResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getPublicPortalFormResponseSuccess = (getPublicPortalFormResponse200) & {
+  headers: Headers;
+};
+export type getPublicPortalFormResponseError = (getPublicPortalFormResponse404 | getPublicPortalFormResponse429) & {
+  headers: Headers;
+};
+
+export type getPublicPortalFormResponse = (getPublicPortalFormResponseSuccess | getPublicPortalFormResponseError)
+
+export const getGetPublicPortalFormUrl = (organizationSlug: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/portal`
+}
+
+export const getPublicPortalForm = async (organizationSlug: string, options?: Parameters<typeof apiFetch>[1]): Promise<getPublicPortalFormResponse> => {
+
+  return apiFetch<getPublicPortalFormResponse>(getGetPublicPortalFormUrl(organizationSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type requestPublicPortalLinkResponse202 = {
+  data: void
+  status: 202
+}
+
+export type requestPublicPortalLinkResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type requestPublicPortalLinkResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type requestPublicPortalLinkResponse404 = {
+  data: void
+  status: 404
+}
+
+export type requestPublicPortalLinkResponse429 = {
+  data: void
+  status: 429
+}
+
+export type requestPublicPortalLinkResponseSuccess = (requestPublicPortalLinkResponse202) & {
+  headers: Headers;
+};
+export type requestPublicPortalLinkResponseError = (requestPublicPortalLinkResponse400 | requestPublicPortalLinkResponse403 | requestPublicPortalLinkResponse404 | requestPublicPortalLinkResponse429) & {
+  headers: Headers;
+};
+
+export type requestPublicPortalLinkResponse = (requestPublicPortalLinkResponseSuccess | requestPublicPortalLinkResponseError)
+
+export const getRequestPublicPortalLinkUrl = (organizationSlug: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/portal/links`
+}
+
+export const requestPublicPortalLink = async (organizationSlug: string,
+    publicPortalLinkRequest: PublicPortalLinkRequest, options?: Parameters<typeof apiFetch>[1]): Promise<requestPublicPortalLinkResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<requestPublicPortalLinkResponse>(getRequestPublicPortalLinkUrl(organizationSlug),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicPortalLinkRequest)
+  }
+);}
+
+
+
+export type getPublicPortalResponse200 = {
+  data: PublicPortal
+  status: 200
+}
+
+export type getPublicPortalResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicPortalResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getPublicPortalResponseSuccess = (getPublicPortalResponse200) & {
+  headers: Headers;
+};
+export type getPublicPortalResponseError = (getPublicPortalResponse404 | getPublicPortalResponse429) & {
+  headers: Headers;
+};
+
+export type getPublicPortalResponse = (getPublicPortalResponseSuccess | getPublicPortalResponseError)
+
+export const getGetPublicPortalUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/portal/${token}`
+}
+
+export const getPublicPortal = async (organizationSlug: string,
+    token: string, options?: Parameters<typeof apiFetch>[1]): Promise<getPublicPortalResponse> => {
+
+  return apiFetch<getPublicPortalResponse>(getGetPublicPortalUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getPublicPortalMessagesResponse200 = {
+  data: PublicPortalMessages
+  status: 200
+}
+
+export type getPublicPortalMessagesResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicPortalMessagesResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getPublicPortalMessagesResponseSuccess = (getPublicPortalMessagesResponse200) & {
+  headers: Headers;
+};
+export type getPublicPortalMessagesResponseError = (getPublicPortalMessagesResponse404 | getPublicPortalMessagesResponse429) & {
+  headers: Headers;
+};
+
+export type getPublicPortalMessagesResponse = (getPublicPortalMessagesResponseSuccess | getPublicPortalMessagesResponseError)
+
+export const getGetPublicPortalMessagesUrl = (organizationSlug: string,
+    token: string,
+    applicationId: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/portal/${token}/applications/${applicationId}/messages`
+}
+
+export const getPublicPortalMessages = async (organizationSlug: string,
+    token: string,
+    applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getPublicPortalMessagesResponse> => {
+
+  return apiFetch<getPublicPortalMessagesResponse>(getGetPublicPortalMessagesUrl(organizationSlug,token,applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type sendPublicPortalReplyResponse202 = {
+  data: void
+  status: 202
+}
+
+export type sendPublicPortalReplyResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type sendPublicPortalReplyResponse404 = {
+  data: void
+  status: 404
+}
+
+export type sendPublicPortalReplyResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type sendPublicPortalReplyResponse429 = {
+  data: void
+  status: 429
+}
+
+export type sendPublicPortalReplyResponseSuccess = (sendPublicPortalReplyResponse202) & {
+  headers: Headers;
+};
+export type sendPublicPortalReplyResponseError = (sendPublicPortalReplyResponse400 | sendPublicPortalReplyResponse404 | sendPublicPortalReplyResponse409 | sendPublicPortalReplyResponse429) & {
+  headers: Headers;
+};
+
+export type sendPublicPortalReplyResponse = (sendPublicPortalReplyResponseSuccess | sendPublicPortalReplyResponseError)
+
+export const getSendPublicPortalReplyUrl = (organizationSlug: string,
+    token: string,
+    applicationId: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/portal/${token}/applications/${applicationId}/messages`
+}
+
+export const sendPublicPortalReply = async (organizationSlug: string,
+    token: string,
+    applicationId: string,
+    publicPortalReplyRequest: PublicPortalReplyRequest, options?: Parameters<typeof apiFetch>[1]): Promise<sendPublicPortalReplyResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<sendPublicPortalReplyResponse>(getSendPublicPortalReplyUrl(organizationSlug,token,applicationId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicPortalReplyRequest)
   }
 );}
 

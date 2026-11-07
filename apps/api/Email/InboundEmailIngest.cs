@@ -60,16 +60,28 @@ internal sealed partial class InboundEmailIngest(
     /// <summary>The most bytes one attachment may hold.</summary>
     public const int MaxAttachmentBytes = 10 * 1024 * 1024;
 
-    public async Task<InboundOutcome> IngestAsync(ParsedInboundEmail mail, IDbContextOutbox<ScreenHireDbContext> outbox, CancellationToken cancellationToken)
+    public Task<InboundOutcome> IngestAsync(ParsedInboundEmail mail, IDbContextOutbox<ScreenHireDbContext> outbox, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(mail);
         ArgumentNullException.ThrowIfNull(outbox);
         var target = mail.Recipients.Select(replies.TryParse).FirstOrDefault(t => t is not null);
-        if (target is not { } reply)
-        {
-            return InboundOutcome.Ignored;
-        }
+        return target is not { } reply
+            ? Task.FromResult(InboundOutcome.Ignored)
+            : IngestForAsync(reply, mail, outbox, clearsEmailIssue: true, cancellationToken);
+    }
 
+    /// <summary>
+    /// Stores <paramref name="mail"/> as the answer to the email <paramref name="reply"/> names. The webhook gets the target
+    /// from the signed reply address; the candidate's page (docs/architecture/candidate-portal.md) names it itself, from the
+    /// application it is showing. <paramref name="clearsEmailIssue"/> is whether writing from the candidate's address proves it
+    /// works: true for an email that arrived from that address, false for a reply typed on the page, which says nothing
+    /// about the mailbox and must not turn email back on for someone who marked it as spam.
+    /// </summary>
+    public async Task<InboundOutcome> IngestForAsync(
+        ReplyTarget reply, ParsedInboundEmail mail, IDbContextOutbox<ScreenHireDbContext> outbox, bool clearsEmailIssue, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(mail);
+        ArgumentNullException.ThrowIfNull(outbox);
         tenant.SetPublicOrganization(reply.OrganizationId); // acts for the address's organization, never for whoever is signed in
         var db = outbox.DbContext;
         var send = await db.ApplicationEmails.AsNoTracking().SingleOrDefaultAsync(e => e.Id == reply.SendId, cancellationToken);
@@ -163,7 +175,7 @@ internal sealed partial class InboundEmailIngest(
         // A candidate who writes from the address the provider flagged has a working address after all. An automatic answer
         // is not the candidate writing: an out-of-office must not turn email back on for someone who marked it as spam.
         var candidate = await db.Candidates.SingleOrDefaultAsync(c => c.Id == application.CandidateId, cancellationToken);
-        if (candidate is not null && !mail.AutoReply && !candidate.CanReceiveEmail
+        if (clearsEmailIssue && candidate is not null && !mail.AutoReply && !candidate.CanReceiveEmail
             && candidate.NormalizedEmail == Candidate.Normalize(mail.FromAddress) && candidate.ClearEmailIssue())
         {
             await outbox.PublishAsync(new CandidateEmailStatusChanged(

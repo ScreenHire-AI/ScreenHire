@@ -1,0 +1,32 @@
+---
+// A page with no token in its address, for a link that no longer works (docs/architecture/candidate-portal.md): the
+// answer is the same for a link that is forged, damaged, expired or made for an erased candidate.
+import CareersLayout from '../../../layouts/CareersLayout.astro';
+import { getPublicOrganization } from '../../../lib/api';
+import { basePath } from '../../../lib/host';
+
+const { organization } = Astro.params;
+const response = await getPublicOrganization(organization!);
+if (response.status !== 200) {
+  return new Response(null, { status: 404 });
+}
+
+const employer = response.data;
+const base = basePath(Astro.request, employer.slug);
+Astro.response.status = 404;
+---
+
+<CareersLayout
+  title={`This link has expired or is not valid | ${employer.name}`}
+  description={`The link to your applications at ${employer.name} no longer works.`}
+  organizationName={employer.name}
+  organizationSlug={employer.slug}
+  branding={employer.branding}
+  noindex
+>
+  <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">This link has expired or is not valid</h1>
+  <p class="mt-3 text-candidate-body text-candidate-muted-foreground">
+    Links to your page stop working after a while, and the link may be incomplete. You can ask for a new one.
+  </p>
+  <a href={`${base}/my-applications`} class="button-primary mt-4">Ask for a new link</a>
+</CareersLayout>

@@ -41,6 +41,7 @@ public static partial class BuildDataCopyHandler
         IDataExportStore exports,
         TransactionalEmail email,
         DataRequestLinks links,
+        Applications.CandidateMailRouting routing,
         IOptions<DataRequestOptions> options,
         TimeProvider time,
         ILogger<BuildDataCopy> logger,
@@ -105,7 +106,9 @@ public static partial class BuildDataCopyHandler
         if (reason is null)
         {
             var link = links.DownloadUrl(organization.Slug, links.IssueDownload(organization.Id, request.Id));
-            await email.SendAsync(DataRequestAnswerEmails.CopyEmail(candidate.Email, organization.Name, link, options.Value.ExportLifetime), cancellationToken);
+            var route = await routing.PortalOnlyAsync(db, organization.Id, candidate.Id, cancellationToken);
+            await email.SendAsync(
+                route.Apply(DataRequestAnswerEmails.CopyEmail(candidate.Email, organization.Name, link, options.Value.ExportLifetime)), cancellationToken);
             LogSent(logger, request.Id);
         }
         else
@@ -192,6 +195,7 @@ public static partial class SendDataRequestDeclinedHandler
         SendDataRequestDeclined message,
         ScreenHireDbContext db,
         TransactionalEmail email,
+        Applications.CandidateMailRouting routing,
         ILogger<SendDataRequestDeclined> logger,
         CancellationToken cancellationToken)
     {
@@ -215,7 +219,8 @@ public static partial class SendDataRequestDeclinedHandler
             return;
         }
 
-        await email.SendAsync(DataRequestAnswerEmails.DeclinedEmail(candidate!.Email, organization!.Name, request.Kind, reason), cancellationToken);
+        var route = await routing.PortalOnlyAsync(db, organization!.Id, candidate!.Id, cancellationToken);
+        await email.SendAsync(route.Apply(DataRequestAnswerEmails.DeclinedEmail(candidate.Email, organization.Name, request.Kind, reason)), cancellationToken);
         LogSent(logger, message.RequestId);
     }
 

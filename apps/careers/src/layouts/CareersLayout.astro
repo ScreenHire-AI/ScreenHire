@@ -90,6 +90,7 @@ const home = withEmbed(base || '/', embed);
     <footer class="flex flex-col items-center gap-1 px-5 py-6 text-center text-candidate-hint text-candidate-muted-foreground">
       <p>A person at {organizationName} reviews every application.</p>
       <p>Powered by ScreenHire</p>
+      <a href={withEmbed(`${base}/my-applications`, embed)} class="inline-flex min-h-11 items-center text-candidate-muted-foreground underline">Your applications</a>
       <a href={withEmbed(`${base}/privacy`, embed)} class="inline-flex min-h-11 items-center text-candidate-muted-foreground underline">What we collect and why</a>
     </footer>
     {embed && <EmbedFrame />}

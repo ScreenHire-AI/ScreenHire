@@ -1,7 +1,9 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using ScreenHire.Api.Auth;
+using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Email;
 using ScreenHire.Api.Hiring;
@@ -372,9 +374,10 @@ internal static class EmailEndpoints
         EmailTemplates renderer,
         EmailHeaders headers,
         ITenantContext tenant,
+        IOptions<DomainOptions> domains,
         CancellationToken cancellationToken)
     {
-        if (await RenderDraftAsync(request, validator, db, renderer, headers, tenant, "preview@example.com", cancellationToken) is not { } message)
+        if (await RenderDraftAsync(request, validator, db, renderer, headers, tenant, domains.Value, "preview@example.com", cancellationToken) is not { } message)
         {
             return TypedResults.ValidationProblem(await DraftProblemsAsync(request, validator, renderer, cancellationToken));
         }
@@ -392,6 +395,7 @@ internal static class EmailEndpoints
         EmailHeaders headers,
         ITenantContext tenant,
         IServiceProvider services,
+        IOptions<DomainOptions> domains,
         CancellationToken cancellationToken)
     {
         if (services.GetService<IEmailSender>() is not { } sender)
@@ -400,7 +404,7 @@ internal static class EmailEndpoints
         }
 
         var to = await db.Users.AsNoTracking().Where(u => u.Id == tenant.UserId).Select(u => u.Email).SingleAsync(cancellationToken);
-        if (to is null || await RenderDraftAsync(request, validator, db, renderer, headers, tenant, to, cancellationToken) is not { } message)
+        if (to is null || await RenderDraftAsync(request, validator, db, renderer, headers, tenant, domains.Value, to, cancellationToken) is not { } message)
         {
             return TypedResults.ValidationProblem(await DraftProblemsAsync(request, validator, renderer, cancellationToken));
         }
@@ -417,6 +421,7 @@ internal static class EmailEndpoints
         ScreenHireDbContext db,
         EmailTemplates renderer,
         EmailHeaders headers,
+        IOptions<DomainOptions> domains,
         CancellationToken cancellationToken)
     {
         if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
@@ -444,7 +449,7 @@ internal static class EmailEndpoints
         var model = ApplicationEmails.ModelFor(
             row.Candidate, row.Job.Title, row.Organization.Name, row.Job.Workflow.FindStage(row.Application.CurrentStageId)?.Name);
         var header = await headers.ForAsync(db, row.Organization, cancellationToken);
-        return TypedResults.Ok(renderer.Render(content, row.Candidate.Email, model, header: header).ToPreview());
+        return TypedResults.Ok(WithPortalFooter(renderer.Render(content, row.Candidate.Email, model, header: header), domains.Value, row.Organization.Slug).ToPreview());
     }
 
     // One copy and one message per application, in one transaction with nothing else. Each copy is the email rendered
@@ -649,6 +654,7 @@ internal static class EmailEndpoints
         EmailTemplates renderer,
         EmailHeaders headers,
         ITenantContext tenant,
+        DomainOptions domains,
         string to,
         CancellationToken cancellationToken)
     {
@@ -659,10 +665,20 @@ internal static class EmailEndpoints
         }
 
         var organization = await db.Organizations.AsNoTracking().SingleAsync(o => o.Id == tenant.OrganizationId, cancellationToken);
-        return renderer.Render(
-            new EmailTemplateContent(request.Subject, request.Body), to, EmailTemplateModel.Sample(organization.Name), request.TemplateId,
-            await headers.ForAsync(db, organization, cancellationToken));
+        return WithPortalFooter(
+            renderer.Render(
+                new EmailTemplateContent(request.Subject, request.Body), to, EmailTemplateModel.Sample(organization.Name), request.TemplateId,
+                await headers.ForAsync(db, organization, cancellationToken)),
+            domains,
+            organization.Slug);
     }
+
+    // Every email to a candidate ends with the link to their page, which only the worker can issue. A preview or a test
+    // shows the line with the page where anyone asks for such a link, so the team sees what the candidate's email says.
+    private static EmailMessage WithPortalFooter(EmailMessage message, DomainOptions domains, string organizationSlug) =>
+        domains.CareersHostPattern.Contains("{tenant}", StringComparison.Ordinal)
+            ? CandidatePortalFooter.Append(message, domains.PortalEntryUrl(organizationSlug))
+            : message;
 
     private static async Task<IDictionary<string, string[]>> DraftProblemsAsync(
         EmailTemplateDraft request, IValidator<EmailTemplateDraft> validator, EmailTemplates renderer, CancellationToken cancellationToken) =>

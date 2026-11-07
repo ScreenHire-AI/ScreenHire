@@ -1,0 +1,164 @@
+---
+// A candidate's own page (docs/architecture/candidate-portal.md), opened from the signed link in an email: each application to
+// this organization with where it stands on four fixed steps, a saved application to finish, anything waiting for them (a
+// follow-up questionnaire, an interview to book) and a link to the messages. Server rendered with no client JavaScript.
+// The link is the candidate's alone: never cached, indexed or sent on as a referrer. It collects nothing about the browser.
+// It shows the employer's name and the job's title, never a stage name, a rating, a note or anything about verification.
+import CareersLayout from '../../../../layouts/CareersLayout.astro';
+import { getPublicOrganization, getPublicPortal } from '../../../../lib/api';
+import { forwardedFor } from '../../../../lib/apply-server';
+import { basePath } from '../../../../lib/host';
+import { dateText, ENDED, isToken, stepStates } from '../../../../lib/portal';
+
+const { organization, token } = Astro.params;
+const base = basePath(Astro.request, organization!);
+
+Astro.response.headers.set('Cache-Control', 'no-store');
+
+// A token of the wrong shape is never put into an API path.
+const [employerResponse, portalResponse] = await Promise.all([
+  getPublicOrganization(organization!),
+  isToken(token) ? getPublicPortal(organization!, token, forwardedFor(Astro.clientAddress)) : null,
+]);
+if (employerResponse.status !== 200) {
+  return new Response(null, { status: 404 });
+}
+
+const employer = employerResponse.data;
+const portal = portalResponse?.status === 200 ? portalResponse.data : null;
+const status = portalResponse?.status === 429 ? 'busy' : portal ? 'open' : 'expired';
+Astro.response.status = status === 'open' ? 200 : status === 'busy' ? 429 : 404;
+
+const heading = { open: 'Your applications', busy: 'Too many attempts', expired: 'This link has expired or is not valid' }[status];
+const mine = `${base}/my-applications/${token}`;
+const waitingText = { Questionnaire: 'Answer the follow-up questions', Interview: 'Pick a time for your interview' };
+const waitingPath = { Questionnaire: 'questionnaires', Interview: 'interviews' };
+---
+
+<CareersLayout
+  title={`${heading} | ${employer.name}`}
+  description={`Where your applications to ${employer.name} stand.`}
+  organizationName={employer.name}
+  organizationSlug={employer.slug}
+  branding={employer.branding}
+  noindex
+>
+  <meta slot="head" name="referrer" content="no-referrer" />
+
+  <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{heading}</h1>
+
+  {
+    status === 'expired' && (
+      <>
+        <p class="mt-3 text-candidate-body text-candidate-muted-foreground">
+          Links to your page stop working after a while, and the link may be incomplete. You can ask for a new one.
+        </p>
+        <a href={`${base}/my-applications`} class="button-primary mt-4">Ask for a new link</a>
+      </>
+    )
+  }
+
+  {
+    status === 'busy' && (
+      <p class="mt-3 text-candidate-body text-candidate-muted-foreground">
+        Too many attempts from your network. Wait a minute, then open the link in your email again.
+      </p>
+    )
+  }
+
+  {
+    portal && (
+      <>
+        <p class="mt-3 text-candidate-body">
+          Hi {portal.firstName}. This is where your applications to {portal.organizationName} stand. Only you can see this page.
+        </p>
+
+        {portal.drafts.length > 0 && (
+          <section aria-labelledby="saved" class="mt-8">
+            <h2 id="saved" class="font-display text-xl leading-tight font-bold">Saved to finish later</h2>
+            <ul class="mt-3 flex flex-col gap-3">
+              {portal.drafts.map((draft) => (
+                <li class="rounded-2xl border border-candidate-border bg-candidate-surface p-5">
+                  <p class="font-semibold">{draft.jobTitle}</p>
+                  <p class="mt-1 text-candidate-hint text-candidate-muted-foreground">
+                    Saved until {dateText(draft.expiresAt)}. Your files are attached again when you finish.
+                  </p>
+                  <a href={`${base}/jobs/${draft.jobSlug}/apply?draft=${draft.token}`} class="button-primary mt-3">Finish this application</a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <section aria-labelledby="applications" class="mt-8">
+          <h2 id="applications" class="font-display text-xl leading-tight font-bold">Applications</h2>
+          {portal.applications.length === 0 && (
+            <p class="mt-3 text-candidate-body text-candidate-muted-foreground">There are no applications to show yet.</p>
+          )}
+          <ul class="mt-3 flex flex-col gap-4">
+            {portal.applications.map((application) => {
+              const ended = application.funnel.ended === 'None' ? null : ENDED[application.funnel.ended];
+              return (
+                <li class="rounded-2xl border border-candidate-border bg-candidate-surface p-5">
+                  <h3 class="font-display text-lg leading-tight font-bold">{application.jobTitle}</h3>
+                  <p class="mt-1 text-candidate-hint text-candidate-muted-foreground">Applied {dateText(application.appliedAt)}</p>
+
+                  {ended ? (
+                    <div class="mt-4 flex items-start gap-3" role="status">
+                      <svg aria-hidden="true" class="mt-0.5 size-5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M9 12l2 2 4-4" />
+                      </svg>
+                      <div>
+                        <p class="font-semibold">{ended.label}</p>
+                        <p class="text-candidate-hint text-candidate-muted-foreground">{ended.detail}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <ol class="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4" aria-label="Where your application is">
+                      {stepStates(application.funnel.steps, application.funnel.current).map((step) => (
+                        <li class="flex items-center gap-2" aria-current={step.state === 'current' ? 'step' : undefined}>
+                          <svg aria-hidden="true" class:list={['size-5 flex-none', step.state === 'upcoming' && 'text-candidate-muted-foreground']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            {step.state === 'done' && <path d="M9 12l2 2 4-4" />}
+                            {step.state === 'current' && <circle cx="12" cy="12" r="4" fill="currentColor" />}
+                          </svg>
+                          <span class:list={['text-candidate-body', step.state === 'current' ? 'font-bold' : step.state === 'upcoming' && 'text-candidate-muted-foreground']}>
+                            {step.name}
+                            <span class="sr-only">{step.state === 'done' ? ' (done)' : step.state === 'current' ? ' (where you are now)' : ' (next)'}</span>
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+
+                  {application.waiting.length > 0 && (
+                    <ul class="mt-4 flex flex-col gap-2">
+                      {application.waiting.map((item) => (
+                        <li>
+                          <a href={`${base}/${waitingPath[item.kind]}/${item.token}`} class="button-primary">{waitingText[item.kind]}</a>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  <p class="mt-4 text-candidate-body">
+                    {application.hasMessages ? (
+                      <a href={`${mine}/${application.id}`} class="text-link inline-flex min-h-11 items-center">Read and answer your messages</a>
+                    ) : (
+                      <span class="text-candidate-muted-foreground">No messages yet. When the team writes to you, it appears here.</span>
+                    )}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      </>
+    )
+  }
+
+  <p class="mt-8 text-sm">
+    <a href={`${base}/privacy`} class="text-link">What we collect and why</a>
+  </p>
+</CareersLayout>

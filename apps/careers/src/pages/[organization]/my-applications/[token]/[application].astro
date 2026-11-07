@@ -1,0 +1,152 @@
+---
+// The messages about one application (docs/architecture/candidate-portal.md): the emails the team sent to the candidate and
+// their replies, oldest first, with a box to reply from the page. A reply written here and a reply sent by email land in the
+// same place for the team, with attachments scanned. One native multipart form posted to the `sendPortalReply` action, so it
+// works with JavaScript off and ships no script. The reply form's own id makes sending it twice store one reply. The link is
+// the candidate's alone: never cached, indexed or sent on as a referrer. It collects the words and files and nothing else.
+import { actions } from 'astro:actions';
+import Notice from '../../../../components/Notice.astro';
+import CareersLayout from '../../../../layouts/CareersLayout.astro';
+import { getPublicOrganization, getPublicPortalMessages } from '../../../../lib/api';
+import { forwardedFor } from '../../../../lib/apply-server';
+import { basePath } from '../../../../lib/host';
+import { dateTimeText, FILE_TYPES, isGuid, isToken, MAX_FILES, newReplyKey, REPLY_MESSAGES } from '../../../../lib/portal';
+
+const { organization, token, application } = Astro.params;
+const base = basePath(Astro.request, organization!);
+const mine = `${base}/my-applications/${token}`;
+const result = Astro.getActionResult(actions.sendPortalReply);
+if (result?.data?.outcome === 'sent' && isToken(token) && isGuid(application)) {
+  return Astro.redirect(`${mine}/${application}?sent=1`, 303);
+}
+
+Astro.response.headers.set('Cache-Control', 'no-store');
+
+// A token or an id of the wrong shape is never put into an API path.
+const [employerResponse, thread] = await Promise.all([
+  getPublicOrganization(organization!),
+  isToken(token) && isGuid(application) ? getPublicPortalMessages(organization!, token, application, forwardedFor(Astro.clientAddress)) : null,
+]);
+if (employerResponse.status !== 200) {
+  return new Response(null, { status: 404 });
+}
+
+const employer = employerResponse.data;
+const messages = thread?.status === 200 ? thread.data : null;
+const outcome = result?.data?.outcome;
+const status = thread?.status === 429 ? 'busy' : !messages || outcome === 'expired' ? 'expired' : 'open';
+Astro.response.status = status === 'open' ? 200 : status === 'busy' ? 429 : 404;
+
+const sent = Astro.url.searchParams.get('sent') === '1';
+const problem = result?.error ? REPLY_MESSAGES.error : outcome && outcome !== 'sent' && outcome !== 'expired' ? REPLY_MESSAGES[outcome] : undefined;
+const key = result?.data?.key ?? newReplyKey();
+const heading = { open: messages?.jobTitle ?? 'Messages', busy: 'Too many attempts', expired: 'This link has expired or is not valid' }[status];
+---
+
+<CareersLayout
+  title={`Messages: ${heading} | ${employer.name}`}
+  description={`Your messages with ${employer.name} about an application.`}
+  organizationName={employer.name}
+  organizationSlug={employer.slug}
+  branding={employer.branding}
+  noindex
+>
+  <meta slot="head" name="referrer" content="no-referrer" />
+
+  <p class="text-sm"><a href={mine} class="text-link inline-flex min-h-11 items-center">Back to your applications</a></p>
+  <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{heading}</h1>
+
+  {
+    status === 'expired' && (
+      <>
+        <p class="mt-3 text-candidate-body text-candidate-muted-foreground">
+          Links to your page stop working after a while, and the link may be incomplete. You can ask for a new one.
+        </p>
+        <a href={`${base}/my-applications`} class="button-primary mt-4">Ask for a new link</a>
+      </>
+    )
+  }
+
+  {
+    status === 'busy' && (
+      <p class="mt-3 text-candidate-body text-candidate-muted-foreground">
+        Too many attempts from your network. Wait a minute, then open the link in your email again.
+      </p>
+    )
+  }
+
+  {
+    messages && status === 'open' && (
+      <>
+        <p class="mt-2 text-candidate-body text-candidate-muted-foreground">Messages between you and {employer.name} about this application.</p>
+
+        {sent && <div class="mt-5"><Notice kind="success" message="Your message was sent." detail="The team has been told." /></div>}
+
+        <section aria-labelledby="thread" class="mt-6">
+          <h2 id="thread" class="sr-only">Messages</h2>
+          {messages.messages.length === 0 && (
+            <p class="text-candidate-body text-candidate-muted-foreground">There are no messages yet.</p>
+          )}
+          <ol class="flex flex-col gap-4">
+            {messages.messages.map((message) => (
+              <li class:list={['rounded-2xl border border-candidate-border p-5', message.direction === 'FromYou' ? 'bg-candidate-background' : 'bg-candidate-surface']}>
+                <p class="text-candidate-hint text-candidate-muted-foreground">
+                  <span class="font-semibold text-candidate-foreground">{message.direction === 'FromYou' ? 'You' : employer.name}</span>
+                  {' '}on <time datetime={message.at}>{dateTimeText(message.at)}</time>
+                </p>
+                <p class="mt-1 font-semibold">{message.subject}</p>
+                <p class="mt-2 break-words whitespace-pre-wrap">{message.body}</p>
+                {message.attachmentCount > 0 && (
+                  <p class="mt-2 text-candidate-hint text-candidate-muted-foreground">
+                    {message.attachmentCount === 1 ? '1 file attached.' : `${message.attachmentCount} files attached.`}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        {messages.canReply ? (
+          <section aria-labelledby="reply-heading" class="mt-8">
+            <h2 id="reply-heading" class="font-display text-xl leading-tight font-bold">Reply</h2>
+            <p class="mt-1 text-candidate-hint text-candidate-muted-foreground">
+              Your reply goes to the team, the same as an email reply would. You can also reply to the email you received.
+            </p>
+            <form method="POST" action={actions.sendPortalReply} enctype="multipart/form-data" novalidate class="mt-4 flex flex-col gap-4">
+              <input type="hidden" name="organization" value={employer.slug} />
+              <input type="hidden" name="token" value={token} />
+              <input type="hidden" name="application" value={application} />
+              <input type="hidden" name="key" value={key} />
+              <input type="hidden" name="bodyMax" value={messages.bodyMax} />
+              {problem && <p role="alert" class="text-candidate-body font-semibold text-destructive">{problem}</p>}
+              <div class="flex flex-col gap-1.5">
+                <label for="body" class="text-candidate-body font-bold">Your message</label>
+                <textarea id="body" name="body" rows="6" required maxlength={messages.bodyMax} class="field-input">{result?.data?.body ?? ''}</textarea>
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label for="files" class="text-candidate-body font-bold">
+                  Files <span class="font-medium text-candidate-muted-foreground">(optional)</span>
+                </label>
+                <p id="files-hint" class="text-candidate-hint text-candidate-muted-foreground">
+                  Up to {MAX_FILES} files, 10 MB in all. PDF, Word, PNG or JPEG. We scan every file before the team can open it.
+                </p>
+                <input id="files" name="files" type="file" multiple accept={FILE_TYPES} aria-describedby="files-hint" class="field-input" />
+              </div>
+              <div class="flex flex-col gap-3 sm:flex-row">
+                <button type="submit" class="button-primary">Send message</button>
+              </div>
+            </form>
+          </section>
+        ) : (
+          <p class="mt-8 text-candidate-body text-candidate-muted-foreground">
+            When the team writes to you about this application, you can answer here.
+          </p>
+        )}
+      </>
+    )
+  }
+
+  <p class="mt-8 text-sm">
+    <a href={`${base}/privacy`} class="text-link">What we collect and why</a>
+  </p>
+</CareersLayout>
