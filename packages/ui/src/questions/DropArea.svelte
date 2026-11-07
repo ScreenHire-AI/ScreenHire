@@ -43,6 +43,8 @@
     removeLabel?: string;
     /** A small picture before the prompt (the dashboard passes a Lucide icon; this package has none). */
     icon?: Snippet;
+    /** The file as it will be used, above the words and part of the target (the image field's picture). */
+    preview?: Snippet;
     /**
      * Whether the input keeps the file. A field that posts with its form keeps it (the default); one whose owner sends
      * the bytes itself says false, and the input is cleared once `onfile` has the file, so picking it again still fires.
@@ -74,6 +76,7 @@
     replaceLabel = 'Replace file',
     removeLabel = 'Remove',
     icon,
+    preview,
     keep = true,
     input = $bindable(),
     onfile,
@@ -85,16 +88,18 @@
   const looks = {
     candidate: {
       frame:
-        'flex min-w-0 flex-wrap items-center justify-center gap-3 rounded-xl border-[1.5px] border-dashed border-candidate-input-border bg-candidate-surface p-3 text-candidate-body text-candidate-foreground has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-candidate-brand-ui data-[over]:border-solid data-[over]:border-candidate-brand-ui data-[over]:bg-candidate-background',
+        '@container min-w-0 rounded-xl border-[1.5px] border-dashed border-candidate-input-border bg-candidate-surface p-3 text-candidate-body text-candidate-foreground has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-candidate-brand-ui data-[invalid]:border-destructive data-[over]:border-solid data-[over]:border-candidate-brand-ui data-[over]:bg-candidate-background',
+      row: 'flex min-h-11 flex-col items-center justify-center gap-3 @md:flex-row',
       button:
-        'inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-candidate-input-border bg-candidate-background px-4 font-bold text-candidate-foreground',
+        'inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-candidate-input-border bg-candidate-background px-4 font-bold text-candidate-foreground',
       quiet: 'text-candidate-hint text-candidate-muted-foreground',
     },
     app: {
       frame:
-        'flex min-w-0 flex-wrap items-center justify-center gap-3 rounded-lg border border-dashed border-input bg-secondary p-3 text-body has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50 data-[over]:border-solid data-[over]:border-ring data-[over]:bg-accent',
+        '@container min-w-0 rounded-lg border border-dashed border-input bg-secondary p-3 text-body has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50 data-[invalid]:border-destructive data-[over]:border-solid data-[over]:border-ring data-[over]:bg-accent',
+      row: 'flex min-h-9 pointer-coarse:min-h-11 flex-col items-center justify-center gap-3 @md:flex-row',
       button:
-        'inline-flex h-9 pointer-coarse:h-11 items-center gap-2 rounded-lg border border-input bg-background px-3 font-medium text-foreground',
+        'inline-flex h-9 pointer-coarse:h-11 items-center justify-center gap-2 rounded-lg border border-input bg-background px-3 font-medium text-foreground',
       quiet: 'text-caption text-muted-foreground',
     },
   } as const;
@@ -120,15 +125,16 @@
   }
 
   // Puts a dropped file into the input, so a field that posts with its form posts it too. A single-file input never
-  // gets the whole dropped list, only the first file.
-  function put(dropped: File) {
-    if (!input) return;
+  // gets the whole dropped list, only the first file. False in a browser without the DataTransfer constructor.
+  function put(dropped: File): boolean {
+    if (!input) return false;
     try {
       const transfer = new DataTransfer();
       transfer.items.add(dropped);
       input.files = transfer.files;
+      return true;
     } catch {
-      // A browser without the DataTransfer constructor: the owner still gets the file through onfile.
+      return false;
     }
   }
 
@@ -137,28 +143,40 @@
     if (!chosen || disabled) return;
     const problem = fileProblem(chosen, accept, maxBytes);
     if (problem) {
-      clear();
+      // A refused pick has already replaced the input's file, so the field must let go of the one it showed. A refused
+      // drop never reached the input, and the earlier file stays.
+      if (!dropped) {
+        clear();
+        if (keep && file) onremove?.();
+      }
       onproblem?.(problem);
       return;
     }
 
-    if (keep && dropped) put(chosen);
+    // Told it was taken with nothing in its input, a field that posts with its form would post no file.
+    if (keep && dropped && !put(chosen)) {
+      onproblem?.('This browser cannot take a dropped file here. Choose the file instead.');
+      return;
+    }
+
     onfile(chosen);
     if (!keep) clear();
   }
 
+  // A file's drag is cancelled even while disabled: left alone, a file dropped here opens in the tab and loses the form.
   function ondragenter(event: DragEvent) {
-    if (disabled || !hasFiles(event)) return;
+    if (!hasFiles(event)) return;
     event.preventDefault();
+    if (disabled) return;
     depth += 1;
     over = true;
   }
 
   function ondragover(event: DragEvent) {
-    if (disabled || !hasFiles(event)) return;
+    if (!hasFiles(event)) return;
     // Without this the browser never fires drop.
     event.preventDefault();
-    if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+    if (event.dataTransfer) event.dataTransfer.dropEffect = disabled ? 'none' : 'copy';
   }
 
   function ondragleave() {
@@ -184,6 +202,8 @@
   function remove() {
     clear();
     onremove?.();
+    // The Remove button goes with the file: focus moves to the input, or it would fall back to the page.
+    input?.focus();
   }
 </script>
 
@@ -194,6 +214,7 @@
   data-over={mounted && over ? '' : undefined}
   data-filled={file ? '' : undefined}
   data-disabled={disabled ? '' : undefined}
+  data-invalid={invalid ? '' : undefined}
   class={mounted ? look.frame : 'rounded-xl border-[1.5px] border-dashed border-candidate-input-border bg-candidate-surface p-3'}
   {ondragenter}
   {ondragover}
@@ -225,21 +246,31 @@
     <p class="mt-2 font-semibold text-candidate-body">{file.name} ({describeSize(file.size)})</p>
   {/if}
   {#if mounted}
-    {#if icon}<span aria-hidden="true" class={look.quiet}>{@render icon()}</span>{/if}
-    <div aria-live="polite" class="flex min-w-0 flex-col items-center text-center">
-      {#if status}
-        <span class="font-semibold">{status}</span>
-      {:else if file}
-        <span class="max-w-full truncate font-semibold" title={file.name}>{file.name}</span>
-        <span class={look.quiet}>{describeSize(file.size)}</span>
-      {:else}
-        <span>{prompt}</span>
-      {/if}
+    <div class="flex flex-col gap-3">
+      {#if preview}{@render preview()}{/if}
+      <!-- Stacked in a narrow area and in a row in a wide one, so the buttons never wrap (F2, F5). -->
+      <div class={look.row}>
+        {#if icon}<span aria-hidden="true" class={look.quiet}>{@render icon()}</span>{/if}
+        <div aria-live="polite" class="flex max-w-full min-w-0 flex-col items-center text-center">
+          {#if status}
+            <span class="font-semibold">{status}</span>
+          {:else if file}
+            <span class="max-w-full truncate font-semibold" title={file.name}>{file.name}</span>
+            <span class={look.quiet}>{describeSize(file.size)}</span>
+          {:else}
+            <span>{prompt}</span>
+          {/if}
+        </div>
+        {#if !status}
+          <div class="flex w-full flex-col gap-2 @md:w-auto @md:flex-row">
+            <!-- Looks like a button and is not one: the input above is the control, so assistive technology finds one picker. -->
+            <span aria-hidden="true" class={look.button}>{file ? replaceLabel : chooseLabel}</span>
+            {#if file}
+              <button type="button" {disabled} onclick={remove} class={look.button}>{removeLabel}</button>
+            {/if}
+          </div>
+        {/if}
+      </div>
     </div>
-    <!-- Looks like a button and is not one: the input above is the control, so assistive technology finds one picker. -->
-    {#if !status}<span aria-hidden="true" class={look.button}>{file ? replaceLabel : chooseLabel}</span>{/if}
-    {#if file && !status}
-      <button type="button" {disabled} onclick={remove} class={look.button}>{removeLabel}</button>
-    {/if}
   {/if}
 </div>

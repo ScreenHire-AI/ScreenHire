@@ -23,8 +23,8 @@
     @apply w-full text-candidate-body file:mr-3 file:min-h-11 file:rounded-[10px] file:border file:border-candidate-input-border file:bg-candidate-background file:px-4 file:font-bold file:text-candidate-foreground;
   }
 
-  /* Once a file is uploaded the status line below says which one, so the browser's own "No file chosen" is hidden (the
-     button keeps its colour). */
+  /* Once a file is uploaded the drop area names it, so the browser's own "No file chosen" is hidden (the button keeps its
+     colour). */
   .file-input[data-uploaded] {
     color: transparent;
   }

@@ -8,25 +8,34 @@
   // named; the second shows a chosen file; the third refuses a wrong type or a large file in words; the fourth is mid
   // upload; the last is the candidate pages' version of the same component.
   let live = $state<{ name: string; size: number } | null>(null);
-  let refused = $state('');
+  let liveRefused = $state('');
+  let refused = $state('Upload a PDF or DOCX file.');
 </script>
 
 <Panel title="Drop area">
   <div class="flex flex-col gap-6">
-    <Field.Field>
+    <Field.Field data-invalid={liveRefused ? true : undefined}>
       <Field.Label for="demo-drop-live">Resume</Field.Label>
       <DropArea
         tone="app"
         id="demo-drop-live"
         accept={['.pdf', '.docx']}
         maxBytes={10 * 1024 * 1024}
+        invalid={!!liveRefused}
         describedby="demo-drop-live-hint"
         file={live}
-        onfile={(file) => (live = { name: file.name, size: file.size })}
-        onproblem={() => {}}
-        onremove={() => (live = null)}
+        onfile={(file) => {
+          live = { name: file.name, size: file.size };
+          liveRefused = '';
+        }}
+        onproblem={(message) => (liveRefused = message)}
+        onremove={() => {
+          live = null;
+          liveRefused = '';
+        }}
       />
-      <Field.Description id="demo-drop-live-hint">PDF or DOCX, up to 10 MB. Drop a file on the area or choose one.</Field.Description>
+      <Field.Description id="demo-drop-live-hint">PDF or DOCX, up to 10 MB.</Field.Description>
+      <Field.Error errors={liveRefused ? [{ message: liveRefused }] : []} />
     </Field.Field>
     <Field.Field>
       <Field.Label for="demo-drop-set">Chosen</Field.Label>
