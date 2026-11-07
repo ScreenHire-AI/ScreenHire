@@ -56,7 +56,7 @@ const heading = { open: messages?.jobTitle ?? 'Messages', busy: 'Too many attemp
   <meta slot="head" name="referrer" content="no-referrer" />
 
   {status === 'open' && <p class="text-candidate-hint"><a href={mine} class="text-link inline-flex min-h-11 items-center">Back to your applications</a></p>}
-  <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{heading}</h1>
+  <h1 class="font-display text-candidate-title">{heading}</h1>
 
   {status !== 'open' && <PortalLinkProblem status={status} employerName={employer.name} base={base} />}
 
@@ -88,7 +88,7 @@ const heading = { open: messages?.jobTitle ?? 'Messages', busy: 'Too many attemp
 
         {messages.canReply ? (
           <section aria-labelledby="reply-heading" class="mt-8">
-            <h2 id="reply-heading" class="font-display text-xl leading-tight font-bold">Reply</h2>
+            <h2 id="reply-heading" class="font-display text-panel-title">Reply</h2>
             <p class="mt-1 text-candidate-hint text-candidate-muted-foreground">You can also reply to the email you received.</p>
             <form method="POST" action={actions.sendPortalReply} enctype="multipart/form-data" novalidate class="mt-4 flex flex-col gap-4">
               <input type="hidden" name="organization" value={employer.slug} />
@@ -97,11 +97,11 @@ const heading = { open: messages?.jobTitle ?? 'Messages', busy: 'Too many attemp
               <input type="hidden" name="key" value={key} />
               <input type="hidden" name="bodyMax" value={messages.bodyMax} />
               {problem && <Notice kind="problem" message={problem} />}
-              <div class="flex flex-col gap-1.5">
+              <div class="flex flex-col gap-2">
                 <label for="body" class="text-candidate-body font-bold">Your message</label>
                 <textarea id="body" name="body" rows="6" required maxlength={messages.bodyMax} class="field-input">{result?.data?.body ?? ''}</textarea>
               </div>
-              <div class="flex flex-col gap-1.5">
+              <div class="flex flex-col gap-2">
                 <label for="files" class="text-candidate-body font-bold">
                   Files <span class="font-medium text-candidate-muted-foreground">(optional)</span>
                 </label>

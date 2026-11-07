@@ -47,7 +47,7 @@ const waitingPath = { Questionnaire: 'questionnaires', Interview: 'interviews' }
 >
   <meta slot="head" name="referrer" content="no-referrer" />
 
-  <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{heading}</h1>
+  <h1 class="font-display text-candidate-title">{heading}</h1>
 
   {status !== 'open' && <PortalLinkProblem status={status} employerName={employer.name} base={base} />}
 
@@ -60,7 +60,7 @@ const waitingPath = { Questionnaire: 'questionnaires', Interview: 'interviews' }
 
         {portal.drafts.length > 0 && (
           <section aria-labelledby="saved" class="mt-8">
-            <h2 id="saved" class="font-display text-xl leading-tight font-bold">Saved to finish later</h2>
+            <h2 id="saved" class="font-display text-panel-title">Saved to finish later</h2>
             <ul class="mt-3 flex flex-col gap-3">
               {portal.drafts.map((draft) => (
                 <li class="rounded-2xl border border-candidate-border bg-candidate-surface p-5">
@@ -76,7 +76,7 @@ const waitingPath = { Questionnaire: 'questionnaires', Interview: 'interviews' }
         )}
 
         <section aria-labelledby="applications" class="mt-8">
-          <h2 id="applications" class="font-display text-xl leading-tight font-bold">Applications</h2>
+          <h2 id="applications" class="font-display text-panel-title">Applications</h2>
           {portal.applications.length === 0 && (
             <p class="mt-3 text-candidate-body text-candidate-muted-foreground">There are no applications to show yet.</p>
           )}
@@ -85,10 +85,10 @@ const waitingPath = { Questionnaire: 'questionnaires', Interview: 'interviews' }
               const ended = application.funnel.ended === 'None' ? null : ENDED[application.funnel.ended];
               return (
                 <li class="rounded-2xl border border-candidate-border bg-candidate-surface p-5">
-                  <h3 class="font-display text-lg leading-tight font-bold">{application.jobTitle}</h3>
+                  <h3 class="font-display text-heading">{application.jobTitle}</h3>
                   {ended ? (
                     <div class="mt-4 flex items-start gap-3" role="status">
-                      <svg aria-hidden="true" class:list={['mt-0.5 size-5 flex-none', ended.tone]} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <svg aria-hidden="true" class:list={['mt-1 size-5 flex-none', ended.tone]} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10" />
                         <path d={ended.mark === 'check' ? 'M9 12l2 2 4-4' : 'M8 12h8'} />
                       </svg>

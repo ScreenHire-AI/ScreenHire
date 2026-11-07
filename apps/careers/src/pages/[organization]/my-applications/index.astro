@@ -55,7 +55,7 @@ const formProblem = emailProblem ? undefined : problem;
   branding={employer.branding}
   noindex
 >
-  <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">Your applications</h1>
+  <h1 class="font-display text-candidate-title">Your applications</h1>
 
   {
     !enabled && (
@@ -79,8 +79,8 @@ const formProblem = emailProblem ? undefined : problem;
         </p>
 
         <section aria-labelledby="how" class="mt-6">
-          <h2 id="how" class="font-display text-xl leading-tight font-bold">How it works</h2>
-          <ol class="mt-2 flex list-decimal flex-col gap-1.5 pl-5 text-candidate-body">
+          <h2 id="how" class="font-display text-panel-title">How it works</h2>
+          <ol class="mt-2 flex list-decimal flex-col gap-2 pl-5 text-candidate-body">
             <li>
               Enter the email address you applied with. If we have an application from that address, we email it a link. This page
               does not say whether we found one.
