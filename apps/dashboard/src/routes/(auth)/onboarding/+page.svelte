@@ -34,7 +34,6 @@
       careersUrlPattern = response.data.careersUrlPattern;
     }
   });
-  const careersAddress = $derived(careersUrlPattern && $form.slug ? careersUrlPattern.replace('{tenant}', $form.slug) : undefined);
 
   const { form, errors, enhance, submitting } = superForm(defaults(zod4(CompleteOnboardingBody)), {
     SPA: true,
@@ -61,6 +60,8 @@
       }
     },
   });
+
+  const careersAddress = $derived(careersUrlPattern && $form.slug ? careersUrlPattern.replace('{tenant}', $form.slug) : undefined);
 
   function nameChanged() {
     if (!slugEdited) {
