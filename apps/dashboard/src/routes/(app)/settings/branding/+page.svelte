@@ -38,7 +38,9 @@
   // Settings, Branding (docs/architecture/branding.md, design system section 18): the brand colour and the second
   // colour, each checked against WCAG 2.2 AA as it is typed and again on Save, the heading font, and the logo, favicon
   // and sharing image. The careers pages, the apply flow and every email to a candidate change only on Save, which
-  // History records. Candidates see the result, so the preview sits beside the form where both fit (A8).
+  // History records. Candidates see the result, so the Edit / Preview switch shows it (A8). The editor is wide: Colours and
+  // Heading font side by side and the three images in a row, so at 1440 by 900 it fits without scrolling, and each stacks
+  // where its row would be cramped. Save sits in the switch's row, which stays in view while the page scrolls.
   const queryClient = useQueryClient();
   const branding = createGetOrganizationBranding();
   const organization = createGetOrganization();
@@ -168,7 +170,7 @@
       maxBytes: 5 * 1024 * 1024,
       slot: sharingImage,
       errors: $errors.sharingImageId,
-      description: 'PNG or JPEG, at least 600 by 315 pixels, up to 5 MB. When someone shares a link to your jobs.',
+      description: 'PNG or JPEG, at least 600 by 315 pixels, up to 5 MB. Shown on shared links.',
     },
   ]);
 
@@ -216,53 +218,63 @@
         </Panel>
       </div>
     {:else}
-      <EditPreviewLayout bind:mode onpopout={() => source.open('/preview/branding')}>
-        {#snippet editor()}
-          <form method="POST" use:enhance novalidate aria-label="Branding" class="flex min-w-0 flex-col gap-5">
-            <Panel title="Colours">
-              <div class="flex flex-col gap-5">
-                <ColorField
-                  id="brand-color"
-                  label="Brand colour"
-                  description="Buttons and links on your careers pages. Leave it empty for ScreenHire's."
-                  bind:value={$form.brandColor}
-                  check={checks?.brandColor}
-                  errors={$errors.brandColor}
-                  fallback={ctaDefault}
-                />
-                <ColorField
-                  id="second-color"
-                  label="Second colour"
-                  description="The top of your careers pages and emails. Leave it empty for none."
-                  bind:value={$form.secondColor}
-                  check={checks?.secondColor}
-                  errors={$errors.secondColor}
-                  fallback={headerDefault}
-                  placeholder="None"
-                />
-              </div>
-            </Panel>
+      <EditPreviewLayout wide bind:mode onpopout={() => source.open('/preview/branding')}>
+        {#snippet actions()}
+          <FailureText message={$errors._errors?.[0]} />
+          <p role="status" class="text-muted-foreground empty:hidden">
+            {$errors._errors ? '' : scanning ? 'Save waits for the malware scan.' : saved}
+          </p>
+          <Button type="submit" form="branding-form" size="lg" disabled={$submitting || scanning}><SaveIcon aria-hidden="true" />Save branding</Button>
+        {/snippet}
 
-            <Panel title="Heading font">
-              <div class="@container">
-                <div role="radiogroup" aria-label="Heading font" class="grid gap-2 @md:grid-cols-2">
-                  {#each fonts as font (font.value)}
-                    <label
-                      class="flex items-start gap-3 rounded-lg border border-input p-3 has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring"
-                    >
-                      <input type="radio" name="headingFont" value={font.value} bind:group={$form.headingFont} class="mt-1 size-4 shrink-0 accent-primary" />
-                      <span class="flex min-w-0 flex-col gap-0.5">
-                        <span class="text-panel-title font-bold break-words" style:font-family={font.family}>{font.title}</span>
-                        {#if font.description}<span class="text-muted-foreground">{font.description}</span>{/if}
-                      </span>
-                    </label>
-                  {/each}
+        {#snippet editor()}
+          <form id="branding-form" method="POST" use:enhance novalidate aria-label="Branding" class="flex min-w-0 flex-col gap-5">
+            <div class="grid min-w-0 gap-5 @[52rem]/editor:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+              <Panel title="Colours">
+                <div class="flex flex-col gap-5">
+                  <ColorField
+                    id="brand-color"
+                    label="Brand colour"
+                    description="Buttons and links. Empty is ScreenHire's."
+                    bind:value={$form.brandColor}
+                    check={checks?.brandColor}
+                    errors={$errors.brandColor}
+                    fallback={ctaDefault}
+                  />
+                  <ColorField
+                    id="second-color"
+                    label="Second colour"
+                    description="The top of your pages and emails. Empty is none."
+                    bind:value={$form.secondColor}
+                    check={checks?.secondColor}
+                    errors={$errors.secondColor}
+                    fallback={headerDefault}
+                    placeholder="None"
+                  />
                 </div>
-              </div>
-            </Panel>
+              </Panel>
+
+              <Panel title="Heading font">
+                <div class="@container">
+                  <div role="radiogroup" aria-label="Heading font" class="grid gap-2 @md:grid-cols-2 @[30rem]:grid-cols-3">
+                    {#each fonts as font (font.value)}
+                      <label
+                        class="flex items-start gap-2 rounded-lg border border-input p-2.5 has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring"
+                      >
+                        <input type="radio" name="headingFont" value={font.value} bind:group={$form.headingFont} class="mt-1 size-4 shrink-0 accent-primary" />
+                        <span class="flex min-w-0 flex-col gap-0.5">
+                          <span class="text-heading font-bold break-words" style:font-family={font.family}>{font.title}</span>
+                          {#if font.description}<span class="text-muted-foreground">{font.description}</span>{/if}
+                        </span>
+                      </label>
+                    {/each}
+                  </div>
+                </div>
+              </Panel>
+            </div>
 
             <Panel title="Images">
-              <div class="flex flex-col gap-6">
+              <div class="grid gap-6 @[48rem]/editor:grid-cols-3">
                 {#each images as { id, kind, noun, maxBytes, description, slot, errors } (id)}
                   <ImageField
                     {id}
@@ -279,15 +291,6 @@
                   />
                 {/each}
               </div>
-              {#snippet footer()}
-                <div class="flex flex-wrap items-center justify-end gap-2">
-                  <FailureText message={$errors._errors?.[0]} class="mr-auto" />
-                  <p role="status" class="mr-auto text-muted-foreground empty:hidden">
-                    {$errors._errors ? '' : scanning ? 'Save waits for the malware scan.' : saved}
-                  </p>
-                  <Button type="submit" size="lg" disabled={$submitting || scanning}><SaveIcon aria-hidden="true" />Save branding</Button>
-                </div>
-              {/snippet}
             </Panel>
           </form>
         {/snippet}
@@ -301,7 +304,10 @@
                 </Button>
               {/if}
             {/snippet}
-            <BrandingPreview {draft} />
+            <div class="flex flex-col gap-4">
+              <p class="text-muted-foreground">This follows your unsaved changes. Candidates see none of it until you save.</p>
+              <BrandingPreview {draft} />
+            </div>
           </Panel>
         {/snippet}
       </EditPreviewLayout>

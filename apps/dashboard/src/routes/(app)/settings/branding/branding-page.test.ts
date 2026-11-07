@@ -348,6 +348,35 @@ describe('branding page', () => {
     expect(await screen.findByRole('link', { name: /View/ })).toHaveAttribute('href', organization.careersUrl);
   });
 
+  it('gives the editor the work area, with Save in the switch row where it stays in view', async () => {
+    renderPage(saved);
+
+    const brand = await brandField();
+    // The edit pane is not the 688px form column, Colours and Heading font share a row, and the three images are one row.
+    const pane = brand.closest('[data-edit-pane]')!;
+    expect(pane).not.toHaveClass('max-w-form');
+    const row = document.querySelector<HTMLElement>('[data-edit-preview-row]')!;
+    expect(row).not.toHaveClass('max-w-form');
+    expect(row).toHaveClass('sticky');
+    expect(within(row).getByRole('button', { name: 'Save branding' })).toHaveAttribute('form', pane.querySelector('form')!.id);
+    expect(pane.querySelector('[data-image-tile="logo"]')!.closest('.grid')!.querySelectorAll('[data-image-tile]')).toHaveLength(3);
+  });
+
+  it('keeps what was typed when switching to Preview and back, and the preview follows it as unsaved', async () => {
+    renderPage(saved);
+    await fireEvent.input(await brandField(), { target: { value: '2A6F7B' } });
+    await fireEvent.click(screen.getByRole('radio', { name: 'Inter' }));
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+    const preview = document.querySelector<HTMLElement>('[data-preview-pane]')!;
+    expect(within(preview).getByText('This follows your unsaved changes. Candidates see none of it until you save.')).toBeInTheDocument();
+    expect(preview.querySelector<HTMLElement>('[style*="--candidate-cta"]')!.style.getPropertyValue('--candidate-cta')).toBe('#2a6f7b');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(await brandField()).toHaveValue('2A6F7B');
+    expect(screen.getByRole('radio', { name: 'Inter' })).toBeChecked();
+  });
+
   it('says why the branding could not load, with a retry', async () => {
     renderPage(saved, { 'GET /v1/organization/branding': () => Response.json({ detail: 'Try again later.' }, { status: 500 }) });
 
