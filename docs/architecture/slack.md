@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Connecting to Slack"
-description: "The organization's Slack workspace: the OAuth install from Settings > Slack, the bot token under Data Protection, the channel and the four events posted there, each person's own account linked with Sign in with Slack for their mentions and tasks, what a message may say, delivery through Wolverine with idempotency keys, the local sandbox workspace, configuration and tests."
+description: "The organization's Slack workspace: the OAuth install from Integrations > Slack, the bot token under Data Protection, the channel and the four events posted there, each person's own account linked with Sign in with Slack for their mentions and tasks, what a message may say, delivery through Wolverine with idempotency keys, the local sandbox workspace, configuration and tests."
 tags: [slack, integrations, notifications]
 sources:
   - resource: src/ScreenHire.Domain/Slack/SlackInstallation.cs
@@ -26,7 +26,7 @@ sources:
 ---
 # Connecting to Slack
 
-An Owner or Admin connects the organization's Slack workspace from Settings > Slack. ScreenHire then posts the events
+An Owner or Admin connects the organization's Slack workspace from Integrations > Slack. ScreenHire then posts the events
 the team picks to one channel, and sends each person who links their own Slack account their mentions and the tasks
 given to them as direct messages. Every message names the candidate and the job and links to the record in the
 dashboard. Verification output never reaches Slack (ADR-0004). Everything goes through `ISlackClient`, with a local
@@ -53,7 +53,7 @@ resolves; with Slack off, nothing is published for Slack at all.
 
 ## Connecting the workspace
 
-Settings > Slack needs Manage integrations (`Permission.ManageIntegrations`, Owners and Admins) with all jobs: a channel
+Integrations > Slack needs Manage integrations (`Permission.ManageIntegrations`, Owners and Admins) with all jobs: a channel
 post reaches everyone in the channel, whatever jobs they see in ScreenHire, as a webhook does (ADR-0015). Custom roles
 get it only when an Owner adds it.
 

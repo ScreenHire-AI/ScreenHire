@@ -62,8 +62,8 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
                 files.X.Should().BeApproximately(content.X, 1);
             }
 
-            // The mini cards sit three across from a wide band and stack on a phone; the tracker shows every stage when wide
-            // and only the current one, with its place, on a phone.
+            // The mini cards sit three across from a wide band and in one row that scrolls sideways on a phone (it would take about
+            // 580px stacked); the tracker shows every stage when wide and only the current one, with its place, on a phone.
             var contact = await BoxAsync(Group("Contact"));
             var application = await BoxAsync(Group("Application"));
             var also = await BoxAsync(Group("Also applied to"));
@@ -78,8 +78,10 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
             }
             else if (width <= 390)
             {
-                application.Y.Should().BeGreaterThanOrEqualTo(contact.Y + contact.Height - 1, $"the cards stack at {width}px");
-                also.Y.Should().BeGreaterThanOrEqualTo(application.Y + application.Height - 1);
+                application.Y.Should().BeApproximately(contact.Y, 1, $"the cards share one row at {width}px");
+                also.Y.Should().BeApproximately(contact.Y, 1);
+                application.X.Should().BeGreaterThan(contact.X + contact.Width - 1);
+                (await Page.Locator("[data-header-cards]").EvaluateAsync<bool>("row => row.scrollWidth > row.clientWidth")).Should().BeTrue($"the row scrolls sideways at {width}px");
                 visibleStages.Should().Be(1, $"only the current stage shows at {width}px");
                 await Expect(Tracker.Locator("[aria-current='step']")).ToContainTextAsync(new Regex(@"\d+ of \d+"));
             }

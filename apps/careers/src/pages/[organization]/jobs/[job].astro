@@ -1,6 +1,7 @@
 ---
 import JobFacts from '../../../components/JobFacts.astro';
 import JobUnavailable from '../../../components/JobUnavailable.astro';
+import Panel from '../../../components/Panel.astro';
 import PrivacyNotice from '../../../components/PrivacyNotice.astro';
 import CareersLayout from '../../../layouts/CareersLayout.astro';
 import { getPublicJob, getPublicOrganization, jsonLdScript } from '../../../lib/api';
@@ -65,15 +66,17 @@ const posting = job
       <link slot="head" rel="canonical" href={job.url} />
       <script slot="head" type="application/ld+json" is:inline set:html={posting} />
 
-      <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{job.title}</h1>
+      <h1 class="font-display text-candidate-title">{job.title}</h1>
       <JobFacts job={job} class="mt-3" />
 
       {job.description && (
-        <section
-          aria-label="About the role"
-          class="mt-6 text-candidate-body leading-relaxed [&_a]:underline [&_h2]:mt-5 [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-4 [&_h3]:font-bold [&_li]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-3 [&_ul]:list-disc [&_ul]:pl-5"
-          set:html={embed ? newTabLinks(job.description) : job.description}
-        />
+        <Panel
+          label="About the role"
+          class="mt-6"
+          bodyClass="text-candidate-body leading-relaxed [&>:first-child]:mt-0 [&_a]:underline [&_h2]:mt-5 [&_h2]:font-display [&_h2]:text-panel-title [&_h3]:mt-4 [&_h3]:text-heading [&_li]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-3 [&_ul]:list-disc [&_ul]:pl-5"
+        >
+          <Fragment set:html={embed ? newTabLinks(job.description) : job.description} />
+        </Panel>
       )}
 
       {/* The button comes before the notice so a phone does not scroll past a long box to find it. Opening the form

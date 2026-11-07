@@ -87,6 +87,7 @@ import type {
   GetHiringReportParams,
   GetHiringTemplateHistoryParams,
   GetJobHistoryParams,
+  GetOAuthAuthorizationRequestParams,
   GetOrganizationBrandingHistoryParams,
   GetOrganizationHistoryParams,
   GetOrganizationRetentionHistoryParams,
@@ -97,6 +98,7 @@ import type {
   GetSavedNoteHistoryParams,
   GetScorecardTemplateHistoryParams,
   GetTeamHistoryParams,
+  GetWebhookEndpointHistoryParams,
   HiringReport,
   HiringTeamMember,
   HiringTeamRequest,
@@ -107,6 +109,8 @@ import type {
   HttpValidationProblemDetails,
   Interviewer,
   InvitationAcceptance,
+  InvitationDetails,
+  InvitationLookup,
   InvitationPreviewRequest,
   InvitationRequest,
   InvitationsQueued,
@@ -136,6 +140,11 @@ import type {
   MembershipLogEntry,
   MoveApplicationRequest,
   MyOrganization,
+  OAuthAuthorizationRequestInfo,
+  OAuthAuthorizeRequest,
+  OAuthAuthorizeResult,
+  OAuthConnectionSummary,
+  OfferNewInterviewTimesRequest,
   OnboardingRequest,
   OrganizationBranding,
   OrganizationProfile,
@@ -164,6 +173,11 @@ import type {
   PublicJob,
   PublicJobBoard,
   PublicOrganization,
+  PublicPortal,
+  PublicPortalForm,
+  PublicPortalLinkRequest,
+  PublicPortalMessages,
+  PublicPortalReplyRequest,
   PublicQuestionnaire,
   PublicQuestionnaireAnswers,
   PublicTalentPoolStatus,
@@ -1498,6 +1512,105 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getCompleteOnboardingMutationOptions(options?.()) }), queryClient);
+    }
+
+export type lookUpInvitationResponse200 = {
+  data: InvitationDetails
+  status: 200
+}
+
+export type lookUpInvitationResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type lookUpInvitationResponseSuccess = (lookUpInvitationResponse200) & {
+  headers: Headers;
+};
+export type lookUpInvitationResponseError = (lookUpInvitationResponse400) & {
+  headers: Headers;
+};
+
+export const getLookUpInvitationUrl = () => {
+
+
+
+
+  return `/v1/auth/invitations/lookup`
+}
+
+export const lookUpInvitation = async (invitationLookup: InvitationLookup, options?: Parameters<typeof apiQueryFetch>[1]): Promise<lookUpInvitationResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<lookUpInvitationResponseSuccess>(getLookUpInvitationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(invitationLookup)
+  }
+);}
+
+
+
+
+
+export const getLookUpInvitationMutationKey = () => ['lookUpInvitation'] as const;
+
+export const getLookUpInvitationMutationOptions = <TError = ErrorType<HttpValidationProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof lookUpInvitation>>, TError,LookUpInvitationMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof lookUpInvitation>>, TError,LookUpInvitationMutationVariables, TContext> => {
+
+const mutationKey = getLookUpInvitationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof lookUpInvitation>>, LookUpInvitationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  lookUpInvitation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LookUpInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof lookUpInvitation>>>
+    export type LookUpInvitationMutationBody = InvitationLookup
+    export type LookUpInvitationMutationError = ErrorType<HttpValidationProblemDetails>
+    export type LookUpInvitationMutationVariables = {data: InvitationLookup}
+
+    export const createLookUpInvitation = <TError = ErrorType<HttpValidationProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof lookUpInvitation>>, TError,LookUpInvitationMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof lookUpInvitation>>,
+        TError,
+        LookUpInvitationMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getLookUpInvitationMutationOptions(options?.()) }), queryClient);
     }
 
 export type acceptInvitationResponse200 = {
@@ -4336,6 +4449,537 @@ export function createGetPublicDataDownload<TData = Awaited<ReturnType<typeof ge
 
 
 
+
+export type getPublicPortalFormResponse200 = {
+  data: PublicPortalForm
+  status: 200
+}
+
+export type getPublicPortalFormResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicPortalFormResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getPublicPortalFormResponseSuccess = (getPublicPortalFormResponse200) & {
+  headers: Headers;
+};
+export type getPublicPortalFormResponseError = (getPublicPortalFormResponse404 | getPublicPortalFormResponse429) & {
+  headers: Headers;
+};
+
+export const getGetPublicPortalFormUrl = (organizationSlug: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/portal`
+}
+
+export const getPublicPortalForm = async (organizationSlug: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getPublicPortalFormResponseSuccess> => {
+
+  return apiQueryFetch<getPublicPortalFormResponseSuccess>(getGetPublicPortalFormUrl(organizationSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicPortalFormQueryKey = (organizationSlug: string,) => {
+    return [
+    'v1','public','organizations',organizationSlug,'portal'
+    ] as const;
+    }
+
+
+export const getGetPublicPortalFormQueryOptions = <TData = Awaited<ReturnType<typeof getPublicPortalForm>>, TError = ErrorType<void>>(organizationSlug: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getPublicPortalForm>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicPortalFormQueryKey(organizationSlug);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicPortalForm>>> = ({ signal }) => getPublicPortalForm(organizationSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: organizationSlug !== null && organizationSlug !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getPublicPortalForm>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPublicPortalFormQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicPortalForm>>>
+export type GetPublicPortalFormQueryError = ErrorType<void>
+
+
+
+export function createGetPublicPortalForm<TData = Awaited<ReturnType<typeof getPublicPortalForm>>, TError = ErrorType<void>>(
+ organizationSlug: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getPublicPortalForm>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetPublicPortalFormQueryOptions(organizationSlug(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type requestPublicPortalLinkResponse202 = {
+  data: void
+  status: 202
+}
+
+export type requestPublicPortalLinkResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type requestPublicPortalLinkResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type requestPublicPortalLinkResponse404 = {
+  data: void
+  status: 404
+}
+
+export type requestPublicPortalLinkResponse429 = {
+  data: void
+  status: 429
+}
+
+export type requestPublicPortalLinkResponseSuccess = (requestPublicPortalLinkResponse202) & {
+  headers: Headers;
+};
+export type requestPublicPortalLinkResponseError = (requestPublicPortalLinkResponse400 | requestPublicPortalLinkResponse403 | requestPublicPortalLinkResponse404 | requestPublicPortalLinkResponse429) & {
+  headers: Headers;
+};
+
+export const getRequestPublicPortalLinkUrl = (organizationSlug: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/portal/links`
+}
+
+export const requestPublicPortalLink = async (organizationSlug: string,
+    publicPortalLinkRequest: PublicPortalLinkRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<requestPublicPortalLinkResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<requestPublicPortalLinkResponseSuccess>(getRequestPublicPortalLinkUrl(organizationSlug),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicPortalLinkRequest)
+  }
+);}
+
+
+
+
+
+export const getRequestPublicPortalLinkMutationKey = () => ['requestPublicPortalLink'] as const;
+
+export const getRequestPublicPortalLinkMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | ProblemDetails | void>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof requestPublicPortalLink>>, TError,RequestPublicPortalLinkMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof requestPublicPortalLink>>, TError,RequestPublicPortalLinkMutationVariables, TContext> => {
+
+const mutationKey = getRequestPublicPortalLinkMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestPublicPortalLink>>, RequestPublicPortalLinkMutationVariables> = (props) => {
+          const {organizationSlug,data} = props ?? {};
+
+          return  requestPublicPortalLink(organizationSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestPublicPortalLinkMutationResult = NonNullable<Awaited<ReturnType<typeof requestPublicPortalLink>>>
+    export type RequestPublicPortalLinkMutationBody = PublicPortalLinkRequest
+    export type RequestPublicPortalLinkMutationError = ErrorType<HttpValidationProblemDetails | ProblemDetails | void>
+    export type RequestPublicPortalLinkMutationVariables = {organizationSlug: string;data: PublicPortalLinkRequest}
+
+    export const createRequestPublicPortalLink = <TError = ErrorType<HttpValidationProblemDetails | ProblemDetails | void>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof requestPublicPortalLink>>, TError,RequestPublicPortalLinkMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof requestPublicPortalLink>>,
+        TError,
+        RequestPublicPortalLinkMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getRequestPublicPortalLinkMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getPublicPortalResponse200 = {
+  data: PublicPortal
+  status: 200
+}
+
+export type getPublicPortalResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicPortalResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getPublicPortalResponseSuccess = (getPublicPortalResponse200) & {
+  headers: Headers;
+};
+export type getPublicPortalResponseError = (getPublicPortalResponse404 | getPublicPortalResponse429) & {
+  headers: Headers;
+};
+
+export const getGetPublicPortalUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/portal/${token}`
+}
+
+export const getPublicPortal = async (organizationSlug: string,
+    token: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getPublicPortalResponseSuccess> => {
+
+  return apiQueryFetch<getPublicPortalResponseSuccess>(getGetPublicPortalUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicPortalQueryKey = (organizationSlug: string,
+    token: string,) => {
+    return [
+    'v1','public','organizations',organizationSlug,'portal',token
+    ] as const;
+    }
+
+
+export const getGetPublicPortalQueryOptions = <TData = Awaited<ReturnType<typeof getPublicPortal>>, TError = ErrorType<void>>(organizationSlug: string,
+    token: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getPublicPortal>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicPortalQueryKey(organizationSlug,token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicPortal>>> = ({ signal }) => getPublicPortal(organizationSlug,token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: organizationSlug !== null && organizationSlug !== undefined && token !== null && token !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getPublicPortal>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPublicPortalQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicPortal>>>
+export type GetPublicPortalQueryError = ErrorType<void>
+
+
+
+export function createGetPublicPortal<TData = Awaited<ReturnType<typeof getPublicPortal>>, TError = ErrorType<void>>(
+ organizationSlug: () =>  string,
+    token: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getPublicPortal>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetPublicPortalQueryOptions(organizationSlug(),
+    token(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type getPublicPortalMessagesResponse200 = {
+  data: PublicPortalMessages
+  status: 200
+}
+
+export type getPublicPortalMessagesResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicPortalMessagesResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getPublicPortalMessagesResponseSuccess = (getPublicPortalMessagesResponse200) & {
+  headers: Headers;
+};
+export type getPublicPortalMessagesResponseError = (getPublicPortalMessagesResponse404 | getPublicPortalMessagesResponse429) & {
+  headers: Headers;
+};
+
+export const getGetPublicPortalMessagesUrl = (organizationSlug: string,
+    token: string,
+    applicationId: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/portal/${token}/applications/${applicationId}/messages`
+}
+
+export const getPublicPortalMessages = async (organizationSlug: string,
+    token: string,
+    applicationId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getPublicPortalMessagesResponseSuccess> => {
+
+  return apiQueryFetch<getPublicPortalMessagesResponseSuccess>(getGetPublicPortalMessagesUrl(organizationSlug,token,applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicPortalMessagesQueryKey = (organizationSlug: string,
+    token: string,
+    applicationId: string,) => {
+    return [
+    'v1','public','organizations',organizationSlug,'portal',token,'applications',applicationId,'messages'
+    ] as const;
+    }
+
+
+export const getGetPublicPortalMessagesQueryOptions = <TData = Awaited<ReturnType<typeof getPublicPortalMessages>>, TError = ErrorType<void>>(organizationSlug: string,
+    token: string,
+    applicationId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getPublicPortalMessages>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicPortalMessagesQueryKey(organizationSlug,token,applicationId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicPortalMessages>>> = ({ signal }) => getPublicPortalMessages(organizationSlug,token,applicationId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: organizationSlug !== null && organizationSlug !== undefined && token !== null && token !== undefined && applicationId !== null && applicationId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getPublicPortalMessages>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPublicPortalMessagesQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicPortalMessages>>>
+export type GetPublicPortalMessagesQueryError = ErrorType<void>
+
+
+
+export function createGetPublicPortalMessages<TData = Awaited<ReturnType<typeof getPublicPortalMessages>>, TError = ErrorType<void>>(
+ organizationSlug: () =>  string,
+    token: () =>  string,
+    applicationId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getPublicPortalMessages>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetPublicPortalMessagesQueryOptions(organizationSlug(),
+    token(),
+    applicationId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type sendPublicPortalReplyResponse202 = {
+  data: void
+  status: 202
+}
+
+export type sendPublicPortalReplyResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type sendPublicPortalReplyResponse404 = {
+  data: void
+  status: 404
+}
+
+export type sendPublicPortalReplyResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type sendPublicPortalReplyResponse429 = {
+  data: void
+  status: 429
+}
+
+export type sendPublicPortalReplyResponseSuccess = (sendPublicPortalReplyResponse202) & {
+  headers: Headers;
+};
+export type sendPublicPortalReplyResponseError = (sendPublicPortalReplyResponse400 | sendPublicPortalReplyResponse404 | sendPublicPortalReplyResponse409 | sendPublicPortalReplyResponse429) & {
+  headers: Headers;
+};
+
+export const getSendPublicPortalReplyUrl = (organizationSlug: string,
+    token: string,
+    applicationId: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/portal/${token}/applications/${applicationId}/messages`
+}
+
+export const sendPublicPortalReply = async (organizationSlug: string,
+    token: string,
+    applicationId: string,
+    publicPortalReplyRequest: PublicPortalReplyRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<sendPublicPortalReplyResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<sendPublicPortalReplyResponseSuccess>(getSendPublicPortalReplyUrl(organizationSlug,token,applicationId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicPortalReplyRequest)
+  }
+);}
+
+
+
+
+
+export const getSendPublicPortalReplyMutationKey = () => ['sendPublicPortalReply'] as const;
+
+export const getSendPublicPortalReplyMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof sendPublicPortalReply>>, TError,SendPublicPortalReplyMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof sendPublicPortalReply>>, TError,SendPublicPortalReplyMutationVariables, TContext> => {
+
+const mutationKey = getSendPublicPortalReplyMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendPublicPortalReply>>, SendPublicPortalReplyMutationVariables> = (props) => {
+          const {organizationSlug,token,applicationId,data} = props ?? {};
+
+          return  sendPublicPortalReply(organizationSlug,token,applicationId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendPublicPortalReplyMutationResult = NonNullable<Awaited<ReturnType<typeof sendPublicPortalReply>>>
+    export type SendPublicPortalReplyMutationBody = PublicPortalReplyRequest
+    export type SendPublicPortalReplyMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type SendPublicPortalReplyMutationVariables = {organizationSlug: string;token: string;applicationId: string;data: PublicPortalReplyRequest}
+
+    export const createSendPublicPortalReply = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof sendPublicPortalReply>>, TError,SendPublicPortalReplyMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof sendPublicPortalReply>>,
+        TError,
+        SendPublicPortalReplyMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getSendPublicPortalReplyMutationOptions(options?.()) }), queryClient);
+    }
 
 export type listJobsResponse200 = {
   data: JobSummary[]
@@ -17247,10 +17891,15 @@ export type getHiringReportResponse401 = {
   status: 401
 }
 
+export type getHiringReportResponse429 = {
+  data: void
+  status: 429
+}
+
 export type getHiringReportResponseSuccess = (getHiringReportResponse200) & {
   headers: Headers;
 };
-export type getHiringReportResponseError = (getHiringReportResponse400 | getHiringReportResponse401) & {
+export type getHiringReportResponseError = (getHiringReportResponse400 | getHiringReportResponse401 | getHiringReportResponse429) & {
   headers: Headers;
 };
 
@@ -17360,10 +18009,15 @@ export type getFunnelApplicationsResponse404 = {
   status: 404
 }
 
+export type getFunnelApplicationsResponse429 = {
+  data: void
+  status: 429
+}
+
 export type getFunnelApplicationsResponseSuccess = (getFunnelApplicationsResponse200) & {
   headers: Headers;
 };
-export type getFunnelApplicationsResponseError = (getFunnelApplicationsResponse400 | getFunnelApplicationsResponse401 | getFunnelApplicationsResponse404) & {
+export type getFunnelApplicationsResponseError = (getFunnelApplicationsResponse400 | getFunnelApplicationsResponse401 | getFunnelApplicationsResponse404 | getFunnelApplicationsResponse429) & {
   headers: Headers;
 };
 
@@ -19170,6 +19824,122 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return createMutation(() => ({ ...getDeleteWebhookEndpointMutationOptions(options?.()) }), queryClient);
     }
+
+export type getWebhookEndpointHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getWebhookEndpointHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getWebhookEndpointHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getWebhookEndpointHistoryResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getWebhookEndpointHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getWebhookEndpointHistoryResponseSuccess = (getWebhookEndpointHistoryResponse200) & {
+  headers: Headers;
+};
+export type getWebhookEndpointHistoryResponseError = (getWebhookEndpointHistoryResponse400 | getWebhookEndpointHistoryResponse401 | getWebhookEndpointHistoryResponse403 | getWebhookEndpointHistoryResponse404) & {
+  headers: Headers;
+};
+
+export const getGetWebhookEndpointHistoryUrl = (endpointId: string,
+    params?: GetWebhookEndpointHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/webhooks/${endpointId}/history?${stringifiedParams}` : `/v1/webhooks/${endpointId}/history`
+}
+
+export const getWebhookEndpointHistory = async (endpointId: string,
+    params?: GetWebhookEndpointHistoryParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getWebhookEndpointHistoryResponseSuccess> => {
+
+  return apiQueryFetch<getWebhookEndpointHistoryResponseSuccess>(getGetWebhookEndpointHistoryUrl(endpointId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWebhookEndpointHistoryQueryKey = (endpointId: string,
+    params?: GetWebhookEndpointHistoryParams,) => {
+    return [
+    'v1','webhooks',endpointId,'history', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetWebhookEndpointHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getWebhookEndpointHistory>>, TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>>(endpointId: string,
+    params?: GetWebhookEndpointHistoryParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getWebhookEndpointHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWebhookEndpointHistoryQueryKey(endpointId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWebhookEndpointHistory>>> = ({ signal }) => getWebhookEndpointHistory(endpointId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: endpointId !== null && endpointId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getWebhookEndpointHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetWebhookEndpointHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getWebhookEndpointHistory>>>
+export type GetWebhookEndpointHistoryQueryError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+
+
+
+export function createGetWebhookEndpointHistory<TData = Awaited<ReturnType<typeof getWebhookEndpointHistory>>, TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>>(
+ endpointId: () =>  string,
+    params?: () =>  GetWebhookEndpointHistoryParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getWebhookEndpointHistory>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetWebhookEndpointHistoryQueryOptions(endpointId(),
+    params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
 
 export type rotateWebhookSecretResponse200 = {
   data: WebhookEndpointWithSecret
@@ -21060,6 +21830,126 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getCancelInterviewMutationOptions(options?.()) }), queryClient);
+    }
+
+export type offerNewInterviewTimesResponse200 = {
+  data: ApplicationInterview
+  status: 200
+}
+
+export type offerNewInterviewTimesResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type offerNewInterviewTimesResponse401 = {
+  data: void
+  status: 401
+}
+
+export type offerNewInterviewTimesResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type offerNewInterviewTimesResponse404 = {
+  data: void
+  status: 404
+}
+
+export type offerNewInterviewTimesResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type offerNewInterviewTimesResponseSuccess = (offerNewInterviewTimesResponse200) & {
+  headers: Headers;
+};
+export type offerNewInterviewTimesResponseError = (offerNewInterviewTimesResponse400 | offerNewInterviewTimesResponse401 | offerNewInterviewTimesResponse403 | offerNewInterviewTimesResponse404 | offerNewInterviewTimesResponse409) & {
+  headers: Headers;
+};
+
+export const getOfferNewInterviewTimesUrl = (interviewId: string,) => {
+
+
+
+
+  return `/v1/interviews/${interviewId}/new-times`
+}
+
+export const offerNewInterviewTimes = async (interviewId: string,
+    offerNewInterviewTimesRequest: OfferNewInterviewTimesRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<offerNewInterviewTimesResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<offerNewInterviewTimesResponseSuccess>(getOfferNewInterviewTimesUrl(interviewId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(offerNewInterviewTimesRequest)
+  }
+);}
+
+
+
+
+
+export const getOfferNewInterviewTimesMutationKey = () => ['offerNewInterviewTimes'] as const;
+
+export const getOfferNewInterviewTimesMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof offerNewInterviewTimes>>, TError,OfferNewInterviewTimesMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof offerNewInterviewTimes>>, TError,OfferNewInterviewTimesMutationVariables, TContext> => {
+
+const mutationKey = getOfferNewInterviewTimesMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof offerNewInterviewTimes>>, OfferNewInterviewTimesMutationVariables> = (props) => {
+          const {interviewId,data} = props ?? {};
+
+          return  offerNewInterviewTimes(interviewId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type OfferNewInterviewTimesMutationResult = NonNullable<Awaited<ReturnType<typeof offerNewInterviewTimes>>>
+    export type OfferNewInterviewTimesMutationBody = OfferNewInterviewTimesRequest
+    export type OfferNewInterviewTimesMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type OfferNewInterviewTimesMutationVariables = {interviewId: string;data: OfferNewInterviewTimesRequest}
+
+    export const createOfferNewInterviewTimes = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof offerNewInterviewTimes>>, TError,OfferNewInterviewTimesMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof offerNewInterviewTimes>>,
+        TError,
+        OfferNewInterviewTimesMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getOfferNewInterviewTimesMutationOptions(options?.()) }), queryClient);
     }
 
 export type listEmailTemplatesResponse200 = {
@@ -24515,3 +25405,411 @@ export function createSearch<TData = Awaited<ReturnType<typeof search>>, TError 
 
   return query
 }
+
+
+
+
+
+
+
+export type getOAuthAuthorizationRequestResponse200 = {
+  data: OAuthAuthorizationRequestInfo
+  status: 200
+}
+
+export type getOAuthAuthorizationRequestResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type getOAuthAuthorizationRequestResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOAuthAuthorizationRequestResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getOAuthAuthorizationRequestResponseSuccess = (getOAuthAuthorizationRequestResponse200) & {
+  headers: Headers;
+};
+export type getOAuthAuthorizationRequestResponseError = (getOAuthAuthorizationRequestResponse400 | getOAuthAuthorizationRequestResponse401 | getOAuthAuthorizationRequestResponse403) & {
+  headers: Headers;
+};
+
+export const getGetOAuthAuthorizationRequestUrl = (params?: GetOAuthAuthorizationRequestParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/oauth/authorization-request?${stringifiedParams}` : `/v1/oauth/authorization-request`
+}
+
+export const getOAuthAuthorizationRequest = async (params?: GetOAuthAuthorizationRequestParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getOAuthAuthorizationRequestResponseSuccess> => {
+
+  return apiQueryFetch<getOAuthAuthorizationRequestResponseSuccess>(getGetOAuthAuthorizationRequestUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOAuthAuthorizationRequestQueryKey = (params?: GetOAuthAuthorizationRequestParams,) => {
+    return [
+    'v1','oauth','authorization-request', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetOAuthAuthorizationRequestQueryOptions = <TData = Awaited<ReturnType<typeof getOAuthAuthorizationRequest>>, TError = ErrorType<ProblemDetails | void>>(params?: GetOAuthAuthorizationRequestParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOAuthAuthorizationRequest>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOAuthAuthorizationRequestQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOAuthAuthorizationRequest>>> = ({ signal }) => getOAuthAuthorizationRequest(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getOAuthAuthorizationRequest>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOAuthAuthorizationRequestQueryResult = NonNullable<Awaited<ReturnType<typeof getOAuthAuthorizationRequest>>>
+export type GetOAuthAuthorizationRequestQueryError = ErrorType<ProblemDetails | void>
+
+
+
+export function createGetOAuthAuthorizationRequest<TData = Awaited<ReturnType<typeof getOAuthAuthorizationRequest>>, TError = ErrorType<ProblemDetails | void>>(
+ params?: () =>  GetOAuthAuthorizationRequestParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOAuthAuthorizationRequest>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetOAuthAuthorizationRequestQueryOptions(params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type decideOAuthAuthorizationResponse200 = {
+  data: OAuthAuthorizeResult
+  status: 200
+}
+
+export type decideOAuthAuthorizationResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type decideOAuthAuthorizationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type decideOAuthAuthorizationResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type decideOAuthAuthorizationResponseSuccess = (decideOAuthAuthorizationResponse200) & {
+  headers: Headers;
+};
+export type decideOAuthAuthorizationResponseError = (decideOAuthAuthorizationResponse400 | decideOAuthAuthorizationResponse401 | decideOAuthAuthorizationResponse403) & {
+  headers: Headers;
+};
+
+export const getDecideOAuthAuthorizationUrl = () => {
+
+
+
+
+  return `/v1/oauth/authorize`
+}
+
+export const decideOAuthAuthorization = async (oAuthAuthorizeRequest: OAuthAuthorizeRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<decideOAuthAuthorizationResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<decideOAuthAuthorizationResponseSuccess>(getDecideOAuthAuthorizationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(oAuthAuthorizeRequest)
+  }
+);}
+
+
+
+
+
+export const getDecideOAuthAuthorizationMutationKey = () => ['decideOAuthAuthorization'] as const;
+
+export const getDecideOAuthAuthorizationMutationOptions = <TError = ErrorType<ProblemDetails | void>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof decideOAuthAuthorization>>, TError,DecideOAuthAuthorizationMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof decideOAuthAuthorization>>, TError,DecideOAuthAuthorizationMutationVariables, TContext> => {
+
+const mutationKey = getDecideOAuthAuthorizationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof decideOAuthAuthorization>>, DecideOAuthAuthorizationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  decideOAuthAuthorization(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DecideOAuthAuthorizationMutationResult = NonNullable<Awaited<ReturnType<typeof decideOAuthAuthorization>>>
+    export type DecideOAuthAuthorizationMutationBody = OAuthAuthorizeRequest
+    export type DecideOAuthAuthorizationMutationError = ErrorType<ProblemDetails | void>
+    export type DecideOAuthAuthorizationMutationVariables = {data: OAuthAuthorizeRequest}
+
+    export const createDecideOAuthAuthorization = <TError = ErrorType<ProblemDetails | void>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof decideOAuthAuthorization>>, TError,DecideOAuthAuthorizationMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof decideOAuthAuthorization>>,
+        TError,
+        DecideOAuthAuthorizationMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getDecideOAuthAuthorizationMutationOptions(options?.()) }), queryClient);
+    }
+
+export type listOAuthConnectionsResponse200 = {
+  data: OAuthConnectionSummary[]
+  status: 200
+}
+
+export type listOAuthConnectionsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listOAuthConnectionsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listOAuthConnectionsResponseSuccess = (listOAuthConnectionsResponse200) & {
+  headers: Headers;
+};
+export type listOAuthConnectionsResponseError = (listOAuthConnectionsResponse401 | listOAuthConnectionsResponse403) & {
+  headers: Headers;
+};
+
+export const getListOAuthConnectionsUrl = () => {
+
+
+
+
+  return `/v1/organization/oauth-connections`
+}
+
+export const listOAuthConnections = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<listOAuthConnectionsResponseSuccess> => {
+
+  return apiQueryFetch<listOAuthConnectionsResponseSuccess>(getListOAuthConnectionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListOAuthConnectionsQueryKey = () => {
+    return [
+    'v1','organization','oauth-connections'
+    ] as const;
+    }
+
+
+export const getListOAuthConnectionsQueryOptions = <TData = Awaited<ReturnType<typeof listOAuthConnections>>, TError = ErrorType<void | ProblemDetails>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listOAuthConnections>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListOAuthConnectionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listOAuthConnections>>> = ({ signal }) => listOAuthConnections({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listOAuthConnections>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListOAuthConnectionsQueryResult = NonNullable<Awaited<ReturnType<typeof listOAuthConnections>>>
+export type ListOAuthConnectionsQueryError = ErrorType<void | ProblemDetails>
+
+
+
+export function createListOAuthConnections<TData = Awaited<ReturnType<typeof listOAuthConnections>>, TError = ErrorType<void | ProblemDetails>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listOAuthConnections>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListOAuthConnectionsQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type revokeOAuthConnectionResponse200 = {
+  data: OAuthConnectionSummary
+  status: 200
+}
+
+export type revokeOAuthConnectionResponse401 = {
+  data: void
+  status: 401
+}
+
+export type revokeOAuthConnectionResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type revokeOAuthConnectionResponse404 = {
+  data: void
+  status: 404
+}
+
+export type revokeOAuthConnectionResponseSuccess = (revokeOAuthConnectionResponse200) & {
+  headers: Headers;
+};
+export type revokeOAuthConnectionResponseError = (revokeOAuthConnectionResponse401 | revokeOAuthConnectionResponse403 | revokeOAuthConnectionResponse404) & {
+  headers: Headers;
+};
+
+export const getRevokeOAuthConnectionUrl = (connectionId: string,) => {
+
+
+
+
+  return `/v1/organization/oauth-connections/${connectionId}/revoke`
+}
+
+export const revokeOAuthConnection = async (connectionId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<revokeOAuthConnectionResponseSuccess> => {
+
+  return apiQueryFetch<revokeOAuthConnectionResponseSuccess>(getRevokeOAuthConnectionUrl(connectionId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRevokeOAuthConnectionMutationKey = () => ['revokeOAuthConnection'] as const;
+
+export const getRevokeOAuthConnectionMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof revokeOAuthConnection>>, TError,RevokeOAuthConnectionMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof revokeOAuthConnection>>, TError,RevokeOAuthConnectionMutationVariables, TContext> => {
+
+const mutationKey = getRevokeOAuthConnectionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeOAuthConnection>>, RevokeOAuthConnectionMutationVariables> = (props) => {
+          const {connectionId} = props ?? {};
+
+          return  revokeOAuthConnection(connectionId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeOAuthConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof revokeOAuthConnection>>>
+
+    export type RevokeOAuthConnectionMutationError = ErrorType<void | ProblemDetails>
+    export type RevokeOAuthConnectionMutationVariables = {connectionId: string}
+
+    export const createRevokeOAuthConnection = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof revokeOAuthConnection>>, TError,RevokeOAuthConnectionMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof revokeOAuthConnection>>,
+        TError,
+        RevokeOAuthConnectionMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getRevokeOAuthConnectionMutationOptions(options?.()) }), queryClient);
+    }

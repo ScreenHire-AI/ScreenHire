@@ -34,6 +34,9 @@
 //   DataRequests:*              candidates' requests for a copy of their data or for its erasure (ScreenHire.Application
 //                               DataRequestOptions, docs/architecture/data-requests.md), forwarded to the API and the worker:
 //                               DueDays, LinkLifetime, LinkCooldown, ExportLifetime, PermitsPerMinute and ExportContainer.
+//   Portal:*                    the candidate's own page (ScreenHire.Application PortalOptions, docs/architecture/candidate-portal.md),
+//                               forwarded to the API and the worker: LinkLifetime, LinkCooldown, PermitsPerMinute, ReplyBodyMax and
+//                               RepliesPerDay.
 //   Retention:*                 the daily record retention run (ScreenHire.Application RecordRetentionOptions), forwarded to
 //                               the API and the worker: BatchSize. Each organization's period is its own setting, off by default.
 //   CareersEmbedding:*          the sites allowed to embed the careers pages (the API's CareersEmbeddingOptions,
@@ -227,8 +230,9 @@ foreach (var (key, value) in settings.GetSection("Webhooks").AsEnumerable(makePa
     }
 }
 
-// Data requests and record retention (docs/architecture/data-requests.md): plain settings, no secrets, read by both hosts.
-foreach (var section in new[] { "DataRequests", "Retention" })
+// Data requests, record retention and the candidate portal (docs/architecture/data-requests.md,
+// docs/architecture/candidate-portal.md): plain settings, no secrets, read by both hosts.
+foreach (var section in new[] { "DataRequests", "Portal", "Retention" })
 {
     foreach (var (key, value) in settings.GetSection(section).AsEnumerable(makePathsRelative: true))
     {

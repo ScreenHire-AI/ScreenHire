@@ -7,7 +7,9 @@ tags: [adr, api-keys, auth]
 # ADR-0011: Organization API keys now, OAuth client credentials later
 
 - **Status:** Accepted (2026-10-22). Decisions 3 and 4 are amended by ADR-0021: a third scope, Verification read, that
-  only an Owner can give, opens verification to the key that has it.
+  only an Owner can give, opens verification to the key that has it. Decision 6 is closed for the MCP server by ADR-0028:
+  OAuth sign-in for AI assistants, through the authorization code flow and written here rather than with OpenIddict.
+  OpenIddict stays the named route for client credentials and third-party apps.
 - **Deciders:** Owner
 - **Builds on:** ADR-0001 (public API from day one), ADR-0008 (Identity and cookie auth; OpenIddict "when standard OIDC
   tokens are needed")
@@ -44,7 +46,8 @@ per-app scopes. ScreenHire has no marketplace and no third-party apps yet.
    and the real-time hub stay session-only. Integrity review needs a named person; the others can open to keys one
    area at a time. Application and candidate reads give a key no integrity levels (`integrity` is null), and the
    timeline it reads has no `IntegrityAssessed` entries: the evidence is for the person reviewing (ADR-0004), and
-   an integrator's system could reject on it, which ScreenHire's own automations may not.
+   an integrator's system could reject on it, which ScreenHire's own automations may not. Reports joined this
+   policy on 2026-11-07 (ADR-0021 decision 6).
 4. **Two scopes**, `Read` and `Write`; `Write` includes reading and a key always has `Read`. Writes by a key record no
    acting user. The application timeline records the key instead (`actorApiKeyId`).
 5. **A per-key rate limit** with ASP.NET Core's rate limiter: a fixed window per key, the deployment's

@@ -27,6 +27,11 @@ const published = (previousEditorUserId: string | null): RealtimeEvent => ({
   data: { organizationId: ids.organizationId, templateId: ids.applicationId, versionId: ids.eventId, version: 3, publishedAt: at, actorUserId: jordan, previousEditorUserId },
 });
 
+const edited = (kind: 'HiringTemplate' | 'EmailTemplate' | 'ScorecardTemplate', actorUserId: string | null, previousEditorUserId: string | null): RealtimeEvent => ({
+  type: 'TemplateChanged',
+  data: { organizationId: ids.organizationId, kind, templateId: 'stage-change', changedAt: at, actorUserId, previousEditorUserId },
+});
+
 describe('which teammates changes toast', () => {
   it("toasts a teammate's move of a candidate on a job whose hiring team the person is on", () => {
     expect(changeFor(moved(jordan), context)).toEqual({ kind: 'Moves', actorUserId: jordan, applicationId: ids.applicationId, jobId: teamJob });
@@ -63,14 +68,14 @@ describe('which teammates changes toast', () => {
   });
 
   it('toasts a published template only to the person who changed it last before the publisher', () => {
-    expect(changeFor(published(me), context)).toEqual({ kind: 'Templates', actorUserId: jordan, templateId: ids.applicationId, version: 3 });
+    expect(changeFor(published(me), context)).toEqual({ kind: 'Templates', actorUserId: jordan, templateType: 'HiringTemplate', templateId: ids.applicationId, version: 3 });
     expect(changeFor(published(null), context)).toBeUndefined();
   });
 
   it('groups by kind, person and job, and keeps tasks and templates apart', () => {
     const first = changeFor(moved(jordan), context)!;
     expect(groupKey(first)).toBe(`Moves:${jordan}:${teamJob}`);
-    expect(groupKey(changeFor(published(me), context)!)).toBe(`Templates:${ids.applicationId}:3`);
+    expect(groupKey(changeFor(published(me), context)!)).toBe(`Templates:HiringTemplate:${ids.applicationId}:3`);
   });
 });
 
@@ -104,6 +109,36 @@ describe('toast words', () => {
     const template = toastFor('t-3', changeFor(published(me), context)!, { actorName: 'Jordan Ellis', templateName: 'Software engineer' });
     expect(template.sentence.join('')).toBe('Jordan Ellis published version 3 of Software engineer');
     expect(template.href).toBe(`/templates/${ids.applicationId}`);
+  });
+
+  it("toasts a teammate's edit of an email template or a scorecard to the member who changed it last", () => {
+    const email = toastFor('t-5', changeFor(edited('EmailTemplate', jordan, me), context)!, { actorName: 'Jordan Ellis', templateName: 'Stage change' });
+    expect(email.sentence.join('')).toBe('Jordan Ellis changed the email template Stage change');
+    expect(email.href).toBe('/templates/emails/stage-change');
+
+    const scorecard = toastFor('t-6', changeFor(edited('ScorecardTemplate', jordan, me), context)!, { actorName: 'Jordan Ellis', templateName: 'Culture add' });
+    expect(scorecard.sentence.join('')).toBe('Jordan Ellis changed the scorecard Culture add');
+    expect(scorecard.href).toBe('/templates/scorecards/stage-change');
+    expect(changeFor(edited('EmailTemplate', jordan, me), context)).toMatchObject({ kind: 'Templates' });
+  });
+
+  it('does not toast a template edit unless the person changed the template last, and a member made this one', () => {
+    expect(changeFor(edited('EmailTemplate', jordan, jordan), context)).toBeUndefined();
+    expect(changeFor(edited('EmailTemplate', jordan, null), context)).toBeUndefined();
+    expect(changeFor(edited('EmailTemplate', null, me), context)).toBeUndefined();
+    expect(changeFor(edited('EmailTemplate', me, me), context)).toBeUndefined();
+    expect(changeFor(edited('ScorecardTemplate', jordan, me), { ...context, settings: { ...defaultNotificationSettings, off: ['Templates'] } })).toBeUndefined();
+  });
+
+  it("leaves a hiring template's edits to its publish, which already tells the member who changed it last", () => {
+    expect(changeFor(edited('HiringTemplate', jordan, me), context)).toBeUndefined();
+    expect(changeFor(published(me), context)).toMatchObject({ kind: 'Templates', templateType: 'HiringTemplate', version: 3 });
+  });
+
+  it('groups repeated edits of one template as one change and a publish of it as another', () => {
+    const edit = changeFor(edited('EmailTemplate', jordan, me), context)!;
+    expect(groupKey(edit)).toBe(groupKey(changeFor(edited('EmailTemplate', jordan, me), context)!));
+    expect(groupKey(edit)).not.toBe(groupKey(changeFor(edited('ScorecardTemplate', jordan, me), context)!));
   });
 
   it('words a group as one change on the job, linking to the job', () => {

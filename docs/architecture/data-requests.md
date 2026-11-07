@@ -171,13 +171,15 @@ deletes each expired copy's blob through `IDataExportStore.DeleteAsync`, clears 
 
 ### Messages to the candidate and the team
 
+The link, the copy and the decline emails to a candidate end with the link to their own page like every other email to them ([candidate portal](candidate-portal.md#the-link-every-email-carries)).
+
 `SendDataRequestDeclined(OrganizationId, RequestId)` carries ids only. Its handler reads the reason from the request and mails it
 in ScreenHire's words around the team's, with no statement about the law. It skips quietly when the candidate is gone, the
 request is not Declined, the address is flagged or there is no email sender. A stable key (`declined:{requestId}`) keeps it to
 one email.
 
 `DataRequestReceived` also has a worker handler. It emails each member who holds Erase candidates and sees every job: "A candidate
-asked {organization} for a copy of their data" or "to erase their data", with a link to Settings > Data requests built from the
+asked {organization} for a copy of their data" or "to erase their data", with a link to Organization > Data requests built from the
 dashboard host (`ScreenHire:Domains:AppHost`). It carries no name or address. Delivery is at least once, so a crash between a
 send and the commit can repeat a notification.
 
@@ -224,7 +226,7 @@ usable and is refused only when the check is configured and fails. The notice ve
 
 ## Dashboard
 
-Settings > Data requests (`/settings/data-requests`, `apps/dashboard/src/routes/(app)/settings/data-requests/+page.svelte`) is a
+Organization > Data requests (`/settings/data-requests`, `apps/dashboard/src/routes/(app)/settings/data-requests/+page.svelte`) is a
 Settings page in the Organization group, after Roles. Its menu entry, the settings layout's guard, the sidebar and the command
 palette all read `settingsSections` and need Erase candidates and a person who sees every job, as the routes do; anyone else sees
 "Not in your role" or "Needs all jobs" and no entry.

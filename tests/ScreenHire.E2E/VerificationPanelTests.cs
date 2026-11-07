@@ -102,7 +102,9 @@ public sealed class VerificationPanelTests(E2EFixture fixture) : BrowserTest(fix
         await Expect(authenticity.Locator("[data-signal='AUTO_WEBDRIVER'] [data-evidence-kind='List']")).ToContainTextAsync("webdriver");
         await Expect(authenticity.Locator("[data-signal='AUTO_SUBMIT_VELOCITY'] [data-evidence-kind='Metric']")).ToContainTextAsync("Plausible minimum for this form");
         var ai = Region("AI assistance");
-        await Expect(ai.GetByRole(AriaRole.Img, new() { NameRegex = new("^AI assistance: No signs of AI help") })).ToBeVisibleAsync();
+        // A calm result is its level and the policy only: the meter and the Informational pill are for a concern (W10).
+        await Expect(ai).ToContainTextAsync("No signs of AI help");
+        await Expect(ai.GetByRole(AriaRole.Img, new() { NameRegex = new("^AI assistance:") })).ToHaveCountAsync(0);
         // The job's policy is a pill beside the level.
         await Expect(ai).ToContainTextAsync("AI allowed with disclosure");
         (await ai.TextContentAsync()).Should().NotContain("Declared AI use", "the declaration is on the Application tab, not repeated here");

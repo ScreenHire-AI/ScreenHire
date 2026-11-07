@@ -161,6 +161,7 @@ internal static class AuthenticationSetup
         services.AddSingleton<IValidator<MagicLinkVerification>, MagicLinkVerificationValidator>();
         services.AddSingleton<IValidator<OnboardingRequest>, OnboardingRequestValidator>();
         services.AddSingleton<IValidator<InvitationAcceptance>, InvitationAcceptanceValidator>();
+        services.AddSingleton<IValidator<InvitationLookup>, InvitationLookupValidator>();
         services.AddSingleton<IValidator<InvitationRequest>, InvitationRequestValidator>();
         services.AddSingleton<IValidator<ChangeMemberRoleRequest>, ChangeMemberRoleRequestValidator>();
         services.AddSingleton<IValidator<ChangeMemberJobAccessRequest>, ChangeMemberJobAccessRequestValidator>();

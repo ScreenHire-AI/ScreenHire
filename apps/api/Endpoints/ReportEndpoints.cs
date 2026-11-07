@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Reports;
 using ScreenHire.Application.Distribution;
@@ -8,9 +9,10 @@ using ScreenHire.Infrastructure.Persistence;
 namespace ScreenHire.Api.Endpoints;
 
 /// <summary>
-/// The dashboard's Reports page (docs/architecture/reports.md). Session only: the hiring API groups are the ones API keys
-/// reach (ADR-0011). Every member may read it, because seeing jobs and candidates is in every role (ADR-0014); job access
-/// narrows the numbers to the jobs the person sees, through row-level security (ADR-0015).
+/// The dashboard's Reports page (docs/architecture/reports.md). A hiring API group: it reads for an organization API key
+/// with the Read scope too (ADR-0011), which sees every job (ADR-0015), as the MCP server's report tool does. Every member
+/// may read it, because seeing jobs and candidates is in every role (ADR-0014); job access narrows a member's numbers to
+/// the jobs they see, through row-level security (ADR-0015).
 /// </summary>
 internal static class ReportEndpoints
 {
@@ -19,7 +21,7 @@ internal static class ReportEndpoints
 
     public static IEndpointRouteBuilder MapReportEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/v1/reports").WithTags("Reports").RequireAuthorization();
+        var group = app.MapGroup("/v1/reports").WithTags("Reports").AllowApiKeys();
         group.MapGet("/hiring", GetHiringReport).WithName("GetHiringReport").Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/hiring/funnel/{kind}/applications", GetFunnelApplications).WithName("GetFunnelApplications")
             .Produces(StatusCodes.Status401Unauthorized);

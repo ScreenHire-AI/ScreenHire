@@ -62,6 +62,16 @@ public sealed class Candidate : ITenantOwned
     public void MarkDataRequestLinkSent(DateTimeOffset now) => DataRequestLinkSentAt = now;
 
     /// <summary>
+    /// When the careers site last asked to email this candidate a link to their page (docs/architecture/candidate-portal.md).
+    /// The cooldown reads it, as <see cref="DataRequestLinkSentAt"/> does for data requests, and it is its own column so a
+    /// data request link never holds back a portal link. The decision to send is an atomic <c>ExecuteUpdate</c> on it.
+    /// </summary>
+    public DateTimeOffset? PortalLinkSentAt { get; private set; }
+
+    /// <summary>Records that a portal link went at <paramref name="now"/>, on a candidate this context holds (seeding and tests; the real claim is atomic in SQL).</summary>
+    public void MarkPortalLinkSent(DateTimeOffset now) => PortalLinkSentAt = now;
+
+    /// <summary>
     /// Whether the email provider reported this address as undeliverable or as a spam complaint. ScreenHire stops
     /// emailing a flagged address and says so on the candidate. Per organization, like the candidate. It is a
     /// delivery fact only: it never feeds a verification level, a score or a rejection (ADR-0004).

@@ -232,7 +232,9 @@ nothing.
   upload, with their blobs ([branding.md](branding.md) §4), `PurgeExpiredApplicantUploads` for files uploaded to an
   application that was never sent, also a day after ([apply-flow.md](apply-flow.md) §3). `PurgeExpiredDataExports` deletes copies of
   candidates' data past their download window, and `PurgeEndedApplications` deletes each organization's ended applications past its
-  retention period (off by default); both fan out per organization ([data-requests.md](data-requests.md)). Saved candidates have no sweep: they have no end date
+  retention period (off by default); both fan out per organization ([data-requests.md](data-requests.md)). `PurgeExpiredOAuthData` deletes
+  OAuth client registrations nobody approved within a day, then fans out per organization to delete codes and tokens a day past their
+  expiry ([oauth-server.md](oauth-server.md)). Saved candidates have no sweep: they have no end date
   ([saved candidates](talent-pool.md)).
   A schedule faster than every five seconds is refused.
 - **Job distribution** ([job-distribution.md](job-distribution.md) §5) uses both. A push board's answer schedules
@@ -240,6 +242,11 @@ nothing.
   recurring messages back it up: `ReconcileJobPostings` every five minutes and `DispatchIndexingNotifications` every
   minute. Both walk the organizations and hand each organization's work to an `ITenantMessage`, which runs as that
   organization.
+- **Interview reminders** ([interview-scheduling.md](interview-scheduling.md), "Reminders"). The handlers that write a booked
+  interview's calendar events schedule two `SendInterviewReminder` messages as cascading messages (`OutgoingMessages.Schedule`),
+  a day and an hour before the start, so they commit with the events. The message names the start time, and its handler
+  sends only while the interview is still Booked at that time, which makes a move or a cancellation harmless without
+  looking for the old message to delete. The key is the interview, the start and the kind.
 - **Webhook subscriptions** (workflow-engine.md §5) schedule their own retries. A failed attempt records itself on its
   delivery row and returns the next `DeliverWebhook` as a scheduled cascading message. Throwing into the error policy
   instead would roll back the attempt it should record. The delays come from `ScreenHire:Webhooks:RetryDelays`.

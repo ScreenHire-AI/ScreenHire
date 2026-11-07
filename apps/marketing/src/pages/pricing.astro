@@ -3,6 +3,7 @@ import { PUBLIC_APP_URL } from 'astro:env/server';
 import Faqs from '../components/Faqs.astro';
 import PageHeader from '../components/PageHeader.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { appLinks } from '../lib/app-links';
 import { pages } from '../lib/pages';
 import { hasPrice, includedInEveryPlan, plans, pricedOffers } from '../lib/pricing';
 import { faqPage, softwareApplication, type Faq } from '../lib/seo';
@@ -10,7 +11,7 @@ import { faqPage, softwareApplication, type Faq } from '../lib/seo';
 const { title, description, path, label } = pages.pricing;
 const site = Astro.site ?? new URL(Astro.url.origin);
 // Sign-up lives in the dashboard; until its URL is configured the buttons point at what every plan includes.
-const startUrl = PUBLIC_APP_URL ? new URL('/', PUBLIC_APP_URL).href : '#included';
+const startUrl = appLinks(PUBLIC_APP_URL, '#included').signUp;
 
 const faqs: Faq[] = [
   {
@@ -49,15 +50,15 @@ const faqs: Faq[] = [
         plans.map((plan) => (
           <li
             class:list={[
-              'flex flex-col gap-4 rounded-2xl border bg-card p-6 md:row-span-4 md:grid md:grid-rows-subgrid',
+              'flex flex-col gap-4 rounded-panel border bg-card p-6 shadow-surface md:row-span-4 md:grid md:grid-rows-subgrid',
               plan.highlighted ? 'border-primary' : 'border-border',
             ]}
           >
             <div class="flex flex-col gap-1">
-              <h3 class="font-display text-2xl font-bold">{plan.name}</h3>
+              <h3 class="font-display text-xl font-bold">{plan.name}</h3>
               <p class="text-secondary-foreground">{plan.summary}</p>
             </div>
-            <p class="flex items-baseline gap-1.5">
+            <p class="flex items-baseline gap-2">
               <span class="font-display text-4xl font-extrabold tracking-tight">
                 {hasPrice(plan) ? `$${plan.monthlyPrice}` : plan.monthlyPrice}
               </span>
@@ -67,10 +68,8 @@ const faqs: Faq[] = [
             <a
               href={startUrl}
               class:list={[
-                'mt-auto inline-flex h-12 items-center justify-center rounded-xl px-5 font-bold no-underline',
-                plan.highlighted
-                  ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                  : 'border border-input text-foreground hover:border-primary',
+                'mt-auto',
+                plan.highlighted ? 'button-primary' : 'button-secondary',
               ]}
             >
               Start free<span class="sr-only"> on {plan.name}</span>
@@ -86,7 +85,7 @@ const faqs: Faq[] = [
     <ul class="mt-5 grid gap-3 md:grid-cols-2">
       {
         includedInEveryPlan.map((item) => (
-          <li class="flex items-start gap-2.5 text-secondary-foreground">
+          <li class="flex items-start gap-3 text-secondary-foreground">
             <span aria-hidden="true" class="mt-2 size-2 shrink-0 rounded-full bg-primary" />
             {item}
           </li>

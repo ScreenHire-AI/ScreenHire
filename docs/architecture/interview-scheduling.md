@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Interview scheduling on team calendars"
-description: "Members connect their own Google, Outlook or sandbox calendar from the account menu: the OAuth round trip kept apart from sign-in, tokens under Data Protection for each member, the ICalendarProvider seam with a Postgres-backed sandbox, token refresh under an advisory lock, and the configuration that hides a provider until its client id and secret are set. Interview requests: the slot finder in the interview's time zone, the offered times, and the booking transaction that never double-books an interviewer. Offering, booking, moving and cancelling an interview: the staff and candidate routes with their problem codes, and the worker that writes one calendar event per interviewer and emails the candidate. The careers page where the candidate picks, moves or cancels a time with JavaScript off. The recruiter's side in the dashboard: the Schedule interview sheet on the candidate's page, the booked time in the page's header and the Interview panel on Overview."
+description: "Members connect their own Google, Outlook or sandbox calendar from the account menu: the OAuth round trip kept apart from sign-in, tokens under Data Protection for each member, the ICalendarProvider seam with a Postgres-backed sandbox, token refresh under an advisory lock, and the configuration that hides a provider until its client id and secret are set. Interview requests: the slot finder in the interview's time zone, the offered times, and the booking transaction that never double-books an interviewer. Offering, booking, moving and cancelling an interview: the staff and candidate routes with their problem codes, and the worker that writes one calendar event per interviewer and emails the candidate. The careers page where the candidate picks, moves or cancels a time with JavaScript off. The recruiter's side in the dashboard: the Schedule interview sheet on the candidate's page, the booked time in the page's header and the Interview panel on Overview. Reminders to the candidate and the interviewers a day before a booked interview, and to the candidate an hour before. Moving a booked interview: the team offers new days, the booked time stays held until the candidate picks one, and the events in every calendar then move."
 tags: [scheduling, calendar, integrations, oauth]
 sources:
   - resource: src/ScreenHire.Domain/Scheduling/CalendarConnection.cs
@@ -34,14 +34,18 @@ sources:
   - resource: apps/api/Contracts/InterviewContracts.cs
   - resource: apps/api/Endpoints/PublicInterviewEndpoints.cs
   - resource: src/ScreenHire.Application/Scheduling/InterviewHandlers.cs
+  - resource: src/ScreenHire.Application/Scheduling/InterviewReminderHandlers.cs
   - resource: src/ScreenHire.Application/Scheduling/InterviewText.cs
   - resource: src/ScreenHire.Application/Scheduling/InterviewLocks.cs
   - resource: tests/ScreenHire.IntegrationTests/Scheduling/InterviewJourneyTests.cs
   - resource: tests/ScreenHire.IntegrationTests/Scheduling/InterviewBookingTests.cs
+  - resource: tests/ScreenHire.IntegrationTests/Scheduling/InterviewReminderTests.cs
+  - resource: tests/ScreenHire.IntegrationTests/Scheduling/InterviewNewTimesTests.cs
   - resource: apps/dashboard/src/lib/components/calendar-account-sheet.svelte
   - resource: apps/dashboard/src/lib/calendar.ts
   - resource: apps/dashboard/src/lib/schedule-interview.ts
   - resource: apps/dashboard/src/lib/components/schedule-interview-sheet.svelte
+  - resource: apps/dashboard/src/lib/components/offer-new-times-sheet.svelte
   - resource: apps/dashboard/src/lib/components/candidate/interview-panel.svelte
   - resource: apps/dashboard/src/lib/components/candidate/interview-details.svelte
   - resource: apps/dashboard/src/lib/activity.ts
@@ -57,8 +61,9 @@ sources:
 ScreenHire schedules interviews on the calendars the team already uses, through the free Google Calendar and Microsoft
 Graph APIs ([ADR-0024](../adr/0024-interview-scheduling-on-calendar-apis.md)). This page describes a member connecting
 and disconnecting their own calendar, the interview request with its slot finder and booking transaction, the routes that
-offer, book, move and cancel an interview, the workflow action that offers one without a person, the worker that writes
-the events and emails the candidate, the careers page the candidate books on, and the recruiter's side in the dashboard.
+offer, book, move and cancel an interview, the team offering new times for a booked interview, the workflow action that
+offers one without a person, the worker that writes the events, emails the candidate and sends the reminders, the careers
+page the candidate books on, and the recruiter's side in the dashboard.
 
 ## Connecting a calendar
 
@@ -207,6 +212,11 @@ reads as Expired without a timer (`EffectiveStatus`); whoever next touches it st
 index sees the stored status. `Revision` counts bookings, moves and cancellations, and the idempotency keys of the
 calendar messages and the provider event ids derive from it.
 
+`WindowStart` and `WindowEnd` are the days the candidate picks from now. Offering new times for a booked interview replaces
+them, so they can stop covering the time the interview was booked for. `LookupStart` and `LookupEnd` are the span of every
+window the request has had, and only widen. Looking an event up by the id its create used (a create whose transaction
+rolled back after the provider answered) searches that span, so it finds the event at any time the interview has had.
+
 `SlotFinder` is pure. It walks local days in the interview's zone, so daylight saving time is right: a local time that
 does not exist is skipped, a local time that happens twice means its first occurrence, and start times are `dayStart + k *
 step` in local wall-clock time. Busy time is half-open, so a meeting that ends at 10:00 leaves 10:00 free.
@@ -254,6 +264,36 @@ cancellation and a booking at the same moment cannot both win.
 
 `status` is the effective status: an Open request past its window reads `Expired`.
 
+## Offering new times for a booked interview
+
+A booked interview moves without a cancellation. A recruiter offers new days from the Interview panel and the candidate
+picks again on the link they already have.
+
+| Route | What it does |
+|---|---|
+| `POST /v1/interviews/{interviewId}/new-times` | `{windowStart, windowEnd}` replaces the days the candidate picks from. 200 with the interview. 400 names `windowEnd` when the days break the request rules (they end after they start, at most 90 days, not already past). 409 when the interview is not Booked or its application has ended. 404 for another organization's interview, and when the host has no email sender or careers site address. |
+
+Like cancelling, it is for people only, needs the permission that emails candidates, and takes the interviewers' advisory
+locks before it reloads the interview, so an offer and the candidate's move at the same moment cannot both win. In one
+transaction it sets `NewTimesOfferedAt`, replaces the window, adds an `InterviewNewTimesOffered` timeline entry that names
+the time still held, and queues `SendInterviewNewTimes` and `InterviewChanged`. The worker emails the candidate
+`interview-new-times` with a fresh link, and keeps a copy that hides it. Offering again replaces the window again and sends
+another email, because each offer carries its own send id.
+
+An offer is not a change to the booking, so it leaves `StartsAt`, `Revision`, the attendees and the calendar events alone.
+`Revision` stays because the calendar messages and the provider event ids derive from it: a recruiter who offers new times
+just after a booking must not turn the booking's still-queued `CreateInterviewEvents` into a no-op. The old time stays held
+for the same reason a booking is: its row is still Booked, so nobody else is offered it, and its events are still on the
+calendars. The interview keeps its reminders too, because they are about the booked time. If the candidate never picks, the
+interview stays at that time. The end of the offered days ends the offer. Nothing is left to pick, so the page and the panel
+stop saying new times wait, and the usual notice applies again (`HasPendingNewTimes`).
+
+While an offer is pending the candidate may move or cancel the interview whatever the minimum notice, even after the old
+time has passed, because the team asked for the move (`CanBeChangedByCandidate`). New days can end before the booked time,
+so a link issued for a booked interview reads until the later of the two, plus the usual 30 days. The pick is the ordinary reschedule route:
+the same `UpdateInterviewEvents` moves each interviewer's event, the candidate gets `interview-confirmation` for the new
+time, the new time gets its own reminders, and `Reschedule` clears `NewTimesOfferedAt`. Cancelling clears it too.
+
 ## When an interview is cut short
 
 Three changes outside the interview itself end or change it. Each is a worker message sent in the same transaction as the
@@ -277,7 +317,8 @@ change, so a crash between the two cannot leave one without the other.
   notifying guests on Google; Microsoft Graph has no switch for that, and a meeting deleted by its organizer tells its
   attendees. An event whose id was never saved (a create whose transaction rolled back after the provider answered) is
   found by the id its create used: Google's event id is derived from it, and Graph is searched by `transactionId` across the
-  interview's whole window, because such an event sits at a time the interview may have moved from. A cancellation and a
+  interview's lookup span (`LookupStart` to `LookupEnd`, every window it has had), because such an event sits at a time the
+  interview may have moved from. A cancellation and a
   move use the same lookup, so a rolled-back create cannot leave an event behind or at the old time. The sandbox deletes
   the row for good.
 
@@ -314,7 +355,7 @@ the job cannot book, move or cancel.
 
 | Route | What it does |
 |---|---|
-| `GET ?tz=` | State (`Open`, `Booked`, `Cancelled`, `Expired`), employer, job title, the booked time, the zone, the length, the offered times as UTC instants (for an Open interview, and for a Booked one the candidate can still change), `canChange` and `minNoticeHours`. `slotsUnavailable` is true when a calendar cannot be read. It names no interviewer. |
+| `GET ?tz=` | State (`Open`, `Booked`, `Cancelled`, `Expired`), employer, job title, the booked time, the zone, the length, the offered times as UTC instants (for an Open interview, and for a Booked one the candidate can still change), `canChange`, `minNoticeHours` and `newTimesOffered` (the team offered new times and the booked time stays until the candidate picks one, until the offered days end). `slotsUnavailable` is true when a calendar cannot be read. It names no interviewer. |
 | `POST /book` `{start}` | Open to Booked. 204. |
 | `POST /reschedule` `{start}` | Moves a Booked interview. 204. |
 | `POST /cancel` | Cancels an Open or Booked interview. 204. |
@@ -330,7 +371,11 @@ automation trigger (`RunAutomations`, keyed on the interview), so an automation 
 ## The worker
 
 `SendInterviewInvitation` issues the link in the worker, sends `interview-invitation` and keeps a copy that hides the link.
-The timeline entry of the email has the send's id, so a redelivery sends nothing twice.
+The timeline entry of the email has the send's id, so a redelivery sends nothing twice. `SendInterviewNewTimes` does the same
+with `interview-new-times`, and sends nothing once the interview is no longer Booked with an offer pending. Like every email about
+an application, the invitation, the confirmation, the new times, the reminder and the cancellation go out with a reply address (so
+an emailed answer lands in Messages) and end with the link to the candidate's own page ([email](email.md),
+[candidate portal](candidate-portal.md)).
 
 `CreateInterviewEvents`, `UpdateInterviewEvents` and `CancelInterviewEvents` write one event per interviewer on their own
 calendar, so it lands natively whichever provider each uses. The organizer's event invites the candidate by address and
@@ -349,6 +394,31 @@ the handler's transaction commits. `ScreenHire:Calendar:Timeout` (10 seconds) bo
 holds an interviewer's bookings for seconds, not for good. A cancellation or a move takes the same locks, so it cannot slip in while events are
 being written: it waits, then finds the event ids it needs to remove or move.
 
+## Reminders
+
+`CreateInterviewEvents` and `UpdateInterviewEvents` each schedule two `SendInterviewReminder` messages in their outgoing
+messages, so they leave only if the events are written: `DayBefore` 24 hours before the start, and `HourBefore` one hour
+before it. A reminder whose time is already past is not scheduled, because it would say a day about an interview that is
+sooner and the confirmation has just given the time. An interview booked before reminders existed has none.
+
+A reminder is about a start time, not a revision. Its idempotency key is the interview, the start instant and the kind. The
+handler loads the interview when the schedule releases the message and sends only while it is still Booked at that start,
+the start is still ahead and the application has not ended. A move (a new start), a cancellation (a new status) and an
+application that ended therefore make an old reminder harmless, an offer of new times (which changes neither) does not,
+and a move back to the same time is the same reminder.
+
+- **The candidate** gets `interview-reminder` for both kinds: the time, the meeting link when there is one and a fresh link to
+  change or cancel it. The timeline entry of the email has an id derived from the interview, the kind and the start, so a
+  redelivery finds it and sends nothing.
+- **Every interviewer** gets an email for `DayBefore` only, in ScreenHire's own wording (`InterviewReminderEmail`, like the mention
+  email, not a template an organization edits): the candidate's name, the job, the time in the interview's zone, the meeting
+  link and a link to the application. `InterviewAttendee.RemindedForStart` records the start it was sent for, so a redelivery
+  sends nothing and a move starts again. The interviewers' emails and the candidate's commit together, so a failed send repeats
+  on retry the ones already sent in that attempt. A member who has left, or no longer sees the job (ADR-0015), is skipped.
+
+The email goes before its record commits, so a crash between the two can repeat one email once, as with the other emails.
+A worker that was down at the due time sends the reminder when it returns, unless the interview has started by then.
+
 ## The candidate's page
 
 The invitation and confirmation emails link to `/interviews/{token}` on the careers site ([apply flow](apply-flow.md), §8.1),
@@ -356,7 +426,8 @@ which calls the public routes above. It is plain HTML with no script: the candid
 a time with a radio, and the careers server writes every time with `Intl.DateTimeFormat` in the chosen zone. The API
 offers instants and the zone; it never sends formatted text. Booking, moving and cancelling are Astro actions that
 redirect back to the same address with an outcome word (`booked`, `rescheduled`, `cancelled`, `slot-taken`, `too-late`).
-A conflict maps to its notice by the problem's `type`. The page shows one screen of five days that have times and links to the
+A conflict maps to its notice by the problem's `type`. When the team has offered new times the page says so, keeps the booked time in view and leads with Pick a new time, which
+opens the picker on the new days. The usual notice does not apply while the offer is pending. The page shows one screen of five days that have times and links to the
 next, shows no meeting link of its own (the calendar invitation has it), names no interviewer, and says nothing about
 verification. Cancelling asks first: a `details` element opens a line that says what happens and a Yes, cancel it button. The browser test (`InterviewBookingTests`) runs the whole journey with JavaScript off, axe clean, and checks
 the page at 390 and 1280 pixels wide for sideways scrolling and touch targets.
@@ -395,10 +466,13 @@ state has a status badge (design system section 3.2): Waiting for the candidate 
 (grey). An open interview gives the days the candidate can choose from, in the interview's zone. A booked
 one lists the interviewers with the organizer marked in words when there are two or more, the meeting link, and a note under an interviewer whose
 calendar event is still pending or failed (the failure's own words, such as "Their calendar refused the event"). A cancelled or expired
-one is one line saying how it ended. Cancel is a destructive item in the panel's menu behind a dialog, for people who may
-email candidates, because it tells the candidate and removes the event from every calendar.
+one is one line saying how it ended. The panel's menu, for people who may email candidates, has two items. Offer new times
+(booked interviews only) opens a sheet with the first and last day, in the interview's zone, and the interview's own length and
+working hours; it emails the candidate. While the offer is pending a booked interview also shows Waiting for a new time, the new
+days, and says the booked time stays until the candidate picks one. Cancel is a destructive item behind a dialog, because it
+tells the candidate and removes the event from every calendar.
 
-Activity lists the four interview entries under an Interviews filter. A booking or a move says the time it was about, so a
+Activity lists the five interview entries under an Interviews filter. A booking or a move says the time it was about, so a
 move is history the header no longer shows.
 
 ## Tenancy

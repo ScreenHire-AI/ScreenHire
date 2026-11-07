@@ -50,13 +50,13 @@ const jsonLd = [
     <article class="prose">
       <Content />
     </article>
-    <aside aria-labelledby="dates-title" class="flex flex-col gap-4 self-start rounded-xl border border-border bg-card p-5">
+    <aside aria-labelledby="dates-title" class="flex flex-col gap-4 self-start rounded-panel border border-border bg-card shadow-surface p-5">
       <h2 id="dates-title" class="font-display text-xl font-bold">Key dates</h2>
       <p class="text-sm font-semibold">{law.data.status}</p>
       <ol class="flex flex-col gap-3">
         {
           law.data.keyDates.map((item) => (
-            <li class="flex flex-col gap-0.5 border-t border-border-subtle pt-3 text-sm">
+            <li class="flex flex-col gap-1 border-t border-border-subtle pt-3 text-sm">
               <span class="font-semibold text-muted-foreground">{item.date}</span>
               <span class="text-secondary-foreground">{item.event}</span>
             </li>

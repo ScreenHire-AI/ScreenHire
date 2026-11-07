@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Web;
 using Npgsql;
 
 namespace ScreenHire.IntegrationTests;
@@ -86,6 +87,50 @@ public sealed class MagicLinkTests(AppHostFixture fixture)
 
         row.GetString(0).Should().NotContain(token).And.HaveLength(64, "a hex SHA-256 of the token");
         row.GetDecimal(1).Should().Be(15 * 60);
+    }
+
+    [Fact]
+    public async Task Link_carries_a_local_return_path_in_its_fragment_after_the_token_and_signs_in()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var session = new ApiSession(fixture);
+        var email = ApiSession.NewEmail();
+        // An assistant's connection request, as the dashboard's guard keeps it (path and query, already percent-encoded): it
+        // has the characters that would split a fragment if they were not encoded again.
+        const string returnUrl = "/oauth/authorize?client_id=abc&redirect_uri=https%3A%2F%2Fclaude.ai%2Fapi%2Fmcp%2Fauth_callback&scope=read%20write&state=x";
+        (await session.PostAsync("/v1/auth/magic-link", new { email, returnUrl }, cancellationToken)).StatusCode.Should().Be(HttpStatusCode.Accepted);
+
+        var link = await fixture.Mailpit.WaitForSignInLinkAsync(email, cancellationToken);
+
+        link.Query.Should().BeEmpty("the return path rides in the fragment, which no server log sees");
+        var fragment = HttpUtility.ParseQueryString(link.Fragment.TrimStart('#'));
+        fragment.AllKeys.Should().Equal("token", "returnUrl");
+        fragment["returnUrl"].Should().Be(returnUrl);
+        var token = await fixture.Mailpit.WaitForSignInTokenAsync(email, cancellationToken);
+        fragment["token"].Should().Be(token);
+        using var verify = await session.PostAsync("/v1/auth/magic-link/verify", new { token }, cancellationToken);
+        verify.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Theory]
+    [InlineData("https://evil.example")]
+    [InlineData("//evil.example")]
+    [InlineData("/\\evil.example")]
+    [InlineData("evil.example/oauth/authorize")]
+    [InlineData("/ok\nevil")]
+    [InlineData("/")]
+    [InlineData(null)]
+    public async Task Link_leaves_out_a_return_path_that_is_not_a_local_path(string? returnUrl)
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var session = new ApiSession(fixture);
+        var email = ApiSession.NewEmail();
+        (await session.PostAsync("/v1/auth/magic-link", new { email, returnUrl }, cancellationToken)).StatusCode.Should().Be(HttpStatusCode.Accepted);
+
+        var link = await fixture.Mailpit.WaitForSignInLinkAsync(email, cancellationToken);
+
+        var token = await fixture.Mailpit.WaitForSignInTokenAsync(email, cancellationToken);
+        link.Fragment.Should().Be($"#token={token}", "an unsafe or default path leaves the link as it was before return paths");
     }
 
     [Fact]

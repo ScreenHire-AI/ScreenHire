@@ -25,7 +25,7 @@ const embed = useEmbedding(Astro.locals, Astro.url, board.embedOrigins);
   organizationSlug={board.organizationSlug}
   branding={board.branding}
 >
-  <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">Open roles at {board.organizationName}</h1>
+  <h1 class="font-display text-candidate-title">Open roles at {board.organizationName}</h1>
   {
     board.jobs.length === 0 ? (
       <p class="mt-3 text-candidate-body text-candidate-muted-foreground">
@@ -41,9 +41,9 @@ const embed = useEmbedding(Astro.locals, Astro.url, board.embedOrigins);
             <li>
               <a
                 href={withEmbed(`${base}/jobs/${job.slug}`, embed)}
-                class="flex flex-col gap-2 rounded-2xl border border-candidate-border bg-candidate-surface p-5 text-candidate-foreground no-underline hover:border-candidate-input-border"
+                class="flex flex-col gap-2 rounded-panel border border-candidate-border bg-candidate-surface p-5 text-candidate-foreground no-underline shadow-surface hover:border-candidate-input-border"
               >
-                <span class="font-display text-xl font-bold">{job.title}</span>
+                <span class="font-display text-panel-title">{job.title}</span>
                 <JobFacts job={job} />
               </a>
             </li>

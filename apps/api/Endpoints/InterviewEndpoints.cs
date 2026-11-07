@@ -51,6 +51,11 @@ internal static class InterviewEndpoints
             .RequirePermission(Permission.EmailCandidates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
+        interviews.MapPost("/{interviewId:guid}/new-times", OfferNewTimes).WithName("OfferNewInterviewTimes")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.EmailCandidates)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status401Unauthorized);
         return app;
     }
 
@@ -258,6 +263,66 @@ internal static class InterviewEndpoints
         return TypedResults.Ok(interview.ToDto(attendees, byUser, now));
     }
 
+    // The team offers the candidate new times for a booked interview. The booked time stays held (its row and the calendar
+    // events are untouched) until the candidate picks one, which is the public reschedule route: that moves the events.
+    // The locks come first, as for a cancellation, so an offer and a candidate's move at the same moment cannot both win.
+    private static async Task<Results<Ok<ApplicationInterview>, NotFound, ValidationProblem, ProblemHttpResult>> OfferNewTimes(
+        Guid interviewId,
+        OfferNewInterviewTimesRequest request,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        ITenantContext tenant,
+        InterviewLinks links,
+        IServiceProvider services,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        if (services.GetService<IEmailSender>() is null || !links.IsConfigured)
+        {
+            return TypedResults.NotFound(); // the candidate cannot be emailed a link, so offering new times is hidden
+        }
+
+        var db = outbox.DbContext;
+        var attendeeUsers = await db.InterviewAttendees.AsNoTracking().Where(a => a.InterviewId == interviewId).Select(a => a.UserId).ToListAsync(cancellationToken);
+        // No CommitAsync here: SaveChangesAndFlushMessagesAsync commits this transaction with the outbox rows.
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await InterviewLocks.TakeAsync(db, tenant.OrganizationId!.Value, attendeeUsers, cancellationToken);
+        if (await db.InterviewRequests.SingleOrDefaultAsync(r => r.Id == interviewId, cancellationToken) is not { } interview)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var now = time.GetUtcNow();
+        if (interview.Status != InterviewStatus.Booked)
+        {
+            return TypedResults.Problem("New times can be offered only for a booked interview.", statusCode: StatusCodes.Status409Conflict);
+        }
+
+        if (interview.NewTimesProblem(request.WindowStart, request.WindowEnd, now) is { } problem)
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem(ProblemField(problem), problem));
+        }
+
+        var application = await db.Applications.SingleAsync(a => a.Id == interview.ApplicationId, cancellationToken);
+        var job = await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == application.JobId, cancellationToken);
+        if (application.HasEnded(job.Workflow.FindStage(application.CurrentStageId)))
+        {
+            return TypedResults.Problem("The application has ended, so there is nothing to move.", statusCode: StatusCodes.Status409Conflict);
+        }
+
+        interview.OfferNewTimes(request.WindowStart, request.WindowEnd, now);
+        db.ApplicationEvents.Add(application.InterviewNewTimesOffered(interview, now, tenant.UserId));
+        await outbox.PublishAsync(new SendInterviewNewTimes(application.OrganizationId, application.Id, interview.Id, Guid.CreateVersion7(), tenant.UserId));
+        await outbox.PublishAsync(new InterviewChanged(application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString()));
+        await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+
+        var attendees = await db.InterviewAttendees.AsNoTracking()
+            .Where(a => a.InterviewId == interviewId)
+            .OrderByDescending(a => a.IsOrganizer).ThenBy(a => a.Id)
+            .ToListAsync(cancellationToken);
+        var byUser = (await HiringTeams.MembersAsync(db, tenant, cancellationToken)).Values.ToDictionary(m => m.UserId);
+        return TypedResults.Ok(interview.ToDto(attendees, byUser, now));
+    }
+
     private static bool SeesJob(HiringTeams.Member member, IReadOnlyCollection<Guid> team) => member.SeesAllJobs || team.Contains(member.Id);
 
     private static ProblemHttpResult AlreadyOffered() =>
@@ -324,5 +389,6 @@ internal static class InterviewEndpoints
                 a.UserId, byUser.TryGetValue(a.UserId, out var member) ? member.DisplayName : "Former member", a.IsOrganizer, a.SyncStatus, a.SyncProblem))],
             interview.CreatedAt,
             interview.CreatedByUserId,
-            interview.CancelledByCandidate);
+            interview.CancelledByCandidate,
+            interview.HasPendingNewTimes(now) ? interview.NewTimesOfferedAt : null);
 }

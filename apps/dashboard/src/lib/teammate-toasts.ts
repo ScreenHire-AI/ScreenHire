@@ -6,6 +6,7 @@ import {
   groupToastFor,
   toastFor,
   type TeammateChange,
+  type TemplateType,
   type Toast,
 } from '#lib/teammate-changes.js';
 
@@ -17,7 +18,7 @@ export interface TeammateToastSources {
   settings(): Promise<MemberNotificationSettings>;
   application(applicationId: string): Promise<ApplicationDetail>;
   tasks(applicationId: string): Promise<readonly ApplicationTaskEntry[]>;
-  templateName(templateId: string): Promise<string>;
+  templateName(templateType: TemplateType, templateId: string): Promise<string>;
 }
 
 /** How long changes wait to be grouped (a bulk move arrives as one event per candidate). */
@@ -125,7 +126,7 @@ export class TeammateToasts {
   }
 
   async #facts(change: TeammateChange) {
-    if (change.kind === 'Templates') return { templateName: await this.#sources.templateName(change.templateId) };
+    if (change.kind === 'Templates') return { templateName: await this.#sources.templateName(change.templateType, change.templateId) };
     const application = await this.#sources.application(change.applicationId);
     const facts = { candidateName: application.candidate.fullName, jobTitle: application.jobTitle, stageName: application.stage.name };
     if (change.kind !== 'Tasks') return facts;

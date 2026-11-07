@@ -123,6 +123,29 @@ export function windowInstants(first: string, last: string, zone: string): { win
   return { windowStart: new Date(start).toISOString(), windowEnd: new Date(capped).toISOString() };
 }
 
+/** The first and last day of a window, as the Schedule interview form and the Offer new times form both take them. */
+export interface WindowValues {
+  windowStart: string;
+  windowEnd: string;
+}
+
+/** What is wrong with a window's days in `zone`, each on its field. The API names the same fields. */
+export function checkWindow(value: WindowValues, zone: string, issue: (field: keyof WindowValues, message: string) => void, now: number): void {
+  const first = parseDay(value.windowStart);
+  const last = parseDay(value.windowEnd);
+  if (!first) issue('windowStart', 'Pick the first day.');
+  if (!last) issue('windowEnd', 'Pick the last day.');
+  if (first && last) {
+    const covered = daysCovered(value.windowStart, value.windowEnd)!;
+    if (covered < 1) issue('windowEnd', 'The last day has to be the first day or later.');
+    else if (covered > maxWindowDays) issue('windowEnd', `The window can be at most ${maxWindowDays} days.`);
+    else {
+      const instants = knowsZone(zone) ? windowInstants(value.windowStart, value.windowEnd, zone) : null;
+      if (instants && Date.parse(instants.windowEnd) <= now) issue('windowEnd', 'The last day has to be today or later.');
+    }
+  }
+}
+
 const minutesOf = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
 
 export interface ScheduleValues {
@@ -141,19 +164,7 @@ export interface ScheduleValues {
  */
 export function checkSchedule(value: ScheduleValues, issue: (field: keyof ScheduleValues, message: string) => void, now: number): void {
   if (!knowsZone(value.timeZone)) issue('timeZone', 'Choose a time zone.');
-  const first = parseDay(value.windowStart);
-  const last = parseDay(value.windowEnd);
-  if (!first) issue('windowStart', 'Pick the first day.');
-  if (!last) issue('windowEnd', 'Pick the last day.');
-  if (first && last) {
-    const covered = daysCovered(value.windowStart, value.windowEnd)!;
-    if (covered < 1) issue('windowEnd', 'The last day has to be the first day or later.');
-    else if (covered > maxWindowDays) issue('windowEnd', `The window can be at most ${maxWindowDays} days.`);
-    else {
-      const instants = knowsZone(value.timeZone) ? windowInstants(value.windowStart, value.windowEnd, value.timeZone) : null;
-      if (instants && Date.parse(instants.windowEnd) <= now) issue('windowEnd', 'The last day has to be today or later.');
-    }
-  }
+  checkWindow(value, value.timeZone, issue, now);
   if (minutesOf(value.dayEnd) <= minutesOf(value.dayStart)) issue('dayEnd', 'Working hours have to end after they start.');
   else if (minutesOf(value.dayEnd) - minutesOf(value.dayStart) < value.durationMinutes) issue('dayEnd', 'Working hours are shorter than the interview.');
 }
@@ -177,6 +188,12 @@ export const scheduleSchema = z
     checkSchedule(value, (field, message) => context.addIssue({ code: 'custom', path: [field], message }), Date.now());
   });
 
+/** The Offer new times form: the days the candidate may pick from, in the interview's own zone. */
+export const newTimesSchema = (zone: string) =>
+  z.object({ windowStart: z.string(), windowEnd: z.string() }).superRefine((value, context) => {
+    checkWindow(value, zone, (field, message) => context.addIssue({ code: 'custom', path: [field], message }), Date.now());
+  });
+
 /**
  * The people ticked, in the order they were ticked: the first is the organizer, whose calendar sends the invitation.
  * Unticking removes one, and ticking them again puts them last.
@@ -195,6 +212,9 @@ export const timeOptions: { value: string; label: string }[] = (() => {
   });
 })();
 
+/** A time of day as the From and To selects word it, or as it came when it is off their half-hour steps. */
+export const timeLabel = (value: string): string => timeOptions.find((time) => time.value === value)?.label ?? value;
+
 export const defaultDayStart = '09:00';
 export const defaultDayEnd = '17:00';
 
@@ -205,6 +225,18 @@ export const durationLabel = (minutes: number): string =>
 let zones: { value: string; label: string }[] | undefined;
 let zonesFor = '';
 
+/** A zone as the Time zone select words it: its place and its common name, or the place alone (W8). */
+export function zoneLabel(value: string): string {
+  let name = '';
+  try {
+    name = new Intl.DateTimeFormat(locales, { timeZone: value, timeZoneName: 'longGeneric' }).formatToParts(new Date(0)).find((part) => part.type === 'timeZoneName')?.value ?? '';
+  } catch {
+    // The id stays as its own label.
+  }
+  const place = value === 'UTC' ? 'UTC' : value.split('/').pop()!.replaceAll('_', ' ');
+  return name && name !== place ? `${place} (${name})` : place;
+}
+
 /**
  * Every zone the browser knows, by its place and its common name ("New York (Eastern Time)", W8), sorted by place, with
  * the IANA id as the value. `current` stays in the list even if the browser's own list leaves it out.
@@ -214,16 +246,7 @@ export function timeZoneOptions(current: string = zoneName()): { value: string; 
   const known: string[] = typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : [];
   const ids = new Set([...known, 'UTC', ...(knowsZone(current) ? [current] : [])]);
   zones = [...ids]
-    .map((value) => {
-      let name = '';
-      try {
-        name = new Intl.DateTimeFormat(locales, { timeZone: value, timeZoneName: 'longGeneric' }).formatToParts(new Date(0)).find((part) => part.type === 'timeZoneName')?.value ?? '';
-      } catch {
-        // The id stays as its own label.
-      }
-      const place = value === 'UTC' ? 'UTC' : value.split('/').pop()!.replaceAll('_', ' ');
-      return { value, label: name && name !== place ? `${place} (${name})` : place };
-    })
+    .map((value) => ({ value, label: zoneLabel(value) }))
     .toSorted((a, b) => a.label.localeCompare(b.label, locales));
   zonesFor = current;
   return zones;

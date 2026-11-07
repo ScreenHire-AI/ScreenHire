@@ -8,10 +8,14 @@
 /**
  * What is serving this API: the product name, the build version, the hosting environment, and the API's public origin
  * (`ScreenHire:Domains:ApiHost`), which the API reference (`/scalar`), the OpenAPI file and `/v1` sit under.
+ * `careersUrlPattern` is a tenant's careers address with `{tenant}` where its slug goes, such as
+ * `https://{tenant}.careers.example.com` (`ScreenHire:Domains:CareersHostPattern`), so the dashboard can show the
+ * address a name will get.
  */
 export interface ApiMeta {
   name: string;
   version: string;
   environment: string;
   apiOrigin: string;
+  careersUrlPattern: string;
 }

@@ -5,6 +5,7 @@ description: "The candidate apply page: the notice before any collection, steps 
 tags: [careers, apply, astro]
 sources:
   - resource: apps/careers/src/pages/[organization]/jobs/[job]/apply.astro
+  - resource: apps/careers/src/pages/404.astro
   - resource: apps/careers/src/pages/[organization]/uploads.ts
   - resource: apps/careers/src/lib/apply.ts
   - resource: src/ScreenHire.Application/Applications/ApplicantUploadCleanup.cs
@@ -28,6 +29,8 @@ sources:
   - resource: apps/careers/src/components/StepIndicator.astro
   - resource: packages/ui/src/questions/PageProgress.svelte
   - resource: packages/ui/src/questions/model.ts
+  - resource: packages/ui/src/questions/FileField.svelte
+  - resource: packages/ui/src/questions/DropArea.svelte
   - resource: apps/api/Applications/ApplicationDrafts.cs
   - resource: apps/api/Endpoints/PublicApplicationDraftEndpoints.cs
   - resource: src/ScreenHire.Domain/Applications/ApplicationDraft.cs
@@ -48,9 +51,9 @@ never calls the API.
 
 | Path (under `/{organization}`, or `/` on a tenant host) | What it is |
 |---|---|
-| `/jobs/{job}` | The job, the "How we review applications" notice and an Apply link. 410 once the job closes, 404 if unknown. |
+| `/jobs/{job}` | The job, the "How we review applications" notice and an Apply link. 410 once the job closes, 404 if unknown. An unknown organization is a 404 on every page here, drawn as one neutral "We could not find this page" (`src/pages/404.astro`): no organization name, branding or link, the same page for any address with no page, so it never says whether an organization exists. |
 | `/jobs/{job}/apply` | The form: **details** (notice, assistive-technology switch, first name, last name (optional), email, phone, resume), one **page** per section of the job's questionnaire (none when it has no questions beyond the resume; §7), **review** (summary, AI-use declaration, the optional "Keep my details for future roles" box, send). `?draft={token}` fills it from a saved draft. |
-| `/jobs/{job}/applied` | The confirmation, after a POST-redirect-GET. The same page whether the application is new or the email had already applied, so the form never reveals who applied. |
+| `/jobs/{job}/applied` | The confirmation, after a POST-redirect-GET. The same page whether the application is new or the email had already applied, so the form never reveals who applied. It links to `/my-applications`, where the candidate asks for the link to their own page ([candidate portal](candidate-portal.md)). |
 | `/privacy` | "What we collect and why", the full notice. Its version (`NOTICE_VERSION` in `src/lib/apply.ts`) is recorded on every application. |
 | `/brand/{hash}.css` | The employer's brand stylesheet (section 5). |
 | `/uploads` | JSON endpoint for the upload island (section 3). |
@@ -77,8 +80,8 @@ challenge's site key. Every form asks for a resume: the questionnaire's own `res
 (`ApplicationForm.DefaultResumeQuestion`).
 
 The fields are the shared question components in `packages/ui/src/questions` (`TextField`, `ChoiceField`,
-`QuestionField`, `FileField`), the same Svelte components the dashboard's form builder previews, so the
-preview is the form (workflow-engine.md §4). The apply page renders them on the server with no client directive, so
+`QuestionField`, `FileField`, and the `DropArea` that `FileField` draws), the same Svelte components the dashboard's
+form builder previews, so the preview is the form (workflow-engine.md §4). The apply page renders them on the server with no client directive, so
 they ship no JavaScript; only file questions hydrate, as `FileField` islands. Their field names (`q:{id}`,
 `file:{id}`, `upload:{id}`) and element ids (`field-...`) come from `packages/ui/src/questions/model.ts`, which
 `src/lib/apply.ts` re-exports, so the error summary's links and the posted names cannot drift apart.
@@ -123,7 +126,7 @@ organization and never stores it as sent, and keeps it only on the job's device-
 fingerprint is kept only when it is ticked. The observation and the telemetry are deleted after 30 days. The notice and
 the privacy page say all of this, and that the employer may email a follow-up questionnaire whose page keeps the
 answers only, that a saved draft keeps the details and answers only, for 30 days, and that an application through
-the form on the employer's own website notes which website. `NOTICE_VERSION` is `2026-11-05.2`, bumped when the notice on the job and apply pages and the privacy page were cut to say that applications are checked and what is collected, not how a check works. The owner wants them only as descriptive as the law requires, so a check's rules stay out of anything a candidate reads.
+the form on the employer's own website notes which website. `NOTICE_VERSION` is `2026-11-07.1`, bumped when the privacy page gained "Your page" ([candidate portal](candidate-portal.md#notice)). Before that it was `2026-11-05.2`, bumped when the notice on the job and apply pages and the privacy page were cut to say that applications are checked and what is collected, not how a check works. The owner wants them only as descriptive as the law requires, so a check's rules stay out of anything a candidate reads.
 
 The review step also asks, optionally and unticked, "Keep my details for future roles", with one line saying the
 employer keeps their details until they ask, or the employer removes them, and may invite them to apply for other
@@ -146,10 +149,12 @@ through the API. The link writes its blob once and cannot replace it, so the fil
    size and that its first bytes match its extension, hashes it (SHA-256), and deletes it if it fails.
 
 With JavaScript, the `FileField` Svelte island (`packages/ui/src/questions/FileField.svelte`) does this from the
-browser through the careers `/uploads` endpoint (a bare `fetch`, which keeps the page under its ~20 KB JavaScript
-budget) and leaves only the upload id in the form.
-Without JavaScript, the file posts with the step and the careers server does the same three calls. Either way the
-candidate hears about a wrong or oversized file at the step where they chose it. A file whose application is never sent is
+browser, for a file chosen or dropped on its drop area (`DropArea.svelte`, which refuses a wrong type or a file too large
+in the field's error before anything is sent), through the careers `/uploads` endpoint (a bare `fetch`, which keeps the
+page under its ~20 KB JavaScript budget), and leaves only the upload id in the form. Remove takes that id out of the
+form, and the next post of the step drops the file from the application.
+Without JavaScript the field is the plain named file input in its dashed frame, and the file posts with the step and
+the careers server does the same three calls. Either way the candidate hears about a wrong or oversized file at the step where they chose it. A file whose application is never sent is
 removed a day later: `PurgeExpiredApplicantUploads` runs daily (03:47 UTC) and fans out one
 `PurgeOrganizationApplicantUploads` per organization, which deletes the blobs under that organization's prefix that are a day
 old and that no `ApplicationFile` row names (it asks again just before each delete, so a candidate who sends the application
@@ -228,7 +233,7 @@ tenant host, a path that already starts with `/{tenant}` (a path-style link) get
 
 **Pages.** A questionnaire's named sections (`sections` on the hiring definition's questionnaire, workflow-engine.md §7)
 are its pages, one each, in order. Without sections the questions split into pages of the organization's questions per
-page (Settings > Careers site, 1 to 50, default 8; `questionsPerPage` on the public form). One function,
+page (Hiring setup > Careers site, 1 to 50, default 8; `questionsPerPage` on the public form). One function,
 `questionPages` in `packages/ui/src/questions/model.ts`, pages the apply form, the follow-up page and the dashboard's
 preview, so the preview is the form. The resume stays on the details step, and a section left empty by that is
 dropped. Steps are `details`, `page-1` to `page-N` and `review`; each page's heading is its section's name
@@ -278,8 +283,8 @@ busy moment never mails a second link. The API (`PublicApplicationDraftEndpoints
   email, and the email says to ignore it if you did not start the application. The sixth save's 429 tells the caller
   that address has saved several drafts in that organization today, which says nothing about whether it applied.
 - The token is Data Protection under its own purpose (`ScreenHire.ApplicationDraft.Link.v1`), naming the organization
-  and the draft, like follow-up links. A draft is found by its token, never by its email, so nobody who knows an
-  address can replace the answers saved under it. The careers page keeps the token in its state, so saving again
+  and the draft, like follow-up links. A draft is opened and saved by its token, never by its email, so nobody who knows an
+  address can replace the answers saved under it. The one place a draft is found by an address is the candidate's own page, which lists the drafts under the address of the candidate its signed link names and hands back each draft's token ([candidate portal](candidate-portal.md)): holding that link proves the person received mail there. The careers page keeps the token in its state, so saving again
   updates the same draft (`PUT .../application-drafts/{token}`, no second email) while the email is the one its link
   went to; a different address makes a new draft.
 - A draft keeps the details, the answers to non-file questions, the assistive-technology switch (so a resumed form never
@@ -343,7 +348,9 @@ whole life. The page asks the API for the interview (`GET .../interviews/{token}
   calendar that cannot be read, gets a calm notice that says to try again later or reply to the email.
 - **Booked.** The time with its day, year, range and the zone's name, and "The video link is in your calendar invitation"
   (the page never shows a link of its own). While the candidate can still change it, "Pick another time" opens the
-  picker (`?change=1`, posting to `interviewReschedule`). "Cancel this interview" is a `details` element that opens one line
+  picker (`?change=1`, posting to `interviewReschedule`). When the team has offered new times (`newTimesOffered`) the heading
+  is "The team offered new times", a notice says the booked time stays until the candidate picks one, the button reads "Pick a
+  new time", and the picker offers the new days whatever the notice. "Cancel this interview" is a `details` element that opens one line
   on what happens and a "Yes, cancel it" button posting to `interviewCancel`, so a stray tap ends nothing and no script is
   needed. Inside the minimum notice the page says changes close that many hours before the start and to reply to the email.
 - **Cancelled or expired.** "This interview is cancelled" or "This link has expired" (410), the employer's name and a

@@ -26,8 +26,8 @@ public sealed class TemplatesPageTests(E2EFixture fixture) : BrowserTest(fixture
 
         // Settings has no Email templates any more.
         await Page.GotoAsync(DashboardUrl("/settings/organization"));
-        var menu = Page.GetByRole(AriaRole.Navigation, new() { Name = "Settings" });
-        await Expect(menu.GetByRole(AriaRole.Link, new() { Name = "Webhooks" })).ToBeVisibleAsync();
+        var menu = Page.GetByRole(AriaRole.Navigation, new() { Name = "Organization", Exact = true });
+        await Expect(menu.GetByRole(AriaRole.Link, new() { Name = "Team" })).ToBeVisibleAsync();
         await Expect(menu.GetByRole(AriaRole.Link, new() { Name = "Email templates" })).ToHaveCountAsync(0);
 
         // The old address lands on the Emails tab, and so does an old template's.
@@ -91,7 +91,7 @@ public sealed class TemplatesPageTests(E2EFixture fixture) : BrowserTest(fixture
         await Expect(Page.GetByRole(AriaRole.Menuitem, new() { Name = "Reset to original" })).ToHaveCountAsync(0);
         await Page.Keyboard.PressAsync("Escape");
         await row.GetByRole(AriaRole.Link, new() { Name = "Moved to the next step" }).ClickAsync();
-        await Expect(Page.GetByLabel("Subject")).Not.ToHaveValueAsync(new Regex(marker));
+        await Expect(Page.GetByRole(AriaRole.Textbox, new() { Name = "Subject" })).Not.ToContainTextAsync(marker);
         await HeaderBand.GetByRole(AriaRole.Button, new() { Name = "History" }).ClickAsync();
         var history = Page.GetByRole(AriaRole.Dialog, new() { Name = "History" });
         await Expect(history.GetByRole(AriaRole.Listitem).First).ToContainTextAsync("You restored the original wording");

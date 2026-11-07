@@ -3,9 +3,11 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using ScreenHire.Application.Scheduling;
 using ScreenHire.Domain.Scheduling;
 using ScreenHire.IntegrationTests.Messaging;
+using Wolverine;
 
 namespace ScreenHire.IntegrationTests.Scheduling;
 
@@ -201,6 +203,23 @@ internal sealed partial class InterviewWorld : IDisposable
             },
             $"every interviewer's calendar event to be {status}",
             Ct);
+
+    /// <summary>
+    /// Delivers the reminder message the schedule would release a day or an hour before the interview, and waits until the worker
+    /// has handled it (sent or not), so a test can then read what reached Mailpit.
+    /// </summary>
+    public async Task DeliverReminderAsync(Guid interviewId, DateTimeOffset startsAt, InterviewReminderKind kind)
+    {
+        var store = await WolverineStore.ForAppHostAsync(fixture, Ct);
+        var handledBefore = await store.CountHandledAsync(interviewId.ToString(), Ct, ".SendInterviewReminder");
+        await using var publisher = await MessagingHost.StartPublisherToAppHostQueuesAsync(fixture, Ct);
+        await publisher.Services.GetRequiredService<IMessageBus>().PublishAsync(
+            new SendInterviewReminder(OrganizationId, ApplicationId, interviewId, startsAt, kind));
+        await WolverineStore.WaitUntilAsync(
+            async () => await store.CountHandledAsync(interviewId.ToString(), Ct, ".SendInterviewReminder") > handledBefore,
+            "the worker to handle the reminder",
+            Ct);
+    }
 
     /// <summary>Changes the stored time of a booked interview, as if it had been booked for then.</summary>
     public async Task SetTimeAsync(Guid interviewId, DateTimeOffset start, DateTimeOffset end)

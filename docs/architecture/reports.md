@@ -24,10 +24,11 @@ one that lists the applications behind a funnel row.
 
 `GET /v1/reports/hiring` (`apps/api/Endpoints/ReportEndpoints.cs`), named `GetHiringReport`.
 
-- **Session only over HTTP.** `.RequireAuthorization()`: API keys reach only the hiring API groups (ADR-0011), so a key
-  gets 401. The MCP server's `get_hiring_report` tool reads the same numbers for any key with the Read scope, by calling
-  `ReportEndpoints.Problems` and `HiringReportReads.ReadAsync` directly (ADR-0021 decision 6). A key sees every job
-  (ADR-0015), so the tool's numbers are not narrowed by job access.
+- **Members and API keys.** `.AllowApiKeys()`: a signed-in member, or an organization API key with the Read scope
+  (ADR-0011), reads both routes; the key's rate limit applies, and anything else gets 401. The MCP server's
+  `get_hiring_report` tool reads the same numbers for the same keys, by calling `ReportEndpoints.Problems` and
+  `HiringReportReads.ReadAsync` directly (ADR-0021 decision 6). A key sees every job (ADR-0015), so its numbers are not
+  narrowed by job access, over HTTP or through the tool, and they are its own organization's only (row-level security).
 - **Every member.** No `.RequirePermission`: reads stay open to every member (ADR-0014), and See jobs and candidates is
   in every role. Job access (ADR-0015) narrows the numbers, never the page.
 - **The range is two instants**, `from` inclusive and `to` exclusive, both required. The API never computes "the last
@@ -58,7 +59,7 @@ funnel row shows. The candidates page uses it for a funnel link (section 5). A k
 | Hiring funnel | Applications that reached each stage kind or a later one, and how many of those moved on to a later row | Applications submitted in the range |
 | Time to hire | Median days each hire spent in each stage kind, and the median days to hire by job | Hires made in the range |
 | Sources | Applications per source, and how many of them are hired now, with the hire rate | Applications submitted in the range |
-| Open jobs | Per open job: applications in the range, applications in an Interview stage now, days open, hires in the range | See below |
+| Open jobs | Per open job: when it opened, applications in the range, applications in an Interview stage now, days open, hires in the range | See below |
 
 - **Two bases, said once.** Applications, Reached interview, Offers, the funnel and Sources count the applications that
   arrived in the range, so the Reached interview and Offers cards equal the funnel's Interview and Offer rows. Hires,
@@ -90,7 +91,7 @@ funnel row shows. The candidates page uses it for a funnel link (section 5). A k
   board's apply link (`SourceBoard`, the `src` tag in apply-flow.md and job-distribution.md), else `careers`. The board
   tag is self-reported: anyone can open a link with `src=talent`, so it can move an organization's own Sources numbers,
   never another's.
-- **Open jobs** are the jobs with status Open that the person sees, narrowed by the job filter. Days open is whole days
+- **Open jobs** are the jobs with status Open that the person sees, narrowed by the job filter. Opened is the day it was first published. Days open is whole days
   since the job was first published, by the API's clock. In interview is now, not in the range.
 - **The biggest drop** and the share of applicants are computed in the browser from the funnel rows
   (`#lib/reports.ts`, `biggestDrop`): the row below the last with the lowest moved-on share, among rows with at least 3
@@ -148,4 +149,3 @@ the report arrives and while it is empty.
   Adzuna, Jooble and the sandbox board. Google for Jobs and the public job-board API must keep their canonical URLs, so
   their applicants count as Careers page, as do applications finished from a saved draft link, which drops the tag.
 - **Weeks follow Monday.** The first day of the week is not taken from the person's locale.
-- **No key access over HTTP** (section 1). Only the MCP tool reads reports for a key.

@@ -19,24 +19,27 @@ public sealed record InterviewLink(Guid OrganizationId, Guid InterviewId);
 /// </summary>
 /// <remarks>
 /// A token reads until the request's window ends plus <see cref="Grace"/>, so a page opened after the window can say the
-/// link expired rather than look forged. The limit is checked by Data Protection against the system clock.
+/// link expired rather than look forged. A booked time later than the window counts as the window's end, because an offer
+/// of new times can end the window before the interview, and the reminders still link to it. The limit is checked by Data
+/// Protection against the system clock.
 /// </remarks>
 public sealed class InterviewLinks(IDataProtectionProvider dataProtection, IOptions<CareersSiteOptions> careers)
 {
     public const string Purpose = "ScreenHire.Interview.Link.v1";
 
-    /// <summary>How long after the window ends a token still reads.</summary>
+    /// <summary>How long after the window, or a later booked time, a token still reads.</summary>
     public static readonly TimeSpan Grace = TimeSpan.FromDays(30);
 
     private readonly ITimeLimitedDataProtector protector = dataProtection.CreateProtector(Purpose).ToTimeLimitedDataProtector();
 
-    /// <summary>The token for <paramref name="interview"/>, valid until its window ends plus <see cref="Grace"/>.</summary>
+    /// <summary>The token for <paramref name="interview"/>, valid until its window or its booked time ends, plus <see cref="Grace"/>.</summary>
     public string Issue(InterviewRequest interview)
     {
         ArgumentNullException.ThrowIfNull(interview);
+        var last = interview.EndsAt is { } end && end > interview.WindowEnd ? end : interview.WindowEnd;
         return protector.Protect(
             string.Create(CultureInfo.InvariantCulture, $"{interview.OrganizationId:N}.{interview.Id:N}"),
-            interview.WindowEnd + Grace);
+            last + Grace);
     }
 
     /// <summary>False without a careers host pattern (<c>ScreenHire:Domains</c>): a link would name no host.</summary>

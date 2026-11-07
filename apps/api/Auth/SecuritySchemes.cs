@@ -33,7 +33,7 @@ internal static class SecuritySchemes
                 Type = SecuritySchemeType.Http,
                 Scheme = "bearer",
                 BearerFormat = "shk_...",
-                Description = "An organization API key, created by an owner or admin. Works on jobs, applications, candidates and templates, and, with the VerificationRead scope an owner gives it, on verification results.",
+                Description = "An organization API key, created by an owner or admin. Works on jobs, applications, candidates, templates and reports, and, with the VerificationRead scope an owner gives it, on verification results.",
             };
             return Task.CompletedTask;
         });

@@ -1,0 +1,31 @@
+---
+// The page for any address that has no page, and for an organization that does not exist. Astro renders it in place of a
+// blank body whenever a page returns `new Response(null, { status: 404 })` (an unknown organization does, on every
+// route). It is the same page for a mistyped name and for an organization that was never here, and it names no
+// organization, so it says nothing about whether one exists. It carries no branding, no link into a board and no
+// script. Endpoints (`.ts` routes) keep their own bare 404, and an existing organization's unknown or closed job keeps
+// its `JobUnavailable` page.
+import '../styles/global.css';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Page not found</title>
+    <meta name="description" content="We could not find this page." />
+    <meta name="robots" content="noindex" />
+  </head>
+  <body class="flex min-h-screen flex-col bg-candidate-background text-candidate-body text-candidate-foreground">
+    <main class="mx-auto w-full max-w-3xl flex-1 px-5 py-16">
+      <h1 class="font-display text-candidate-title">We could not find this page</h1>
+      <p class="mt-3 text-candidate-body text-candidate-muted-foreground">
+        The link may be mistyped, or the page may have moved. If someone sent you a link to a job, ask them to check it.
+      </p>
+    </main>
+    <footer class="px-5 py-6 text-center text-candidate-hint text-candidate-muted-foreground">
+      <p>Powered by ScreenHire</p>
+    </footer>
+  </body>
+</html>

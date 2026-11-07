@@ -151,11 +151,12 @@
   const source = createPreviewSource(() => draft);
 
   const images = $derived([
-    { id: 'logo', kind: 'logo' as const, noun: 'logo', slot: logo, errors: $errors.logoId, description: 'PNG or JPEG, up to 1 MB. At the top of your careers pages and emails.' },
+    { id: 'logo', kind: 'logo' as const, noun: 'logo', maxBytes: 1024 * 1024, slot: logo, errors: $errors.logoId, description: 'PNG or JPEG, up to 1 MB. At the top of your careers pages and emails.' },
     {
       id: 'favicon',
       kind: 'favicon' as const,
       noun: 'favicon',
+      maxBytes: 256 * 1024,
       slot: favicon,
       errors: $errors.faviconId,
       description: 'A square PNG or JPEG, at least 32 pixels, up to 256 KB. In the browser tab.',
@@ -164,6 +165,7 @@
       id: 'sharing-image',
       kind: 'sharing' as const,
       noun: 'sharing image',
+      maxBytes: 5 * 1024 * 1024,
       slot: sharingImage,
       errors: $errors.sharingImageId,
       description: 'PNG or JPEG, at least 600 by 315 pixels, up to 5 MB. When someone shares a link to your jobs.',
@@ -180,10 +182,10 @@
   <title>Branding · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Branding' }]} />
+<TopBar crumbs={[{ label: 'Hiring setup' }, { label: 'Branding' }]} />
 
 <main class="flex flex-col">
-  <HeaderBand title="Branding">
+  <HeaderBand title="Branding" oneRow>
     {#snippet actions()}
       {#if detail}<HistoryFact value={detail.lastUpdated} name="Branding" page={(before) => getGetOrganizationBrandingHistoryQueryOptions({ before })} />{/if}
     {/snippet}
@@ -261,12 +263,13 @@
 
             <Panel title="Images">
               <div class="flex flex-col gap-6">
-                {#each images as { id, kind, noun, description, slot, errors } (id)}
+                {#each images as { id, kind, noun, maxBytes, description, slot, errors } (id)}
                   <ImageField
                     {id}
                     {kind}
                     organizationName={draft.organizationName}
                     {noun}
+                    {maxBytes}
                     {description}
                     image={slot.image}
                     busy={slot.uploading}

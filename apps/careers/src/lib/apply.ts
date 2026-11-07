@@ -17,7 +17,7 @@ import { DEFAULT_QUESTIONS_PER_PAGE, fieldId, fields, questionPages, RESUME_QUES
  * The version of "What we collect and why" (pages/[organization]/privacy.astro). Every application records the version
  * its candidate was shown before anything was collected. Change it whenever that page's substance changes.
  */
-export const NOTICE_VERSION = '2026-11-05.2';
+export const NOTICE_VERSION = '2026-11-07.1';
 
 // Field names and ids come from the shared question components (packages/ui), which render the question fields; the
 // error summary's links depend on them matching. The form asks for the resume first, on the details step.
@@ -268,8 +268,9 @@ export const readDetails = (form: FormData, state: ApplyState): ApplyState => ({
 });
 
 /**
- * The answers to `questions` over `state`. File questions take the upload reference the island left in its hidden
- * field; a file posted without JavaScript is the server's to upload.
+ * The answers to `questions` over `state`. File questions take the upload reference in their hidden field, which is
+ * there for as long as the field shows the file, so a question posted without one had its file removed; a file posted
+ * without JavaScript is the server's to upload.
  */
 export function readAnswers(form: FormData, questions: readonly PublicQuestion[], state: ApplyState): ApplyState {
   const answers = { ...state.answers };
@@ -279,6 +280,7 @@ export function readAnswers(form: FormData, questions: readonly PublicQuestion[]
     if (question.type === 'File') {
       const upload = parseUploadRef(form.get(fields.upload(question.id)));
       if (upload) files[question.id] = upload;
+      else delete files[question.id];
     } else if (question.type === 'MultiChoice') {
       const chosen = form.getAll(name).filter((value): value is string => typeof value === 'string');
       if (chosen.length > 0) answers[question.id] = chosen;

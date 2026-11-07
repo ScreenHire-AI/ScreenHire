@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Email to candidates"
-description: "Organization email templates in Liquid with a rich-text body over fixed variables, the email composer (a template or a blank email changed for one send, previewed with the candidate's details), each email kept as it went for Messages, sending through the worker, the rules that the rejection email goes only with Reject, the follow-up questions email only with SendQuestionnaire and the invitation to apply only with Invite to apply, the link to finish a saved application, sending through SendGrid, candidates' replies with their attachments, bounces and spam complaints, the company's own sending domain, and what is not built (an inbox, attachments on outgoing mail, scheduled sends)."
+description: "Organization email templates in Liquid with a rich-text body over fixed variables, the email composer (a template or a blank email changed for one send, previewed with the candidate's details), each email kept as it went for Messages, sending through the worker, the rules that the rejection email goes only with Reject, the follow-up questions email only with SendQuestionnaire and the invitation to apply only with Invite to apply, the link to finish a saved application, the link to the candidate's own page that every email to a candidate ends with, sending through SendGrid, candidates' replies with their attachments, bounces and spam complaints, the company's own sending domain, and what is not built (an inbox, attachments on outgoing mail, scheduled sends)."
 tags: [email, templates, liquid]
 sources:
   - resource: src/ScreenHire.Domain/Hiring/EmailTemplate.cs
@@ -23,6 +23,10 @@ sources:
   - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-confirmation.subject.liquid
   - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-cancelled.body.liquid
   - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-cancelled.subject.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-new-times.body.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-new-times.subject.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-reminder.body.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-reminder.subject.liquid
   - resource: src/ScreenHire.Application/Applications/SendApplicationEmail.cs
   - resource: src/ScreenHire.Domain/Applications/ApplicationEmail.cs
   - resource: apps/api/Endpoints/EmailEndpoints.cs
@@ -60,6 +64,8 @@ sources:
   - resource: apps/dashboard/src/lib/sending-domain.ts
   - resource: apps/api/Email/AttachmentFiles.cs
   - resource: src/ScreenHire.Infrastructure/Email/TransactionalEmail.cs
+  - resource: src/ScreenHire.Infrastructure/Email/CandidatePortalFooter.cs
+  - resource: src/ScreenHire.Application/Scheduling/InterviewHandlers.cs
 ---
 # Email to candidates
 
@@ -75,8 +81,8 @@ There are two kinds, both listed by `GET /v1/email-templates` and edited on the 
 (`/templates/emails/{id}`; the old `/settings/email-templates` addresses redirect there):
 
 - **Built-in.** `application-received`, `stage-change`, `questionnaire-request`, `application-rejected`,
-  `talent-pool-invitation` and the three interview emails `interview-invitation`, `interview-confirmation` and
-  `interview-cancelled` (`EmailTemplateIds`). ScreenHire's
+  `talent-pool-invitation` and the five interview emails `interview-invitation`, `interview-confirmation`,
+  `interview-cancelled`, `interview-new-times` and `interview-reminder` (`EmailTemplateIds`). ScreenHire's
   wording lives in `src/ScreenHire.Infrastructure/Email/Templates` (`{id}.subject.liquid`, `{id}.body.liquid`). An
   organization that edits one gets an `email_templates` row with `built_in_id` set; deleting the row restores
   ScreenHire's wording: the dashboard calls this Reset to original, and asks first. A built-in keeps its name and is
@@ -95,8 +101,9 @@ render, the template's own addresses and the questionnaire link become links tha
 cannot carry a script, an image or a tracking pixel, and a candidate's name cannot inject markup. A link may have its
 own text ("Apply here"), and the text part then prints its address after it; a link's address may not hold a variable,
 so a candidate's details never go to another site in a URL. ScreenHire adds no click tracking. The text part is the
-HTML as plain text. In the dashboard, each variable in the message is a chip. ScreenHire puts the organization's header
-first in the HTML part, after the body is sanitized: its logo, a plain image at one address for every recipient, or its
+HTML as plain text. In the dashboard, each variable in the message is a chip, and in a template's subject too, where it
+is one line of plain text (`SubjectEditor`) stored as the Liquid text. ScreenHire puts the organization's header first
+in the HTML part, after the body is sanitized: its logo, a plain image at one address for every recipient, or its
 name, on its second colour (`EmailHeader`, [branding.md](branding.md) section 6). That logo is the only image an email
 carries, and a template cannot add one. The rendered subject is one line, cut at
 1,000 characters (`ApplicationEmail.MaxSubjectLength`): variables can make it far longer than its 200-character wording.
@@ -120,7 +127,10 @@ carries, and a template cannot add one. The rendered subject is one line, cut at
   `{{ bookingLink }}` and may use `{{ interviewLength }}`. `interview-confirmation` must use `{{ interviewTime }}` and
   `{{ manageLink }}` and may use `{{ meetingLink }}` (empty until the organizer's calendar event has one, so wrap it in
   `{% if meetingLink != blank %}`) and `{{ interviewLength }}`. `interview-cancelled` may use `{{ interviewTime }}`, which
-  is empty when the offer was withdrawn before a time was booked. The worker writes `interviewTime` from the instant and
+  is empty when the offer was withdrawn before a time was booked. `interview-new-times` must use `{{ bookingLink }}` and may use
+  `{{ interviewTime }}` (the time that stays until the candidate picks) and `{{ interviewLength }}`. `interview-reminder` is sent
+  a day and an hour before a booked interview and must use `{{ interviewTime }}` and `{{ manageLink }}`; it may use
+  `{{ meetingLink }}`. The worker writes `interviewTime` from the instant and
   the interview's time zone (`Tuesday, November 3, 2026, 10:00 AM to 10:30 AM (Europe/London)`); the API never sends formatted
   dates. The copy the team keeps hides the candidate's own link, as the follow-up questions email does.
 
@@ -229,6 +239,18 @@ Like a sign-in link it goes out inside the request, because its token lets whoev
 sit in the outbox's message table, and it is never kept as a copy or shown in Messages. An address gets at most 5 a day
 in one organization. With no `IEmailSender`, saving is hidden on the careers page.
 
+## The link to the candidate's page
+
+Every email to a candidate about an application ends with a link to their own page, where they see where each application
+stands and read and answer their messages ([candidate portal](candidate-portal.md)). `CandidatePortalFooter` adds ScreenHire's
+fixed sentence and the link after an organization's template is rendered and sanitized, as the header is, so a template cannot
+change or remove it. The link is a capability, so it is added to the email that goes out (`MailRoute.PortalLink`, which
+`CandidateMailRouting.ForAsync` fills with the candidate's signed link) and never to the copy kept for Messages, as with the
+follow-up questions email's own link. The worker issues the token when it sends. The three interview emails, the invitation to
+apply and the three data request emails carry it as well. The saved-application link and mail to the team do not. The composer's
+preview and a template's test send show the line with the page where anyone asks for a link, since only the worker can issue a
+candidate's own.
+
 ## Sending provider
 
 [ADR-0022](../adr/0022-sendgrid-through-azure-marketplace.md): ScreenHire sends through SendGrid, bought on the Azure
@@ -250,7 +272,7 @@ Another provider (Azure Communication Services Email) would be one more class be
 ## Replies
 
 Every email about an application goes out with `Reply-To: reply+<token>@<reply host>` (`ReplyAddresses`,
-`CandidateMailRouting`). The token is lowercase base32 of the organization, the send (the `application_emails` id) and a
+`CandidateMailRouting`), the three interview emails included. The token is lowercase base32 of the organization, the send (the `application_emails` id) and a
 4-byte HMAC under the generated `email-reply-key`: 58 characters, so the local part is exactly 64, the limit. The send's
 id, not the application's, so the original sender is known. The sign-in, invitation and saved-application emails carry
 none: they are not correspondence on an application. The talent pool invitation does, and a flagged address gets none. Without a reply key and a reply host
@@ -278,6 +300,12 @@ nothing and still answers 200, so SendGrid does not retry it. In one transaction
   in the tray, and the worker's `CandidateRepliedHandler` emails them once (the reply's `notified_at`): fixed wording, a
   link to Messages, never the reply's text, and only if they can still see the job. An email an automation sent has
   no one to email, so every member who sees the job gets the card and nobody gets mail.
+
+A candidate can also write from their own page. `InboundEmailIngest.IngestForAsync` takes the reply's target (the organization and
+the send) directly, so a reply from the page runs the same steps as one from the webhook: the reply, its `EmailReceived` entry, its
+attachments and their scans, and the event that tells the sender. The page names the target itself (the latest email that went for
+the application), uses a `Message-ID` of its own form id so sending a form twice stores one reply, and never clears a bounce or
+spam flag. The two stay in one thread because both answer the same sent email.
 
 Messages lists sent and received together, newest first (`direction`); a reply opens to who it is from, the message and its
 files. `GET /v1/replies/{replyId}` and its attachment route are read like sent mail, row-level security and job access
@@ -308,7 +336,7 @@ The candidate then carries `emailIssue` (`Bounced` or `SpamComplaint`, with when
 ## Sending domain
 
 Out of the box, mail comes from ScreenHire's address (`ScreenHire:Email:From`). An Owner or Admin can add the company's own
-domain under Settings, Email domain (`/v1/organization/sending-domain`, `EditSettings`; every member reads it). The page is
+domain under Hiring setup, Email domain (`/v1/organization/sending-domain`, `EditSettings`; every member reads it). The page is
 hidden, with a line saying so, when this deployment has no provider.
 
 - **Records.** The provider returns them (`ISendingDomainProvider`; SendGrid's domain authentication with automated

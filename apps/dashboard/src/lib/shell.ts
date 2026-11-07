@@ -33,13 +33,19 @@ export const getShell = () => getContext<Shell>(key);
 /** A Lucide icon component (design system section 14). */
 export type LucideIcon = typeof BriefcaseIcon;
 
-/** The sections in the sidebar, with their icon and "go to" shortcut (G, then the letter). */
+/**
+ * The sections the dashboard goes to, with their icon and "go to" shortcut (G, then the letter). The sidebar lists each
+ * one unless `sidebar` is false: Saved candidates is a choice on the Candidates page, but G S, Ctrl K and the `?` dialog
+ * still go to it, so they read this list too.
+ */
 export const sections: readonly {
   label: string;
   href: string;
   key: string;
   icon: LucideIcon;
   matches: (path: string) => boolean;
+  /** False for a destination that is not its own sidebar item. */
+  sidebar?: false;
 }[] = [
   { label: 'Jobs', href: '/', key: 'j', icon: BriefcaseIcon, matches: (path) => path === '/' || path.startsWith('/jobs/') },
   {
@@ -50,7 +56,8 @@ export const sections: readonly {
     matches: (path) => path.startsWith('/candidates') || path.startsWith('/applications/'),
   },
   // The candidates the team saved, until they remove them or the candidate asks to stop (docs/architecture/talent-pool.md).
-  { label: 'Saved candidates', href: '/saved', key: 's', icon: BookmarkIcon, matches: (path) => path.startsWith('/saved') },
+  // They are the Saved choice on the Candidates page, so the sidebar's Candidates item is the active one there.
+  { label: 'Saved candidates', href: '/candidates?list=saved', key: 's', icon: BookmarkIcon, matches: () => false, sidebar: false },
   { label: 'Templates', href: '/templates', key: 't', icon: LayoutTemplateIcon, matches: (path) => path.startsWith('/templates') },
   { label: 'My tasks', href: '/tasks', key: 'm', icon: ListTodoIcon, matches: (path) => path.startsWith('/tasks') },
   { label: 'Reports', href: '/reports', key: 'r', icon: ChartBarIcon, matches: (path) => path.startsWith('/reports') },

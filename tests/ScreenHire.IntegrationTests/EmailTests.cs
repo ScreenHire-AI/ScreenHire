@@ -30,14 +30,14 @@ public sealed class EmailTests(AppHostFixture fixture)
         list.Body.GetProperty("templates").EnumerateArray().Select(t => t.GetProperty("id").GetString())
             .Should().Equal(
                 "application-received", "stage-change", "questionnaire-request", "application-rejected", "talent-pool-invitation",
-                "interview-invitation", "interview-confirmation", "interview-cancelled");
+                "interview-invitation", "interview-confirmation", "interview-cancelled", "interview-new-times", "interview-reminder");
         list.Text("templates.2.name").Should().Be("Follow-up questions");
         list.At("templates.2.questionnaireOnly").GetBoolean().Should().BeTrue();
         list.Text("templates.3.name").Should().Be("Not progressing");
         list.At("templates.3.rejectOnly").GetBoolean().Should().BeTrue();
         list.Text("templates.4.name").Should().Be("Invitation to apply");
         list.At("templates.4.invitationOnly").GetBoolean().Should().BeTrue();
-        foreach (var index in new[] { 5, 6, 7 })
+        foreach (var index in new[] { 5, 6, 7, 8, 9 })
         {
             list.At($"templates.{index}.invitationOnly").GetBoolean().Should().BeTrue("only scheduling sends an interview email");
             list.At($"templates.{index}.builtIn").GetBoolean().Should().BeTrue();
@@ -61,7 +61,7 @@ public sealed class EmailTests(AppHostFixture fixture)
         (await owner.GetAsync($"/v1/email-templates/{id}")).Expect(HttpStatusCode.OK).Text("name").Should().Be("Interview invitation");
         (await owner.PutAsync($"/v1/email-templates/{id}", Wording("Interview", "Hi.", "Interview call"))).Expect(HttpStatusCode.OK)
             .Text("name").Should().Be("Interview call");
-        (await owner.GetAsync("/v1/email-templates")).Expect(HttpStatusCode.OK).Count("templates").Should().Be(9);
+        (await owner.GetAsync("/v1/email-templates")).Expect(HttpStatusCode.OK).Count("templates").Should().Be(11);
 
         (await owner.DeleteAsync("/v1/email-templates/stage-change")).Expect(HttpStatusCode.NoContent);
         var restored = (await owner.GetAsync("/v1/email-templates/stage-change")).Expect(HttpStatusCode.OK);
@@ -423,7 +423,7 @@ public sealed class EmailTests(AppHostFixture fixture)
         var theirCandidate = (await theirs.GetAsync($"/v1/applications/{theirApplication}")).Expect(HttpStatusCode.OK).Text("candidate.id");
         (await ours.GetAsync($"/v1/emails/{theirEmail}")).Expect(HttpStatusCode.NotFound);
         (await ours.GetAsync($"/v1/candidates/{theirCandidate}/emails")).Expect(HttpStatusCode.NotFound);
-        (await ours.GetAsync("/v1/email-templates")).Expect(HttpStatusCode.OK).Count("templates").Should().Be(8);
+        (await ours.GetAsync("/v1/email-templates")).Expect(HttpStatusCode.OK).Count("templates").Should().Be(10);
     }
 
     // An automation may send any of the organization's templates, which then cannot be deleted from under it; a workflow

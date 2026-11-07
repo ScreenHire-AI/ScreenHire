@@ -367,7 +367,7 @@
 
 <!-- Saved stays once they leave the list, so this says they are still on it. A badge is never a link (A5). -->
 {#snippet savedLink()}
-  <MetaItem label="Saved candidates"><TruncatedText text="In Saved candidates" href="/saved" underlined /></MetaItem>
+  <MetaItem label="Saved candidates"><TruncatedText text="In Saved candidates" href="/candidates?list=saved" underlined /></MetaItem>
 {/snippet}
 
 {#snippet headerTabs()}
@@ -468,6 +468,7 @@
                 {questions}
                 {manualAutomations}
                 tagsEditable={mayNote}
+                oninterviewchanged={(message) => (scheduled = message)}
               />
             {/if}
           </Tabs.Content>

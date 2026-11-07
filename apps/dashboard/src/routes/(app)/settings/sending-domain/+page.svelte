@@ -15,6 +15,7 @@
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
+  import ActionBar from '#lib/components/action-bar.svelte';
   import CodeBlock from '#lib/components/code-block.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
@@ -36,6 +37,7 @@
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
+  import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { applyValidationProblem } from '#lib/forms.js';
@@ -47,6 +49,7 @@
   // switches the From address only once the provider has confirmed the domain, so nothing goes out unauthenticated in the
   // company's name. Removing the domain goes back to ScreenHire's address; it confirms (A2). Who added, verified or removed it
   // is the History beside the title (T6).
+  const sidebar = Sidebar.useSidebar();
   const path = '/v1/organization/sending-domain';
   const queryClient = useQueryClient();
   const settled = () => invalidatePath(queryClient, path);
@@ -121,10 +124,10 @@
   <title>Email domain · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Email domain' }]} />
+<TopBar crumbs={[{ label: 'Hiring setup' }, { label: 'Email domain' }]} />
 
-<main class="flex flex-col">
-  <HeaderBand title="Email domain">
+<main class={['flex flex-col', sidebar.isMobile && domain && 'pb-28']}>
+  <HeaderBand title="Email domain" oneRow>
     {#snippet status()}
       {#if domain}<StatusBadge {...domainStatus(domain)} />{/if}
     {/snippet}
@@ -133,10 +136,8 @@
         {#if current?.lastUpdated}
           <HistoryFact value={current.lastUpdated} name="Email domain" page={(before) => getGetOrganizationSendingDomainHistoryQueryOptions({ before })} />
         {/if}
-        <Button variant="outline" disabled={check.isPending} onclick={checkRecords}><RefreshCwIcon aria-hidden="true" />Check records</Button>
-        <MoreMenu label="More actions" onclosed={onMenuClosed}>
-          <DropdownMenu.Item variant="destructive" onSelect={() => (chosen = 'remove')}><Trash2Icon aria-hidden="true" />Remove email domain</DropdownMenu.Item>
-        </MoreMenu>
+        <!-- On a phone these move to the bar at the bottom and the title's row keeps Last updated (section 8, S8). -->
+        {#if !sidebar.isMobile}{@render domainActions()}{/if}
       {/if}
     {/snippet}
   </HeaderBand>
@@ -249,6 +250,17 @@
     </div>
   </SettingsMenu>
 </main>
+
+{#snippet domainActions()}
+  <Button variant="outline" size={sidebar.isMobile ? 'lg' : 'default'} disabled={check.isPending} onclick={checkRecords}><RefreshCwIcon aria-hidden="true" />Check records</Button>
+  <MoreMenu label="More actions" onclosed={onMenuClosed}>
+    <DropdownMenu.Item variant="destructive" onSelect={() => (chosen = 'remove')}><Trash2Icon aria-hidden="true" />Remove email domain</DropdownMenu.Item>
+  </MoreMenu>
+{/snippet}
+
+{#if sidebar.isMobile && domain}
+  <ActionBar class="items-center gap-2 *:flex-none [&>:first-child]:flex-1">{@render domainActions()}</ActionBar>
+{/if}
 
 <ConfirmDialog
   bind:open={removeOpen}

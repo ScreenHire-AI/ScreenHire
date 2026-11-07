@@ -1271,6 +1271,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("phone");
 
+                    b.Property<DateTimeOffset?>("PortalLinkSentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("portal_link_sent_at");
+
                     b.HasKey("Id")
                         .HasName("pk_candidates");
 
@@ -2086,6 +2090,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
 
+                    b.Property<Guid?>("OAuthClientId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("oauth_client_id");
+
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
                         .HasColumnName("organization_id");
@@ -2121,6 +2129,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CreatedByUserId")
                         .HasDatabaseName("ix_api_keys_created_by_user_id");
+
+                    b.HasIndex("OAuthClientId")
+                        .HasDatabaseName("ix_api_keys_oauth_client_id");
 
                     b.HasIndex("OrganizationId", "CreatedAt")
                         .HasDatabaseName("ix_api_keys_organization_id_created_at");
@@ -2360,6 +2371,128 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_membership_events_organization_id_occurred_at");
 
                     b.ToTable("membership_events", (string)null);
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Organizations.OAuthCode", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ApiKeyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("api_key_id");
+
+                    b.Property<string>("CodeChallenge")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("code_challenge");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("code_hash")
+                        .IsFixedLength();
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("RedirectUri")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("redirect_uri");
+
+                    b.Property<DateTimeOffset?>("UsedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("used_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_oauth_codes");
+
+                    b.HasIndex("ApiKeyId")
+                        .HasDatabaseName("ix_oauth_codes_api_key_id");
+
+                    b.HasIndex("ExpiresAt")
+                        .HasDatabaseName("ix_oauth_codes_expires_at");
+
+                    b.HasIndex("OrganizationId", "CodeHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_oauth_codes_organization_id_code_hash");
+
+                    b.ToTable("oauth_codes", (string)null);
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Organizations.OAuthToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ApiKeyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("api_key_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("kind");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("token_hash")
+                        .IsFixedLength();
+
+                    b.Property<DateTimeOffset?>("UsedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("used_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_oauth_tokens");
+
+                    b.HasIndex("ApiKeyId")
+                        .HasDatabaseName("ix_oauth_tokens_api_key_id");
+
+                    b.HasIndex("ExpiresAt")
+                        .HasDatabaseName("ix_oauth_tokens_expires_at");
+
+                    b.HasIndex("OrganizationId", "TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_oauth_tokens_organization_id_token_hash");
+
+                    b.ToTable("oauth_tokens", (string)null);
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Organizations.Organization", b =>
@@ -2962,6 +3095,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("provider_event_id");
 
+                    b.Property<DateTimeOffset?>("RemindedForStart")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reminded_for_start");
+
                     b.Property<string>("SyncProblem")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
@@ -3043,10 +3180,22 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("job_id");
 
+                    b.Property<DateTimeOffset>("LookupEnd")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lookup_end");
+
+                    b.Property<DateTimeOffset>("LookupStart")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lookup_start");
+
                     b.Property<string>("MeetingUrl")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
                         .HasColumnName("meeting_url");
+
+                    b.Property<DateTimeOffset?>("NewTimesOfferedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("new_times_offered_at");
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
@@ -4392,14 +4541,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("organization_id");
 
-                    b.Property<DateTimeOffset>("SecretRotatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("secret_rotated_at");
-
-                    b.Property<int>("SecretVersion")
-                        .HasColumnType("integer")
-                        .HasColumnName("secret_version");
-
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -4420,6 +4561,34 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_webhook_endpoints_organization_id_enabled");
 
                     b.ToTable("webhook_endpoints", (string)null);
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Webhooks.WebhookEndpointSecret", b =>
+                {
+                    b.Property<Guid>("EndpointId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("endpoint_id");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<DateTimeOffset>("RotatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("rotated_at");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.HasKey("EndpointId")
+                        .HasName("pk_webhook_endpoint_secrets");
+
+                    b.HasIndex("OrganizationId", "EndpointId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_webhook_endpoint_secrets_organization_id_endpoint_id");
+
+                    b.ToTable("webhook_endpoint_secrets", (string)null);
                 });
 
             modelBuilder.Entity("ScreenHire.Infrastructure.Identity.ApplicationUser", b =>
@@ -4563,6 +4732,41 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_magic_link_tokens_email_created_at");
 
                     b.ToTable("magic_link_tokens", (string)null);
+                });
+
+            modelBuilder.Entity("ScreenHire.Infrastructure.Identity.OAuthClient", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_used_at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.PrimitiveCollection<List<string>>("RedirectUris")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("redirect_uris");
+
+                    b.HasKey("Id")
+                        .HasName("pk_oauth_clients");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_oauth_clients_created_at");
+
+                    b.ToTable("oauth_clients", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
@@ -4934,6 +5138,12 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_api_keys_users_created_by_user_id");
 
+                    b.HasOne("ScreenHire.Infrastructure.Identity.OAuthClient", null)
+                        .WithMany()
+                        .HasForeignKey("OAuthClientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_api_keys_o_auth_clients_oauth_client_id");
+
                     b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
                         .WithMany()
                         .HasForeignKey("OrganizationId")
@@ -4970,6 +5180,40 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_membership_events_organizations_organization_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Organizations.OAuthCode", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Organizations.ApiKey", null)
+                        .WithMany()
+                        .HasForeignKey("ApiKeyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_oauth_codes_api_keys_api_key_id");
+
+                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_oauth_codes_organizations_organization_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Organizations.OAuthToken", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Organizations.ApiKey", null)
+                        .WithMany()
+                        .HasForeignKey("ApiKeyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_oauth_tokens_api_keys_api_key_id");
+
+                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_oauth_tokens_organizations_organization_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Organizations.OrganizationInvitation", b =>
@@ -5365,6 +5609,17 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_webhook_endpoints_organizations_organization_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Webhooks.WebhookEndpointSecret", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Webhooks.WebhookEndpoint", null)
+                        .WithOne()
+                        .HasForeignKey("ScreenHire.Domain.Webhooks.WebhookEndpointSecret", "OrganizationId", "EndpointId")
+                        .HasPrincipalKey("ScreenHire.Domain.Webhooks.WebhookEndpoint", "OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_webhook_endpoint_secrets_webhook_endpoints_organization_id_");
                 });
 
             modelBuilder.Entity("ScreenHire.Infrastructure.Identity.ApplicationUser", b =>

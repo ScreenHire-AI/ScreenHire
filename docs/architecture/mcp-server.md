@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "MCP server for AI assistants"
-description: "The remote MCP server at /v1/mcp: Streamable HTTP in stateless mode, signed in with an organization API key and nothing else, twelve tools on the hiring API's own services, two of them verification tools for a key an Owner gave the Verification read scope, candidate-written text marked as data, and the values any MCP client needs to connect."
+description: "The remote MCP server at /v1/mcp: Streamable HTTP in stateless mode, signed in with an organization API key or an OAuth connection a person approved and nothing else, twelve tools on the hiring API's own services, two of them verification tools for a key an Owner gave the Verification read scope, candidate-written text marked as data, and the values any MCP client needs to connect."
 tags: [mcp, api-keys, ai]
 sources:
   - resource: apps/api/Mcp/McpSetup.cs
@@ -29,8 +29,9 @@ A team's AI assistant works with ScreenHire through a remote [Model Context Prot
 server on the API (roadmap item 6). It finds jobs and candidates, reads an application, a hiring report and the saved
 candidates, adds notes, tags and tasks, and moves a candidate to a stage. A key an Owner gave the Verification read scope
 also reads an application's verification and lists applications by level (ADR-0021). It signs in with an organization
-API key ([sign-in and tenancy](sign-in-and-tenancy.md), "API keys"; ADR-0011), so the key's organization, scope and rate
-limit apply to everything it does.
+API key ([sign-in and tenancy](sign-in-and-tenancy.md), "API keys"; ADR-0011), or, for a client that signs in only with
+OAuth, with an access token for a connection a person approved ([OAuth sign-in](oauth-server.md); ADR-0028). Either way
+the key's organization, scope and rate limit apply to everything it does: a connection is a key row.
 
 ## The endpoint
 
@@ -42,10 +43,13 @@ limit apply to everything it does.
   `ScreenHireDbContext`, named query filters and row-level security as the routes. A key sees every job (ADR-0015).
   Nothing is kept between requests, so any API instance answers, and the server makes no requests of its own to the
   client (no sampling, no elicitation).
-- **An API key and nothing else.** The `mcp` policy authenticates the `ApiKey` scheme alone and needs the Read scope,
-  which every key has. A request with no key, a revoked or malformed key, or only the dashboard's session cookie gets
-  401 with `WWW-Authenticate: Bearer`. The session is refused because an MCP client sends no antiforgery token, and
-  because the tools run a key's checks, not a person's role.
+- **An API key or an OAuth connection, and nothing else.** The `mcp` policy authenticates the `McpCredentials` scheme,
+  which hands an `sho_` access token to the OAuth handler and anything else to the `ApiKey` handler, and needs the Read
+  scope, which every key and connection has. A request with no credential, a revoked or malformed key, an expired or
+  revoked token, or only the dashboard's session cookie gets 401 with
+  `WWW-Authenticate: Bearer resource_metadata="..."`, which is how an OAuth client finds the authorization server. The
+  session is refused because an MCP client sends no antiforgery token, and because the tools run a key's checks, not a
+  person's role.
 - **The key's rate limit.** The `api-key` policy counts each HTTP request, so each tool call, against the key's
   permits per minute, with 429 beyond.
 - **Not in the OpenAPI document.** MCP describes its own tools (`tools/list`); the route is `ExcludeFromDescription`.
@@ -84,8 +88,8 @@ own.
   `ReportEndpoints.Problems`, and returns the headline numbers, weekly trend, funnel, days per stage, sources and open
   jobs of `HiringReportReads.ReadAsync`. `list_saved_candidates` lists the saved candidates who allowed it and have not
   asked to stop, by name, with each one's rating, note and last contacted date, 20 unless the assistant asks and 50 at
-  most. Their HTTP routes stay session-only: the tools call the read services directly, which is why a Read key can use
-  them (ADR-0021 decision 6). A saved candidate is the team's Saved entry; the tool only reads the list and saves,
+  most. The tools call the read services directly, which is why a Read key can use them (ADR-0021 decision 6). The
+  saved-candidate routes stay session-only; the reports routes also accept a key (`.AllowApiKeys()`). A saved candidate is the team's Saved entry; the tool only reads the list and saves,
   removes, invites and edits no one. A key has no scorecards to give, so the rating is always the full one.
 - **The Write scope hides the write tools.** They carry `[Authorize(Policy = McpSetup.WritePolicy)]`, which the SDK's
   authorization filter applies: a Read key does not see them in `tools/list`, and calling one is a protocol error.
@@ -135,8 +139,8 @@ asks, and never because of a level. The timeline records the key that moved them
 
 ## Connecting a client
 
-Settings > MCP server shows what any MCP client needs, with this deployment's address filled in. An Owner or Admin
-creates a key in Settings > API keys: Read for a client that only looks, Write for one that also changes things. Only an
+Integrations > MCP server shows what any MCP client needs, with this deployment's address filled in. An Owner or Admin
+creates a key in Integrations > API keys: Read for a client that only looks, Write for one that also changes things. Only an
 Owner can add Verification read, for a client that should read verification results too. The
 server's address is the API's origin, which `GET /v1/meta` reports as `apiOrigin` (`ScreenHire:Domains:ApiHost`),
 followed by `/v1/mcp`. The example uses `https://api.example.com`.
@@ -166,8 +170,12 @@ Neither the page nor this doc gives one client's setup steps: they change with e
 `/preview` prints the API's address, and `npx @modelcontextprotocol/inspector` with the header above lists and calls
 the tools.
 
-**OAuth waits** (ADR-0011 decision 6). A client that signs in only with OAuth, such as a claude.ai custom connector,
-cannot connect until ScreenHire runs an authorization server.
+**A client that signs in only with OAuth**, such as a claude.ai custom connector, needs only the server URL. It finds the
+authorization server from the 401, registers itself, and sends the person to a consent page in the dashboard, where an
+Owner or Admin chooses what the assistant may do (Read always; Write and Verification read if they hold them
+themselves). The connection then shows under Integrations > MCP server, where it can be disconnected at once. The flow, the
+tokens and the limits are in [OAuth sign-in](oauth-server.md) (ADR-0028, which closes ADR-0011 decision 6). It needs the
+API on a public HTTPS host; locally the integration tests and the MCP client exercise it.
 
 ## Tests
 

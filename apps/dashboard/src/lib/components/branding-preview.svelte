@@ -49,8 +49,8 @@
           {#if favicon}<img src={favicon.url} alt="" width="16" height="16" class="size-4 shrink-0 rounded-xs" />{/if}
           <span class="min-w-0 truncate">Jobs at {draft.organizationName}</span>
         </div>
-        <div class="flex h-15 items-center justify-between gap-4 border-b border-candidate-border bg-candidate-header px-5 text-candidate-header-foreground">
-          <span class="flex min-w-0 items-center gap-2.5 font-bold">
+        <div class="flex h-16 items-center justify-between gap-4 border-b border-candidate-border bg-candidate-header px-5 text-candidate-header-foreground">
+          <span class="flex min-w-0 items-center gap-3 font-bold">
             {#if logo}
               <img src={logo.url} alt={draft.organizationName} width={logo.width} height={logo.height} class="h-10 w-auto max-w-60 object-contain object-left" />
             {:else}
@@ -63,12 +63,12 @@
           <span class="shrink-0 font-semibold">All jobs</span>
         </div>
         <div class="flex flex-col gap-4 px-5 py-6">
-          <p class="font-display text-page-title font-bold">Open roles at {draft.organizationName}</p>
-          <div class="flex flex-col gap-3 rounded-2xl border border-candidate-border bg-candidate-surface p-5">
-            <p class="font-display text-panel-title font-bold">Product designer</p>
+          <p class="font-display text-candidate-title">Open roles at {draft.organizationName}</p>
+          <div class="flex flex-col gap-3 rounded-panel border border-candidate-border bg-candidate-surface p-5 shadow-surface">
+            <p class="font-display text-panel-title">Product designer</p>
             <p class="text-candidate-muted-foreground">Remote, full time</p>
             <span class="font-semibold text-candidate-brand-text underline underline-offset-2">Read about the team</span>
-            <span class="inline-flex min-h-11 items-center justify-center self-start rounded-xl bg-candidate-cta px-6 font-bold text-candidate-cta-foreground">
+            <span class="inline-flex min-h-11 items-center justify-center self-start rounded-lg bg-candidate-cta px-6 font-semibold text-candidate-cta-foreground">
               Apply for this role
             </span>
           </div>

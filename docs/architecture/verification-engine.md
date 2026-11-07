@@ -556,7 +556,7 @@ Every route is tenant-scoped (another organization's application is 404). No res
 | `POST .../verification/notes` | a note on the application's verification or one assessment |
 | `POST .../verification/request-verification` | always 409 until phase 2 |
 | `GET /v1/organization/verification-settings` | whether the consistency check is on, its monthly token budget, and the tokens used this month |
-| `PUT /v1/organization/verification-settings` | turn the check on or off and set the budget (organization admins, in the dashboard's Settings > Verification) |
+| `PUT /v1/organization/verification-settings` | turn the check on or off and set the budget (organization admins, in the dashboard's Hiring setup > Verification) |
 
 The verification view also carries `consistencyCheck` (status, note, prompt version, models) once the check is decided, and
 each signal's `informational` flag and, for `CNT_INCONSISTENCY`, its `llm` provenance.

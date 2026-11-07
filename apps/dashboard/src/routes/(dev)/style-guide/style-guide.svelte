@@ -78,7 +78,10 @@
   import ScorecardList from '#lib/components/scorecard-list.svelte';
   import SearchField from '#lib/components/search-field.svelte';
   import SecretDialog from '#lib/components/secret-dialog.svelte';
+  import CandidatesListSwitch from '#lib/components/candidates-list-switch.svelte';
+  import IntegrationRow from '#lib/components/integration-row.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
+  import SetupSteps from '#lib/components/setup-steps.svelte';
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import SignalEvidence from '#lib/components/signal-evidence.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
@@ -117,12 +120,15 @@
   import type { TrayItem } from '#lib/notifications.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { counted } from '#lib/reports.js';
+  import { integrations } from '#lib/integrations.js';
+  import { settingsAreas } from '#lib/settings.js';
   import { sections } from '#lib/shell.js';
   import type { StatusName } from '#lib/status.js';
   import EditPreviewDemo from './edit-preview-demo.svelte';
   import AddCandidateDemo from './add-candidate-demo.svelte';
   import CustomizePostingDemo from './customize-posting-demo.svelte';
   import BrandingDemo from './branding-demo.svelte';
+  import DropAreaDemo from './drop-area-demo.svelte';
   import EmailComposerDemo, { demoEmail } from './email-composer-demo.svelte';
   import FormBuilderDemo from './form-builder-demo.svelte';
   import ReorderDemo from './reorder-demo.svelte';
@@ -195,11 +201,21 @@
     createdAt: '2026-10-20T12:00:00Z',
     createdByUserId: 'u1',
     cancelledByCandidate: false,
+    newTimesOfferedAt: null,
     ...overrides,
   });
   const interviewStates = [
     interviewSample('Open'),
     interviewSample('Booked', { startsAt: '2026-11-05T15:00:00Z', endsAt: '2026-11-05T15:30:00Z', meetingUrl: 'https://meet.example.org/abc-defg' }),
+    interviewSample('Booked', {
+      id: 'interview-Booked-new-times',
+      startsAt: '2026-11-05T15:00:00Z',
+      endsAt: '2026-11-05T15:30:00Z',
+      meetingUrl: 'https://meet.example.org/abc-defg',
+      newTimesOfferedAt: '2026-11-02T12:00:00Z',
+      windowStart: '2026-11-09T05:00:00Z',
+      windowEnd: '2026-11-17T05:00:00Z',
+    }),
     interviewSample('Cancelled', { startsAt: '2026-11-05T15:00:00Z', endsAt: '2026-11-05T15:30:00Z', cancelledByCandidate: true }),
     interviewSample('Expired'),
   ];
@@ -548,8 +564,8 @@
 <!-- A candidate header's three mini cards: Contact, Application, then Also applied to (or Rating once someone scored them). -->
 {#snippet candidateCards()}
   <div class="@container">
-    <div class="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] gap-3">
-      <MiniCard title="Contact">
+    <div class="-m-1 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto p-1 [scrollbar-width:none] @xl:m-0 @xl:grid @xl:snap-none @xl:grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] @xl:overflow-visible @xl:p-0">
+      <MiniCard class="w-64 shrink-0 snap-start @xl:w-auto" title="Contact">
         <div class="flex min-w-0 items-center gap-1">
           <TruncatedText text="samuel.okonkwo@example.com" href="mailto:samuel.okonkwo@example.com" icon={MailIcon} underlined />
           <CopyButton value="samuel.okonkwo@example.com" label="Copy email address" />
@@ -559,11 +575,11 @@
           <CopyButton value="+1 555 0142" label="Copy phone number" />
         </div>
       </MiniCard>
-      <MiniCard title="Application">
+      <MiniCard class="w-64 shrink-0 snap-start @xl:w-auto" title="Application">
         <TruncatedText text="Senior product designer" href="#mini-card" underlined />
         <p class="text-muted-foreground">Applied <RelativeTime at={ago(6 * day)} class="inline" /> via the careers page</p>
       </MiniCard>
-      <MiniCard title="Also applied to">
+      <MiniCard class="w-64 shrink-0 snap-start @xl:w-auto" title="Also applied to">
         <p class="text-muted-foreground">2 other jobs</p>
         <a href="#mini-card" class="inline-flex min-h-6 w-fit items-center underline underline-offset-2 pointer-coarse:min-h-11">Candidate profile</a>
       </MiniCard>
@@ -973,6 +989,8 @@
 
       <BrandingDemo />
 
+      <DropAreaDemo />
+
       <div class="flex flex-wrap items-start gap-5">
         <Panel title="Empty state" class="flex-[999_1_520px]">
           <Empty.Root>
@@ -1014,12 +1032,26 @@
                     <Sidebar.Content>
                       <Sidebar.Group>
                         <Sidebar.Menu>
-                          {#each sections as section, index (section.href)}
+                          {#each sections.filter((section) => section.sidebar !== false) as section, index (section.href)}
                             {@const Icon = section.icon}
                             <Sidebar.MenuItem>
                               <Sidebar.MenuButton isActive={index === 0} tooltipContent={section.label}>
                                 {#snippet child({ props })}
                                   <a href="#sidebar" {...props}><Icon aria-hidden="true" /><span>{section.label}</span></a>
+                                {/snippet}
+                              </Sidebar.MenuButton>
+                            </Sidebar.MenuItem>
+                          {/each}
+                        </Sidebar.Menu>
+                      </Sidebar.Group>
+                      <Sidebar.Group>
+                        <Sidebar.Menu>
+                          {#each settingsAreas as area (area.group)}
+                            {@const Icon = area.icon}
+                            <Sidebar.MenuItem>
+                              <Sidebar.MenuButton tooltipContent={area.label}>
+                                {#snippet child({ props })}
+                                  <a href="#sidebar" {...props}><Icon aria-hidden="true" /><span>{area.label}</span></a>
                                 {/snippet}
                               </Sidebar.MenuButton>
                             </Sidebar.MenuItem>
@@ -1348,6 +1380,41 @@
         <SettingsMenu current="/settings/team">
           <Panel title="Members"><p>A settings page's panels sit here, beside the menu.</p></Panel>
         </SettingsMenu>
+      </section>
+
+      <div class="flex flex-wrap items-start gap-5">
+        <Panel title="Candidates list switch" class="flex-[1_1_320px]">
+          <div class="flex flex-wrap gap-x-8 gap-y-4">
+            <figure class="flex flex-col gap-2">
+              <figcaption class="text-caption text-muted-foreground">Current</figcaption>
+              <CandidatesListSwitch list="current" />
+            </figure>
+            <figure class="flex flex-col gap-2">
+              <figcaption class="text-caption text-muted-foreground">Saved</figcaption>
+              <CandidatesListSwitch list="saved" />
+            </figure>
+          </div>
+        </Panel>
+        <Panel title="Integration row" flush class="flex-[999_1_520px]">
+          <ul>
+            {#each integrations as integration, index (integration.href)}
+              <IntegrationRow {integration} state={integration.label === 'MCP server' ? undefined : index % 2 === 0 ? 'connected' : 'notConnected'} />
+            {/each}
+          </ul>
+        </Panel>
+      </div>
+
+      <section aria-label="Setup checklist" class="max-w-form">
+        <SetupSteps
+          steps={[
+            { id: 'team', label: 'Invite your team', href: '#setup-checklist', done: true },
+            { id: 'branding', label: 'Set your branding', href: '#setup-checklist', done: false },
+            { id: 'careers', label: 'Set up your careers site', href: '#setup-checklist', done: false },
+            { id: 'email', label: 'Add your email domain', href: '#setup-checklist', done: false },
+            { id: 'job', label: 'Publish your first job', href: '#setup-checklist', done: false },
+          ]}
+          ondismiss={() => {}}
+        />
       </section>
 
       <div class="flex flex-wrap items-start gap-5">

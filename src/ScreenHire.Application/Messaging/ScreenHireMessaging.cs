@@ -15,6 +15,7 @@ using ScreenHire.Application.Distribution.GoogleIndexing;
 using ScreenHire.Application.Verification;
 using ScreenHire.Application.Verification.Content;
 using ScreenHire.Application.Jobs;
+using ScreenHire.Application.OAuth;
 using ScreenHire.Application.Privacy;
 using ScreenHire.Application.Slack;
 using ScreenHire.Application.TalentPool;
@@ -292,6 +293,8 @@ public static class ScreenHireMessaging
         opts.Schedules.ScheduleRecurring<PurgeExpiredApplicantUploads>("47 3 * * *");
         // Records that Slack messages went, and the sandbox's messages, past their retention, daily (docs/architecture/slack.md).
         opts.Schedules.ScheduleRecurring<PurgeExpiredSlackMessages>("57 3 * * *");
+        // OAuth client registrations nobody approved, and codes and tokens past their expiry, daily (docs/architecture/oauth-server.md).
+        opts.Schedules.ScheduleRecurring<PurgeExpiredOAuthData>("22 4 * * *");
         // Copies of candidates' data past their download window, daily (docs/architecture/data-requests.md).
         opts.Schedules.ScheduleRecurring<PurgeExpiredDataExports>("47 3 * * *");
         // Ended applications past each organization's retention period, daily; off for an organization until it sets a period.

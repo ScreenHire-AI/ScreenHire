@@ -3,6 +3,7 @@ import { Font, fontData } from 'astro:assets';
 import { PUBLIC_APP_URL } from 'astro:env/server';
 import Analytics from '../components/Analytics.astro';
 import Seo from '../components/Seo.astro';
+import { appLinks } from '../lib/app-links';
 import { footerNav, mainNav, pages } from '../lib/pages';
 import { breadcrumbList, type Crumb, type JsonLd } from '../lib/seo';
 import '../styles/global.css';
@@ -24,7 +25,7 @@ const current = Astro.url.pathname;
 const isCurrent = (path: string) => current === path || (path !== '/' && current.startsWith(path));
 // Preload only the latin body font (the first variant in astro.config.mjs); latin-ext downloads when a page needs it.
 const bodyFont = fontData['--font-hanken']?.[0]?.src[0]?.url;
-const signInUrl = PUBLIC_APP_URL ? new URL('/', PUBLIC_APP_URL).href : undefined;
+const { signIn: signInUrl, signUp: signUpUrl } = appLinks(PUBLIC_APP_URL, pages.pricing.path);
 ---
 
 <!doctype html>
@@ -47,11 +48,11 @@ const signInUrl = PUBLIC_APP_URL ? new URL('/', PUBLIC_APP_URL).href : undefined
     >
     {/* On a phone the name and the Start free button share the first row and the links wrap below them; from md up it is
         one row: name, links, then the buttons at the right. */}
-    <header class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-7 gap-y-2 px-6 py-5">
-      <a href="/" class="order-1 flex items-center gap-2.5 text-foreground no-underline">
+    <header class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-8 gap-y-2 px-6 py-5">
+      <a href="/" class="order-1 flex items-center gap-3 text-foreground no-underline">
         <span
           aria-hidden="true"
-          class="grid size-8 place-items-center rounded-[9px] bg-foreground font-display text-lg font-extrabold text-background"
+          class="grid size-8 place-items-center rounded-lg bg-foreground font-display text-lg font-extrabold text-background"
           >S</span
         >
         <span class="font-display text-xl font-bold tracking-tight">ScreenHire</span>
@@ -69,11 +70,11 @@ const signInUrl = PUBLIC_APP_URL ? new URL('/', PUBLIC_APP_URL).href : undefined
           ))
         }
       </nav>
-      <div class="order-2 ml-auto flex items-center gap-2.5 md:order-3">
-        {signInUrl && <a href={signInUrl} class="inline-flex min-h-11 items-center px-1.5 font-semibold text-foreground no-underline hover:text-primary">Sign in</a>}
+      <div class="order-2 ml-auto flex items-center gap-3 md:order-3">
+        {signInUrl && <a href={signInUrl} class="inline-flex min-h-11 items-center px-2 font-semibold text-foreground no-underline hover:text-primary">Sign in</a>}
         <a
-          href={pages.pricing.path}
-          class="inline-flex h-11 items-center rounded-[10px] bg-primary px-5 font-bold text-primary-foreground no-underline hover:bg-primary/90"
+          href={signUpUrl}
+          class="button-primary"
           >Start free</a
         >
       </div>

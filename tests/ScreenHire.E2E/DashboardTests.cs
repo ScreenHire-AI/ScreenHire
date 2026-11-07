@@ -122,9 +122,9 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
         await Expect(Page.GetByRole(AriaRole.Button, new() { Name = invitee })).ToBeVisibleAsync();
 
-        // The link works once: opening it again explains that instead of signing anyone in.
+        // The link works once: opening it again explains that at once, from the invitation lookup, with no button to press.
         await Page.GotoAsync(link.ToString());
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Accept invitation" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Accept invitation" })).ToHaveCountAsync(0);
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("This invitation doesn't work");
     }
 

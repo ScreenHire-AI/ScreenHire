@@ -178,7 +178,7 @@
   <title>API keys · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'API keys' }]} />
+<TopBar crumbs={[{ label: 'Integrations', href: '/settings/integrations' }, { label: 'API keys' }]} back />
 
 <main class={[sidebar.isMobile && 'pb-28']}>
   <HeaderBand
@@ -347,7 +347,7 @@
   <Dialog.Content class="sm:max-w-md">
     <Dialog.Header>
       <Dialog.Title>Create an API key</Dialog.Title>
-      <Dialog.Description>For the hiring API: jobs, applications, candidates and templates.</Dialog.Description>
+      <Dialog.Description>For the hiring API: jobs, applications, candidates, templates and reports.</Dialog.Description>
     </Dialog.Header>
     <form method="POST" use:enhance novalidate class="flex flex-col gap-4">
       <Field.Field data-invalid={$errors.name ? true : undefined}>

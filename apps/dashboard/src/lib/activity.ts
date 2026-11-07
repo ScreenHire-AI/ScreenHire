@@ -4,6 +4,7 @@ import BookmarkXIcon from '~icons/lucide/bookmark-x';
 import CalendarCheckIcon from '~icons/lucide/calendar-check';
 import CalendarClockIcon from '~icons/lucide/calendar-clock';
 import CalendarPlusIcon from '~icons/lucide/calendar-plus';
+import CalendarRangeIcon from '~icons/lucide/calendar-range';
 import CalendarXIcon from '~icons/lucide/calendar-x';
 import ClipboardCheckIcon from '~icons/lucide/clipboard-check';
 import ClipboardListIcon from '~icons/lucide/clipboard-list';
@@ -58,6 +59,7 @@ const kinds: Partial<Record<ApplicationEventType, ActivityKind>> = {
   InterviewBooked: 'interviews',
   InterviewRescheduled: 'interviews',
   InterviewCancelled: 'interviews',
+  InterviewNewTimesOffered: 'interviews',
 };
 
 export const activityKind = (entry: Pick<ApplicationTimelineEntry, 'type'>): ActivityKind | undefined => kinds[entry.type];
@@ -99,6 +101,7 @@ export const eventIcons: Record<ApplicationEventType, Component> = {
   InterviewBooked: CalendarCheckIcon,
   InterviewRescheduled: CalendarClockIcon,
   InterviewCancelled: CalendarXIcon,
+  InterviewNewTimesOffered: CalendarRangeIcon,
 };
 
 /** What the screen knows that an entry names by id: stage names, follow-up questionnaire names and job titles. */
@@ -173,6 +176,8 @@ export function describeEvent(entry: ApplicationTimelineEntry, names: ActivityNa
       return entry.startsAt ? `Interview booked for ${formatDateTime(entry.startsAt)}` : 'Interview booked';
     case 'InterviewRescheduled':
       return entry.startsAt ? `Interview moved to ${formatDateTime(entry.startsAt)}` : 'Interview moved to another time';
+    case 'InterviewNewTimesOffered':
+      return entry.startsAt ? `Offered new times for the interview on ${formatDateTime(entry.startsAt)}` : 'Offered new interview times';
     case 'InterviewCancelled':
       return entry.startsAt ? `Interview on ${formatDateTime(entry.startsAt)} cancelled` : 'Interview cancelled';
   }

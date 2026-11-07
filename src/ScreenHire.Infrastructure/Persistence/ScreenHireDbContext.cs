@@ -74,6 +74,12 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
 
     public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
 
+    public DbSet<OAuthClient> OAuthClients => Set<OAuthClient>();
+
+    public DbSet<OAuthCode> OAuthCodes => Set<OAuthCode>();
+
+    public DbSet<OAuthToken> OAuthTokens => Set<OAuthToken>();
+
     public DbSet<Job> Jobs => Set<Job>();
 
     public DbSet<JobVersion> JobVersions => Set<JobVersion>();
@@ -160,6 +166,8 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     public DbSet<ChangeRecord> ChangeRecords => Set<ChangeRecord>();
 
     public DbSet<WebhookEndpoint> WebhookEndpoints => Set<WebhookEndpoint>();
+
+    public DbSet<WebhookEndpointSecret> WebhookEndpointSecrets => Set<WebhookEndpointSecret>();
 
     public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
 

@@ -59,9 +59,9 @@
     { id: 'name', header: 'Name', accessorFn: name, sortFn: 'alphanumeric' },
     { id: 'url', header: 'URL', accessorFn: (endpoint) => endpoint.url, sortFn: 'alphanumeric' },
     { id: 'events', header: 'Events', accessorFn: (endpoint) => endpoint.events.length, sortFn: 'basic' },
-    { id: 'added', header: 'Added', accessorFn: (endpoint) => endpoint.createdAt, sortFn: 'basic', sortDescFirst: true },
+    { id: 'updated', header: 'Last updated', accessorFn: (endpoint) => endpoint.lastUpdated.at ?? '', sortFn: 'basic', sortDescFirst: true },
   ];
-  const sort = createTableSort('webhooks', { id: 'name', desc: false }, ['status', 'name', 'url', 'events', 'added']);
+  const sort = createTableSort('webhooks', { id: 'name', desc: false }, ['status', 'name', 'url', 'events', 'updated']);
   const table = createTable({
     ...tableSortOptions(() => sort),
     features,
@@ -80,7 +80,7 @@
   <title>Webhooks · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Webhooks' }]} />
+<TopBar crumbs={[{ label: 'Integrations', href: '/settings/integrations' }, { label: 'Webhooks' }]} back />
 
 <main class={[sidebar.isMobile && 'pb-28']}>
   <HeaderBand
@@ -135,7 +135,7 @@
                 {#each table.getHeaderGroups() as group (group.id)}
                   <Table.Row class="bg-muted hover:bg-muted">
                     {#each group.headers as header (header.id)}
-                      <SortHeader {header} class={header.id === 'status' ? 'px-4.5' : header.id === 'added' ? 'pr-4.5' : undefined} />
+                      <SortHeader {header} class={header.id === 'status' ? 'px-4.5' : header.id === 'updated' ? 'pr-4.5' : undefined} />
                     {/each}
                   </Table.Row>
                 {/each}
@@ -157,7 +157,9 @@
                       {#if endpoint.description}<span class="relative block min-w-0"><TruncatedText text={endpoint.url} /></span>{/if}
                     </Table.Cell>
                     <Table.Cell class="tabular-nums">{events(endpoint.events.length)}</Table.Cell>
-                    <Table.Cell class="pr-4.5 text-muted-foreground"><span class="relative"><DateText at={endpoint.createdAt} /></span></Table.Cell>
+                    <Table.Cell class="pr-4.5 text-muted-foreground">
+                      {#if endpoint.lastUpdated.at}<span class="relative"><DateText at={endpoint.lastUpdated.at} /></span>{/if}
+                    </Table.Cell>
                   </Table.Row>
                 {/each}
               </Table.Body>

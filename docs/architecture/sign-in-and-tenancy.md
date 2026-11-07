@@ -49,6 +49,8 @@ sources:
   - resource: apps/dashboard/src/lib/auth.ts
   - resource: apps/dashboard/src/lib/permissions.ts
   - resource: apps/dashboard/src/lib/settings.ts
+  - resource: apps/dashboard/src/lib/integrations.ts
+  - resource: apps/dashboard/src/lib/components/settings-menu.svelte
   - resource: apps/dashboard/src/lib/hiring-team.ts
   - resource: apps/dashboard/src/lib/components/member-access-sheet.svelte
   - resource: apps/dashboard/src/lib/components/hiring-team-sheet.svelte
@@ -89,10 +91,11 @@ organization API key in place of the session ("API keys" below).
 | `GET /v1/auth/challenge/{provider}?returnUrl=` | Redirects to the provider (authorization code + PKCE). |
 | `GET /v1/auth/signin-{provider}` | The handler's redirect URI. The provider returns here with a code. |
 | `GET /v1/auth/callback?returnUrl=` | Links or creates the user, signs them in, redirects to the dashboard. |
-| `POST /v1/auth/magic-link` | Emails a sign-in link. Always 202, known address or not. |
+| `POST /v1/auth/magic-link` | Emails a sign-in link. Always 202, known address or not. An optional `returnUrl` (a local path, sanitized as above) rides in the link's fragment beside the token, so the verify page opens it after sign-in; the OAuth consent page relies on it. |
 | `POST /v1/auth/magic-link/verify` | Redeems a link's token and signs in. |
 | `POST /v1/auth/onboarding` | Creates the user's organization (name and slug) with them as Owner. |
 | `POST /v1/auth/invitations/accept` | Redeems an emailed invitation: signs in as the invited address and joins its organization. |
+| `POST /v1/auth/invitations/lookup` | Names the organization and role an open invitation offers, for the accept page. It uses nothing up, and answers an unusable token as accepting does. |
 | `GET /v1/auth/organizations` | Every organization the signed-in user belongs to, with their role in each. A custom role is named only in the one they work in: row-level security hides other organizations' roles. |
 | `POST /v1/auth/switch-organization` | Makes another of the user's organizations the one they work in. |
 | `POST /v1/auth/sign-out` | Ends the session. |
@@ -149,7 +152,7 @@ waits for SMTP; moving the send to a worker message is a later change.
 ## API keys
 
 Integrators call the hiring API with an organization API key instead of a session (ADR-0011). A role with Manage
-API keys (Owners and Admins) manages keys in a session, on the dashboard's Settings > API keys page, which shows a new key once.
+API keys (Owners and Admins) manages keys in a session, on the dashboard's Integrations > API keys page, which shows a new key once.
 
 | Route | What it does |
 |---|---|
@@ -167,7 +170,7 @@ API keys (Owners and Admins) manages keys in a session, on the dashboard's Setti
   shk_...`. It reads the organization from the key, sets it as the tenant in a DI scope of its own and looks the hash
   up there, so the lookup runs under row-level security like every other tenant query. A key naming the wrong
   organization finds nothing. `last_used_at` is written at most once a minute.
-- **Where keys work.** The hiring API (jobs, applications, candidates and templates) uses the `hiring-api`
+- **Where keys work.** The hiring API (jobs, applications, candidates, templates and reports) uses the `hiring-api`
   authorization policy, whose scheme `SessionOrApiKey` forwards to the key handler when the request has an
   `Authorization` header and to the cookie otherwise. A request is judged by one credential: a bad key with a good
   cookie is 401. Every other route keeps the cookie-only default and fallback policies, so a key gets 401 on sign-in,
@@ -182,11 +185,14 @@ API keys (Owners and Admins) manages keys in a session, on the dashboard's Setti
   application's verification review log, saved before the answer goes out: the key, the time and no person. Dismissing,
   explaining and noting stay the session's. The MCP server's verification tools use the same reads
   ([MCP server](mcp-server.md)).
-- **The MCP server** at `/v1/mcp` lets a team's AI assistant use the hiring API with a key, and only a key: its own
-  `mcp` policy authenticates the `ApiKey` scheme alone, so a session cookie gets 401 there
-  ([MCP server](mcp-server.md)). Its write tools check the same scope rule as the routes
+- **The MCP server** at `/v1/mcp` lets a team's AI assistant use the hiring API with a key, or with an OAuth connection a
+  person approved, and nothing else: its own `mcp` policy authenticates the `McpCredentials` scheme (the `ApiKey` handler,
+  or the OAuth handler for an `sho_` access token), so a session cookie gets 401 there ([MCP server](mcp-server.md),
+  [OAuth sign-in](oauth-server.md)). A connection is a key row with an OAuth client, so it has a key's scopes, rate limit,
+  actor and tenant; an `sho_` token is refused everywhere but `/v1/mcp`, and the API keys page lists no connection. Its write tools check the same scope rule as the routes
   (`HiringAuthorization.KeyRefusal`), its verification tools need the `VerificationRead` scope, and its report and
-  saved-candidate tools need only `Read` and call the read services of session-only routes.
+  saved-candidate tools need only `Read`. The report tool reads what the reports routes read, and the saved-candidate
+  tool calls the read service of session-only routes.
 - **The tenant** is the key's organization, with no user (`TenantResolutionMiddleware`, which runs after
   authorization because the hiring policy replaces the request's user there). Writes by a key record no user; the
   application timeline records the key as `actorApiKeyId`.
@@ -209,7 +215,8 @@ API keys (Owners and Admins) manages keys in a session, on the dashboard's Setti
 - **The API reference** (Scalar at `/scalar`) and the OpenAPI file (`/openapi/v1.json`) are public in every
   environment, at the same paths: they document the public API and hold no data. `GET /v1/meta` reports the API's
   public origin (`ScreenHire:Domains:ApiHost`), and the dashboard's API keys and Webhooks pages build their base URL and
-  reference links from it. The public page calls no third party: Scalar's telemetry, its CDN fonts, its AI chat and its MCP
+  reference links from it. It also reports `careersUrlPattern`, a tenant's careers address with `{tenant}` where the slug goes
+  (`DomainOptions.CareersUrlPattern`), which onboarding fills in to show the address a name will get. The public page calls no third party: Scalar's telemetry, its CDN fonts, its AI chat and its MCP
   server are off (`apps/api/Program.cs`). `ApiReferenceTests` reaches both with the API in Production and checks the
   first two.
 
@@ -275,12 +282,14 @@ use" says how many. Each create, change and delete runs under the member lock, l
 role's change history ([change-history.md](change-history.md)). A custom role's description is generated from its
 permissions (`RolePermissions.Summarize`), so it always says what the role allows.
 
-The dashboard follows the same permissions (`apps/dashboard/src/lib/permissions.ts`). **Settings** is one sidebar item
-for anyone whose role has a settings permission; it opens the Settings menu (Organization, Team, Roles, Branding,
-Verification, Email domain, API keys and Webhooks, under `/settings/*`; email templates are on the Templates page, and their old
-`/settings/email-templates` addresses redirect there), each page
-behind its permission (`settingsSections` in `apps/dashboard/src/lib/settings.ts`), and the command palette lists the
-same pages. Slack's page and entry are left out wherever `GET /v1/slack` says Slack is not `available` (a feature on its
+The dashboard follows the same permissions (`apps/dashboard/src/lib/permissions.ts`). **Settings** is three sidebar items, Organization,
+Hiring setup and Integrations, each shown for anyone whose role has a permission for at least one page in it and opening the
+first page they may use. Under `/settings/*`, Organization holds General, Team, Roles and Data requests; Hiring setup holds Careers site,
+Branding, Verification and Email domain; Integrations holds Slack, MCP server, Webhooks and API keys, reached from a directory at
+`/settings/integrations` (email templates are on the Templates page, and their old `/settings/email-templates` addresses redirect
+there). The first two share the Settings menu, which lists only the pages of the area; each page is behind its permission
+(`settingsSections` and `settingsAreas` in `apps/dashboard/src/lib/settings.ts`, the integrations from `integrations` in
+`apps/dashboard/src/lib/integrations.ts`), and the command palette lists the same pages. Slack's page and entry are left out wherever `GET /v1/slack` says Slack is not `available` (a feature on its
 settings row, `SettingsFeatures`), and so is Email domain's wherever `GET /v1/organization/sending-domain` says
 there is no email provider (shown until that answer says so, and kept when the request fails), and an address to either goes to the first page the person may use. The settings layout tells anyone who opens another page by its address that their role cannot change it.
 Hiring controls show by the permission their route needs: an Interviewer sees Add note and Fill scorecard but no Move.
@@ -307,7 +316,7 @@ created as well, for a role that manages keys (ADR-0011). The API stays the judg
 
 | Route | Who | What it does |
 |---|---|---|
-| `GET /members` | Any member | The organization's members with their email, name, role and role name, their job access, whether they see all jobs, and how many of the jobs the reader sees they are on. |
+| `GET /members` | Any member | The organization's members with their email, name, role and role name, their job access, whether they see all jobs, how many of the jobs the reader sees they are on, and, to a reader who manages the team, `lastUpdated`: the newest role or job access change and who made it (null until one happens). |
 | `GET /members/{memberId}/jobs` | Any member | The jobs whose hiring team the member is on, among those the reader sees. |
 | `PUT /members/{memberId}/role` | Manage the team | Gives a member another role: a built-in one, or `Custom` with `customRoleId`. |
 | `PUT /members/{memberId}/job-access` | Manage the team | Sets `All` or `HiringTeamOnly`. 400 for an Owner or Admin, who see all jobs anyway. |
@@ -470,7 +479,7 @@ Who the tenant is:
 | Request | Tenant |
 |---|---|
 | Signed in | `TenantResolutionMiddleware`: the user's active organization (or first membership) and their job access there, read on every request |
-| API key | `TenantResolutionMiddleware`: the key's organization, with no user ("API keys" above), and the key's id, which change history records as the actor. Every job. |
+| API key, or an OAuth connection on `/v1/mcp` | `TenantResolutionMiddleware`: the key's organization, with no user ("API keys" above), and the key's id, which change history records as the actor. Every job. An OAuth code or token names its organization, as a key does, and the token endpoint and the OAuth handler set it before the lookup. |
 | Public careers endpoint | The organization whose slug is in the route, for reads and for the apply flow's anonymous writes, which only add an application (or an upload for one) to that organization. Every job, whoever is signed in (`SetPublicOrganization`). |
 | Onboarding | The new organization, from just before it is saved |
 | Accepting an invitation | The organization the token names, for the lookup by hash and the join that follows |

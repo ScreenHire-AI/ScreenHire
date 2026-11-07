@@ -16,7 +16,8 @@ sources:
   - resource: apps/api/Applications/ApplicationSubmission.cs
   - resource: apps/careers/src/pages/[organization]/talent-pool/[token].astro
   - resource: apps/careers/src/lib/talent-pool.ts
-  - resource: apps/dashboard/src/routes/(app)/saved/+page.svelte
+  - resource: apps/dashboard/src/lib/components/saved-candidates.svelte
+  - resource: apps/dashboard/src/lib/components/candidates-list-switch.svelte
   - resource: apps/dashboard/src/lib/talent-pool.ts
   - resource: apps/dashboard/src/lib/components/save-candidate-sheet.svelte
   - resource: apps/dashboard/src/lib/components/edit-saved-note-sheet.svelte
@@ -116,8 +117,9 @@ The entry belongs to its application (`IApplicationScoped`), so it has the restr
 Only jobs they're on sees the people saved from their own jobs (ADR-0015). It cascades with the application and the
 candidate.
 
-`GET /v1/talent-pool` lists everyone saved whose permission still holds. The **Saved candidates** page (a sidebar item
-after Candidates, G then S; `/talent-pool` redirects to `/saved`) is the list template: search over name, email, job
+`GET /v1/talent-pool` lists everyone saved whose permission still holds. **Saved candidates** is the Saved choice on the
+Candidates page, beside its title (G then S goes to `/candidates?list=saved`; `/saved` and `/talent-pool` redirect there).
+It is the list template: search over name, email, job
 and note; Saved from and Tag filters; columns Candidate, Rating, Note, Tags, Saved from, Saved and Last contacted; and a
 row menu with Invite to apply, Add to a job, Message, Edit note and Remove from saved. There is no Verification
 column or filter, so the list never becomes one picked by level for bulk invitations (ADR-0004).
@@ -174,7 +176,7 @@ of the built-in `talent-pool-invitation` template ([email](email.md)), with:
 - `{{ removeLink }}`, the signed link to stop being kept.
 
 It sends nothing to an address the email provider flagged as bounced or marked as spam. It sends the email, then keeps the copy for Messages with "[the candidate's link, not kept in this copy]" in place of
-the remove link, because that link acts for the candidate. It records `InvitedToApply` and `EmailSent` on the saved
+the remove link, because that link acts for the candidate. Like every email to a candidate it ends with the link to their own page, which the copy does not hold ([candidate portal](candidate-portal.md)). It records `InvitedToApply` and `EmailSent` on the saved
 application, so an invitation also moves Last contacted. Only Invite to apply sends this template: the email composer
 never offers it, and no automation names it. Its wording is edited on Templates, not per send. The sheet previews it
 (`POST /v1/talent-pool/invitations/preview`).

@@ -23,7 +23,7 @@ function renderPipeline(overrides: { stages?: WorkflowStage[]; verificationFilte
   return render(WithQueryClient, { props: { component: JobPipelineHarness, props: { stages, applications, ...overrides } } });
 }
 
-const panel = () => screen.getByRole('region', { name: 'Pipeline' });
+const panel = () => screen.getByRole('region', { name: 'Candidates' });
 const panelHeader = () => panel().querySelector('header')!;
 const filters = () => panel().querySelector<HTMLElement>('[data-filters]')!;
 const selectionBar = () => screen.getByRole('region', { name: 'Selected candidates' });
@@ -45,7 +45,7 @@ describe('job pipeline', () => {
     renderPipeline();
     const header = panelHeader();
 
-    expect(within(header).getByRole('heading', { level: 2, name: 'Pipeline' })).toBeInTheDocument();
+    expect(within(header).getByRole('heading', { level: 2, name: 'Candidates' })).toBeInTheDocument();
     // The job's Candidates tab says how many; the panel does not say it again (W4).
     expect(header.querySelector('[data-slot="badge"]')).toBeNull();
     expect(within(header).getByRole('searchbox', { name: 'Search candidates' })).toBeInTheDocument();

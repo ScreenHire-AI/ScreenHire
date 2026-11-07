@@ -11,10 +11,12 @@
     ApiError,
     createDeleteWebhookEndpoint,
     createGetWebhookEndpoint,
+    createListTeamMembers,
     createListWebhookDeliveries,
     createReplayWebhookDelivery,
     createRotateWebhookSecret,
     createUpdateWebhookEndpoint,
+    getGetWebhookEndpointHistoryQueryOptions,
   } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import {
@@ -27,12 +29,15 @@
     type ColumnDef,
   } from '@tanstack/svelte-table';
   import { goto } from '$app/navigation';
+  import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import Fact from '#lib/components/fact.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import HistorySheet from '#lib/components/history-sheet.svelte';
+  import LastUpdated from '#lib/components/last-updated.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Notice from '#lib/components/notice.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -51,6 +56,8 @@
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
+  import { createHistoryPages } from '#lib/history-pages.svelte.js';
+  import { lastUpdateWords } from '#lib/history.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { needsAttention } from '#lib/status.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
@@ -81,6 +88,15 @@
   const replay = createReplayWebhookDelivery(() => ({ mutation: { onSettled: settled } }));
 
   const detail = $derived(endpoint.data?.data);
+  const team = createListTeamMembers();
+  const members = $derived(team.data?.data);
+  const currentUserId = $derived(page.data.user?.id);
+  // The endpoint's History: its address by host, its events, its switch and each rotation of its secret, never the secret.
+  let historyOpen = $state(false);
+  const history = createHistoryPages(
+    (before) => getGetWebhookEndpointHistoryQueryOptions(params.endpointId, { before }),
+    () => historyOpen,
+  );
   const notFound = $derived(endpoint.error instanceof ApiError && endpoint.error.status === 404);
   const log = $derived(deliveries.data?.data ?? []);
 
@@ -167,7 +183,7 @@
   <title>{title} · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Webhooks', href: '/settings/webhooks' }, { label: title }]} back />
+<TopBar crumbs={[{ label: 'Integrations', href: '/settings/integrations' }, { label: 'Webhooks', href: '/settings/webhooks' }, { label: title }]} back />
 
 <main class={['flex flex-col', sidebar.isMobile && detail && !detail.enabled && 'pb-28']}>
   {#if endpoint.isError && !detail}
@@ -228,10 +244,25 @@
         {#if detail.description}
           <Fact label="URL"><TruncatedText text={detail.url} /></Fact>
         {/if}
-        <Fact label="Added"><RelativeTime at={detail.createdAt} /></Fact>
         <Fact label="Secret rotated"><RelativeTime at={detail.secretRotatedAt} /></Fact>
+        <Fact label={lastUpdateWords(detail.lastUpdated).label}>
+          <LastUpdated value={detail.lastUpdated} {members} {currentUserId} onhistory={() => (historyOpen = true)} />
+        </Fact>
       {/snippet}
     </HeaderBand>
+    <HistorySheet
+      bind:open={historyOpen}
+      name={title}
+      entries={history.entries}
+      error={history.error}
+      onretry={history.retry}
+      hasMore={history.hasMore}
+      loadingMore={history.loadingMore}
+      onmore={history.more}
+      {members}
+      {currentUserId}
+      empty="No changes yet."
+    />
 
     <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
       <p role="status" class="sr-only">{announcement}</p>

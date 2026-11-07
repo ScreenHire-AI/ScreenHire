@@ -78,4 +78,11 @@ describe('shortcut catalogue', () => {
     expect(anywhere.shortcuts[0]).toEqual({ label: 'Open the command palette', keys: ['Ctrl', 'K'], singleKey: false });
     expect(shortcutGroups(sections, true)[0]!.shortcuts[0]!.keys).toEqual(['⌘', 'K']);
   });
+
+  it('keeps G then S for Saved candidates, which has no sidebar item but is a choice on the Candidates page', () => {
+    const saved = sections.find((section) => section.label === 'Saved candidates')!;
+
+    expect(saved).toMatchObject({ href: '/candidates?list=saved', key: 's', sidebar: false });
+    expect(shortcutGroups(sections, false)[0]!.shortcuts).toContainEqual({ label: 'Go to Saved candidates', keys: ['G', 'S'], sequence: true, singleKey: true });
+  });
 });

@@ -103,6 +103,9 @@ const panels: Record<string, string[]> = {
   'Built in badge': ['Built in badge'],
   'Reorder grip': ['Reorder grip'],
   'Settings menu': ['Settings menu'],
+  'Candidates list switch': ['Candidates list switch'],
+  'Integration row': ['Integration row'],
+  'Setup checklist': ['Setup checklist'],
   'Form builder': ['Form builder'],
   'Answer menu': ['Answer menu'],
   Rating: ['Rating'],
@@ -113,6 +116,7 @@ const panels: Record<string, string[]> = {
   'Country picker': ['Country picker'],
   'Rich text editor': ['Rich text editor'],
   'Colour field': ['Colour field'],
+  'Drop area': ['Drop area'],
   'Image field': ['Image field'],
   'Branding preview': ['Branding preview'],
 };

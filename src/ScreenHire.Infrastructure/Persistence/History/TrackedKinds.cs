@@ -8,6 +8,7 @@ using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Domain.Privacy;
 using ScreenHire.Domain.TalentPool;
+using ScreenHire.Domain.Webhooks;
 
 namespace ScreenHire.Infrastructure.Persistence.History;
 
@@ -17,9 +18,10 @@ namespace ScreenHire.Infrastructure.Persistence.History;
 /// </summary>
 /// <remarks>
 /// A list on top of EF's change tracker, rather than recording every entry it holds, because it is an allow-list:
-/// the interceptor never reads an entity that is not here, so a webhook's signing secret can never reach the history. A
-/// row here that holds a secret (an API key, an invitation) is seen through a view without it, so its describer never
-/// sees the secret. <c>TrackedKindsTests</c> checks that no describer's view has a secret-like property.
+/// the interceptor never reads an entity that is not here, so a secret kept in a row of its own can never reach the history
+/// (a webhook's signing secret is not stored at all: its inputs are the row of <see cref="WebhookEndpointSecret"/>, which
+/// history sees only through <see cref="SigningRotation"/>). A row here that holds a secret (an API key, an invitation) is
+/// seen through a view without it, so its describer never sees the secret. <c>TrackedKindsTests</c> checks that no describer's view has a secret-like property.
 /// </remarks>
 public static class TrackedKinds
 {
@@ -56,6 +58,12 @@ public static class TrackedKinds
         // Invitations and API keys hold a secret, so their describers see a view without it.
         Track<OrganizationInvitation, InvitationFacts>(ChangeSubjectKind.Team, i => i.OrganizationId.ToString("D"), InvitationFacts.Of, InvitationAsync),
         Track<ApiKey, ApiKeyFacts>(ChangeSubjectKind.ApiKeys, k => k.OrganizationId.ToString("D"), ApiKeyFacts.Of, ApiKeyChanges.Describe),
+
+        // A webhook endpoint's own row holds no secret: the inputs of its signing secret are the row below, which history sees
+        // only as the time of a rotation. The endpoint's address can carry a token, so its describer names the host alone.
+        Track<WebhookEndpoint>(ChangeSubjectKind.WebhookEndpoint, e => e.Id.ToString("D"), WebhookEndpointChanges.Describe, creates: (_, _) => true),
+        Track<WebhookEndpointSecret, SigningRotation>(
+            ChangeSubjectKind.WebhookEndpoint, s => s.EndpointId.ToString("D"), SigningRotation.Of, WebhookEndpointChanges.Rotation),
     ];
 
     private static readonly ILookup<Type, TrackedKind> ByType = All.ToLookup(k => k.EntityType);
