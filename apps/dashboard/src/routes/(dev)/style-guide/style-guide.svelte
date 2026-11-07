@@ -66,7 +66,6 @@
   import NotificationTray from '#lib/components/notification-tray.svelte';
   import OverdueBadge from '#lib/components/overdue-badge.svelte';
   import Panel from '#lib/components/panel.svelte';
-  import StageFlow from '#lib/components/workflow/stage-flow.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RecordTabs, { type RecordTab } from '#lib/components/record-tabs.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
@@ -109,6 +108,7 @@
   import * as Tabs from '#lib/components/ui/tabs/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
+  import StageFlow from '#lib/components/workflow/stage-flow.svelte';
   import { formatDate, hour, day, minute } from '#lib/dates.js';
   import type { Tracker, TrackerStep } from '#lib/pipeline-tracker.js';
   import { applyFormKinds, scorecardKinds } from '#lib/form-builder.js';
@@ -845,7 +845,7 @@
       <Panel title="Stage flow">
         <div class="flex flex-col gap-5">
           <figure class="flex flex-col gap-2">
-            <figcaption class="text-caption text-muted-foreground">Side by side where every stage fits: the name, then what is attached, and a stage with nothing attached shows only its name</figcaption>
+            <figcaption class="text-caption text-muted-foreground">At the width of the panel: side by side where every stage fits</figcaption>
             <StageFlow stages={flowStages} automations={flowAutomations} />
           </figure>
           <figure class="flex max-w-80 flex-col gap-2">

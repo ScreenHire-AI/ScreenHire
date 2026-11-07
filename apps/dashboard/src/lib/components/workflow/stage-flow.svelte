@@ -22,16 +22,20 @@
     label?: string;
   } = $props();
 
-  // One style for every fact: its icon, then a short muted line that wraps rather than cuts.
+  // One style for every fact: its icon, then a short muted line that wraps rather than cuts. The line can shrink below
+  // its longest word (min-w-0), or a long unbroken name would run across the next column.
   const factClass = 'flex items-start gap-1.5 text-muted-foreground break-words';
   const iconClass = 'mt-0.5 shrink-0';
+  const lineClass = 'min-w-0';
 
-  const automationsOn = (stage: WorkflowStage) => automations.filter((automation) => laneOf(automation) === stage.id).length;
+  // An automation that is off fires on nothing, so its stage does not count it.
+  const automationsOn = (stage: WorkflowStage) => automations.filter((automation) => automation.enabled !== false && laneOf(automation) === stage.id).length;
 </script>
 
-<!-- The wrapper is the size container (F2). A container query's condition cannot read how many stages there are, so the
-     choice is made with container query units against the width the stages need (--need, in the style block below):
-     the same query, in a form that takes a variable. No script measures anything, so the first paint is right (S8). -->
+<!-- The wrapper is the size container (F2). A container query's condition cannot read how many stages there are, and
+     Tailwind's @container variants take a fixed width, so the choice is made with container query units against the
+     width the stages need (--need, in the style block below): the same query, in a form that takes a variable. No
+     script measures anything, so the first paint is right (S8). -->
 <div class="stage-flow">
   <ol aria-label={label} style:--n={stages.length}>
     {#each stages as stage, index (stage.id)}
@@ -44,13 +48,13 @@
         {#if stage.scorecard || stage.scorecardTemplateId || stage.slaDays || cards > 0}
           <ul class="facts mt-1.5 flex flex-col gap-1">
             {#if stage.scorecard || stage.scorecardTemplateId}
-              <li class={factClass}><ClipboardListIcon aria-hidden="true" class={iconClass} /><span><span class="sr-only">Scorecard:</span>{' '}<ScorecardName {stage} /></span></li>
+              <li class={factClass}><ClipboardListIcon aria-hidden="true" class={iconClass} /><span class={lineClass}><span class="sr-only">Scorecard:</span>{' '}<ScorecardName {stage} /></span></li>
             {/if}
             {#if stage.slaDays}
-              <li class={factClass}><ClockIcon aria-hidden="true" class={iconClass} /><span class="tabular-nums">{stage.slaDays}-day limit</span></li>
+              <li class={factClass}><ClockIcon aria-hidden="true" class={iconClass} /><span class={[lineClass, 'tabular-nums']}>{stage.slaDays}-day limit</span></li>
             {/if}
             {#if cards > 0}
-              <li class={factClass}><ZapIcon aria-hidden="true" class={iconClass} /><span>{cards} {cards === 1 ? 'automation' : 'automations'}</span></li>
+              <li class={factClass}><ZapIcon aria-hidden="true" class={iconClass} /><span class={lineClass}>{cards} {cards === 1 ? 'automation' : 'automations'}</span></li>
             {/if}
           </ul>
         {/if}
@@ -66,10 +70,11 @@
 
   ol {
     /* The width that holds every stage as a column. --short is positive while it does not fit (a big number, so the
-       clamps below behave as a switch) and negative while it does. */
+       clamps below behave as a switch) and negative while it does. A small multiplier would leave a sliver of widths
+       just under --need where the track is only a part of the list, and the stages would wrap into rows of columns. */
     --column: 12rem;
     --need: calc(var(--n) * var(--column));
-    --short: calc((var(--need) - 100cqw) * 999);
+    --short: calc((var(--need) - 100cqw) * 100000);
     display: grid;
     /* A column when they all fit; otherwise one track as wide as the list, which stacks them. */
     grid-template-columns: repeat(auto-fit, minmax(min(100%, max(var(--column), calc(var(--short) + var(--column)))), 1fr));
@@ -89,11 +94,15 @@
     padding-bottom: 0;
   }
 
-  /* Side by side, a hairline parts the columns. */
+  /* Side by side, a hairline parts the columns, with room on both sides of it. */
   ol > li:not(:first-child) {
     padding-left: clamp(0px, calc(var(--short) * -1), 1rem);
     border-left-style: solid;
     border-left-width: clamp(0px, calc(var(--short) * -1), 1px);
+  }
+
+  ol > li:not(:last-child) {
+    padding-right: clamp(0px, calc(var(--short) * -1), 1rem);
   }
 
   .line-down {
