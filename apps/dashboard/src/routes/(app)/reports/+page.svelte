@@ -29,6 +29,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { Switch } from '#lib/components/ui/switch/index.js';
   import { clock } from '#lib/clock.svelte.js';
+  import { formatDate } from '#lib/dates.js';
   import { downloadCsv, toCsv, type CsvSection } from '#lib/csv.js';
   import { describeError } from '#lib/query.js';
   import { dayText, parseDay, previousInstants, rangeInstants, readRange, writeRange, zoneName, type ReportRange } from '#lib/report-range.js';
@@ -236,6 +237,7 @@
   // Open jobs: a table only.
   const openJobColumns: ChartColumn<ReportOpenJob>[] = [
     { id: 'job', header: 'Job', text: (job) => job.title, sortBy: (job) => job.title, csv: (job) => job.title, href: (job) => `/jobs/${job.jobId}` },
+    { id: 'openedAt', header: 'Opened', text: (job) => (job.openedAt ? formatDate(job.openedAt) : ''), blank: 'No date', sortBy: (job) => (job.openedAt ? Date.parse(job.openedAt) : 0), csv: (job) => job.openedAt ?? null },
     numeric('applications', 'Applications', (job) => job.applications, (job) => countText(job.applications)),
     numeric('inInterview', 'In interview', (job) => job.inInterview, (job) => countText(job.inInterview)),
     numeric('daysOpen', 'Days open', (job) => job.daysOpen, (job) => countText(job.daysOpen)),

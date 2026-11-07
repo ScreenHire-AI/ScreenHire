@@ -19,7 +19,7 @@ checklist (section 2) before you finish.
 - Fetch on the server through `../lib/api` (relative to the page), which configures the generated client with
   `API_URL`. Never call `fetch` on an API route directly, and never from the browser.
 - Fetch independent data with `Promise.all`.
-- If the organization does not exist, `return new Response(null, { status: 404 });` before rendering. For a job, the
+- If the organization does not exist, `return new Response(null, { status: 404 });` before rendering (Astro shows the neutral `src/pages/404.astro`). For a job, the
   API answers 404 (unknown or draft) or 410 (closed, with its last content): set `Astro.response.status` and render
   `JobUnavailable.astro`, passing a closed job's expired JSON-LD through its `head` slot, as `jobs/[job].astro` does.
 - Build links from `basePath(Astro.request, organization)` (`src/lib/host.ts`), never `/${organization}`

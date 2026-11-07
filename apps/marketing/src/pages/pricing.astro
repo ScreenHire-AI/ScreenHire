@@ -3,6 +3,7 @@ import { PUBLIC_APP_URL } from 'astro:env/server';
 import Faqs from '../components/Faqs.astro';
 import PageHeader from '../components/PageHeader.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { appLinks } from '../lib/app-links';
 import { pages } from '../lib/pages';
 import { hasPrice, includedInEveryPlan, plans, pricedOffers } from '../lib/pricing';
 import { faqPage, softwareApplication, type Faq } from '../lib/seo';
@@ -10,7 +11,7 @@ import { faqPage, softwareApplication, type Faq } from '../lib/seo';
 const { title, description, path, label } = pages.pricing;
 const site = Astro.site ?? new URL(Astro.url.origin);
 // Sign-up lives in the dashboard; until its URL is configured the buttons point at what every plan includes.
-const startUrl = PUBLIC_APP_URL ? new URL('/', PUBLIC_APP_URL).href : '#included';
+const startUrl = appLinks(PUBLIC_APP_URL, '#included').signUp;
 
 const faqs: Faq[] = [
   {

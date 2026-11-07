@@ -106,6 +106,28 @@ describe('team page', () => {
     expect(names()).toEqual(['Avery Quinn', 'Casey Morgan', 'Jordan Lee', 'Bailey Fox']);
   });
 
+  it('adds a Last updated column with who changed the membership, blank for a member nobody has changed (T6, L1)', async () => {
+    localStorage.clear();
+    const changed: TeamMember = {
+      ...recruiter,
+      lastUpdated: { at: '2026-10-20T09:00:00Z', by: 'Member', userId: otherOwner.userId, apiKeyId: null, created: false },
+    };
+    renderPage('Owner', {}, [owner, otherOwner, admin, changed]);
+    await screen.findAllByText('Jordan Lee');
+    const table = screen.getAllByRole('table')[0]!;
+    const row = (name: string) => within(table).getAllByRole('row').find((candidate) => within(candidate).queryByText(name))!;
+
+    expect(within(table).getByRole('columnheader', { name: /Last updated/ })).toBeInTheDocument();
+    const cells = within(row('Jordan Lee')).getAllByRole('cell');
+    expect(cells[5]).toHaveTextContent('Oct 20, 2026 by Blake Rowan');
+    expect(within(row('Casey Morgan')).getAllByRole('cell')[5]).toHaveTextContent('Not changed since joining');
+    expect(within(row('Casey Morgan')).getAllByRole('cell')[5]).not.toHaveTextContent('2026');
+
+    await fireEvent.click(within(table).getByRole('button', { name: 'Last updated' }));
+    expect(within(table).getByRole('columnheader', { name: /Last updated/ })).toHaveAttribute('aria-sort', 'descending');
+    expect(within(table).getAllByRole('row')[1]).toHaveTextContent('Jordan Lee');
+  });
+
   it('gives an Owner actions on everyone but themselves', async () => {
     renderPage('Owner');
     await screen.findAllByText('Casey Morgan');

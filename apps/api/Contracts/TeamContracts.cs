@@ -10,10 +10,12 @@ namespace ScreenHire.Api.Contracts;
 /// <c>role</c> is a built-in role or Custom, with <c>customRoleId</c> naming which; <c>roleName</c> is its name either way.
 /// <c>jobAccess</c> is their stored choice and <c>seesAllJobs</c> what applies: Owners and Admins see all jobs whatever
 /// it says (ADR-0015). <c>jobCount</c> counts the jobs whose hiring team they are on, among the jobs the reader sees.
+/// <c>lastUpdated</c> is the newest change to their membership (a role or job access change) and who made it; null when
+/// nothing has changed since they joined, which <c>joinedAt</c> already says.
 /// </summary>
 public sealed record TeamMember(
     Guid Id, Guid UserId, string Email, string DisplayName, OrganizationRole Role, Guid? CustomRoleId, string RoleName, DateTimeOffset JoinedAt,
-    JobAccess JobAccess, bool SeesAllJobs, int JobCount);
+    JobAccess JobAccess, bool SeesAllJobs, int JobCount, LastUpdate? LastUpdated = null);
 
 /// <summary>Sets which jobs a member sees: all of them, or only the jobs whose hiring team they are on.</summary>
 public sealed record ChangeMemberJobAccessRequest(JobAccess? JobAccess);

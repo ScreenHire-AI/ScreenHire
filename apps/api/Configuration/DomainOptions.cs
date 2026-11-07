@@ -62,6 +62,9 @@ public sealed class DomainOptions
     public string CareersBoardUrl(string organizationSlug) =>
         Application.Applications.CareersSiteOptions.BoardUrl(Scheme, CareersHostPattern, CareersDomain, organizationSlug);
 
+    /// <summary>The careers address with <c>{tenant}</c> left where an organization's slug goes: <c>https://{tenant}.careers.example.com</c>.</summary>
+    public string CareersUrlPattern() => CareersBoardUrl("{tenant}");
+
     /// <summary>A job's page on its tenant's careers board: the URL boards link to and Google indexes.</summary>
     public string CareersJobUrl(string organizationSlug, string jobSlug) => $"{CareersBoardUrl(organizationSlug)}/jobs/{jobSlug}";
 }

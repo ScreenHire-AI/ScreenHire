@@ -6,7 +6,7 @@ import Harness from '../../test-support/email-template-form-harness.svelte';
 import { apiStub } from '../../test-support/fixtures.js';
 import { inHiddenPane } from '../../test-support/panes.js';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
-import { editRichText } from '../../test-support/rich-text.js';
+import { editRichText, editSubject, editorOf } from '../../test-support/rich-text.js';
 
 const variables: EmailTemplateVariableEntry[] = [
   { name: 'candidateName', label: 'Candidate name', rejectOnly: false },
@@ -76,7 +76,7 @@ describe('email template form', () => {
     await waitFor(() => expect(previews).toHaveLength(1));
     expect(previews[0]).toEqual({ subject: 'An update on {{ jobTitle }}', body: 'Hi {{ candidateName }},', templateId: 'stage-change' });
 
-    await fireEvent.input(screen.getByLabelText('Subject'), { target: { value: 'News about {{ jobTitle }}' } });
+    editSubject(screen.getByLabelText('Subject'), 'News about {{ jobTitle }}');
     await showPreview();
     const preview = screen.getByRole('region', { name: 'Preview' });
     expect(inHiddenPane(preview)).toBe(false);
@@ -90,7 +90,7 @@ describe('email template form', () => {
 
   it('says what is wrong with wording the API refuses', async () => {
     renderForm();
-    await fireEvent.input(screen.getByLabelText('Subject'), { target: { value: 'Hi {{ nope }}' } });
+    editSubject(screen.getByLabelText('Subject'), 'Hi {{ nope }}');
     await showPreview();
 
     expect(await screen.findByText('There is no variable "nope".')).toBeInTheDocument();
@@ -98,17 +98,40 @@ describe('email template form', () => {
 
   it('inserts a variable at the caret of the field last focused, and offers the reason only to the rejection email', async () => {
     renderForm();
-    const subject = screen.getByLabelText<HTMLInputElement>('Subject');
+    const subject = screen.getByLabelText('Subject');
+    editorOf(subject).commands.focus('start');
     await fireEvent.focus(subject);
-    subject.setSelectionRange(0, 0);
 
     await fireEvent.pointerDown(screen.getByRole('button', { name: 'Insert variable' }), { button: 0, pointerType: 'mouse' });
     const menu = await screen.findByRole('menu');
     expect(within(menu).queryByRole('menuitem', { name: 'Reason' })).not.toBeInTheDocument();
     await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Candidate name' }));
 
-    await waitFor(() => expect(subject).toHaveValue('{{ candidateName }}An update on {{ jobTitle }}'));
+    await waitFor(() => expect(editorOf(subject).getText()).toBe('{{ candidateName }}An update on {{ jobTitle }}'));
     expect(screen.queryByLabelText('Name')).not.toBeInTheDocument();
+  });
+
+  it('shows each variable in the subject as a chip too, and keeps the subject to one paragraph', async () => {
+    renderForm();
+    const subject = screen.getByRole('textbox', { name: 'Subject' });
+    expect(subject).toHaveAttribute('aria-multiline', 'false');
+    expect([...subject.querySelectorAll('[data-liquid]')].map((chip) => chip.textContent)).toEqual(['variable Job title']);
+    expect(subject).toHaveTextContent('An update on variable Job title');
+
+    // A chip typed in comes back as its Liquid text.
+    editSubject(subject, 'Hi {{ candidateName }}, about {{ jobTitle }}');
+    expect(subject.querySelectorAll('[data-liquid]')).toHaveLength(2);
+    expect(editorOf(subject).getText()).toBe('Hi {{ candidateName }}, about {{ jobTitle }}');
+    expect(subject.querySelectorAll('p')).toHaveLength(1);
+  });
+
+  it('saves the subject as the plain text with its Liquid, chips and all', async () => {
+    const { onsave } = renderForm();
+    editSubject(screen.getByRole('textbox', { name: 'Subject' }), 'News on {{ jobTitle }} for {{ candidateName }}');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onsave).toHaveBeenCalledWith({ name: null, subject: 'News on {{ jobTitle }} for {{ candidateName }}', body: 'Hi {{ candidateName }},' }));
   });
 
   it('shows each variable in the message as a chip, and puts a picked one there as a chip too', async () => {
@@ -145,7 +168,7 @@ describe('email template form', () => {
     expect(previews).toHaveLength(0);
 
     await showEdit();
-    await fireEvent.input(screen.getByLabelText('Subject'), { target: { value: 'An update on {{ jobTitle }}' } });
+    editSubject(screen.getByLabelText('Subject'), 'An update on {{ jobTitle }}');
     await showPreview();
     expect(await within(screen.getByRole('region', { name: 'Preview' })).findByText('An update on Product designer')).toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: 'Preview' })).getByRole('button', { name: 'Send me a test' })).toBeEnabled();
@@ -153,7 +176,7 @@ describe('email template form', () => {
 
   it('saves from outside the form in either view, going back to Edit when a new template needs its name', async () => {
     const { onsave } = renderForm({ template: undefined, sendingEnabled: false });
-    await fireEvent.input(screen.getByLabelText('Subject'), { target: { value: 'Hello' } });
+    editSubject(screen.getByLabelText('Subject'), 'Hello');
     editRichText(screen.getByRole('textbox', { name: 'Message' }), '<p>Hi <strong>there</strong></p>');
     await showPreview();
     expect(screen.queryByRole('button', { name: 'Send me a test' })).not.toBeInTheDocument();
@@ -169,10 +192,11 @@ describe('email template form', () => {
   it('reads as labels and values without the role to change it (E3)', async () => {
     renderForm({ editable: false });
 
-    expect(screen.getAllByRole('textbox')).toHaveLength(1);
+    expect(screen.getAllByRole('textbox')).toHaveLength(2);
     expect(screen.getByRole('textbox', { name: 'Message' })).toHaveAttribute('aria-readonly', 'true');
+    expect(screen.getByRole('textbox', { name: 'Subject' })).toHaveAttribute('aria-readonly', 'true');
     expect(screen.queryByRole('toolbar')).toBeNull();
-    expect(screen.getByText('An update on {{ jobTitle }}')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Subject' })).toHaveTextContent('An update on variable Job title');
     await showPreview();
     expect(screen.queryByRole('button', { name: 'Send me a test' })).toBeNull();
   });

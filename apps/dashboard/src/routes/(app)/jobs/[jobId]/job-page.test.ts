@@ -140,7 +140,7 @@ describe('job page', () => {
     expect(within(band).getByRole('link', { name: 'Edit workflow' })).toHaveAttribute('href', `/jobs/${jobId}/workflow`);
     expect(within(band).queryByRole('button', { name: /^Publish/ })).not.toBeInTheDocument();
     // The work area first, with no side column beside it (S7).
-    expect(await screen.findByRole('region', { name: 'Pipeline' })).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: 'Candidates' })).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Job postings' })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Selected candidate' })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Authenticity' })).not.toBeInTheDocument();
@@ -181,7 +181,7 @@ describe('job page', () => {
     const distribution = await screen.findByRole('region', { name: 'Job postings' });
     expect(tab(/^Job postings/)).toHaveAttribute('aria-selected', 'true');
     await waitFor(() => expect(distribution.querySelector('[data-board=careers]')).not.toBeNull());
-    expect(screen.queryByRole('region', { name: 'Pipeline' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Candidates' })).not.toBeInTheDocument();
   });
 
   it('opens Job postings from its old address, ?tab=distribution', async () => {
@@ -219,7 +219,7 @@ describe('job page', () => {
   it('shows no notice for a job that is not open, or whose postings are fine', async () => {
     stub(job);
 
-    await screen.findByRole('region', { name: 'Pipeline' });
+    await screen.findByRole('region', { name: 'Candidates' });
     await waitFor(() => expect(tab(/^Job postings/)).toHaveAccessibleName(/^Job postings ?\d+$/));
     expect(document.querySelector('[data-slot=notice]')).toBeNull();
   });
@@ -284,7 +284,7 @@ describe('job page', () => {
     page.state = { saved: 'Saved. The careers page shows it now.' };
     stub(job);
 
-    await screen.findByRole('region', { name: 'Pipeline' });
+    await screen.findByRole('region', { name: 'Candidates' });
     expect(screen.getAllByRole('status').some((status) => status.textContent?.includes('Saved. The careers page shows it now'))).toBe(true);
   });
 
@@ -317,21 +317,21 @@ describe('job page', () => {
 
     it('stays quiet with no change, for someone who may not edit jobs, and when no board has the job', async () => {
       stub({ ...edited, hasUnpublishedChanges: false });
-      await screen.findByRole('region', { name: 'Pipeline' });
+      await screen.findByRole('region', { name: 'Candidates' });
       await waitFor(() => expect(tab(/^Job postings/)).toHaveAccessibleName(/^Job postings ?\d+$/));
       expect(screen.queryByText(noticeText)).not.toBeInTheDocument();
       cleanup();
 
       page.data = { user: userAs('Viewer') };
       stub(edited);
-      await screen.findByRole('region', { name: 'Pipeline' });
+      await screen.findByRole('region', { name: 'Candidates' });
       await waitFor(() => expect(tab(/^Job postings/)).toHaveAccessibleName(/^Job postings ?\d+$/));
       expect(screen.queryByText(noticeText)).not.toBeInTheDocument();
       cleanup();
 
       page.data = { user };
       stub({ ...edited, postings: [posting('careers', 'Careers page', { mode: 'Hosted' })] });
-      await screen.findByRole('region', { name: 'Pipeline' });
+      await screen.findByRole('region', { name: 'Candidates' });
       await waitFor(() => expect(tab(/^Job postings/)).toHaveAccessibleName(/^Job postings ?\d+$/));
       expect(screen.queryByText(noticeText)).not.toBeInTheDocument();
     });
@@ -343,7 +343,7 @@ describe('job page', () => {
     await fireEvent.click(await screen.findByRole('button', { name: 'Publish to 2 boards' }));
 
     await waitFor(() => expect(screen.getAllByRole('alert').some((alert) => alert.textContent?.includes('The job changed meanwhile.'))).toBe(true));
-    expect(screen.getByRole('region', { name: 'Pipeline' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Candidates' })).toBeInTheDocument();
   });
 
   it('shows the failure and a retry when the job boards do not load, never "no boards"', async () => {

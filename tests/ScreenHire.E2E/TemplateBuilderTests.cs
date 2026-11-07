@@ -107,7 +107,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Expect(drawer).Not.ToContainTextAsync(Guardrail);
         await Page.Keyboard.PressAsync("Escape");
         await Expect(drawer).ToBeHiddenAsync();
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Whole workflow" }))
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Workflow automations" }))
             .ToContainTextAsync("When the verification checks finish, if 1 condition holds: add the tag \"needs-review\".");
 
         // The graph is the same workflow.

@@ -524,6 +524,46 @@
         ]
       }
     },
+    "/v1/auth/invitations/lookup": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "LookUpInvitation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvitationLookup"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/auth/invitations/accept": {
       "post": {
         "tags": [
@@ -13285,7 +13325,8 @@
           "name",
           "version",
           "environment",
-          "apiOrigin"
+          "apiOrigin",
+          "careersUrlPattern"
         ],
         "type": "object",
         "properties": {
@@ -13300,9 +13341,12 @@
           },
           "apiOrigin": {
             "type": "string"
+          },
+          "careersUrlPattern": {
+            "type": "string"
           }
         },
-        "description": "What is serving this API: the product name, the build version, the hosting environment, and the API's public origin\n(`ScreenHire:Domains:ApiHost`), which the API reference (`/scalar`), the OpenAPI file and `/v1` sit under."
+        "description": "What is serving this API: the product name, the build version, the hosting environment, and the API's public origin\n(`ScreenHire:Domains:ApiHost`), which the API reference (`/scalar`), the OpenAPI file and `/v1` sit under.\n`careersUrlPattern` is a tenant's careers address with `{tenant}` where its slug goes, such as\n`https://{tenant}.careers.example.com` (`ScreenHire:Domains:CareersHostPattern`), so the dashboard can show the\naddress a name will get."
       },
       "ApplicationAnswer": {
         "required": [
@@ -17546,6 +17590,34 @@
         },
         "description": "Accepts the invitation whose token an emailed link carries, signing in as the invited address."
       },
+      "InvitationDetails": {
+        "required": [
+          "organizationName",
+          "roleName"
+        ],
+        "type": "object",
+        "properties": {
+          "organizationName": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          }
+        },
+        "description": "What an open invitation offers: the organization's name and the role's, such as \"Recruiter\" or a custom role as typed."
+      },
+      "InvitationLookup": {
+        "required": [
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        },
+        "description": "Asks which organization and role the invitation whose token an emailed link carries offers. It uses nothing up."
+      },
       "InvitationPreviewRequest": {
         "required": [
           "candidateId",
@@ -20960,6 +21032,7 @@
         "required": [
           "jobId",
           "title",
+          "openedAt",
           "applications",
           "inInterview",
           "daysOpen",
@@ -20973,6 +21046,13 @@
           },
           "title": {
             "type": "string"
+          },
+          "openedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           },
           "applications": {
             "type": "integer",
@@ -20991,7 +21071,7 @@
             "format": "int32"
           }
         },
-        "description": "An open job: applications in the range, applications in an Interview stage now, days open and hires in the range."
+        "description": "An open job: when it opened, applications in the range, applications in an Interview stage now, days open and hires in the range."
       },
       "ReportWeek": {
         "required": [
@@ -22856,9 +22936,19 @@
           "jobCount": {
             "type": "integer",
             "format": "int32"
+          },
+          "lastUpdated": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LastUpdate"
+              }
+            ]
           }
         },
-        "description": "A member of the signed-in user's organization. `id` is the membership's id, which the member routes take.\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees."
+        "description": "A member of the signed-in user's organization. `id` is the membership's id, which the member routes take.\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.\n`lastUpdated` is the newest change to their membership (a role or job access change) and who made it; null when\nnothing has changed since they joined, which `joinedAt` already says."
       },
       "TelemetrySnapshotInput": {
         "required": [

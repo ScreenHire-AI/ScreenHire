@@ -60,6 +60,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
   import { applyValidationProblem } from '#lib/forms.js';
+  import { actorName } from '#lib/history.js';
   import { page } from '$app/state';
   import { can, seesAllJobs } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
@@ -131,6 +132,9 @@
     // All jobs first, then by how many jobs they are on, most first.
     { id: 'jobs', header: 'Jobs', accessorFn: (member) => (member.seesAllJobs ? Number.MAX_SAFE_INTEGER : member.jobCount), sortFn: 'basic', sortDescFirst: true },
     { id: 'joined', header: 'Joined', accessorFn: (member) => member.joinedAt, sortFn: 'basic', sortDescFirst: true },
+    // The newest role or job access change. A member nobody has changed since they joined has none, so the cell is blank
+    // and Joined says it (L1, W7); those rows sort last.
+    { id: 'updated', header: 'Last updated', accessorFn: (member) => member.lastUpdated?.at ?? '', sortFn: 'basic', sortDescFirst: true },
   ];
   const invitationColumns: ColumnDef<typeof features, PendingInvitation, any>[] = [
     { id: 'email', header: 'Email', accessorFn: (invitation) => invitation.email, sortFn: 'alphanumeric' },
@@ -379,6 +383,14 @@
                   <Table.Cell class="max-w-48 pr-4"><TruncatedText text={member.roleName} /></Table.Cell>
                   <Table.Cell class="whitespace-nowrap tabular-nums">{jobsText(member)}</Table.Cell>
                   <Table.Cell class="text-muted-foreground"><DateText at={member.joinedAt} /></Table.Cell>
+                  <Table.Cell class="whitespace-nowrap text-muted-foreground">
+                    {#if member.lastUpdated?.at}
+                      {@const name = actorName(member.lastUpdated, memberList, myId)}
+                      <DateText at={member.lastUpdated.at} />{#if name}{' '}by {name}{/if}
+                    {:else}
+                      <span class="sr-only">Not changed since joining</span>
+                    {/if}
+                  </Table.Cell>
                   <Table.Cell class="pr-4.5 text-right">{#if manageable(member)}{@render memberMenu(member)}{/if}</Table.Cell>
                 </Table.Row>
               {/each}

@@ -6,11 +6,13 @@
  */
 
 /**
- * An open job: applications in the range, applications in an Interview stage now, days open and hires in the range.
+ * An open job: when it opened, applications in the range, applications in an Interview stage now, days open and hires in the range.
  */
 export interface ReportOpenJob {
   jobId: string;
   title: string;
+  /** @nullable */
+  openedAt: string | null;
   applications: number;
   inInterview: number;
   daysOpen: number;

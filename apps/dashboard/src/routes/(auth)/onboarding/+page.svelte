@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { completeOnboarding } from '@screenhire/api-client';
+  import { completeOnboarding, getMeta } from '@screenhire/api-client';
   import { CompleteOnboardingBody } from '@screenhire/api-client/zod';
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
+  import { onMount } from 'svelte';
   import LogOutIcon from '~icons/lucide/log-out';
   import MailIcon from '~icons/lucide/mail';
   import PlusIcon from '~icons/lucide/plus';
@@ -22,6 +23,18 @@
 
   // The address follows the name until the person edits it themselves.
   let slugEdited = $state(false);
+
+  // The careers host is configuration (ScreenHire:Domains), so the full address comes from /v1/meta, never from a host
+  // written here. This page is outside the signed-in shell's query cache, so it reads the one anonymous route directly.
+  // Until it arrives (or if it fails), or while the slug is empty, the hint is the plain rule.
+  let careersUrlPattern = $state<string>();
+  onMount(async () => {
+    const response = await getMeta().catch(() => undefined);
+    if (response?.status === 200) {
+      careersUrlPattern = response.data.careersUrlPattern;
+    }
+  });
+  const careersAddress = $derived(careersUrlPattern && $form.slug ? careersUrlPattern.replace('{tenant}', $form.slug) : undefined);
 
   const { form, errors, enhance, submitting } = superForm(defaults(zod4(CompleteOnboardingBody)), {
     SPA: true,
@@ -110,7 +123,9 @@
               aria-invalid={$errors.slug ? 'true' : undefined}
               aria-describedby={$errors.slug ? 'slug-hint slug-error' : 'slug-hint'}
             />
-            <Field.Description id="slug-hint">The name in your careers page address. Lower-case letters, numbers and hyphens.</Field.Description>
+            <Field.Description id="slug-hint">
+              {#if careersAddress}Your careers page: <span class="font-mono break-all">{careersAddress}</span>{:else}The name in your careers page address. Lower-case letters, numbers and hyphens.{/if}
+            </Field.Description>
             <Field.Error id="slug-error" errors={$errors.slug?.map((message) => ({ message }))} />
           </Field.Field>
         </div>

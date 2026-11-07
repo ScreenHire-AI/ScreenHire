@@ -93,6 +93,7 @@ organization API key in place of the session ("API keys" below).
 | `POST /v1/auth/magic-link/verify` | Redeems a link's token and signs in. |
 | `POST /v1/auth/onboarding` | Creates the user's organization (name and slug) with them as Owner. |
 | `POST /v1/auth/invitations/accept` | Redeems an emailed invitation: signs in as the invited address and joins its organization. |
+| `POST /v1/auth/invitations/lookup` | Names the organization and role an open invitation offers, for the accept page. It uses nothing up, and answers an unusable token as accepting does. |
 | `GET /v1/auth/organizations` | Every organization the signed-in user belongs to, with their role in each. A custom role is named only in the one they work in: row-level security hides other organizations' roles. |
 | `POST /v1/auth/switch-organization` | Makes another of the user's organizations the one they work in. |
 | `POST /v1/auth/sign-out` | Ends the session. |

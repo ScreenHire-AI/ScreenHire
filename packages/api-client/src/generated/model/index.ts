@@ -170,6 +170,8 @@ export * from './interviewParticipant.ts';
 export * from './interviewStatus.ts';
 export * from './interviewSyncStatus.ts';
 export * from './invitationAcceptance.ts';
+export * from './invitationDetails.ts';
+export * from './invitationLookup.ts';
 export * from './invitationPreviewRequest.ts';
 export * from './invitationRequest.ts';
 export * from './invitationsQueued.ts';

@@ -85,12 +85,34 @@ internal static class TeamEndpoints
             .ToListAsync(cancellationToken);
         var names = await RoleAccess.CustomNamesAsync(db, cancellationToken);
         var jobCounts = await JobCountsAsync(db, cancellationToken);
+        var changes = await LastChangesAsync(db, null, cancellationToken);
         return TypedResults.Ok(members
             .Select(m => new TeamMember(
                 m.Id, m.UserId, m.Email ?? "", m.DisplayName ?? m.Email ?? "", m.Role, m.CustomRoleId,
                 RoleAccess.NameOf(m.Role, m.CustomRoleId, names), m.CreatedAt,
-                m.JobAccess, JobAccessRules.SeesAllJobs(m.Role, m.JobAccess), jobCounts.GetValueOrDefault(m.Id)))
+                m.JobAccess, JobAccessRules.SeesAllJobs(m.Role, m.JobAccess), jobCounts.GetValueOrDefault(m.Id),
+                changes.GetValueOrDefault(m.UserId)))
             .ToList());
+    }
+
+    /// <summary>
+    /// The newest role or job access change to each member's membership, by user id, or only <paramref name="userId"/>'s.
+    /// A member nothing has changed since they joined has none. Read in memory: a member has a handful of such changes.
+    /// </summary>
+    private static async Task<Dictionary<Guid, LastUpdate>> LastChangesAsync(ScreenHireDbContext db, Guid? userId, CancellationToken cancellationToken)
+    {
+        var events = await db.MembershipEvents.AsNoTracking()
+            .Where(e => e.MemberUserId != null && (userId == null || e.MemberUserId == userId)
+                && (e.Kind == MembershipEventKind.RoleChanged || e.Kind == MembershipEventKind.JobAccessChanged))
+            .Select(e => new { UserId = e.MemberUserId!.Value, e.OccurredAt, e.ActorUserId, e.ActorApiKeyId })
+            .ToListAsync(cancellationToken);
+        return events.GroupBy(e => e.UserId).ToDictionary(
+            g => g.Key,
+            g =>
+            {
+                var last = g.MaxBy(e => e.OccurredAt)!;
+                return new LastUpdate(last.OccurredAt, HistoryMappings.Actor(last.ActorUserId, last.ActorApiKeyId), last.ActorUserId, last.ActorApiKeyId);
+            });
     }
 
     // The jobs whose hiring team the member is on, among those the reader sees: the job filter applies to the reader.
@@ -311,9 +333,10 @@ internal static class TeamEndpoints
             .Select(u => new { u.Email, u.DisplayName })
             .SingleAsync(cancellationToken);
         var jobCount = await db.Jobs.CountAsync(j => j.HiringTeam.Contains(member.Id), cancellationToken);
+        var changes = await LastChangesAsync(db, member.UserId, cancellationToken);
         return new TeamMember(
             member.Id, member.UserId, user.Email ?? "", user.DisplayName ?? user.Email ?? "", member.Role, member.CustomRoleId, roleName,
-            member.CreatedAt, member.JobAccess, member.SeesAllJobs, jobCount);
+            member.CreatedAt, member.JobAccess, member.SeesAllJobs, jobCount, changes.GetValueOrDefault(member.UserId));
     }
 
     // Removing a member ends their access on their next request (Memberships.ResolveTenantAsync reads the membership

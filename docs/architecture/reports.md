@@ -58,7 +58,7 @@ funnel row shows. The candidates page uses it for a funnel link (section 5). A k
 | Hiring funnel | Applications that reached each stage kind or a later one, and how many of those moved on to a later row | Applications submitted in the range |
 | Time to hire | Median days each hire spent in each stage kind, and the median days to hire by job | Hires made in the range |
 | Sources | Applications per source, and how many of them are hired now, with the hire rate | Applications submitted in the range |
-| Open jobs | Per open job: applications in the range, applications in an Interview stage now, days open, hires in the range | See below |
+| Open jobs | Per open job: when it opened, applications in the range, applications in an Interview stage now, days open, hires in the range | See below |
 
 - **Two bases, said once.** Applications, Reached interview, Offers, the funnel and Sources count the applications that
   arrived in the range, so the Reached interview and Offers cards equal the funnel's Interview and Offer rows. Hires,
@@ -90,7 +90,7 @@ funnel row shows. The candidates page uses it for a funnel link (section 5). A k
   board's apply link (`SourceBoard`, the `src` tag in apply-flow.md and job-distribution.md), else `careers`. The board
   tag is self-reported: anyone can open a link with `src=talent`, so it can move an organization's own Sources numbers,
   never another's.
-- **Open jobs** are the jobs with status Open that the person sees, narrowed by the job filter. Days open is whole days
+- **Open jobs** are the jobs with status Open that the person sees, narrowed by the job filter. Opened is the day it was first published. Days open is whole days
   since the job was first published, by the API's clock. In interview is now, not in the range.
 - **The biggest drop** and the share of applicants are computed in the browser from the funnel rows
   (`#lib/reports.ts`, `biggestDrop`): the row below the last with the lowest moved-on share, among rows with at least 3

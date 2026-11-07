@@ -51,7 +51,7 @@ public sealed class EmailTests(E2EFixture fixture) : BrowserTest(fixture)
         var table = Page.GetByRole(AriaRole.Table, new() { Name = $"Candidates for {title}" });
         await Expect(table.GetByRole(AriaRole.Link, new() { Name = Candidates[0] })).ToBeVisibleAsync();
         await table.GetByRole(AriaRole.Checkbox, new() { Name = "Select all candidates" }).CheckAsync();
-        var pipeline = Page.GetByRole(AriaRole.Region, new() { Name = "Pipeline" });
+        var pipeline = Page.GetByRole(AriaRole.Region, new() { Name = "Candidates", Exact = true });
         await pipeline.GetByRole(AriaRole.Button, new() { Name = "Email 3" }).ClickAsync();
 
         var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Email 3 candidates" });
@@ -87,7 +87,10 @@ public sealed class EmailTests(E2EFixture fixture) : BrowserTest(fixture)
         var band = Page.Locator("[data-slot=header-band]");
         await Expect(band).ToContainTextAsync("By ScreenHire");
         var subject = Page.GetByLabel("Subject");
-        var original = await subject.InputValueAsync();
+        // The subject is a text box with its variables as chips, so its stored wording is the built-in Liquid file's.
+        const string original = "An update on your application for {{ jobTitle }}";
+        await Expect(subject).ToContainTextAsync("An update on your application for");
+        await Expect(subject.Locator("[data-liquid=jobTitle]")).ToHaveCountAsync(1);
         await subject.FillAsync($"Next steps {marker} for {{{{ jobTitle }}}}");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
 

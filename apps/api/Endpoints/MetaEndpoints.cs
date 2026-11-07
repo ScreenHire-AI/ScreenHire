@@ -28,5 +28,5 @@ internal static class MetaEndpoints
 
     private static Ok<ApiMeta> GetMeta(IHostEnvironment environment, IOptions<DomainOptions> domains) =>
         TypedResults.Ok(new ApiMeta(
-            ProductName, Version, environment.EnvironmentName, $"{domains.Value.Scheme}://{domains.Value.ApiHost}"));
+            ProductName, Version, environment.EnvironmentName, $"{domains.Value.Scheme}://{domains.Value.ApiHost}", domains.Value.CareersUrlPattern()));
 }

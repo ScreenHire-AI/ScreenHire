@@ -77,6 +77,13 @@ export function withVariableChips(html: string): string {
   return document.body.innerHTML;
 }
 
+/** Plain text as editor content: the text escaped, with each `{{ ... }}` in it as a chip's element. */
+export function textWithChips(text: string): string {
+  const paragraph = document.createElement('p');
+  paragraph.textContent = text;
+  return withVariableChips(paragraph.outerHTML);
+}
+
 /** The editor's HTML as it is stored: each chip's element unwrapped to its Liquid text, which the server renders. */
 export function withoutChipElements(html: string): string {
   if (!html.includes('data-liquid')) return html;
@@ -178,6 +185,45 @@ export const Variable = Node.create<VariableOptions>({
     ];
   },
 });
+
+/** A document of one paragraph that Enter leaves alone: a single line of text, such as an email's subject. */
+const SingleLine = Node.create({
+  name: 'doc',
+  topNode: true,
+  content: 'paragraph',
+  addKeyboardShortcuts() {
+    return { Enter: () => true };
+  },
+});
+
+/** The extensions of a single line of plain text whose `{{ name }}` shows as a chip (`SubjectEditor`). */
+export function singleLineExtensions(variables: () => readonly RichTextVariable[]): Extensions {
+  return [
+    StarterKit.configure({
+      document: false,
+      blockquote: false,
+      bold: false,
+      bulletList: false,
+      code: false,
+      codeBlock: false,
+      dropcursor: false,
+      gapcursor: false,
+      hardBreak: false,
+      heading: false,
+      horizontalRule: false,
+      italic: false,
+      link: false,
+      listItem: false,
+      listKeymap: false,
+      orderedList: false,
+      strike: false,
+      trailingNode: false,
+      underline: false,
+    }),
+    SingleLine,
+    Variable.configure({ variables }),
+  ];
+}
 
 /**
  * The editor's extensions: the toolbar's marks and blocks and nothing else. Headings are h2 and h3 (a careers page's h1

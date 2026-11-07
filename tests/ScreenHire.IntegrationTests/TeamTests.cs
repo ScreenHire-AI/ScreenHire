@@ -52,6 +52,47 @@ public sealed class TeamTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task An_invitation_lookup_names_the_organization_and_role_and_uses_nothing_up()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var email = ApiSession.NewEmail("lookup");
+        (await owner.PostAsync("/v1/organization/invitations", Invite(email, "Recruiter"))).Expect(HttpStatusCode.Created);
+        var token = await fixture.Mailpit.WaitForInvitationTokenAsync(email, Ct);
+        var organizationName = (await owner.GetAsync("/v1/auth/organizations")).Expect(HttpStatusCode.OK).Body.EnumerateArray()
+            .Single(o => o.GetProperty("id").GetGuid() == owner.OrganizationId).GetProperty("name").GetString();
+
+        using var invitee = new ApiSession(fixture);
+        using var found = await invitee.PostAsync("/v1/auth/invitations/lookup", new { token }, Ct);
+        found.StatusCode.Should().Be(HttpStatusCode.OK);
+        var details = await found.Content.ReadFromJsonAsync<JsonElement>(Ct);
+        details.GetProperty("organizationName").GetString().Should().Be(organizationName);
+        details.GetProperty("roleName").GetString().Should().Be("Recruiter");
+        (await invitee.CurrentUserAsync(Ct)).Should().BeNull("looking an invitation up signs nobody in");
+
+        using var again = await invitee.PostAsync("/v1/auth/invitations/lookup", new { token }, Ct);
+        again.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await invitee.AcceptInvitationAsync(token, Ct)).GetProperty("organization").GetProperty("role").GetString().Should().Be("Recruiter");
+
+        await ExpectRefusedAsync(await invitee.PostAsync("/v1/auth/invitations/lookup", new { token }, Ct));
+    }
+
+    [Fact]
+    public async Task An_invitation_lookup_refuses_a_withdrawn_or_made_up_token_the_way_accepting_does()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var email = ApiSession.NewEmail("lookup-revoked");
+        var id = (await owner.PostAsync("/v1/organization/invitations", Invite(email, "Viewer"))).Expect(HttpStatusCode.Created).Id();
+        var token = await fixture.Mailpit.WaitForInvitationTokenAsync(email, Ct);
+        (await owner.DeleteAsync($"/v1/organization/invitations/{id}")).Expect(HttpStatusCode.NoContent);
+
+        using var invitee = new ApiSession(fixture);
+        await ExpectRefusedAsync(await invitee.PostAsync("/v1/auth/invitations/lookup", new { token }, Ct));
+        await ExpectRefusedAsync(await invitee.PostAsync("/v1/auth/invitations/lookup", new { token = "not-an-invitation" }, Ct));
+        // A well-formed token naming an organization that does not exist answers like any other, so existence is not revealed.
+        await ExpectRefusedAsync(await invitee.PostAsync("/v1/auth/invitations/lookup", new { token = Base64Url.EncodeToString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(48)) }, Ct));
+    }
+
+    [Fact]
     public async Task An_invitation_works_only_once()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
