@@ -135,6 +135,14 @@ describe('the setup checklist panel', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('is not shown to a custom role limited to its own jobs, whose job list cannot tick the last step', async () => {
+    const fetchMock = renderChecklist({}, { ...user, organization: { ...user.organization!, seesAllJobs: false } });
+
+    await Promise.resolve();
+    expect(screen.queryByRole('region', { name: 'Set up your organization' })).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('shows nothing while an answer is still on its way, so a finished step never flashes open', async () => {
     let release: () => void = () => {};
     const gate = new Promise<void>((resolve) => (release = resolve));

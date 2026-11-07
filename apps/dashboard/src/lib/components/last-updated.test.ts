@@ -43,7 +43,7 @@ describe('last updated', () => {
 
   it('keeps History a named button, icon-only in a narrow header band on the title row (S8), and in words elsewhere', () => {
     const value: LastUpdate = { at: twoHoursAgo, by: 'Member', userId: 'u1' };
-    const { unmount } = render(WithTooltips, { props: { component: LastUpdated, props: { value, members, currentUserId: 'u1', lead: true, onhistory: () => {} } } });
+    const { unmount } = render(WithTooltips, { props: { component: LastUpdated, props: { value, members, currentUserId: 'u1', lead: true, titleRow: true, onhistory: () => {} } } });
 
     expect(screen.getByRole('button', { name: 'History' })).toBeInTheDocument();
     expect(screen.getByText('History')).toHaveClass('@max-md:sr-only');
@@ -53,6 +53,15 @@ describe('last updated', () => {
 
     render(WithTooltips, { props: { component: LastUpdated, props: { value, members, currentUserId: 'u1', onhistory: () => {} } } });
     expect(screen.getByText('History')).not.toHaveClass('@max-md:sr-only');
+  });
+
+  it('wraps with its verb outside a title row, so a note sheet keeps the whole line', () => {
+    const value: LastUpdate = { at: twoHoursAgo, by: 'Member', userId: 'u1' };
+    render(WithTooltips, { props: { component: LastUpdated, props: { value, members, currentUserId: 'u1', lead: true, onhistory: () => {} } } });
+
+    expect(screen.getByText(/Updated/).closest('span.truncate')).toBeNull();
+    expect(screen.getByText('History')).not.toHaveClass('@max-md:sr-only');
+    expect(screen.getByRole('button', { name: 'History' }).parentElement).toHaveClass('flex-wrap');
   });
 
   it('is the value alone inside a fact, whose label says Created or Last updated', () => {
