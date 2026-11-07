@@ -15,8 +15,9 @@ namespace ScreenHire.Api.OAuth;
 /// approved (ADR-0027). Only the MCP endpoint reaches it (<see cref="ApiKeyAuthentication.McpCredentialsScheme"/>). It
 /// works like the API key handler: the token names its organization, which becomes the tenant in a scope of its own before
 /// the lookup, so the lookup runs under row-level security. The principal it returns is the connection's key row, so
-/// scopes, the rate limit, the timeline and the verification review log treat the connection exactly as a key. A bad or
-/// expired token fails and counts against the client address.
+/// scopes, the rate limit, the timeline and the verification review log treat the connection exactly as a key. A token
+/// nobody issued counts against the client address. One that expired or was revoked is refused without counting: every
+/// client holds an expired token once an hour, and a hosted assistant shares its address with everyone else's.
 /// </summary>
 internal sealed class OAuthAuthenticationHandler(
     IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -76,11 +77,15 @@ internal sealed class OAuthAuthenticationHandler(
             })
             .SingleOrDefaultAsync(Context.RequestAborted);
 
-        var now = time.GetUtcNow();
-        if (row is null || row.OrganizationId != organizationId || row.OAuthClientId is null
-            || row.RevokedAt is not null || row.KeyRevokedAt is not null || row.ExpiresAt <= now)
+        if (row is null || row.OrganizationId != organizationId || row.OAuthClientId is null)
         {
-            return Failed("Unknown, expired or revoked access token.");
+            return Failed("Unknown access token.");
+        }
+
+        var now = time.GetUtcNow();
+        if (row.RevokedAt is not null || row.KeyRevokedAt is not null || row.ExpiresAt <= now)
+        {
+            return AuthenticateResult.Fail("Expired or revoked access token.");
         }
 
         await ApiKeyAuthentication.TouchAsync(db, row.KeyId, row.LastUsedAt, now, Context.RequestAborted);

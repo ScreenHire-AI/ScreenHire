@@ -105,7 +105,70 @@ public sealed class OAuthServerTests(AppHostFixture fixture)
         }
     }
 
+    [Fact]
+    public async Task An_expired_or_revoked_token_does_not_count_against_the_address()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var app = new OAuthClientApp(fixture);
+        var expired = await owner.ConnectAsync(app, "Claude", ["Read"]);
+        var valid = await owner.ConnectAsync(app, "Another assistant", ["Read"]);
+        await fixture.ExpireAccessTokensAsync(owner.OrganizationId);
+        var working = (await app.RefreshAsync(valid.Request.ClientId, valid.RefreshToken)).Expect(HttpStatusCode.OK).Text("access_token");
+
+        // One more than the default ScreenHire:ApiKeys:FailedAttemptsPerMinute: every client does this once an hour, and a
+        // hosted assistant's address is shared by everyone who uses it.
+        for (var attempt = 0; attempt < 31; attempt++)
+        {
+            (await app.McpAsync(expired.AccessToken)).Status.Should().Be(HttpStatusCode.Unauthorized);
+        }
+
+        (await app.McpAsync(working)).Status.Should().Be(HttpStatusCode.OK, "the address was not locked out");
+    }
+
+    [Fact]
+    public async Task A_token_with_another_organization_put_in_its_name_is_refused()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var other = await fixture.SignedInWithOrganizationAsync();
+        using var app = new OAuthClientApp(fixture);
+        var connection = await owner.ConnectAsync(app, "Claude", ["Read"]);
+        string Moved(string token) => token.Replace($"{owner.OrganizationId:N}", $"{other.OrganizationId:N}", StringComparison.Ordinal);
+
+        (await app.McpAsync(Moved(connection.AccessToken))).Status.Should().Be(HttpStatusCode.Unauthorized);
+        (await app.RefreshAsync(connection.Request.ClientId, Moved(connection.RefreshToken))).ExpectError("invalid_grant");
+        (await app.RevokeAsync(Moved(connection.RefreshToken))).Expect(HttpStatusCode.OK);
+        (await app.RevokeAsync(Moved(connection.AccessToken))).Expect(HttpStatusCode.OK);
+
+        (await app.McpAsync(connection.AccessToken)).Status.Should().Be(HttpStatusCode.OK, "nothing happened to the real token");
+        (await app.RefreshAsync(connection.Request.ClientId, connection.RefreshToken)).Expect(HttpStatusCode.OK);
+    }
+
     // ---- Dynamic client registration ----
+
+    [Fact]
+    public async Task A_registration_too_large_for_the_limit_is_refused_even_without_a_content_length()
+    {
+        using var app = new OAuthClientApp(fixture);
+        var padding = new string('a', 32 * 1024);
+        var json = $"{{\"client_name\":\"{padding}\",\"redirect_uris\":[\"https://example.com/callback\"]}}";
+
+        var response = await app.SendAsync(HttpMethod.Post, "/v1/oauth/register", new ChunkedContent(json));
+
+        response.ExpectError("invalid_client_metadata");
+    }
+
+    // A body with no length of its own, so the client sends it chunked.
+    private sealed class ChunkedContent(string text) : HttpContent
+    {
+        protected override Task SerializeToStreamAsync(Stream stream, System.Net.TransportContext? context) =>
+            stream.WriteAsync(System.Text.Encoding.UTF8.GetBytes(text)).AsTask();
+
+        protected override bool TryComputeLength(out long length)
+        {
+            length = 0;
+            return false;
+        }
+    }
 
     [Theory]
     [InlineData("https://example.com/callback")]

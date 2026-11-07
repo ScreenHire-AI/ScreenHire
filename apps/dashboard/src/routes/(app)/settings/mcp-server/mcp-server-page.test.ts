@@ -68,7 +68,7 @@ describe('MCP server page', () => {
     const panel = await screen.findByRole('region', { name: 'Connect a client' });
 
     expect(await within(panel).findByText('https://api.example.com/v1/mcp')).toBeInTheDocument();
-    expect(within(panel).getByText(/Clients that sign in with OAuth, such as a claude.ai custom connector, only need the server URL/)).toBeInTheDocument();
+    expect(within(panel).getByText(/A claude.ai custom connector needs only the server URL/)).toBeInTheDocument();
     expect(within(panel).getByText('Authorization: Bearer <API key>')).toBeInTheDocument();
     expect(within(panel).getByRole('link', { name: 'Create a key' })).toHaveAttribute('href', '/settings/api-keys');
   });

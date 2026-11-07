@@ -63,17 +63,13 @@
     deciding = true;
     const granted = approve ? offers.filter((offer) => offer.scope === 'Read' || (offer.grantable && chosen[offer.scope])).map((offer) => offer.scope) : ['Read' as const];
     try {
-      // The generated type lists only 200, 401 and 403; the API also answers 400 with a problem whose detail is for the person.
-      const response = (await decideOAuthAuthorization({ ...data.params, approve, grantedScopes: granted })) as {
-        status: number;
-        data?: { redirectUrl?: string; detail?: string | null };
-      };
-      if (response.status === 200 && response.data?.redirectUrl) {
+      const response = await decideOAuthAuthorization({ ...data.params, approve, grantedScopes: granted });
+      if (response.status === 200) {
         // The assistant's own address, which may be on this computer. The buttons stay off: the page is about to go.
         window.location.assign(response.data.redirectUrl);
         return;
       }
-      failure = problemText(response.status, response.data?.detail);
+      failure = problemText(response.status, response.status === 401 ? null : response.data?.detail);
     } catch {
       failure = 'We could not reach ScreenHire. Check your connection and try again.';
     }
@@ -98,8 +94,7 @@
       <Panel title="Who is asking">
         <div class="flex flex-col gap-4">
           <p class="break-words">
-            <strong class="font-semibold">{info.clientName}</strong> wants to act in <strong class="font-semibold">{info.organizationName}</strong> for
-            you. It can use only what you allow below, and you can disconnect it at any time in Settings.
+            <strong class="font-semibold">{info.clientName}</strong> can use only what you allow below. You can disconnect it at any time in Settings.
           </p>
           <SummaryList>
             <SummaryItem label="Goes back to">
@@ -118,21 +113,32 @@
           <legend class="sr-only">What {info.clientName} may do</legend>
           {#each offers as offer (offer.scope)}
             {@const copy = scopeCopy[offer.scope]}
-            {@const locked = offer.scope === 'Read'}
-            <label class="flex items-start gap-3 pointer-coarse:min-h-11">
-              <input
-                type="checkbox"
-                class="mt-0.5 size-4 shrink-0 accent-primary"
-                checked={locked ? true : chosen[offer.scope]}
-                disabled={locked || !offer.grantable || deciding}
-                onchange={(event) => (chosen[offer.scope] = event.currentTarget.checked)}
-              />
-              <span class="flex min-w-0 flex-col gap-0.5">
-                <span class="font-medium">{copy.title}</span>
-                <span class="text-muted-foreground">{copy.opens(info.clientName)}</span>
-                {#if locked}<span class="text-muted-foreground">Always on.</span>{:else if !offer.grantable && offer.reason}<span class="text-muted-foreground">{offer.reason}</span>{/if}
-              </span>
-            </label>
+            {#if offer.scope === 'Read'}
+              <!-- Not a control: nobody can turn it off, so it is a fact about the connection. -->
+              <div class="flex items-start gap-3">
+                <CheckIcon class="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <span class="flex min-w-0 flex-col gap-0.5">
+                  <span class="font-medium">{copy.title}</span>
+                  <span class="text-muted-foreground">{copy.opens(info.clientName)}</span>
+                  <span class="text-muted-foreground">Always on.</span>
+                </span>
+              </div>
+            {:else}
+              <label class="flex items-start gap-3 pointer-coarse:min-h-11">
+                <input
+                  type="checkbox"
+                  class="mt-0.5 size-4 shrink-0 accent-primary"
+                  checked={chosen[offer.scope]}
+                  disabled={!offer.grantable || deciding}
+                  onchange={(event) => (chosen[offer.scope] = event.currentTarget.checked)}
+                />
+                <span class="flex min-w-0 flex-col gap-0.5">
+                  <span class="font-medium">{copy.title}</span>
+                  <span class="text-muted-foreground">{copy.opens(info.clientName)}</span>
+                  {#if !offer.grantable && offer.reason}<span class="text-muted-foreground">{offer.reason}</span>{/if}
+                </span>
+              </label>
+            {/if}
           {/each}
         </fieldset>
       </Panel>

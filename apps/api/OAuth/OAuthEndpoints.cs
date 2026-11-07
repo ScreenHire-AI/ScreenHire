@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using ScreenHire.Api.Configuration;
@@ -46,9 +48,11 @@ internal static class OAuthEndpoints
         HttpContext context, ScreenHireDbContext db, TimeProvider time, IOptions<OAuthOptions> options, CancellationToken cancellationToken)
     {
         context.Response.Headers.CacheControl = "no-store";
-        if (context.Request.ContentLength is > MaxRegistrationBytes)
+
+        // The server's own limit, because a chunked body has no Content-Length to check first.
+        if (context.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } bodyLimit)
         {
-            return OAuthServer.Error("invalid_client_metadata", "The registration is too large.");
+            bodyLimit.MaxRequestBodySize = MaxRegistrationBytes;
         }
 
         JsonElement body;
@@ -56,6 +60,10 @@ internal static class OAuthEndpoints
         {
             using var document = await JsonDocument.ParseAsync(context.Request.Body, cancellationToken: cancellationToken);
             body = document.RootElement.Clone();
+        }
+        catch (BadHttpRequestException exception) when (exception.StatusCode == StatusCodes.Status413PayloadTooLarge)
+        {
+            return OAuthServer.Error("invalid_client_metadata", "The registration is too large.");
         }
         catch (JsonException)
         {
@@ -99,7 +107,7 @@ internal static class OAuthEndpoints
         }
 
         var name = body.TryGetProperty("client_name", out var nameElement) && nameElement.ValueKind == JsonValueKind.String
-            ? Clean(nameElement.GetString())
+            ? CleanName(nameElement.GetString())
             : "";
         var now = time.GetUtcNow();
         var client = new OAuthClient
@@ -173,12 +181,16 @@ internal static class OAuthEndpoints
         return true;
     }
 
-    // The name appears on the consent page and in the activity of every change the assistant makes: plain text only.
-    private static string Clean(string? name)
+    // The name appears on the consent page and in the activity of every change the assistant makes: plain text only, with
+    // nothing invisible, because a right-to-left override or a zero-width space can make one name read as another.
+    internal static string CleanName(string? name)
     {
-        var text = new string([.. (name ?? "").Where(c => !char.IsControl(c))]).Trim();
+        var text = new string([.. (name ?? "").Where(IsVisibleText)]).Trim();
         return text.Length > OAuthClient.MaxNameLength ? text[..OAuthClient.MaxNameLength].TrimEnd() : text;
     }
+
+    private static bool IsVisibleText(char c) => char.GetUnicodeCategory(c) is not (
+        UnicodeCategory.Control or UnicodeCategory.Format or UnicodeCategory.LineSeparator or UnicodeCategory.ParagraphSeparator);
 }
 
 /// <summary>RFC 7591 section 3.2.1: what a client is told about its registration.</summary>

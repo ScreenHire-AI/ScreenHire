@@ -32,8 +32,7 @@ export const load: PageLoad = async ({ url, parent }) => {
   let info: OAuthAuthorizationRequestInfo | undefined;
   let problem: string | undefined;
   try {
-    // The generated type lists only 200, 401 and 403; the API also answers 400 with a problem whose detail is for the person.
-    const response = (await getOAuthAuthorizationRequest({
+    const response = await getOAuthAuthorizationRequest({
       clientId: params.clientId,
       redirectUri: params.redirectUri,
       responseType: params.responseType,
@@ -41,11 +40,11 @@ export const load: PageLoad = async ({ url, parent }) => {
       resource: params.resource ?? undefined,
       codeChallenge: params.codeChallenge,
       codeChallengeMethod: params.codeChallengeMethod,
-    })) as { status: number; data?: { detail?: string | null } };
+    });
     if (response.status === 200) {
-      info = response.data as unknown as OAuthAuthorizationRequestInfo;
+      info = response.data;
     } else {
-      problem = problemText(response.status, response.data?.detail);
+      problem = problemText(response.status, response.status === 401 ? null : response.data?.detail);
     }
   } catch {
     problem = 'We could not reach ScreenHire. Check your connection and try again.';

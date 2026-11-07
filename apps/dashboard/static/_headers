@@ -1,7 +1,10 @@
-# Cloudflare Pages (docs/operations/deploy.md). The recruiter dashboard is for signed-in people only.
+# Cloudflare Pages (docs/operations/deploy.md). The recruiter dashboard is for signed-in people only. No other site may
+# frame it: the OAuth consent page connects an assistant with one click (docs/architecture/oauth-server.md).
 /*
   X-Robots-Tag: noindex
   X-Content-Type-Options: nosniff
   Referrer-Policy: same-origin
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: frame-ancestors 'self'
 /_app/immutable/*
   Cache-Control: public, max-age=31536000, immutable

@@ -166,6 +166,25 @@ public sealed class OAuthRedirectsTests
     }
 }
 
+public sealed class OAuthClientNameTests
+{
+    [Theory]
+    [InlineData("Claude", "Claude")]
+    [InlineData("  Claude  ", "Claude")]
+    [InlineData("Cl\u202Eaude", "Claude")] // A right-to-left override
+    [InlineData("Cla\u200Bude", "Claude")] // A zero-width space
+    [InlineData("Claude\u2028Code", "ClaudeCode")] // A line separator
+    [InlineData("Cla\nude\t", "Claude")]
+    [InlineData("Assistant \U0001F916", "Assistant \U0001F916")] // An emoji is two surrogates, and stays
+    [InlineData("\u200B", "")]
+    public void A_client_name_keeps_only_what_a_person_can_see(string sent, string kept) =>
+        OAuthEndpoints.CleanName(sent).Should().Be(kept);
+
+    [Fact]
+    public void A_client_name_is_cut_to_the_longest_a_name_may_be() =>
+        OAuthEndpoints.CleanName(new string('a', 500)).Length.Should().Be(100);
+}
+
 public sealed class OAuthScopesTests
 {
     [Theory]

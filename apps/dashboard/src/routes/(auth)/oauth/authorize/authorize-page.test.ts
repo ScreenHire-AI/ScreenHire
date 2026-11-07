@@ -53,8 +53,9 @@ describe('OAuth consent page', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Connect Acme Assistant to Brightwater Studio');
     expect(screen.getByText('assistant.example.com')).toBeInTheDocument();
     expect(screen.queryByText('This assistant runs on your computer')).not.toBeInTheDocument();
-    expect(screen.getByRole('checkbox', { name: /^Read Read jobs/ })).toBeChecked();
-    expect(screen.getByRole('checkbox', { name: /^Read Read jobs/ })).toBeDisabled();
+    expect(screen.getByText(/^Read jobs, candidates/)).toBeInTheDocument();
+    expect(screen.getByText('Always on.')).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: /^Read/ })).not.toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /^Write Add notes/ })).not.toBeChecked();
     expect(screen.getByRole('checkbox', { name: /^Write Add notes/ })).toBeEnabled();
     expect(screen.getByText(/Everything it does shows in the activity under Acme Assistant/)).toBeInTheDocument();

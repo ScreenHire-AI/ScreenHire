@@ -88,6 +88,10 @@ public sealed partial class RolePermissionsTests
         ["RevokeApiKey"] = Permission.ManageApiKeys,
         ["GetApiKeysHistory"] = Permission.ManageApiKeys,
         ["GetApiKeysLastUpdate"] = Permission.ManageApiKeys,
+        ["GetOAuthAuthorizationRequest"] = Permission.ManageApiKeys,
+        ["DecideOAuthAuthorization"] = Permission.ManageApiKeys,
+        ["ListOAuthConnections"] = Permission.ManageApiKeys,
+        ["RevokeOAuthConnection"] = Permission.ManageApiKeys,
         ["ListWebhookEndpoints"] = Permission.ManageWebhooks,
         ["CreateWebhookEndpoint"] = Permission.ManageWebhooks,
         ["GetWebhookEndpoint"] = Permission.ManageWebhooks,
@@ -245,11 +249,14 @@ public sealed partial class RolePermissionsTests
         RolePermissions.Summarize([Permission.ViewHiring, Permission.ManageApiKeys]).Should().Be("See jobs and candidates and manage API keys.");
     }
 
-    // Each fluent route statement in the endpoint sources that names an operation and requires a permission.
+    // Each fluent route statement in the API's sources that names an operation and requires a permission, wherever the
+    // file sits: a guarded route outside Endpoints must not slip past the table.
     private static Dictionary<string, Permission> GuardedRoutes()
     {
         var routes = new Dictionary<string, Permission>(StringComparer.Ordinal);
-        foreach (var file in Directory.EnumerateFiles(RepositoryFiles.PathTo("apps", "api", "Endpoints"), "*.cs"))
+        var sources = Directory.EnumerateFiles(RepositoryFiles.PathTo("apps", "api"), "*.cs", SearchOption.AllDirectories)
+            .Where(file => !file.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).Any(folder => folder is "bin" or "obj"));
+        foreach (var file in sources)
         {
             var code = CommentLine().Replace(File.ReadAllText(file), string.Empty);
             foreach (var statement in code.Split(';'))

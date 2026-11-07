@@ -23,10 +23,12 @@ internal static class OAuthConsentEndpoints
         var consent = app.MapGroup("/v1/oauth").WithTags("OAuth").RequireAuthorization();
         consent.MapGet("/authorization-request", GetAuthorizationRequest).WithName("GetOAuthAuthorizationRequest")
             .RequirePermission(Permission.ManageApiKeys)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status401Unauthorized);
         consent.MapPost("/authorize", Authorize).WithName("DecideOAuthAuthorization")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.ManageApiKeys)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status401Unauthorized);
 
         var connections = app.MapGroup("/v1/organization/oauth-connections").WithTags("OAuth").RequireAuthorization();

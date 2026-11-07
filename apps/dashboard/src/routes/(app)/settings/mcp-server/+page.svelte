@@ -153,7 +153,7 @@
           </SummaryItem>
           <SummaryItem label="Transport">Streamable HTTP</SummaryItem>
           <SummaryItem label="OAuth sign-in">
-            Clients that sign in with OAuth, such as a claude.ai custom connector, only need the server URL. Sign in when asked and choose what the assistant may do.
+            A claude.ai custom connector needs only the server URL. You sign in and choose what it may do.
           </SummaryItem>
           <SummaryItem label="API key header"><span class="font-mono text-code break-all">Authorization: Bearer &lt;API key&gt;</span></SummaryItem>
           <SummaryItem label="API key access">Read only, or read and write, as the key allows</SummaryItem>

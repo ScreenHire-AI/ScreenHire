@@ -13590,6 +13590,11 @@ export type getOAuthAuthorizationRequestResponse200 = {
   status: 200
 }
 
+export type getOAuthAuthorizationRequestResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
 export type getOAuthAuthorizationRequestResponse401 = {
   data: void
   status: 401
@@ -13603,7 +13608,7 @@ export type getOAuthAuthorizationRequestResponse403 = {
 export type getOAuthAuthorizationRequestResponseSuccess = (getOAuthAuthorizationRequestResponse200) & {
   headers: Headers;
 };
-export type getOAuthAuthorizationRequestResponseError = (getOAuthAuthorizationRequestResponse401 | getOAuthAuthorizationRequestResponse403) & {
+export type getOAuthAuthorizationRequestResponseError = (getOAuthAuthorizationRequestResponse400 | getOAuthAuthorizationRequestResponse401 | getOAuthAuthorizationRequestResponse403) & {
   headers: Headers;
 };
 
@@ -13642,6 +13647,11 @@ export type decideOAuthAuthorizationResponse200 = {
   status: 200
 }
 
+export type decideOAuthAuthorizationResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
 export type decideOAuthAuthorizationResponse401 = {
   data: void
   status: 401
@@ -13655,7 +13665,7 @@ export type decideOAuthAuthorizationResponse403 = {
 export type decideOAuthAuthorizationResponseSuccess = (decideOAuthAuthorizationResponse200) & {
   headers: Headers;
 };
-export type decideOAuthAuthorizationResponseError = (decideOAuthAuthorizationResponse401 | decideOAuthAuthorizationResponse403) & {
+export type decideOAuthAuthorizationResponseError = (decideOAuthAuthorizationResponse400 | decideOAuthAuthorizationResponse401 | decideOAuthAuthorizationResponse403) & {
   headers: Headers;
 };
 

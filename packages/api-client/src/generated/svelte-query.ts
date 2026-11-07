@@ -24532,6 +24532,11 @@ export type getOAuthAuthorizationRequestResponse200 = {
   status: 200
 }
 
+export type getOAuthAuthorizationRequestResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
 export type getOAuthAuthorizationRequestResponse401 = {
   data: void
   status: 401
@@ -24545,7 +24550,7 @@ export type getOAuthAuthorizationRequestResponse403 = {
 export type getOAuthAuthorizationRequestResponseSuccess = (getOAuthAuthorizationRequestResponse200) & {
   headers: Headers;
 };
-export type getOAuthAuthorizationRequestResponseError = (getOAuthAuthorizationRequestResponse401 | getOAuthAuthorizationRequestResponse403) & {
+export type getOAuthAuthorizationRequestResponseError = (getOAuthAuthorizationRequestResponse400 | getOAuthAuthorizationRequestResponse401 | getOAuthAuthorizationRequestResponse403) & {
   headers: Headers;
 };
 
@@ -24586,7 +24591,7 @@ export const getGetOAuthAuthorizationRequestQueryKey = (params?: GetOAuthAuthori
     }
 
 
-export const getGetOAuthAuthorizationRequestQueryOptions = <TData = Awaited<ReturnType<typeof getOAuthAuthorizationRequest>>, TError = ErrorType<void | ProblemDetails>>(params?: GetOAuthAuthorizationRequestParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOAuthAuthorizationRequest>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+export const getGetOAuthAuthorizationRequestQueryOptions = <TData = Awaited<ReturnType<typeof getOAuthAuthorizationRequest>>, TError = ErrorType<ProblemDetails | void>>(params?: GetOAuthAuthorizationRequestParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOAuthAuthorizationRequest>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -24605,11 +24610,11 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetOAuthAuthorizationRequestQueryResult = NonNullable<Awaited<ReturnType<typeof getOAuthAuthorizationRequest>>>
-export type GetOAuthAuthorizationRequestQueryError = ErrorType<void | ProblemDetails>
+export type GetOAuthAuthorizationRequestQueryError = ErrorType<ProblemDetails | void>
 
 
 
-export function createGetOAuthAuthorizationRequest<TData = Awaited<ReturnType<typeof getOAuthAuthorizationRequest>>, TError = ErrorType<void | ProblemDetails>>(
+export function createGetOAuthAuthorizationRequest<TData = Awaited<ReturnType<typeof getOAuthAuthorizationRequest>>, TError = ErrorType<ProblemDetails | void>>(
  params?: () =>  GetOAuthAuthorizationRequestParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOAuthAuthorizationRequest>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient
  ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
@@ -24632,6 +24637,11 @@ export type decideOAuthAuthorizationResponse200 = {
   status: 200
 }
 
+export type decideOAuthAuthorizationResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
 export type decideOAuthAuthorizationResponse401 = {
   data: void
   status: 401
@@ -24645,7 +24655,7 @@ export type decideOAuthAuthorizationResponse403 = {
 export type decideOAuthAuthorizationResponseSuccess = (decideOAuthAuthorizationResponse200) & {
   headers: Headers;
 };
-export type decideOAuthAuthorizationResponseError = (decideOAuthAuthorizationResponse401 | decideOAuthAuthorizationResponse403) & {
+export type decideOAuthAuthorizationResponseError = (decideOAuthAuthorizationResponse400 | decideOAuthAuthorizationResponse401 | decideOAuthAuthorizationResponse403) & {
   headers: Headers;
 };
 
@@ -24688,7 +24698,7 @@ return apiQueryFetch<decideOAuthAuthorizationResponseSuccess>(getDecideOAuthAuth
 
 export const getDecideOAuthAuthorizationMutationKey = () => ['decideOAuthAuthorization'] as const;
 
-export const getDecideOAuthAuthorizationMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+export const getDecideOAuthAuthorizationMutationOptions = <TError = ErrorType<ProblemDetails | void>,
     TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof decideOAuthAuthorization>>, TError,DecideOAuthAuthorizationMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
 ): CreateMutationOptions<Awaited<ReturnType<typeof decideOAuthAuthorization>>, TError,DecideOAuthAuthorizationMutationVariables, TContext> => {
 
@@ -24717,10 +24727,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type DecideOAuthAuthorizationMutationResult = NonNullable<Awaited<ReturnType<typeof decideOAuthAuthorization>>>
     export type DecideOAuthAuthorizationMutationBody = OAuthAuthorizeRequest
-    export type DecideOAuthAuthorizationMutationError = ErrorType<void | ProblemDetails>
+    export type DecideOAuthAuthorizationMutationError = ErrorType<ProblemDetails | void>
     export type DecideOAuthAuthorizationMutationVariables = {data: OAuthAuthorizeRequest}
 
-    export const createDecideOAuthAuthorization = <TError = ErrorType<void | ProblemDetails>,
+    export const createDecideOAuthAuthorization = <TError = ErrorType<ProblemDetails | void>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof decideOAuthAuthorization>>, TError,DecideOAuthAuthorizationMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof decideOAuthAuthorization>>,

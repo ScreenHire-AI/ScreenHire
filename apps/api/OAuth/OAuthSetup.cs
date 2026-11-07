@@ -35,20 +35,8 @@ internal static class OAuthSetup
 
         services.AddRateLimiter(limiter =>
         {
-            limiter.AddPolicy(RegisterLimit, context => RateLimitPartition.GetFixedWindowLimiter(
-                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = context.RequestServices.GetRequiredService<IOptions<OAuthOptions>>().Value.RegistrationsPerHour,
-                    Window = TimeSpan.FromHours(1),
-                }));
-            limiter.AddPolicy(TokenLimit, context => RateLimitPartition.GetFixedWindowLimiter(
-                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = context.RequestServices.GetRequiredService<IOptions<OAuthOptions>>().Value.TokenRequestsPerMinute,
-                    Window = TimeSpan.FromMinutes(1),
-                }));
+            limiter.AddPolicy(RegisterLimit, context => PerAddress(context, o => o.RegistrationsPerHour, TimeSpan.FromHours(1)));
+            limiter.AddPolicy(TokenLimit, context => PerAddress(context, o => o.TokenRequestsPerMinute, TimeSpan.FromMinutes(1)));
         });
 
         services.AddCors(cors => cors.AddPolicy(CorsPolicy, policy => policy
@@ -57,4 +45,13 @@ internal static class OAuthSetup
             .WithHeaders("Content-Type", "Authorization", "MCP-Protocol-Version")));
         return builder;
     }
+
+    private static RateLimitPartition<string> PerAddress(HttpContext context, Func<OAuthOptions, int> permits, TimeSpan window) =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = permits(context.RequestServices.GetRequiredService<IOptions<OAuthOptions>>().Value),
+                Window = window,
+            });
 }
