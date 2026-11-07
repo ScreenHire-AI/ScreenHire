@@ -17,7 +17,10 @@ namespace ScreenHire.Application.Billing;
 /// </remarks>
 public sealed class StripeBillingProvider : IBillingProvider, IDisposable
 {
-    /// <summary>The Stripe API version every call and every webhook payload this code reads is written against.</summary>
+    /// <summary>
+    /// The Stripe API version this code is written against. The header pins our calls. A webhook payload follows the version of
+    /// its endpoint, or the account's default, so the endpoint is created with this version (docs/operations/deploy.md).
+    /// </summary>
     public const string ApiVersion = "2024-06-20";
 
     private readonly BillingOptions options;
@@ -161,21 +164,30 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
     private string? PlanKeyOf(JsonElement item)
     {
         // The price is the truth: a plan switched in the portal changes the price but keeps the metadata the subscription was
-        // created with. The metadata covers an event that carries no items (the Checkout session).
-        if (item.TryGetProperty("items", out var items) && items.TryGetProperty("data", out var list) && list.GetArrayLength() > 0
-            && list[0].TryGetProperty("price", out var price) && Text(price, "id") is { } priceId
-            && catalogue.Plans.FirstOrDefault(p => p.StripePriceId == priceId) is { } byPrice)
+        // created with. So a price no plan lists names no plan (the stored one stands), and the metadata covers only an event
+        // that carries no items (the Checkout session).
+        if (FirstItem(item) is { } first && first.TryGetProperty("price", out var price) && Text(price, "id") is { } priceId)
         {
-            return byPrice.Key;
+            return catalogue.Plans.FirstOrDefault(p => p.StripePriceId == priceId)?.Key;
         }
 
         return item.TryGetProperty("metadata", out var metadata) && Text(metadata, "plan") is { } key ? catalogue.Find(key)?.Key : null;
     }
 
-    private static DateTimeOffset? PeriodEnd(JsonElement item) =>
-        item.TryGetProperty("current_period_end", out var end) && end.ValueKind == JsonValueKind.Number
-            ? DateTimeOffset.FromUnixTimeSeconds(end.GetInt64())
-            : null;
+    // API version 2025-03-31 moved the period from the subscription to its items. An endpoint created at another version than
+    // ApiVersion sends the later shape, and the next payment must not silently disappear because of it.
+    private static DateTimeOffset? PeriodEnd(JsonElement item)
+    {
+        if (!item.TryGetProperty("current_period_end", out var end) && FirstItem(item) is { } first)
+        {
+            first.TryGetProperty("current_period_end", out end);
+        }
+
+        return end.ValueKind == JsonValueKind.Number ? DateTimeOffset.FromUnixTimeSeconds(end.GetInt64()) : null;
+    }
+
+    private static JsonElement? FirstItem(JsonElement item) =>
+        item.TryGetProperty("items", out var items) && items.TryGetProperty("data", out var list) && list.GetArrayLength() > 0 ? list[0] : null;
 
     private static string? Text(JsonElement element, string name) =>
         element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;

@@ -314,6 +314,22 @@ public sealed class StripeBillingProviderTests : IDisposable
     }
 
     [Fact]
+    public void The_period_end_comes_from_the_first_item_at_an_api_version_that_moved_it_off_the_subscription()
+    {
+        var periodEnd = 1_775_120_400L;
+
+        var evt = Read(Event("evt_2b", "customer.subscription.updated", new JsonObject
+        {
+            ["id"] = "sub_fictional",
+            ["status"] = "active",
+            ["metadata"] = Meta("growth"),
+            ["items"] = new JsonObject { ["data"] = new JsonArray(new JsonObject { ["current_period_end"] = periodEnd, ["price"] = new JsonObject { ["id"] = GrowthPrice } }) },
+        })).Event!;
+
+        evt.CurrentPeriodEnd.Should().Be(DateTimeOffset.FromUnixTimeSeconds(periodEnd));
+    }
+
+    [Fact]
     public void A_subscription_update_without_the_optional_fields_says_nothing_about_them()
     {
         var evt = Read(Event("evt_2", "customer.subscription.updated", new JsonObject
@@ -379,6 +395,19 @@ public sealed class StripeBillingProviderTests : IDisposable
         })).Event!;
 
         evt.PlanKey.Should().Be("growth");
+    }
+
+    [Fact]
+    public void A_price_no_plan_sells_names_no_plan_even_when_the_metadata_does_so_the_stored_plan_stands()
+    {
+        // Created on Growth, so the metadata says growth, then switched in the portal to a price the catalogue no longer lists.
+        Read(Event("evt_5c", "customer.subscription.updated", new JsonObject
+        {
+            ["id"] = "sub_fictional",
+            ["status"] = "active",
+            ["metadata"] = Meta("growth"),
+            ["items"] = new JsonObject { ["data"] = new JsonArray(new JsonObject { ["price"] = new JsonObject { ["id"] = "price_retired" } }) },
+        })).Event!.PlanKey.Should().BeNull();
     }
 
     [Fact]
