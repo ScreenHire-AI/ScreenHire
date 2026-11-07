@@ -323,7 +323,7 @@
 <TopBar crumbs={[{ label: 'Settings' }, { label: 'Data requests' }]} />
 
 <main class={[sidebar.isMobile && 'pb-6']}>
-  <HeaderBand title="Data requests" count={openCount}>
+  <HeaderBand title="Data requests" count={openCount} oneRow>
     {#snippet status()}{#if openCount !== undefined}<span class="text-muted-foreground">open</span>{/if}{/snippet}
   </HeaderBand>
 

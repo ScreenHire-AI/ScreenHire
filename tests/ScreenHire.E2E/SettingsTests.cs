@@ -411,8 +411,7 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
 
         await GoToAsync("dashboard", "/settings/team");
         var organization = Page.GetByRole(AriaRole.Navigation, new() { Name = "Organization", Exact = true });
-        (await organization.GetByRole(AriaRole.Link).AllInnerTextsAsync()).Select(text => text.Trim())
-            .Should().Equal("General", "Team", "Roles", "Data requests");
+        await Expect(organization.GetByRole(AriaRole.Link)).ToHaveTextAsync(["General", "Team", "Roles", "Data requests"]);
         await Expect(organization.GetByRole(AriaRole.Link, new() { Name = "Branding" })).ToHaveCountAsync(0);
         var team = await FrameAsync();
 
@@ -430,8 +429,7 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Hiring setup", Exact = true }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Careers site");
         var hiring = Page.GetByRole(AriaRole.Navigation, new() { Name = "Hiring setup", Exact = true });
-        (await hiring.GetByRole(AriaRole.Link).AllInnerTextsAsync()).Select(text => text.Trim())
-            .Should().Equal("Careers site", "Branding", "Verification", "Email domain");
+        await Expect(hiring.GetByRole(AriaRole.Link)).ToHaveTextAsync(["Careers site", "Branding", "Verification", "Email domain"]);
         await ExpectNoAccessibilityViolationsAsync();
     }
 
@@ -467,6 +465,58 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
         // An integration's page is a record of the directory, not a page of a menu.
         await Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Breadcrumb" }).GetByRole(AriaRole.Link, new() { Name = "Integrations" })).ToHaveAttributeAsync("href", "/settings/integrations");
     }
+
+    [Theory]
+    [InlineData(390, 844)]
+    [InlineData(768, 900)]
+    public async Task The_menu_starts_in_the_same_place_on_every_page_of_a_section_at_phone_and_tablet_widths(int width, int height)
+    {
+        // Every page that has a Last updated fact has one (an edited organization, a domain), and the Email domain page has
+        // the actions that only appear once there is a domain: the cases where the title's row used to wrap (S8).
+        var owner = ApiSession.NewEmail("e2e-owner");
+        using (var session = new ApiSession(Fixture))
+        {
+            await session.SignInWithDevSsoAsync(owner, Ct);
+            await session.OnboardAsync(Ct);
+            using var renamed = await session.PutAsync("/v1/organization", new { name = "Harbour Lane Studio" }, Ct);
+            renamed.StatusCode.Should().Be(HttpStatusCode.OK, await renamed.Content.ReadAsStringAsync(Ct));
+            using var domain = await session.PutAsync("/v1/organization/sending-domain", new { domain = $"mail-{Guid.NewGuid():N}.example.com" }, Ct);
+            domain.StatusCode.Should().Be(HttpStatusCode.OK, await domain.Content.ReadAsStringAsync(Ct));
+        }
+
+        await Page.SetViewportSizeAsync(width, height);
+        await SignInAsync(owner);
+
+        (string Area, (string Path, string Title, bool HasFact)[] Pages)[] sections =
+        [
+            ("Organization", [("/settings/organization", "General", true), ("/settings/team", "Team", true), ("/settings/roles", "Roles", false), ("/settings/data-requests", "Data requests", false)]),
+            ("Hiring setup", [("/settings/careers-site", "Careers site", true), ("/settings/branding", "Branding", true), ("/settings/verification", "Verification", true), ("/settings/sending-domain", "Email domain", true)]),
+        ];
+        foreach (var (area, pages) in sections)
+        {
+            var tops = new List<(string Title, double Top)>();
+            foreach (var (path, title, hasFact) in pages)
+            {
+                await GoToAsync("dashboard", path);
+                await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(title);
+                await Expect(Page.Locator("main [data-slot=skeleton]")).ToHaveCountAsync(0);
+                if (hasFact)
+                {
+                    await Expect(Page.Locator("[data-slot=header-band] [data-last-updated]")).ToBeAttachedAsync();
+                }
+
+                var menu = await Page.GetByRole(AriaRole.Navigation, new() { Name = area, Exact = true }).BoundingBoxAsync();
+                menu.Should().NotBeNull();
+                tops.Add((title, menu!.Y));
+                await ExpectNoSidewaysScrollAsync();
+            }
+
+            tops.Select(top => Math.Round(top.Top)).Distinct().Should().HaveCount(1, "the menu starts at the same place on every page of {0} at {1}px: {2}", area, width, string.Join(", ", tops.Select(top => $"{top.Title} {top.Top}")));
+        }
+    }
+
+    private async Task ExpectNoSidewaysScrollAsync() =>
+        (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth")).Should().BeTrue("the page scrolls sideways");
 
     private async Task<(double MenuX, double MenuY, double MenuWidth, double BandHeight)> FrameAsync()
     {

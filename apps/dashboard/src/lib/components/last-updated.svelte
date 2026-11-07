@@ -30,9 +30,11 @@
   const words = $derived(lastUpdateWords(value));
 </script>
 
-<span class="inline-flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
+<span class={['inline-flex min-w-0 max-w-full items-center gap-x-2.5 gap-y-1', !lead && 'flex-wrap']}>
   {#if lead}
-    <span class="min-w-0"
+    <!-- On the title's row the fact never wraps (S8): the text gives way with an ellipsis, and History keeps its icon with its
+         name for screen readers once the header band is narrower than 448px (a phone), so a title with a status badge fits. -->
+    <span class="min-w-0 truncate"
       ><span class="sr-only">{words.label}:</span><span aria-hidden="true">{words.verb}</span>{#if value.at}{' '}<RelativeTime
           at={value.at}
         />{/if}{#if who}{' by '}<span class="whitespace-nowrap">{who}</span>{/if}</span
@@ -44,6 +46,6 @@
     >
   {/if}
   {#if onhistory}
-    <Button variant="outline" size="sm" aria-haspopup="dialog" onclick={onhistory}><HistoryIcon aria-hidden="true" />History</Button>
+    <Button variant="outline" size="sm" class={lead ? 'shrink-0' : undefined} aria-haspopup="dialog" onclick={onhistory}><HistoryIcon aria-hidden="true" /><span class={lead ? '@max-md:sr-only' : undefined}>History</span></Button>
   {/if}
 </span>

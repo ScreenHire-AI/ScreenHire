@@ -92,7 +92,7 @@
 <TopBar crumbs={[{ label: 'Settings' }, { label: 'General' }]} />
 
 <main class="flex flex-col">
-  <HeaderBand title="General">
+  <HeaderBand title="General" oneRow>
     {#snippet actions()}
       {#if detail}<HistoryFact value={detail.lastUpdated} name={detail.name} page={(before) => getGetOrganizationHistoryQueryOptions({ before })} />{/if}
     {/snippet}

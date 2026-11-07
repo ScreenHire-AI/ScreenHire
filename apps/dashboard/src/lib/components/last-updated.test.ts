@@ -1,5 +1,5 @@
 import type { LastUpdate, TeamMember } from '@screenhire/api-client';
-import { render } from '@testing-library/svelte';
+import { render, screen } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import WithTooltips from '../../test-support/with-tooltips.svelte';
 import LastUpdated from './last-updated.svelte';
@@ -39,6 +39,20 @@ describe('last updated', () => {
   it('says a built-in nobody changed is by ScreenHire, in lower case after its verb', () => {
     expect(words({ at: null, by: 'ScreenHire' }, true)).toBe('Last updated:Updated by ScreenHire');
     expect(words({ at: null, by: 'ScreenHire' })).toBe('By ScreenHire');
+  });
+
+  it('keeps History a named button, icon-only in a narrow header band on the title row (S8), and in words elsewhere', () => {
+    const value: LastUpdate = { at: twoHoursAgo, by: 'Member', userId: 'u1' };
+    const { unmount } = render(WithTooltips, { props: { component: LastUpdated, props: { value, members, currentUserId: 'u1', lead: true, onhistory: () => {} } } });
+
+    expect(screen.getByRole('button', { name: 'History' })).toBeInTheDocument();
+    expect(screen.getByText('History')).toHaveClass('@max-md:sr-only');
+    // The text gives way with an ellipsis, and the button does not shrink.
+    expect(screen.getByText(/Updated/).closest('span.truncate')).not.toBeNull();
+    unmount();
+
+    render(WithTooltips, { props: { component: LastUpdated, props: { value, members, currentUserId: 'u1', onhistory: () => {} } } });
+    expect(screen.getByText('History')).not.toHaveClass('@max-md:sr-only');
   });
 
   it('is the value alone inside a fact, whose label says Created or Last updated', () => {

@@ -317,6 +317,7 @@
     count={members.isSuccess ? memberList.length : undefined}
     countLabel={memberList.length === 1 ? 'member' : 'members'}
     actions={bandActions}
+    oneRow
   />
 
   <SettingsMenu>

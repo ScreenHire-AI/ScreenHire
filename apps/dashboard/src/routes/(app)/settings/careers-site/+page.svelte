@@ -118,7 +118,7 @@
 <TopBar crumbs={[{ label: 'Settings' }, { label: 'Careers site' }]} />
 
 <main class="flex flex-col">
-  <HeaderBand title="Careers site">
+  <HeaderBand title="Careers site" oneRow>
     <!-- What people edit here (questions per page, the sites that embed it) is the organization's, so its history (T6). -->
     {#snippet actions()}
       {#if detail}<HistoryFact value={detail.lastUpdated} name="Careers site" page={(before) => getGetOrganizationHistoryQueryOptions({ before })} />{/if}

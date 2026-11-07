@@ -93,7 +93,7 @@
 <TopBar crumbs={[{ label: 'Settings' }, { label: 'Verification' }]} />
 
 <main class="flex flex-col">
-  <HeaderBand title="Verification">
+  <HeaderBand title="Verification" oneRow>
     {#snippet actions()}
       {#if detail}
         <HistoryFact value={detail.lastUpdated} name="Verification settings" page={(before) => getGetOrganizationVerificationSettingsHistoryQueryOptions({ before })} />

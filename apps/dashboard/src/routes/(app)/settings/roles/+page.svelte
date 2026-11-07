@@ -112,6 +112,7 @@
     count={catalogue.isSuccess ? roles.length : undefined}
     countLabel={roles.length === 1 ? 'role' : 'roles'}
     actions={sidebar.isMobile ? compareLink : bandActions}
+    oneRow
   />
 
   <SettingsMenu>
