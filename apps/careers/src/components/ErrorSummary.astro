@@ -20,14 +20,14 @@ const entries = Object.entries(errors);
       tabindex="-1"
       autofocus
       aria-labelledby="error-summary-heading"
-      class="mb-5 rounded-2xl border-2 border-destructive bg-candidate-surface px-4 py-3.5"
+      class="mb-5 rounded-panel border-2 border-destructive bg-candidate-surface px-4 py-4 shadow-surface"
     >
-      <h2 id="error-summary-heading" class="text-base font-bold">
+      <h2 id="error-summary-heading" class="text-heading">
         {entries.length > 0 ? 'Check these before you continue' : 'There was a problem'}
       </h2>
-      {formError && <p class="mt-1 text-sm">{formError}</p>}
+      {formError && <p class="mt-1 text-candidate-body">{formError}</p>}
       {entries.length > 0 && (
-        <ul class="mt-1.5 flex flex-col gap-1 text-sm">
+        <ul class="mt-2 flex flex-col gap-1 text-candidate-body">
           {entries.map(([name, message]) => (
             <li>
               <a href={`#${fieldId(name)}`} class="font-semibold text-destructive underline underline-offset-2">

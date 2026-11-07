@@ -1,6 +1,6 @@
 ---
 import Faqs from '../components/Faqs.astro';
-import StatusIcon from '../components/StatusIcon.astro';
+import StatusBadge from '../components/StatusBadge.astro';
 import PageHeader from '../components/PageHeader.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { pages } from '../lib/pages';
@@ -11,9 +11,9 @@ const { title, description, path, label } = pages.detection;
 // Source of truth: ADR-0004 and docs/architecture/verification-engine.md. v1 covers the application stage only; ID
 // verification and interview checks are later phases, and the copy says so.
 const levels = [
-  { name: 'No concerns', status: 'done', icon: 'text-status-clear-mark', chip: 'bg-status-clear-soft text-status-clear' },
-  { name: 'Review suggested', status: 'review', icon: 'text-status-review-mark', chip: 'bg-status-review-soft text-status-review' },
-  { name: 'Verification suggested', status: 'verification', icon: 'text-status-verify-mark', chip: 'bg-status-verify-soft text-status-verify' },
+  { name: 'No concerns', status: 'done' },
+  { name: 'Review suggested', status: 'review' },
+  { name: 'Verification suggested', status: 'verification' },
 ] as const;
 
 const categories = [
@@ -101,12 +101,11 @@ const faqs: Faq[] = [
       Each application gets two separate assessments: authenticity (is this a real, unique person?) and AI assistance (how
       much looks generated?). Authenticity has three levels:
     </p>
-    <ul class="mt-5 flex flex-wrap gap-2.5">
+    <ul class="mt-5 flex flex-wrap gap-3">
       {
         levels.map((level) => (
-          <li class:list={['inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-bold', level.chip]}>
-            <StatusIcon status={level.status} class={level.icon} />
-            {level.name}
+          <li>
+            <StatusBadge status={level.status} label={level.name} />
           </li>
         ))
       }
@@ -123,7 +122,7 @@ const faqs: Faq[] = [
     <dl class="mt-6 grid gap-4 md:grid-cols-2">
       {
         categories.map((category) => (
-          <div class="flex flex-col gap-1.5 rounded-xl border border-border bg-card p-5">
+          <div class="flex flex-col gap-2 rounded-panel border border-border bg-card shadow-surface p-5">
             <dt class="font-bold">{category.name}</dt>
             <dd class="text-secondary-foreground">{category.examples}</dd>
           </div>
@@ -137,7 +136,7 @@ const faqs: Faq[] = [
     <ol class="mt-6 grid gap-4 md:grid-cols-4">
       {
         timeline.map((step, index) => (
-          <li class="flex flex-col gap-1.5 border-t-2 border-foreground pt-3">
+          <li class="flex flex-col gap-2 border-t-2 border-foreground pt-3">
             <span class="kicker">Step {index + 1}</span>
             <span class="font-bold">{step.phase}</span>
             <span class="text-base text-secondary-foreground">{step.collected}</span>
@@ -153,7 +152,7 @@ const faqs: Faq[] = [
   </section>
 
   <section aria-labelledby="never-title" class="mx-auto max-w-6xl px-6 py-10">
-    <div class="rounded-2xl bg-foreground p-7 text-background">
+    <div class="rounded-panel bg-foreground p-8 text-background">
       <h2 id="never-title" class="font-display text-3xl font-bold tracking-tight">What we never do</h2>
       <ul class="mt-5 grid gap-x-8 gap-y-3 md:grid-cols-2">
         {never.map((item) => <li class="border-t border-background/25 pt-3">{item}</li>)}
