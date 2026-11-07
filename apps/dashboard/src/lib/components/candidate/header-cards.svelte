@@ -59,9 +59,11 @@
      laptop (F2). In a band narrower than 36rem, a phone's, the cards would stack to about 580px before the tabs, so they sit
      in one row that scrolls sideways, each snapping into place, and the next card's edge shows that there is more, so it
      needs no scrollbar of its own above the tabs' one. The padding and the matching negative margin keep the links' focus
-     rings inside the scrolling row. -->
+     rings inside the scrolling row. The row is the containing
+     block of the cards' screen-reader-only text (position: absolute), or that text, laid out beyond the window, would make
+     the page scroll sideways. -->
 <div
-  class="-m-1 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto p-1 [scrollbar-width:none] @xl:m-0 @xl:grid @xl:snap-none @xl:grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] @xl:overflow-visible @xl:p-0"
+  class="relative -m-1 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto p-1 [scrollbar-width:none] @xl:m-0 @xl:grid @xl:snap-none @xl:grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] @xl:overflow-visible @xl:p-0"
   data-header-cards
 >
   <MiniCard class={cardClass} title="Contact">
