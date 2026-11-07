@@ -23,7 +23,7 @@
   import UserPlusIcon from '~icons/lucide/user-plus';
   import UserRoundIcon from '~icons/lucide/user-round';
   import UsersIcon from '~icons/lucide/users';
-  import type { ApplicationFileSummary, ApplicationInterview, HiringWorkflow, HistoryEntry, ScorecardEntry, SignalEvidence as Evidence, WorkflowStage } from '@screenhire/api-client';
+  import type { ApplicationFileSummary, ApplicationInterview, HiringWorkflow, HistoryEntry, ScorecardEntry, SignalEvidence as Evidence, SimulateWorkflowRequest, WorkflowSimulationResult, WorkflowStage } from '@screenhire/api-client';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
@@ -111,6 +111,7 @@
   import * as Tabs from '#lib/components/ui/tabs/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
+  import GuidedTest from '#lib/components/workflow/guided-test.svelte';
   import StageFlow from '#lib/components/workflow/stage-flow.svelte';
   import { formatDate, hour, day, minute } from '#lib/dates.js';
   import type { Tracker, TrackerStep } from '#lib/pipeline-tracker.js';
@@ -350,6 +351,29 @@
     { id: 'tell', name: 'Tell the team', trigger: { type: 'StageEntered', stageId: 'phone-screen' }, conditions: null, actions: [{ type: 'NotifyTeam', note: 'Screened' }] },
     { id: 'offer', name: 'Tag offered', trigger: { type: 'StageEntered', stageId: 'offer' }, conditions: null, actions: [{ type: 'AddTag', tag: 'offered' }] },
   ];
+  // The guided test's workflow, and an answer in place of the simulate endpoint: every automation of the moment would run.
+  const guideWorkflow: HiringWorkflow = {
+    stages: flowStages,
+    questionnaire: {
+      questions: [{ id: 'right_to_work', type: 'YesNo', label: 'Do you have the right to work here?', required: true, knockout: { disqualifyingAnswer: false } }],
+    },
+    verificationPolicy: { aiUse: 'AllowedWithDisclosure' },
+    automations: [
+      ...flowAutomations,
+      {
+        id: 'queue',
+        name: 'Queue for review',
+        trigger: { type: 'ApplicationSubmitted' },
+        conditions: { match: 'All', rules: [{ fact: 'answers.right_to_work', operator: 'EqualTo', value: 'no' }] },
+        actions: [{ type: 'QueueForRejectionReview', reason: 'No right to work' }],
+      },
+    ],
+  };
+  const guideRun = async (request: SimulateWorkflowRequest): Promise<WorkflowSimulationResult> => ({
+    automations: request.workflow.automations
+      .filter((automation) => automation.trigger.type === request.trigger.type && (automation.trigger.stageId ?? null) === (request.trigger.stageId ?? null))
+      .map((automation) => ({ automationId: automation.id, name: automation.name, outcome: 'Matched' as const, rules: [], actions: automation.actions, reason: null })),
+  });
   const manyStages: WorkflowStage[] = Array.from({ length: 20 }, (_, index) => ({
     id: `stage-${index + 1}`,
     name: `Stage ${index + 1}`,
@@ -861,6 +885,19 @@
 
       <Panel title="Workflow graph" flush>
         <GraphDemo />
+      </Panel>
+
+      <Panel title="Guided test">
+        <div class="flex flex-col gap-6">
+          <figure class="flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">One question at a time, with the progress above it; an answer is a card, and pressing it moves on</figcaption>
+            <GuidedTest workflow={guideWorkflow} run={guideRun} />
+          </figure>
+          <figure class="flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">A workflow with no automations has nothing to test yet</figcaption>
+            <GuidedTest workflow={{ ...guideWorkflow, automations: [] }} run={guideRun} onadd={() => {}} />
+          </figure>
+        </div>
       </Panel>
 
       <Panel title="Stage flow">

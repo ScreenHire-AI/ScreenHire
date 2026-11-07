@@ -171,23 +171,26 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         // The template the workflow came from is a header fact (W3).
         await Expect(HeaderBand).ToContainTextAsync($"{templateName} v1");
 
+        // The guided test: what happened, who the candidate is, then what would happen, one question at a time.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Simulate" }).ClickAsync();
-        var sample = Page.GetByRole(AriaRole.Form, new() { Name = "Sample application" });
-        await sample.GetByLabel("Trigger").SelectOptionAsync(new SelectOptionValue { Label = "The verification checks finish" });
-        await sample.GetByLabel("Authenticity").SelectOptionAsync(new SelectOptionValue { Label = "Verification suggested" });
-        await sample.GetByLabel(RightToWork).SelectOptionAsync(new SelectOptionValue { Label = "Yes" });
-        await sample.GetByRole(AriaRole.Button, new() { Name = "Run test" }).ClickAsync();
-        var results = Page.GetByRole(AriaRole.Region, new() { Name = "What would happen" });
-        var fired = results.GetByRole(AriaRole.Listitem, new() { Name = "Route for review: Would run" });
-        await Expect(fired).ToContainTextAsync("verification.authenticity is: holds");
-        await Expect(fired).ToContainTextAsync("Add the tag \"needs-review\"");
+        var test = Page.GetByRole(AriaRole.Region, new() { Name = "Test this workflow" });
+        await Expect(test.GetByRole(AriaRole.Heading, new() { Level = 3 })).ToHaveTextAsync("What happened?");
+        await Expect(test).ToContainTextAsync("It never touches a real candidate or sends anything.");
+        await test.GetByRole(AriaRole.Button, new() { Name = "The verification checks finished" }).ClickAsync();
+        await Expect(test.GetByRole(AriaRole.Heading, new() { Level = 3 })).ToHaveTextAsync("Who is the candidate?");
+        await test.GetByRole(AriaRole.Button, new() { Name = "Has verification signals" }).ClickAsync();
+        var results = test.GetByRole(AriaRole.List, new() { Name = "What would happen, in order" });
+        await Expect(results).ToContainTextAsync("Route for review");
+        await Expect(results).ToContainTextAsync("Add the tag \"needs-review\"");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-workflow-simulate-light");
 
-        // A sample the conditions do not match runs nothing.
-        await sample.GetByLabel("Authenticity").SelectOptionAsync(new SelectOptionValue { Label = "No concerns" });
-        await sample.GetByRole(AriaRole.Button, new() { Name = "Run test" }).ClickAsync();
-        await Expect(results.GetByRole(AriaRole.Listitem, new() { Name = "Route for review: Conditions do not hold" })).ToBeVisibleAsync();
+        // A candidate the conditions do not match runs nothing, and the result says why in a line.
+        await test.GetByRole(AriaRole.Button, new() { Name = "Change the candidate" }).ClickAsync();
+        await test.GetByRole(AriaRole.Button, new() { Name = "Meets every requirement" }).ClickAsync();
+        await Expect(test.GetByRole(AriaRole.Heading, new() { Level = 4 })).ToHaveTextAsync("Would not run");
+        await Expect(test).ToContainTextAsync("Nothing would run.");
+        await Expect(test).ToContainTextAsync("Verification: authenticity is Verification suggested");
     }
 
     [Fact]

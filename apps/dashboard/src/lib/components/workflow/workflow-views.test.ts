@@ -404,10 +404,14 @@ describe('workflow builder', () => {
 });
 
 describe('workflow simulation', () => {
-  const multi: HiringWorkflow = {
+  afterEach(() => vi.unstubAllGlobals());
+
+  // Applying runs a knockout automation and a verification route; entering a stage tags. Four moments, three questions each.
+  const guided: HiringWorkflow = {
     ...workflow,
     questionnaire: {
       questions: [
+        workflow.questionnaire.questions[0]!,
         {
           id: 'stack',
           type: 'MultiChoice',
@@ -420,31 +424,288 @@ describe('workflow simulation', () => {
         },
       ],
     },
+    automations: [
+      ...workflow.automations,
+      {
+        id: 'queue-review',
+        name: 'Queue for review',
+        trigger: { type: 'ApplicationSubmitted' },
+        conditions: { match: 'All', rules: [{ fact: 'answers.right_to_work', operator: 'EqualTo', value: 'no' }] },
+        actions: [{ type: 'QueueForRejectionReview', reason: 'No right to work' }],
+      },
+      {
+        id: 'svelte-fans',
+        name: 'Tag Svelte users',
+        trigger: { type: 'ApplicationSubmitted' },
+        conditions: { match: 'All', rules: [{ fact: 'answers.stack', operator: 'Contains', value: 'svelte' }] },
+        actions: [{ type: 'AddTag', tag: 'svelte' }],
+      },
+      {
+        id: 'route',
+        name: 'Route for review',
+        trigger: { type: 'VerificationAssessed' },
+        conditions: { match: 'All', rules: [{ fact: 'verification.authenticity', operator: 'EqualTo', value: 'VerificationRecommended' }] },
+        actions: [{ type: 'AddTag', tag: 'needs-review' }],
+      },
+    ],
   };
 
-  it('picks a multi-choice answer by the options names and sends their ids, never asking for typed ids (W8)', async () => {
+  const stubSimulate = (answer: (body: Record<string, unknown>) => Response = () => Response.json({ automations: [] })) => {
     const fetchMock = vi.fn(
       apiStub({
         'GET /v1/email-templates': () => Response.json({ templates: [], sendingEnabled: false }),
-        'POST /v1/workflows/simulate': () => Response.json({ automations: [] }),
+        'POST /v1/workflows/simulate': (init) => answer(JSON.parse(String(init?.body))),
       }),
     );
     vi.stubGlobal('fetch', fetchMock);
-    render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: structuredClone(multi), errors: [], mode: 'editor', tab: 'simulate' } } });
+    return fetchMock;
+  };
+  const sent = (fetchMock: ReturnType<typeof stubSimulate>) =>
+    fetchMock.mock.calls.filter(([url]) => url === '/v1/workflows/simulate').map(([, init]) => JSON.parse(String(init?.body)));
+  const stepHeading = () => screen.getByRole('heading', { level: 3 });
+  const pane = () => screen.getByRole('tabpanel', { name: 'Simulate' });
 
-    const group = await screen.findByRole('group', { name: 'Which of these have you used?' });
+  it('asks one thing at a time, says once that no real candidate is touched, and runs a ready-made candidate with one press', async () => {
+    const fetchMock = stubSimulate((body) =>
+      Response.json({
+        automations: [{ automationId: 'queue-review', name: 'Queue for review', outcome: 'NotMatched', rules: [{ fact: 'answers.right_to_work', operator: 'EqualTo', held: false }], actions: [], reason: null }],
+      }),
+    );
+    const { container } = renderViews('editor', 'simulate', [], guided);
+
+    expect(stepHeading()).toHaveTextContent('What happened?');
+    expect(pane()).toHaveTextContent('It never touches a real candidate or sends anything.');
+    const progress = within(pane()).getByRole('list', { name: 'Progress of the test' });
+    expect(within(progress).getByText('Moment').closest('li')).toHaveAttribute('aria-current', 'step');
+    // Only the moments some automation that is on reacts to: the disabled "Tell the team" is not one of them.
+    const moments = within(pane()).getByRole('list', { name: 'Moments' });
+    expect(within(moments).getAllByRole('button').map((button) => button.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
+      'A candidate applied 2 automations react',
+      'The verification checks finished 1 automation reacts',
+      'A candidate moved to a stage 1 automation reacts',
+    ]);
+    expect(within(pane()).queryAllByRole('form')).toHaveLength(0);
+    await expectNoAxeViolations(container);
+
+    await fireEvent.click(within(moments).getByRole('button', { name: /A candidate applied/ }));
+
+    await waitFor(() => expect(stepHeading()).toHaveTextContent('Who is the candidate?'));
+    await waitFor(() => expect(stepHeading()).toHaveFocus());
+    expect(pane()).not.toHaveTextContent('never touches a real candidate');
+    const candidates = within(pane()).getByRole('list', { name: 'Candidates' });
+    expect(within(candidates).getAllByRole('button').map((button) => button.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
+      'Meets every requirement Passes every knockout question',
+      'Fails a knockout Answers No to "Do you have the right to work here?"',
+    ]);
+    expect(within(pane()).getByRole('button', { name: 'Back' })).toBeInTheDocument();
+    await fireEvent.click(within(candidates).getByRole('button', { name: /Fails a knockout/ }));
+
+    await waitFor(() => expect(stepHeading()).toHaveTextContent('What would happen'));
+    expect(sent(fetchMock)).toHaveLength(1);
+    expect(sent(fetchMock)[0]).toMatchObject({
+      trigger: { type: 'ApplicationSubmitted' },
+      facts: { answers: [{ questionId: 'right_to_work', values: ['no'] }] },
+      accommodationRequested: false,
+    });
+    // Nothing ran, so there is no numbered line; the automations of the moment are listed with one line on why not, and the one for another moment is not.
+    await within(pane()).findByRole('button', { name: 'Change the candidate' });
+    expect(within(pane()).queryByRole('list', { name: 'What would happen, in order' })).toBeNull();
+    expect(pane()).toHaveTextContent('Nothing would run.');
+    const skipped = within(pane()).getByRole('heading', { level: 4, name: 'Would not run' }).parentElement!;
+    expect(skipped).toHaveTextContent('Queue for review');
+    expect(skipped).toHaveTextContent('It needs "Do you have the right to work here? is No", and that did not hold.');
+    expect(skipped).not.toHaveTextContent('Route for review');
+    expect(within(pane()).getByRole('button', { name: 'Try another moment' })).toBeInTheDocument();
+    await expectNoAxeViolations(container);
+  });
+
+  it('shows what would happen in order, then why the others did not run, in words and never as a verdict on the candidate', async () => {
+    stubSimulate(() =>
+      Response.json({
+        automations: [
+          { automationId: 'route', name: 'Route for review', outcome: 'Matched', rules: [{ fact: 'verification.authenticity', operator: 'EqualTo', held: true }], actions: [{ type: 'AddTag', tag: 'needs-review' }], reason: null },
+        ],
+      }),
+    );
+    renderViews('editor', 'simulate', [], guided);
+
+    await fireEvent.click(within(pane()).getByRole('button', { name: /The verification checks finished/ }));
+    await waitFor(() => expect(stepHeading()).toHaveTextContent('Who is the candidate?'));
+    // The level is offered in words, as the verification screens name it.
+    expect(within(pane()).getByRole('button', { name: /Has verification signals/ })).toHaveTextContent('Verification suggested');
+    await fireEvent.click(within(pane()).getByRole('button', { name: /Has verification signals/ }));
+
+    const timeline = await within(pane()).findByRole('list', { name: 'What would happen, in order' });
+    expect(timeline).toHaveTextContent('Route for review');
+    expect(timeline).toHaveTextContent('Add the tag "needs-review"');
+    // A level is a word, never a number, and nothing in the result rejects.
+    expect(pane().textContent).not.toMatch(/\d+\s?%|score/i);
+    expect(within(pane()).queryByRole('button', { name: /reject/i })).toBeNull();
+  });
+
+  it('opens only what the automations read, picks a multi-choice answer by the options names and sends their ids (W8)', async () => {
+    const fetchMock = stubSimulate();
+    renderViews('editor', 'simulate', [], guided);
+
+    await fireEvent.click(within(pane()).getByRole('button', { name: /A candidate applied/ }));
+    await waitFor(() => expect(stepHeading()).toHaveTextContent('Who is the candidate?'));
+    await fireEvent.click(within(pane()).getByRole('button', { name: 'Customize' }));
+
+    await waitFor(() => expect(stepHeading()).toHaveTextContent('Describe the candidate'));
+    const form = within(pane()).getByRole('form', { name: 'Describe the candidate' });
+    // The two questions the automations of this moment read, and nothing else: no tags, source, hours or levels.
+    expect(within(form).getByLabelText('Do you have the right to work here?')).toBeInTheDocument();
+    const group = within(form).getByRole('group', { name: 'Which of these have you used?' });
+    for (const unread of [/tags/i, /source/i, /hours/i, /authenticity/i, /AI assistance/i, /accommodation/i]) expect(within(form).queryByText(unread)).toBeNull();
     expect(screen.queryByText(/ids/i)).toBeNull();
     await fireEvent.click(within(group).getByRole('checkbox', { name: 'Svelte' }));
     await fireEvent.click(within(group).getByRole('checkbox', { name: 'C#' }));
     await fireEvent.click(within(group).getByRole('checkbox', { name: 'Svelte' }));
-    expect(screen.getByRole('region', { name: 'What would happen' })).toHaveTextContent('Nothing is saved or sent');
-    await fireEvent.click(screen.getByRole('button', { name: 'Run test' }));
+    await fireEvent.change(within(form).getByLabelText('Do you have the right to work here?'), { target: { value: 'yes' } });
+    await fireEvent.click(within(form).getByRole('button', { name: 'Run the test' }));
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/v1/workflows/simulate', expect.objectContaining({ method: 'POST' })));
-    const call = fetchMock.mock.calls.find(([url]) => url === '/v1/workflows/simulate');
-    const body = JSON.parse(String(call?.[1]?.body));
-    expect(body.facts.answers).toEqual([{ questionId: 'stack', values: ['csharp'] }]);
-    vi.unstubAllGlobals();
+    await waitFor(() => expect(sent(fetchMock)).toHaveLength(1));
+    expect(sent(fetchMock)[0].facts.answers).toEqual([
+      { questionId: 'right_to_work', values: ['yes'] },
+      { questionId: 'stack', values: ['csharp'] },
+    ]);
+  });
+
+  it('goes back a step with what was chosen kept, and offers no customizing where nothing is read', async () => {
+    stubSimulate();
+    renderViews('editor', 'simulate', [], guided);
+
+    await fireEvent.click(within(pane()).getByRole('button', { name: /A candidate moved to a stage/ }));
+    await waitFor(() => expect(stepHeading()).toHaveTextContent('Who is the candidate?'));
+    expect(within(pane()).queryByRole('button', { name: 'Customize' })).toBeNull();
+    await fireEvent.click(within(pane()).getByRole('button', { name: 'Back' }));
+
+    await waitFor(() => expect(stepHeading()).toHaveTextContent('What happened?'));
+    expect(within(pane()).getByRole('button', { name: /A candidate moved to a stage/ })).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('goes back through the second question, one screen at a time, with the stage chosen kept', async () => {
+    stubSimulate();
+    renderViews('editor', 'simulate', [], {
+      ...workflow,
+      automations: [
+        ...workflow.automations,
+        { id: 'tag-applied', name: 'Tag applied', trigger: { type: 'StageEntered', stageId: 'applied' }, conditions: null, actions: [{ type: 'AddTag', tag: 'applied' }] },
+      ],
+    });
+
+    await fireEvent.click(within(pane()).getByRole('button', { name: /A candidate moved to a stage/ }));
+    await waitFor(() => expect(stepHeading()).toHaveTextContent('Which stage?'));
+    await fireEvent.click(within(pane()).getByRole('button', { name: 'Back' }));
+    await waitFor(() => expect(stepHeading()).toHaveTextContent('What happened?'));
+
+    await fireEvent.click(within(pane()).getByRole('button', { name: /A candidate moved to a stage/ }));
+    await waitFor(() => expect(stepHeading()).toHaveTextContent('Which stage?'));
+    await fireEvent.click(within(pane()).getByRole('button', { name: 'Phone screen' }));
+    await waitFor(() => expect(stepHeading()).toHaveTextContent('Who is the candidate?'));
+    await fireEvent.click(within(pane()).getByRole('button', { name: 'Back' }));
+    await waitFor(() => expect(stepHeading()).toHaveTextContent('Which stage?'));
+    expect(within(pane()).getByRole('button', { name: 'Phone screen' })).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('keeps the candidate for another moment, and returns to the question to change the candidate', async () => {
+    const fetchMock = stubSimulate();
+    renderViews('editor', 'simulate', [], guided);
+
+    await fireEvent.click(within(pane()).getByRole('button', { name: /A candidate applied/ }));
+    await fireEvent.click(await within(pane()).findByRole('button', { name: /Meets every requirement/ }));
+    await within(pane()).findByRole('button', { name: 'Try another moment' });
+
+    await fireEvent.click(within(pane()).getByRole('button', { name: 'Try another moment' }));
+    await waitFor(() => expect(stepHeading()).toHaveTextContent('What happened?'));
+    await fireEvent.click(within(pane()).getByRole('button', { name: /The verification checks finished/ }));
+
+    // The same kind of candidate goes through the new moment without being asked for again, described by what that
+    // moment's automations read: the knockout answer no longer matters, the authenticity level does.
+    await waitFor(() => expect(sent(fetchMock)).toHaveLength(2));
+    expect(sent(fetchMock)[1]).toMatchObject({ trigger: { type: 'VerificationAssessed' }, facts: { answers: [], verificationAuthenticity: 'NoConcerns' } });
+    await waitFor(() => expect(stepHeading()).toHaveTextContent('What would happen'));
+    await within(pane()).findByRole('button', { name: 'Change the candidate' });
+
+    await fireEvent.click(within(pane()).getByRole('button', { name: 'Change the candidate' }));
+    await waitFor(() => expect(stepHeading()).toHaveTextContent('Who is the candidate?'));
+    expect(within(pane()).getByRole('button', { name: /Meets every requirement/ })).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('asks which stage only when automations react in more than one', async () => {
+    const fetchMock = stubSimulate();
+    const staged: HiringWorkflow = {
+      ...workflow,
+      automations: [
+        ...workflow.automations,
+        { id: 'tag-applied', name: 'Tag applied', trigger: { type: 'StageEntered', stageId: 'applied' }, conditions: null, actions: [{ type: 'AddTag', tag: 'applied' }] },
+      ],
+    };
+    renderViews('editor', 'simulate', [], staged);
+
+    await fireEvent.click(within(pane()).getByRole('button', { name: /A candidate moved to a stage/ }));
+    await waitFor(() => expect(stepHeading()).toHaveTextContent('Which stage?'));
+    const stages = within(pane()).getByRole('list', { name: 'Stages' });
+    expect(within(stages).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Applied', 'Phone screen']);
+    await fireEvent.click(within(stages).getByRole('button', { name: 'Phone screen' }));
+    await fireEvent.click(await within(pane()).findByRole('button', { name: /Meets every requirement/ }));
+
+    await waitFor(() => expect(sent(fetchMock)).toHaveLength(1));
+    expect(sent(fetchMock)[0].trigger).toEqual({ type: 'StageEntered', stageId: 'phone-screen' });
+  });
+
+  it('says there is nothing to test yet in a workflow with no automations, and links to adding one only where it can be edited', async () => {
+    stubSimulate();
+    const empty: HiringWorkflow = { ...workflow, automations: [] };
+    const editor = renderViews('editor', 'simulate', [], empty);
+
+    expect(pane()).toHaveTextContent('Nothing to test yet');
+    expect(within(pane()).queryByRole('list', { name: 'Moments' })).toBeNull();
+    await fireEvent.click(within(pane()).getByRole('button', { name: 'Add an automation' }));
+    // The automation joins the workflow with its form open, and the test then has a moment to offer.
+    expect(await screen.findByRole('dialog', { name: 'Automations: Whole workflow' })).toBeInTheDocument();
+    editor.unmount();
+
+    renderViews('summary', 'simulate', [], empty);
+    expect(pane()).toHaveTextContent('Nothing to test yet');
+    expect(within(pane()).queryByRole('button', { name: 'Add an automation' })).toBeNull();
+  });
+
+  it('says so when every automation is switched off, and opens Pipeline only where it can be edited', async () => {
+    stubSimulate();
+    const off: HiringWorkflow = { ...workflow, automations: workflow.automations.map((automation) => ({ ...automation, enabled: false })) };
+    const editor = renderViews('editor', 'simulate', [], off);
+
+    expect(pane()).toHaveTextContent('Nothing to test yet');
+    expect(pane()).toHaveTextContent('Every automation is switched off.');
+    await fireEvent.click(within(pane()).getByRole('button', { name: 'Open Pipeline' }));
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Pipeline' })).toHaveAttribute('aria-selected', 'true'));
+    editor.unmount();
+
+    renderViews('summary', 'simulate', [], off);
+    expect(pane()).toHaveTextContent('Every automation is switched off.');
+    expect(within(pane()).queryByRole('button', { name: 'Open Pipeline' })).toBeNull();
+  });
+
+  it('names the problems when the workflow cannot be tested, and keeps the way back', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        apiStub({
+          'GET /v1/email-templates': () => Response.json({ templates: [], sendingEnabled: false }),
+          'POST /v1/workflows/simulate': () =>
+            Response.json({ title: 'Invalid', status: 400, errors: { 'workflow.automations[0].actions[0]': ['An action needs a tag.'] } }, { status: 400 }),
+        }),
+      ),
+    );
+    renderViews('editor', 'simulate', [], guided);
+
+    await fireEvent.click(within(pane()).getByRole('button', { name: /A candidate moved to a stage/ }));
+    await fireEvent.click(await within(pane()).findByRole('button', { name: /Meets every requirement/ }));
+
+    expect(await within(pane()).findByRole('alert')).toHaveTextContent('Fix the problems in this workflow first');
+    expect(pane()).toHaveTextContent('Automation "Tag screened", action 1: An action needs a tag.');
+    expect(within(pane()).getByRole('button', { name: 'Try another moment' })).toBeInTheDocument();
   });
 });
 
@@ -593,7 +854,8 @@ describe('workflow graph in the builder', () => {
     );
     renderViews('editor', 'simulate');
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Run test' }));
+    await fireEvent.click(screen.getByRole('button', { name: /A candidate moved to a stage/ }));
+    await fireEvent.click(await screen.findByRole('button', { name: /Meets every requirement/ }));
     await fireEvent.click(await screen.findByRole('button', { name: 'Show this path in the graph' }));
 
     await vi.waitFor(() => expect(within(graph()).getByText('Showing the path of your last test.')).toBeInTheDocument());
@@ -619,13 +881,20 @@ describe('workflow graph in the builder', () => {
     );
     renderViews('editor', 'simulate');
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Run test' }));
+    await fireEvent.click(screen.getByRole('button', { name: /A candidate moved to a stage/ }));
+    await fireEvent.click(await screen.findByRole('button', { name: /Meets every requirement/ }));
     await screen.findByRole('button', { name: 'Show this path in the graph' });
     // The Pipeline tab's first Name field is the first stage's, and Simulate stays mounted behind it.
     await fireEvent.input(screen.getAllByLabelText('Name')[0]!, { target: { value: 'Renamed' } });
 
     await vi.waitFor(() => expect(screen.queryByRole('button', { name: 'Show this path in the graph' })).toBeNull());
-    expect(screen.getByRole('region', { name: 'What would happen' })).toHaveTextContent('Tag screened');
+    // The answer on screen stays the one the tested workflow gave, whatever the edit, and says it is from before the edit.
+    expect(screen.getByRole('list', { name: 'What would happen, in order' })).toHaveTextContent('Tag screened');
+    expect(screen.getByText('The workflow changed after this test.')).toBeInTheDocument();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Run it again' }));
+    await screen.findByRole('button', { name: 'Show this path in the graph' });
+    expect(screen.queryByText('The workflow changed after this test.')).toBeNull();
   });
 
   it('gives a node that cannot be pressed the focus ring too: it is still a tab stop', () => {
