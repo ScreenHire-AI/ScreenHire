@@ -15,12 +15,13 @@ namespace ScreenHire.Application.Billing;
 /// </summary>
 public sealed class OpenJobCounter(IServiceScopeFactory scopes)
 {
-    public async Task<int> CountAsync(Guid organizationId, CancellationToken cancellationToken)
+    // `excluding` is a job not to count: the draft being opened, which a double submit may already have opened.
+    public async Task<int> CountAsync(Guid organizationId, Guid? excluding, CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<TenantContext>().SetPublicOrganization(organizationId);
         var db = scope.ServiceProvider.GetRequiredService<ScreenHireDbContext>();
-        return await db.Jobs.CountAsync(j => j.Status == JobStatus.Open, cancellationToken);
+        return await db.Jobs.CountAsync(j => j.Status == JobStatus.Open && j.Id != excluding, cancellationToken);
     }
 }
 
@@ -100,16 +101,18 @@ public sealed class BillingService(
             account.CurrentPeriodEnd,
             account.CancelsAtPeriodEnd,
             !string.IsNullOrEmpty(account.ProviderCustomerId),
-            await counter.CountAsync(organizationId, cancellationToken),
+            await counter.CountAsync(organizationId, null, cancellationToken),
             plan?.Limit);
     }
 
     /// <summary>
-    /// Whether the organization may open one more job. Allowed while billing is off, and when the plan has no limit. Call it
+    /// Whether the organization may open one more job (<paramref name="jobId"/>, still a draft as far as the caller knows; it is
+    /// not counted, so a double submit that already opened it is not refused for taking its own slot). Allowed while billing is
+    /// off, and when the plan has no limit. Call it
     /// inside the publish transaction: the per-organization lock it takes lasts until that commits, so two jobs opening at
     /// once cannot both slip under the limit.
     /// </summary>
-    public async Task<PublishDecision> CheckPublishAsync(Guid organizationId, CancellationToken cancellationToken)
+    public async Task<PublishDecision> CheckPublishAsync(Guid organizationId, Guid jobId, CancellationToken cancellationToken)
     {
         if (await AccountAsync(organizationId, cancellationToken) is not { } account)
         {
@@ -123,7 +126,7 @@ public sealed class BillingService(
         {
             await db.Database.ExecuteSqlAsync(
                 $"SELECT pg_advisory_xact_lock(hashtextextended({"billing-publish:" + organizationId.ToString("N")}, 0))", cancellationToken);
-            openJobs = await counter.CountAsync(organizationId, cancellationToken);
+            openJobs = await counter.CountAsync(organizationId, jobId, cancellationToken);
         }
 
         return Entitlement.CanPublishDraft(account, now, limit, openJobs);
@@ -131,7 +134,8 @@ public sealed class BillingService(
 
     /// <summary>
     /// Records <paramref name="providerEvent"/> and applies it to the organization's account, in the caller's save. False
-    /// when it was applied before, is about another organization than the tenant, or is older than what the account knows.
+    /// when it was applied before, is about another organization than the tenant, is older than what the account knows, or
+    /// ends a subscription other than the one the account has now (an earlier one the owner replaced).
     /// </summary>
     public async Task<bool> ApplyAsync(BillingProviderEvent providerEvent, Guid organizationId, CancellationToken cancellationToken)
     {
@@ -154,6 +158,12 @@ public sealed class BillingService(
 
         var now = time.GetUtcNow();
         db.BillingEvents.Add(new BillingEventRecord { OrganizationId = organizationId, EventId = providerEvent.EventId, ReceivedAt = now });
+        if (providerEvent is { Status: SubscriptionStatus.Ended, SubscriptionId: { } ended }
+            && account.ProviderSubscriptionId is { } current && ended != current)
+        {
+            return false; // recorded, so a redelivery is a no-op, but the subscription that pays is not the one that ended
+        }
+
         var plan = catalogue.Find(providerEvent.PlanKey);
         return account.Apply(
             providerEvent.CreatedAt, providerEvent.CustomerId, providerEvent.SubscriptionId, plan?.Key, providerEvent.Status,

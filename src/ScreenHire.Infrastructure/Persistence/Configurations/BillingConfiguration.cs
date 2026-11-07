@@ -17,6 +17,9 @@ internal sealed class BillingAccountConfiguration : IEntityTypeConfiguration<Bil
         builder.HasOne<Organization>().WithMany().HasForeignKey(a => a.OrganizationId).OnDelete(DeleteBehavior.Cascade);
         // One account per organization, so two requests starting a trial at once cannot both commit.
         builder.HasIndex(a => a.OrganizationId).IsUnique();
+        // Optimistic concurrency on the xmin system column (no real column): Stripe sends the events of one Checkout within
+        // the same second and the webhook handles them in parallel, so one commits and the other is sent again.
+        builder.Property<uint>("Version").IsRowVersion();
     }
 }
 

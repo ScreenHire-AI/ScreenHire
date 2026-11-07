@@ -1,0 +1,241 @@
+---
+type: Design
+title: "Billing, plans and the free trial"
+description: "How an organization pays and what its plan allows: the Off, Sandbox and Stripe modes, the plan catalogue shared with the pricing page, the trial that starts at sign-up, the four entitlement states and the one thing a plan refuses (opening a draft job, as a 402), Checkout and the portal, the signed Stripe webhook and its idempotency, the local sandbox, the two tables, the Owner's Billing page, tests and what is not built."
+tags: [billing, stripe, plans, trial, entitlement]
+sources:
+  - resource: packages/plans/plans.json
+  - resource: packages/plans/src/index.ts
+  - resource: src/ScreenHire.Domain/Billing/BillingAccount.cs
+  - resource: src/ScreenHire.Domain/Billing/Entitlement.cs
+  - resource: src/ScreenHire.Application/Billing/BillingOptions.cs
+  - resource: src/ScreenHire.Application/Billing/PlanCatalogue.cs
+  - resource: src/ScreenHire.Application/Billing/IBillingProvider.cs
+  - resource: src/ScreenHire.Application/Billing/BillingAccess.cs
+  - resource: src/ScreenHire.Application/Billing/BillingService.cs
+  - resource: src/ScreenHire.Application/Billing/StripeBillingProvider.cs
+  - resource: src/ScreenHire.Application/Billing/StripeSignature.cs
+  - resource: src/ScreenHire.Application/Billing/SandboxBillingProvider.cs
+  - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/BillingConfiguration.cs
+  - resource: apps/api/Endpoints/BillingEndpoints.cs
+  - resource: apps/api/Endpoints/BillingWebhookEndpoints.cs
+  - resource: apps/api/Contracts/BillingContracts.cs
+---
+# Billing, plans and the free trial
+
+Every organization starts on a free trial. After it, an Owner picks a plan on Settings > Billing and pays through Stripe.
+A plan allows a number of jobs open at once, and the one thing it ever refuses is opening one more (ADR-0029). Billing
+goes through `IBillingProvider`, with a local sandbox in place of Stripe, so no test and no `pnpm dev` run needs a Stripe
+account or the internet. Candidates never meet any of it.
+
+## Configuration
+
+`ScreenHire:Billing` (`BillingOptions`), forwarded by the AppHost to the API. The mode (`BillingOptions.Mode`) is worked
+out the same way everywhere:
+
+| Mode | When | Provider |
+|---|---|---|
+| Stripe | `SecretKey` and `WebhookSecret` are both set | `StripeBillingProvider`, Stripe's API |
+| Sandbox | `Sandbox:Enabled` is true, and Stripe is not | `SandboxBillingProvider`, refused outside Development (`BillingSandboxGate` fails the host's start) |
+| Off | neither | none: no account, no trial, no limit. `GET /v1/organization/billing` says `available: false`, every other billing route is a 404, and the dashboard hides the page |
+
+| Setting | Default | What it does |
+|---|---|---|
+| `Stripe:Enabled` | off | AppHost only. When true the AppHost asks for the two parameters below; it never reaches the API |
+| `stripe-secret-key` parameter | none | Becomes `SecretKey`. |
+| `stripe-webhook-secret` parameter | none | Becomes `WebhookSecret`, the signing secret of the Stripe webhook endpoint |
+| `Sandbox:Enabled` | off | The local fake. On in `pnpm dev` (`appsettings.Development.json`) and in the test stacks |
+| `Trial:Days` | 14 | The length of a new organization's trial |
+| `Trial:Plan` | `growth` | The plan whose limit applies during the trial |
+| `Plans:<key>:*` | the catalogue | Overrides `Name`, `Order`, `MonthlyPrice`, `Currency`, `ActiveJobs`, `Unlimited` and `StripePriceId` for one plan. A field left out keeps the catalogue's value |
+| `ApiBaseUrl`, `Timeout` | Stripe's API, 15 s | For a test that points the real client at a stand-in |
+
+The two keys are secrets: they come from the parameters (set with `dotnet user-secrets set Parameters:stripe-secret-key
+"<key>"` in `apps/apphost`, or in the Key Vault in production, see the [deploy runbook](../operations/deploy.md)), never
+from the settings. `BillingAccess` is always registered, in both hosts and every test host, so an endpoint that takes it
+always resolves; with billing off, nothing reads or writes a billing row.
+
+## Plans and the shared catalogue
+
+`packages/plans/plans.json` holds three plans: `starter`, `growth` and `unlimited`, each with a name, an order, a monthly
+price, a currency, an active job limit, an `unlimited` flag and a `stripePriceId`. The shipped file has no prices, no
+limits and no price ids: they are the owner's decisions (see [status](../status.md#owner-actions)). Two readers share it:
+
+- The API embeds it (`PlanCatalogue`) and merges any `Plans:<key>:*` override over it at read time.
+- The marketing site reads it through `@screenhire/plans` (`catalogPlans`), so the pricing page shows the same numbers.
+  A plan with no price keeps its placeholder there, and the page's words (summary, highlight) stay in the site.
+
+A plan's limit is `ActiveJobs`, or none when `Unlimited` is true. A plan with neither limits nothing: a job count nobody
+chose is never enforced. A plan can be subscribed to in Stripe mode only when it has a `StripePriceId` (`canSubscribe`);
+in the sandbox every plan can.
+
+## The trial
+
+Completing onboarding creates the organization and its `billing_accounts` row in one transaction, with `TrialEndsAt` set
+to now plus `Trial:Days`. The date is stored, so changing the setting does not move a trial already running. An
+organization that existed before billing was turned on has no row; `BillingService.AccountAsync` creates one the first time
+the Billing page, a checkout or a publish asks (a unique index on the organization makes two requests starting it at once
+safe). The publish route asks before its transaction, so a refused publish does not roll the trial's start back and a
+trial can never restart. With billing off the trial does not exist.
+
+## What a plan allows
+
+`Entitlement` (domain, pure) works out the state from the stored subscription status and the clock:
+
+| State | When | Effect on publishing |
+|---|---|---|
+| Trialing | No subscription yet and now is before `TrialEndsAt` | The `Trial:Plan` limit applies |
+| Active | The provider says active or in its own trial | The subscription's plan limit applies. A subscription set to cancel stays Active until the period ends |
+| PastDue | A payment failed and the provider is retrying | The subscription's plan limit still applies; nothing else changes |
+| Ended | The subscription was cancelled, unpaid or never completed, or the trial ran out with no subscription | Opening a draft is refused |
+
+**Only opening a draft is refused.** `PublishJob` checks a job that is in Draft: the check is `BillingService.CheckPublishAsync`
+inside the publish transaction. A job already open, a republish of changed content and a close are never counted or
+refused. Everything stays readable and editable in every state, and open jobs stay open when a plan lapses. The decision:
+
+1. Ended: refused as `subscription-ended`.
+2. A plan limit of N and N or more jobs already open: refused as `plan-limit`.
+3. Otherwise allowed. No limit (unlimited, or not set) is always allowed.
+
+The open jobs are counted by `OpenJobCounter` in a scope of its own that acts for the organization, because the caller's
+scope may be narrower (a member on "only jobs they're on", ADR-0015) and a limit counts every job. When the plan has a
+limit, `pg_advisory_xact_lock` on the organization is taken first and lasts until the publish commits, so two jobs opening
+at once cannot both slip under the limit.
+
+The refusal is a 402 problem details response (`BillingProblems`), and `PublishJob` declares it:
+
+| `type` | `title` | Meaning |
+|---|---|---|
+| `urn:screenhire:problem:plan-limit` | Plan limit reached | The plan allows N open jobs and N are open. Close one or ask an owner to upgrade |
+| `urn:screenhire:problem:subscription-ended` | Subscription ended | Nothing new can be published; ask an owner to choose a plan |
+
+The `detail` is plain language and says that open jobs stay open. It names no price and no Stripe object. The dashboard
+adds the link to Billing only for an Owner.
+
+## Checkout and the portal
+
+All three routes need Manage billing (`Permission.ManageBilling`, Owner-only, ADR-0014). A cookie session only: an API key
+gets nothing. With billing off each is a 404 except the first, which says `available: false`.
+
+| Route | What it does |
+|---|---|
+| `GET /v1/organization/billing` | The overview (`BillingOverview`): the state, the current plan, `trialEndsAt` while on the trial, `nextPaymentAt` and `nextPaymentAmount` while a subscription renews (no amount once it is set to cancel), `cancelsAtPeriodEnd`, `openJobs`, `activeJobLimit`, `canManage` (the portal can open) and every plan with its price, limit and `canSubscribe` |
+| `POST /v1/organization/billing/checkout` | Body `{ plan }`. Returns `{ url }` for the provider's checkout page. 400 for a plan that is unknown or cannot be subscribed to, 409 when the organization already has a subscription (Active or PastDue), 502 when Stripe cannot be reached |
+| `POST /v1/organization/billing/portal` | Returns `{ url }` for the portal where the owner changes the card, switches plan or cancels. 409 before there is a subscription, 502 as above |
+
+Stripe Checkout runs in subscription mode for the plan's `StripePriceId`, quantity 1. It carries the
+organization id and the plan key as `metadata` on the session and on the subscription, and the organization id as
+`client_reference_id`. A second Checkout reuses the Stripe customer already stored. The browser comes back to
+`<app url>/settings/billing?checkout=success` or `?checkout=cancelled`, built from `DomainOptions` as every dashboard
+link is (ADR-0003). The portal's return address is the Billing page. A Stripe error becomes a 502 with no key or
+customer in the message.
+
+`StripeBillingProvider` calls Stripe with `HttpClient`, pins `Stripe-Version: 2024-06-20`, and uses one long-lived client
+instead of a factory client: the standard resilience handler would retry a Checkout call and could make a second session.
+The person clicking again is the retry. There is no Stripe SDK (ADR-0029).
+
+## Webhooks
+
+`POST /v1/webhooks/stripe` is anonymous, not in the generated client and not in the API's description. Its checks, in order:
+
+1. Not Stripe mode: 404.
+2. A rate limit of 600 posts a minute per client address (`billing-webhook`), so a flood of unsigned posts cannot use up the
+   permits Stripe's own deliveries need, and a body limit of 1 MB.
+3. The `Stripe-Signature` header (`StripeSignature`): `t=timestamp,v1=signature`, each `v1` the lowercase hex HMAC-SHA256
+   of `timestamp.body` keyed with the webhook secret, compared in constant time, with the timestamp within 5 minutes of now.
+   Anything else is a 401 and nothing is read.
+4. A signed event this app does not act on, or one that cannot be read, is a 200 so Stripe stops retrying it.
+
+Four event types are acted on:
+
+| Event | Applies |
+|---|---|
+| `checkout.session.completed` | The customer and subscription ids and the plan; the status becomes Active when the payment is `paid` or `no_payment_required` |
+| `customer.subscription.created`, `customer.subscription.updated` | The status, the period end and whether it cancels at the period end. `active` and `trialing` become Active, `past_due` PastDue, `canceled`, `unpaid` and `incomplete_expired` Ended; any other status says nothing and changes nothing |
+| `customer.subscription.deleted` | Ended, and not cancelling any more |
+
+The organization comes from the event's `metadata.organization_id` (then `client_reference_id`), which Checkout set and the
+signature protects. `BillingEventApplier` sets the tenant with `SetPublicOrganization`, as every anonymous route that acts
+for one organization does, and does nothing if that organization does not exist. The plan key is looked up from the first
+item's price id among the catalogue's `StripePriceId`s, because a plan switched in the portal changes the price and keeps the
+metadata; `metadata.plan` is the fallback for an event with no items, such as the Checkout session.
+
+**Idempotent.** `BillingService.ApplyAsync` stores the event id in `billing_events` (a unique index on the organization and
+the event id) in the same save as the change, so a redelivery, even two at once, applies once. The account also keeps
+`LastEventAt`, the provider's `created` time of the newest event applied, and `BillingAccount.Apply` ignores an event older
+than that, so events that arrive out of order cannot undo a newer one. A fact an event does not carry keeps its stored value.
+A change publishes `BillingChanged` (an `ITenantEvent`, carrying only the organization) through the outbox so an open
+Billing page refetches.
+
+**Races.** Stripe sends the events of one Checkout within the same second and the webhook handles them in parallel, so
+`billing_accounts` has an optimistic concurrency token (Postgres `xmin`, the `Version` property). The delivery that loses the
+race gets a 409 and Stripe sends it again. An event that ends a subscription other than the one the account has now is
+recorded and ignored, so a subscription the owner replaced cannot end the one that pays.
+
+## The sandbox
+
+`SandboxBillingProvider` stands in for Stripe in Development and the test stacks. Its "checkout" and "portal" are two routes
+of the API itself, mapped only in sandbox mode so the API's description never lists them:
+
+- `GET /v1/billing/sandbox/checkout?state=...` "pays" for the plan in the state at once (an Active subscription on that
+  plan, ending a month later, with a made-up customer and subscription id) and sends the browser back to the Billing page.
+- `GET /v1/billing/sandbox/portal?state=...` cancels the subscription at once (Ended), which is the one change worth trying
+  locally because it shows the ended state.
+
+The routes are anonymous because the browser arrives by a plain navigation. What each does is in the `state`, a Data
+Protection value issued by the API under the purpose `ScreenHire.Billing.SandboxState.v1` that expires after 10 minutes,
+so the address cannot be edited to name another organization or plan. The sandbox has no webhook. With the sandbox on, the
+demo's Brightwater is seeded with an Active subscription on Unlimited, so the demo is never held to a limit.
+
+## Data
+
+Two tenant-owned tables, each with the `tenant_isolation` row-level security policy (migration `AddBilling`):
+
+- `billing_accounts`, one per organization (unique on `organization_id`): `trial_ends_at`, `plan_key`, `status`
+  (`None`, `Active`, `PastDue`, `Ended`), the Stripe customer and subscription ids, `current_period_end`,
+  `cancels_at_period_end`, `last_event_at`, `created_at` and `updated_at`. It is the last state the provider told us, which
+  is all the publish check reads. The provider owns the truth.
+- `billing_events`, one row per provider event applied (unique on `organization_id` and `event_id`), with no payload.
+
+## The Billing page
+
+Settings > Billing (`/settings/billing`) is in the Organization area for an Owner, and only where a payment provider is set
+up (`available`): elsewhere the entry and the page are hidden, as Slack's are (design system A3). It shows the state as a
+status badge (Free trial, Active, Payment failed or Ended), the current plan, the trial's end or the next payment (and that
+the subscription will cancel), the open jobs against the limit, and the plans. A plan has a Choose button while Trialing or Ended
+(`mayChoosePlan`), which goes to Checkout; with a subscription, Manage billing opens the portal, where the card, the plan and
+cancelling are changed. The page refetches when
+`BillingChanged` arrives and when the browser returns from Checkout.
+
+A refused publish reaches a person at the three places a draft is opened (the jobs list, a job's page and its distribution
+panel) as `PlanProblemNotice`: the API's own sentence, in place of a plain failure line, and for an Owner an Upgrade plan
+link to this page. Everyone else reads the sentence, which already says to ask an owner.
+
+## Tests
+
+| Test | Proves |
+|---|---|
+| `BillingOptionsTests` (unit) | the mode from the keys and the sandbox switch, Stripe winning when both are set, the 14-day Growth trial defaults, the sandbox refused outside Development and allowed in it |
+| `PlanCatalogueTests` (unit) | the shipped file has exactly Starter, Growth and Unlimited with no price, limit or Stripe price, an override changes only the fields it sets, a blank Stripe price keeps the catalogue's, an unlimited plan has no limit, lookup by key, the trial plan |
+| `EntitlementTests` (unit) | the trial's last moment, a subscription deciding the state, the plan in force, the publish decision for each state and limit, an event applying only what it carries and an older one changing nothing |
+| `BillingProblemsTests` (unit) | the two 402 problems: type, title and a detail that names the numbers, the singular, and that open jobs stay open |
+| `StripeSignatureTests` (unit) | a good signature, another secret, a changed body or timestamp, the five-minute window both ways, a malformed header without throwing, several `v1` values |
+| `StripeBillingProviderTests` (unit) | the Checkout and portal requests against a stub handler (fields, metadata, key, pinned version, customer reuse), refusals and network failures without the key, each event type read into the common event, and a plan from the price, ahead of the metadata |
+| `SandboxBillingProviderTests` (unit) | the sandbox's links and state: what it names, its lifetime, a tampered, foreign or oversize state not reading, and no webhook |
+| `BillingTests` (integration) | the Owner's overview, the trial at sign-up and for an older organization, Checkout and the portal through the sandbox, who may use them, and billing off |
+| `BillingPlanLimitTests` (integration) | the 402 at the limit and when ended, open jobs left open, republish and close not counted, the whole organization counted for a member on "only jobs they're on", and no limit when billing is off |
+| `BillingWebhookTests` (integration) | a signed event applied, an unsigned one refused, a replay applied once, an older event ignored, an unknown organization or event type acknowledged |
+| `RolePermissionsTests` (unit) | Manage billing is an Owner-only permission and its routes join the route table |
+
+The test stacks pin the limits, because the shipped plans set none: Starter 1 job, Growth (the trial's plan) 50 and
+Unlimited none, with prices set so the page shows them (`AppHostFixture`).
+
+## Not built
+
+- Reminders before the trial ends, by email or in the app.
+- Tax: Stripe Tax and the collection of tax ids are not set up (an owner action).
+- Proration shown before a plan change; the portal shows Stripe's own.
+- A list of invoices or receipts; Stripe's portal has them.
+- Amounts read from Stripe. The page shows the catalogue's price and Stripe charges its own.
+- Seat-based pricing. A plan counts open jobs only.
+- A grace period, or an Ended state that blocks more than opening a draft.

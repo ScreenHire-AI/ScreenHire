@@ -27,6 +27,7 @@
   import HistorySheet from '#lib/components/history-sheet.svelte';
   import HiringTeamSheet from '#lib/components/hiring-team-sheet.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
+  import PlanProblemNotice from '#lib/components/plan-problem-notice.svelte';
   import JobEmbedPanel from '#lib/components/job-embed-panel.svelte';
   import JobPipeline from '#lib/components/job-pipeline.svelte';
   import LastUpdated from '#lib/components/last-updated.svelte';
@@ -51,7 +52,7 @@
   import { jobStatus } from '#lib/job-status.js';
   import { createMoves } from '#lib/moves.svelte.js';
   import { can, seesAllJobs } from '#lib/permissions.js';
-  import { describeError, invalidatePath } from '#lib/query.js';
+  import { describeError, invalidatePath, planProblem, type PlanProblem } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
   import { lastUpdateWords } from '#lib/history.js';
   import type { PageProps } from './$types';
@@ -129,21 +130,26 @@
   // "Close & remove everywhere" was chosen; its confirmation opens once the menu has closed.
   let closeChosen = false;
   let publishFailure = $state('');
+  // A publish the plan refused: a notice with the way to upgrade, in place of the failure line.
+  let publishRefused = $state<PlanProblem | null>(null);
   let boardsUpdated = $state('');
 
   // A draft's primary action: publish to every board at once.
   async function publishEverywhere() {
     publishFailure = '';
+    publishRefused = null;
     try {
       await publish.mutateAsync({ jobId: params.jobId });
     } catch (error) {
-      publishFailure = describeError(error, 'Could not publish the job');
+      publishRefused = planProblem(error);
+      if (!publishRefused) publishFailure = describeError(error, 'Could not publish the job');
     }
   }
 
   // With no boards named, a later publish sends the new version to every board the job is on, and checks refused ones again.
   async function updateBoards() {
     publishFailure = '';
+    publishRefused = null;
     boardsUpdated = '';
     try {
       await publish.mutateAsync({ jobId: params.jobId });
@@ -202,7 +208,7 @@
     <Tabs.Root value={tab} onValueChange={showTab} class={['gap-0', boardFills && 'min-h-0 flex-1']}>
       <!-- What saving the details or publishing did, in the band's line under the title, so a long message never pushes
            the actions onto a second row. -->
-      <HeaderBand title={detail.title} details={page.state.saved || publishFailure || boardsUpdated || added ? outcome : undefined}>
+      <HeaderBand title={detail.title} details={page.state.saved || publishFailure || publishRefused || boardsUpdated || added ? outcome : undefined}>
         {#snippet status()}<StatusBadge {...jobStatus[detail.status]} />{/snippet}
         {#snippet actions()}
           <!-- The one primary action; on a phone it sits in the action bar at the bottom of the screen (section 8). -->
@@ -378,5 +384,5 @@
   <p role="status" class="empty:hidden" data-added>
     {#if added}Added <a href={`/applications/${added.applicationId}`} class="underline underline-offset-2">{added.name}</a> to this job.{/if}
   </p>
-  <FailureText message={publishFailure} />
+  {#if publishRefused}<PlanProblemNotice problem={publishRefused} />{:else}<FailureText message={publishFailure} />{/if}
 {/snippet}

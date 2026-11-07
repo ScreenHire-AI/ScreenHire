@@ -22,6 +22,7 @@
   import CloseJobDialog from '#lib/components/close-job-dialog.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
+  import PlanProblemNotice from '#lib/components/plan-problem-notice.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
@@ -44,7 +45,7 @@
   import { employmentLabel } from '#lib/format.js';
   import { jobStatus } from '#lib/job-status.js';
   import { can } from '#lib/permissions.js';
-  import { describeError, invalidatePath } from '#lib/query.js';
+  import { describeError, invalidatePath, planProblem, type PlanProblem } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
 
@@ -119,6 +120,8 @@
 
   let busyJobId = $state<string | null>(null);
   let failure = $state('');
+  // A publish the plan refused: a notice with the way to upgrade, in place of the failure line.
+  let refused = $state<PlanProblem | null>(null);
   // The job whose "Close & remove everywhere" waits for its confirmation, which opens once its row menu has closed.
   let closingId = $state<string | null>(null);
   let closeChosen = false;
@@ -127,10 +130,12 @@
   async function publishJob(job: JobSummary) {
     busyJobId = job.id;
     failure = '';
+    refused = null;
     try {
       await publish.mutateAsync({ jobId: job.id });
     } catch (error) {
-      failure = describeError(error, `Could not publish ${job.title}`);
+      refused = planProblem(error);
+      if (!refused) failure = describeError(error, `Could not publish ${job.title}`);
     } finally {
       busyJobId = null;
     }
@@ -170,7 +175,7 @@
   <!-- The content container (S6): the list template's one table panel. -->
   <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
     <SetupChecklist user={page.data.user} />
-    <Panel title={panelTitle} flush footer={failure ? failureFooter : undefined}>
+    <Panel title={panelTitle} flush footer={failure || refused ? failureFooter : undefined}>
       {#snippet tools()}
         <SearchField bind:value={search} label="Search jobs" class="ml-auto flex-[0_1_15rem]" />
       {/snippet}
@@ -352,7 +357,7 @@
 {/snippet}
 
 {#snippet failureFooter()}
-  <FailureText message={failure} />
+  {#if refused}<PlanProblemNotice problem={refused} />{:else}<FailureText message={failure} />{/if}
 {/snippet}
 
 <CloseJobDialog jobId={closingId} bind:open={confirmClose} />

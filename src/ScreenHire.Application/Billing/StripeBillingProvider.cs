@@ -99,7 +99,7 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
             using var document = JsonDocument.Parse(body);
             return new BillingWebhook(true, ReadEvent(document.RootElement));
         }
-        catch (Exception e) when (e is JsonException or InvalidOperationException or FormatException or KeyNotFoundException)
+        catch (Exception e) when (e is JsonException or InvalidOperationException or FormatException or KeyNotFoundException or ArgumentOutOfRangeException or OverflowException)
         {
             // Signed by Stripe but not an event this code understands: acknowledge it so Stripe stops retrying.
             return new BillingWebhook(true, null);
@@ -160,20 +160,16 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
 
     private string? PlanKeyOf(JsonElement item)
     {
-        var key = item.TryGetProperty("metadata", out var metadata) ? Text(metadata, "plan") : null;
-        if (key is not null)
-        {
-            return catalogue.Find(key)?.Key;
-        }
-
-        // A plan switched in the portal changes the price but keeps the metadata it was created with, so the price is the truth.
+        // The price is the truth: a plan switched in the portal changes the price but keeps the metadata the subscription was
+        // created with. The metadata covers an event that carries no items (the Checkout session).
         if (item.TryGetProperty("items", out var items) && items.TryGetProperty("data", out var list) && list.GetArrayLength() > 0
-            && list[0].TryGetProperty("price", out var price) && Text(price, "id") is { } priceId)
+            && list[0].TryGetProperty("price", out var price) && Text(price, "id") is { } priceId
+            && catalogue.Plans.FirstOrDefault(p => p.StripePriceId == priceId) is { } byPrice)
         {
-            return catalogue.Plans.FirstOrDefault(p => p.StripePriceId == priceId)?.Key;
+            return byPrice.Key;
         }
 
-        return null;
+        return item.TryGetProperty("metadata", out var metadata) && Text(metadata, "plan") is { } key ? catalogue.Find(key)?.Key : null;
     }
 
     private static DateTimeOffset? PeriodEnd(JsonElement item) =>

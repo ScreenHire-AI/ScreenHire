@@ -296,7 +296,7 @@ jobs:
           if-no-files-found: ignore
 
   # The marketing budgets (mobile LCP under 1.8 s, CLS under 0.05), only when the change touches what the marketing
-  # build outputs or measures it (apps/marketing, packages/ui, pnpm-lock.yaml, tools/lighthouse). Report-only and not in
+  # build outputs or measures it (apps/marketing, packages/plans, packages/ui, pnpm-lock.yaml, tools/lighthouse). Report-only and not in
   # the gate: the LCP margin is about 300 ms, and shared runners have no baseline yet. A miss is a warning on the run, not
   # a red check. Lighthouse itself is installed from tools/lighthouse, outside the workspace, only here.
   lighthouse:
@@ -326,8 +326,8 @@ jobs:
             echo "marketing=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if git diff --quiet "$base" HEAD -- apps/marketing packages/ui pnpm-lock.yaml tools/lighthouse; then
-            echo "::notice::No change to apps/marketing, packages/ui, pnpm-lock.yaml or tools/lighthouse, so Lighthouse did not run."
+          if git diff --quiet "$base" HEAD -- apps/marketing packages/plans packages/ui pnpm-lock.yaml tools/lighthouse; then
+            echo "::notice::No change to apps/marketing, packages/plans, packages/ui, pnpm-lock.yaml or tools/lighthouse, so Lighthouse did not run."
             echo "marketing=false" >> "$GITHUB_OUTPUT"
           else
             echo "marketing=true" >> "$GITHUB_OUTPUT"

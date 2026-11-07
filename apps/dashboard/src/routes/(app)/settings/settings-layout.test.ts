@@ -1,5 +1,5 @@
 import type { CurrentUser, OrganizationRole } from '@screenhire/api-client';
-import { render, screen } from '@testing-library/svelte';
+import { cleanup, render, screen } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
@@ -99,6 +99,41 @@ describe('settings layout', () => {
 
     expect(screen.getByText('Not in your role')).toBeInTheDocument();
     expect(screen.queryByText('Settings page content')).not.toBeInTheDocument();
+  });
+
+  // Billing is the Owner's, and exists only where a payment provider is set up (A3).
+  describe('Billing', () => {
+    const renderBilling = (features: { billing?: boolean }, signedIn: CurrentUser = userAs('Owner')) => {
+      state.url = new URL('http://dashboard.test/settings/billing');
+      return render(WithQueryClient, { props: { component: WithShell, props: { component: Layout, props: { data: { user: signedIn }, children: content }, features } } });
+    };
+
+    it('shows the page to an Owner where billing is set up', () => {
+      renderBilling({ billing: true });
+
+      expect(screen.getByText('Settings page content')).toBeInTheDocument();
+    });
+
+    it('tells an Admin that only an owner can change billing, not to ask an owner or admin', async () => {
+      renderBilling({ billing: true }, userAs('Admin'));
+
+      expect(screen.getByText('Not in your role')).toBeInTheDocument();
+      expect(screen.getByText('Only an owner of your organization can change billing.')).toBeInTheDocument();
+      expect(screen.queryByText(/Ask an owner or admin/)).not.toBeInTheDocument();
+      expect(screen.queryByText('Settings page content')).not.toBeInTheDocument();
+      await expectNoAxeViolations();
+    });
+
+    it('sends an Owner away where there is no payment provider, and waits until the shell has heard', () => {
+      renderBilling({});
+      expect(navigation.goto).not.toHaveBeenCalled();
+      expect(screen.queryByText('Settings page content')).not.toBeInTheDocument();
+      cleanup();
+
+      renderBilling({ billing: false });
+      expect(navigation.goto).toHaveBeenCalledWith('/settings/organization', { replaceState: true });
+      expect(screen.queryByText('Not in your role')).not.toBeInTheDocument();
+    });
   });
 
   // Slack's page exists only where a Slack app is set up (A3).

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getApplication, listAutomationRuns, listTeamMembers } from '@screenhire/api-client';
   import {
+    createGetBilling,
     createGetCalendar,
     createGetOrganizationSendingDomain,
     createGetSlack,
@@ -41,7 +42,7 @@
   import { startLiveUpdates } from '#lib/realtime.js';
   import { sidebarViews } from '#lib/sidebar-views.js';
   import { can } from '#lib/permissions.js';
-  import { slackFeature } from '#lib/settings.js';
+  import { billingFeature, slackFeature } from '#lib/settings.js';
   import { sections, setShell } from '#lib/shell.js';
   import { createChordHandler } from '#lib/shortcuts.js';
   import { defaultNotificationSettings } from '#lib/teammate-changes.js';
@@ -180,6 +181,7 @@
       slack: slackFeature(slack.data?.data, slack.isError),
       // A failed query says nothing about the feature, so the entry stays and the page reports the failure.
       sendingDomain: sendingDomain.data?.data.available,
+      billing: billingFeature(billing.data?.data, billing.isError),
     }),
   });
 
@@ -221,6 +223,8 @@
   const sendingDomain = createGetOrganizationSendingDomain(() => ({
     query: { enabled: can(data.user, 'EditSettings'), staleTime: 60_000 },
   }));
+  // Whether a payment provider is set up, for Settings' Billing entry (A3). Only an Owner may ask, and anyone else never sees the entry.
+  const billing = createGetBilling(() => ({ query: { enabled: can(data.user, 'ManageBilling'), staleTime: 60_000 } }));
   // The person's calendar, for the Calendar item in their menu (docs/architecture/interview-scheduling.md); it changes rarely.
   const calendar = createGetCalendar(() => ({ query: { enabled: Boolean(data.user?.organization), staleTime: 60_000 } }));
 

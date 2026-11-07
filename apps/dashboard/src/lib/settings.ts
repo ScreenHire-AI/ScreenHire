@@ -1,6 +1,7 @@
 import FileLockIcon from '~icons/lucide/file-lock';
 import GlobeIcon from '~icons/lucide/globe';
 import Building2Icon from '~icons/lucide/building-2';
+import CreditCardIcon from '~icons/lucide/credit-card';
 import PlugIcon from '~icons/lucide/plug';
 import MailCheckIcon from '~icons/lucide/mail-check';
 import PaletteIcon from '~icons/lucide/palette';
@@ -27,9 +28,10 @@ export const integrationsHref = '/settings/integrations';
  * `available`), and the sending domain needs an email provider (`GET /v1/organization/sending-domain` says `available`), so
  * their pages and menu entries are hidden everywhere they are not (A3). Slack is off until the shell has heard that it is
  * on; the sending domain is on until the shell has heard that it is off, because nearly every installation has it and the
- * entry should not wait for a query to appear.
+ * entry should not wait for a query to appear. Billing needs a payment provider (`GET /v1/organization/billing` says `available`), and
+ * only an Owner may ask, so it is off until the shell has heard that it is on, like Slack.
  */
-export type SettingsFeature = 'slack' | 'sendingDomain';
+export type SettingsFeature = 'slack' | 'sendingDomain' | 'billing';
 export type SettingsFeatures = Readonly<Partial<Record<SettingsFeature, boolean>>>;
 
 const shownUntilOff: ReadonlySet<SettingsFeature> = new Set(['sendingDomain']);
@@ -47,6 +49,9 @@ export const featureWaits = (features: SettingsFeatures, feature: SettingsFeatur
  */
 export const slackFeature = (status: { available: boolean } | undefined, failed: boolean) => status?.available ?? (failed ? false : undefined);
 
+/** Billing's entry in `SettingsFeatures`, from the shell's `GET /v1/organization/billing` query: the same rule as Slack's. */
+export const billingFeature = slackFeature;
+
 /**
  * The Settings pages (design system section 11), each with the permission its changes need, in three groups that are
  * three sidebar items (`settingsAreas`): the organization and its people, how hiring is set up, and what connects to
@@ -63,6 +68,8 @@ export const settingsSections: readonly {
   allJobs?: true;
   /** The page exists only where this feature is set up (design system A3): hidden, not shown unavailable. */
   feature?: SettingsFeature;
+  /** What a person whose role lacks `permission` reads in place of "Ask an owner or admin", for a page only some roles may open. */
+  refusal?: string;
 }[] = [
   // The group is Organization, so its first page is General: the name, where the data lives and when it was created.
   { label: 'General', href: '/settings/organization', icon: Building2Icon, permission: 'EditSettings', group: 'Organization' },
@@ -71,6 +78,16 @@ export const settingsSections: readonly {
   // A request is about one candidate whatever job they applied to, and retention deletes across every job, so the page
   // needs Erase candidates and all jobs, as the API does.
   { label: 'Data requests', href: '/settings/data-requests', icon: FileLockIcon, permission: 'EraseCandidates', group: 'Organization', allJobs: true },
+  // Owners only (ManageBilling), and only where a payment provider is set up, so it is hidden everywhere else (A3).
+  {
+    label: 'Billing',
+    href: '/settings/billing',
+    icon: CreditCardIcon,
+    permission: 'ManageBilling',
+    group: 'Organization',
+    feature: 'billing',
+    refusal: 'Only an owner of your organization can change billing.',
+  },
   { label: 'Careers site', href: '/settings/careers-site', icon: GlobeIcon, permission: 'EditSettings', group: 'Hiring setup' },
   { label: 'Branding', href: '/settings/branding', icon: PaletteIcon, permission: 'EditSettings', group: 'Hiring setup' },
   { label: 'Verification', href: '/settings/verification', icon: ShieldCheckIcon, permission: 'EditSettings', group: 'Hiring setup' },

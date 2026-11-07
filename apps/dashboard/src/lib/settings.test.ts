@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { builtInPermissions, interviewer, interviewerRoleId, roleCatalogue, userAs } from '../test-support/fixtures.js';
 import {
   assignableRoles,
+  billingFeature,
   directoryVisible,
   mayAssign,
   mayGiveJobAccess,
@@ -246,5 +247,37 @@ describe('job access', () => {
     expect(organization(userAs('Recruiter'))).toEqual([]);
     expect(organization(userAs('Viewer'))).toEqual([]);
     expect(settingsSectionOf('/settings/data-requests')).toMatchObject({ label: 'Data requests', permission: 'EraseCandidates', allJobs: true });
+  });
+});
+
+// Billing is the Owner's (ManageBilling) and exists only where a payment provider is set up (A3).
+describe('Billing', () => {
+  const organization = (user: CurrentUser, features = {}) =>
+    visibleSettingsSections(user, features).filter((section) => section.group === 'Organization').map((section) => section.label);
+
+  it('ends the Organization pages for an Owner once the shell has heard that billing is set up, and for no one else', () => {
+    expect(organization(userAs('Owner'), { billing: true })).toEqual(['General', 'Team', 'Roles', 'Data requests', 'Billing']);
+    expect(organization(userAs('Admin'), { billing: true })).not.toContain('Billing');
+    expect(organization(userAs('Recruiter'), { billing: true })).toEqual([]);
+    expect(settingsSectionOf('/settings/billing')).toMatchObject({ label: 'Billing', permission: 'ManageBilling', group: 'Organization', feature: 'billing' });
+  });
+
+  it('hides it until the shell has heard, and where there is no payment provider', () => {
+    expect(organization(userAs('Owner'))).not.toContain('Billing');
+    expect(organization(userAs('Owner'), { billing: false })).not.toContain('Billing');
+    expect(featureWaits({}, 'billing')).toBe(true);
+    expect(featureOn({}, 'billing')).toBe(false);
+  });
+
+  it('keeps Organization in the sidebar for an Owner whatever billing says', () => {
+    expect(visibleSettingsAreas(userAs('Owner'), { billing: false }).map((area) => area.label)).toContain('Organization');
+  });
+
+  it('reads the feature from the billing answer, and holds the last answer through a failed refetch', () => {
+    expect(billingFeature({ available: true }, false)).toBe(true);
+    expect(billingFeature({ available: false }, false)).toBe(false);
+    expect(billingFeature(undefined, false)).toBeUndefined();
+    expect(billingFeature(undefined, true)).toBe(false);
+    expect(billingFeature({ available: true }, true)).toBe(true);
   });
 });

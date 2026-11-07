@@ -71,12 +71,11 @@ internal static class BillingWebhookEndpoints
             return Results.Unauthorized();
         }
 
-        if (webhook.Event is { } providerEvent)
-        {
-            await BillingEventApplier.ApplyAsync(outbox, tenant, billing, providerEvent, cancellationToken);
-        }
-
-        return Results.Ok();
+        // A conflict is a race with another delivery for the same account: answer 409 so Stripe sends this one again.
+        return webhook.Event is { } providerEvent
+            && await BillingEventApplier.ApplyAsync(outbox, tenant, billing, providerEvent, cancellationToken) == BillingApply.Conflict
+            ? Results.Conflict()
+            : Results.Ok();
     }
 }
 
@@ -87,20 +86,20 @@ internal static class BillingWebhookEndpoints
 /// </summary>
 internal static class BillingEventApplier
 {
-    /// <summary>True when the event changed the account. False for a repeat, a stale event, or an organization that does not exist.</summary>
-    public static async Task<bool> ApplyAsync(
+    /// <summary>Applied; Ignored for a repeat, a stale event or an organization that does not exist; Conflict when another delivery changed the account first.</summary>
+    public static async Task<BillingApply> ApplyAsync(
         IDbContextOutbox<ScreenHireDbContext> outbox, TenantContext tenant, BillingService billing, BillingProviderEvent providerEvent, CancellationToken cancellationToken)
     {
         if (providerEvent.OrganizationId is not { } organizationId)
         {
-            return false;
+            return BillingApply.Ignored;
         }
 
         tenant.SetPublicOrganization(organizationId);
         var db = outbox.DbContext;
         if (!await db.Organizations.AsNoTracking().AnyAsync(o => o.Id == organizationId, cancellationToken))
         {
-            return false;
+            return BillingApply.Ignored;
         }
 
         try
@@ -112,12 +111,23 @@ internal static class BillingEventApplier
             }
 
             await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
-            return changed;
+            return changed ? BillingApply.Applied : BillingApply.Ignored;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return BillingApply.Conflict;
         }
         catch (DbUpdateException exception) when (exception.IsUniqueViolation())
         {
             // The same event delivered twice at once: the other delivery applied it.
-            return false;
+            return BillingApply.Ignored;
         }
     }
+}
+
+internal enum BillingApply
+{
+    Applied,
+    Ignored,
+    Conflict,
 }

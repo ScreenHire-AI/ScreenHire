@@ -378,7 +378,7 @@ internal static class JobEndpoints
         // Only opening a draft counts against the plan (ADR-0029): an open job, a republish and a close never do, and a
         // lapsed plan leaves every open job open. Billing off: always allowed.
         if (job.Status == JobStatus.Draft
-            && await billing.CheckPublishAsync(job.OrganizationId, cancellationToken) is { IsAllowed: false } refusal)
+            && await billing.CheckPublishAsync(job.OrganizationId, job.Id, cancellationToken) is { IsAllowed: false } refusal)
         {
             return BillingProblems.Refused(refusal);
         }

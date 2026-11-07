@@ -41,6 +41,17 @@ describe('settings menu', () => {
     await expectNoAxeViolations();
   });
 
+  it('adds Billing for an Owner where billing is set up, and never for an Admin (A3)', () => {
+    render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: { slack: true, billing: true } } });
+    expect(linksOf('Organization')).toEqual(['General', 'Team', 'Roles', 'Data requests', 'Billing']);
+    expect(within(screen.getByRole('navigation', { name: 'Organization' })).getByRole('link', { name: 'Billing' })).toHaveAttribute('href', '/settings/billing');
+    cleanup();
+
+    state.user = userAs('Admin');
+    render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: { slack: true, billing: true } } });
+    expect(linksOf('Organization')).toEqual(['General', 'Team', 'Roles', 'Data requests']);
+  });
+
   it('lists the Hiring setup pages on one of them, and leaves Email domain out where there is no email provider (A3)', () => {
     render(WithShell, { props: { component: SettingsMenu, props: { children: content, current: '/settings/branding' }, features: {} } });
     expect(linksOf('Hiring setup')).toEqual(['Careers site', 'Branding', 'Verification', 'Email domain']);

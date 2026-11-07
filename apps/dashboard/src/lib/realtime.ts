@@ -22,6 +22,8 @@ export const talentPoolPath = '/v1/talent-pool';
 export const reportsPath = '/v1/reports';
 export const viewsPath = '/v1/views';
 export const dataRequestsPath = '/v1/data-requests';
+/** The plan, trial and open job count (`/v1/organization/billing`), also the shell's answer to whether billing is set up. */
+export const billingPath = '/v1/organization/billing';
 /** The retention setting, its dry-run count and its history (`/v1/organization/data-retention`). */
 export const retentionPath = '/v1/organization/data-retention';
 
@@ -48,8 +50,9 @@ export const retentionPath = '/v1/organization/data-retention';
  */
 export const invalidations: InvalidationMap = {
   // Reports list the open jobs, so opening and closing one refreshes them.
-  JobPublished: [jobsPath, reportsPath],
-  JobClosed: [jobsPath, reportsPath],
+  // The Billing page counts open jobs against the plan's limit, so they refresh it as well.
+  JobPublished: [jobsPath, reportsPath, billingPath],
+  JobClosed: [jobsPath, reportsPath, billingPath],
   JobPostingsChanged: [jobsPath],
   // A changed time limit changes when applications fall overdue (slaDueAt), so the lists refetch too.
   JobWorkflowChanged: [jobsPath, applicationsPath, candidatesPath, reportsPath],
@@ -93,6 +96,8 @@ export const invalidations: InvalidationMap = {
   ApplicationsRemoved: [jobsPath, applicationsPath, candidatesPath, tasksPath, reportsPath, retentionPath],
   // A teammate's shared view appears in the sidebar, and a rename or a delete reaches everyone who sees it.
   ViewsChanged: [viewsPath],
+  // The subscription changed (checkout done, a failed payment, a plan change or its end): the Billing page and its entry.
+  BillingChanged: [billingPath],
 };
 
 export interface LiveUpdates {
