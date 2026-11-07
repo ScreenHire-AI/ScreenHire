@@ -90,10 +90,10 @@
   <title>Verification · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Verification' }]} />
+<TopBar crumbs={[{ label: 'Hiring setup' }, { label: 'Verification' }]} />
 
 <main class="flex flex-col">
-  <HeaderBand title="Verification">
+  <HeaderBand title="Verification" oneRow>
     {#snippet actions()}
       {#if detail}
         <HistoryFact value={detail.lastUpdated} name="Verification settings" page={(before) => getGetOrganizationVerificationSettingsHistoryQueryOptions({ before })} />

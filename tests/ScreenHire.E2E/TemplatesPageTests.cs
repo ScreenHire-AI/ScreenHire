@@ -26,8 +26,8 @@ public sealed class TemplatesPageTests(E2EFixture fixture) : BrowserTest(fixture
 
         // Settings has no Email templates any more.
         await Page.GotoAsync(DashboardUrl("/settings/organization"));
-        var menu = Page.GetByRole(AriaRole.Navigation, new() { Name = "Settings" });
-        await Expect(menu.GetByRole(AriaRole.Link, new() { Name = "Webhooks" })).ToBeVisibleAsync();
+        var menu = Page.GetByRole(AriaRole.Navigation, new() { Name = "Organization", Exact = true });
+        await Expect(menu.GetByRole(AriaRole.Link, new() { Name = "Team" })).ToBeVisibleAsync();
         await Expect(menu.GetByRole(AriaRole.Link, new() { Name = "Email templates" })).ToHaveCountAsync(0);
 
         // The old address lands on the Emails tab, and so does an old template's.

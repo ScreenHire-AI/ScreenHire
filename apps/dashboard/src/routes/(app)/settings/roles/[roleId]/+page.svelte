@@ -218,7 +218,7 @@
   <title>{name} · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Roles', href: listHref }, { label: name }]} back />
+<TopBar crumbs={[{ label: 'Organization' }, { label: 'Roles', href: listHref }, { label: name }]} back />
 
 <main class="flex flex-col">
   {#if notFound || (loadError && !ready)}

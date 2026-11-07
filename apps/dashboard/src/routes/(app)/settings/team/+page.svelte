@@ -336,7 +336,7 @@
   <title>Team · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Team' }]} />
+<TopBar crumbs={[{ label: 'Organization' }, { label: 'Team' }]} />
 
 <main class={[sidebar.isMobile && 'pb-28']}>
   <HeaderBand
@@ -344,6 +344,7 @@
     count={members.isSuccess ? memberList.length : undefined}
     countLabel={memberList.length === 1 ? 'member' : 'members'}
     actions={bandActions}
+    oneRow
   />
 
   <SettingsMenu>

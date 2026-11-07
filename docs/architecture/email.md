@@ -336,7 +336,7 @@ The candidate then carries `emailIssue` (`Bounced` or `SpamComplaint`, with when
 ## Sending domain
 
 Out of the box, mail comes from ScreenHire's address (`ScreenHire:Email:From`). An Owner or Admin can add the company's own
-domain under Settings, Email domain (`/v1/organization/sending-domain`, `EditSettings`; every member reads it). The page is
+domain under Hiring setup, Email domain (`/v1/organization/sending-domain`, `EditSettings`; every member reads it). The page is
 hidden, with a line saying so, when this deployment has no provider.
 
 - **Records.** The provider returns them (`ISendingDomainProvider`; SendGrid's domain authentication with automated

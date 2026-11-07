@@ -1031,7 +1031,7 @@ describe('application page', () => {
       renderPage();
 
       expect(await firstLine()).toHaveTextContent('Saved');
-      expect(await screen.findByRole('link', { name: 'In Saved candidates' })).toHaveAttribute('href', '/saved');
+      expect(await screen.findByRole('link', { name: 'In Saved candidates' })).toHaveAttribute('href', '/candidates?list=saved');
     });
 
     it('says when they were last contacted on the Contact card, from the newest email either way', async () => {

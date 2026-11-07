@@ -58,6 +58,27 @@ describe('command palette', () => {
     expect(within(palette).queryByText('Screening')).toBeNull();
   });
 
+  it('still goes to Saved candidates, now the Saved choice on Candidates, and finds every settings page and the Integrations directory', async () => {
+    const { palette, input } = renderPalette();
+
+    await fireEvent.input(input, { target: { value: 'saved' } });
+    await fireEvent.click(await within(palette).findByRole('option', { name: /^Saved candidates/ }));
+    await waitFor(() => expect(goto).toHaveBeenCalledWith('/candidates?list=saved'));
+  });
+
+  it('finds a settings page by its area as well as its name, and opens the Integrations directory', async () => {
+    const { palette, input } = renderPalette();
+
+    await fireEvent.input(input, { target: { value: 'hiring setup' } });
+    expect(
+      (await within(palette).findAllByRole('option')).map((option) => option.textContent?.trim()).filter((name) => ['Careers site', 'Branding', 'Verification', 'Email domain'].includes(name ?? '')),
+    ).toEqual(['Careers site', 'Branding', 'Verification', 'Email domain']);
+
+    await fireEvent.input(input, { target: { value: 'integrations' } });
+    await fireEvent.click(await within(palette).findByRole('option', { name: 'Integrations' }));
+    await waitFor(() => expect(goto).toHaveBeenCalledWith('/settings/integrations'));
+  });
+
   it('searches the server once typing pauses, from two characters, and never loads the lists', async () => {
     const { searches, input } = renderPalette();
 

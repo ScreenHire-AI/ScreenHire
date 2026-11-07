@@ -31,7 +31,7 @@
 </script>
 
 <span class="flex min-w-0 items-center gap-1 text-muted-foreground" data-last-updated>
-  <LastUpdated {value} lead members={team.data?.data} currentUserId={appPage.data.user?.id} onhistory={() => (open = true)} />
+  <LastUpdated {value} titleRow members={team.data?.data} currentUserId={appPage.data.user?.id} onhistory={() => (open = true)} />
 </span>
 <HistorySheet
   bind:open

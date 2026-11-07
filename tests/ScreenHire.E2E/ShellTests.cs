@@ -35,6 +35,16 @@ public sealed class ShellTests(E2EFixture fixture) : BrowserTest(fixture)
         var candidates = Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Candidates", Exact = true });
         await candidates.HoverAsync();
         await Expect(Page.Locator("[data-slot='tooltip-content']")).ToContainTextAsync("Candidates");
+
+        // The three Settings items keep an icon in the rail, each with its name in a tooltip, and Saved candidates has no item.
+        var main = Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" });
+        await Expect(main.GetByRole(AriaRole.Link, new() { Name = "Saved candidates" })).ToHaveCountAsync(0);
+        var integrations = main.GetByRole(AriaRole.Link, new() { Name = "Integrations", Exact = true });
+        await integrations.ScrollIntoViewIfNeededAsync();
+        await integrations.HoverAsync();
+        await Expect(Page.Locator("[data-slot='tooltip-content'][data-state='instant-open'], [data-slot='tooltip-content'][data-state='delayed-open']")).ToContainTextAsync("Integrations");
+        await Expect(main.GetByRole(AriaRole.Link, new() { Name = "Organization", Exact = true })).ToBeVisibleAsync();
+        await Expect(main.GetByRole(AriaRole.Link, new() { Name = "Hiring setup", Exact = true })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-shell-768");
 
@@ -55,6 +65,12 @@ public sealed class ShellTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GetByRole(AriaRole.Button, new() { Name = "Open navigation" }).ClickAsync();
         var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Navigation" });
         await Expect(sheet.GetByRole(AriaRole.Link, new() { NameRegex = new("^To review") })).ToBeVisibleAsync();
+        // The three Settings items sit in the sheet; the sheet scrolls, so the last is reachable on a short window.
+        foreach (var area in new[] { "Organization", "Hiring setup", "Integrations" })
+        {
+            await Expect(sheet.GetByRole(AriaRole.Link, new() { Name = area, Exact = true })).ToHaveCountAsync(1);
+        }
+
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-shell-390-sheet");
 

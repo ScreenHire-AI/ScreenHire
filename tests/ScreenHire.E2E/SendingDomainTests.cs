@@ -90,7 +90,10 @@ public sealed class SendingDomainTests(E2EFixture fixture) : BrowserTest(fixture
 
         await Page.SetViewportSizeAsync(1440, 1000);
         await SignInAsync(Page, recruiter);
-        await Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Settings" })).ToHaveCountAsync(0);
+        foreach (var area in new[] { "Organization", "Hiring setup", "Integrations" })
+        {
+            await Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = area, Exact = true })).ToHaveCountAsync(0);
+        }
         await GoToAsync("dashboard", "/settings/sending-domain");
         await Expect(Page.GetByText("Not in your role")).ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Textbox, new() { Name = "Domain" })).ToHaveCountAsync(0);

@@ -1,5 +1,6 @@
 /**
- * Per-browser preferences: the colour theme, whether single-key shortcuts are on, and each table's sort. They live in
+ * Per-browser preferences: the colour theme, whether single-key shortcuts are on, each table's sort and whether the setup
+ * checklist was dismissed for an organization. They live in
  * localStorage, which can be missing or refuse writes (private windows, blocked site data), so every read and write
  * falls back quietly. Being per browser, a sort does not follow a person to another browser.
  */
@@ -15,6 +16,7 @@ export interface TableSort {
 const themeKey = 'screenhire:theme';
 const shortcutsKey = 'screenhire:shortcuts';
 const sortKey = (table: string) => `screenhire:sort:${table}`;
+const setupKey = (organizationId: string) => `screenhire:setup-dismissed:${organizationId}`;
 
 function read(key: string): string | null {
   try {
@@ -85,6 +87,18 @@ class Preferences {
 
   setSort(table: string, sort: TableSort): void {
     write(sortKey(table), JSON.stringify({ id: sort.id, desc: sort.desc }));
+  }
+
+  #setupDismissed = $state<Record<string, boolean>>({});
+
+  /** Whether this browser dismissed the Set up your organization panel for an organization (it does not follow the person). */
+  isSetupDismissed(organizationId: string): boolean {
+    return this.#setupDismissed[organizationId] ?? read(setupKey(organizationId)) === 'on';
+  }
+
+  dismissSetup(organizationId: string): void {
+    this.#setupDismissed[organizationId] = true;
+    write(setupKey(organizationId), 'on');
   }
 
   #applyTheme(): void {

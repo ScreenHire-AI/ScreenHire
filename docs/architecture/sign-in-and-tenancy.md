@@ -49,6 +49,8 @@ sources:
   - resource: apps/dashboard/src/lib/auth.ts
   - resource: apps/dashboard/src/lib/permissions.ts
   - resource: apps/dashboard/src/lib/settings.ts
+  - resource: apps/dashboard/src/lib/integrations.ts
+  - resource: apps/dashboard/src/lib/components/settings-menu.svelte
   - resource: apps/dashboard/src/lib/hiring-team.ts
   - resource: apps/dashboard/src/lib/components/member-access-sheet.svelte
   - resource: apps/dashboard/src/lib/components/hiring-team-sheet.svelte
@@ -150,7 +152,7 @@ waits for SMTP; moving the send to a worker message is a later change.
 ## API keys
 
 Integrators call the hiring API with an organization API key instead of a session (ADR-0011). A role with Manage
-API keys (Owners and Admins) manages keys in a session, on the dashboard's Settings > API keys page, which shows a new key once.
+API keys (Owners and Admins) manages keys in a session, on the dashboard's Integrations > API keys page, which shows a new key once.
 
 | Route | What it does |
 |---|---|
@@ -280,12 +282,14 @@ use" says how many. Each create, change and delete runs under the member lock, l
 role's change history ([change-history.md](change-history.md)). A custom role's description is generated from its
 permissions (`RolePermissions.Summarize`), so it always says what the role allows.
 
-The dashboard follows the same permissions (`apps/dashboard/src/lib/permissions.ts`). **Settings** is one sidebar item
-for anyone whose role has a settings permission; it opens the Settings menu (Organization, Team, Roles, Branding,
-Verification, Email domain, API keys and Webhooks, under `/settings/*`; email templates are on the Templates page, and their old
-`/settings/email-templates` addresses redirect there), each page
-behind its permission (`settingsSections` in `apps/dashboard/src/lib/settings.ts`), and the command palette lists the
-same pages. Slack's page and entry are left out wherever `GET /v1/slack` says Slack is not `available` (a feature on its
+The dashboard follows the same permissions (`apps/dashboard/src/lib/permissions.ts`). **Settings** is three sidebar items, Organization,
+Hiring setup and Integrations, each shown for anyone whose role has a permission for at least one page in it and opening the
+first page they may use. Under `/settings/*`, Organization holds General, Team, Roles and Data requests; Hiring setup holds Careers site,
+Branding, Verification and Email domain; Integrations holds Slack, MCP server, Webhooks and API keys, reached from a directory at
+`/settings/integrations` (email templates are on the Templates page, and their old `/settings/email-templates` addresses redirect
+there). The first two share the Settings menu, which lists only the pages of the area; each page is behind its permission
+(`settingsSections` and `settingsAreas` in `apps/dashboard/src/lib/settings.ts`, the integrations from `integrations` in
+`apps/dashboard/src/lib/integrations.ts`), and the command palette lists the same pages. Slack's page and entry are left out wherever `GET /v1/slack` says Slack is not `available` (a feature on its
 settings row, `SettingsFeatures`), and so is Email domain's wherever `GET /v1/organization/sending-domain` says
 there is no email provider (shown until that answer says so, and kept when the request fails), and an address to either goes to the first page the person may use. The settings layout tells anyone who opens another page by its address that their role cannot change it.
 Hiring controls show by the permission their route needs: an Interviewer sees Add note and Fill scorecard but no Move.

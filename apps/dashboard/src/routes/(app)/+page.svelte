@@ -28,6 +28,7 @@
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SearchField from '#lib/components/search-field.svelte';
+  import SetupChecklist from '#lib/components/setup-checklist.svelte';
   import SortHeader from '#lib/components/sort-header.svelte';
   import SortMenu from '#lib/components/sort-menu.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
@@ -167,7 +168,8 @@
   />
 
   <!-- The content container (S6): the list template's one table panel. -->
-  <div class="flex w-full flex-col px-4 py-6 md:px-6">
+  <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
+    <SetupChecklist user={page.data.user} />
     <Panel title={panelTitle} flush footer={failure ? failureFooter : undefined}>
       {#snippet tools()}
         <SearchField bind:value={search} label="Search jobs" class="ml-auto flex-[0_1_15rem]" />

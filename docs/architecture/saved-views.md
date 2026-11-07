@@ -23,7 +23,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/undo-notice.svelte
   - resource: apps/dashboard/src/lib/components/job-pipeline.svelte
   - resource: apps/dashboard/src/lib/components/top-bar.svelte
-  - resource: apps/dashboard/src/routes/(app)/candidates/+page.svelte
+  - resource: apps/dashboard/src/lib/components/current-candidates.svelte
 ---
 # Views
 

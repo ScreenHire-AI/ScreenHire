@@ -36,7 +36,7 @@
   <title>Add endpoint · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Webhooks', href: '/settings/webhooks' }, { label: 'Add endpoint' }]} back />
+<TopBar crumbs={[{ label: 'Integrations', href: '/settings/integrations' }, { label: 'Webhooks', href: '/settings/webhooks' }, { label: 'Add endpoint' }]} back />
 
 <main class="flex flex-col">
   <HeaderBand form title="Add endpoint" />

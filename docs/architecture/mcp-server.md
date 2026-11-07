@@ -139,8 +139,8 @@ asks, and never because of a level. The timeline records the key that moved them
 
 ## Connecting a client
 
-Settings > MCP server shows what any MCP client needs, with this deployment's address filled in. An Owner or Admin
-creates a key in Settings > API keys: Read for a client that only looks, Write for one that also changes things. Only an
+Integrations > MCP server shows what any MCP client needs, with this deployment's address filled in. An Owner or Admin
+creates a key in Integrations > API keys: Read for a client that only looks, Write for one that also changes things. Only an
 Owner can add Verification read, for a client that should read verification results too. The
 server's address is the API's origin, which `GET /v1/meta` reports as `apiOrigin` (`ScreenHire:Domains:ApiHost`),
 followed by `/v1/mcp`. The example uses `https://api.example.com`.
@@ -173,7 +173,7 @@ the tools.
 **A client that signs in only with OAuth**, such as a claude.ai custom connector, needs only the server URL. It finds the
 authorization server from the 401, registers itself, and sends the person to a consent page in the dashboard, where an
 Owner or Admin chooses what the assistant may do (Read always; Write and Verification read if they hold them
-themselves). The connection then shows under Settings > MCP server, where it can be disconnected at once. The flow, the
+themselves). The connection then shows under Integrations > MCP server, where it can be disconnected at once. The flow, the
 tokens and the limits are in [OAuth sign-in](oauth-server.md) (ADR-0028, which closes ADR-0011 decision 6). It needs the
 API on a public HTTPS host; locally the integration tests and the MCP client exercise it.
 
