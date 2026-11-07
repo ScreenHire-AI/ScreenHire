@@ -88,6 +88,7 @@ public sealed class CareersTests(E2EFixture fixture) : BrowserTest(fixture)
     [InlineData("/no-such-organization")]
     [InlineData("/no-such-organization/jobs/anything")]
     [InlineData("/no-such-organization/privacy")]
+    [InlineData("/brightwater/no-such-organization")]
     public async Task Unknown_organization_gets_a_neutral_not_found_page(string path)
     {
         var response = await OpenAsync("careers", path);

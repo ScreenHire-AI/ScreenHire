@@ -178,6 +178,7 @@ public sealed class TeamTests(AppHostFixture fixture)
         }
 
         using var invitee = new ApiSession(fixture);
+        await ExpectRefusedAsync(await invitee.PostAsync("/v1/auth/invitations/lookup", new { token }, Ct));
         using var response = await invitee.PostAsync("/v1/auth/invitations/accept", new { token }, Ct);
 
         await ExpectRefusedAsync(response);
