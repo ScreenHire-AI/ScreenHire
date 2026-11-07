@@ -4,7 +4,6 @@
   import { DropArea } from '@screenhire/ui/questions';
   import FailureText from '#lib/components/failure-text.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
-  import TruncatedText from '#lib/components/truncated-text.svelte';
   import * as Field from '#lib/components/ui/field/index.js';
 
   // A brand image field (design system section 11): a tile that shows the image where it is used, at its real
@@ -108,8 +107,8 @@
             <div class="flex min-w-0 items-center gap-3 overflow-hidden rounded-lg border border-border-subtle bg-card pr-3">
               <img src={image.url} alt={`The ${noun}`} width={image.width} height={image.height} class="aspect-[1.91/1] w-24 shrink-0 object-cover" />
               <div class="flex min-w-0 flex-col">
-                <TruncatedText text={title} class="font-semibold" />
-                <TruncatedText text={`Open roles at ${organizationName}.`} class="text-muted-foreground" />
+                <p class="truncate font-semibold">{title}</p>
+                <p class="truncate text-muted-foreground">Open roles at {organizationName}.</p>
               </div>
             </div>
           {/if}
