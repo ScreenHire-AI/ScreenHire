@@ -7,12 +7,14 @@
   import Notice from '#lib/components/notice.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import WebhookEndpointForm from '#lib/components/webhook-endpoint-form.svelte';
   import { describeError, invalidatePath } from '#lib/query.js';
+  import { endpointStatus } from '#lib/webhooks.js';
   import type { PageProps } from './$types';
 
   // A webhook endpoint's address, description and events, on the form template. Saving leaves it on or off as it is.
@@ -46,11 +48,14 @@
 />
 
 <main class="flex flex-col">
-  <HeaderBand form title="Edit endpoint" />
+  <!-- The endpoint's name and its state first (S2), as Edit details is headed with the job's; the crumb says what the page does. -->
+  <HeaderBand form title={detail ? (detail.description ?? detail.url) : 'Edit endpoint'}>
+    {#snippet status()}{#if detail}<StatusBadge {...endpointStatus(detail)} />{/if}{/snippet}
+  </HeaderBand>
 
   <div class="mx-auto w-full max-w-form px-4 py-6 md:px-6">
     {#if endpoint.isError && !detail}
-      <Panel title={notFound ? 'Endpoint not found' : 'Could not load the endpoint'}>
+      <Panel title={notFound ? 'Endpoint not found' : undefined} label="Endpoint">
         {#if notFound}
           <Empty.Root>
             <Empty.Header>

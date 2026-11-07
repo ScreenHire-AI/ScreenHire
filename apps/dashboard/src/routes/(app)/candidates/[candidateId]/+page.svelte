@@ -126,7 +126,7 @@
     {:else}
       <HeaderBand title="Candidate" />
       <div class="@container w-full px-4 py-5 md:px-6">
-        <Panel title="Could not load the candidate"><QueryError message={describeError(candidate.error, 'Could not load this candidate')} onretry={() => candidate.refetch()} inset /></Panel>
+        <Panel label="Candidate"><QueryError message={describeError(candidate.error, 'Could not load this candidate')} onretry={() => candidate.refetch()} inset /></Panel>
       </div>
     {/if}
   {:else if !detail}

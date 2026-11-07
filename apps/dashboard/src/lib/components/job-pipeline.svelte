@@ -18,6 +18,7 @@
   import SelectionBar from '#lib/components/selection-bar.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
+  import UsersIcon from '~icons/lucide/users';
   import { Kbd } from '#lib/components/ui/kbd/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
@@ -254,7 +255,8 @@
       {moves}
       extraColumns={[...verificationColumns, ratingColumn]}
       bind:selectedIds
-      emptyText={filtering ? 'No candidates match these filters.' : 'No candidates yet. Applications appear here as they arrive.'}
+      emptyTitle={filtering ? undefined : 'No candidates yet'}
+      emptyText={filtering ? 'No candidates match these filters.' : 'Applications appear here as they arrive.'}
       onclearfilters={filtering ? clearFilters : undefined}
     >
       {#snippet filters()}
@@ -265,7 +267,15 @@
     </ApplicationTable>
   {:else if onBoard.length === 0}
     <Empty.Root class="gap-3 p-6">
-      <Empty.Description>{filtering ? 'No candidates match these filters.' : 'No candidates yet. Applications appear here as they arrive.'}</Empty.Description>
+      {#if filtering}
+        <Empty.Description>No candidates match these filters.</Empty.Description>
+      {:else}
+        <Empty.Header>
+          <Empty.Media variant="icon"><UsersIcon /></Empty.Media>
+          <Empty.Title>No candidates yet</Empty.Title>
+          <Empty.Description>Applications appear here as they arrive.</Empty.Description>
+        </Empty.Header>
+      {/if}
       {#if filtering}<Button variant="outline" size="lg" onclick={clearFilters}>Clear filters</Button>{/if}
     </Empty.Root>
   {:else}
