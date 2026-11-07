@@ -88,8 +88,8 @@ own.
   `ReportEndpoints.Problems`, and returns the headline numbers, weekly trend, funnel, days per stage, sources and open
   jobs of `HiringReportReads.ReadAsync`. `list_saved_candidates` lists the saved candidates who allowed it and have not
   asked to stop, by name, with each one's rating, note and last contacted date, 20 unless the assistant asks and 50 at
-  most. Their HTTP routes stay session-only: the tools call the read services directly, which is why a Read key can use
-  them (ADR-0021 decision 6). A saved candidate is the team's Saved entry; the tool only reads the list and saves,
+  most. The tools call the read services directly, which is why a Read key can use them (ADR-0021 decision 6). The
+  saved-candidate routes stay session-only; the reports routes also accept a key (`.AllowApiKeys()`). A saved candidate is the team's Saved entry; the tool only reads the list and saves,
   removes, invites and edits no one. A key has no scorecards to give, so the rating is always the full one.
 - **The Write scope hides the write tools.** They carry `[Authorize(Policy = McpSetup.WritePolicy)]`, which the SDK's
   authorization filter applies: a Read key does not see them in `tools/list`, and calling one is a protocol error.

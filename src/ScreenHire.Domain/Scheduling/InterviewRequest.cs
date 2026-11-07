@@ -55,11 +55,28 @@ public sealed class InterviewRequest : IApplicationScoped
 
     public int DurationMinutes { get; init; }
 
-    /// <summary>No interview starts before this instant.</summary>
-    public DateTimeOffset WindowStart { get; init; }
+    /// <summary>No interview starts before this instant. <see cref="OfferNewTimes"/> replaces it.</summary>
+    public DateTimeOffset WindowStart { get; private set; }
 
     /// <summary>No interview ends after this instant. An Open request past it reads as Expired.</summary>
-    public DateTimeOffset WindowEnd { get; init; }
+    public DateTimeOffset WindowEnd { get; private set; }
+
+    /// <summary>
+    /// The first instant any window of this request has covered. The windows can be replaced (<see cref="OfferNewTimes"/>), and a
+    /// calendar event whose id was never saved is looked up across the whole span, so it is found at any time the
+    /// interview has had.
+    /// </summary>
+    public DateTimeOffset LookupStart { get; private set; }
+
+    /// <summary>The last instant any window of this request has covered (see <see cref="LookupStart"/>).</summary>
+    public DateTimeOffset LookupEnd { get; private set; }
+
+    /// <summary>
+    /// When the team last offered new times for this booked interview, until the candidate picks one (or it is cancelled).
+    /// While set, the booked time stays held, the candidate may move or cancel whatever the minimum notice, and the offered
+    /// times come from the new window. It is not a change to the booking, so <see cref="Revision"/> does not move.
+    /// </summary>
+    public DateTimeOffset? NewTimesOfferedAt { get; private set; }
 
     /// <summary>The IANA time zone the working hours are in, and the candidate page's display default.</summary>
     public required string TimeZone { get; init; }
@@ -195,6 +212,8 @@ public sealed class InterviewRequest : IApplicationScoped
             DurationMinutes = durationMinutes,
             WindowStart = windowStart.ToUniversalTime(),
             WindowEnd = windowEnd.ToUniversalTime(),
+            LookupStart = windowStart.ToUniversalTime(),
+            LookupEnd = windowEnd.ToUniversalTime(),
             TimeZone = timeZone,
             DayStart = start,
             DayEnd = end,
@@ -247,6 +266,39 @@ public sealed class InterviewRequest : IApplicationScoped
         }
 
         Place(start);
+        NewTimesOfferedAt = null;
+    }
+
+    /// <summary>
+    /// The first thing wrong with offering the new window <paramref name="windowStart"/> to <paramref name="windowEnd"/> for this
+    /// interview, in plain words, or null. The window follows the same rules as a new request's, in this request's length,
+    /// zone and working hours.
+    /// </summary>
+    public string? NewTimesProblem(DateTimeOffset windowStart, DateTimeOffset windowEnd, DateTimeOffset now) =>
+        Problem(DurationMinutes, windowStart, windowEnd, TimeZone, DayStart, DayEnd, now);
+
+    /// <summary>
+    /// The team offers the candidate new times for a booked interview: the window the candidate picks from is replaced, and
+    /// the booked time stays as it is, so it stays held until the candidate picks one (<see cref="Reschedule"/>). Offering again
+    /// replaces the window again. Not a booking change, so <see cref="Revision"/> stays.
+    /// </summary>
+    public void OfferNewTimes(DateTimeOffset windowStart, DateTimeOffset windowEnd, DateTimeOffset now)
+    {
+        if (Status != InterviewStatus.Booked)
+        {
+            throw new InvalidOperationException("Only a booked interview can be offered new times.");
+        }
+
+        if (NewTimesProblem(windowStart, windowEnd, now) is { } problem)
+        {
+            throw new ArgumentException(problem);
+        }
+
+        WindowStart = windowStart.ToUniversalTime();
+        WindowEnd = windowEnd.ToUniversalTime();
+        LookupStart = DateTimeOffset.Compare(LookupStart, WindowStart) <= 0 ? LookupStart : WindowStart;
+        LookupEnd = DateTimeOffset.Compare(LookupEnd, WindowEnd) >= 0 ? LookupEnd : WindowEnd;
+        NewTimesOfferedAt = now;
     }
 
     /// <summary>Cancels an Open or Booked interview. A booked one keeps its time as history.</summary>
@@ -260,6 +312,7 @@ public sealed class InterviewRequest : IApplicationScoped
         Status = InterviewStatus.Cancelled;
         CancelledAt = now;
         CancelledByCandidate = byCandidate;
+        NewTimesOfferedAt = null;
         Revision++;
     }
 
@@ -278,11 +331,19 @@ public sealed class InterviewRequest : IApplicationScoped
     }
 
     /// <summary>
+    /// Whether the team's offer of new times still waits for the candidate at <paramref name="now"/>. The offered days end it.
+    /// After them there is nothing left to pick, and the booked time stands.
+    /// </summary>
+    public bool HasPendingNewTimes(DateTimeOffset now) =>
+        Status == InterviewStatus.Booked && NewTimesOfferedAt is not null && now < WindowEnd;
+
+    /// <summary>
     /// Whether the candidate may reschedule or cancel at <paramref name="now"/>: booked, and at least
-    /// <paramref name="minNotice"/> before the start.
+    /// <paramref name="minNotice"/> before the start. While new times are pending (<see cref="HasPendingNewTimes"/>) the
+    /// candidate may whatever the notice, because the team asked for the move, even after the old time has passed.
     /// </summary>
     public bool CanBeChangedByCandidate(DateTimeOffset now, TimeSpan minNotice) =>
-        Status == InterviewStatus.Booked && StartsAt is { } starts && now <= starts - minNotice;
+        Status == InterviewStatus.Booked && (HasPendingNewTimes(now) || (StartsAt is { } starts && now <= starts - minNotice));
 
     /// <summary>Whether an interview starting at <paramref name="start"/> fits inside the window.</summary>
     public bool FitsWindow(DateTimeOffset start) => start >= WindowStart && start + Duration <= WindowEnd;
@@ -345,6 +406,12 @@ public sealed class InterviewAttendee : IApplicationScoped
 
     public string? SyncProblem { get; private set; }
 
+    /// <summary>
+    /// The interview start this interviewer was last reminded about (the day-before email). The reminder is for one booked time, so
+    /// a move starts again, and a redelivered reminder for the same time finds this and sends nothing.
+    /// </summary>
+    public DateTimeOffset? RemindedForStart { get; private set; }
+
     public static InterviewAttendee Create(InterviewRequest interview, Guid userId, bool isOrganizer, CalendarProvider provider)
     {
         ArgumentNullException.ThrowIfNull(interview);
@@ -377,6 +444,9 @@ public sealed class InterviewAttendee : IApplicationScoped
         SyncStatus = InterviewSyncStatus.Synced;
         SyncProblem = null;
     }
+
+    /// <summary>Records that the reminder for the interview starting at <paramref name="start"/> was sent.</summary>
+    public void MarkReminded(DateTimeOffset start) => RemindedForStart = start;
 
     public void MarkFailed(string problem)
     {

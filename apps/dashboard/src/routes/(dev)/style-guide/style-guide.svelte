@@ -123,6 +123,7 @@
   import AddCandidateDemo from './add-candidate-demo.svelte';
   import CustomizePostingDemo from './customize-posting-demo.svelte';
   import BrandingDemo from './branding-demo.svelte';
+  import DropAreaDemo from './drop-area-demo.svelte';
   import EmailComposerDemo, { demoEmail } from './email-composer-demo.svelte';
   import FormBuilderDemo from './form-builder-demo.svelte';
   import ReorderDemo from './reorder-demo.svelte';
@@ -195,11 +196,21 @@
     createdAt: '2026-10-20T12:00:00Z',
     createdByUserId: 'u1',
     cancelledByCandidate: false,
+    newTimesOfferedAt: null,
     ...overrides,
   });
   const interviewStates = [
     interviewSample('Open'),
     interviewSample('Booked', { startsAt: '2026-11-05T15:00:00Z', endsAt: '2026-11-05T15:30:00Z', meetingUrl: 'https://meet.example.org/abc-defg' }),
+    interviewSample('Booked', {
+      id: 'interview-Booked-new-times',
+      startsAt: '2026-11-05T15:00:00Z',
+      endsAt: '2026-11-05T15:30:00Z',
+      meetingUrl: 'https://meet.example.org/abc-defg',
+      newTimesOfferedAt: '2026-11-02T12:00:00Z',
+      windowStart: '2026-11-09T05:00:00Z',
+      windowEnd: '2026-11-17T05:00:00Z',
+    }),
     interviewSample('Cancelled', { startsAt: '2026-11-05T15:00:00Z', endsAt: '2026-11-05T15:30:00Z', cancelledByCandidate: true }),
     interviewSample('Expired'),
   ];
@@ -972,6 +983,8 @@
       </Panel>
 
       <BrandingDemo />
+
+      <DropAreaDemo />
 
       <div class="flex flex-wrap items-start gap-5">
         <Panel title="Empty state" class="flex-[999_1_520px]">

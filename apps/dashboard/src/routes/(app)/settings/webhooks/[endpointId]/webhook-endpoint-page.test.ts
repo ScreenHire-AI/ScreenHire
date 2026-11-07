@@ -24,6 +24,7 @@ const endpoint = (overrides: Partial<WebhookEndpointEntry> = {}): WebhookEndpoin
   createdAt: '2026-10-01T09:00:00Z',
   updatedAt: '2026-10-01T09:00:00Z',
   secretRotatedAt: '2026-10-01T09:00:00Z',
+  lastUpdated: { at: '2026-10-01T09:00:00Z', by: 'Member', userId: 'u1', created: true },
   ...overrides,
 });
 
@@ -57,6 +58,7 @@ function renderPage(detail: WebhookEndpointEntry, routes: Parameters<typeof apiS
     apiStub({
       [`GET /v1/webhooks/${endpointId}`]: () => Response.json(detail),
       [`GET /v1/webhooks/${endpointId}/deliveries`]: () => Response.json(deliveries),
+      'GET /v1/organization/members': () => Response.json([]),
       ...routes,
     }),
   );
@@ -101,6 +103,27 @@ describe('webhook endpoint page', () => {
     expect(within(events).getByText('application.submitted')).toBeInTheDocument();
     expect(within(events).getByText('job.stage_changed')).toBeInTheDocument();
     await expectNoAxeViolations();
+  });
+
+  it('says who last changed the endpoint, and History lists its changes (T6)', async () => {
+    const fetchMock = renderPage(endpoint({ lastUpdated: { at: '2026-10-02T09:00:00Z', by: 'Member', userId: user.id, created: false } }), {
+      [`GET /v1/webhooks/${endpointId}/history`]: () =>
+        Response.json({
+          entries: [
+            {
+              id: 'c-1', at: '2026-10-02T09:00:00Z', by: 'Member', userId: user.id, apiKeyId: null,
+              lines: [{ text: 'rotated the signing secret', parts: [{ text: 'rotated the signing secret', strong: false }], details: [] }],
+            },
+          ],
+          nextBefore: null,
+        }),
+    });
+
+    expect(await screen.findByText('you')).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole('button', { name: /History/ }));
+    const sheet = await screen.findByRole('dialog', { name: 'History' });
+    expect(await within(sheet).findByText('rotated the signing secret')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(`/v1/webhooks/${endpointId}/history`, expect.anything());
   });
 
   it('says there are no deliveries yet', async () => {

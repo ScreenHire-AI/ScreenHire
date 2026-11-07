@@ -113,6 +113,23 @@ describe('Add candidate sheet', () => {
     ]);
   });
 
+  it('takes a resume dropped on the drop area, names it, and refuses one that is too large without sending anything', async () => {
+    const { calls, sheet } = renderSheet({}, { job: preset });
+    const area = () => sheet().querySelector<HTMLElement>('[data-drop-area]')!;
+
+    await fireEvent.drop(area(), { dataTransfer: { files: [new File(['%PDF-1.7'], 'jordan-lee.pdf', { type: 'application/pdf' })] } });
+    expect(await within(sheet()).findByText('jordan-lee.pdf')).toBeInTheDocument();
+
+    await fireEvent.click(within(sheet()).getByRole('button', { name: 'Remove' }));
+    expect(within(sheet()).queryByText('jordan-lee.pdf')).toBeNull();
+
+    await fireEvent.drop(area(), { dataTransfer: { files: [new File([new Uint8Array(10 * 1024 * 1024 + 1)], 'huge.pdf', { type: 'application/pdf' })] } });
+    const resume = within(sheet()).getByLabelText('Resume (optional)');
+    await waitFor(() => expect(document.getElementById(resume.getAttribute('aria-describedby')!)).toHaveTextContent('This file is larger than 10 MB.'));
+    expect(within(sheet()).queryByText('huge.pdf')).toBeNull();
+    expect(calls).toEqual([]);
+  });
+
   it("puts the API's field errors under the fields they are about, the resume's under Resume", async () => {
     const { sheet } = renderSheet(
       {

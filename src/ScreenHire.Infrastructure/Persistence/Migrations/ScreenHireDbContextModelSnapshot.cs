@@ -3091,6 +3091,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("provider_event_id");
 
+                    b.Property<DateTimeOffset?>("RemindedForStart")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reminded_for_start");
+
                     b.Property<string>("SyncProblem")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
@@ -3172,10 +3176,22 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("job_id");
 
+                    b.Property<DateTimeOffset>("LookupEnd")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lookup_end");
+
+                    b.Property<DateTimeOffset>("LookupStart")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lookup_start");
+
                     b.Property<string>("MeetingUrl")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
                         .HasColumnName("meeting_url");
+
+                    b.Property<DateTimeOffset?>("NewTimesOfferedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("new_times_offered_at");
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
@@ -4521,14 +4537,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("organization_id");
 
-                    b.Property<DateTimeOffset>("SecretRotatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("secret_rotated_at");
-
-                    b.Property<int>("SecretVersion")
-                        .HasColumnType("integer")
-                        .HasColumnName("secret_version");
-
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -4549,6 +4557,34 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_webhook_endpoints_organization_id_enabled");
 
                     b.ToTable("webhook_endpoints", (string)null);
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Webhooks.WebhookEndpointSecret", b =>
+                {
+                    b.Property<Guid>("EndpointId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("endpoint_id");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<DateTimeOffset>("RotatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("rotated_at");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.HasKey("EndpointId")
+                        .HasName("pk_webhook_endpoint_secrets");
+
+                    b.HasIndex("OrganizationId", "EndpointId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_webhook_endpoint_secrets_organization_id_endpoint_id");
+
+                    b.ToTable("webhook_endpoint_secrets", (string)null);
                 });
 
             modelBuilder.Entity("ScreenHire.Infrastructure.Identity.ApplicationUser", b =>
@@ -5569,6 +5605,17 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_webhook_endpoints_organizations_organization_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Webhooks.WebhookEndpointSecret", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Webhooks.WebhookEndpoint", null)
+                        .WithOne()
+                        .HasForeignKey("ScreenHire.Domain.Webhooks.WebhookEndpointSecret", "OrganizationId", "EndpointId")
+                        .HasPrincipalKey("ScreenHire.Domain.Webhooks.WebhookEndpoint", "OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_webhook_endpoint_secrets_webhook_endpoints_organization_id_");
                 });
 
             modelBuilder.Entity("ScreenHire.Infrastructure.Identity.ApplicationUser", b =>

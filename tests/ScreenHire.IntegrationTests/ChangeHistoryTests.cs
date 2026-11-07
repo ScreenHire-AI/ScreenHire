@@ -219,12 +219,20 @@ public sealed class ChangeHistoryTests(AppHostFixture fixture)
         var token = created.Text("token");
         var prefix = created.Text("key.prefix");
         (await owner.PostAsync($"/v1/organization/api-keys/{created.Id("key.id")}/revoke")).Expect(HttpStatusCode.OK);
+        // An address often carries its token in the path or the query: history names the host alone.
+        var address = new UriBuilder(receiver.Url) { Path = "/hooks/pathToken7f3a", Query = "key=queryToken9c1d" }.Uri;
         var endpoint = (await owner.PostAsync("/v1/webhooks", new JsonObject
         {
-            ["url"] = receiver.Url.ToString(), ["events"] = new JsonArray("job.published"), ["description"] = "Secret check",
+            ["url"] = address.ToString(), ["events"] = new JsonArray("job.published"), ["description"] = "Secret check",
         })).Expect(HttpStatusCode.Created);
         var secret = endpoint.Text("signingSecret");
-        var rotated = (await owner.PostAsync($"/v1/webhooks/{endpoint.Id("endpoint.id")}/rotate-secret")).Expect(HttpStatusCode.OK).Text("signingSecret");
+        var endpointId = endpoint.Id("endpoint.id");
+        var rotated = (await owner.PostAsync($"/v1/webhooks/{endpointId}/rotate-secret")).Expect(HttpStatusCode.OK).Text("signingSecret");
+        var moved = new UriBuilder(address) { Path = "/hooks/newPathToken2b8e" }.Uri;
+        (await owner.PutAsync($"/v1/webhooks/{endpointId}", new JsonObject
+        {
+            ["url"] = moved.ToString(), ["events"] = new JsonArray("job.published", "job.closed"), ["description"] = "Secret check",
+        })).Expect(HttpStatusCode.OK);
 
         // An invitation sent, one replaced by a second to the same address, and one revoked: three token hashes.
         var invitee = ApiSession.NewEmail("secret-check");
@@ -251,12 +259,14 @@ public sealed class ChangeHistoryTests(AppHostFixture fixture)
         var records = await db.ChangeRecords.ToListAsync(Ct);
         records.Select(r => r.SubjectKind).Should().OnlyContain(k =>
             k == ChangeSubjectKind.Job || k == ChangeSubjectKind.HiringTemplate || k == ChangeSubjectKind.EmailTemplate
-            || k == ChangeSubjectKind.Team || k == ChangeSubjectKind.ApiKeys);
-        records.Select(r => r.SubjectKind).Should().Contain([ChangeSubjectKind.Team, ChangeSubjectKind.ApiKeys]);
+            || k == ChangeSubjectKind.Team || k == ChangeSubjectKind.ApiKeys || k == ChangeSubjectKind.WebhookEndpoint);
+        records.Select(r => r.SubjectKind).Should().Contain([ChangeSubjectKind.Team, ChangeSubjectKind.ApiKeys, ChangeSubjectKind.WebhookEndpoint]);
         var stored = JsonSerializer.Serialize(records.Select(r => r.Lines), JsonColumns.SerializerOptions);
         var served = (await owner.GetAsync("/v1/organization/api-keys/history")).Expect(HttpStatusCode.OK).Body.GetRawText()
-            + (await owner.GetAsync("/v1/organization/team/history")).Expect(HttpStatusCode.OK).Body.GetRawText();
-        foreach (var value in new[] { token, prefix, secret, rotated, invitationToken }.Concat(hashes).Concat(tokenHashes))
+            + (await owner.GetAsync("/v1/organization/team/history")).Expect(HttpStatusCode.OK).Body.GetRawText()
+            + (await owner.GetAsync($"/v1/webhooks/{endpointId}/history")).Expect(HttpStatusCode.OK).Body.GetRawText();
+        var addressTokens = new[] { "pathToken7f3a", "queryToken9c1d", "newPathToken2b8e" };
+        foreach (var value in new[] { token, prefix, secret, rotated, invitationToken }.Concat(addressTokens).Concat(hashes).Concat(tokenHashes))
         {
             stored.Should().NotContain(value);
             served.Should().NotContain(value);
@@ -397,6 +407,67 @@ public sealed class ChangeHistoryTests(AppHostFixture fixture)
             stored.Should().NotContain(value);
             served.Should().NotContain(value);
         }
+
+    public async Task A_webhook_endpoint_records_its_address_by_host_its_events_its_switch_and_each_rotation_of_its_secret()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        await using var receiver = await WebhookReceiver.StartAsync(Ct);
+        var host = receiver.Url.Host;
+        var created = (await owner.PostAsync("/v1/webhooks", new JsonObject
+        {
+            ["url"] = receiver.Url.ToString(), ["events"] = new JsonArray("job.published"), ["description"] = "Payroll sync",
+        })).Expect(HttpStatusCode.Created);
+        var id = created.Id("endpoint.id");
+        created.Text("endpoint.lastUpdated.by").Should().Be("Member");
+        created.At("endpoint.lastUpdated.created").GetBoolean().Should().BeTrue();
+
+        (await owner.PostAsync($"/v1/webhooks/{id}/rotate-secret")).Expect(HttpStatusCode.OK);
+        (await owner.PutAsync($"/v1/webhooks/{id}", new JsonObject
+        {
+            ["url"] = new UriBuilder(receiver.Url) { Path = "/another" }.Uri.ToString(),
+            ["events"] = new JsonArray("job.closed", "job.published"),
+            ["description"] = "Payroll sync",
+        })).Expect(HttpStatusCode.OK);
+        (await owner.PutAsync($"/v1/webhooks/{id}", new JsonObject
+        {
+            ["url"] = new UriBuilder(receiver.Url) { Path = "/another" }.Uri.ToString(),
+            ["events"] = new JsonArray("job.closed", "job.published"),
+            ["description"] = "Payroll sync",
+            ["enabled"] = false,
+        })).Expect(HttpStatusCode.OK);
+
+        var history = (await owner.GetAsync($"/v1/webhooks/{id}/history")).Expect(HttpStatusCode.OK);
+        history.Body.GetProperty("entries").EnumerateArray().Select(e => string.Join("; ", e.At("lines").EnumerateArray().Select(l => l.At("text").GetString())))
+            .Should().Equal(
+                $"turned off the endpoint {host}",
+                $"changed the address of {host}; started sending Job closed",
+                "rotated the signing secret",
+                $"created the endpoint {host}");
+        history.Body.GetProperty("entries").EnumerateArray().Should().OnlyContain(e => e.At("userId").GetGuid() == owner.UserId);
+        history.Text("entries.3.lines.0.details.0.label").Should().Be("Events");
+        history.Text("entries.3.lines.0.details.0.after").Should().Be("Job published");
+
+        var read = (await owner.GetAsync($"/v1/webhooks/{id}")).Expect(HttpStatusCode.OK);
+        read.Text("lastUpdated.by").Should().Be("Member");
+        read.At("lastUpdated.created").GetBoolean().Should().BeFalse();
+        var list = (await owner.GetAsync("/v1/webhooks")).Expect(HttpStatusCode.OK);
+        list.Text("0.lastUpdated.by").Should().Be("Member");
+
+        // A second page of one entry: the cursor is an entry's id.
+        var first = (await owner.GetAsync($"/v1/webhooks/{id}/history?limit=3")).Expect(HttpStatusCode.OK);
+        first.Count("entries").Should().Be(3);
+        var next = (await owner.GetAsync($"/v1/webhooks/{id}/history?limit=3&before={first.Id("nextBefore")}")).Expect(HttpStatusCode.OK);
+        next.Count("entries").Should().Be(1);
+
+        using var viewer = await fixture.InviteAndJoinAsync(owner, "Viewer");
+        (await viewer.GetAsync($"/v1/webhooks/{id}/history")).Expect(HttpStatusCode.Forbidden);
+
+        using var other = await fixture.SignedInWithOrganizationAsync();
+        (await other.GetAsync($"/v1/webhooks/{id}/history")).Expect(HttpStatusCode.NotFound);
+        (await other.GetAsync($"/v1/webhooks/{id}")).Expect(HttpStatusCode.NotFound);
+        (await other.PostAsync($"/v1/webhooks/{id}/rotate-secret")).Expect(HttpStatusCode.NotFound);
+        (await other.GetAsync("/v1/webhooks")).Expect(HttpStatusCode.OK).Count().Should().Be(0, "their endpoints are theirs");
+        (await owner.GetAsync($"/v1/webhooks/{id}/history")).Expect(HttpStatusCode.OK).Count("entries").Should().Be(4, "their attempts changed nothing of ours");
     }
 
     [Fact]

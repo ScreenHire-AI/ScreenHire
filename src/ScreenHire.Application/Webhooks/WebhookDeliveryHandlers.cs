@@ -119,10 +119,18 @@ public static partial class DeliverWebhookHandler
             return outgoing;
         }
 
+        // Its own row (ADR-0016). Missing only when the endpoint went between the two reads, so there is nothing to send.
+        var secretVersion = await db.WebhookEndpointSecrets.AsNoTracking()
+            .Where(s => s.EndpointId == endpoint.Id).Select(s => (int?)s.Version).SingleOrDefaultAsync(cancellationToken);
+        if (secretVersion is not { } version)
+        {
+            return outgoing;
+        }
+
         var response = await sender.DeliverAsync(
             new WebhookRequest(
                 new Uri(endpoint.Url),
-                WebhookSignature.EndpointSecret(settings.SigningKey, endpoint.Id, endpoint.SecretVersion),
+                WebhookSignature.EndpointSecret(settings.SigningKey, endpoint.Id, version),
                 delivery.Payload,
                 now,
                 new Dictionary<string, string>

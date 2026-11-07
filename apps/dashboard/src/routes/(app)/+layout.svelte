@@ -8,8 +8,10 @@
     createListJobs,
     createListViews,
     getGetApplicationQueryOptions,
+    getGetEmailTemplateQueryOptions,
     getGetHiringTemplateQueryOptions,
     getGetNotificationSettingsQueryOptions,
+    getGetScorecardTemplateQueryOptions,
     getListApplicationTasksQueryOptions,
     getListMemberJobsQueryOptions,
     getListTeamMembersQueryOptions,
@@ -80,7 +82,16 @@
       settings: readSettings,
       application: async (applicationId) => (await queryClient.fetchQuery(getGetApplicationQueryOptions(applicationId))).data,
       tasks: async (applicationId) => (await queryClient.fetchQuery(getListApplicationTasksQueryOptions(applicationId))).data,
-      templateName: async (templateId) => (await queryClient.fetchQuery(getGetHiringTemplateQueryOptions(templateId))).data.name,
+      templateName: async (templateType, templateId) => {
+        switch (templateType) {
+          case 'EmailTemplate':
+            return (await queryClient.fetchQuery(getGetEmailTemplateQueryOptions(templateId))).data.name;
+          case 'ScorecardTemplate':
+            return (await queryClient.fetchQuery(getGetScorecardTemplateQueryOptions(templateId))).data.name;
+          default:
+            return (await queryClient.fetchQuery(getGetHiringTemplateQueryOptions(templateId))).data.name;
+        }
+      },
     },
     (toast) => notifications.toast(toast),
   );

@@ -82,6 +82,7 @@ import type {
   GetSavedNoteHistoryParams,
   GetScorecardTemplateHistoryParams,
   GetTeamHistoryParams,
+  GetWebhookEndpointHistoryParams,
   HiringReport,
   HiringTeamMember,
   HiringTeamRequest,
@@ -125,6 +126,7 @@ import type {
   OAuthAuthorizeRequest,
   OAuthAuthorizeResult,
   OAuthConnectionSummary,
+  OfferNewInterviewTimesRequest,
   OnboardingRequest,
   OrganizationBranding,
   OrganizationProfile,
@@ -9621,10 +9623,15 @@ export type getHiringReportResponse401 = {
   status: 401
 }
 
+export type getHiringReportResponse429 = {
+  data: void
+  status: 429
+}
+
 export type getHiringReportResponseSuccess = (getHiringReportResponse200) & {
   headers: Headers;
 };
-export type getHiringReportResponseError = (getHiringReportResponse400 | getHiringReportResponse401) & {
+export type getHiringReportResponseError = (getHiringReportResponse400 | getHiringReportResponse401 | getHiringReportResponse429) & {
   headers: Headers;
 };
 
@@ -9686,10 +9693,15 @@ export type getFunnelApplicationsResponse404 = {
   status: 404
 }
 
+export type getFunnelApplicationsResponse429 = {
+  data: void
+  status: 429
+}
+
 export type getFunnelApplicationsResponseSuccess = (getFunnelApplicationsResponse200) & {
   headers: Headers;
 };
-export type getFunnelApplicationsResponseError = (getFunnelApplicationsResponse400 | getFunnelApplicationsResponse401 | getFunnelApplicationsResponse404) & {
+export type getFunnelApplicationsResponseError = (getFunnelApplicationsResponse400 | getFunnelApplicationsResponse401 | getFunnelApplicationsResponse404 | getFunnelApplicationsResponse429) & {
   headers: Headers;
 };
 
@@ -10693,6 +10705,70 @@ export const deleteWebhookEndpoint = async (endpointId: string, options?: Parame
   {
     ...options,
     method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type getWebhookEndpointHistoryResponse200 = {
+  data: HistoryPage
+  status: 200
+}
+
+export type getWebhookEndpointHistoryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getWebhookEndpointHistoryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getWebhookEndpointHistoryResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getWebhookEndpointHistoryResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getWebhookEndpointHistoryResponseSuccess = (getWebhookEndpointHistoryResponse200) & {
+  headers: Headers;
+};
+export type getWebhookEndpointHistoryResponseError = (getWebhookEndpointHistoryResponse400 | getWebhookEndpointHistoryResponse401 | getWebhookEndpointHistoryResponse403 | getWebhookEndpointHistoryResponse404) & {
+  headers: Headers;
+};
+
+export type getWebhookEndpointHistoryResponse = (getWebhookEndpointHistoryResponseSuccess | getWebhookEndpointHistoryResponseError)
+
+export const getGetWebhookEndpointHistoryUrl = (endpointId: string,
+    params?: GetWebhookEndpointHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/webhooks/${endpointId}/history?${stringifiedParams}` : `/v1/webhooks/${endpointId}/history`
+}
+
+export const getWebhookEndpointHistory = async (endpointId: string,
+    params?: GetWebhookEndpointHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getWebhookEndpointHistoryResponse> => {
+
+  return apiFetch<getWebhookEndpointHistoryResponse>(getGetWebhookEndpointHistoryUrl(endpointId,params),
+  {
+    ...options,
+    method: 'GET'
 
 
   }
@@ -11709,6 +11785,81 @@ export const cancelInterview = async (interviewId: string, options?: Parameters<
     method: 'POST'
 
 
+  }
+);}
+
+
+
+export type offerNewInterviewTimesResponse200 = {
+  data: ApplicationInterview
+  status: 200
+}
+
+export type offerNewInterviewTimesResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type offerNewInterviewTimesResponse401 = {
+  data: void
+  status: 401
+}
+
+export type offerNewInterviewTimesResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type offerNewInterviewTimesResponse404 = {
+  data: void
+  status: 404
+}
+
+export type offerNewInterviewTimesResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type offerNewInterviewTimesResponseSuccess = (offerNewInterviewTimesResponse200) & {
+  headers: Headers;
+};
+export type offerNewInterviewTimesResponseError = (offerNewInterviewTimesResponse400 | offerNewInterviewTimesResponse401 | offerNewInterviewTimesResponse403 | offerNewInterviewTimesResponse404 | offerNewInterviewTimesResponse409) & {
+  headers: Headers;
+};
+
+export type offerNewInterviewTimesResponse = (offerNewInterviewTimesResponseSuccess | offerNewInterviewTimesResponseError)
+
+export const getOfferNewInterviewTimesUrl = (interviewId: string,) => {
+
+
+
+
+  return `/v1/interviews/${interviewId}/new-times`
+}
+
+export const offerNewInterviewTimes = async (interviewId: string,
+    offerNewInterviewTimesRequest: OfferNewInterviewTimesRequest, options?: Parameters<typeof apiFetch>[1]): Promise<offerNewInterviewTimesResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<offerNewInterviewTimesResponse>(getOfferNewInterviewTimesUrl(interviewId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(offerNewInterviewTimesRequest)
   }
 );}
 

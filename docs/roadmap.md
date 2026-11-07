@@ -54,10 +54,6 @@ each item names the doc that designs it. Board workflows carry the detail.
   ([verification engine](architecture/verification-engine.md) §9).
 - **Verification phase 3:** interview verification.
 - **Signal Network:** built and off until a legal review and DPIA (ADR-0005).
-- **A webhook endpoint's change history:** its row holds the signing secret, which change history never reads, so
-  the secret moves to a row of its own first (ADR-0016, [change history](architecture/change-history.md)).
-- **Toasts for email and scorecard template edits:** they raise no live event yet, so only a published hiring template
-  version tells its previous editor ([real-time updates](architecture/realtime.md)).
 
 ## Before real customers
 

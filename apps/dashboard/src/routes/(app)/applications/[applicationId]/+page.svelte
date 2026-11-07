@@ -468,6 +468,7 @@
                 {questions}
                 {manualAutomations}
                 tagsEditable={mayNote}
+                oninterviewchanged={(message) => (scheduled = message)}
               />
             {/if}
           </Tabs.Content>

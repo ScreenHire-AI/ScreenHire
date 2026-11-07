@@ -207,6 +207,13 @@ describe('reading a step', () => {
     expect(state.files.resume).toEqual(upload);
   });
 
+  it('forgets a file the candidate removed, and keeps one whose question is on another step', () => {
+    const state = { ...emptyState(), files: { resume: upload } };
+
+    expect(readAnswers(form([]), questions, state).files.resume).toBeUndefined();
+    expect(readAnswers(form([]), [], state).files.resume).toEqual(upload);
+  });
+
   it('keeps AI-use details only with a yes', () => {
     expect(readReview(form([['aiUseDeclaration', 'Used'], ['aiUseDetails', 'Grammar']]), emptyState())).toMatchObject({
       aiUseDeclaration: 'Used',

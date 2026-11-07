@@ -150,7 +150,11 @@ public sealed class InterviewTextTests
     public void Every_interview_email_passes_its_own_checks_and_is_invitation_only()
     {
         var templates = new EmailTemplates();
-        foreach (var id in new[] { EmailTemplateIds.InterviewInvitation, EmailTemplateIds.InterviewConfirmation, EmailTemplateIds.InterviewCancelled })
+        foreach (var id in new[]
+        {
+            EmailTemplateIds.InterviewInvitation, EmailTemplateIds.InterviewConfirmation, EmailTemplateIds.InterviewCancelled,
+            EmailTemplateIds.InterviewNewTimes, EmailTemplateIds.InterviewReminder,
+        })
         {
             templates.Validate(id, templates.Default(id)).Should().BeEmpty(id);
             EmailTemplateIds.IsInvitationOnly(id).Should().BeTrue(id);
@@ -168,6 +172,82 @@ public sealed class InterviewTextTests
         templates.Validate(EmailTemplateIds.InterviewConfirmation, new("Hi", "<p>See you.</p>")).Select(p => p.Message)
             .Should().Contain(m => m.Contains("interviewTime")).And.Contain(m => m.Contains("manageLink"));
         templates.Validate(EmailTemplateIds.InterviewCancelled, new("Hi", "<p>Cancelled.</p>")).Should().BeEmpty("it has no required variable");
+    }
+
+    [Fact]
+    public void The_new_times_email_must_give_the_booking_link_and_the_reminder_the_time_and_the_change_link()
+    {
+        var templates = new EmailTemplates();
+
+        templates.Validate(EmailTemplateIds.InterviewNewTimes, new("Hi", "<p>Pick a time.</p>")).Should().ContainSingle(p => p.Message.Contains("bookingLink"));
+        templates.Validate(EmailTemplateIds.InterviewNewTimes, new("Hi", "<p>{{ bookingLink }} {{ interviewTime }} {{ interviewLength }}</p>")).Should().BeEmpty();
+        templates.Validate(EmailTemplateIds.InterviewReminder, new("Hi", "<p>Soon.</p>")).Select(p => p.Message)
+            .Should().Contain(m => m.Contains("interviewTime")).And.Contain(m => m.Contains("manageLink"));
+        templates.Validate(EmailTemplateIds.InterviewReminder, new("Hi", "<p>{{ interviewTime }} {{ manageLink }} {{ meetingLink }}</p>")).Should().BeEmpty();
+        templates.Validate(EmailTemplateIds.InterviewReminder, new("Hi", "<p>{{ interviewTime }} {{ manageLink }} {{ bookingLink }}</p>")).Should().NotBeEmpty("a reminder offers no new times");
+    }
+
+    [Fact]
+    public void The_reminders_go_a_day_and_an_hour_before_and_a_time_already_past_is_left_out()
+    {
+        var start = new DateTimeOffset(2026, 11, 10, 15, 0, 0, TimeSpan.Zero);
+
+        InterviewText.Reminders(start, Now).Should().Equal(
+            (InterviewReminderKind.DayBefore, start.AddHours(-24)), (InterviewReminderKind.HourBefore, start.AddHours(-1)));
+        InterviewText.Reminders(start, start.AddHours(-24)).Select(r => r.Kind).Should().Equal([InterviewReminderKind.HourBefore], "a reminder due now is not sent late");
+        InterviewText.Reminders(start, start.AddHours(-3)).Select(r => r.Kind).Should().Equal([InterviewReminderKind.HourBefore]);
+        InterviewText.Reminders(start, start.AddMinutes(-30)).Should().BeEmpty("both are past");
+    }
+
+    [Fact]
+    public void A_reminder_is_one_intent_per_interview_time_and_kind()
+    {
+        var (organization, application, interview) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        var start = new DateTimeOffset(2026, 11, 10, 15, 0, 0, TimeSpan.Zero);
+
+        new SendInterviewReminder(organization, application, interview, start, InterviewReminderKind.DayBefore).IdempotencyKey
+            .Should().Be(new SendInterviewReminder(organization, application, interview, start.ToOffset(TimeSpan.FromHours(2)), InterviewReminderKind.DayBefore).IdempotencyKey,
+                "the same instant is the same time whatever its offset");
+        new[]
+        {
+            new SendInterviewReminder(organization, application, interview, start, InterviewReminderKind.DayBefore).IdempotencyKey,
+            new SendInterviewReminder(organization, application, interview, start, InterviewReminderKind.HourBefore).IdempotencyKey,
+            new SendInterviewReminder(organization, application, interview, start.AddDays(1), InterviewReminderKind.DayBefore).IdempotencyKey,
+            new SendInterviewReminder(organization, application, Guid.CreateVersion7(), start, InterviewReminderKind.DayBefore).IdempotencyKey,
+        }.Should().OnlyHaveUniqueItems("a move to another time, another kind and another interview are each their own reminder");
+
+        InterviewText.ReminderSendId(InterviewReminderKind.DayBefore, interview, start)
+            .Should().Be(InterviewText.ReminderSendId(InterviewReminderKind.DayBefore, interview, start.ToOffset(TimeSpan.FromHours(-5))));
+        new[]
+        {
+            InterviewText.ReminderSendId(InterviewReminderKind.DayBefore, interview, start),
+            InterviewText.ReminderSendId(InterviewReminderKind.HourBefore, interview, start),
+            InterviewText.ReminderSendId(InterviewReminderKind.DayBefore, interview, start.AddDays(1)),
+            InterviewText.ReminderSendId(InterviewReminderKind.DayBefore, Guid.CreateVersion7(), start),
+        }.Should().OnlyHaveUniqueItems();
+
+        var send = Guid.CreateVersion7();
+        new SendInterviewNewTimes(organization, application, interview, send, null).IdempotencyKey
+            .Should().Be(new SendInterviewNewTimes(organization, application, interview, send, Guid.CreateVersion7()).IdempotencyKey, "who sent it is not the intent");
+        new SendInterviewNewTimes(organization, application, interview, Guid.CreateVersion7(), null).IdempotencyKey
+            .Should().NotBe(new SendInterviewNewTimes(organization, application, interview, send, null).IdempotencyKey, "a second offer is a new intent");
+    }
+
+    [Fact]
+    public void The_interviewers_reminder_names_the_candidate_the_time_the_meeting_and_the_application_and_encodes_what_a_candidate_typed()
+    {
+        var message = InterviewReminderEmail.Compose(
+            "robin@example.com", "Casey \"Mo\" <Morgan>", "Platform Engineer", "Brightwater", "Tuesday, November 3, 2026, 10:00 AM to 10:30 AM (UTC)",
+            "https://meet.example.org/abc", new Uri("https://app.example.com/applications/123"));
+
+        message.To.Should().Be("robin@example.com");
+        message.Subject.Should().Be("Interview in a day: Casey \"Mo\" Morgan");
+        message.TextBody.Should().Contain("Casey \"Mo\" Morgan, Platform Engineer, at Brightwater").And.Contain("Tuesday, November 3, 2026, 10:00 AM to 10:30 AM (UTC)")
+            .And.Contain("https://meet.example.org/abc").And.Contain("https://app.example.com/applications/123");
+        message.HtmlBody.Should().Contain("<a href=\"https://meet.example.org/abc\">").And.Contain("<a href=\"https://app.example.com/applications/123\">").And.Contain("Casey &quot;Mo&quot; Morgan").And.NotContain("<Morgan>");
+
+        var bare = InterviewReminderEmail.Compose("robin@example.com", "Casey Morgan", "Platform Engineer", "Brightwater", "10:00 AM", null, null);
+        bare.TextBody.Should().NotContain("Meeting link").And.NotContain("Open the application");
     }
 
     [Fact]

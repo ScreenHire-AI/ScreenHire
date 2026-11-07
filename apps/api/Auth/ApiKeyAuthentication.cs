@@ -45,7 +45,7 @@ internal static class ApiKeyAuthentication
     /// </summary>
     public const string McpCredentialsScheme = "McpCredentials";
 
-    /// <summary>The authorization policy of the routes keys may call: jobs, applications, candidates and templates.</summary>
+    /// <summary>The authorization policy of the routes keys may call: jobs, applications, candidates, templates and reports.</summary>
     public const string HiringApiPolicy = "hiring-api";
 
     /// <summary>

@@ -5,9 +5,11 @@ using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Automations;
 using ScreenHire.Application.Webhooks;
+using ScreenHire.Domain.History;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Domain.Webhooks;
 using ScreenHire.Infrastructure.Persistence;
+using ScreenHire.Infrastructure.Persistence.History;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
 
@@ -41,6 +43,9 @@ internal static class WebhookEndpoints
         group.MapGet("/{endpointId:guid}", GetWebhookEndpoint).WithName("GetWebhookEndpoint")
             .RequirePermission(Permission.ManageWebhooks)
             .Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/{endpointId:guid}/history", GetWebhookEndpointHistory).WithName("GetWebhookEndpointHistory")
+            .RequirePermission(Permission.ManageWebhooks)
+            .Produces(StatusCodes.Status401Unauthorized);
         group.MapPut("/{endpointId:guid}", UpdateWebhookEndpoint).WithName("UpdateWebhookEndpoint")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.ManageWebhooks)
@@ -67,15 +72,32 @@ internal static class WebhookEndpoints
 
     private static async Task<Ok<List<WebhookEndpointEntry>>> ListWebhookEndpoints(ScreenHireDbContext db, CancellationToken cancellationToken)
     {
-        var endpoints = await db.WebhookEndpoints.AsNoTracking().OrderBy(e => e.CreatedAt).ThenBy(e => e.Id).ToListAsync(cancellationToken);
-        return TypedResults.Ok(endpoints.Select(e => e.ToEntry()).ToList());
+        var rows = await Rows(db).OrderBy(r => r.Endpoint.CreatedAt).ThenBy(r => r.Endpoint.Id).ToListAsync(cancellationToken);
+        var changes = await ChangeHistoryQueries.LastAsync(db, ChangeSubjectKind.WebhookEndpoint, [.. rows.Select(r => SubjectId(r.Endpoint))], cancellationToken);
+        return TypedResults.Ok(rows.Select(r => r.ToEntry(changes.GetValueOrDefault(SubjectId(r.Endpoint)))).ToList());
     }
 
     private static async Task<Results<Ok<WebhookEndpointEntry>, NotFound>> GetWebhookEndpoint(
         Guid endpointId, ScreenHireDbContext db, CancellationToken cancellationToken) =>
-        await db.WebhookEndpoints.AsNoTracking().SingleOrDefaultAsync(e => e.Id == endpointId, cancellationToken) is { } endpoint
-            ? TypedResults.Ok(endpoint.ToEntry())
-            : TypedResults.NotFound();
+        await EntryAsync(db, endpointId, cancellationToken) is { } entry ? TypedResults.Ok(entry) : TypedResults.NotFound();
+
+    private static async Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> GetWebhookEndpointHistory(
+        Guid endpointId, Guid? before, int? limit, ScreenHireDbContext db, CancellationToken cancellationToken)
+    {
+        if (ChangeHistoryRoutes.LimitProblem(limit) is { } problem)
+        {
+            return problem;
+        }
+
+        if (!await db.WebhookEndpoints.AnyAsync(e => e.Id == endpointId, cancellationToken))
+        {
+            return TypedResults.NotFound();
+        }
+
+        return await ChangeHistoryRoutes.PageAsync(db, ChangeSubjectKind.WebhookEndpoint, endpointId.ToString("D"), before, limit, cancellationToken) is { } page
+            ? TypedResults.Ok(page)
+            : ChangeHistoryRoutes.CursorProblem();
+    }
 
     private static async Task<Results<Created<WebhookEndpointWithSecret>, ValidationProblem, ProblemHttpResult>> CreateWebhookEndpoint(
         CreateWebhookEndpointRequest request,
@@ -102,10 +124,14 @@ internal static class WebhookEndpoints
                 statusCode: StatusCodes.Status409Conflict);
         }
 
-        var endpoint = WebhookEndpoint.Create(tenant.OrganizationId!.Value, request.Url, Blank(request.Description), request.Events, time.GetUtcNow());
+        var now = time.GetUtcNow();
+        var endpoint = WebhookEndpoint.Create(tenant.OrganizationId!.Value, request.Url, Blank(request.Description), request.Events, now);
+        var secret = WebhookEndpointSecret.For(endpoint, now);
         db.WebhookEndpoints.Add(endpoint);
+        db.WebhookEndpointSecrets.Add(secret);
         await db.SaveChangesAsync(cancellationToken);
-        return TypedResults.Created($"/v1/webhooks/{endpoint.Id}", WithSecret(endpoint, options.Value.SigningKey));
+        return TypedResults.Created(
+            $"/v1/webhooks/{endpoint.Id}", WithSecret(endpoint, secret, options.Value.SigningKey, await LastAsync(db, endpoint, cancellationToken)));
     }
 
     private static async Task<Results<Ok<WebhookEndpointEntry>, NotFound, ValidationProblem>> UpdateWebhookEndpoint(
@@ -138,10 +164,11 @@ internal static class WebhookEndpoints
         }
 
         await db.SaveChangesAsync(cancellationToken);
-        return TypedResults.Ok(endpoint.ToEntry());
+        return TypedResults.Ok(await EntryAsync(db, endpointId, cancellationToken));
     }
 
-    // Its delivery log goes with it (cascade). Attempts already scheduled find no delivery and send nothing.
+    // Its delivery log and its secret row go with it (cascade). Attempts already scheduled find no delivery and send nothing.
+    // Not through the change tracker: an endpoint's history is read through the endpoint, so nothing could show a deletion.
     private static async Task<Results<NoContent, NotFound>> DeleteWebhookEndpoint(
         Guid endpointId, ScreenHireDbContext db, CancellationToken cancellationToken) =>
         await db.WebhookEndpoints.Where(e => e.Id == endpointId).ExecuteDeleteAsync(cancellationToken) == 0
@@ -157,14 +184,18 @@ internal static class WebhookEndpoints
         }
 
         var endpoint = await db.WebhookEndpoints.SingleOrDefaultAsync(e => e.Id == endpointId, cancellationToken);
-        if (endpoint is null)
+        var secret = await db.WebhookEndpointSecrets.SingleOrDefaultAsync(s => s.EndpointId == endpointId, cancellationToken);
+        if (endpoint is null || secret is null)
         {
             return TypedResults.NotFound();
         }
 
-        endpoint.RotateSecret(time.GetUtcNow());
+        // Through the change tracker, so the endpoint's history records the rotation (and never the secret).
+        var now = time.GetUtcNow();
+        secret.Rotate(now);
+        endpoint.UpdatedAt = now;
         await db.SaveChangesAsync(cancellationToken);
-        return TypedResults.Ok(WithSecret(endpoint, options.Value.SigningKey));
+        return TypedResults.Ok(WithSecret(endpoint, secret, options.Value.SigningKey, await LastAsync(db, endpoint, cancellationToken)));
     }
 
     // Newest first.
@@ -225,8 +256,37 @@ internal static class WebhookEndpoints
         return TypedResults.Accepted($"/v1/webhooks/{endpointId}/deliveries", replay.ToEntry());
     }
 
-    private static WebhookEndpointWithSecret WithSecret(WebhookEndpoint endpoint, string signingKey) =>
-        new(endpoint.ToEntry(), WebhookSignature.EndpointSecret(signingKey, endpoint.Id, endpoint.SecretVersion));
+    private static WebhookEndpointWithSecret WithSecret(WebhookEndpoint endpoint, WebhookEndpointSecret secret, string signingKey, LastUpdate lastUpdated) =>
+        new(endpoint.ToEntry(secret.RotatedAt, lastUpdated), WebhookSignature.EndpointSecret(signingKey, endpoint.Id, secret.Version));
+
+    private static string SubjectId(WebhookEndpoint endpoint) => endpoint.Id.ToString("D");
+
+    // An endpoint with the time its signing secret last changed, which is kept in a row of its own. Built with an object
+    // initializer, which EF can translate through a join; a constructor call it cannot.
+    private sealed class EndpointRow
+    {
+        public required WebhookEndpoint Endpoint { get; init; }
+
+        public DateTimeOffset SecretRotatedAt { get; init; }
+
+        public WebhookEndpointEntry ToEntry(ChangeStamp? stamp) =>
+            Endpoint.ToEntry(SecretRotatedAt, LastUpdate.From(stamp, Endpoint.CreatedAt, Endpoint.UpdatedAt));
+    }
+
+    private static IQueryable<EndpointRow> Rows(ScreenHireDbContext db) =>
+        db.WebhookEndpoints.AsNoTracking().Join(
+            db.WebhookEndpointSecrets.AsNoTracking(), e => e.Id, s => s.EndpointId, (e, s) => new EndpointRow { Endpoint = e, SecretRotatedAt = s.RotatedAt });
+
+    private static async Task<WebhookEndpointEntry?> EntryAsync(ScreenHireDbContext db, Guid endpointId, CancellationToken cancellationToken)
+    {
+        var row = await Rows(db).SingleOrDefaultAsync(r => r.Endpoint.Id == endpointId, cancellationToken);
+        return row?.ToEntry(await ChangeHistoryQueries.LastAsync(db, ChangeSubjectKind.WebhookEndpoint, SubjectId(row.Endpoint), cancellationToken));
+    }
+
+    private static async Task<LastUpdate> LastAsync(ScreenHireDbContext db, WebhookEndpoint endpoint, CancellationToken cancellationToken) =>
+        LastUpdate.From(
+            await ChangeHistoryQueries.LastAsync(db, ChangeSubjectKind.WebhookEndpoint, SubjectId(endpoint), cancellationToken),
+            endpoint.CreatedAt, endpoint.UpdatedAt);
 
     private static ProblemHttpResult NotSetUp() => TypedResults.Problem(
         title: "Webhooks are not set up",

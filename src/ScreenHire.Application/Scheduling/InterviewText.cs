@@ -102,6 +102,27 @@ public static class InterviewText
     }
 
     /// <summary>
+    /// The id of a reminder email to the candidate: the same for the same kind, interview and start, so a redelivered
+    /// reminder finds the timeline entry the first send left. A move to another time is another reminder.
+    /// </summary>
+    public static Guid ReminderSendId(InterviewReminderKind kind, Guid interviewId, DateTimeOffset start)
+    {
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes($"interview-email:reminder-{kind}:{interviewId:N}:{start.UtcTicks}"));
+        return new Guid(hash.AsSpan(0, 16));
+    }
+
+    /// <summary>How long before the start each reminder goes.</summary>
+    public static TimeSpan ReminderLead(InterviewReminderKind kind) => kind == InterviewReminderKind.DayBefore ? TimeSpan.FromHours(24) : TimeSpan.FromHours(1);
+
+    /// <summary>
+    /// The reminders still to send for an interview starting at <paramref name="start"/>, and when each goes. One whose time is
+    /// not after <paramref name="now"/> is left out: it would say "tomorrow" about an interview that is sooner than that, and the
+    /// confirmation the candidate just got says the time.
+    /// </summary>
+    public static IReadOnlyList<(InterviewReminderKind Kind, DateTimeOffset At)> Reminders(DateTimeOffset start, DateTimeOffset now) =>
+        [.. Enum.GetValues<InterviewReminderKind>().Select(kind => (Kind: kind, At: start - ReminderLead(kind))).Where(r => r.At > now)];
+
+    /// <summary>
     /// Whether a calendar message still describes the request. It does when the request has not changed since the
     /// message was queued (same <paramref name="revision"/>) and is in the state the message is about; otherwise a later
     /// change superseded it and the message does nothing.
