@@ -244,10 +244,10 @@
         {#if detail.description}
           <Fact label="URL"><TruncatedText text={detail.url} /></Fact>
         {/if}
+        <Fact label="Secret rotated"><RelativeTime at={detail.secretRotatedAt} /></Fact>
         <Fact label={lastUpdateWords(detail.lastUpdated).label}>
           <LastUpdated value={detail.lastUpdated} {members} {currentUserId} onhistory={() => (historyOpen = true)} />
         </Fact>
-        <Fact label="Secret rotated"><RelativeTime at={detail.secretRotatedAt} /></Fact>
       {/snippet}
     </HeaderBand>
     <HistorySheet

@@ -59,6 +59,10 @@ public sealed class WebhookEndpoint : ITenantOwned
         UpdatedAt = now;
     }
 
+    /// <summary>
+    /// A new endpoint. Add its <see cref="WebhookEndpointSecret.For"/> row in the same save: an endpoint without one is
+    /// not listed and receives no deliveries.
+    /// </summary>
     public static WebhookEndpoint Create(Guid organizationId, string url, string? description, IEnumerable<string> events, DateTimeOffset now) =>
         new()
         {

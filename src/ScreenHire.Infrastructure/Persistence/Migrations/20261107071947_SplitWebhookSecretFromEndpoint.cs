@@ -41,6 +41,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
             ALTER TABLE webhook_endpoint_secrets NO FORCE ROW LEVEL SECURITY;
             UPDATE webhook_endpoints e SET secret_version = s.version, secret_rotated_at = s.rotated_at
                 FROM webhook_endpoint_secrets s WHERE s.endpoint_id = e.id;
+            ALTER TABLE webhook_endpoints
+                ALTER COLUMN secret_version DROP DEFAULT,
+                ALTER COLUMN secret_rotated_at DROP DEFAULT;
             ALTER TABLE webhook_endpoints FORCE ROW LEVEL SECURITY;
             """;
 
