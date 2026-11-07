@@ -8,6 +8,7 @@ sources:
   - resource: apps/api/Demo/DemoQuestionnaires.cs
   - resource: apps/api/Demo/DevelopmentDemo.cs
   - resource: apps/apphost/DevSso/config.json
+  - resource: apps/dashboard/src/lib/setup-checklist.ts
   - resource: src/ScreenHire.Infrastructure/Persistence/DevelopmentDataSeeder.cs
   - resource: .claude/skills/preview/SKILL.md
   - resource: kangentic.json

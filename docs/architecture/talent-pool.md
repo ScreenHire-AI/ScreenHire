@@ -17,6 +17,7 @@ sources:
   - resource: apps/careers/src/pages/[organization]/talent-pool/[token].astro
   - resource: apps/careers/src/lib/talent-pool.ts
   - resource: apps/dashboard/src/lib/components/saved-candidates.svelte
+  - resource: apps/dashboard/src/lib/components/candidates-list-switch.svelte
   - resource: apps/dashboard/src/lib/talent-pool.ts
   - resource: apps/dashboard/src/lib/components/save-candidate-sheet.svelte
   - resource: apps/dashboard/src/lib/components/edit-saved-note-sheet.svelte

@@ -49,6 +49,8 @@ sources:
   - resource: apps/dashboard/src/lib/auth.ts
   - resource: apps/dashboard/src/lib/permissions.ts
   - resource: apps/dashboard/src/lib/settings.ts
+  - resource: apps/dashboard/src/lib/integrations.ts
+  - resource: apps/dashboard/src/lib/components/settings-menu.svelte
   - resource: apps/dashboard/src/lib/hiring-team.ts
   - resource: apps/dashboard/src/lib/components/member-access-sheet.svelte
   - resource: apps/dashboard/src/lib/components/hiring-team-sheet.svelte
