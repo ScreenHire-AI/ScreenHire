@@ -322,8 +322,7 @@ done
   on, and a webhook endpoint at `https://<api host>/v1/webhooks/stripe` for `checkout.session.completed`,
   `customer.subscription.created`, `customer.subscription.updated` and `customer.subscription.deleted`. Create the endpoint
   through Stripe's API with `api_version=2024-06-20`, the version the code is written against: a webhook otherwise arrives at
-  the account's default version, the Dashboard offers only that or the latest, and an endpoint's version cannot be changed
-  later. In the vault: the two secrets above, and each plan's price
+  the account's default version, and an endpoint's version cannot be changed later. In the vault: the two secrets above, and each plan's price
   id, price and limit as secrets named like the setting (for example `ScreenHire--Billing--Plans--growth--StripePriceId`,
   `ScreenHire--Billing--Plans--growth--MonthlyPrice`, `ScreenHire--Billing--Plans--growth--ActiveJobs`). Leave
   `ScreenHire:Billing:Sandbox:Enabled` off: the sandbox's checkout charges nobody, and an app started outside Development with it on
