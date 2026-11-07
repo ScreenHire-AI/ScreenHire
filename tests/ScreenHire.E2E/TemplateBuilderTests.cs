@@ -181,7 +181,6 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await test.GetByRole(AriaRole.Button, new() { Name = "Has verification signals" }).ClickAsync();
         var results = test.GetByRole(AriaRole.List, new() { Name = "What would happen, in order" });
         await Expect(results).ToContainTextAsync("Route for review");
-        await Expect(results).ToContainTextAsync("Would run");
         await Expect(results).ToContainTextAsync("Add the tag \"needs-review\"");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-workflow-simulate-light");
@@ -189,8 +188,9 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         // A candidate the conditions do not match runs nothing, and the result says why in a line.
         await test.GetByRole(AriaRole.Button, new() { Name = "Change the candidate" }).ClickAsync();
         await test.GetByRole(AriaRole.Button, new() { Name = "Meets every requirement" }).ClickAsync();
-        await Expect(results).ToContainTextAsync("Would not run");
-        await Expect(results).ToContainTextAsync("Verification: authenticity is Verification suggested");
+        await Expect(test.GetByRole(AriaRole.Heading, new() { Level = 4 })).ToHaveTextAsync("Would not run");
+        await Expect(test).ToContainTextAsync("Nothing would run.");
+        await Expect(test).ToContainTextAsync("Verification: authenticity is Verification suggested");
     }
 
     [Fact]

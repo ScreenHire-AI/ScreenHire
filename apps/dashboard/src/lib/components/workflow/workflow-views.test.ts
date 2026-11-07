@@ -476,7 +476,7 @@ describe('workflow simulation', () => {
     expect(stepHeading()).toHaveTextContent('What happened?');
     expect(pane()).toHaveTextContent('It never touches a real candidate or sends anything.');
     const progress = within(pane()).getByRole('list', { name: 'Progress of the test' });
-    expect(within(progress).getByText('What happened').closest('li')).toHaveAttribute('aria-current', 'step');
+    expect(within(progress).getByText('Moment').closest('li')).toHaveAttribute('aria-current', 'step');
     // Only the moments some automation that is on reacts to: the disabled "Tell the team" is not one of them.
     const moments = within(pane()).getByRole('list', { name: 'Moments' });
     expect(within(moments).getAllByRole('button').map((button) => button.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
@@ -507,12 +507,14 @@ describe('workflow simulation', () => {
       facts: { answers: [{ questionId: 'right_to_work', values: ['no'] }] },
       accommodationRequested: false,
     });
-    // Both automations of the moment are in the timeline, each with its reason; the one for another moment is not.
-    const timeline = await within(pane()).findByRole('list', { name: 'What would happen, in order' });
-    expect(timeline).toHaveTextContent('Queue for review');
-    expect(timeline).toHaveTextContent('It needs "Do you have the right to work here? is No", and that did not hold.');
-    expect(timeline).not.toHaveTextContent('Route for review');
-    expect(within(pane()).getByRole('button', { name: 'Change the candidate' })).toBeInTheDocument();
+    // Nothing ran, so there is no numbered line; the automations of the moment are listed with one line on why not, and the one for another moment is not.
+    await within(pane()).findByRole('button', { name: 'Change the candidate' });
+    expect(within(pane()).queryByRole('list', { name: 'What would happen, in order' })).toBeNull();
+    expect(pane()).toHaveTextContent('Nothing would run.');
+    const skipped = within(pane()).getByRole('heading', { level: 4, name: 'Would not run' }).parentElement!;
+    expect(skipped).toHaveTextContent('Queue for review');
+    expect(skipped).toHaveTextContent('It needs "Do you have the right to work here? is No", and that did not hold.');
+    expect(skipped).not.toHaveTextContent('Route for review');
     expect(within(pane()).getByRole('button', { name: 'Try another moment' })).toBeInTheDocument();
     await expectNoAxeViolations(container);
   });
@@ -535,7 +537,6 @@ describe('workflow simulation', () => {
 
     const timeline = await within(pane()).findByRole('list', { name: 'What would happen, in order' });
     expect(timeline).toHaveTextContent('Route for review');
-    expect(timeline).toHaveTextContent('Would run');
     expect(timeline).toHaveTextContent('Add the tag "needs-review"');
     // A level is a word, never a number, and nothing in the result rejects.
     expect(pane().textContent).not.toMatch(/\d+\s?%|score/i);
@@ -589,7 +590,7 @@ describe('workflow simulation', () => {
 
     await fireEvent.click(within(pane()).getByRole('button', { name: /A candidate applied/ }));
     await fireEvent.click(await within(pane()).findByRole('button', { name: /Meets every requirement/ }));
-    await within(pane()).findByRole('list', { name: 'What would happen, in order' });
+    await within(pane()).findByRole('button', { name: 'Try another moment' });
 
     await fireEvent.click(within(pane()).getByRole('button', { name: 'Try another moment' }));
     await waitFor(() => expect(stepHeading()).toHaveTextContent('What happened?'));
@@ -600,7 +601,7 @@ describe('workflow simulation', () => {
     await waitFor(() => expect(sent(fetchMock)).toHaveLength(2));
     expect(sent(fetchMock)[1]).toMatchObject({ trigger: { type: 'VerificationAssessed' }, facts: { answers: [], verificationAuthenticity: 'NoConcerns' } });
     await waitFor(() => expect(stepHeading()).toHaveTextContent('What would happen'));
-    await within(pane()).findByRole('list', { name: 'What would happen, in order' });
+    await within(pane()).findByRole('button', { name: 'Change the candidate' });
 
     await fireEvent.click(within(pane()).getByRole('button', { name: 'Change the candidate' }));
     await waitFor(() => expect(stepHeading()).toHaveTextContent('Who is the candidate?'));

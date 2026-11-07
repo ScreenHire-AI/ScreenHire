@@ -5,7 +5,6 @@
   import ArrowLeftIcon from '~icons/lucide/arrow-left';
   import FlaskConicalIcon from '~icons/lucide/flask-conical';
   import FailureText from '#lib/components/failure-text.svelte';
-  import StatusBadge from '#lib/components/status-badge.svelte';
   import StepLine from '#lib/components/step-line.svelte';
   import StepMarkers, { type Step as Progress } from '#lib/components/step-markers.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -88,7 +87,7 @@
 
   const place = $derived(shown === 'moment' || shown === 'question' ? 0 : shown === 'candidate' || shown === 'customize' ? 1 : 2);
   const progress = $derived<Progress[]>(
-    ['What happened', 'Who is the candidate', 'What would happen'].map((label, index): Progress => ({ label, state: index < place ? 'done' : index === place ? 'current' : 'upcoming' })),
+    ['Moment', 'Candidate', 'Result'].map((label, index): Progress => ({ label, state: index < place ? 'done' : index === place ? 'current' : 'upcoming' })),
   );
 
   // What a test found, kept with the workflow it ran on, so a later edit does not rewrite the answer on screen.
@@ -96,6 +95,8 @@
   let pending = $state(false);
   let failure = $state<{ message: string; problems: string[] } | null>(null);
   const timeline = $derived(ran ? timelineOf(ran.workflow, ran.trigger, ran.result, templateNames) : []);
+  const happening = $derived(timeline.filter((step) => step.ran));
+  const notHappening = $derived(timeline.filter((step) => !step.ran));
 
   // Each question takes the focus when it appears, so a keyboard or screen reader user lands on it.
   let headingElement = $state<HTMLElement>();
@@ -366,21 +367,29 @@
             <p class="font-semibold">{describeMoment(ran.workflow, ran.trigger)}</p>
             <p class="text-muted-foreground">{ran.who}</p>
           </div>
-          <StepLine items={timeline} label="What would happen, in order" key={(step) => step.id}>
-            {#snippet children(step)}
-              <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+          {#if happening.length > 0}
+            <StepLine items={happening} label="What would happen, in order" key={(step) => step.id}>
+              {#snippet children(step)}
                 <span class="font-semibold">{step.name}</span>
-                <StatusBadge status={step.ran ? 'done' : 'notInEffect'} label={step.ran ? 'Would run' : 'Would not run'} quiet />
-              </div>
-              {#if step.ran}
                 {#if step.actions.length > 0}
-                  <ol class="flex list-decimal flex-col gap-0.5 pl-5">{#each step.actions as action, index (index)}<li>{action}</li>{/each}</ol>
+                  <ol class="flex flex-col gap-0.5">{#each step.actions as action, index (index)}<li>{action}</li>{/each}</ol>
                 {/if}
-              {:else if step.why}
-                <p class="text-muted-foreground">{step.why}</p>
-              {/if}
-            {/snippet}
-          </StepLine>
+              {/snippet}
+            </StepLine>
+          {:else}
+            <p>Nothing would run.</p>
+          {/if}
+          {#if notHappening.length > 0}
+            <!-- Not steps: nothing happens, so they are not numbered into the line above. -->
+            <div class="flex flex-col gap-2">
+              <h4 class="text-muted-foreground">Would not run</h4>
+              <ul class="flex flex-col gap-2">
+                {#each notHappening as step (step.id)}
+                  <li class="flex flex-col"><span class="font-semibold">{step.name}</span><span class="text-muted-foreground">{step.why}</span></li>
+                {/each}
+              </ul>
+            </div>
+          {/if}
         {/if}
       </div>
       {#if !pending}
