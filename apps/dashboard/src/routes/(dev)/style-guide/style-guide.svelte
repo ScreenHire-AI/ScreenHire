@@ -23,7 +23,7 @@
   import UserPlusIcon from '~icons/lucide/user-plus';
   import UserRoundIcon from '~icons/lucide/user-round';
   import UsersIcon from '~icons/lucide/users';
-  import type { ApplicationFileSummary, ApplicationInterview, HistoryEntry, ScorecardEntry, SignalEvidence as Evidence, WorkflowStage } from '@screenhire/api-client';
+  import type { ApplicationFileSummary, ApplicationInterview, HiringWorkflow, HistoryEntry, ScorecardEntry, SignalEvidence as Evidence, WorkflowStage } from '@screenhire/api-client';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
@@ -66,6 +66,7 @@
   import NotificationTray from '#lib/components/notification-tray.svelte';
   import OverdueBadge from '#lib/components/overdue-badge.svelte';
   import Panel from '#lib/components/panel.svelte';
+  import StageFlow from '#lib/components/workflow/stage-flow.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RecordTabs, { type RecordTab } from '#lib/components/record-tabs.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
@@ -317,11 +318,27 @@
     { label: 'Workflow', state: 'upcoming' },
     { label: 'Publish', state: 'upcoming' },
   ];
-  const stages = [
-    { name: 'Applied', limit: '' },
-    { name: 'Phone screen', limit: '3-day limit' },
-    { name: 'Interview', limit: '5-day limit' },
+  const setupSteps = ['Add the records at your DNS provider', 'Wait for the records to spread', 'Check the domain'];
+
+  // A workflow's stages for the stage flow: one with nothing attached, then each fact on its own and all three together.
+  const flowStages: WorkflowStage[] = [
+    { id: 'applied', name: 'Applied', kind: 'Applied' },
+    { id: 'phone-screen', name: 'Phone screen', kind: 'Screening', slaDays: 3, scorecard: { name: 'Phone screen', questions: [] } },
+    { id: 'interview', name: 'Technical interview', kind: 'Interview', slaDays: 5 },
+    { id: 'panel', name: 'Panel with the hiring team', kind: 'Interview', scorecard: { name: 'Technical interview', questions: [] } },
+    { id: 'offer', name: 'Offer', kind: 'Offer' },
   ];
+  const flowAutomations: HiringWorkflow['automations'] = [
+    { id: 'tag', name: 'Tag screened', trigger: { type: 'StageEntered', stageId: 'phone-screen' }, conditions: null, actions: [{ type: 'AddTag', tag: 'screened' }] },
+    { id: 'tell', name: 'Tell the team', trigger: { type: 'StageEntered', stageId: 'phone-screen' }, conditions: null, actions: [{ type: 'NotifyTeam', note: 'Screened' }] },
+    { id: 'offer', name: 'Tag offered', trigger: { type: 'StageEntered', stageId: 'offer' }, conditions: null, actions: [{ type: 'AddTag', tag: 'offered' }] },
+  ];
+  const manyStages: WorkflowStage[] = Array.from({ length: 20 }, (_, index) => ({
+    id: `stage-${index + 1}`,
+    name: `Stage ${index + 1}`,
+    kind: 'Screening',
+    slaDays: index % 3 === 0 ? index + 1 : null,
+  }));
 
   // A candidate's pipeline tracker, as `trackerFor` builds it from the job's stages and the application's history.
   const trackerStep = (name: string, state: TrackerStep['state'], note?: string): TrackerStep => ({ id: name, name, state, note });
@@ -817,13 +834,27 @@
             <StepMarkers label="New job, finished" steps={steps.map((step) => ({ ...step, state: 'done' as const }))} />
           </figure>
           <figure class="flex min-w-0 flex-[1_1_240px] flex-col gap-4">
-            <figcaption class="text-caption text-muted-foreground">Down, for a workflow's stages</figcaption>
-            <StepLine items={stages} label="Stages in order" key={(stage) => stage.name}>
-              {#snippet children(stage)}
-                <span class="font-semibold">{stage.name}</span>
-                {#if stage.limit}<span class="flex flex-wrap gap-1.5"><Badge variant="muted">{stage.limit}</Badge></span>{/if}
-              {/snippet}
+            <figcaption class="text-caption text-muted-foreground">Down, for steps to do in order</figcaption>
+            <StepLine items={setupSteps} label="Steps to set up a domain" key={(step) => step}>
+              {#snippet children(step)}<span class="font-semibold">{step}</span>{/snippet}
             </StepLine>
+          </figure>
+        </div>
+      </Panel>
+
+      <Panel title="Stage flow">
+        <div class="flex flex-col gap-5">
+          <figure class="flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">Side by side where every stage fits: the name, then what is attached, and a stage with nothing attached shows only its name</figcaption>
+            <StageFlow stages={flowStages} automations={flowAutomations} />
+          </figure>
+          <figure class="flex max-w-80 flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">Where they do not fit, the same stages stack</figcaption>
+            <StageFlow stages={flowStages} automations={flowAutomations} label="Stages in order, stacked" />
+          </figure>
+          <figure class="flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">Twenty stages stack in the same way, and the page never scrolls sideways</figcaption>
+            <StageFlow stages={manyStages} automations={[]} label="Twenty stages in order" />
           </figure>
         </div>
       </Panel>

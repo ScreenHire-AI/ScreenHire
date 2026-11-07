@@ -84,7 +84,7 @@ describe('validation badge', () => {
 });
 
 describe('read-only workflow', () => {
-  it('reads the pipeline as content: stages on a line, end stages in the footer, automations as rows', async () => {
+  it('reads the pipeline as content: stages in a flow, end stages in the footer, automations as rows', async () => {
     const { container } = renderViews('summary');
 
     const pane = screen.getByRole('tabpanel', { name: 'Pipeline' });
@@ -92,9 +92,9 @@ describe('read-only workflow', () => {
 
     const stages = within(pane).getByRole('region', { name: 'Stages' });
     const line = within(stages).getByRole('list', { name: 'Stages in order' });
-    expect(within(line).getAllByRole('listitem').map((item) => item.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
+    expect(Array.from(line.children).map((item) => item.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
       '1 Applied',
-      '2 Phone screen Screening 3-day limit',
+      '2 Phone screen 3-day limit 1 automation',
     ]);
     const footer = stages.lastElementChild as HTMLElement;
     expect(footer).toHaveTextContent('End stages');
