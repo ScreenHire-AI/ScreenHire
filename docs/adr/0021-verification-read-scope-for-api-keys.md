@@ -51,7 +51,8 @@ hiring process. So the question is how to open the evidence to a key without mak
    workflow guardrail in `DefinitionValidator` is untouched, and the OpenAPI document still has no reject operation
    under verification.
 6. **Reports and saved candidates are MCP read tools for any key.** `get_hiring_report` and `list_saved_candidates`
-   need only `Read`, call the services their dashboard routes call, and leave those routes session-only. Reports hold
+   need only `Read` and call the services their dashboard routes call. The saved-candidate routes stay session-only; the
+   reports routes also read for a key over HTTP (`.AllowApiKeys()`, added 2026-11-07). Reports hold
    counts and job titles; saved candidates are the talent pool (the team's "kept in mind" list) and carry the names and
    emails `find_candidates` already returns. Keys see every job (ADR-0015), so these tools are not narrowed by job
    access.

@@ -16,16 +16,30 @@ namespace ScreenHire.UnitTests.History;
 public sealed partial class TrackedKindsTests
 {
     [Fact]
-    public void Templates_jobs_roles_settings_the_sending_domain_the_team_and_api_keys_are_tracked_and_webhook_endpoints_are_not()
+    public void Templates_jobs_roles_settings_the_sending_domain_the_team_api_keys_and_webhook_endpoints_are_tracked()
     {
         TrackedKinds.All.Select(k => k.EntityType).Should().BeEquivalentTo(
         [
             typeof(HiringTemplate), typeof(HiringTemplateVersion), typeof(EmailTemplate), typeof(Job), typeof(JobPosting), typeof(ScorecardTemplate),
             typeof(CustomRole), typeof(Organization), typeof(Organization), typeof(VerificationSettings), typeof(RetentionSettings), typeof(TalentPoolEntry),
             typeof(SendingDomain),
-            typeof(OrganizationMember), typeof(OrganizationInvitation), typeof(ApiKey),
+            typeof(OrganizationMember), typeof(OrganizationInvitation), typeof(ApiKey), typeof(WebhookEndpoint), typeof(WebhookEndpointSecret),
         ]);
-        TrackedKinds.FindAll(typeof(WebhookEndpoint)).Should().BeEmpty("its row holds the signing secret (ADR-0016)");
+    }
+
+    [Fact]
+    public void A_webhook_endpoints_secret_is_seen_only_as_the_time_of_its_rotation()
+    {
+        var secret = TrackedKinds.FindAll(typeof(WebhookEndpointSecret)).Single();
+        var endpoint = TrackedKinds.FindAll(typeof(WebhookEndpoint)).Single();
+        var row = WebhookEndpointSecret.For(
+            WebhookEndpoint.Create(Guid.CreateVersion7(), "https://hooks.example.com/token", null, ["job.closed"], DateTimeOffset.UnixEpoch), DateTimeOffset.UnixEpoch);
+
+        secret.ViewType.Should().Be<SigningRotation>();
+        typeof(SigningRotation).GetProperties().Select(p => p.Name).Should().Equal(nameof(SigningRotation.RotatedAt));
+        typeof(WebhookEndpoint).GetProperties().Select(p => p.Name).Should().NotContain(name => name.Contains("Secret", StringComparison.Ordinal));
+        secret.Subject.Should().Be(ChangeSubjectKind.WebhookEndpoint).And.Be(endpoint.Subject, "a rotation joins the endpoint's own history");
+        secret.SubjectId(row).Should().Be(row.EndpointId.ToString("D"));
     }
 
     [Fact]
