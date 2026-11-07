@@ -23,6 +23,8 @@ sources:
   - resource: apps/dashboard/src/lib/billing.ts
   - resource: apps/dashboard/src/lib/components/plan-problem-notice.svelte
   - resource: apps/dashboard/src/routes/(app)/settings/billing/+page.svelte
+  - resource: apps/dashboard/src/lib/query.ts
+  - resource: apps/marketing/src/lib/pricing.ts
 ---
 # Billing, plans and the free trial
 
@@ -65,7 +67,7 @@ price, a currency, an active job limit, an `unlimited` flag and a `stripePriceId
 limits and no price ids: they are the owner's decisions (see [status](../status.md#owner-actions)). Two readers share it:
 
 - The API embeds it (`PlanCatalogue`) and merges any `Plans:<key>:*` override over it at read time.
-- The marketing site reads it through `@screenhire/plans` (`catalogPlans`), so the pricing page shows the same numbers.
+- The marketing site reads it through `@screenhire/plans` (`catalogPlans`), and `apps/marketing/src/lib/pricing.ts` builds the pricing page from it, so the page shows the same numbers; a plan with no price shows the placeholder.
   A plan with no price keeps its placeholder there, and the page's words (summary, highlight) stay in the site.
 
 A plan's limit is `ActiveJobs`, or none when `Unlimited` is true. A plan with neither limits nothing: a job count nobody
@@ -217,7 +219,7 @@ cancelling are changed. The page refetches when
 `BillingChanged` arrives and when the browser returns from Checkout.
 
 A refused publish reaches a person at the three places a draft is opened (the jobs list, a job's page and its distribution
-panel) as `PlanProblemNotice`, a full-width notice above the table or panel in place of a plain failure line: the API's own
+panel) as `PlanProblemNotice` (a 402 is told from other failures by `planProblem` in `apps/dashboard/src/lib/query.ts`), a full-width notice above the table or panel in place of a plain failure line: the API's own
 sentence, and for an Owner an Upgrade plan link to this page. Everyone else reads the sentence, which already says to ask an
 owner.
 
