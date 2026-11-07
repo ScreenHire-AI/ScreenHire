@@ -60,8 +60,11 @@ internal static class ApplySteps
         await frame.GetByLabel("If you used AI tools, how?").FillAsync("To check my grammar.");
         await frame.GetByRole(AriaRole.Button, new() { Name = "Send application" }).ClickAsync();
 
-        await frame.WaitForURLAsync(appliedUrl);
+        // The heading only exists on the applied page, so this is the wait. WaitForURLAsync also waits for the page's load
+        // event, which more than once never came within 30 s on CI while the page was already showing (docs/process/testing.md,
+        // Flake history), so the URL is checked once the page is there.
         await Expect(frame.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Application sent");
+        frame.Url.Should().Be(appliedUrl);
         await checkAccessibility();
     }
 
