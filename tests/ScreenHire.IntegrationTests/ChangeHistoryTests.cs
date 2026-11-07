@@ -407,7 +407,9 @@ public sealed class ChangeHistoryTests(AppHostFixture fixture)
             stored.Should().NotContain(value);
             served.Should().NotContain(value);
         }
+    }
 
+    [Fact]
     public async Task A_webhook_endpoint_records_its_address_by_host_its_events_its_switch_and_each_rotation_of_its_secret()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
