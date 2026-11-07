@@ -34,7 +34,7 @@ public sealed class TimeElapsedTests(AppHostFixture fixture)
         await WolverineStore.WaitUntilAsync(
             async () => await store.CountScheduledAsync(application.Id().ToString(), Ct) == 1, "the stage entry to schedule its timer", Ct);
 
-        var timeline = (await recruiter.GetAsync($"/v1/applications/{application.Id()}/timeline")).Body;
+        var timeline = (await recruiter.StageEntriesAsync(application.Id())).Body;
         var submittedId = timeline[0].GetProperty("id").GetGuid();
         var entry = timeline[1];
         var entryId = entry.GetProperty("id").GetGuid();

@@ -74,7 +74,7 @@ reads and change history all work unchanged: the assistant shows in activity und
   earlier connections in the organization to an assistant with the same name and redirect addresses.
 - **Integrations > MCP server lists them** with who connected each, access and last use. An Owner or Admin disconnects one
   (`POST /v1/organization/oauth-connections/{id}/revoke`); the row stays, marked revoked. The API keys page lists no
-  connection. Removing a member offers to disconnect the assistants they connected.
+  connection. Removing a member disconnects the assistants they connected.
 
 ## Tokens
 
@@ -89,18 +89,22 @@ Each is `{marker}_{organization}_{256 random bits}` in lower-case hex and stored
 row-level security, exactly as an API key's does. Opaque rather than JWT: the server that issues a token checks it, so
 nothing is gained by signing, and revocation takes effect on the next request.
 
-- **Code exchange** consumes the code with one conditional `UPDATE`, so two exchanges cannot both win; a second one gets
-  `invalid_grant` and revokes the connection's tokens. It then checks the client, the exact redirect address, the PKCE
-  verifier (constant-time), the optional `resource` (RFC 8707; it must be this MCP server) and that the connection is not
-  revoked. A failed check leaves the code used.
-- **Refresh** rotates. Presenting a refresh token that was already used, or after revocation, is `invalid_grant`, and a
-  reused one revokes every token of its connection, because it may have leaked.
+- **Code exchange** first checks the client, the exact redirect address, the PKCE verifier (constant-time) and the
+  optional `resource` (RFC 8707; it must be this MCP server). A failed check leaves the code as it was, so someone who saw
+  a code but cannot finish the exchange can neither use it up nor end a connection. It then consumes the code with one
+  conditional `UPDATE`, so two exchanges cannot both win: a second one gets `invalid_grant` and revokes the connection's
+  tokens. Last, it checks that the connection is not revoked.
+- **Refresh** rotates, with the same order: it checks the client and `resource`, then spends the token. Presenting a
+  refresh token that was already used, or after revocation, is `invalid_grant`, and a reused one revokes every token of
+  its connection, because it may have leaked.
 - **Revocation** (RFC 7009) of a refresh token ends the connection's tokens; of an access token, that token. An unknown token
   is not an error, and neither is another client's: when the caller names a `client_id` the token must be that client's,
   otherwise nothing happens and the answer is the same. A caller that names none is judged by holding the token.
-- **A connection outlives its maker's role**, as an API key does (ADR-0011): if the person who approved it is later
-  demoted, it keeps the scopes it was given until someone disconnects it. Removing the member offers to disconnect
-  their assistants. Revoking on a role change would be the alternative; it is not built.
+- **A connection outlives its maker's role, not their place on the team.** If the person who approved it is later
+  demoted, it keeps the scopes it was given until someone disconnects it; revoking on a role change would be the
+  alternative, and it is not built. Removing the member disconnects their assistants in the same transaction
+  (`TeamEndpoints.RemoveMember`), whoever removes them, including someone who lacks Manage API keys. Their API keys
+  stay, because a key is the organization's (ADR-0011), and the dialog offers to revoke those.
 - **Audience.** `McpCredentials` is a policy scheme: a `Bearer sho_` token goes to `OAuthAuthenticationHandler`, anything else
   to the API key handler. Only the three `mcp*` policies use it, and the hiring API's key handler refuses an `sho_` token,
   so an OAuth token works on the MCP endpoint and nowhere else. The handler counts a token nobody issued against the

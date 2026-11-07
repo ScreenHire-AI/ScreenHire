@@ -8,12 +8,13 @@ sources:
 ---
 # MVP status
 
-Snapshot 2026-11-05, after the MVP workflow's tasks (PRs #1 to #18 and the acceptance task), the "Design system v0.2"
+Snapshot 2026-11-07, after the MVP workflow's tasks (PRs #1 to #18 and the acceptance task), the "Design system v0.2"
 workflow (PRs #22 to #33), the "Platform: team, API access and webhooks" workflow (PRs #36 to #38) and the "Team,
 collaboration and communication" workflow (PRs #39 to #42, and the docs restructure in ADR-0012), the "Workflow
 builder" workflow (PRs #44, #45 and the editable graph) and the "Design system v0.3, the review's features, and roles
 with job access" workflow (PRs #47 to #58 and the remaining screens), the "After the owner's review" workflow (PRs #61
-to #74) and the "Owner review of the second build" workflow (PRs #80 to #89). The whole product
+to #74), the "Owner review of the second build" workflow (PRs #80 to #89), the "Production polish" workflow
+(PRs #91 to #98) and the "Owner review of the fourth build" workflow (PRs #99 to #114). The whole product
 runs on one machine with `pnpm dev` ([local demo](operations/local-demo.md)), and one Playwright journey in
 `pnpm verify` (`tests/ScreenHire.E2E/AcceptanceJourneyTests.cs`) walks it end to end: sign in, a job from a template,
 publish to the careers page and the sandbox board, a genuine candidate and a bot apply, both arrive live with their
@@ -161,6 +162,8 @@ brackets.
   moving forward); of keeping a reply typed on the page, with its files, as an emailed reply is kept; and of the privacy page's
   new "Your page" section, which moved the notice version to `2026-11-07.1`. Decide whether 14 days is the right lifetime
   for a link in a mailbox (the candidate portal task).
+- **OAuth server.** Have someone outside the project review `apps/api/OAuth` before a real customer connects an assistant. It
+  is hand-written (#107 chose it over OpenIddict), and only this project's tests and reviews have checked it.
 - **Billing.** Prices and job limits go in `packages/plans/plans.json` (the pricing page reads it too) or in `ScreenHire:Billing:Plans:<key>:*` configuration; until they are set the plans show no price and limit nothing. To charge: a Stripe account, one product with a recurring monthly price per plan, each price's id in `StripePriceId`, the secret key and the webhook signing secret as the `stripe-secret-key` and `stripe-webhook-secret` parameters (the Key Vault secrets in the [deploy runbook](operations/deploy.md)), and a webhook endpoint at `https://<api host>/v1/webhooks/stripe` for `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated` and `customer.subscription.deleted`, created through Stripe's API with `api_version=2024-06-20`. Turn the customer portal on in Stripe (plan switching and cancelling), set up Stripe Tax if tax applies, and write the terms of service before anyone pays ([billing](architecture/billing.md), ADR-0029).
 - **Product.** Subscribe to Svelte Flow Pro before charging anyone. The workflow graph hides Svelte Flow's attribution, which its MIT licence allows, and its makers ask a business earning from it to subscribe first. Move jobs still on "Software
   engineer" version 1 to version 2 (#13).
@@ -179,5 +182,8 @@ brackets.
   ([saved candidates](architecture/talent-pool.md)); the profile then offers Erase candidate. Retention treats a Hired application and an application on a closed job as
   ended, as the setting says.
 
+- Only automated tests and fakes have exercised these so far: real Stripe, SendGrid, calendars, Azure and a claude.ai
+  connector; every page in dark mode; lists of 20 or more items; Candidates at phone widths; several Slack and webhook
+  states; and portal replies, the Billing page and the OAuth consent page by hand.
 - With the demo seeding on, a live update can arrive late while the worker works through the demo's backlog just after
   startup (verification-engine.md §10.9). In the browser pane, `/preview` waits for a verification chip before it checks anything live.

@@ -43,7 +43,7 @@ public sealed class HiringMessagingTests(AppHostFixture fixture)
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
         var job = await recruiter.CreateJobAsync(Samples.RemoteJob("Messaging apply"));
         var application = await recruiter.CreateApplicationAsync(job.Id(), "casey.morgan@example.com");
-        var submittedEntryId = (await recruiter.GetAsync($"/v1/applications/{application.Id()}/timeline")).Text("0.id");
+        var submittedEntryId = (await recruiter.StageEntriesAsync(application.Id())).Text("0.id");
 
         await AssertHandledOnceAsync(submittedEntryId, "the worker to handle ApplicationSubmitted");
     }
@@ -55,7 +55,7 @@ public sealed class HiringMessagingTests(AppHostFixture fixture)
         var job = await recruiter.CreateJobAsync(Samples.RemoteJob("Messaging move"));
         var application = await recruiter.CreateApplicationAsync(job.Id(), "casey.morgan@example.com");
         (await recruiter.PostAsync($"/v1/applications/{application.Id()}/move", new JsonObject { ["toStageId"] = "screening" })).Expect(HttpStatusCode.OK);
-        var movedEntryId = (await recruiter.GetAsync($"/v1/applications/{application.Id()}/timeline")).Text("1.id");
+        var movedEntryId = (await recruiter.StageEntriesAsync(application.Id())).Text("1.id");
 
         await AssertHandledOnceAsync(movedEntryId, "the worker to handle ApplicationMoved");
     }

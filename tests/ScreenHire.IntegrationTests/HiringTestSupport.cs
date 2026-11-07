@@ -19,6 +19,16 @@ internal sealed record ApiResult(HttpStatusCode Status, JsonElement Body)
 
     public int Count(string path = "") => (path.Length == 0 ? Body : At(path)).GetArrayLength();
 
+    /// <summary>
+    /// A timeline's submission and moves, oldest first. Read these rather than the whole timeline: the worker records other
+    /// entries on its own clock (<c>VerificationAssessed</c>, for one), so one can land between any two of them, and a position
+    /// or a total in the whole timeline holds only until it does.
+    /// </summary>
+    public ApiResult StageEntries() => this with
+    {
+        Body = JsonSerializer.SerializeToElement(Body.EnumerateArray().Where(entry => entry.GetProperty("type").GetString() is "Submitted" or "StageChanged")),
+    };
+
     /// <summary>The keys of a validation problem's <c>errors</c> object.</summary>
     public IReadOnlyList<string> ProblemKeys() =>
         Body.TryGetProperty("errors", out var errors) ? [.. errors.EnumerateObject().Select(p => p.Name)] : [];
@@ -52,6 +62,10 @@ internal static class JsonElementPaths
 internal sealed class Tenant(ApiSession session, Guid organizationId, Guid userId) : IDisposable
 {
     public ApiSession Session { get; } = session;
+
+    /// <summary>The application's submission and moves (<see cref="ApiResult.StageEntries"/>).</summary>
+    public async Task<ApiResult> StageEntriesAsync(Guid applicationId) =>
+        (await GetAsync($"/v1/applications/{applicationId}/timeline")).Expect(HttpStatusCode.OK).StageEntries();
 
     public Guid OrganizationId { get; } = organizationId;
 

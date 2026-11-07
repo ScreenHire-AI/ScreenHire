@@ -37,10 +37,9 @@ public sealed class SlaBreachedTests(AppHostFixture fixture)
         (await recruiter.GetAsync($"/v1/applications/{application}")).At("slaDueAt").ValueKind.Should().Be(JsonValueKind.Null, "applied has no time limit");
 
         (await recruiter.PostAsync($"/v1/applications/{application}/move", new JsonObject { ["toStageId"] = "screening" })).Expect(HttpStatusCode.OK);
-        var timeline = (await recruiter.GetAsync($"/v1/applications/{application}/timeline")).Body;
+        var timeline = (await recruiter.StageEntriesAsync(application)).Body;
         var submittedId = timeline[0].GetProperty("id").GetGuid();
-        // By type, not position: the worker can record an event between the submission and the move.
-        var entry = timeline.EnumerateArray().Single(e => e.GetProperty("type").GetString() == "StageChanged");
+        var entry = timeline[1];
         var entryId = entry.GetProperty("id").GetGuid();
         var due = entry.GetProperty("occurredAt").GetDateTimeOffset().AddDays(3);
 
@@ -127,7 +126,7 @@ public sealed class SlaBreachedTests(AppHostFixture fixture)
         // timer is early and runs nothing.
         var early = (await recruiter.CreateApplicationAsync(job, ApiSession.NewEmail("candidate"))).Id();
         (await recruiter.PostAsync($"/v1/applications/{early}/move", new JsonObject { ["toStageId"] = "screening" })).Expect(HttpStatusCode.OK);
-        var entry = (await recruiter.GetAsync($"/v1/applications/{early}/timeline")).Body[1];
+        var entry = (await recruiter.StageEntriesAsync(early)).Body[1];
         var earlyHandled = await store.CountHandledAsync(early.ToString(), Ct, ".RunAutomations");
         await bus.PublishAsync(new RunAutomations(
             recruiter.OrganizationId, early, TriggerType.SlaBreached, "screening", entry.GetProperty("id").GetGuid(),
@@ -149,7 +148,7 @@ public sealed class SlaBreachedTests(AppHostFixture fixture)
         var application = (await recruiter.CreateApplicationAsync(
             job, ApiSession.NewEmail("candidate"), extra: new JsonObject { ["accommodationRequested"] = true })).Id();
         (await recruiter.PostAsync($"/v1/applications/{application}/move", new JsonObject { ["toStageId"] = "screening" })).Expect(HttpStatusCode.OK);
-        var entry = (await recruiter.GetAsync($"/v1/applications/{application}/timeline")).Body[1];
+        var entry = (await recruiter.StageEntriesAsync(application)).Body[1];
         var due = entry.GetProperty("occurredAt").GetDateTimeOffset().AddDays(3);
 
         await using var publisher = await MessagingHost.StartPublisherToAppHostQueuesAsync(fixture, Ct);

@@ -6,7 +6,7 @@ tags: [adr, mcp, oauth, auth, api-keys]
 ---
 # ADR-0028: OAuth sign-in for the MCP server
 
-- **Status:** Accepted (2026-11-07)
+- **Status:** Accepted (2026-11-07), amended (2026-11-07)
 - **Deciders:** Owner
 - **Amends:** ADR-0011 decision 6 (OAuth client credentials later, through OpenIddict). The MCP server's need for OAuth
   arrived before any third-party app, and it needs the authorization code flow, not client credentials.
@@ -77,8 +77,11 @@ security (CLAUDE.md non-negotiable 6).
   Locally the flow runs against the integration tests and the MCP client.
 - Discovery, registration, token and revocation answer any origin without credentials, so browser-based clients such as the
   MCP Inspector work. The consent and management routes stay same-origin.
-- A connection survives its maker leaving, as a key does. Removing a member offers to disconnect the assistants they
-  connected, beside the keys they made.
+- A connection ends with its maker's place on the team. Amended 2026-11-07, after the review of the first build: this
+  said a connection survives its maker leaving, as a key does, and that removing a member offers to disconnect it. A key
+  belongs to the organization, but a connection is one person's sign-in acting with what they granted, and an unticked
+  box would leave a former colleague's access running. Removing a member now disconnects the assistants they connected,
+  with no choice to make. The keys they made are still offered, beside it.
 - Two more tenant tables (`oauth_codes`, `oauth_tokens`) have row-level security; `oauth_clients` has none and holds only
   what a client sent. A daily worker job removes expired codes and tokens and unapproved registrations.
 - A registered client is global, so an Owner or Admin of any organization who approves it keeps it past the daily purge.

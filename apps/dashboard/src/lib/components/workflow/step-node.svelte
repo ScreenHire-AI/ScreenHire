@@ -119,7 +119,7 @@
           {#if Icon}<Icon aria-hidden="true" class="size-3.5 shrink-0" />{/if}
           <!-- A button's name is its own text (WCAG 2.5.3), so what the position adds, which automation and which action,
                is read here, after the word the eye sees. -->
-          <span>{head ? heading[head] : ''}{data.disabled ? ', off' : ''}{#if spoken}{' '}<span class="sr-only">{spoken}</span>{/if}</span>
+          <span>{data.endStage ? 'End stage' : head ? heading[head] : ''}{data.disabled ? ', off' : ''}{#if spoken}{' '}<span class="sr-only">{spoken}</span>{/if}</span>
         </span>
         <TruncatedText text={data.title} lines={2} tabindex={-1} class="font-semibold" />
         <span class="block min-h-4 min-w-0">{#if data.detail}<TruncatedText text={data.detail} tabindex={-1} class="text-muted-foreground" />{/if}</span>

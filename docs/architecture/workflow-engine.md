@@ -248,11 +248,14 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
     "Show this path in the graph" lights the path its test took (`testedPath`: all of an automation that would run, up
     to the conditions of one that did not hold, only the trigger of one that was skipped) until Clear or the next
     change to the workflow.
-  - **View.** The first view (`firstView`) fits the whole workflow, centred, when that takes a zoom of 0.5 or more
-    (`firstViewMinZoom`: a 48px plus is then a 24px target; 0.92 where a finger edits, so it stays 44px). A fitted view
-    is an overview: node text is 12px at full size and scales with the canvas. A workflow that would need less starts at
-    full size at the top left, where the lane and the first stage are, and pans and zooms from there (the wheel or
-    trackpad pans, the controls zoom and fit). The toolbar, at the canvas's top left, has Fit to show everything.
+  - **View.** The first view (`firstView`) is always at full size, because node text is 12px there and 12px is the
+    floor (design system W1). A workflow narrower than the canvas is centred. A wider one starts at the top left, where
+    the lane and the first stage are, and pans and zooms from there (the wheel or trackpad pans, the controls zoom and
+    fit). The toolbar, at the canvas's top left, has Fit, which shows everything as an overview: text shrinks with the
+    canvas there, because the person asked for it.
+  - **End stages.** Hired, Rejected and Withdrawn stand after the open stages, whatever their order in the definition,
+    with more room before them. Each says End stage, and no `order` line reaches them, because an application can
+    finish at any of them from any stage. Their automations hang under them like any stage's.
   - **Keyboard.** Nodes are listed in reading order, a band at a time, which is the Tab order. The arrow keys move along
     a column (Up, Down) and across to the nearest column (Left, Right), Home and End go to the first and last
     (`neighbour`); whatever takes the focus is panned into view and out from under the toolbar. Crossing the phone's width swaps a

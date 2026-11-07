@@ -200,29 +200,19 @@ internal sealed class OAuthServer(
         var now = time.GetUtcNow();
         var hash = OAuthTokens.Hash(code);
 
-        // One conditional UPDATE, so two simultaneous exchanges cannot both succeed.
-        var consumed = await db.OAuthCodes
-            .Where(c => c.CodeHash == hash && c.UsedAt == null && c.ExpiresAt > now)
-            .ExecuteUpdateAsync(set => set.SetProperty(c => c.UsedAt, now), cancellationToken);
-        if (consumed == 0)
-        {
-            // A code used twice means someone else may hold it: end the connection's tokens (RFC 6749 section 4.1.2).
-            if (await db.OAuthCodes.AsNoTracking().Where(c => c.CodeHash == hash && c.UsedAt != null)
-                    .Select(c => (Guid?)c.ApiKeyId).SingleOrDefaultAsync(cancellationToken) is { } reusedKeyId)
-            {
-                await RevokeTokensAsync(reusedKeyId, now, cancellationToken);
-            }
-
-            return Error("invalid_grant", "The code is expired or was already used.");
-        }
-
         var row = await (
             from c in db.OAuthCodes.AsNoTracking()
             join k in db.ApiKeys.AsNoTracking() on c.ApiKeyId equals k.Id
             where c.CodeHash == hash
             select new { c.RedirectUri, c.CodeChallenge, KeyId = k.Id, k.OAuthClientId, k.RevokedAt, k.Scopes })
-            .SingleAsync(cancellationToken);
+            .SingleOrDefaultAsync(cancellationToken);
+        if (row is null)
+        {
+            return Error("invalid_grant", "The code is expired or was already used.");
+        }
 
+        // The proof comes before the code is spent, so someone who saw a code but cannot finish the exchange can neither
+        // use it up nor end the connection.
         if (!TryParseClientId(form["client_id"], out var clientId) || row.OAuthClientId != clientId)
         {
             return Error("invalid_grant", "The code was issued to a different client.");
@@ -241,6 +231,21 @@ internal sealed class OAuthServer(
         if (ResourceProblem(form) is { } resource)
         {
             return resource;
+        }
+
+        // One conditional UPDATE, so two simultaneous exchanges cannot both succeed.
+        var consumed = await db.OAuthCodes
+            .Where(c => c.CodeHash == hash && c.UsedAt == null && c.ExpiresAt > now)
+            .ExecuteUpdateAsync(set => set.SetProperty(c => c.UsedAt, now), cancellationToken);
+        if (consumed == 0)
+        {
+            // A code used twice means someone else may hold it: end the connection's tokens (RFC 6749 section 4.1.2).
+            if (await db.OAuthCodes.AsNoTracking().AnyAsync(c => c.CodeHash == hash && c.UsedAt != null, cancellationToken))
+            {
+                await RevokeTokensAsync(row.KeyId, now, cancellationToken);
+            }
+
+            return Error("invalid_grant", "The code is expired or was already used.");
         }
 
         if (row.RevokedAt is not null)
@@ -264,27 +269,18 @@ internal sealed class OAuthServer(
         var now = time.GetUtcNow();
         var hash = OAuthTokens.Hash(refresh);
 
-        var consumed = await db.OAuthTokens
-            .Where(t => t.TokenHash == hash && t.Kind == OAuthTokenKind.Refresh && t.UsedAt == null && t.RevokedAt == null && t.ExpiresAt > now)
-            .ExecuteUpdateAsync(set => set.SetProperty(t => t.UsedAt, now), cancellationToken);
-        if (consumed == 0)
-        {
-            if (await db.OAuthTokens.AsNoTracking().Where(t => t.TokenHash == hash && t.Kind == OAuthTokenKind.Refresh && t.UsedAt != null)
-                    .Select(t => (Guid?)t.ApiKeyId).SingleOrDefaultAsync(cancellationToken) is { } reusedKeyId)
-            {
-                await RevokeTokensAsync(reusedKeyId, now, cancellationToken);
-            }
-
-            return Error("invalid_grant", "The refresh token is expired, revoked or was already used.");
-        }
-
         var row = await (
             from t in db.OAuthTokens.AsNoTracking()
             join k in db.ApiKeys.AsNoTracking() on t.ApiKeyId equals k.Id
-            where t.TokenHash == hash
+            where t.TokenHash == hash && t.Kind == OAuthTokenKind.Refresh
             select new { KeyId = k.Id, k.OAuthClientId, k.RevokedAt, k.Scopes })
-            .SingleAsync(cancellationToken);
+            .SingleOrDefaultAsync(cancellationToken);
+        if (row is null)
+        {
+            return Error("invalid_grant", "The refresh token is expired, revoked or was already used.");
+        }
 
+        // As for a code: the checks come before the token is spent, so a refused request costs the client nothing.
         if (!TryParseClientId(form["client_id"], out var clientId) || row.OAuthClientId != clientId)
         {
             return Error("invalid_grant", "The refresh token was issued to a different client.");
@@ -293,6 +289,19 @@ internal sealed class OAuthServer(
         if (ResourceProblem(form) is { } resource)
         {
             return resource;
+        }
+
+        var consumed = await db.OAuthTokens
+            .Where(t => t.TokenHash == hash && t.Kind == OAuthTokenKind.Refresh && t.UsedAt == null && t.RevokedAt == null && t.ExpiresAt > now)
+            .ExecuteUpdateAsync(set => set.SetProperty(t => t.UsedAt, now), cancellationToken);
+        if (consumed == 0)
+        {
+            if (await db.OAuthTokens.AsNoTracking().AnyAsync(t => t.TokenHash == hash && t.Kind == OAuthTokenKind.Refresh && t.UsedAt != null, cancellationToken))
+            {
+                await RevokeTokensAsync(row.KeyId, now, cancellationToken);
+            }
+
+            return Error("invalid_grant", "The refresh token is expired, revoked or was already used.");
         }
 
         if (row.RevokedAt is not null)

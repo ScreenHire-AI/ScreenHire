@@ -13,6 +13,7 @@ import {
   errorsUnder,
   factsFor,
   followUpName,
+  isTerminal,
   laneOf,
   newAction,
   newAutomation,
@@ -41,6 +42,8 @@ interface StepFields {
   lane: string | null;
   /** The lane or stage this node hangs under: `LANE_BAND` or a stage id. */
   band: string;
+  /** A stage where an application finishes: Hired, Rejected or Withdrawn. */
+  endStage?: boolean;
   disabled: boolean;
   /** A "move to a stage" action, the one node a link can be drawn from (`connect`). */
   movesToStage: boolean;
@@ -104,10 +107,10 @@ export const NODE_WIDTH = 160;
 /** The room between two automations' columns: a move's line rises through it. */
 const CHANNEL = 28;
 const BAND_GAP = 28;
-/** More room after the lane, which is not part of the pipeline. */
-const LANE_GAP = 20;
+/** More room after the lane and before the end stages, which are not steps of the pipeline. */
+const GROUP_GAP = 20;
 const CHAIN_GAP = 36;
-/** A plus button's size at full size; `firstViewMinZoom` keeps it a big enough target on screen. */
+/** A plus button's size at full size, where the first view shows it: a target for a finger too. */
 export const PLUS = 48;
 const PLUS_PAD = 16;
 /** Where a plus ends and the line below it can turn without touching it. */
@@ -178,6 +181,8 @@ interface Chain {
 
 interface Band {
   key: string;
+  /** An end stage's band: no line of the backbone reaches it. */
+  end: boolean;
   header: Item;
   chains: Chain[];
   x: number;
@@ -274,21 +279,26 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
   };
 
   const chains = workflow.automations.map((_, index) => chainOf(index));
+  // The open stages run in order, and the end stages stand after them as a group: an application can finish at any of
+  // them from any stage, so they are outcomes and not the next steps of the pipeline.
+  const stages = workflow.stages.map((stage, index) => ({ stage, index, end: isTerminal(stage.kind) }));
   const bands: Band[] = [
     {
       key: LANE_BAND,
+      end: false,
       header: item(LANE_NODE, { ...none, kind: 'lane', title: 'Whole workflow', detail: '', band: LANE_BAND }, 'Whole workflow'),
       chains: chains.filter((chain) => bandOf(chain.index) === LANE_BAND),
       x: 0,
       width: 0,
       firstColumn: 0,
     },
-    ...workflow.stages.map((stage, index): Band => ({
+    ...[...stages.filter(({ end }) => !end), ...stages.filter(({ end }) => end)].map(({ stage, index, end }): Band => ({
       key: stage.id,
+      end,
       header: item(
         stageNode(stage.id),
-        { ...none, kind: 'stage', title: stage.name, detail: stage.kind === stage.name ? '' : stage.kind, path: `stages[${index}]`, lane: stage.id, band: stage.id },
-        `Stage ${index + 1}: ${stage.name}`,
+        { ...none, kind: 'stage', title: stage.name, detail: stage.kind === stage.name ? '' : stage.kind, path: `stages[${index}]`, lane: stage.id, band: stage.id, endStage: end },
+        end ? `End stage: ${stage.name}` : `Stage ${index + 1}: ${stage.name}`,
       ),
       chains: chains.filter((chain) => bandOf(chain.index) === stage.id),
       x: 0,
@@ -300,7 +310,7 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
   // Across: a band is as wide as its automations' columns, with a channel between them.
   let x = 0;
   let column = 0;
-  for (const band of bands) {
+  bands.forEach((band, bandIndex) => {
     const columns = Math.max(1, band.chains.length);
     band.x = x;
     band.firstColumn = column;
@@ -309,10 +319,11 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
       chain.x = band.x + i * (NODE_WIDTH + CHANNEL);
       chain.column = column + i;
     });
-    x += band.width + BAND_GAP + (band.key === LANE_BAND ? LANE_GAP : 0);
+    const groupEnds = band.key === LANE_BAND || (!band.end && bands[bandIndex + 1]?.end === true);
+    x += band.width + BAND_GAP + (groupEnds ? GROUP_GAP : 0);
     column += columns;
-  }
-  const totalWidth = x - BAND_GAP - (bands.length === 1 ? LANE_GAP : 0);
+  });
+  const totalWidth = x - BAND_GAP - (bands.length === 1 ? GROUP_GAP : 0);
 
   // The headers share a row and a height, so the backbone's lines are straight.
   const rowHeight = Math.max(...bands.map((band) => band.header.height));
@@ -466,7 +477,7 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
     }
 
     const next = bands[bandIndex + 1];
-    if (next && band.key !== LANE_BAND) {
+    if (next && band.key !== LANE_BAND && !band.end && !next.end) {
       const y = top + rowHeight / 2;
       route(`order:${band.key}`, 'order', band.header.id, next.header.id, ['right', 'left'], [{ x: band.x + NODE_WIDTH, y }, { x: next.x, y }], { automationId: null, band: band.key });
     }
@@ -657,29 +668,17 @@ export function testedPath(graph: Pick<Graph, 'nodes' | 'edges'>, tested: Readon
   return path;
 }
 
-/**
- * The smallest zoom the first view fits a workflow to: a plus is then still a 24px target, or 44px where a finger edits
- * (design system F4). A fitted view is an overview of the flow: node text is 12px at full size and scales with the canvas.
- */
-export const firstViewMinZoom = (touchEditing: boolean) => (touchEditing ? 44 : 24) / PLUS;
 /** The room the first view leaves around the graph: at the left, for the zoom controls floating over the canvas. */
 export const VIEW_INSET = { left: 72, top: 24, right: 24, bottom: 24 } as const;
 
 /**
- * Where the graph starts: the whole workflow when it fits at `firstViewMinZoom` or larger, centred across the pane.
- * One that does not would be neither whole nor readable at that zoom, so it starts at full size from the top left, where
- * the lane and the first stage are and reading starts, and the rest is a pan away.
+ * Where the graph starts: always at full size, because node text is 12px there and 12px is the floor (design system W1).
+ * A workflow narrower than the pane is centred across it. A wider one starts at the top left, where the lane and the
+ * first stage are and reading starts; the rest is a pan away, and the toolbar's Fit shows the whole of it as an overview.
  */
-export function firstView(
-  bounds: { width: number; height: number },
-  pane: { width: number; height: number },
-  touchEditing = false,
-): { x: number; y: number; zoom: number } {
-  const room = { width: pane.width - VIEW_INSET.left - VIEW_INSET.right, height: pane.height - VIEW_INSET.top - VIEW_INSET.bottom };
-  const fit = Math.min(1, room.width / Math.max(bounds.width, 1), room.height / Math.max(bounds.height, 1));
-  const zoom = fit >= firstViewMinZoom(touchEditing) ? fit : 1;
-  const spare = room.width - bounds.width * zoom;
-  return { x: VIEW_INSET.left + Math.max(0, spare / 2), y: VIEW_INSET.top, zoom };
+export function firstView(bounds: { width: number }, pane: { width: number }): { x: number; y: number; zoom: number } {
+  const spare = pane.width - VIEW_INSET.left - VIEW_INSET.right - bounds.width;
+  return { x: VIEW_INSET.left + Math.max(0, spare / 2), y: VIEW_INSET.top, zoom: 1 };
 }
 
 /**
