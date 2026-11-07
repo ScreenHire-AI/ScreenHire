@@ -1,13 +1,13 @@
 <script lang="ts">
   import { Editor } from '@tiptap/core';
   import { untrack } from 'svelte';
-  import { singleLineExtensions, textWithChips, type RichTextVariable } from '#lib/rich-text.js';
+  import { keepSpaces, pastedLine, singleLineExtensions, textWithChips, type RichTextVariable } from '#lib/rich-text.js';
   import { cn } from '#lib/utils.js';
 
   // An email template's subject: one line of plain text in which each `{{ name }}` shows as the same chip the message
   // uses (design system section 11, Rich text editor). `value` is plain text with the Liquid in it, as the API stores it,
   // and is written only when the person changes the text, so opening a form never makes it dirty. It is a text box
-  // around a single-paragraph editor: Enter does nothing, and a pasted line break becomes a space.
+  // around a single-paragraph editor: Enter does nothing, and a paste is plain text whose line breaks become spaces.
   let {
     value = $bindable(''),
     id,
@@ -50,6 +50,7 @@
       element,
       extensions: singleLineExtensions(() => variables),
       content: textWithChips(value),
+      parseOptions: keepSpaces,
       editable: !readOnly,
       editorProps: {
         attributes: {
@@ -57,10 +58,16 @@
           role: 'textbox',
           'aria-multiline': 'false',
           ...(readOnly ? { 'aria-readonly': 'true' } : {}),
-          // Editing keeps one line that scrolls; reading wraps, as the message does.
-          class: readOnly ? 'min-w-0 break-words outline-none' : 'min-w-0 whitespace-pre! outline-none',
+          // Editing keeps one line that scrolls, chips included (ProseMirror lets a chip's words wrap); reading wraps, as
+          // the message does.
+          class: readOnly ? 'min-w-0 break-words outline-none' : 'min-w-0 whitespace-pre! outline-none [&_[data-liquid]]:whitespace-nowrap!',
         },
-        transformPastedText: (text) => text.replace(/\s*[\r\n]+\s*/g, ' '),
+        handlePaste: (view, event) => {
+          const text = event.clipboardData?.getData('text/plain');
+          if (!text) return false;
+          view.dispatch(view.state.tr.replaceSelection(pastedLine(text, view.state.schema)).scrollIntoView());
+          return true;
+        },
       },
       onUpdate: ({ editor: changed }) => {
         emitted = changed.getText();
@@ -94,7 +101,7 @@
     const next = value;
     if (editor && next !== emitted) {
       emitted = next;
-      editor.commands.setContent(textWithChips(next), { emitUpdate: false });
+      editor.commands.setContent(textWithChips(next), { emitUpdate: false, parseOptions: keepSpaces });
     }
   });
 
@@ -108,10 +115,11 @@
   }
 </script>
 
-<!-- The size and border of a text field (the Input), around the editor. A long subject scrolls inside it (F5). -->
+<!-- The size and border of a text field (the Input), around the editor. A long subject scrolls inside it (F5) and, as in
+     an Input, the caret shows where it has got to: a scrollbar would take the line's height. -->
 <div
   class={cn(
-    'flex h-9 w-full min-w-0 items-center overflow-x-auto rounded-lg border border-input bg-transparent px-2.5 text-body transition-colors max-md:text-reading pointer-coarse:h-11 pointer-coarse:text-reading dark:bg-input/30',
+    'flex h-9 w-full min-w-0 items-center overflow-x-auto overflow-y-hidden rounded-lg border border-input bg-transparent px-2.5 text-body transition-colors [scrollbar-width:none] max-md:text-reading pointer-coarse:h-11 pointer-coarse:text-reading dark:bg-input/30',
     editable && 'focus-within:border-ring focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring',
     invalid && 'border-destructive ring-3 ring-destructive/20 dark:ring-destructive/40',
     className,

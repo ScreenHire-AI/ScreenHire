@@ -1,4 +1,6 @@
 import type { EmailTemplateEntry, EmailTemplateVariableEntry } from '@screenhire/api-client';
+import type { Editor } from '@tiptap/core';
+import { Slice } from '@tiptap/pm/model';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
@@ -125,6 +127,12 @@ describe('email template form', () => {
     expect(subject.querySelectorAll('p')).toHaveLength(1);
   });
 
+  // jsdom has no ClipboardEvent, so the paste goes straight to the editor's handler, with what a clipboard offers.
+  function paste(editor: Editor, offered: Record<string, string>) {
+    const event = { clipboardData: { getData: (type: string) => offered[type] ?? '' } } as unknown as ClipboardEvent;
+    return editor.view.someProp('handlePaste', (handle) => handle(editor.view, event, Slice.empty));
+  }
+
   it('turns a pasted line break into a space, so the subject stays one line', async () => {
     const { onsave } = renderForm();
     const subject = screen.getByRole('textbox', { name: 'Subject' });
@@ -132,15 +140,45 @@ describe('email template form', () => {
     editor.commands.setContent('');
     editor.commands.focus();
 
-    // jsdom has no ClipboardEvent, which ProseMirror builds for a paste.
-    vi.stubGlobal('ClipboardEvent', class extends Event { clipboardData = null; });
-    // ProseMirror's own paste path, which runs transformPastedText.
-    (editor.view as unknown as { pasteText: (text: string) => boolean }).pasteText(['News on', '  {{ jobTitle }}', 'for you'].join(String.fromCharCode(13, 10)));
+    paste(editor, { 'text/plain': ['News on', '  {{ jobTitle }}', 'for you'].join(String.fromCharCode(13, 10)) });
 
     await waitFor(() => expect(editor.getText()).toBe('News on {{ jobTitle }} for you'));
     expect(subject.querySelectorAll('p')).toHaveLength(1);
+    expect(subject.querySelectorAll('[data-liquid]')).toHaveLength(1);
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(onsave).toHaveBeenCalledWith(expect.objectContaining({ subject: 'News on {{ jobTitle }} for you' })));
+  });
+
+  it('keeps every word of a rich paste, which offers paragraphs and line breaks as well as plain text', () => {
+    renderForm();
+    const editor = editorOf(screen.getByRole('textbox', { name: 'Subject' }));
+    editor.commands.setContent('');
+    editor.commands.focus();
+
+    paste(editor, { 'text/plain': 'one\n\ntwo\nthree', 'text/html': '<p>one</p><p>two<br>three</p>' });
+
+    expect(editor.getText()).toBe('one two three');
+  });
+
+  it('leaves the subject on one line when Enter is pressed', () => {
+    renderForm();
+    const editor = editorOf(screen.getByRole('textbox', { name: 'Subject' }));
+    const before = editor.getText();
+
+    editor.view.someProp('handleKeyDown', (handle) => handle(editor.view, new KeyboardEvent('keydown', { key: 'Enter' })));
+
+    expect(editor.getText()).toBe(before);
+    expect(editor.state.doc.childCount).toBe(1);
+  });
+
+  it('keeps the spaces of a stored subject when another part of it is edited', async () => {
+    const { onsave } = renderForm({ template: { ...template, subject: 'Re:  an update on {{ jobTitle }}' } });
+    const editor = editorOf(screen.getByRole('textbox', { name: 'Subject' }));
+
+    editor.commands.insertContentAt(1, 'Fwd ');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onsave).toHaveBeenCalledWith(expect.objectContaining({ subject: 'Fwd Re:  an update on {{ jobTitle }}' })));
   });
 
   it('saves the subject as the plain text with its Liquid, chips and all', async () => {
