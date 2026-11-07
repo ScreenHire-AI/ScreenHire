@@ -3,7 +3,6 @@
   import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
   import { Background, Panel, SvelteFlow, type Edge } from '@xyflow/svelte';
   import { tick, untrack } from 'svelte';
-  import { MediaQuery } from 'svelte/reactivity';
   import '@xyflow/svelte/dist/style.css';
   import { Button } from '#lib/components/ui/button/index.js';
   import { IsMobile } from '#lib/hooks/is-mobile.svelte.js';
@@ -48,7 +47,6 @@
   const emailTemplates = createListEmailTemplates();
   const templateNames = $derived(emailTemplateNames(emailTemplates.data?.data.templates));
   const phone = new IsMobile();
-  const touch = new MediaQuery('pointer: coarse');
   const editing = $derived(phone.current ? undefined : actions);
   const empty = $derived(workflow.automations.length === 0);
   const graph = $derived(toGraph(workflow, { templateNames, errors, editable: Boolean(editing) }));
@@ -163,7 +161,7 @@
     <Background />
     <GraphControls />
     <GraphKeys {root} nodes={() => nodes} />
-    <GraphFit {root} bounds={() => graph.bounds} touchEditing={() => Boolean(editing) && touch.current} />
+    <GraphFit {root} bounds={() => graph.bounds} />
     {#if empty}
       <!-- Under the stages, so its one action is on the first screen whatever the page's height. -->
       <Panel position="top-center" class="mt-40 max-w-sm rounded-lg bg-secondary p-4">

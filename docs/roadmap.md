@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: "Roadmap"
-description: "The order of work after the MVP: what each finished workflow delivered and in which PRs, what comes next (page audits, editing a posting for one board, hosting readiness), later items, and what must exist before real customers."
+description: "The order of work after the MVP: what each finished workflow delivered and in which PRs, what comes later, and what must exist before real customers."
 tags: [roadmap, planning]
 ---
 # Roadmap
@@ -33,13 +33,13 @@ each item names the doc that designs it. Board workflows carry the detail.
 | Hosting readiness (roadmap item 14): the Azure definition, an AppHost publish model with the Bicep it generates under `infra/` and `azure.yaml`, a migrator that creates the schema as the database owner, production settings that stop a host naming what is missing, secrets and the Data Protection key in Key Vault, a CI check that the definition still generates, and the [deploy runbook](operations/deploy.md) (ADR-0007). Nothing is deployed | "Production polish: page audits, per-board postings, data requests and hosting readiness" | The hosting readiness task |
 | Careers and marketing pages on the current design system (v0.3): the careers titles on one token and every section a panel with the soft shadow, buttons and inputs at the 8px radius and 44px height, margins and gaps on the 4px grid, marketing cards and buttons on the same tokens, and one status badge for the marketing pages, with `public-style.test.ts` failing on a regression; employer colours are still checked on the page and the panel, and the pages still ship no JavaScript beyond the apply island ([design system](design/design-system.md) sections 4.3 and 4.4) | "Owner review of the fourth build, and the roadmap's open items" | The careers and marketing pages task |
 | Candidate portal: a candidate's own page on each careers site, reached by a signed emailed link with no account and the same answer for any address, with each application's job and date on four fixed steps (Applied, In review, Interview, Decision, then Hired, Not moving forward or Withdrawn) that never show the employer's stage names, a saved application to finish, a questionnaire or interview waiting, and the messages with a reply box that goes through the same ingest as an emailed reply; every email to a candidate now ends with the link ([candidate portal](architecture/candidate-portal.md), ADR-0027) | "Owner review of the fourth build, and the roadmap's open items" | The candidate portal task |
+| Page audits (roadmap item 11): every dashboard, careers and marketing page checked against the [design system](design/design-system.md) and for usability, and fixed, then a second pass for the states and widths the first one skipped | "Production polish: page audits, per-board postings, data requests and hosting readiness" | #91 to #93, #95, #97, #105, #110 |
+| Edit a job posting for one board (roadmap item 12), so a board that refuses a job can be fixed without changing the others ([job distribution](architecture/job-distribution.md)) | "Production polish: page audits, per-board postings, data requests and hosting readiness" | #94 |
+| The owner's review of the fourth build: a stage flow for a workflow's stages, one file upload with drag and drop, interview reminders and new times for a booked interview, webhook endpoint history, OAuth sign-in for the MCP server (ADR-0028), a Candidates switch and settings as three areas, the workflow graph rebuilt, Branding on one screen, Simulate as a guided test, an organization's own AI key and model, and billing (ADR-0029) | "Owner review of the fourth build, and the roadmap's open items" | #99, #100, #102 to #105, #107 to #114 |
 
 ## Next
 
-| # | Work | Workflow | Why now |
-|---|---|---|---|
-| 11 | Page audits: every dashboard, careers and marketing page checked against the [design system](design/design-system.md) and for usability, and fixed | "Production polish: page audits, per-board postings, data requests and hosting readiness" | The features work; UI gaps are what keep the app from being ready for customers |
-| 12 | Edit a job posting for one board or for every board, so a board that refuses a job can be fixed without changing the others ([job distribution](architecture/job-distribution.md)) | "Production polish: page audits, per-board postings, data requests and hosting readiness" | Today the only fix for one board is editing the job for all of them |
+Nothing is queued. The next workflow comes from [Later](#later) and [Before real customers](#before-real-customers).
 
 ## Later
 

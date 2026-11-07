@@ -2,6 +2,13 @@
 
 ## 2026-11-07
 
+**The audit of the overnight run's fixes.** The workflow graph opens at full size, because fitting a workflow took its text
+down to 6px; Fit still shows the whole of it. End stages stand apart with no arrows into them, because Hired does not lead
+to Rejected. The privacy page no longer says what the checks look at or what the AI model compares, and the notice version
+is `2026-11-07.3`. Removing a member now disconnects the assistants they connected (ADR-0028, amended). A refused token
+request no longer spends an authorization code or a refresh token ([OAuth server](architecture/oauth-server.md)). The flaky
+tests had two causes, both of them a test reading ahead of the worker ([flake history](process/testing.md#flake-history)).
+
 **Organizations have a free trial and plans, and a plan can stop a new job.** Every new organization starts a 14-day trial on the
 Growth plan (`Trial:Days`, `Trial:Plan`); an older one starts it the first time billing is asked about it. An Owner chooses a
 plan and pays through Stripe Checkout, and manages the card, switches plan or cancels in Stripe's portal, from Settings, Billing.

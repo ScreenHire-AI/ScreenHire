@@ -380,6 +380,14 @@ internal static class TeamEndpoints
         await db.SlackAccountLinks.Where(l => l.UserId == member.UserId).ExecuteDeleteAsync(cancellationToken);
         // So does their calendar: its tokens are for their own use, and nothing is booked on a calendar of someone who left.
         await db.CalendarConnections.Where(c => c.UserId == member.UserId).ExecuteDeleteAsync(cancellationToken);
+        // And the assistants they connected, in this transaction: a connection is one person's sign-in and acts with what they
+        // granted, so it ends with their place on the team (ADR-0028). API keys are the organization's and stay (ADR-0011).
+        var now = time.GetUtcNow();
+        var assistants = await db.ApiKeys.Where(k => k.OAuthClientId != null && k.CreatedByUserId == member.UserId && k.RevokedAt == null).ToListAsync(cancellationToken);
+        assistants.ForEach(assistant => assistant.Revoke(now));
+        var assistantIds = assistants.ConvertAll(assistant => assistant.Id);
+        await db.OAuthTokens.Where(t => assistantIds.Contains(t.ApiKeyId) && t.RevokedAt == null)
+            .ExecuteUpdateAsync(set => set.SetProperty(t => t.RevokedAt, now), cancellationToken);
         // And their place on interviews still to come: the worker takes them off, hands an Open interview to the next
         // interviewer, and cancels one that has nobody left, or whose organizer they were (docs/architecture/interview-scheduling.md).
         await outbox.PublishAsync(new RemoveInterviewerFromInterviews(member.OrganizationId, member.UserId, member.Id));
@@ -394,7 +402,7 @@ internal static class TeamEndpoints
             PreviousRole = held.Role,
             PreviousCustomRoleId = held.CustomRoleId,
             PreviousCustomRoleName = CustomName(held),
-            OccurredAt = time.GetUtcNow(),
+            OccurredAt = now,
         });
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
         connections.Close(member.UserId, member.OrganizationId);

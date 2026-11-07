@@ -115,7 +115,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         var automation = Page.GetByRole(AriaRole.Button, new() { Name = "When Route for review" });
         await Expect(automation).ToBeVisibleAsync();
         await Expect(Page.Locator(".svelte-flow")).ToContainTextAsync("Add the tag \"needs-review\"");
-        // Framed in the pane, not just present: the first view fits the workflow, so the automation is inside it.
+        // Framed in the pane, not just present: the first view starts at the lane, where this automation hangs.
         var pane = (await Page.Locator(".svelte-flow").BoundingBoxAsync())!;
         var edit = (await automation.BoundingBoxAsync())!;
         edit.X.Should().BeInRange(pane.X, pane.X + pane.Width - edit.Width);

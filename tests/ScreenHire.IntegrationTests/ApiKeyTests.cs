@@ -32,7 +32,7 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
         })).Expect(HttpStatusCode.Created);
         var moved = (await key.PostAsync($"/v1/applications/{application.Id()}/move", new JsonObject { ["toStageId"] = "screening" }))
             .Expect(HttpStatusCode.OK);
-        var timeline = (await key.GetAsync($"/v1/applications/{application.Id()}/timeline")).Expect(HttpStatusCode.OK);
+        var timeline = (await key.GetAsync($"/v1/applications/{application.Id()}/timeline")).Expect(HttpStatusCode.OK).StageEntries();
         var candidates = (await key.GetAsync("/v1/candidates")).Expect(HttpStatusCode.OK);
         var templates = (await key.GetAsync("/v1/templates")).Expect(HttpStatusCode.OK);
 

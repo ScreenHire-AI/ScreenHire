@@ -30,7 +30,7 @@ public sealed class ApplicationsApiTests(AppHostFixture fixture)
         created.At("workflowVersion").GetInt32().Should().Be(1);
         created.Text("aiUseDeclaration").Should().Be("NotProvided");
         created.At("accommodationRequested").GetBoolean().Should().BeFalse();
-        var timeline = (await recruiter.GetAsync($"/v1/applications/{created.Id()}/timeline")).Expect(HttpStatusCode.OK);
+        var timeline = await recruiter.StageEntriesAsync(created.Id());
         timeline.Count().Should().Be(1);
         timeline.Text("0.type").Should().Be("Submitted");
         timeline.Text("0.toStageId").Should().Be("applied");
@@ -158,7 +158,7 @@ public sealed class ApplicationsApiTests(AppHostFixture fixture)
         moved.Text("stage.id").Should().Be("screening");
         moved.Text("stage.kind").Should().Be("Screening");
         moved.At("stageEnteredAt").GetDateTimeOffset().Should().BeAfter(moved.At("submittedAt").GetDateTimeOffset());
-        var timeline = (await recruiter.GetAsync($"/v1/applications/{application.Id()}/timeline")).Expect(HttpStatusCode.OK);
+        var timeline = await recruiter.StageEntriesAsync(application.Id());
         timeline.Count().Should().Be(2);
         timeline.Text("0.type").Should().Be("Submitted");
         timeline.Text("1.type").Should().Be("StageChanged");
@@ -180,7 +180,7 @@ public sealed class ApplicationsApiTests(AppHostFixture fixture)
 
         result.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("toStageId");
         (await recruiter.GetAsync($"/v1/applications/{application.Id()}")).Text("stage.id").Should().Be("applied");
-        (await recruiter.GetAsync($"/v1/applications/{application.Id()}/timeline")).Count().Should().Be(1);
+        (await recruiter.StageEntriesAsync(application.Id())).Count().Should().Be(1);
     }
 
     [Fact]
@@ -194,7 +194,7 @@ public sealed class ApplicationsApiTests(AppHostFixture fixture)
         var again = await recruiter.PostAsync($"/v1/applications/{application.Id()}/move", new JsonObject { ["toStageId"] = "screening" });
 
         again.Expect(HttpStatusCode.OK).Text("stage.id").Should().Be("screening");
-        (await recruiter.GetAsync($"/v1/applications/{application.Id()}/timeline")).Count().Should().Be(2);
+        (await recruiter.StageEntriesAsync(application.Id())).Count().Should().Be(2);
     }
 
     [Fact]

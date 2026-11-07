@@ -514,34 +514,37 @@ public sealed class OAuthServerTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_used_code_presented_without_its_proof_ends_nothing()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var app = new OAuthClientApp(fixture);
+        var connection = await owner.ConnectAsync(app, "Claude", ["Read"]);
+        var request = connection.Request;
+
+        (await app.ExchangeCodeAsync(request.ClientId, connection.Approval.Code, request.RedirectUri, PkcePair.New().Verifier, request.Resource))
+            .ExpectError("invalid_grant");
+
+        (await app.McpAsync(connection.AccessToken)).Status.Should().Be(HttpStatusCode.OK, "only someone who could have made the exchange can show the code was replayed");
+    }
+
+    [Fact]
     public async Task A_code_is_refused_with_a_wrong_verifier_redirect_client_or_resource()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         using var app = new OAuthClientApp(fixture);
         var otherClient = await app.RegisterClientAsync("Someone else", OAuthSupport.ClaudeCallback);
 
-        // A wrong exchange uses the code up, so every case gets its own approval.
-        async Task<OAuthApproval> FreshAsync(string name) => await owner.ApproveAsync(await app.NewRequestAsync(name), "Read");
+        var approval = await owner.ApproveAsync(await app.NewRequestAsync("Claude"), "Read");
+        var request = approval.Request;
 
-        var wrongVerifier = await FreshAsync("Wrong verifier");
-        (await app.ExchangeCodeAsync(wrongVerifier.Request.ClientId, wrongVerifier.Code, wrongVerifier.Request.RedirectUri, PkcePair.New().Verifier, wrongVerifier.Request.Resource))
-            .ExpectError("invalid_grant");
+        (await app.ExchangeCodeAsync(request.ClientId, approval.Code, request.RedirectUri, PkcePair.New().Verifier, request.Resource)).ExpectError("invalid_grant");
+        (await app.ExchangeCodeAsync(request.ClientId, approval.Code, request.RedirectUri, verifier: null, request.Resource)).ExpectError("invalid_grant");
+        (await app.ExchangeCodeAsync(request.ClientId, approval.Code, "https://claude.ai/api/mcp/other", request.Verifier, request.Resource)).ExpectError("invalid_grant");
+        (await app.ExchangeCodeAsync(otherClient, approval.Code, request.RedirectUri, request.Verifier, request.Resource)).ExpectError("invalid_grant");
+        (await app.ExchangeCodeAsync(request.ClientId, approval.Code, request.RedirectUri, request.Verifier, "https://example.com/other")).ExpectError("invalid_target");
 
-        var noVerifier = await FreshAsync("No verifier");
-        (await app.ExchangeCodeAsync(noVerifier.Request.ClientId, noVerifier.Code, noVerifier.Request.RedirectUri, verifier: null, noVerifier.Request.Resource))
-            .ExpectError("invalid_grant");
-
-        var wrongRedirect = await FreshAsync("Wrong redirect");
-        (await app.ExchangeCodeAsync(wrongRedirect.Request.ClientId, wrongRedirect.Code, "https://claude.ai/api/mcp/other", wrongRedirect.Request.Verifier, wrongRedirect.Request.Resource))
-            .ExpectError("invalid_grant");
-
-        var wrongClient = await FreshAsync("Wrong client");
-        (await app.ExchangeCodeAsync(otherClient, wrongClient.Code, wrongClient.Request.RedirectUri, wrongClient.Request.Verifier, wrongClient.Request.Resource))
-            .ExpectError("invalid_grant");
-
-        var wrongResource = await FreshAsync("Wrong resource");
-        (await app.ExchangeCodeAsync(wrongResource.Request.ClientId, wrongResource.Code, wrongResource.Request.RedirectUri, wrongResource.Request.Verifier, "https://example.com/other"))
-            .ExpectError("invalid_target");
+        // None of those spent the code: someone who saw it but cannot finish the exchange cannot take it from the client.
+        (await app.ExchangeCodeAsync(request.ClientId, approval.Code, request.RedirectUri, request.Verifier, request.Resource)).Expect(HttpStatusCode.OK);
     }
 
     [Fact]
@@ -669,6 +672,35 @@ public sealed class OAuthServerTests(AppHostFixture fixture)
         (await app.RefreshAsync(second.Request.ClientId, first.RefreshToken)).ExpectError("invalid_grant");
         (await app.RefreshAsync(second.Request.ClientId, second.RefreshToken, "https://example.com/other")).ExpectError("invalid_target");
         (await app.RefreshAsync(second.Request.ClientId, "shr_garbage")).ExpectError("invalid_grant");
+
+        // A refused request spent neither token.
+        (await app.RefreshAsync(first.Request.ClientId, first.RefreshToken)).Expect(HttpStatusCode.OK);
+        (await app.RefreshAsync(second.Request.ClientId, second.RefreshToken)).Expect(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Removing_a_member_disconnects_the_assistants_they_connected_and_keeps_their_api_keys_and_everyone_elses_assistants()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var app = new OAuthClientApp(fixture);
+        using var leaver = await fixture.InviteAndJoinAsync(owner, "Admin");
+        var theirs = await leaver.ConnectAsync(app, "Their assistant", ["Read"]);
+        var mine = await owner.ConnectAsync(app, "My assistant", ["Read"]);
+        var key = (await leaver.PostAsync("/v1/organization/api-keys", new JsonObject { ["name"] = "Their key", ["scopes"] = new JsonArray("Read") }))
+            .Expect(HttpStatusCode.Created).Id();
+
+        (await owner.DeleteAsync($"/v1/organization/members/{await owner.MemberIdAsync(leaver.UserId)}")).Expect(HttpStatusCode.NoContent);
+
+        (await app.McpAsync(theirs.AccessToken)).Status.Should().Be(HttpStatusCode.Unauthorized);
+        (await app.RefreshAsync(theirs.Request.ClientId, theirs.RefreshToken)).ExpectError("invalid_grant");
+        (await app.McpAsync(mine.AccessToken)).Status.Should().Be(HttpStatusCode.OK);
+
+        var connections = (await owner.GetAsync("/v1/organization/oauth-connections")).Expect(HttpStatusCode.OK).Body.EnumerateArray().ToList();
+        connections.Single(c => c.GetProperty("name").GetString() == "Their assistant").GetProperty("revokedAt").ValueKind.Should().NotBe(JsonValueKind.Null);
+        connections.Single(c => c.GetProperty("name").GetString() == "My assistant").GetProperty("revokedAt").ValueKind.Should().Be(JsonValueKind.Null);
+
+        var keys = (await owner.GetAsync("/v1/organization/api-keys")).Expect(HttpStatusCode.OK).Body.EnumerateArray();
+        keys.Single(k => k.GetProperty("id").GetGuid() == key).GetProperty("revokedAt").ValueKind.Should().Be(JsonValueKind.Null, "an API key is the organization's (ADR-0011)");
     }
 
     [Fact]

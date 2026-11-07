@@ -12,7 +12,6 @@ import {
   canConnect,
   connect,
   firstView,
-  firstViewMinZoom,
   neighbour,
   nodeHeight,
   pathOf,
@@ -64,6 +63,7 @@ function large(stageCount: number, automationCount: number): HiringWorkflow {
 
 const links = (graph: Graph) => graph.edges.map((edge) => `${edge.source}>${edge.target}`);
 const node = (graph: Graph, id: string) => graph.nodes.find((candidate) => candidate.id === id)!;
+const pane = (width: number) => ({ width });
 const rect = (candidate: StepNode) => ({
   left: candidate.position.x,
   top: candidate.position.y,
@@ -129,6 +129,43 @@ describe('toGraph layout', () => {
     expect(order.map((edge) => `${edge.source}>${edge.target}`)).toEqual(['stage:applied>stage:screening', 'stage:screening>stage:interview']);
     for (const edge of order) expect(lastSegment(edge.data!.points)).toEqual({ dx: 1, dy: 0 });
     expect(graph.edges.some((edge) => edge.source === LANE_NODE && edge.data!.kind === 'order')).toBe(false);
+  });
+
+  describe('end stages', () => {
+    const ended: HiringWorkflow = {
+      ...workflow,
+      stages: [
+        { id: 'applied', name: 'Applied', kind: 'Applied' },
+        { id: 'rejected', name: 'Rejected', kind: 'Rejected' },
+        { id: 'offer', name: 'Offer', kind: 'Offer' },
+        { id: 'hired', name: 'Hired', kind: 'Hired' },
+        { id: 'withdrawn', name: 'Withdrawn', kind: 'Withdrawn' },
+      ],
+      automations: [{ id: 'note', name: 'Note', trigger: { type: 'StageEntered', stageId: 'rejected' }, conditions: null, actions: [{ type: 'NotifyTeam', note: 'Ended' }] }],
+    };
+
+    it('get no line of the backbone: an application can finish at any of them from any stage', () => {
+      const order = toGraph(ended).edges.filter((edge) => edge.data!.kind === 'order');
+
+      expect(order.map((edge) => `${edge.source}>${edge.target}`)).toEqual(['stage:applied>stage:offer']);
+    });
+
+    it('stand after the open stages, set apart, and say what they are', () => {
+      const graph = toGraph(ended);
+      const x = (id: string) => node(graph, `stage:${id}`).position.x;
+
+      expect(['applied', 'offer', 'rejected', 'hired', 'withdrawn'].map(x)).toEqual(['applied', 'offer', 'rejected', 'hired', 'withdrawn'].map(x).toSorted((a, b) => a - b));
+      expect(x('rejected') - x('offer')).toBeGreaterThan(x('offer') - x('applied'));
+      expect(node(graph, 'stage:hired').data).toMatchObject({ endStage: true, label: 'End stage: Hired' });
+      expect(node(graph, 'stage:offer').data).toMatchObject({ endStage: false, label: 'Stage 3: Offer' });
+    });
+
+    it('keep their automations, and their place in the definition', () => {
+      const graph = toGraph(ended);
+
+      expect(node(graph, 'stage:rejected').data.path).toBe('stages[1]');
+      expect(node(graph, 'note:trigger').position.x).toBe(node(graph, 'stage:rejected').position.x);
+    });
   });
 
   it("hangs each automation under the stage it fires on, as a column read down When, If, Then", () => {
@@ -349,10 +386,10 @@ describe('the plus buttons', () => {
     expect(plus.bottom).toBeLessThan(action.top);
   });
 
-  it('stay a big enough target at the smallest zoom the first view fits to: 24px, or 44px for a finger', () => {
-    expect(PLUS * firstViewMinZoom(false)).toBe(24);
-    expect(PLUS * firstViewMinZoom(true)).toBe(44);
+  it('are a target for a finger at the size the first view shows them', () => {
+    expect(firstView({ width: 400 }, pane(1000)).zoom).toBe(1);
     expect(node(toGraph(workflow, { editable: true }), 'add:screening').width).toBe(PLUS);
+    expect(PLUS).toBeGreaterThanOrEqual(44);
   });
 });
 
@@ -420,49 +457,24 @@ describe('lines', () => {
 });
 
 describe('the first view', () => {
-  const pane = (width: number, height = 560) => ({ width, height });
-
-  it('fits a workflow that fits, centred, and never zooms past life size', () => {
-    const view = firstView({ width: 400, height: 300 }, pane(1000));
+  it('centres a workflow narrower than the pane, at full size', () => {
+    const view = firstView({ width: 400 }, pane(1000));
 
     expect(view.zoom).toBe(1);
     expect(view.x).toBeGreaterThan(VIEW_INSET.left);
     expect(view.y).toBe(VIEW_INSET.top);
   });
 
-  it('shrinks to fit, down to the smallest zoom it fits to', () => {
-    const view = firstView({ width: 1500, height: 400 }, pane(1000));
+  it('starts a workflow wider than the pane at the top left, at full size, because node text would fall under 12px', () => {
+    // Seven stages, as the default workflow has, and six automations, at a laptop's width.
+    const { bounds } = toGraph(large(7, 6), { editable: true });
 
-    expect(view.zoom).toBeLessThan(1);
-    expect(view.zoom).toBeGreaterThanOrEqual(firstViewMinZoom(false));
-    expect(view.x).toBe(VIEW_INSET.left);
-  });
-
-  it('starts at the top left at full size, where text is readable, when the workflow would need a smaller zoom than that', () => {
-    const view = firstView(toGraph(large(20, 50)).bounds, pane(1100));
-
-    expect(view).toEqual({ x: VIEW_INSET.left, y: VIEW_INSET.top, zoom: 1 });
+    expect(bounds.width).toBeGreaterThan(1100);
+    expect(firstView(bounds, pane(1100))).toEqual({ x: VIEW_INSET.left, y: VIEW_INSET.top, zoom: 1 });
   });
 
   it('starts a phone at full size: text never shrinks there, and the workflow does not fit', () => {
     expect(firstView(toGraph(large(4, 4)).bounds, pane(343)).zoom).toBe(1);
-  });
-
-  it('fits less far where a finger edits, so a plus stays a 44px target', () => {
-    const { bounds } = toGraph(large(7, 6), { editable: true });
-
-    expect(firstView(bounds, pane(1100)).zoom).toBeLessThan(firstViewMinZoom(true));
-    expect(firstView(bounds, pane(1100), true)).toEqual({ x: VIEW_INSET.left, y: VIEW_INSET.top, zoom: 1 });
-  });
-
-  it('shows a typical workflow whole at laptop width: the default stages with a handful of automations', () => {
-    // Seven stages, as the default workflow has, and six automations, one under each of the first six.
-    const typical = large(7, 6);
-    const { bounds } = toGraph(typical, { editable: true });
-    const view = firstView(bounds, pane(1100));
-
-    expect(bounds.width * view.zoom).toBeLessThanOrEqual(1100 - VIEW_INSET.left - VIEW_INSET.right);
-    expect(view.zoom).toBeGreaterThanOrEqual(firstViewMinZoom(false));
   });
 });
 

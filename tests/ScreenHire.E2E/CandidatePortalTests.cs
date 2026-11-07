@@ -79,6 +79,7 @@ public sealed partial class CandidatePortalTests(E2EFixture fixture) : BrowserTe
             new { subject = "Next steps", body = "Hello, can we talk on Friday?", templateId = (string?)null, applicationIds = new[] { applicationId } },
             Ct), HttpStatusCode.Accepted);
         var footerLink = await PortalLinkAsync(candidate, subjectStart: "Next steps");
+        await WaitForTheSendRecordAsync(session, applicationId);
         await Page.GotoAsync(footerLink.Value);
         await Page.GetByRole(AriaRole.Link, new() { Name = "Read and answer your messages" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Platform Engineer");
@@ -153,6 +154,31 @@ public sealed partial class CandidatePortalTests(E2EFixture fixture) : BrowserTe
         var id = job.GetProperty("id").GetGuid();
         await ReadAsync(await session.PostAsync($"/v1/jobs/{id}/publish", new { }, Ct), HttpStatusCode.OK);
         return id;
+    }
+
+    // The worker records a send after the mail goes out, and the page offers the messages from that record, so the inbox can
+    // be a moment ahead of the page, which has no script to catch up.
+    private static async Task WaitForTheSendRecordAsync(ApiSession session, Guid applicationId)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        deadline.CancelAfter(TimeSpan.FromSeconds(60));
+        while (true)
+        {
+            var timeline = await ReadAsync(await session.Client.GetAsync($"/v1/applications/{applicationId}/timeline", Ct), HttpStatusCode.OK);
+            if (timeline.EnumerateArray().Any(entry => entry.GetProperty("type").GetString() == "EmailSent"))
+            {
+                return;
+            }
+
+            try
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(250), deadline.Token);
+            }
+            catch (OperationCanceledException) when (!Ct.IsCancellationRequested)
+            {
+                throw new TimeoutException("The send was not recorded within 60 s.");
+            }
+        }
     }
 
     // The link in the email whose subject starts with the given text (the candidate may have others, such as the receipt for an
