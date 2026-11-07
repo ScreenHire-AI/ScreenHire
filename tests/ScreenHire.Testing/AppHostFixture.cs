@@ -112,6 +112,14 @@ public class AppHostFixture : IAsyncLifetime
                 "--ScreenHire:CareersEmbedding:AllowLoopback=true",
                 // Slack: the local sandbox workspace (docs/architecture/slack.md), so connecting and posting run with no Slack.
                 "--ScreenHire:Slack:Sandbox:Enabled=true",
+                // Billing: the local fake provider (docs/architecture/billing.md). The limits are pinned here, because the shipped
+                // plans set none: Starter 1 job, Growth (the trial's plan) 50, Unlimited none. Prices are set so the page shows them.
+                "--ScreenHire:Billing:Sandbox:Enabled=true",
+                "--ScreenHire:Billing:Plans:starter:ActiveJobs=1",
+                "--ScreenHire:Billing:Plans:starter:MonthlyPrice=29",
+                "--ScreenHire:Billing:Plans:growth:ActiveJobs=50",
+                "--ScreenHire:Billing:Plans:growth:MonthlyPrice=99",
+                "--ScreenHire:Billing:Plans:unlimited:MonthlyPrice=199",
                 // Calendars: the local sandbox calendar (docs/architecture/interview-scheduling.md), so members connect one with no Google or Microsoft.
                 "--ScreenHire:Calendar:Sandbox:Enabled=true",
                 // Email: the local fake for replies and sending domains (docs/architecture/email.md), and the public key the

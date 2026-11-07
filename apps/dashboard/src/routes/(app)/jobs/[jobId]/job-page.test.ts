@@ -270,6 +270,24 @@ describe('job page', () => {
     expect(screen.queryByRole('button', { name: 'More actions' })).not.toBeInTheDocument();
   });
 
+  it('puts a publish the plan refused in a full-width notice under the band, with the way to upgrade for an owner', async () => {
+    const detail = 'Your free trial has ended, so no new job can be published. Everything else works as before and open jobs stay open. Ask an owner to choose a plan.';
+    page.data = { user: userAs('Owner') };
+    stub(
+      { ...job, status: 'Draft', publishedAt: null, postings: [] },
+      {
+        [`POST /v1/jobs/${jobId}/publish`]: () =>
+          Response.json({ type: 'urn:screenhire:problem:subscription-ended', title: 'Free trial ended', detail }, { status: 402 }),
+      },
+    );
+
+    await fireEvent.click(await screen.findByRole('button', { name: 'Publish to 2 boards' }));
+
+    const notice = (await screen.findByText(detail)).closest('[data-slot="notice"]') as HTMLElement;
+    expect(within(notice).getByRole('link', { name: 'Upgrade plan' })).toHaveAttribute('href', '/settings/billing');
+    expect(notice.closest('[data-slot="header-band"]')).toBeNull();
+  });
+
   it('shows a closed job as closed, with no way to edit or close it again', async () => {
     stub({ ...job, status: 'Closed', closedAt: '2026-10-20T10:00:00Z' });
 

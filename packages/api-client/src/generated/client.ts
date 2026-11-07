@@ -23,6 +23,8 @@ import type {
   ApplyTemplateUpdateRequest,
   AutomationIssue,
   AutomationRunEntry,
+  BillingOverview,
+  BillingRedirect,
   BoardSummary,
   BrandImageUploadRequest,
   BrandingContrast,
@@ -192,6 +194,7 @@ import type {
   SlackStatus,
   SlackTestResult,
   StageKind,
+  StartBillingCheckoutRequest,
   StartCalendarConnectRequest,
   StartSlackLinkRequest,
   SubmitScorecardRequest,
@@ -3094,6 +3097,11 @@ export type publishJobResponse401 = {
   status: 401
 }
 
+export type publishJobResponse402 = {
+  data: ProblemDetails
+  status: 402
+}
+
 export type publishJobResponse403 = {
   data: ProblemDetails
   status: 403
@@ -3117,7 +3125,7 @@ export type publishJobResponse429 = {
 export type publishJobResponseSuccess = (publishJobResponse200) & {
   headers: Headers;
 };
-export type publishJobResponseError = (publishJobResponse400 | publishJobResponse401 | publishJobResponse403 | publishJobResponse404 | publishJobResponse409 | publishJobResponse429) & {
+export type publishJobResponseError = (publishJobResponse400 | publishJobResponse401 | publishJobResponse402 | publishJobResponse403 | publishJobResponse404 | publishJobResponse409 | publishJobResponse429) & {
   headers: Headers;
 };
 
@@ -11884,6 +11892,190 @@ export const unlinkSlackAccount = async ( options?: Parameters<typeof apiFetch>[
   {
     ...options,
     method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type getBillingResponse200 = {
+  data: BillingOverview
+  status: 200
+}
+
+export type getBillingResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getBillingResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getBillingResponseSuccess = (getBillingResponse200) & {
+  headers: Headers;
+};
+export type getBillingResponseError = (getBillingResponse401 | getBillingResponse403) & {
+  headers: Headers;
+};
+
+export type getBillingResponse = (getBillingResponseSuccess | getBillingResponseError)
+
+export const getGetBillingUrl = () => {
+
+
+
+
+  return `/v1/organization/billing`
+}
+
+export const getBilling = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getBillingResponse> => {
+
+  return apiFetch<getBillingResponse>(getGetBillingUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type startBillingCheckoutResponse200 = {
+  data: BillingRedirect
+  status: 200
+}
+
+export type startBillingCheckoutResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type startBillingCheckoutResponse401 = {
+  data: void
+  status: 401
+}
+
+export type startBillingCheckoutResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type startBillingCheckoutResponse404 = {
+  data: void
+  status: 404
+}
+
+export type startBillingCheckoutResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type startBillingCheckoutResponse502 = {
+  data: ProblemDetails
+  status: 502
+}
+
+export type startBillingCheckoutResponseSuccess = (startBillingCheckoutResponse200) & {
+  headers: Headers;
+};
+export type startBillingCheckoutResponseError = (startBillingCheckoutResponse400 | startBillingCheckoutResponse401 | startBillingCheckoutResponse403 | startBillingCheckoutResponse404 | startBillingCheckoutResponse409 | startBillingCheckoutResponse502) & {
+  headers: Headers;
+};
+
+export type startBillingCheckoutResponse = (startBillingCheckoutResponseSuccess | startBillingCheckoutResponseError)
+
+export const getStartBillingCheckoutUrl = () => {
+
+
+
+
+  return `/v1/organization/billing/checkout`
+}
+
+export const startBillingCheckout = async (startBillingCheckoutRequest: StartBillingCheckoutRequest, options?: Parameters<typeof apiFetch>[1]): Promise<startBillingCheckoutResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<startBillingCheckoutResponse>(getStartBillingCheckoutUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(startBillingCheckoutRequest)
+  }
+);}
+
+
+
+export type openBillingPortalResponse200 = {
+  data: BillingRedirect
+  status: 200
+}
+
+export type openBillingPortalResponse401 = {
+  data: void
+  status: 401
+}
+
+export type openBillingPortalResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type openBillingPortalResponse404 = {
+  data: void
+  status: 404
+}
+
+export type openBillingPortalResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type openBillingPortalResponse502 = {
+  data: ProblemDetails
+  status: 502
+}
+
+export type openBillingPortalResponseSuccess = (openBillingPortalResponse200) & {
+  headers: Headers;
+};
+export type openBillingPortalResponseError = (openBillingPortalResponse401 | openBillingPortalResponse403 | openBillingPortalResponse404 | openBillingPortalResponse409 | openBillingPortalResponse502) & {
+  headers: Headers;
+};
+
+export type openBillingPortalResponse = (openBillingPortalResponseSuccess | openBillingPortalResponseError)
+
+export const getOpenBillingPortalUrl = () => {
+
+
+
+
+  return `/v1/organization/billing/portal`
+}
+
+export const openBillingPortal = async ( options?: Parameters<typeof apiFetch>[1]): Promise<openBillingPortalResponse> => {
+
+  return apiFetch<openBillingPortalResponse>(getOpenBillingPortalUrl(),
+  {
+    ...options,
+    method: 'POST'
 
 
   }

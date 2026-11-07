@@ -1,0 +1,14 @@
+{
+  "name": "@screenhire/plans",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The plan catalogue (name, price, active job limit) that the API and the marketing site both read. Prices and limits are the owner's decision; null means not set.",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./plans.json": "./plans.json"
+  }
+}

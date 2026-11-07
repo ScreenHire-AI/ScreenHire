@@ -16,6 +16,7 @@ using ScreenHire.Api.Mcp;
 using ScreenHire.Api.OAuth;
 using ScreenHire.Api.Realtime;
 using ScreenHire.Application.Automations;
+using ScreenHire.Application.Billing;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Application.Privacy;
@@ -106,6 +107,11 @@ builder.Services.AddOptions<CareersEmbeddingOptions>().BindConfiguration(Careers
 builder.Services.AddScreenHireSlack();
 builder.Services.AddOrganizationModels();
 
+// Billing (docs/architecture/billing.md, ADR-0029): plans, the trial, job limits, and Stripe's webhook, hidden until a provider is
+// configured, with a local sandbox in its place.
+builder.Services.AddScreenHireBilling();
+builder.Services.AddScreenHireBillingWebhooks();
+
 // Replies, bounces and the organization's sending domain (docs/architecture/email.md, ADR-0022): SendGrid's webhooks, the
 // reply store, and the sending-domain provider, each hidden until configured, with a local sandbox for each.
 builder.Services.AddScreenHireEmailWebhooks();
@@ -173,6 +179,8 @@ app.MapScorecardTemplateEndpoints();
 app.MapTemplateUsageEndpoints();
 app.MapWebhookEndpoints();
 app.MapSlackEndpoints();
+app.MapBillingEndpoints();
+app.MapBillingWebhookEndpoints();
 app.MapCalendarEndpoints();
 app.MapInterviewEndpoints();
 app.MapEmailEndpoints();

@@ -256,8 +256,8 @@ candidates."). Removing a member also closes their open real-time connections in
 
 **The permission catalogue** (`src/ScreenHire.Domain/Organizations/RolePermissions.cs`) names what a role lets a person
 do, in three groups (Hiring, Templates, Organization), and the set each built-in role has. See jobs and candidates is in
-every role (`EveryRole`): reads are not permission-checked, and job access will narrow which jobs. Manage Owners and
-Give a key verification access are Owner-only (`OwnerOnly`): no custom role holds either, and Admin has neither. Delete anyone's notes (`NotePolicy`) lets a role delete a note
+every role (`EveryRole`): reads are not permission-checked, and job access will narrow which jobs. Manage Owners,
+Give a key verification access and Manage billing ([billing](billing.md)) are Owner-only (`OwnerOnly`): no custom role holds any, and Admin has none. Delete anyone's notes (`NotePolicy`) lets a role delete a note
 someone else wrote; Owners and Admins have it. It comes with Add notes and tags, which the delete route asks for first.
 Erase candidates (`POST /v1/candidates/{id}/erase`) is held by Owners and Admins and can go in a custom role; the route also
 needs a person who sees every job, and refuses organization API keys ([candidates](candidates.md)).

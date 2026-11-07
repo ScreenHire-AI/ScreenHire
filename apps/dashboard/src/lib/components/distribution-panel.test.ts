@@ -1,9 +1,20 @@
-import type { JobDetail } from '@screenhire/api-client';
+import type { CurrentUser, JobDetail } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { apiStub, board, jobId, now, posting } from '../../test-support/fixtures.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { apiStub, board, jobId, now, posting, userAs } from '../../test-support/fixtures.js';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
 import DistributionPanel from './distribution-panel.svelte';
+
+const state = vi.hoisted(() => ({ user: undefined as CurrentUser | undefined }));
+vi.mock('$app/state', () => ({
+  page: {
+    url: new URL('http://dashboard.test/jobs'),
+    get data() {
+      return { user: state.user };
+    },
+  },
+  navigating: { to: null },
+}));
 
 const boards = [
   board('careers', 'Careers page', { mode: 'Hosted', canUnpublishPerBoard: false, canCustomize: false }),
@@ -28,6 +39,10 @@ async function openMenu(name: string) {
 }
 const in20Seconds = new Date(now + 20_000).toISOString();
 const in4Hours = new Date(now + 4 * 3_600_000).toISOString();
+
+beforeEach(() => {
+  state.user = userAs('Owner');
+});
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -309,5 +324,50 @@ describe('distribution panel', () => {
     await fireEvent.click(within(await openMenu('Sandbox board')).getByRole('menuitem', { name: 'Take down' }));
 
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('A board answered meanwhile; refresh and try again.'));
+  });
+  // The plan refused the post (HTTP 402): a notice with the API's sentence, and for an owner the way to upgrade.
+  describe('when the plan refuses a post', () => {
+    const refuse = () =>
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          apiStub({
+            [`POST /v1/jobs/${jobId}/publish`]: () =>
+              Response.json(
+                {
+                  type: 'urn:screenhire:problem:plan-limit',
+                  title: 'Plan limit reached',
+                  detail: 'Your plan allows 5 open jobs and 5 are open. Close a job, or ask an owner to upgrade the plan.',
+                },
+                { status: 402 },
+              ),
+          }),
+        ),
+      );
+    const post = async () => {
+      renderPanel({ id: jobId, status: 'Open', postings: [] });
+      await fireEvent.click(within(await openMenu('Sandbox board')).getByRole('menuitem', { name: 'Post' }));
+      return screen.findByText(/Your plan allows 5 open jobs/);
+    };
+
+    it('links an owner to Billing', async () => {
+      refuse();
+
+      const notice = (await post()).closest('[data-slot="notice"]')!;
+
+      expect(within(notice as HTMLElement).getByRole('link', { name: 'Upgrade plan' })).toHaveAttribute('href', '/settings/billing');
+      expect(notice.closest('[data-slot="panel"]')).toBeNull();
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+
+    it('shows a recruiter the sentence alone, which already says to ask an owner', async () => {
+      state.user = userAs('Recruiter');
+      refuse();
+
+      const notice = (await post()).closest('[data-slot="notice"]')!;
+
+      expect(notice).toHaveTextContent('ask an owner to upgrade the plan');
+      expect(within(notice as HTMLElement).queryByRole('link')).toBeNull();
+    });
   });
 });

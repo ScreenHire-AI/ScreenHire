@@ -66,6 +66,8 @@
             <Empty.Description>
               {#if roleAllows}
                 {section?.label} reach every job, and you see only the jobs you're on. Ask an owner or admin of your organization.
+              {:else if section?.refusal}
+                {section.refusal}
               {:else}
                 Your role cannot change {section ? section.label.toLowerCase() : 'settings'}. Ask an owner or admin of your organization.
               {/if}

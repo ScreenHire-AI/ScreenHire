@@ -179,6 +179,8 @@ export const realtimeEventSchemas = {
   ApplicationsRemoved: z.object({ organizationId: id, count: z.number().int() }),
   TeamNotified: z.object({ organizationId: id, applicationId: id, jobId: id, runId: id, notifiedAt: instant }),
   ViewsChanged: z.object({ organizationId: id, viewId: id, changedAt: instant, actorUserId: actor }),
+  // The subscription changed (checkout finished, a payment failed, the plan changed or ended): an open Billing page refetches.
+  BillingChanged: z.object({ organizationId: id }),
 } as const;
 
 export type RealtimeEventType = keyof typeof realtimeEventSchemas;

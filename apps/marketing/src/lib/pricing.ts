@@ -1,7 +1,9 @@
+import { catalogPlans, type CataloguePlan } from '@screenhire/plans';
 import type { PricedOffer } from './seo';
 
-// Prices are the owner's decision. Until a plan has a number, the page shows the placeholder and the plan stays out of
-// the SoftwareApplication offers in JSON-LD.
+// Prices and limits are the owner's decision and live in the plan catalogue (packages/plans), which the API reads too.
+// Until a plan has a number, the page shows the placeholder and the plan stays out of the SoftwareApplication offers
+// in JSON-LD.
 export const PRICE_PLACEHOLDER = '[YOUR PRICE]';
 
 export interface Plan {
@@ -14,30 +16,40 @@ export interface Plan {
   highlighted?: boolean;
 }
 
-export const plans: Plan[] = [
-  {
-    name: 'Starter',
-    monthlyPrice: PRICE_PLACEHOLDER,
-    priceCurrency: 'USD',
-    activeJobs: '[YOUR LIMIT] active jobs',
-    summary: 'For a team hiring for a few roles at a time.',
-  },
-  {
-    name: 'Growth',
-    monthlyPrice: PRICE_PLACEHOLDER,
-    priceCurrency: 'USD',
-    activeJobs: '[YOUR LIMIT] active jobs',
-    summary: 'For a team with a steady flow of open roles.',
-    highlighted: true,
-  },
-  {
-    name: 'Unlimited',
-    monthlyPrice: PRICE_PLACEHOLDER,
-    priceCurrency: 'USD',
-    activeJobs: 'Unlimited active jobs',
-    summary: 'For a team that is always hiring.',
-  },
-];
+// The words and emphasis are the site's own; the catalogue holds only the numbers. Keyed by the catalogue's plan key.
+const copyByKey: Record<string, { summary: string; highlighted?: boolean }> = {
+  starter: { summary: 'For a team hiring for a few roles at a time.' },
+  growth: { summary: 'For a team with a steady flow of open roles.', highlighted: true },
+  unlimited: { summary: 'For a team that is always hiring.' },
+};
+
+function priceText(monthlyPrice: number | null): string {
+  if (monthlyPrice === null) return PRICE_PLACEHOLDER;
+  return Number.isInteger(monthlyPrice) ? String(monthlyPrice) : monthlyPrice.toFixed(2);
+}
+
+function activeJobsText(plan: CataloguePlan): string {
+  if (plan.unlimited) return 'Unlimited active jobs';
+  if (plan.activeJobs === null) return '[YOUR LIMIT] active jobs';
+  return plan.activeJobs === 1 ? '1 active job' : `${plan.activeJobs} active jobs`;
+}
+
+/** The page's plans from a catalogue, in the catalogue's order. */
+export function buildPlans(catalogue: CataloguePlan[]): Plan[] {
+  return catalogue.map((plan) => {
+    const copy = copyByKey[plan.key];
+    return {
+      name: plan.name,
+      monthlyPrice: priceText(plan.monthlyPrice),
+      priceCurrency: plan.currency,
+      activeJobs: activeJobsText(plan),
+      summary: copy?.summary ?? '',
+      ...(copy?.highlighted ? { highlighted: true } : {}),
+    };
+  });
+}
+
+export const plans: Plan[] = buildPlans(catalogPlans);
 
 /** What every plan includes. Each line describes the product as designed (docs/architecture). */
 export const includedInEveryPlan = [

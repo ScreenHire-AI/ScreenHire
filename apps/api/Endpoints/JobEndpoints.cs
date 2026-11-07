@@ -8,6 +8,7 @@ using ScreenHire.Infrastructure.Content;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Api.Realtime;
+using ScreenHire.Application.Billing;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Jobs;
 using ScreenHire.Domain.Hiring;
@@ -49,6 +50,7 @@ internal static class JobEndpoints
         group.MapPost("/{jobId:guid}/publish", PublishJob).WithName("PublishJob")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditJobs)
+            .ProducesProblem(StatusCodes.Status402PaymentRequired)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/{jobId:guid}/close", CloseJob).WithName("CloseJob")
@@ -320,6 +322,7 @@ internal static class JobEndpoints
         JobPublishValidator validator,
         DistributionPlanner planner,
         BoardRegistry boards,
+        BillingService billing,
         IOptions<DomainOptions> domains,
         TimeProvider time,
         CancellationToken cancellationToken)
@@ -331,7 +334,7 @@ internal static class JobEndpoints
             return TypedResults.NotFound();
         }
 
-        switch ((await PublishAsync(outbox, validator, planner, boards, domains.Value, job, request?.Boards, time.GetUtcNow(), cancellationToken))?.Result)
+        switch ((await PublishAsync(outbox, validator, planner, boards, billing, domains.Value, job, request?.Boards, time.GetUtcNow(), cancellationToken))?.Result)
         {
             case ValidationProblem invalid:
                 return invalid;
@@ -352,6 +355,7 @@ internal static class JobEndpoints
         JobPublishValidator validator,
         DistributionPlanner planner,
         BoardRegistry boards,
+        BillingService billing,
         DomainOptions domains,
         Job job,
         IReadOnlyList<string>? requestedBoards,
@@ -364,10 +368,26 @@ internal static class JobEndpoints
             return TypedResults.Problem("A closed job cannot be republished; create a new job instead.", statusCode: StatusCodes.Status409Conflict);
         }
 
+        // An organization older than billing starts its trial here, outside the transaction below: a refusal rolls that back,
+        // and a trial that restarted on every refusal would never end.
+        if (job.Status == JobStatus.Draft)
+        {
+            await billing.AccountAsync(job.OrganizationId, cancellationToken);
+        }
+
         // Waits out a board answer the worker is saving, so the postings below are its latest state, never a 409.
         await using var transaction = await PostingLocks.BeginForJobAsync(db, job.Id, boardId: null, cancellationToken);
 
         var organization = await db.Organizations.AsNoTracking().SingleAsync(o => o.Id == job.OrganizationId, cancellationToken);
+
+        // Only opening a draft counts against the plan (ADR-0029): an open job, a republish and a close never do, and a
+        // lapsed plan leaves every open job open. Billing off: always allowed.
+        if (job.Status == JobStatus.Draft
+            && await billing.CheckPublishAsync(job.OrganizationId, job.Id, cancellationToken) is { IsAllowed: false } refusal)
+        {
+            return BillingProblems.Refused(refusal);
+        }
+
         if (requestedBoards is { } requested)
         {
             var available = boards.AvailableTo(organization).Select(a => a.BoardId).ToHashSet(StringComparer.Ordinal);

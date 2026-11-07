@@ -27,6 +27,7 @@
   import HistorySheet from '#lib/components/history-sheet.svelte';
   import HiringTeamSheet from '#lib/components/hiring-team-sheet.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
+  import PlanProblemNotice from '#lib/components/plan-problem-notice.svelte';
   import JobEmbedPanel from '#lib/components/job-embed-panel.svelte';
   import JobPipeline from '#lib/components/job-pipeline.svelte';
   import LastUpdated from '#lib/components/last-updated.svelte';
@@ -51,7 +52,7 @@
   import { jobStatus } from '#lib/job-status.js';
   import { createMoves } from '#lib/moves.svelte.js';
   import { can, seesAllJobs } from '#lib/permissions.js';
-  import { describeError, invalidatePath } from '#lib/query.js';
+  import { describeError, invalidatePath, planProblem, type PlanProblem } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
   import { lastUpdateWords } from '#lib/history.js';
   import type { PageProps } from './$types';
@@ -129,21 +130,26 @@
   // "Close & remove everywhere" was chosen; its confirmation opens once the menu has closed.
   let closeChosen = false;
   let publishFailure = $state('');
+  // A publish the plan refused: a notice with the way to upgrade, in place of the failure line.
+  let publishRefused = $state<PlanProblem | null>(null);
   let boardsUpdated = $state('');
 
   // A draft's primary action: publish to every board at once.
   async function publishEverywhere() {
     publishFailure = '';
+    publishRefused = null;
     try {
       await publish.mutateAsync({ jobId: params.jobId });
     } catch (error) {
-      publishFailure = describeError(error, 'Could not publish the job');
+      publishRefused = planProblem(error);
+      if (!publishRefused) publishFailure = describeError(error, 'Could not publish the job');
     }
   }
 
   // With no boards named, a later publish sends the new version to every board the job is on, and checks refused ones again.
   async function updateBoards() {
     publishFailure = '';
+    publishRefused = null;
     boardsUpdated = '';
     try {
       await publish.mutateAsync({ jobId: params.jobId });
@@ -317,6 +323,7 @@
 
       <!-- The work area first, filling the window (S6), with no side column beside the table or the board (S7). -->
       <div class={['flex w-full flex-col gap-4 px-4 py-6 md:px-6', boardFills && 'min-h-0 flex-1']}>
+        {#if publishRefused}<PlanProblemNotice problem={publishRefused} />{/if}
         <!-- Above the tabs, because they are about the job, not one view of it. On Job postings the fix is on this page. -->
         {#each problems as problem (problem.kind)}
           <Notice href={tab === 'postings' ? undefined : '?tab=postings'} link="Fix on Job postings">{problem.text}</Notice>

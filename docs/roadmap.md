@@ -57,7 +57,7 @@ each item names the doc that designs it. Board workflows carry the detail.
 ## Before real customers
 
 - **Hosting:** defined and written down, not deployed. The [deploy runbook](operations/deploy.md) lists every owner step. CI runs on GitHub Actions (ADR-0020).
-- **Billing:** none exists.
+- **Billing:** built behind a local fake: plans, a free trial, Stripe Checkout and the portal, and a 402 when a plan has no room for another open job ([billing](architecture/billing.md), ADR-0029). What is left is the owner's: a Stripe account, products and prices, the prices and limits themselves, tax and the terms of service ([MVP status](status.md#owner-actions)).
 - **Compliance** ([legal](research/legal.md)): bias audits,
   Colorado and California automated-decision rules (due 1 January 2027), EU AI Act provider duties (due 2 December
   2027), the customer documentation pack.

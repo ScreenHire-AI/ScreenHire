@@ -255,6 +255,42 @@ describe('jobs page actions', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Adzuna needs a longer description.');
   });
+
+  describe('when the plan refuses to publish (HTTP 402)', () => {
+    const detail = 'Your plan allows 5 open jobs and 5 are open. Close a job, or ask an owner to upgrade the plan.';
+    const publishRefused = async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          apiStub({
+            'GET /v1/jobs': () => Response.json(jobs),
+            [`POST /v1/jobs/${jobs[0]!.id}/publish`]: () =>
+              Response.json({ type: 'urn:screenhire:problem:plan-limit', title: 'Plan limit reached', detail }, { status: 402 }),
+          }),
+        ),
+      );
+      renderPage();
+      const menu = await openRowMenu('Customer Success Lead');
+      await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Publish to every board' }));
+      return (await screen.findByText(detail)).closest('[data-slot="notice"]') as HTMLElement;
+    };
+
+    it('shows an owner the sentence in a notice that links to Billing', async () => {
+      const notice = await publishRefused();
+
+      expect(within(notice).getByRole('link', { name: 'Upgrade plan' })).toHaveAttribute('href', '/settings/billing');
+      expect(screen.queryByRole('alert')).toBeNull();
+      // A full-width row above the table, not a card in the panel's footer (S4).
+      expect(notice.closest('[data-slot="panel"]')).toBeNull();
+    });
+
+    it('shows a recruiter the same sentence with no link, since only an owner can upgrade', async () => {
+      page.data = { user: userAs('Recruiter') };
+      const notice = await publishRefused();
+
+      expect(within(notice).queryByRole('link')).toBeNull();
+    });
+  });
 });
 
 describe('jobs page, setup checklist', () => {

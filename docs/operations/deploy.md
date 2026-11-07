@@ -134,6 +134,7 @@ stays hidden. The name is the setting with `--` for each colon:
 | `ScreenHire--Email--SendGrid--ApiKey` | SendGrid sends email. Without it nothing is sent. |
 | `ScreenHire--Auth--Google--ClientSecret`, `ScreenHire--Auth--Microsoft--ClientSecret` | Sign-in |
 | `ScreenHire--Slack--ClientSecret` | Slack |
+| `ScreenHire--Billing--SecretKey`, `ScreenHire--Billing--WebhookSecret` | Billing. Stripe is on only when both are set; with neither, billing is hidden and nothing is limited |
 | `ScreenHire--Calendar--Google--ClientSecret`, `ScreenHire--Calendar--Microsoft--ClientSecret` | Calendars |
 | `ScreenHire--Turnstile--SecretKey` | Bot challenge |
 | `ScreenHire--Distribution--GoogleIndexing--ServiceAccountKeyJson` | Google Indexing |
@@ -316,6 +317,16 @@ done
   `calendar-google-client-id` and `calendar-microsoft-client-id`, secrets in the vault. Add both to the sub-processor list.
 - **Slack.** The app's settings are in [Slack](../architecture/slack.md): redirect `https://<app host>/v1/slack/oauth/callback`.
   Parameter `slack-client-id`, secret in the vault. Add Slack to the sub-processor list.
+- **Billing.** The steps are in [Billing](../architecture/billing.md) and the owner actions in [status](../status.md#owner-actions).
+  In Stripe, on an account only ScreenHire uses: a product with a recurring monthly price per plan, the customer portal turned
+  on, and a webhook endpoint at `https://<api host>/v1/webhooks/stripe` for `checkout.session.completed`,
+  `customer.subscription.created`, `customer.subscription.updated` and `customer.subscription.deleted`. Create the endpoint
+  through Stripe's API with `api_version=2024-06-20`, the version the code is written against: a webhook otherwise arrives at
+  the account's default version, and an endpoint's version cannot be changed later. In the vault: the two secrets above, and each plan's price
+  id, price and limit as secrets named like the setting (for example `ScreenHire--Billing--Plans--growth--StripePriceId`,
+  `ScreenHire--Billing--Plans--growth--MonthlyPrice`, `ScreenHire--Billing--Plans--growth--ActiveJobs`). Leave
+  `ScreenHire:Billing:Sandbox:Enabled` off: the sandbox's checkout charges nobody, and an app started outside Development with it on
+  stops at start. Add Stripe to the sub-processor list.
 - **Turnstile.** `turnstile-site-key` and the vault secret `ScreenHire--Turnstile--SecretKey`. Without them the honeypot still works.
 - **Google Indexing.** A Google service account that owns the careers domain in Search Console, `google-indexing-mode` set to
   `Google`, its key JSON in the vault. The real client has never run.

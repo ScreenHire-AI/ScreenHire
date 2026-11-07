@@ -24,6 +24,7 @@
   import CustomizePostingSheet from '#lib/components/customize-posting-sheet.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
+  import PlanProblemNotice from '#lib/components/plan-problem-notice.svelte';
   import Hint from '#lib/components/hint.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -45,7 +46,7 @@
     type BoardAction,
     type BoardRow,
   } from '#lib/distribution.js';
-  import { describeError, invalidatePath } from '#lib/query.js';
+  import { describeError, invalidatePath, planProblem, type PlanProblem } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
   import { needsAttention } from '#lib/status.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
@@ -78,6 +79,8 @@
 
   const boardList = $derived(boardRows(boards, job.postings));
   let failure = $state('');
+  // A post the plan refused: a notice with the way to upgrade, in place of the failure line.
+  let refused = $state<PlanProblem | null>(null);
   let busyBoard = $state<string | null>(null);
 
   // Every column sorts (L2). The boards keep their natural order, the careers page first, until someone sorts.
@@ -135,12 +138,14 @@
 
   async function act(action: NonNullable<BoardAction>, boardId: string, name: string) {
     failure = '';
+    refused = null;
     busyBoard = boardId;
     try {
       if (action === 'takeDown') await takeDown.mutateAsync({ jobId: job.id, boardId });
       else await publish.mutateAsync({ jobId: job.id, data: { boards: [boardId] } });
     } catch (error) {
-      failure = describeError(error, action === 'takeDown' ? `Could not take the job down from ${name}` : `Could not post the job to ${name}`);
+      refused = planProblem(error);
+      if (!refused) failure = describeError(error, action === 'takeDown' ? `Could not take the job down from ${name}` : `Could not post the job to ${name}`);
     } finally {
       busyBoard = null;
     }
@@ -170,6 +175,7 @@
 </script>
 
 <!-- The tab's count says how many boards the job went to, so the panel's title has none (W4). -->
+{#if refused}<PlanProblemNotice problem={refused} />{/if}
 <Panel title="Job postings" flush footer={failure ? messages : undefined}>
   {#if boardList.length === 0}
     <p class="px-4.5 py-4 text-muted-foreground max-md:px-4">No job boards are set up.</p>

@@ -2,6 +2,16 @@
 
 ## 2026-11-07
 
+**Organizations have a free trial and plans, and a plan can stop a new job.** Every new organization starts a 14-day trial on the
+Growth plan (`Trial:Days`, `Trial:Plan`); an older one starts it the first time billing is asked about it. An Owner chooses a
+plan and pays through Stripe Checkout, and manages the card, switches plan or cancels in Stripe's portal, from Settings, Billing.
+A plan limits how many jobs are open at once, and the only thing it ever refuses is opening a draft job (a 402 with a
+plan-limit or subscription-ended reason): open jobs stay open and everything stays readable. The plans and their limits live in
+`packages/plans/plans.json`, which the pricing page reads too; the shipped file sets no prices or limits yet, so nothing is
+limited until the owner sets them. Stripe is called over plain HTTP with a pinned API version, a signed webhook applies each
+event once, and a local sandbox stands in for Stripe in `pnpm dev` and the tests. With no Stripe keys and no sandbox, billing is
+hidden and limits nothing. ([billing](architecture/billing.md), ADR-0029)
+
 **Candidates have a page of their own.** A candidate asks for a link on the careers site with the address they applied with
 and gets one only if we have an application from it; the page says the same either way. The link opens each application with
 a four-step status (Applied, In review, Interview, Decision, then Hired, Not moving forward or Withdrawn) that never shows an

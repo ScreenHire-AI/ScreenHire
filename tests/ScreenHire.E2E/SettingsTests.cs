@@ -179,8 +179,8 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Interviewer");
         await Page.GetByRole(AriaRole.Checkbox, new() { NameRegex = new("^Add notes and tags") }).CheckAsync();
         await Page.GetByRole(AriaRole.Checkbox, new() { NameRegex = new("^Fill in scorecards") }).CheckAsync();
-        // Managing Owners and giving a key verification access: both are Owner-only (ADR-0021).
-        await Expect(Page.GetByText("Owner only. A custom role cannot have it.")).ToHaveCountAsync(2);
+        // Managing Owners, giving a key verification access and managing billing: all three are Owner-only (ADR-0021, ADR-0029).
+        await Expect(Page.GetByText("Owner only. A custom role cannot have it.")).ToHaveCountAsync(3);
         await ExpectNoAccessibilityViolationsAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
         await Expect(Page.GetByText("Saved.")).ToBeVisibleAsync();

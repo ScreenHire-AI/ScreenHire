@@ -24,7 +24,7 @@ public sealed class ProductionApiFixture : AppHostFixture
     // ProductionSettings also refuses the loopback and sandbox switches that appsettings.Development.json turns on for the other stacks.
     protected override IReadOnlyList<string> ExtraArguments =>
     [
-        "--ScreenHire:Slack:Sandbox:Enabled=false", "--ScreenHire:Calendar:Sandbox:Enabled=false", "--ScreenHire:Email:Sandbox:Enabled=false",
+        "--ScreenHire:Slack:Sandbox:Enabled=false", "--ScreenHire:Billing:Sandbox:Enabled=false", "--ScreenHire:Calendar:Sandbox:Enabled=false", "--ScreenHire:Email:Sandbox:Enabled=false",
         "--ScreenHire:Webhooks:AllowLoopback=false", "--ScreenHire:CareersEmbedding:AllowLoopback=false", "--ScreenHire:Distribution:Sandbox:Enabled=false",
     ];
 

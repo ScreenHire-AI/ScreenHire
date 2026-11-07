@@ -39,6 +39,8 @@ import type {
   ApplyTemplateUpdateRequest,
   AutomationIssue,
   AutomationRunEntry,
+  BillingOverview,
+  BillingRedirect,
   BoardSummary,
   BrandImageUploadRequest,
   BrandingContrast,
@@ -208,6 +210,7 @@ import type {
   SlackStatus,
   SlackTestResult,
   StageKind,
+  StartBillingCheckoutRequest,
   StartCalendarConnectRequest,
   StartSlackLinkRequest,
   SubmitScorecardRequest,
@@ -5550,6 +5553,11 @@ export type publishJobResponse401 = {
   status: 401
 }
 
+export type publishJobResponse402 = {
+  data: ProblemDetails
+  status: 402
+}
+
 export type publishJobResponse403 = {
   data: ProblemDetails
   status: 403
@@ -5573,7 +5581,7 @@ export type publishJobResponse429 = {
 export type publishJobResponseSuccess = (publishJobResponse200) & {
   headers: Headers;
 };
-export type publishJobResponseError = (publishJobResponse400 | publishJobResponse401 | publishJobResponse403 | publishJobResponse404 | publishJobResponse409 | publishJobResponse429) & {
+export type publishJobResponseError = (publishJobResponse400 | publishJobResponse401 | publishJobResponse402 | publishJobResponse403 | publishJobResponse404 | publishJobResponse409 | publishJobResponse429) & {
   headers: Headers;
 };
 
@@ -21351,6 +21359,328 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getUnlinkSlackAccountMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getBillingResponse200 = {
+  data: BillingOverview
+  status: 200
+}
+
+export type getBillingResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getBillingResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getBillingResponseSuccess = (getBillingResponse200) & {
+  headers: Headers;
+};
+export type getBillingResponseError = (getBillingResponse401 | getBillingResponse403) & {
+  headers: Headers;
+};
+
+export const getGetBillingUrl = () => {
+
+
+
+
+  return `/v1/organization/billing`
+}
+
+export const getBilling = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<getBillingResponseSuccess> => {
+
+  return apiQueryFetch<getBillingResponseSuccess>(getGetBillingUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBillingQueryKey = () => {
+    return [
+    'v1','organization','billing'
+    ] as const;
+    }
+
+
+export const getGetBillingQueryOptions = <TData = Awaited<ReturnType<typeof getBilling>>, TError = ErrorType<void | ProblemDetails>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getBilling>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBillingQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBilling>>> = ({ signal }) => getBilling({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getBilling>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetBillingQueryResult = NonNullable<Awaited<ReturnType<typeof getBilling>>>
+export type GetBillingQueryError = ErrorType<void | ProblemDetails>
+
+
+
+export function createGetBilling<TData = Awaited<ReturnType<typeof getBilling>>, TError = ErrorType<void | ProblemDetails>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getBilling>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetBillingQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type startBillingCheckoutResponse200 = {
+  data: BillingRedirect
+  status: 200
+}
+
+export type startBillingCheckoutResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type startBillingCheckoutResponse401 = {
+  data: void
+  status: 401
+}
+
+export type startBillingCheckoutResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type startBillingCheckoutResponse404 = {
+  data: void
+  status: 404
+}
+
+export type startBillingCheckoutResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type startBillingCheckoutResponse502 = {
+  data: ProblemDetails
+  status: 502
+}
+
+export type startBillingCheckoutResponseSuccess = (startBillingCheckoutResponse200) & {
+  headers: Headers;
+};
+export type startBillingCheckoutResponseError = (startBillingCheckoutResponse400 | startBillingCheckoutResponse401 | startBillingCheckoutResponse403 | startBillingCheckoutResponse404 | startBillingCheckoutResponse409 | startBillingCheckoutResponse502) & {
+  headers: Headers;
+};
+
+export const getStartBillingCheckoutUrl = () => {
+
+
+
+
+  return `/v1/organization/billing/checkout`
+}
+
+export const startBillingCheckout = async (startBillingCheckoutRequest: StartBillingCheckoutRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<startBillingCheckoutResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<startBillingCheckoutResponseSuccess>(getStartBillingCheckoutUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(startBillingCheckoutRequest)
+  }
+);}
+
+
+
+
+
+export const getStartBillingCheckoutMutationKey = () => ['startBillingCheckout'] as const;
+
+export const getStartBillingCheckoutMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof startBillingCheckout>>, TError,StartBillingCheckoutMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof startBillingCheckout>>, TError,StartBillingCheckoutMutationVariables, TContext> => {
+
+const mutationKey = getStartBillingCheckoutMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startBillingCheckout>>, StartBillingCheckoutMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  startBillingCheckout(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartBillingCheckoutMutationResult = NonNullable<Awaited<ReturnType<typeof startBillingCheckout>>>
+    export type StartBillingCheckoutMutationBody = StartBillingCheckoutRequest
+    export type StartBillingCheckoutMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type StartBillingCheckoutMutationVariables = {data: StartBillingCheckoutRequest}
+
+    export const createStartBillingCheckout = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof startBillingCheckout>>, TError,StartBillingCheckoutMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof startBillingCheckout>>,
+        TError,
+        StartBillingCheckoutMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getStartBillingCheckoutMutationOptions(options?.()) }), queryClient);
+    }
+
+export type openBillingPortalResponse200 = {
+  data: BillingRedirect
+  status: 200
+}
+
+export type openBillingPortalResponse401 = {
+  data: void
+  status: 401
+}
+
+export type openBillingPortalResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type openBillingPortalResponse404 = {
+  data: void
+  status: 404
+}
+
+export type openBillingPortalResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type openBillingPortalResponse502 = {
+  data: ProblemDetails
+  status: 502
+}
+
+export type openBillingPortalResponseSuccess = (openBillingPortalResponse200) & {
+  headers: Headers;
+};
+export type openBillingPortalResponseError = (openBillingPortalResponse401 | openBillingPortalResponse403 | openBillingPortalResponse404 | openBillingPortalResponse409 | openBillingPortalResponse502) & {
+  headers: Headers;
+};
+
+export const getOpenBillingPortalUrl = () => {
+
+
+
+
+  return `/v1/organization/billing/portal`
+}
+
+export const openBillingPortal = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<openBillingPortalResponseSuccess> => {
+
+  return apiQueryFetch<openBillingPortalResponseSuccess>(getOpenBillingPortalUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getOpenBillingPortalMutationKey = () => ['openBillingPortal'] as const;
+
+export const getOpenBillingPortalMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof openBillingPortal>>, TError,void, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof openBillingPortal>>, TError,void, TContext> => {
+
+const mutationKey = getOpenBillingPortalMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof openBillingPortal>>, void> = () => {
+
+
+          return  openBillingPortal(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type OpenBillingPortalMutationResult = NonNullable<Awaited<ReturnType<typeof openBillingPortal>>>
+
+    export type OpenBillingPortalMutationError = ErrorType<void | ProblemDetails>
+
+
+    export const createOpenBillingPortal = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof openBillingPortal>>, TError,void, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof openBillingPortal>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getOpenBillingPortalMutationOptions(options?.()) }), queryClient);
     }
 
 export type getCalendarResponse200 = {

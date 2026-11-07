@@ -46,3 +46,28 @@ function validationMessages(body: unknown): string[] {
     .filter((message): message is string => typeof message === 'string');
   return [...new Set(messages)];
 }
+
+const planProblemTypes = {
+  'urn:screenhire:problem:plan-limit': 'plan-limit',
+  'urn:screenhire:problem:subscription-ended': 'subscription-ended',
+} as const;
+
+/** Why a draft could not be published for billing reasons: the plan's open job limit, or the subscription that ended. */
+export interface PlanProblem {
+  kind: (typeof planProblemTypes)[keyof typeof planProblemTypes];
+  /** The API's plain-language sentence, which already says who can fix it. */
+  detail: string;
+}
+
+/**
+ * The billing problem in a failed publish (HTTP 402 with the plan-limit or subscription-ended problem type), or null for any
+ * other error. A publish site shows it as a notice with an upgrade link for an owner, in place of its plain failure line.
+ */
+export function planProblem(error: unknown): PlanProblem | null {
+  if (!(error instanceof ApiError) || error.status !== 402 || !error.body || typeof error.body !== 'object') return null;
+  const { type, detail } = error.body as { type?: unknown; detail?: unknown };
+  const kind = typeof type === 'string' ? (planProblemTypes as Record<string, PlanProblem['kind'] | undefined>)[type] : undefined;
+  if (!kind) return null;
+  const fallback = kind === 'plan-limit' ? 'Your plan has no room for another open job.' : 'Your subscription has ended, so no new job can be published.';
+  return { kind, detail: typeof detail === 'string' && detail ? detail : fallback };
+}

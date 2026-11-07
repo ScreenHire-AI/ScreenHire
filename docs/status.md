@@ -161,7 +161,8 @@ brackets.
   moving forward); of keeping a reply typed on the page, with its files, as an emailed reply is kept; and of the privacy page's
   new "Your page" section, which moved the notice version to `2026-11-07.1`. Decide whether 14 days is the right lifetime
   for a link in a mailbox (the candidate portal task).
-- **Product.** Subscribe to Svelte Flow Pro before charging anyone. The workflow graph hides Svelte Flow's attribution, which its MIT licence allows, and its makers ask a business earning from it to subscribe first. Set prices and job limits in `apps/marketing/src/lib/pricing.ts` (#6). Move jobs still on "Software
+- **Billing.** Prices and job limits go in `packages/plans/plans.json` (the pricing page reads it too) or in `ScreenHire:Billing:Plans:<key>:*` configuration; until they are set the plans show no price and limit nothing. To charge: a Stripe account, one product with a recurring monthly price per plan, each price's id in `StripePriceId`, the secret key and the webhook signing secret as the `stripe-secret-key` and `stripe-webhook-secret` parameters (the Key Vault secrets in the [deploy runbook](operations/deploy.md)), and a webhook endpoint at `https://<api host>/v1/webhooks/stripe` for `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated` and `customer.subscription.deleted`, created through Stripe's API with `api_version=2024-06-20`. Turn the customer portal on in Stripe (plan switching and cancelling), set up Stripe Tax if tax applies, and write the terms of service before anyone pays ([billing](architecture/billing.md), ADR-0029).
+- **Product.** Subscribe to Svelte Flow Pro before charging anyone. The workflow graph hides Svelte Flow's attribution, which its MIT licence allows, and its makers ask a business earning from it to subscribe first. Move jobs still on "Software
   engineer" version 1 to version 2 (#13).
 
 ## Known gaps

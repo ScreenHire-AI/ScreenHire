@@ -50,6 +50,15 @@
 //                               slack-client-secret parameter has the app's secret; Sandbox:Enabled=true is the local
 //                               sandbox workspace instead (Development only; the test stacks turn it on). The secret
 //                               comes from that parameter, never from these keys.
+//   Billing:*                   plans, the trial and job limits (ScreenHire.Application BillingOptions,
+//                               docs/architecture/billing.md, ADR-0029), forwarded to the API. Hidden and limiting nothing
+//                               unless configured: Stripe once Stripe:Enabled=true and the stripe-secret-key and
+//                               stripe-webhook-secret parameters have the account's keys; Sandbox:Enabled=true is the local
+//                               fake instead (Development only; the test stacks turn it on). Trial:Days and Trial:Plan set
+//                               the free trial. Plans:<key>:Name, Order, MonthlyPrice, Currency, ActiveJobs, Unlimited and
+//                               StripePriceId override the defaults in packages/plans/plans.json, which the marketing pricing
+//                               page reads too. ApiBaseUrl and Timeout are for a test that points the Stripe client at a
+//                               stand-in. The keys come from those parameters, never from these settings.
 //   Calendar:*                  member calendars for interview scheduling (ScreenHire.Application CalendarOptions,
 //                               docs/architecture/interview-scheduling.md), forwarded to the API and the worker. A
 //                               provider is on only when both its client id (Google:ClientId, Microsoft:ClientId) and
@@ -307,6 +316,26 @@ if (!string.IsNullOrWhiteSpace(settings["Slack:ClientId"]))
     var slackSecret = builder.AddParameter("slack-client-secret", secret: true);
     api.WithEnvironment("ScreenHire__Slack__ClientSecret", slackSecret);
     worker.WithEnvironment("ScreenHire__Slack__ClientSecret", slackSecret);
+}
+
+foreach (var (key, value) in settings.GetSection("Billing").AsEnumerable(makePathsRelative: true))
+{
+    // The keys are secrets: they go through the parameters below, never as plain configuration. Stripe:Enabled only decides
+    // whether the parameters are asked for.
+    if (value is not null && !key.StartsWith("Stripe:", StringComparison.OrdinalIgnoreCase)
+        && !key.Equals("SecretKey", StringComparison.OrdinalIgnoreCase) && !key.Equals("WebhookSecret", StringComparison.OrdinalIgnoreCase))
+    {
+        api.WithEnvironment($"ScreenHire__Billing__{key.Replace(":", "__", StringComparison.Ordinal)}", value);
+    }
+}
+
+// Stripe's keys (docs/architecture/billing.md), only once the account is enabled: secret parameters, set with
+// `dotnet user-secrets set Parameters:stripe-secret-key "<key>"` in apps/apphost or by the deployment's secret store. With
+// the setting off nothing asks for them, and billing is hidden or the sandbox.
+if (string.Equals(settings["Billing:Stripe:Enabled"], "true", StringComparison.OrdinalIgnoreCase))
+{
+    api.WithEnvironment("ScreenHire__Billing__SecretKey", builder.AddParameter("stripe-secret-key", secret: true));
+    api.WithEnvironment("ScreenHire__Billing__WebhookSecret", builder.AddParameter("stripe-webhook-secret", secret: true));
 }
 
 foreach (var (key, value) in settings.GetSection("Calendar").AsEnumerable(makePathsRelative: true))

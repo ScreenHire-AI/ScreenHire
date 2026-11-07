@@ -67,4 +67,15 @@ describe('live updates', () => {
     for (const key of keys) expect(client.getQueryState(key)?.isInvalidated, key.join('/')).toBe(true);
     for (const key of unrelated) expect(client.getQueryState(key)?.isInvalidated, key.join('/')).toBe(false);
   });
+  it.each(['BillingChanged', 'JobPublished', 'JobClosed'] as const)('marks the Billing page stale on %s, and leaves the team alone', async (type) => {
+    const client = new QueryClient();
+    const billing = ['v1', 'organization', 'billing'];
+    const unrelated = [['v1', 'organization', 'members'], ['v1', 'organization']];
+    for (const key of [billing, ...unrelated]) client.setQueryData(key, {});
+
+    await Promise.all((invalidations[type] ?? []).map((path) => invalidatePath(client, path)));
+
+    expect(client.getQueryState(billing)?.isInvalidated).toBe(true);
+    for (const key of unrelated) expect(client.getQueryState(key)?.isInvalidated, key.join('/')).toBe(false);
+  });
 });
