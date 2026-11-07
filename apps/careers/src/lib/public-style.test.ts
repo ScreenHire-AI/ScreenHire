@@ -58,15 +58,19 @@ describe('public page markup', () => {
 
   it('draws shape from the tokens (section 5): no arbitrary radius', () => {
     expect(offenders(/rounded-\[/g)).toEqual([]);
+    for (const stylesheet of ['../styles/global.css', '../../../marketing/src/styles/global.css', '../../../../packages/ui/src/questions.css']) {
+      expect(readFileSync(fileURLToPath(new URL(stylesheet, import.meta.url)), 'utf8')).not.toMatch(/rounded-\[/);
+    }
   });
 
   it('keeps margins, padding and gaps on the 4px grid (section 5): no half steps, 28px or 36px', () => {
-    const offGrid = /(?<![\w-])(?:[a-z0-9-]+:)*(?:p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|gap|gap-x|gap-y|space-x|space-y)-(?:0\.5|1\.5|2\.5|3\.5|7|9|11)(?![\w.])/g;
+    const offGrid = /(?<![\w-])(?:[a-z0-9-]+:)*-?(?:p|px|py|pt|pb|pl|pr|ps|pe|m|mx|my|mt|mb|ml|mr|ms|me|gap|gap-x|gap-y|space-x|space-y)-(?:0\.5|1\.5|2\.5|3\.5|7|9|11)(?![\w.])/g;
     expect(offenders(offGrid)).toEqual([]);
   });
 
   it('lifts every panel off the page with the soft surface shadow (S5)', () => {
-    // A string of classes that draws a radius-12 surface on the card colour must carry the shadow.
+    // A string of classes that draws a radius-12 surface on the card colour must carry the shadow. It reads one quoted
+    // string at a time, so a panel's classes stay together in one.
     const quoted = /(['"`])((?:(?!\1)[^\n])*rounded-panel(?:(?!\1)[^\n])*)\1/g;
     const bare = markup
       .filter((file) =>
@@ -74,6 +78,13 @@ describe('public page markup', () => {
       )
       .map((file) => file.path);
     expect(bare).toEqual([]);
+  });
+
+  it('gives a panel title the heading font, and keeps the privacy notice neutral (section 18)', () => {
+    const source = (name: string) => markup.find((file) => file.path === `apps/careers/src/components/${name}.astro`)!.text;
+    expect(source('Panel')).toContain("!neutral && 'font-display'");
+    expect(source('PrivacyNotice')).toMatch(/<Panel[^>]*\sneutral\b/);
+    expect(markup.filter((file) => /<Panel[^>]*\sneutral\b/.test(file.text)).map((file) => file.path)).toEqual(['apps/careers/src/components/PrivacyNotice.astro']);
   });
 
   it('draws a status only through the shared badge (T1): no hand-built status chip', () => {
@@ -84,6 +95,12 @@ describe('public page markup', () => {
     for (const stylesheet of ['../styles/global.css', '../../../marketing/src/styles/global.css']) {
       const css = readFileSync(fileURLToPath(new URL(stylesheet, import.meta.url)), 'utf8');
       expect(css).not.toMatch(/(?:^|[\s,])(?:html|:root)\s*\{[^}]*font-size/);
+    }
+  });
+
+  it('sizes text in the stylesheets from the scale (section 4.3): no fixed rem or pixel font size', () => {
+    for (const stylesheet of ['../styles/global.css', '../../../marketing/src/styles/global.css', '../../../../packages/ui/src/questions.css']) {
+      expect(readFileSync(fileURLToPath(new URL(stylesheet, import.meta.url)), 'utf8')).not.toMatch(/font-size:s*[d.]+(?:rem|px)/);
     }
   });
 

@@ -424,7 +424,7 @@ answered" in the hint size, the step semibold; each page's heading is its sectio
 questionnaire preview shows the candidate base with `text-candidate-body`.
 
 A careers page's `h1` is `font-display text-candidate-title` (30 / 36, weight 700, -0.02em), so every title takes the
-employer's heading font. A panel's title is `font-display text-heading` (16 / 24), and only the privacy notice keeps its
+employer's heading font. A `Panel` title is `font-display text-heading` (16 / 24), and only the privacy notice keeps its
 title in the body font (section 18). A card's or step's title is `font-display text-panel-title` (20 / 28), and a reading
 line is `text-candidate-body`. Careers markup uses no Tailwind size
 (`text-sm`, `text-lg`, `text-xl`, `text-3xl`). Marketing titles use Tailwind's scale in this order: the `h1` at
