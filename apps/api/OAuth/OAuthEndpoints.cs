@@ -151,7 +151,7 @@ internal static class OAuthEndpoints
         }
 
         var form = await context.Request.ReadFormAsync(cancellationToken);
-        await server.RevokeAsync(form["token"], cancellationToken);
+        await server.RevokeAsync(form["token"], form["client_id"], cancellationToken);
         return Results.Ok();
     }
 

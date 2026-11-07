@@ -81,6 +81,10 @@ security (CLAUDE.md non-negotiable 6).
   connected, beside the keys they made.
 - Two more tenant tables (`oauth_codes`, `oauth_tokens`) have row-level security; `oauth_clients` has none and holds only
   what a client sent. A daily worker job removes expired codes and tokens and unapproved registrations.
+- A registered client is global, so an Owner or Admin of any organization who approves it keeps it past the daily purge.
+  It holds only a name and redirect addresses, so nothing of another organization is exposed by this.
+- A connection keeps its scopes if the person who approved it is later demoted, as an API key does. Disconnecting is the
+  remedy; revoking on a role change is the alternative and is not built.
 - A leaked refresh token is useful once: the owner of the real one finds their next refresh refused, signs in again, and the
   connection's tokens are gone in the meantime.
 - Nothing about what verification returns changes. A level is evidence for a person to review and never a reason to reject

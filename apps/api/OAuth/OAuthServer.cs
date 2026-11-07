@@ -305,25 +305,41 @@ internal sealed class OAuthServer(
 
     /// <summary>
     /// Revokes a token (RFC 7009). Revoking a refresh token ends every token of its connection; an access token ends only
-    /// itself. An unknown token is not an error, so the endpoint tells a caller nothing about which tokens exist.
+    /// itself. An unknown token is not an error, so the endpoint tells a caller nothing about which tokens exist. When the
+    /// caller names a <paramref name="clientId"/> the token must be that client's: another client's token is left alone,
+    /// and the answer is the same (RFC 7009 section 2.1). A public client has no secret to prove itself with, so a caller
+    /// that names no client is judged by holding the token alone.
     /// </summary>
-    public async Task RevokeAsync(string? token, CancellationToken cancellationToken)
+    public async Task RevokeAsync(string? token, string? clientId, CancellationToken cancellationToken)
     {
         var now = time.GetUtcNow();
-        if (OAuthTokens.TryReadOrganization(OAuthTokens.RefreshMarker, token, out var refreshOrganization))
+        var (marker, kind) = OAuthTokens.TryReadOrganization(OAuthTokens.RefreshMarker, token, out _)
+            ? (OAuthTokens.RefreshMarker, OAuthTokenKind.Refresh)
+            : (OAuthTokens.AccessMarker, OAuthTokenKind.Access);
+        if (!OAuthTokens.TryReadOrganization(marker, token, out var organizationId))
         {
-            tenant.SetOrganization(refreshOrganization.Value);
-            var hash = OAuthTokens.Hash(token!);
-            if (await db.OAuthTokens.AsNoTracking().Where(t => t.TokenHash == hash && t.Kind == OAuthTokenKind.Refresh)
-                    .Select(t => (Guid?)t.ApiKeyId).SingleOrDefaultAsync(cancellationToken) is { } keyId)
-            {
-                await RevokeTokensAsync(keyId, now, cancellationToken);
-            }
+            return;
         }
-        else if (OAuthTokens.TryReadOrganization(OAuthTokens.AccessMarker, token, out var accessOrganization))
+
+        tenant.SetOrganization(organizationId.Value);
+        var hash = OAuthTokens.Hash(token!);
+        var owner = await (
+            from t in db.OAuthTokens.AsNoTracking()
+            join k in db.ApiKeys.AsNoTracking() on t.ApiKeyId equals k.Id
+            where t.TokenHash == hash && t.Kind == kind
+            select new { t.ApiKeyId, k.OAuthClientId })
+            .SingleOrDefaultAsync(cancellationToken);
+        if (owner is null || (!string.IsNullOrEmpty(clientId) && (!TryParseClientId(clientId, out var named) || named != owner.OAuthClientId)))
         {
-            tenant.SetOrganization(accessOrganization.Value);
-            var hash = OAuthTokens.Hash(token!);
+            return;
+        }
+
+        if (kind == OAuthTokenKind.Refresh)
+        {
+            await RevokeTokensAsync(owner.ApiKeyId, now, cancellationToken);
+        }
+        else
+        {
             await db.OAuthTokens.Where(t => t.TokenHash == hash && t.Kind == OAuthTokenKind.Access && t.RevokedAt == null)
                 .ExecuteUpdateAsync(set => set.SetProperty(t => t.RevokedAt, now), cancellationToken);
         }

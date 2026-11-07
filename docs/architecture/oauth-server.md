@@ -95,7 +95,11 @@ nothing is gained by signing, and revocation takes effect on the next request.
 - **Refresh** rotates. Presenting a refresh token that was already used, or after revocation, is `invalid_grant`, and a
   reused one revokes every token of its connection, because it may have leaked.
 - **Revocation** (RFC 7009) of a refresh token ends the connection's tokens; of an access token, that token. An unknown token
-  is not an error.
+  is not an error, and neither is another client's: when the caller names a `client_id` the token must be that client's,
+  otherwise nothing happens and the answer is the same. A caller that names none is judged by holding the token.
+- **A connection outlives its maker's role**, as an API key does (ADR-0011): if the person who approved it is later
+  demoted, it keeps the scopes it was given until someone disconnects it. Removing the member offers to disconnect
+  their assistants. Revoking on a role change would be the alternative; it is not built.
 - **Audience.** `McpCredentials` is a policy scheme: a `Bearer sho_` token goes to `OAuthAuthenticationHandler`, anything else
   to the API key handler. Only the three `mcp*` policies use it, and the hiring API's key handler refuses an `sho_` token,
   so an OAuth token works on the MCP endpoint and nowhere else. The handler counts failures against the address in the key

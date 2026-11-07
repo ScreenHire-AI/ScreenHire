@@ -187,8 +187,8 @@ internal sealed class OAuthClientApp : IDisposable
     public Task<RawResult> RefreshAsync(string clientId, string refreshToken, string? resource = null) =>
         TokenAsync(Form(("grant_type", "refresh_token"), ("refresh_token", refreshToken), ("client_id", clientId), ("resource", resource)));
 
-    public Task<RawResult> RevokeAsync(string token) =>
-        SendAsync(HttpMethod.Post, "/v1/oauth/revoke", new FormUrlEncodedContent(Form(("token", token))));
+    public Task<RawResult> RevokeAsync(string token, string? clientId = null) =>
+        SendAsync(HttpMethod.Post, "/v1/oauth/revoke", new FormUrlEncodedContent(Form(("token", token), ("client_id", clientId))));
 
     // ---- Calling the API with a token ----
 

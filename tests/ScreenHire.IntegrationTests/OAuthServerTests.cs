@@ -622,6 +622,24 @@ public sealed class OAuthServerTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task Revoking_with_another_clients_id_leaves_the_token_alone_and_with_its_own_id_ends_it()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var app = new OAuthClientApp(fixture);
+        var ours = await owner.ConnectAsync(app, "Claude", ["Read"]);
+        var theirs = await owner.ConnectAsync(app, "Another assistant", ["Read"]);
+
+        // Same answer either way, so the endpoint says nothing about whose token it is.
+        (await app.RevokeAsync(ours.AccessToken, theirs.Request.ClientId)).Expect(HttpStatusCode.OK);
+        (await app.RevokeAsync(ours.RefreshToken, theirs.Request.ClientId)).Expect(HttpStatusCode.OK);
+        (await app.McpAsync(ours.AccessToken)).Status.Should().Be(HttpStatusCode.OK, "another client cannot revoke it");
+        (await app.RefreshAsync(ours.Request.ClientId, ours.RefreshToken)).Expect(HttpStatusCode.OK);
+
+        (await app.RevokeAsync(theirs.AccessToken, theirs.Request.ClientId)).Expect(HttpStatusCode.OK);
+        (await app.McpAsync(theirs.AccessToken)).Status.Should().Be(HttpStatusCode.Unauthorized, "its own client can");
+    }
+
+    [Fact]
     public async Task Revoking_a_refresh_token_ends_the_connections_tokens_and_revoking_an_access_token_ends_that_token()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();

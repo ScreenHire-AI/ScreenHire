@@ -28,7 +28,7 @@
     Read: { title: 'Read', opens: () => 'Read jobs, candidates, applications, reports and saved candidates.' },
     Write: {
       title: 'Write',
-      opens: (client) => `Add notes, tags and tasks and move candidates between stages. Everything it does shows in the activity under ${client}.`,
+      opens: (client) => `Add notes, tags and tasks and move candidates between stages. It moves a candidate to Rejected only when you ask. Everything it does shows in the activity under ${client}.`,
     },
     VerificationRead: {
       title: 'Verification read',
