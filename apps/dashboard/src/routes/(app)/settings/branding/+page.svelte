@@ -220,7 +220,7 @@
               <p class="sr-only" role="status">Loading the branding…</p>
             </Panel>
             <Panel title="Heading font">
-              <div aria-hidden="true" class="grid gap-2 @sm:grid-cols-3">
+              <div aria-hidden="true" class="grid gap-2 @md:grid-cols-2">
                 {#each Array.from({ length: 6 }, (_, index) => index) as index (index)}<Skeleton class="h-14 w-full" />{/each}
               </div>
             </Panel>
@@ -273,7 +273,7 @@
 
               <Panel title="Heading font">
                 <div class="@container">
-                  <div role="radiogroup" aria-label="Heading font" class="grid gap-2 @md:grid-cols-2 @[30rem]:grid-cols-3">
+                  <div role="radiogroup" aria-label="Heading font" class="grid gap-2 @md:grid-cols-2 @[40rem]:grid-cols-3">
                     {#each fonts as font (font.value)}
                       <label
                         class="flex items-start gap-2 rounded-lg border border-input p-2.5 has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring"
