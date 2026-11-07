@@ -295,7 +295,8 @@ there is no email provider (shown until that answer says so, and kept when the r
 Hiring controls show by the permission their route needs: an Interviewer sees Add note and Fill scorecard but no Move.
 The Team page offers only what `TeamPolicy` allows (`settings.ts` mirrors it): an Admin sees no Owner role and no actions
 on an Owner's row, and nobody gets actions on their own row. Removing a member offers to revoke the active API keys they
-created as well, for a role that manages keys (ADR-0011). The API stays the judge.
+created as well, for a role that manages keys (ADR-0011), and always disconnects the assistants they connected (ADR-0028).
+The API stays the judge.
 
 ### Roles
 

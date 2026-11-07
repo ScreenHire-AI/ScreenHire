@@ -74,7 +74,7 @@ reads and change history all work unchanged: the assistant shows in activity und
   earlier connections in the organization to an assistant with the same name and redirect addresses.
 - **Integrations > MCP server lists them** with who connected each, access and last use. An Owner or Admin disconnects one
   (`POST /v1/organization/oauth-connections/{id}/revoke`); the row stays, marked revoked. The API keys page lists no
-  connection. Removing a member offers to disconnect the assistants they connected.
+  connection. Removing a member disconnects the assistants they connected.
 
 ## Tokens
 
