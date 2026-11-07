@@ -285,7 +285,7 @@ An offer is not a change to the booking, so it leaves `StartsAt`, `Revision`, th
 just after a booking must not turn the booking's still-queued `CreateInterviewEvents` into a no-op. The old time stays held
 for the same reason a booking is: its row is still Booked, so nobody else is offered it, and its events are still on the
 calendars. The interview keeps its reminders too, because they are about the booked time. If the candidate never picks, the
-interview stays at that time. The end of the offered days ends the offer: nothing is left to pick, so the page and the panel
+interview stays at that time. The end of the offered days ends the offer. Nothing is left to pick, so the page and the panel
 stop saying new times wait, and the usual notice applies again (`HasPendingNewTimes`).
 
 While an offer is pending the candidate may move or cancel the interview whatever the minimum notice, even after the old
@@ -355,7 +355,7 @@ the job cannot book, move or cancel.
 
 | Route | What it does |
 |---|---|
-| `GET ?tz=` | State (`Open`, `Booked`, `Cancelled`, `Expired`), employer, job title, the booked time, the zone, the length, the offered times as UTC instants (for an Open interview, and for a Booked one the candidate can still change), `canChange`, `minNoticeHours` and `newTimesOffered` (the team offered new times and the booked time stays until the candidate picks one). `slotsUnavailable` is true when a calendar cannot be read. It names no interviewer. |
+| `GET ?tz=` | State (`Open`, `Booked`, `Cancelled`, `Expired`), employer, job title, the booked time, the zone, the length, the offered times as UTC instants (for an Open interview, and for a Booked one the candidate can still change), `canChange`, `minNoticeHours` and `newTimesOffered` (the team offered new times and the booked time stays until the candidate picks one, until the offered days end). `slotsUnavailable` is true when a calendar cannot be read. It names no interviewer. |
 | `POST /book` `{start}` | Open to Booked. 204. |
 | `POST /reschedule` `{start}` | Moves a Booked interview. 204. |
 | `POST /cancel` | Cancels an Open or Booked interview. 204. |

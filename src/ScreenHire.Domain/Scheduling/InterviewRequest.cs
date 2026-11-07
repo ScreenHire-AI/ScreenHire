@@ -331,8 +331,8 @@ public sealed class InterviewRequest : IApplicationScoped
     }
 
     /// <summary>
-    /// Whether the team's offer of new times still waits for the candidate at <paramref name="now"/>. The offered days end it:
-    /// after them there is nothing left to pick, and the booked time stands.
+    /// Whether the team's offer of new times still waits for the candidate at <paramref name="now"/>. The offered days end it.
+    /// After them there is nothing left to pick, and the booked time stands.
     /// </summary>
     public bool HasPendingNewTimes(DateTimeOffset now) =>
         Status == InterviewStatus.Booked && NewTimesOfferedAt is not null && now < WindowEnd;
