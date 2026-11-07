@@ -857,8 +857,9 @@ export const GetPublicInterviewResponse = zod.object({
   "slots": zod.array(zod.iso.datetime({"offset":true})),
   "slotsUnavailable": zod.boolean(),
   "canChange": zod.boolean(),
-  "minNoticeHours": zod.int()
-}).describe('The interview as the candidate\'s page shows it. `slots` are the start times offered, as UTC instants in order, each\n`durationMinutes` long: for an Open interview, and for a Booked one the candidate may still change. The page writes\nthem in `timeZone` (the `tz` asked for when it is a zone the server knows, otherwise `defaultTimeZone`,\nthe zone the team chose). `slotsUnavailable` is true when the team\'s calendars could not be read just now, so no\ntimes are offered; trying again later may work. `minNoticeHours` is how long before the start the candidate can\nstill move or cancel. Nothing about the interviewers, and nothing from verification.')
+  "minNoticeHours": zod.int(),
+  "newTimesOffered": zod.boolean()
+}).describe('The interview as the candidate\'s page shows it. `slots` are the start times offered, as UTC instants in order, each\n`durationMinutes` long: for an Open interview, and for a Booked one the candidate may still change. The page writes\nthem in `timeZone` (the `tz` asked for when it is a zone the server knows, otherwise `defaultTimeZone`,\nthe zone the team chose). `slotsUnavailable` is true when the team\'s calendars could not be read just now, so no\ntimes are offered; trying again later may work. `minNoticeHours` is how long before the start the candidate can\nstill move or cancel. `newTimesOffered` is true while the team\'s offer of new times waits for the candidate: the\nbooked time stays until they pick, and they may move or cancel it whatever the notice, until the offered days end.\nNothing about the interviewers, and nothing from verification.')
 
 
 export const BookPublicInterviewParams = zod.object({
@@ -4406,7 +4407,7 @@ export const GetApplicationTimelineParams = zod.object({
 
 export const GetApplicationTimelineResponseItem = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'EmailReceived']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'InterviewNewTimesOffered', 'EmailReceived']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -4447,7 +4448,7 @@ export const AddApplicationNoteBody = zod.object({
 
 export const AddApplicationNoteResponse = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'EmailReceived']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'InterviewNewTimesOffered', 'EmailReceived']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -4848,7 +4849,7 @@ export const GetCandidateHistoryResponseItem = zod.object({
   "jobTitle": zod.string(),
   "entry": zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'EmailReceived']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'InterviewNewTimesOffered', 'EmailReceived']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -8789,8 +8790,9 @@ export const ScheduleInterviewResponse = zod.object({
 }).describe('One interviewer on an interview and the state of their calendar event. `syncStatus` is `Pending` (not on the\ncalendar yet, or being changed), `Synced` or `Failed`; `syncProblem` says why in plain words when it\nfailed. `displayName` is "Former member" for someone who left the organization.')),
   "createdAt": zod.iso.datetime({"offset":true}),
   "createdByUserId": zod.uuid().nullable(),
-  "cancelledByCandidate": zod.boolean()
-}).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.')
+  "cancelledByCandidate": zod.boolean(),
+  "newTimesOfferedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.\n`newTimesOfferedAt` is set while the team\'s offer of new times for a booked interview waits for the candidate: the\nbooked time (`startsAt`) stays held, and `windowStart` and `windowEnd` are the new window. The end of that\nwindow ends the offer.')
 
 
 export const ListApplicationInterviewsParams = zod.object({
@@ -8818,8 +8820,9 @@ export const ListApplicationInterviewsResponseItem = zod.object({
 }).describe('One interviewer on an interview and the state of their calendar event. `syncStatus` is `Pending` (not on the\ncalendar yet, or being changed), `Synced` or `Failed`; `syncProblem` says why in plain words when it\nfailed. `displayName` is "Former member" for someone who left the organization.')),
   "createdAt": zod.iso.datetime({"offset":true}),
   "createdByUserId": zod.uuid().nullable(),
-  "cancelledByCandidate": zod.boolean()
-}).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.')
+  "cancelledByCandidate": zod.boolean(),
+  "newTimesOfferedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.\n`newTimesOfferedAt` is set while the team\'s offer of new times for a booked interview waits for the candidate: the\nbooked time (`startsAt`) stays held, and `windowStart` and `windowEnd` are the new window. The end of that\nwindow ends the offer.')
 export const ListApplicationInterviewsResponse = zod.array(ListApplicationInterviewsResponseItem)
 
 
@@ -8848,8 +8851,44 @@ export const CancelInterviewResponse = zod.object({
 }).describe('One interviewer on an interview and the state of their calendar event. `syncStatus` is `Pending` (not on the\ncalendar yet, or being changed), `Synced` or `Failed`; `syncProblem` says why in plain words when it\nfailed. `displayName` is "Former member" for someone who left the organization.')),
   "createdAt": zod.iso.datetime({"offset":true}),
   "createdByUserId": zod.uuid().nullable(),
-  "cancelledByCandidate": zod.boolean()
-}).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.')
+  "cancelledByCandidate": zod.boolean(),
+  "newTimesOfferedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.\n`newTimesOfferedAt` is set while the team\'s offer of new times for a booked interview waits for the candidate: the\nbooked time (`startsAt`) stays held, and `windowStart` and `windowEnd` are the new window. The end of that\nwindow ends the offer.')
+
+
+export const OfferNewInterviewTimesParams = zod.object({
+  "interviewId": zod.uuid()
+})
+
+export const OfferNewInterviewTimesBody = zod.object({
+  "windowStart": zod.iso.datetime({"offset":true}),
+  "windowEnd": zod.iso.datetime({"offset":true})
+}).describe('Offers the candidate new times for a booked interview: they pick from `windowStart` to `windowEnd` (at most 90\ndays), in the interview\'s own length, working hours and zone. The booked time stays held until they pick, and the\nevents in every calendar then move. Offering again replaces the window.')
+
+export const OfferNewInterviewTimesResponse = zod.object({
+  "id": zod.uuid(),
+  "status": zod.enum(['Open', 'Booked', 'Cancelled', 'Expired']),
+  "startsAt": zod.iso.datetime({"offset":true}).nullable(),
+  "endsAt": zod.iso.datetime({"offset":true}).nullable(),
+  "windowStart": zod.iso.datetime({"offset":true}),
+  "windowEnd": zod.iso.datetime({"offset":true}),
+  "timeZone": zod.string(),
+  "durationMinutes": zod.int(),
+  "dayStart": zod.string(),
+  "dayEnd": zod.string(),
+  "meetingUrl": zod.string().nullable(),
+  "interviewers": zod.array(zod.object({
+  "userId": zod.uuid(),
+  "displayName": zod.string(),
+  "isOrganizer": zod.boolean(),
+  "syncStatus": zod.enum(['Pending', 'Synced', 'Failed']).describe('Where one interviewer\'s calendar event stands.'),
+  "syncProblem": zod.string().nullable()
+}).describe('One interviewer on an interview and the state of their calendar event. `syncStatus` is `Pending` (not on the\ncalendar yet, or being changed), `Synced` or `Failed`; `syncProblem` says why in plain words when it\nfailed. `displayName` is "Former member" for someone who left the organization.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "createdByUserId": zod.uuid().nullable(),
+  "cancelledByCandidate": zod.boolean(),
+  "newTimesOfferedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.\n`newTimesOfferedAt` is set while the team\'s offer of new times for a booked interview waits for the candidate: the\nbooked time (`startsAt`) stays held, and `windowStart` and `windowEnd` are the new window. The end of that\nwindow ends the offer.')
 
 
 export const listEmailTemplatesResponseTemplatesItemLastUpdatedCreatedDefault = false;

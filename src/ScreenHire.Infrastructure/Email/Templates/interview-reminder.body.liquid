@@ -1,0 +1,5 @@
+<p>Hi {{ firstName }},</p>
+<p>A reminder that your conversation about {{ jobTitle }} at {{ organizationName }} is coming up: {{ interviewTime }}.</p>
+{% if meetingLink != blank %}<p>Join here: {{ meetingLink }}</p>{% endif %}
+<p>If the time no longer works, you can pick another or cancel here: {{ manageLink }}</p>
+<p>{{ organizationName }}</p>

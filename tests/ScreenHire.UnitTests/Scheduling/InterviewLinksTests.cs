@@ -96,6 +96,21 @@ public sealed class InterviewLinksTests
     }
 
     [Fact]
+    public void A_token_reads_past_a_booked_time_that_is_later_than_the_offered_window()
+    {
+        var links = Links();
+        var booked = DateTimeOffset.UtcNow.AddDays(-60);
+        var interview = InterviewRequest.Create(Application(), 30, booked.AddDays(1), booked.AddDays(80), "UTC", null, booked);
+        interview.Book(DateTimeOffset.UtcNow.AddDays(10), booked);
+
+        // New days that ended long ago: the reminders for the booked time still link to the page.
+        interview.OfferNewTimes(booked.AddDays(2), booked.AddDays(5), booked.AddDays(1));
+
+        (interview.WindowEnd + InterviewLinks.Grace).Should().BeBefore(DateTimeOffset.UtcNow);
+        links.Read(links.Issue(interview)).Should().NotBeNull();
+    }
+
+    [Fact]
     public void The_link_is_the_interview_page_on_the_organizations_careers_board()
     {
         Links().Url("acme", "TOKEN").Should().Be("https://acme.careers.example.com/interviews/TOKEN");

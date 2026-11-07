@@ -136,6 +136,7 @@ import type {
   MembershipLogEntry,
   MoveApplicationRequest,
   MyOrganization,
+  OfferNewInterviewTimesRequest,
   OnboardingRequest,
   OrganizationBranding,
   OrganizationProfile,
@@ -21060,6 +21061,126 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getCancelInterviewMutationOptions(options?.()) }), queryClient);
+    }
+
+export type offerNewInterviewTimesResponse200 = {
+  data: ApplicationInterview
+  status: 200
+}
+
+export type offerNewInterviewTimesResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type offerNewInterviewTimesResponse401 = {
+  data: void
+  status: 401
+}
+
+export type offerNewInterviewTimesResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type offerNewInterviewTimesResponse404 = {
+  data: void
+  status: 404
+}
+
+export type offerNewInterviewTimesResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type offerNewInterviewTimesResponseSuccess = (offerNewInterviewTimesResponse200) & {
+  headers: Headers;
+};
+export type offerNewInterviewTimesResponseError = (offerNewInterviewTimesResponse400 | offerNewInterviewTimesResponse401 | offerNewInterviewTimesResponse403 | offerNewInterviewTimesResponse404 | offerNewInterviewTimesResponse409) & {
+  headers: Headers;
+};
+
+export const getOfferNewInterviewTimesUrl = (interviewId: string,) => {
+
+
+
+
+  return `/v1/interviews/${interviewId}/new-times`
+}
+
+export const offerNewInterviewTimes = async (interviewId: string,
+    offerNewInterviewTimesRequest: OfferNewInterviewTimesRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<offerNewInterviewTimesResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<offerNewInterviewTimesResponseSuccess>(getOfferNewInterviewTimesUrl(interviewId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(offerNewInterviewTimesRequest)
+  }
+);}
+
+
+
+
+
+export const getOfferNewInterviewTimesMutationKey = () => ['offerNewInterviewTimes'] as const;
+
+export const getOfferNewInterviewTimesMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof offerNewInterviewTimes>>, TError,OfferNewInterviewTimesMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof offerNewInterviewTimes>>, TError,OfferNewInterviewTimesMutationVariables, TContext> => {
+
+const mutationKey = getOfferNewInterviewTimesMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof offerNewInterviewTimes>>, OfferNewInterviewTimesMutationVariables> = (props) => {
+          const {interviewId,data} = props ?? {};
+
+          return  offerNewInterviewTimes(interviewId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type OfferNewInterviewTimesMutationResult = NonNullable<Awaited<ReturnType<typeof offerNewInterviewTimes>>>
+    export type OfferNewInterviewTimesMutationBody = OfferNewInterviewTimesRequest
+    export type OfferNewInterviewTimesMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type OfferNewInterviewTimesMutationVariables = {interviewId: string;data: OfferNewInterviewTimesRequest}
+
+    export const createOfferNewInterviewTimes = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof offerNewInterviewTimes>>, TError,OfferNewInterviewTimesMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof offerNewInterviewTimes>>,
+        TError,
+        OfferNewInterviewTimesMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getOfferNewInterviewTimesMutationOptions(options?.()) }), queryClient);
     }
 
 export type listEmailTemplatesResponse200 = {

@@ -10,7 +10,9 @@
   // interviews and the meeting link while it is booked, the days the candidate can choose from while it waits, or how it
   // ended. The time of a booked interview is the header's one fact and is not said again here (W7). Split from the panel so the
   // style guide can draw each state without the data behind it.
-  let { interview }: { interview: ApplicationInterview } = $props();
+  let { interview, candidateName }: { interview: ApplicationInterview; candidateName?: string } = $props();
+
+  const candidate = $derived(candidateName ?? 'the candidate');
 
   const firstName = (name: string) => name.split(' ')[0] ?? name;
   // A window's last day: its end is the start of the day after.
@@ -32,6 +34,15 @@
 {:else if interview.status === 'Booked'}
   <div class="flex flex-col items-start gap-4">
     <StatusBadge status="booked" label="Booked" />
+    {#if interview.newTimesOfferedAt}
+      <!-- The booked time stays held until the candidate picks one of the new times, so this says what is being waited for. -->
+      <div class="flex flex-col items-start gap-1.5">
+        <StatusBadge status="waiting" label="Waiting for a new time" />
+        <p class="text-muted-foreground">
+          The booked time stays until {candidate} picks one. New times from {formatDateIn(interview.windowStart, interview.timeZone)} to {lastDay(interview)}.
+        </p>
+      </div>
+    {/if}
     <ul aria-label="Interviewers" class="flex flex-col gap-3">
       {#each interview.interviewers as person (person.userId)}
         <li class="flex min-w-0 flex-col gap-0.5">

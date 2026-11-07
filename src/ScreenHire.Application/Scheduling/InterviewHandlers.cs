@@ -209,11 +209,11 @@ internal static partial class InterviewCalendarSync
                     CreateMeetingLink: attendee.IsOrganizer);
 
                 // A create that rolled back after the provider answered left an event with no saved id, at the old time.
-                // Creating again would only find that event there, so a move looks for it first, across the whole window.
+                // Creating again would only find that event there, so a move looks for it first, across the lookup span (every window the interview has had).
                 var eventId = attendee.ProviderEventId;
                 if (move)
                 {
-                    eventId ??= await session.Provider.FindEventIdAsync(session.AccessToken, spec.IdempotencyId, interview.WindowStart, interview.WindowEnd, cancellationToken);
+                    eventId ??= await session.Provider.FindEventIdAsync(session.AccessToken, spec.IdempotencyId, interview.LookupStart, interview.LookupEnd, cancellationToken);
                 }
 
                 var result = move && eventId is not null
@@ -246,6 +246,13 @@ internal static partial class InterviewCalendarSync
             };
             await SendAsync(db, email, renderer, headers, organization, application, candidate, template, EmailTemplateIds.InterviewConfirmation, model, sendId, now, cancellationToken);
             outgoing.Add(new ApplicationEmailed(application.OrganizationId, application.Id, application.JobId, sendId, now));
+        }
+
+        // The reminders are about this time, not this revision: they check the interview is still Booked at `start` when they
+        // go, so a later move or cancellation makes them harmless, and the move's own message schedules the new ones.
+        foreach (var (kind, at) in InterviewText.Reminders(start, now))
+        {
+            outgoing.Schedule(new SendInterviewReminder(application.OrganizationId, application.Id, interviewId, start, kind), at);
         }
 
         outgoing.Add(new InterviewChanged(application.OrganizationId, application.Id, application.JobId, interviewId, interview.Status.ToString()));
@@ -283,7 +290,7 @@ internal static partial class InterviewCalendarSync
         var (interview, application, job, candidate, organization) = context;
         var attendees = await LoadAttendeesAsync(db, interviewId, cancellationToken);
         // An event may exist with no saved id only when the interview was booked. It can sit at any time the interview had,
-        // so the look-up covers the whole window.
+        // so the look-up covers the lookup span (every window the interview has had).
         var wasBooked = interview.StartsAt is not null;
         foreach (var attendee in attendees.Where(a => a.SyncStatus != InterviewSyncStatus.Synced && (a.ProviderEventId is not null || wasBooked)))
         {
@@ -300,7 +307,7 @@ internal static partial class InterviewCalendarSync
             try
             {
                 var eventId = attendee.ProviderEventId ?? await session.Provider.FindEventIdAsync(
-                    session.AccessToken, InterviewText.EventIdempotencyId(interviewId, attendee.UserId), interview.WindowStart, interview.WindowEnd, cancellationToken);
+                    session.AccessToken, InterviewText.EventIdempotencyId(interviewId, attendee.UserId), interview.LookupStart, interview.LookupEnd, cancellationToken);
                 if (eventId is null)
                 {
                     continue;
@@ -346,7 +353,7 @@ internal static partial class InterviewCalendarSync
         }
     }
 
-    private static async Task SendAsync(
+    internal static async Task SendAsync(
         ScreenHireDbContext db,
         TransactionalEmail email,
         EmailTemplates renderer,

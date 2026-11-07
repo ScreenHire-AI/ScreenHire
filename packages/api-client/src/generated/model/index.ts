@@ -216,6 +216,7 @@ export * from './membershipEventKind.ts';
 export * from './membershipLogEntry.ts';
 export * from './moveApplicationRequest.ts';
 export * from './myOrganization.ts';
+export * from './offerNewInterviewTimesRequest.ts';
 export * from './onboardingRequest.ts';
 export * from './organizationBranding.ts';
 export * from './organizationProfile.ts';

@@ -240,6 +240,11 @@ nothing.
   recurring messages back it up: `ReconcileJobPostings` every five minutes and `DispatchIndexingNotifications` every
   minute. Both walk the organizations and hand each organization's work to an `ITenantMessage`, which runs as that
   organization.
+- **Interview reminders** ([interview-scheduling.md](interview-scheduling.md), "Reminders"). The handlers that write a booked
+  interview's calendar events schedule two `SendInterviewReminder` messages as cascading messages (`OutgoingMessages.Schedule`),
+  a day and an hour before the start, so they commit with the events. The message names the start time, and its handler
+  sends only while the interview is still Booked at that time, which makes a move or a cancellation harmless without
+  looking for the old message to delete. The key is the interview, the start and the kind.
 - **Webhook subscriptions** (workflow-engine.md §5) schedule their own retries. A failed attempt records itself on its
   delivery row and returns the next `DeliverWebhook` as a scheduled cascading message. Throwing into the error policy
   instead would roll back the attempt it should record. The delays come from `ScreenHire:Webhooks:RetryDelays`.

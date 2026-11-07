@@ -23,6 +23,10 @@ sources:
   - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-confirmation.subject.liquid
   - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-cancelled.body.liquid
   - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-cancelled.subject.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-new-times.body.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-new-times.subject.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-reminder.body.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-reminder.subject.liquid
   - resource: src/ScreenHire.Application/Applications/SendApplicationEmail.cs
   - resource: src/ScreenHire.Domain/Applications/ApplicationEmail.cs
   - resource: apps/api/Endpoints/EmailEndpoints.cs
@@ -75,8 +79,8 @@ There are two kinds, both listed by `GET /v1/email-templates` and edited on the 
 (`/templates/emails/{id}`; the old `/settings/email-templates` addresses redirect there):
 
 - **Built-in.** `application-received`, `stage-change`, `questionnaire-request`, `application-rejected`,
-  `talent-pool-invitation` and the three interview emails `interview-invitation`, `interview-confirmation` and
-  `interview-cancelled` (`EmailTemplateIds`). ScreenHire's
+  `talent-pool-invitation` and the five interview emails `interview-invitation`, `interview-confirmation`,
+  `interview-cancelled`, `interview-new-times` and `interview-reminder` (`EmailTemplateIds`). ScreenHire's
   wording lives in `src/ScreenHire.Infrastructure/Email/Templates` (`{id}.subject.liquid`, `{id}.body.liquid`). An
   organization that edits one gets an `email_templates` row with `built_in_id` set; deleting the row restores
   ScreenHire's wording: the dashboard calls this Reset to original, and asks first. A built-in keeps its name and is
@@ -120,7 +124,10 @@ carries, and a template cannot add one. The rendered subject is one line, cut at
   `{{ bookingLink }}` and may use `{{ interviewLength }}`. `interview-confirmation` must use `{{ interviewTime }}` and
   `{{ manageLink }}` and may use `{{ meetingLink }}` (empty until the organizer's calendar event has one, so wrap it in
   `{% if meetingLink != blank %}`) and `{{ interviewLength }}`. `interview-cancelled` may use `{{ interviewTime }}`, which
-  is empty when the offer was withdrawn before a time was booked. The worker writes `interviewTime` from the instant and
+  is empty when the offer was withdrawn before a time was booked. `interview-new-times` must use `{{ bookingLink }}` and may use
+  `{{ interviewTime }}` (the time that stays until the candidate picks) and `{{ interviewLength }}`. `interview-reminder` is sent
+  a day and an hour before a booked interview and must use `{{ interviewTime }}` and `{{ manageLink }}`; it may use
+  `{{ meetingLink }}`. The worker writes `interviewTime` from the instant and
   the interview's time zone (`Tuesday, November 3, 2026, 10:00 AM to 10:30 AM (Europe/London)`); the API never sends formatted
   dates. The copy the team keeps hides the candidate's own link, as the follow-up questions email does.
 

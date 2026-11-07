@@ -46,6 +46,7 @@ public sealed partial class RolePermissionsTests
         ["ListInterviewers"] = Permission.EmailCandidates,
         ["ScheduleInterview"] = Permission.EmailCandidates,
         ["CancelInterview"] = Permission.EmailCandidates,
+        ["OfferNewInterviewTimes"] = Permission.EmailCandidates,
         ["SubmitScorecard"] = Permission.FillInScorecards,
         ["RequestScorecard"] = Permission.CreateTasks,
         ["DismissVerificationAssessment"] = Permission.ReviewVerification,
