@@ -902,7 +902,7 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   scorecard reads only, says why and offers Copy (E3), with no History. Built-in emails stay editable in place. A
   publish or save says how far it reaches in the notice beside it ("Published version 2. Jobs created from now on
   start from it."). In the hiring template's Pipeline tab each stage's Edit automations, Choose scorecard and Remove
-  stage are its row's More menu (L2); a hiring template that reads only (built in, archived or a published version) has the Stage flow there instead. An empty Emails tab offers New template as a
+  stage are its row's More menu (L2); a hiring template that reads only (built in, archived, a published version, or one you may not edit) has the Stage flow there instead. An empty Emails tab offers New template as a
   link to the new-email page. A pop-out preview window with no editor behind it (a reload, an editor that closed) says
   so in one line instead of loading for ever.
 - **Settings:** one sidebar item with its own menu (section 11). Careers branding becomes Branding, and email
