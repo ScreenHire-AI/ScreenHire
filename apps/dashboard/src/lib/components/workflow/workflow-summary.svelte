@@ -7,17 +7,17 @@
   import Panel from '#lib/components/panel.svelte';
   import PreviewFrame from '#lib/components/preview-frame.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
-  import StepLine from '#lib/components/step-line.svelte';
   import StepMarker from '#lib/components/step-marker.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
   import type { Question } from '@screenhire/api-client';
-  import { aiUseLabels, emailTemplateNames, followUpsOf, isTerminal, questionTypeLabels, stageKindLabels, summarize } from '#lib/workflow.js';
+  import { aiUseLabels, emailTemplateNames, followUpsOf, isTerminal, questionTypeLabels, summarize } from '#lib/workflow.js';
   import { rowClass } from './controls.js';
   import ProblemsPanel from './problems-panel.svelte';
   import QuestionnairePreview from './questionnaire-preview.svelte';
   import ScorecardName from './scorecard-name.svelte';
   import SimulatePanel from './simulate-panel.svelte';
+  import StageFlow from './stage-flow.svelte';
   import WorkflowGraph from './workflow-graph.svelte';
 
   // A workflow that cannot be edited here (a ScreenHire template, a published version, a closed job's), read as content
@@ -39,7 +39,6 @@
   const questionsPerPage = $derived(organization.data?.data.questionsPerPage ?? DEFAULT_QUESTIONS_PER_PAGE);
   const followUps = $derived(followUpsOf(workflow));
   const scored = $derived(workflow.stages.filter((stage) => stage.scorecard || stage.scorecardTemplateId));
-  const days = (count: number) => `${count}-day limit`;
   let mode = $state<'edit' | 'preview'>('edit');
 </script>
 
@@ -55,19 +54,9 @@
 
 <Tabs.Content value="pipeline">
   <div class="flex flex-wrap items-start gap-5">
-    <Panel title="Stages" count={workflow.stages.length} footer={ends.length > 0 ? endStages : undefined} class="flex-[1_1_320px]">
-      <StepLine items={steps} label="Stages in order" key={(stage) => stage.id}>
-        {#snippet children(stage)}
-          <span class="font-semibold break-words">{stage.name}</span>
-          <!-- A kind that only repeats the stage's name is said once (W4). -->
-          {#if stageKindLabels[stage.kind] !== stage.name || stage.slaDays}
-            <span class="flex flex-wrap gap-1.5">
-              {#if stageKindLabels[stage.kind] !== stage.name}<Badge variant="muted">{stageKindLabels[stage.kind]}</Badge>{/if}
-              {#if stage.slaDays}<Badge variant="muted" class="tabular-nums">{days(stage.slaDays)}</Badge>{/if}
-            </span>
-          {/if}
-        {/snippet}
-      </StepLine>
+    <!-- A row of its own, so the stages have the page's width to sit side by side in. -->
+    <Panel title="Stages" count={workflow.stages.length} footer={ends.length > 0 ? endStages : undefined} class="flex-[1_1_100%]">
+      <StageFlow stages={steps} automations={workflow.automations} />
     </Panel>
 
     <Panel title="Automations" count={workflow.automations.length} class="flex-[999_1_520px]">
