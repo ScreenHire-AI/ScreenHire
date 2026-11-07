@@ -4,9 +4,9 @@ using Microsoft.Extensions.Options;
 namespace ScreenHire.Application.Billing;
 
 /// <summary>
-/// Billing settings, <c>ScreenHire:Billing</c> (docs/architecture/billing.md). The AppHost gives the API and the worker the
-/// same values. Nothing here is on until configured: with no Stripe keys and no sandbox, billing is hidden, there is no
-/// trial and no plan limits anything.
+/// Billing settings, <c>ScreenHire:Billing</c> (docs/architecture/billing.md), which the AppHost forwards to the API. Nothing
+/// here is on until configured: with no Stripe keys and no sandbox, billing is hidden, there is no trial and no plan limits
+/// anything.
 /// </summary>
 public sealed class BillingOptions
 {
@@ -52,10 +52,10 @@ public sealed class BillingSandboxOptions
 
 public sealed class BillingTrialOptions
 {
-    /// <summary>How long a new organization's trial lasts.</summary>
+    /// <summary>How long a new organization's trial lasts, in days. Zero means no trial.</summary>
     public int Days { get; set; } = 14;
 
-    /// <summary>The plan whose limit applies during the trial.</summary>
+    /// <summary>The plan whose limit applies during the trial: a key of the catalogue.</summary>
     public string Plan { get; set; } = "growth";
 }
 
@@ -104,5 +104,30 @@ public sealed class BillingSandboxGate(IHostEnvironment environment) : IValidate
         return options.Mode == BillingMode.Sandbox && !environment.IsDevelopment()
             ? ValidateOptionsResult.Fail("ScreenHire:Billing:Sandbox:Enabled is true outside Development. The sandbox checkout charges nobody and is for local runs and tests only.")
             : ValidateOptionsResult.Success;
+    }
+}
+
+/// <summary>
+/// Refuses to start a host with a trial setting that would fail silently once billing is on: a negative length ends every
+/// new organization's trial before it starts, and a plan key the catalogue does not have makes every trial unlimited.
+/// </summary>
+public sealed class BillingTrialGate : IValidateOptions<BillingOptions>
+{
+    public ValidateOptionsResult Validate(string? name, BillingOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (options.Mode == BillingMode.Off)
+        {
+            return ValidateOptionsResult.Success;
+        }
+
+        if (options.Trial.Days < 0)
+        {
+            return ValidateOptionsResult.Fail($"ScreenHire:Billing:Trial:Days is {options.Trial.Days}. It must be 0 or more.");
+        }
+
+        return PlanCatalogue.IsKnown(options.Trial.Plan)
+            ? ValidateOptionsResult.Success
+            : ValidateOptionsResult.Fail($"ScreenHire:Billing:Trial:Plan is '{options.Trial.Plan}', which is not a plan in packages/plans/plans.json.");
     }
 }

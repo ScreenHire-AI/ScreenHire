@@ -28,6 +28,9 @@ public sealed class PlanCatalogue(IOptions<BillingOptions> options)
 
     public IReadOnlyList<Plan> Plans => Merge(options.Value.Plans);
 
+    /// <summary>Whether <paramref name="key"/> is a plan in the catalogue. Static, for the check of the options this class reads.</summary>
+    public static bool IsKnown(string key) => Defaults.Value.ContainsKey(key);
+
     public Plan? Find(string? key) =>
         key is null ? null : Plans.FirstOrDefault(p => string.Equals(p.Key, key, StringComparison.OrdinalIgnoreCase));
 

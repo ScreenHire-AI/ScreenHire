@@ -36,12 +36,13 @@ public sealed record BillingChanged(Guid OrganizationId) : ITenantEvent;
 
 public static class BillingRegistration
 {
-    /// <summary>Billing's services, the same in the API and the worker. The mode is read per call, from <see cref="BillingOptions"/>.</summary>
+    /// <summary>Billing's services, for the API. The mode is read per call, from <see cref="BillingOptions"/>.</summary>
     public static IServiceCollection AddScreenHireBilling(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
         services.AddOptions<BillingOptions>().BindConfiguration(BillingOptions.Section).ValidateOnStart();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<BillingOptions>, BillingSandboxGate>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<BillingOptions>, BillingTrialGate>());
         services.TryAddSingleton<PlanCatalogue>();
         services.TryAddSingleton<StripeBillingProvider>();
         services.TryAddSingleton<SandboxBillingProvider>();

@@ -75,6 +75,41 @@ public sealed class BillingOptionsTests
         gate.Validate(null, new BillingOptions()).Succeeded.Should().BeTrue();
     }
 
+    [Fact]
+    public void A_negative_trial_is_refused_because_every_new_organization_would_start_ended()
+    {
+        var result = new BillingTrialGate().Validate(null, Sandboxed(new BillingTrialOptions { Days = -1 }));
+
+        result.Failed.Should().BeTrue();
+        result.FailureMessage.Should().Contain("Trial:Days");
+    }
+
+    [Fact]
+    public void A_trial_plan_the_catalogue_does_not_have_is_refused_because_every_trial_would_be_unlimited()
+    {
+        var result = new BillingTrialGate().Validate(null, Sandboxed(new BillingTrialOptions { Plan = "grwoth" }));
+
+        result.Failed.Should().BeTrue();
+        result.FailureMessage.Should().Contain("Trial:Plan").And.Contain("grwoth");
+    }
+
+    [Theory]
+    [InlineData(0, "starter")]
+    [InlineData(14, "GROWTH")]
+    public void No_trial_and_any_catalogue_plan_in_any_case_start(int days, string plan)
+    {
+        new BillingTrialGate().Validate(null, Sandboxed(new BillingTrialOptions { Days = days, Plan = plan })).Succeeded.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Trial_settings_are_not_checked_while_billing_is_off()
+    {
+        new BillingTrialGate().Validate(null, new BillingOptions { Trial = new BillingTrialOptions { Days = -1, Plan = "grwoth" } }).Succeeded.Should().BeTrue();
+    }
+
+    private static BillingOptions Sandboxed(BillingTrialOptions trial) =>
+        new() { Sandbox = new BillingSandboxOptions { Enabled = true }, Trial = trial };
+
     private sealed class Host(string environmentName) : IHostEnvironment
     {
         public string EnvironmentName { get; set; } = environmentName;
