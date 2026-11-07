@@ -412,7 +412,7 @@
           <Button variant="outline" size="lg" onclick={() => (screen = 'candidate')}>Change the candidate</Button>
           <Button variant="outline" size="lg" onclick={() => (screen = 'moment')}>Try another moment</Button>
           {#if outdated}
-            <Button variant="outline" size="lg" onclick={() => void test()}>Run it again</Button>
+            <Button variant="outline" size="lg" onclick={proceed}>Run it again</Button>
           {:else if onshow && ran}
             <Button variant="outline" size="lg" onclick={() => onshow(ran!.result)}>Show this path in the graph</Button>
           {/if}
