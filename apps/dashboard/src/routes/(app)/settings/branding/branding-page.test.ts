@@ -315,6 +315,56 @@ describe('branding page', () => {
     expect(bodies).toEqual([]);
   });
 
+  it('returns to Edit when Save from Preview fails on a field, where its message is', async () => {
+    const { bodies } = renderPage(saved);
+    await fireEvent.input(await brandField(), { target: { value: 'teal' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+
+    await fireEvent.click(await save());
+
+    await waitFor(() => expect(document.querySelector('[data-edit-pane]')).not.toHaveClass('hidden'));
+    expect(document.querySelector('[data-preview-pane]')).toHaveClass('hidden');
+    expect(await screen.findByText('Enter the brand colour as six hex digits, such as 1f4e5a.')).toBeVisible();
+    expect(bodies).toEqual([]);
+  });
+
+  it('returns to Edit when the API refuses a field on a Save from Preview', async () => {
+    renderPage(saved, {
+      'PUT /v1/organization/branding': () =>
+        Response.json({ title: 'One or more validation errors occurred.', errors: { secondColor: ['Text on a header in #888888 is hard to read: 3.5:1, and it needs 4.5:1.'] } }, { status: 400 }),
+    });
+    await fireEvent.input(await screen.findByLabelText('Second colour'), { target: { value: '#888888' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+
+    await fireEvent.click(await save());
+
+    await waitFor(() => expect(document.querySelector('[data-edit-pane]')).not.toHaveClass('hidden'));
+    expect(await screen.findByText(/Text on a header in #888888 is hard to read/)).toBeVisible();
+  });
+
+  it('stays on Preview after a Save from Preview that works, and says so in the row', async () => {
+    const { bodies } = renderPage(saved);
+    await brandField();
+    await fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+
+    await fireEvent.click(await save());
+
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    expect(await within(document.querySelector<HTMLElement>('[data-edit-preview-row]')!).findByText('Saved.')).toBeVisible();
+    expect(document.querySelector('[data-preview-pane]')).not.toHaveClass('hidden');
+  });
+
+  it('keeps a failure that belongs to no field in the row, on Preview', async () => {
+    renderPage(saved, { 'PUT /v1/organization/branding': () => Response.json({ detail: 'Try again later.' }, { status: 500 }) });
+    await brandField();
+    await fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+
+    await fireEvent.click(await save());
+
+    expect(await within(document.querySelector<HTMLElement>('[data-edit-preview-row]')!).findByText(/Try again later/)).toBeVisible();
+    expect(document.querySelector('[data-preview-pane]')).not.toHaveClass('hidden');
+  });
+
   it('opens the preview on Phone, and on Desktop once the pane has room for a tablet frame', async () => {
     // The test setup gives every element a 1024px box, room enough for a tablet frame.
     renderPage(saved);
