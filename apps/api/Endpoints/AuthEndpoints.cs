@@ -147,7 +147,7 @@ internal static class AuthEndpoints
             return TypedResults.ValidationProblem(problems);
         }
 
-        await magicLinks.SendAsync(request.Email, cancellationToken);
+        await magicLinks.SendAsync(request.Email, ReturnUrls.Sanitize(request.ReturnUrl), cancellationToken);
         return TypedResults.Accepted((string?)null);
     }
 

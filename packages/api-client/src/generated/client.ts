@@ -71,6 +71,7 @@ import type {
   GetHiringReportParams,
   GetHiringTemplateHistoryParams,
   GetJobHistoryParams,
+  GetOAuthAuthorizationRequestParams,
   GetOrganizationBrandingHistoryParams,
   GetOrganizationHistoryParams,
   GetOrganizationRetentionHistoryParams,
@@ -120,6 +121,10 @@ import type {
   MembershipLogEntry,
   MoveApplicationRequest,
   MyOrganization,
+  OAuthAuthorizationRequestInfo,
+  OAuthAuthorizeRequest,
+  OAuthAuthorizeResult,
+  OAuthConnectionSummary,
   OnboardingRequest,
   OrganizationBranding,
   OrganizationProfile,
@@ -13573,6 +13578,212 @@ export const search = async (params?: SearchParams, options?: Parameters<typeof 
   {
     ...options,
     method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getOAuthAuthorizationRequestResponse200 = {
+  data: OAuthAuthorizationRequestInfo
+  status: 200
+}
+
+export type getOAuthAuthorizationRequestResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOAuthAuthorizationRequestResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getOAuthAuthorizationRequestResponseSuccess = (getOAuthAuthorizationRequestResponse200) & {
+  headers: Headers;
+};
+export type getOAuthAuthorizationRequestResponseError = (getOAuthAuthorizationRequestResponse401 | getOAuthAuthorizationRequestResponse403) & {
+  headers: Headers;
+};
+
+export type getOAuthAuthorizationRequestResponse = (getOAuthAuthorizationRequestResponseSuccess | getOAuthAuthorizationRequestResponseError)
+
+export const getGetOAuthAuthorizationRequestUrl = (params?: GetOAuthAuthorizationRequestParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/oauth/authorization-request?${stringifiedParams}` : `/v1/oauth/authorization-request`
+}
+
+export const getOAuthAuthorizationRequest = async (params?: GetOAuthAuthorizationRequestParams, options?: Parameters<typeof apiFetch>[1]): Promise<getOAuthAuthorizationRequestResponse> => {
+
+  return apiFetch<getOAuthAuthorizationRequestResponse>(getGetOAuthAuthorizationRequestUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type decideOAuthAuthorizationResponse200 = {
+  data: OAuthAuthorizeResult
+  status: 200
+}
+
+export type decideOAuthAuthorizationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type decideOAuthAuthorizationResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type decideOAuthAuthorizationResponseSuccess = (decideOAuthAuthorizationResponse200) & {
+  headers: Headers;
+};
+export type decideOAuthAuthorizationResponseError = (decideOAuthAuthorizationResponse401 | decideOAuthAuthorizationResponse403) & {
+  headers: Headers;
+};
+
+export type decideOAuthAuthorizationResponse = (decideOAuthAuthorizationResponseSuccess | decideOAuthAuthorizationResponseError)
+
+export const getDecideOAuthAuthorizationUrl = () => {
+
+
+
+
+  return `/v1/oauth/authorize`
+}
+
+export const decideOAuthAuthorization = async (oAuthAuthorizeRequest: OAuthAuthorizeRequest, options?: Parameters<typeof apiFetch>[1]): Promise<decideOAuthAuthorizationResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<decideOAuthAuthorizationResponse>(getDecideOAuthAuthorizationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(oAuthAuthorizeRequest)
+  }
+);}
+
+
+
+export type listOAuthConnectionsResponse200 = {
+  data: OAuthConnectionSummary[]
+  status: 200
+}
+
+export type listOAuthConnectionsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listOAuthConnectionsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listOAuthConnectionsResponseSuccess = (listOAuthConnectionsResponse200) & {
+  headers: Headers;
+};
+export type listOAuthConnectionsResponseError = (listOAuthConnectionsResponse401 | listOAuthConnectionsResponse403) & {
+  headers: Headers;
+};
+
+export type listOAuthConnectionsResponse = (listOAuthConnectionsResponseSuccess | listOAuthConnectionsResponseError)
+
+export const getListOAuthConnectionsUrl = () => {
+
+
+
+
+  return `/v1/organization/oauth-connections`
+}
+
+export const listOAuthConnections = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listOAuthConnectionsResponse> => {
+
+  return apiFetch<listOAuthConnectionsResponse>(getListOAuthConnectionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type revokeOAuthConnectionResponse200 = {
+  data: OAuthConnectionSummary
+  status: 200
+}
+
+export type revokeOAuthConnectionResponse401 = {
+  data: void
+  status: 401
+}
+
+export type revokeOAuthConnectionResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type revokeOAuthConnectionResponse404 = {
+  data: void
+  status: 404
+}
+
+export type revokeOAuthConnectionResponseSuccess = (revokeOAuthConnectionResponse200) & {
+  headers: Headers;
+};
+export type revokeOAuthConnectionResponseError = (revokeOAuthConnectionResponse401 | revokeOAuthConnectionResponse403 | revokeOAuthConnectionResponse404) & {
+  headers: Headers;
+};
+
+export type revokeOAuthConnectionResponse = (revokeOAuthConnectionResponseSuccess | revokeOAuthConnectionResponseError)
+
+export const getRevokeOAuthConnectionUrl = (connectionId: string,) => {
+
+
+
+
+  return `/v1/organization/oauth-connections/${connectionId}/revoke`
+}
+
+export const revokeOAuthConnection = async (connectionId: string, options?: Parameters<typeof apiFetch>[1]): Promise<revokeOAuthConnectionResponse> => {
+
+  return apiFetch<revokeOAuthConnectionResponse>(getRevokeOAuthConnectionUrl(connectionId),
+  {
+    ...options,
+    method: 'POST'
 
 
   }

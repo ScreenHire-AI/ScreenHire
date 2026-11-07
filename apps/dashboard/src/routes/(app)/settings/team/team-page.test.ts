@@ -1,4 +1,4 @@
-import type { ApiKeySummary, CurrentUser, OrganizationRole, PendingInvitation, TeamMember } from '@screenhire/api-client';
+import type { ApiKeySummary, CurrentUser, OAuthConnectionSummary, OrganizationRole, PendingInvitation, TeamMember } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
@@ -46,6 +46,7 @@ function renderPage(role: Exclude<OrganizationRole, 'Custom'>, routes: Parameter
       'GET /v1/organization/members': () => Response.json(team),
       'GET /v1/organization/invitations': () => Response.json(invitations),
       'GET /v1/organization/api-keys': () => Response.json([]),
+      'GET /v1/organization/oauth-connections': () => Response.json([]),
       'GET /v1/organization/roles': () => Response.json(roleCatalogue),
       'GET /v1/organization/members/m-4/jobs': () => Response.json([{ id: 'j-1', title: 'Senior .NET Engineer', status: 'Open' }]),
       'GET /v1/organization/team/last-update': () => Response.json(teamUpdated),
@@ -396,6 +397,82 @@ describe('team page', () => {
       const dialog = await screen.findByRole('dialog', { name: 'Remove Jordan Lee from the team?' });
 
       expect(await within(dialog).findByText(/Their API keys could not be checked/)).toBeInTheDocument();
+      expect(within(dialog).queryByRole('checkbox')).toBeNull();
+    });
+  });
+
+  describe('the assistants a removed member connected', () => {
+    const assistant = (id: string, connectedByUserId: string | null, revokedAt: string | null = null): OAuthConnectionSummary => ({
+      id,
+      clientName: `Assistant ${id}`,
+      connectedByUserId,
+      connectedByName: 'Jordan Lee',
+      scopes: ['Read'],
+      createdAt: '2026-10-01T09:00:00Z',
+      lastUsedAt: null,
+      revokedAt,
+    });
+    // Jordan connected two active assistants and one already revoked; Avery connected another.
+    const connections = [assistant('a-1', recruiter.userId), assistant('a-2', recruiter.userId), assistant('a-3', recruiter.userId, '2026-10-02T09:00:00Z'), assistant('a-4', owner.userId)];
+    const routes = {
+      'GET /v1/organization/oauth-connections': () => Response.json(connections),
+      'DELETE /v1/organization/members/m-4': () => new Response(null, { status: 204 }),
+      'POST /v1/organization/oauth-connections/a-1/revoke': () => new Response(null, { status: 204 }),
+      'POST /v1/organization/oauth-connections/a-2/revoke': () => new Response(null, { status: 204 }),
+    };
+    const disconnected = (fetchMock: ReturnType<typeof renderPage>) =>
+      writes(fetchMock, 'POST')
+        .map(([url]) => String(url))
+        .filter((url) => url.includes('/oauth-connections/'));
+
+    it('are disconnected with the member unless the person unticks it', async () => {
+      const fetchMock = renderPage('Owner', routes);
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/v1/organization/oauth-connections', expect.anything()));
+      const menu = await openMenu('Actions for Jordan Lee');
+      await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Remove from team' }));
+      const dialog = await screen.findByRole('dialog', { name: 'Remove Jordan Lee from the team?' });
+
+      expect(within(dialog).getByRole('checkbox', { name: 'Also disconnect the 2 assistants they connected' })).toBeChecked();
+      // Jordan created no API keys, so only the assistants are offered.
+      expect(within(dialog).getAllByRole('checkbox')).toHaveLength(1);
+      await fireEvent.click(within(dialog).getByRole('button', { name: 'Remove from team' }));
+
+      await waitFor(() => expect(disconnected(fetchMock).toSorted()).toEqual(['/v1/organization/oauth-connections/a-1/revoke', '/v1/organization/oauth-connections/a-2/revoke']));
+      expect(fetchMock).toHaveBeenCalledWith('/v1/organization/members/m-4', expect.objectContaining({ method: 'DELETE' }));
+    });
+
+    it('stay when the person unticks the choice', async () => {
+      const fetchMock = renderPage('Owner', routes);
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/v1/organization/oauth-connections', expect.anything()));
+      const menu = await openMenu('Actions for Jordan Lee');
+      await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Remove from team' }));
+      const dialog = await screen.findByRole('dialog', { name: 'Remove Jordan Lee from the team?' });
+
+      await fireEvent.click(within(dialog).getByRole('checkbox', { name: /Also disconnect/ }));
+      await fireEvent.click(within(dialog).getByRole('button', { name: 'Remove from team' }));
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(fetchMock).toHaveBeenCalledWith('/v1/organization/members/m-4', expect.objectContaining({ method: 'DELETE' }));
+      expect(disconnected(fetchMock)).toEqual([]);
+    });
+
+    it('are not mentioned for a member who connected none', async () => {
+      renderPage('Owner', { ...routes, 'DELETE /v1/organization/members/m-3': () => new Response(null, { status: 204 }) });
+      const menu = await openMenu('Actions for Casey Morgan');
+      await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Remove from team' }));
+      const dialog = await screen.findByRole('dialog', { name: 'Remove Casey Morgan from the team?' });
+
+      expect(within(dialog).queryByRole('checkbox')).toBeNull();
+    });
+
+    it('are flagged when they could not be loaded, so none is left working unseen', async () => {
+      const fetchMock = renderPage('Owner', { ...routes, 'GET /v1/organization/oauth-connections': () => new Response(null, { status: 403 }) });
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/v1/organization/oauth-connections', expect.anything()));
+      const menu = await openMenu('Actions for Jordan Lee');
+      await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Remove from team' }));
+      const dialog = await screen.findByRole('dialog', { name: 'Remove Jordan Lee from the team?' });
+
+      expect(await within(dialog).findByText(/Their assistants could not be checked/)).toBeInTheDocument();
       expect(within(dialog).queryByRole('checkbox')).toBeNull();
     });
   });

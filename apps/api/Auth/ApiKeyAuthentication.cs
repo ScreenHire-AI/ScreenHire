@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Api.OAuth;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -35,6 +36,15 @@ internal static class ApiKeyAuthentication
     /// </summary>
     public const string SessionOrApiKeyScheme = "SessionOrApiKey";
 
+    /// <summary>The scheme for an OAuth access token (ADR-0027). Registered, but only <see cref="McpCredentialsScheme"/> reaches it.</summary>
+    public const string OAuthScheme = "OAuth";
+
+    /// <summary>
+    /// The MCP endpoint's scheme: the OAuth handler for an <c>sho_</c> access token, the API key handler for anything else.
+    /// The hiring routes do not use it, so an OAuth token works on <c>/v1/mcp</c> and nowhere else (the spec's audience rule).
+    /// </summary>
+    public const string McpCredentialsScheme = "McpCredentials";
+
     /// <summary>The authorization policy of the routes keys may call: jobs, applications, candidates and templates.</summary>
     public const string HiringApiPolicy = "hiring-api";
 
@@ -52,6 +62,9 @@ internal static class ApiKeyAuthentication
     private const string ScopeClaim = "scope";
     private const string PermitsClaim = "sh_permits_per_minute";
 
+    // last_used_at is written at most once a minute per key, not on every request.
+    private static readonly TimeSpan LastUsedResolution = TimeSpan.FromMinutes(1);
+
     public static WebApplicationBuilder AddScreenHireApiKeys(this WebApplicationBuilder builder)
     {
         var services = builder.Services;
@@ -63,8 +76,11 @@ internal static class ApiKeyAuthentication
 
         services.AddAuthentication()
             .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(Scheme, displayName: "API key", _ => { })
+            .AddScheme<AuthenticationSchemeOptions, OAuthAuthenticationHandler>(OAuthScheme, displayName: "OAuth access token", _ => { })
             .AddPolicyScheme(SessionOrApiKeyScheme, displayName: null, policy => policy.ForwardDefaultSelector = context =>
-                context.Request.Headers.Authorization.Count > 0 ? Scheme : IdentityConstants.ApplicationScheme);
+                context.Request.Headers.Authorization.Count > 0 ? Scheme : IdentityConstants.ApplicationScheme)
+            .AddPolicyScheme(McpCredentialsScheme, displayName: null, policy => policy.ForwardDefaultSelector = context =>
+                OAuthTokens.LooksLikeAccessToken(BearerToken(context.Request)) ? OAuthScheme : Scheme);
 
         services.AddAuthorizationBuilder().AddPolicy(HiringApiPolicy, policy => policy
             .AddAuthenticationSchemes(SessionOrApiKeyScheme)
@@ -129,15 +145,63 @@ internal static class ApiKeyAuthentication
             user.FindAll(ScopeClaim).Select(c => Enum.TryParse<ApiKeyScope>(c.Value, out var s) ? s : (ApiKeyScope?)null).OfType<ApiKeyScope>(),
             scope);
 
+    /// <summary>The bearer token of the request, or null when there is no well-formed <c>Authorization: Bearer</c> header.</summary>
+    internal static string? BearerToken(HttpRequest request) =>
+        AuthenticationHeaderValue.TryParse(request.Headers.Authorization.ToString(), out var header)
+        && "Bearer".Equals(header.Scheme, StringComparison.OrdinalIgnoreCase)
+            ? header.Parameter
+            : null;
+
+    /// <summary>
+    /// The 401 challenge of the MCP endpoint: where its protected resource metadata is (RFC 9728), which is how an OAuth
+    /// client finds the authorization server. A request that sent a credential also gets <c>invalid_token</c> (RFC 6750).
+    /// </summary>
+    internal static string McpChallenge(DomainOptions domains, bool sentCredentials) =>
+        (sentCredentials ? "Bearer error=\"invalid_token\", " : "Bearer ")
+        + $"resource_metadata=\"{OAuth.OAuthMetadata.ProtectedResourceUrl(domains)}\"";
+
+    /// <summary>
+    /// The principal of a key or an OAuth connection: one claim set, with the authentication type of the API key scheme, so
+    /// tenancy, the rate limit, the scope checks and the audit trail treat both alike.
+    /// </summary>
+    internal static ClaimsPrincipal KeyPrincipal(Guid keyId, Guid organizationId, int permitsPerMinute, IEnumerable<ApiKeyScope> scopes)
+    {
+        List<Claim> claims =
+        [
+            new(KeyIdClaim, keyId.ToString()),
+            new(OrganizationClaim, organizationId.ToString()),
+            new(PermitsClaim, permitsPerMinute.ToString(CultureInfo.InvariantCulture)),
+            .. scopes.Select(s => new Claim(ScopeClaim, s.ToString())),
+        ];
+        return new ClaimsPrincipal(new ClaimsIdentity(claims, Scheme));
+    }
+
+    /// <summary>Records that the key authenticated, at most once a minute.</summary>
+    internal static async Task TouchAsync(
+        ScreenHireDbContext db, Guid keyId, DateTimeOffset? lastUsedAt, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        if (lastUsedAt is null || lastUsedAt < now - LastUsedResolution)
+        {
+            var since = now - LastUsedResolution;
+            await db.ApiKeys
+                .Where(k => k.Id == keyId && (k.LastUsedAt == null || k.LastUsedAt < since))
+                .ExecuteUpdateAsync(set => set.SetProperty(k => k.LastUsedAt, now), cancellationToken);
+        }
+    }
+
+    /// <summary>The key's rate limit. The deployment's limit is also the most any key gets, including one created before it was lowered.</summary>
+    internal static int PermitsFor(int? keyPermits, ApiKeyOptions options) => Math.Min(keyPermits ?? options.PermitsPerMinute, options.PermitsPerMinute);
+
     /// <summary>
     /// Failed key attempts per client address, <c>ScreenHire:ApiKeys:FailedAttemptsPerMinute</c> in a fixed one-minute
-    /// window. An address that runs out gets 429 for every key until the window ends, without a database lookup.
+    /// window. An address that runs out gets 429 for every key until the window ends, without a database lookup. The OAuth
+    /// handler counts its failures here too.
     /// </summary>
     /// <remarks>
     /// The rate limiter middleware cannot do this: it runs after authorization, which has already answered 401 to a
     /// failed key. So the handler holds the limiter itself.
     /// </remarks>
-    private sealed class FailedAttempts : IDisposable
+    internal sealed class FailedAttempts : IDisposable
     {
         private readonly PartitionedRateLimiter<string> limiter;
 
@@ -167,13 +231,11 @@ internal static class ApiKeyAuthentication
         UrlEncoder encoder,
         IServiceScopeFactory scopes,
         IOptions<ApiKeyOptions> keyOptions,
+        IOptions<DomainOptions> domains,
         FailedAttempts failures,
         TimeProvider time)
         : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
     {
-        // last_used_at is written at most once a minute per key, not on every request.
-        private static readonly TimeSpan LastUsedResolution = TimeSpan.FromMinutes(1);
-
         private bool tooManyFailures;
 
         protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -227,26 +289,9 @@ internal static class ApiKeyAuthentication
                 return Failed("Unknown or revoked API key.");
             }
 
-            var now = time.GetUtcNow();
-            if (key.LastUsedAt is null || key.LastUsedAt < now - LastUsedResolution)
-            {
-                var since = now - LastUsedResolution;
-                await db.ApiKeys
-                    .Where(k => k.Id == key.Id && (k.LastUsedAt == null || k.LastUsedAt < since))
-                    .ExecuteUpdateAsync(set => set.SetProperty(k => k.LastUsedAt, now), Context.RequestAborted);
-            }
+            await TouchAsync(db, key.Id, key.LastUsedAt, time.GetUtcNow(), Context.RequestAborted);
 
-            // The deployment's limit is also the most any key gets, including one created before it was lowered.
-            var most = keyOptions.Value.PermitsPerMinute;
-            var permits = Math.Min(key.PermitsPerMinute ?? most, most);
-            List<Claim> claims =
-            [
-                new(KeyIdClaim, key.Id.ToString()),
-                new(OrganizationClaim, key.OrganizationId.ToString()),
-                new(PermitsClaim, permits.ToString(CultureInfo.InvariantCulture)),
-                .. key.Scopes.Select(s => new Claim(ScopeClaim, s.ToString())),
-            ];
-            var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, Scheme.Name));
+            var principal = KeyPrincipal(key.Id, key.OrganizationId, PermitsFor(key.PermitsPerMinute, keyOptions.Value), key.Scopes);
             return AuthenticateResult.Success(new AuthenticationTicket(principal, Scheme.Name));
         }
 
@@ -260,7 +305,9 @@ internal static class ApiKeyAuthentication
             }
 
             Response.StatusCode = StatusCodes.Status401Unauthorized;
-            Response.Headers.WWWAuthenticate = "Bearer";
+            Response.Headers.WWWAuthenticate = Request.Path.StartsWithSegments(Mcp.McpSetup.Path)
+                ? McpChallenge(domains.Value, sentCredentials: Request.Headers.Authorization.Count > 0)
+                : "Bearer";
             return Task.CompletedTask;
         }
     }

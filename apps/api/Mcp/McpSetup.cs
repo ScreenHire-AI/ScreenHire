@@ -11,20 +11,21 @@ namespace ScreenHire.Api.Mcp;
 
 /// <summary>
 /// The remote MCP server for a team's AI assistant at <c>/v1/mcp</c> (docs/architecture/mcp-server.md): Streamable HTTP
-/// in stateless mode, signed in with an organization API key and nothing else, behind the key's own rate limit. The SDK
-/// does the protocol; <see cref="HiringTools"/> calls the hiring API's services.
+/// in stateless mode, signed in with an organization API key or with an OAuth access token a person approved for a
+/// connection (ADR-0027), behind the key's own rate limit. The SDK does the protocol; <see cref="HiringTools"/> calls the
+/// hiring API's services.
 /// </summary>
 /// <remarks>
 /// Stateless, because then every request runs in its own HTTP request scope, where <see cref="TenantResolutionMiddleware"/>
 /// has made the key's organization the tenant, so row-level security binds every tool exactly as it binds the route the
-/// tool mirrors. Keys only, never the session cookie: an MCP client sends no antiforgery token, and the tools check a
-/// key's scope, not a person's role.
+/// tool mirrors. Keys and connections only, never the session cookie: an MCP client sends no antiforgery token, and the
+/// tools check a key's scope, not a person's role. A connection is a key row, so it is checked as one.
 /// </remarks>
 internal static class McpSetup
 {
     public const string Path = "/v1/mcp";
 
-    /// <summary>Who may connect: an API key with the Read scope, which every key has.</summary>
+    /// <summary>Who may connect: an API key or an OAuth connection with the Read scope, which every one has.</summary>
     public const string Policy = "mcp";
 
     /// <summary>Who sees and calls the write tools: an API key with the Write scope.</summary>
@@ -66,14 +67,14 @@ internal static class McpSetup
 
         builder.Services.AddAuthorizationBuilder()
             .AddPolicy(Policy, policy => policy
-                .AddAuthenticationSchemes(ApiKeyAuthentication.Scheme)
+                .AddAuthenticationSchemes(ApiKeyAuthentication.McpCredentialsScheme)
                 .RequireAuthenticatedUser()
                 .RequireAssertion(context => context.User.HasApiKeyScope(ApiKeyScope.Read)))
             .AddPolicy(WritePolicy, policy => policy
-                .AddAuthenticationSchemes(ApiKeyAuthentication.Scheme)
+                .AddAuthenticationSchemes(ApiKeyAuthentication.McpCredentialsScheme)
                 .RequireAssertion(context => context.User.HasApiKeyScope(ApiKeyScope.Write)))
             .AddPolicy(VerificationPolicy, policy => policy
-                .AddAuthenticationSchemes(ApiKeyAuthentication.Scheme)
+                .AddAuthenticationSchemes(ApiKeyAuthentication.McpCredentialsScheme)
                 .RequireAssertion(context => context.User.HasApiKeyScope(ApiKeyScope.VerificationRead)));
         return builder;
     }

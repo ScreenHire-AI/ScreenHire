@@ -1,5 +1,15 @@
 # Log
 
+## 2026-11-07
+
+**An AI assistant that signs in only with OAuth can now connect to the MCP server.** A claude.ai custom connector needs only the
+server URL: it finds the authorization server from the 401, registers itself, and sends an Owner or Admin to a consent page in
+the dashboard, where they choose what it may do (Read always; Write and Verification read only if they hold them, both opt-in).
+The approval is a connection with an API key's scopes, rate limit and audit trail; its tokens work on `/v1/mcp` only, and
+Settings, MCP server lists each connection and disconnects it at once. The authorization server is written here rather than
+with OpenIddict because OpenIddict's token tables would sit outside row-level security (ADR-0027, which closes ADR-0011
+decision 6; [OAuth sign-in](architecture/oauth-server.md)). An emailed sign-in link now keeps the page it was asked from.
+
 ## 2026-11-05
 
 **Design rule S9: design for how many there could be.** Tabs and toggles are for sets that cannot grow. Anything that can

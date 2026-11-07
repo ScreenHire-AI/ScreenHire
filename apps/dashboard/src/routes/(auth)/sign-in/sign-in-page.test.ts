@@ -59,6 +59,20 @@ describe('sign-in page', () => {
     await vi.waitFor(() => expect(email).toHaveFocus());
   });
 
+  it('asks for the link to open where this visit was going', async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response(null, { status: 202 }));
+    vi.stubGlobal('fetch', fetchMock);
+    show(data({ returnUrl: '/oauth/authorize?client_id=abc&state=xyz' }));
+
+    await fireEvent.input(screen.getByLabelText('Work email'), { target: { value: 'avery@example.com' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Email me a sign-in link' }));
+
+    await screen.findByRole('heading', { level: 1, name: 'Check your email' });
+    const [input, init] = fetchMock.mock.calls[0]!;
+    expect(String(input)).toContain('/v1/auth/magic-link');
+    expect(JSON.parse(String(init?.body))).toEqual({ email: 'avery@example.com', returnUrl: '/oauth/authorize?client_id=abc&state=xyz' });
+  });
+
   it('offers each configured provider, returning to where the visitor was going', () => {
     show(data());
 
@@ -116,6 +130,13 @@ describe('sign-in page load', () => {
     const result = await load(event(search));
 
     expect(result).toEqual(expect.objectContaining({ errorMessage: expect.stringContaining(message) }));
+  });
+
+  it('cuts the return address down to a local path', async () => {
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>(async () => Response.json(methods)));
+
+    await expect(load(event('?returnUrl=%2Foauth%2Fauthorize%3Fclient_id%3Dabc'))).resolves.toEqual(expect.objectContaining({ returnUrl: '/oauth/authorize?client_id=abc' }));
+    await expect(load(event('?returnUrl=https%3A%2F%2Fevil.example.com'))).resolves.toEqual(expect.objectContaining({ returnUrl: '/' }));
   });
 
   it('shows no message without an error', async () => {

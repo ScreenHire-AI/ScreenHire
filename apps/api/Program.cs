@@ -13,6 +13,7 @@ using ScreenHire.Api.Email;
 using ScreenHire.Api.Endpoints;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Api.Mcp;
+using ScreenHire.Api.OAuth;
 using ScreenHire.Api.Realtime;
 using ScreenHire.Application.Automations;
 using ScreenHire.Application.Distribution;
@@ -43,6 +44,7 @@ builder.AddAzureBlobServiceClient("blobs");
 builder.AddScreenHireAuthentication();
 builder.AddScreenHireApiKeys();
 builder.AddScreenHireMcp();
+builder.AddScreenHireOAuth();
 builder.AddScreenHireApply();
 builder.AddScreenHireBranding();
 
@@ -176,6 +178,8 @@ app.MapSchemaEndpoints();
 app.MapSearchEndpoints();
 app.MapRealtimeEndpoints();
 app.MapScreenHireMcp();
+app.MapOAuthEndpoints();
+app.MapOAuthConsentEndpoints();
 
 if (app.Environment.IsDevelopment())
 {

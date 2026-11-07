@@ -6,8 +6,11 @@
  */
 
 /**
- * Asks for a sign-in link by email.
+ * Asks for a sign-in link by email. `returnUrl` is a path on the dashboard to open after the link is used, such as an
+ * assistant's request to connect; anything that is not a local path is dropped.
  */
 export interface MagicLinkRequest {
   email: string;
+  /** @nullable */
+  returnUrl?: string | null;
 }

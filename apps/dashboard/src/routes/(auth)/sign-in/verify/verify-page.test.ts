@@ -34,6 +34,43 @@ describe('magic link verify page', () => {
     await expectNoAxeViolations(document.body);
   });
 
+  it('opens the dashboard once the link is used', async () => {
+    state.hash = '#token=abc';
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => new Response(null, { status: 204 }));
+    vi.stubGlobal('fetch', fetch);
+    show();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+
+    await vi.waitFor(() => expect(navigation.goto).toHaveBeenCalledWith('/', { invalidateAll: true, replaceState: true }));
+    expect(JSON.parse(String(fetch.mock.calls[0]![1]?.body))).toEqual({ token: 'abc' });
+  });
+
+  it('opens where the person was going, read from the fragment beside the token', async () => {
+    state.hash = `#token=abc&returnUrl=${encodeURIComponent('/oauth/authorize?client_id=abc&state=xyz')}`;
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => new Response(null, { status: 204 }));
+    vi.stubGlobal('fetch', fetch);
+    show();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+
+    await vi.waitFor(() =>
+      expect(navigation.goto).toHaveBeenCalledWith('/oauth/authorize?client_id=abc&state=xyz', { invalidateAll: true, replaceState: true }),
+    );
+    // Only the token is sent to the API.
+    expect(JSON.parse(String(fetch.mock.calls[0]![1]?.body))).toEqual({ token: 'abc' });
+  });
+
+  it('ignores a return address on another site', async () => {
+    state.hash = `#token=abc&returnUrl=${encodeURIComponent('https://evil.example.com/')}`;
+    vi.stubGlobal('fetch', vi.fn<typeof globalThis.fetch>(async () => new Response(null, { status: 204 })));
+    show();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+
+    await vi.waitFor(() => expect(navigation.goto).toHaveBeenCalledWith('/', { invalidateAll: true, replaceState: true }));
+  });
+
   it('explains a link without a token and offers a new one', () => {
     state.hash = '';
     show();

@@ -30,6 +30,14 @@ public sealed class ApiKey : ITenantOwned
     /// <summary>The person who created the key, or null once their account is deleted.</summary>
     public Guid? CreatedByUserId { get; init; }
 
+    /// <summary>
+    /// The OAuth client this row stands for, when a person connected an AI assistant through the consent page (ADR-0027).
+    /// Such a row is the connection: it carries the granted scopes, is the actor on the timeline and the verification
+    /// review log, and revoking it ends every token of the connection. Its secret is generated and thrown away, so it can
+    /// never sign in as an <c>shk_</c> key. Null for a key a person made on the API keys page.
+    /// </summary>
+    public Guid? OAuthClientId { get; init; }
+
     public required DateTimeOffset CreatedAt { get; init; }
 
     /// <summary>When the key last authenticated a request, to within a minute.</summary>

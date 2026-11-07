@@ -10,8 +10,11 @@ public sealed record SignInMethods(IReadOnlyList<SignInProvider> Providers, bool
 /// <summary>An identity provider button on the sign-in page.</summary>
 public sealed record SignInProvider(string Id, string DisplayName);
 
-/// <summary>Asks for a sign-in link by email.</summary>
-public sealed record MagicLinkRequest(string Email);
+/// <summary>
+/// Asks for a sign-in link by email. <c>returnUrl</c> is a path on the dashboard to open after the link is used, such as an
+/// assistant's request to connect; anything that is not a local path is dropped.
+/// </summary>
+public sealed record MagicLinkRequest(string Email, string? ReturnUrl = null);
 
 /// <summary>Redeems the token from an emailed sign-in link.</summary>
 public sealed record MagicLinkVerification(string Token);

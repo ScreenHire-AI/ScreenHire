@@ -12977,6 +12977,236 @@
           }
         ]
       }
+    },
+    "/v1/oauth/authorization-request": {
+      "get": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "GetOAuthAuthorizationRequest",
+        "parameters": [
+          {
+            "name": "clientId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "redirectUri",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "responseType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resource",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "codeChallenge",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "codeChallengeMethod",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthAuthorizationRequestInfo"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/oauth/authorize": {
+      "post": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "DecideOAuthAuthorization",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthAuthorizeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthAuthorizeResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/oauth-connections": {
+      "get": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "ListOAuthConnections",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OAuthConnectionSummary"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/oauth-connections/{connectionId}/revoke": {
+      "post": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "RevokeOAuthConnection",
+        "parameters": [
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthConnectionSummary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -18657,9 +18887,15 @@
         "properties": {
           "email": {
             "type": "string"
+          },
+          "returnUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "Asks for a sign-in link by email."
+        "description": "Asks for a sign-in link by email. `returnUrl` is a path on the dashboard to open after the link is used, such as an\nassistant's request to connect; anything that is not a local path is dropped."
       },
       "MagicLinkVerification": {
         "required": [
@@ -18988,6 +19224,192 @@
           }
         },
         "description": "One of the signed-in user's organizations, for the organization switcher, with their role there. `roleName` is\nnull for a custom role in an organization other than the one they work in: row-level security keeps its roles from\nthem until they switch."
+      },
+      "OAuthAuthorizationRequestInfo": {
+        "required": [
+          "clientName",
+          "redirectHost",
+          "redirectIsLoopback",
+          "organizationName",
+          "scopes"
+        ],
+        "type": "object",
+        "properties": {
+          "clientName": {
+            "type": "string"
+          },
+          "redirectHost": {
+            "type": "string"
+          },
+          "redirectIsLoopback": {
+            "type": "boolean"
+          },
+          "organizationName": {
+            "type": "string"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OAuthScopeOffer"
+            }
+          }
+        },
+        "description": "An assistant's request to connect, as the consent page shows it: who is asking, where the person goes afterwards, which\norganization the connection would belong to, and what it may do. `redirectHost` is the address's host (and port, for\na local one); `redirectIsLoopback` is true for an address on this person's own computer."
+      },
+      "OAuthAuthorizeRequest": {
+        "required": [
+          "clientId",
+          "redirectUri",
+          "responseType",
+          "scope",
+          "resource",
+          "codeChallenge",
+          "codeChallengeMethod",
+          "state",
+          "approve",
+          "grantedScopes"
+        ],
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string"
+          },
+          "redirectUri": {
+            "type": "string"
+          },
+          "responseType": {
+            "type": "string"
+          },
+          "scope": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "resource": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "codeChallenge": {
+            "type": "string"
+          },
+          "codeChallengeMethod": {
+            "type": "string"
+          },
+          "state": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "approve": {
+            "type": "boolean"
+          },
+          "grantedScopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiKeyScope"
+            }
+          }
+        },
+        "description": "The person's decision on an assistant's request: the OAuth parameters the assistant sent, copied as they came, plus\n`approve` and the scopes the person chose. `grantedScopes` is cut to what the assistant asked for and the person\nholds, and always includes Read."
+      },
+      "OAuthAuthorizeResult": {
+        "required": [
+          "redirectUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "redirectUrl": {
+            "type": "string"
+          }
+        },
+        "description": "Where to send the person next: the assistant's redirect address, carrying the code or the refusal."
+      },
+      "OAuthConnectionSummary": {
+        "required": [
+          "id",
+          "clientName",
+          "connectedByUserId",
+          "connectedByName",
+          "scopes",
+          "createdAt",
+          "lastUsedAt",
+          "revokedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "clientName": {
+            "type": "string"
+          },
+          "connectedByUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "connectedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiKeyScope"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "revokedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "An assistant a person connected to this organization. It acts with `scopes` and shows in activity under its name.\n`lastUsedAt` is accurate to about a minute; `revokedAt` is set once a connection is revoked, and the row stays."
+      },
+      "OAuthScopeOffer": {
+        "required": [
+          "scope",
+          "grantable",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "scope": {
+            "$ref": "#/components/schemas/ApiKeyScope"
+          },
+          "grantable": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One thing the assistant asked to be allowed. `grantable` is false when the signed-in person does not hold it\nthemselves; `reason` says why. Read is always offered and always granted."
       },
       "OnboardingRequest": {
         "required": [
@@ -24554,6 +24976,9 @@
     },
     {
       "name": "Search"
+    },
+    {
+      "name": "OAuth"
     }
   ]
 }

@@ -12,11 +12,13 @@
     createGetTeamLastUpdate,
     createListApiKeys,
     createListInvitations,
+    createListOAuthConnections,
     createListRoles,
     createListTeamMembers,
     createRemoveMember,
     createRevokeApiKey,
     createRevokeInvitation,
+    createRevokeOAuthConnection,
     getGetTeamHistoryQueryOptions,
   } from '@screenhire/api-client/svelte-query';
   import { CreateInvitationBody } from '@screenhire/api-client/zod';
@@ -95,6 +97,9 @@
   const mayRevokeKeys = $derived(can(data.user, 'ManageApiKeys'));
   const keys = createListApiKeys(() => ({ query: { enabled: mayRevokeKeys } }));
   const revokeKey = createRevokeApiKey(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, '/v1/organization/api-keys') } }));
+  // The assistants a member connected by signing in (ADR-0027) are offered the same way, for the same reason.
+  const connections = createListOAuthConnections(() => ({ query: { enabled: mayRevokeKeys } }));
+  const revokeConnection = createRevokeOAuthConnection(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, '/v1/organization/oauth-connections') } }));
   const catalogue = createListRoles();
   const invite = createCreateInvitation(() => ({ mutation: { onSettled: () => changed(invitationsPath) } }));
 
@@ -225,13 +230,22 @@
   // The active keys the member being removed created, and whether to revoke them too (on unless the person unticks it).
   const removingKeys = $derived(removing && mayRevokeKeys ? (keys.data?.data ?? []).filter((key) => !key.revokedAt && key.createdByUserId === removing!.userId) : []);
   let revokeTheirKeys = $state(true);
+  // The same for the assistants the member connected.
+  const removingConnections = $derived(
+    removing && mayRevokeKeys ? (connections.data?.data ?? []).filter((connection) => !connection.revokedAt && connection.connectedByUserId === removing!.userId) : [],
+  );
+  let revokeTheirAssistants = $state(true);
   $effect(() => {
-    if (removeOpen) revokeTheirKeys = true;
+    if (removeOpen) {
+      revokeTheirKeys = true;
+      revokeTheirAssistants = true;
+    }
   });
 
   async function removeMember() {
     if (!removing) return;
     const theirKeys = revokeTheirKeys ? removingKeys : [];
+    const theirAssistants = revokeTheirAssistants ? removingConnections : [];
     memberFailure = '';
     await remove.mutateAsync({ memberId: removing.id });
     announcement = `${removing.displayName} was removed from the team.`;
@@ -241,6 +255,15 @@
       memberFailure = `${failed.length === 1 ? '1 of their API keys' : `${failed.length} of their API keys`} could not be revoked. Revoke it in API keys.`;
     } else if (theirKeys.length > 0) {
       announcement += ` ${theirKeys.length === 1 ? 'Their API key was' : 'Their API keys were'} revoked.`;
+    }
+    const notDisconnected = (await Promise.allSettled(theirAssistants.map((connection) => revokeConnection.mutateAsync({ connectionId: connection.id })))).filter(
+      (result) => result.status === 'rejected',
+    );
+    if (notDisconnected.length > 0) {
+      const assistants = `${notDisconnected.length === 1 ? '1 of their assistants' : `${notDisconnected.length} of their assistants`} could not be disconnected. Disconnect it in MCP server.`;
+      memberFailure = memberFailure ? `${memberFailure} ${assistants}` : assistants;
+    } else if (theirAssistants.length > 0) {
+      announcement += ` ${theirAssistants.length === 1 ? 'Their assistant was' : 'Their assistants were'} disconnected.`;
     }
   }
 
@@ -497,6 +520,14 @@
     </label>
   {:else if keys.isError}
     <p class="text-muted-foreground">Their API keys could not be checked. Keys they created keep working until you revoke them in API keys.</p>
+  {/if}
+  {#if removingConnections.length > 0}
+    <label class="flex items-center gap-2 pointer-coarse:min-h-11">
+      <input type="checkbox" bind:checked={revokeTheirAssistants} class="size-4 shrink-0 accent-primary" />
+      Also disconnect the {removingConnections.length === 1 ? 'assistant' : `${removingConnections.length} assistants`} they connected
+    </label>
+  {:else if connections.isError}
+    <p class="text-muted-foreground">Their assistants could not be checked. Assistants they connected keep working until you disconnect them in MCP server.</p>
   {/if}
 </ConfirmDialog>
 

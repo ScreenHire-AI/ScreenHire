@@ -35,7 +35,13 @@ internal sealed partial class MagicLinks(
 
     public static string Hash(string token) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 
-    public async Task SendAsync(string address, CancellationToken cancellationToken)
+    /// <param name="address">Where to send the link.</param>
+    /// <param name="returnUrl">
+    /// A sanitized dashboard path (<see cref="ReturnUrls.Sanitize"/>) the verify page opens after sign-in. It rides in the
+    /// link's fragment beside the token, so it reaches no server log, and is left out when it is just the home page.
+    /// </param>
+    /// <param name="cancellationToken">Cancels the send.</param>
+    public async Task SendAsync(string address, string returnUrl, CancellationToken cancellationToken)
     {
         var options = auth.Value.MagicLink;
         var now = time.GetUtcNow();
@@ -76,7 +82,8 @@ internal sealed partial class MagicLinks(
             return;
         }
 
-        var link = domains.Value.AppUrl($"{VerifyPath}#token={token}");
+        var fragment = returnUrl == ReturnUrls.Default ? $"token={token}" : $"token={token}&returnUrl={Uri.EscapeDataString(returnUrl)}";
+        var link = domains.Value.AppUrl($"{VerifyPath}#{fragment}");
         await emailSender.SendAsync(Compose(email, link, options.Lifetime), cancellationToken);
     }
 
