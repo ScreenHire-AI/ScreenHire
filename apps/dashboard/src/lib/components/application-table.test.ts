@@ -376,4 +376,23 @@ describe('candidate table on a phone', () => {
     expect(screen.getByText('No candidates yet.')).toBeInTheDocument();
     expect(screen.queryByRole('list')).not.toBeInTheDocument();
   });
+
+  it('gives an empty table with nothing filtered a title and one line, and a filtered one only its line and Clear filters', () => {
+    stubViewport(360);
+    const { unmount } = render(WithTooltips, {
+      props: { component: ApplicationTable, props: { applications: [], emptyTitle: 'No candidates yet', emptyText: 'Applications appear here as they arrive.' } },
+    });
+
+    expect(screen.getByText('No candidates yet')).toBeInTheDocument();
+    expect(screen.getByText('Applications appear here as they arrive.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Clear filters' })).not.toBeInTheDocument();
+    unmount();
+
+    render(WithTooltips, {
+      props: { component: ApplicationTable, props: { applications: [], emptyText: 'No candidates match this view.', onclearfilters: () => {} } },
+    });
+    expect(screen.getByText('No candidates match this view.')).toBeInTheDocument();
+    expect(screen.queryByText('No candidates yet')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Clear filters' })).toBeInTheDocument();
+  });
 });

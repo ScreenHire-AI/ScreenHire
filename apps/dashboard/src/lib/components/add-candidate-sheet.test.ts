@@ -70,6 +70,21 @@ describe('Add candidate sheet', () => {
     await expectNoAxeViolations();
   });
 
+  it('says why there is no job to choose, and links to creating one, when only closed jobs exist or none do', async () => {
+    const { sheet } = renderSheet({ 'GET /v1/jobs': () => Response.json([closed]) });
+
+    expect(await within(sheet()).findByText(/No draft or open job to add them to\./)).toBeInTheDocument();
+    expect(within(sheet()).getByRole('link', { name: 'Create a job' })).toHaveAttribute('href', '/jobs/new');
+    expect(within(within(sheet()).getByLabelText('Job')).getAllByRole('option').map((option) => option.textContent)).toEqual(['No job to choose']);
+  });
+
+  it('says nothing about missing jobs while there are some to choose from', async () => {
+    const { sheet } = renderSheet({ 'GET /v1/jobs': () => Response.json(jobs) });
+
+    await waitFor(() => expect(within(within(sheet()).getByLabelText('Job')).getAllByRole('option').length).toBeGreaterThan(1));
+    expect(within(sheet()).queryByText(/No draft or open job/)).toBeNull();
+  });
+
   it("on a job's page has no picker, and posts only the candidate: no source, telemetry or declarations", async () => {
     const bodies: unknown[] = [];
     const { calls, onadded, sheet } = renderSheet(

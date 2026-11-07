@@ -134,9 +134,12 @@
   let testFailure = $state('');
   async function sendTest() {
     testFailure = '';
+    saved = '';
     try {
       const response = await test.mutateAsync();
-      announcement = response.data.posted ? 'The test message is in the channel.' : '';
+      // The footer's status line, beside Save, where a sighted person looks for what just happened (and it is a live
+      // region too), not only the hidden announcement.
+      if (response.data.posted) saved = 'The test message is in the channel.';
       if (!response.data.posted && response.data.problem) testFailure = slackProblems[response.data.problem];
     } catch (error) {
       testFailure = describeError(error, 'Could not send the test message');

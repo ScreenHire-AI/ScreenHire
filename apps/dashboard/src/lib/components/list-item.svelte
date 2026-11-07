@@ -30,10 +30,12 @@
 <li data-slot="list-item" class="relative flex min-w-0 flex-col gap-1.5 border-b border-border-subtle px-4 py-3 last:border-0 hover:bg-muted">
   <div class="flex min-w-0 items-start gap-2">
     <!-- Wraps by content (F2): when the status badge leaves the name too little room, the name drops below it instead of
-         breaking mid-word (F5). The meta stays outside, top right, in every row. -->
+         breaking mid-word (F5). The meta stays outside, top right, in every row. A list whose items take a meta puts the
+         name on its own line in all of them, so an item with nothing in its meta (a draft's published date) is as tall
+         as the rest (L1). -->
     <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
       {@render status?.()}
-      <a {href} class="min-w-0 flex-[1_1_10rem] font-semibold break-words text-foreground no-underline after:absolute after:inset-0 hover:underline">{title}</a>
+      <a {href} class={['min-w-0 font-semibold break-words text-foreground no-underline after:absolute after:inset-0 hover:underline', meta ? 'basis-full' : 'flex-[1_1_10rem]']}>{title}</a>
     </div>
     {#if meta}
       <span class="relative mt-0.5 shrink-0 text-caption text-muted-foreground">{@render meta()}</span>

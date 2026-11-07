@@ -148,9 +148,15 @@
             aria-invalid={$errors.jobId ? 'true' : undefined}
             aria-describedby={describedBy('add-candidate-job-error', $errors.jobId)}
           >
-            <option value="" disabled>{jobs.isPending ? 'Loading jobs…' : 'Choose a job'}</option>
+            <option value="" disabled>{jobs.isPending ? 'Loading jobs…' : offered.length === 0 && !jobs.isError ? 'No job to choose' : 'Choose a job'}</option>
             {#each offered as option (option.id)}<option value={option.id}>{option.title}</option>{/each}
           </select>
+          <!-- With nothing to pick, say why and where to fix it (A3, E3): only drafts and open jobs take a candidate. -->
+          {#if jobs.isSuccess && offered.length === 0}
+            <Field.Description>
+              No draft or open job to add them to. <a href="/jobs/new" class="text-foreground underline underline-offset-2">Create a job</a> first.
+            </Field.Description>
+          {/if}
           <Field.Error id="add-candidate-job-error" errors={$errors.jobId?.map((message) => ({ message }))} />
         </Field.Field>
       {/if}

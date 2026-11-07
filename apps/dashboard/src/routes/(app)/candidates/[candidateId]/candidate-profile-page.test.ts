@@ -271,7 +271,7 @@ describe('candidate profile page', () => {
     renderPage({ candidateResponse: () => Response.json({ title: 'Server error', status: 500 }, { status: 500 }) });
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Candidate' })).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Could not load the candidate' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Candidate' })).toBeInTheDocument();
     expect(screen.queryByText('Candidate not found')).not.toBeInTheDocument();
   });
 

@@ -236,7 +236,8 @@
             filterAction={saveView}
             bind:activeId
             bind:selectedIds
-            emptyText={filtering ? 'No candidates match this view.' : 'No candidates yet. Applications appear here as they arrive.'}
+            emptyTitle={filtering ? undefined : 'No candidates yet'}
+            emptyText={filtering ? 'No candidates match this view.' : 'Applications appear here as they arrive.'}
             onclearfilters={narrowed
               ? () => ((search = ''), (verificationFilter = { ...noVerificationFilter }), (tagFilter = null), (jobFilter = []), (stageFilter = []), clearReached())
               : undefined}
