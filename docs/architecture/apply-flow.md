@@ -5,6 +5,7 @@ description: "The candidate apply page: the notice before any collection, steps 
 tags: [careers, apply, astro]
 sources:
   - resource: apps/careers/src/pages/[organization]/jobs/[job]/apply.astro
+  - resource: apps/careers/src/pages/404.astro
   - resource: apps/careers/src/pages/[organization]/uploads.ts
   - resource: apps/careers/src/lib/apply.ts
   - resource: src/ScreenHire.Application/Applications/ApplicantUploadCleanup.cs
@@ -48,7 +49,7 @@ never calls the API.
 
 | Path (under `/{organization}`, or `/` on a tenant host) | What it is |
 |---|---|
-| `/jobs/{job}` | The job, the "How we review applications" notice and an Apply link. 410 once the job closes, 404 if unknown. |
+| `/jobs/{job}` | The job, the "How we review applications" notice and an Apply link. 410 once the job closes, 404 if unknown. An unknown organization is a 404 on every page here, drawn as one neutral "We could not find this page" (`src/pages/404.astro`): no organization name, branding or link, the same page for any address with no page, so it never says whether an organization exists. |
 | `/jobs/{job}/apply` | The form: **details** (notice, assistive-technology switch, first name, last name (optional), email, phone, resume), one **page** per section of the job's questionnaire (none when it has no questions beyond the resume; §7), **review** (summary, AI-use declaration, the optional "Keep my details for future roles" box, send). `?draft={token}` fills it from a saved draft. |
 | `/jobs/{job}/applied` | The confirmation, after a POST-redirect-GET. The same page whether the application is new or the email had already applied, so the form never reveals who applied. |
 | `/privacy` | "What we collect and why", the full notice. Its version (`NOTICE_VERSION` in `src/lib/apply.ts`) is recorded on every application. |
