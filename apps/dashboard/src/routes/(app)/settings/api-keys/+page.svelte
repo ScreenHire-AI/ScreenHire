@@ -178,7 +178,7 @@
   <title>API keys · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Integrations', href: '/settings/integrations' }, { label: 'API keys' }]} back />
+<TopBar crumbs={[{ label: 'Integrations', href: '/settings/integrations' }, { label: 'API keys' }]} back />
 
 <main class={[sidebar.isMobile && 'pb-28']}>
   <HeaderBand

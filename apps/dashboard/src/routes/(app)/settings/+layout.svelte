@@ -8,7 +8,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { can, seesAllJobs } from '#lib/permissions.js';
-  import { directoryVisible, featureWaits, integrationsHref, settingsSectionOf, visibleSettingsSections } from '#lib/settings.js';
+  import { directoryVisible, featureWaits, integrationsHref, settingsAreaOf, settingsSectionOf, visibleSettingsSections } from '#lib/settings.js';
   import { getShell } from '#lib/shell.js';
   import type { LayoutProps } from './$types';
 
@@ -41,22 +41,24 @@
   const directoryWaits = $derived(directory && !roleAllows && featureWaits(features, 'slack') && directoryVisible(data.user, { ...features, slack: true }));
   const pending = $derived(hidden || waiting || directoryWaits);
   const allowed = $derived(permitted && !pending);
+  // A refused page is titled with the sidebar item it was reached from.
+  const title = $derived(settingsAreaOf(page.url.pathname) ?? 'Settings');
   $effect(() => {
     if (hidden) void goto(visibleSettingsSections(data.user, features)[0]?.href ?? '/', { replaceState: true });
   });
 </script>
 
 <svelte:head>
-  {#if !allowed && !pending}<title>Settings · ScreenHire</title>{/if}
+  {#if !allowed && !pending}<title>{title} · ScreenHire</title>{/if}
 </svelte:head>
 
 {#if allowed}
   {@render children()}
 {:else if !pending}
-  <TopBar crumbs={[{ label: 'Settings' }]} />
+  <TopBar crumbs={[{ label: title }]} />
 
   <main class="flex flex-col">
-    <HeaderBand form title="Settings" />
+    <HeaderBand form {title} />
     <div class="mx-auto w-full max-w-form px-4 py-6 md:px-6">
       <Panel title={roleAllows ? 'Needs all jobs' : 'Not in your role'}>
         <Empty.Root>

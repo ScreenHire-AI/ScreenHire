@@ -115,7 +115,7 @@
   <title>Careers site · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Careers site' }]} />
+<TopBar crumbs={[{ label: 'Hiring setup' }, { label: 'Careers site' }]} />
 
 <main class="flex flex-col">
   <HeaderBand title="Careers site" oneRow>

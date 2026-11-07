@@ -33,7 +33,7 @@
   <title>Compare roles · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Roles', href: listHref }, { label: 'Compare roles' }]} back />
+<TopBar crumbs={[{ label: 'Organization' }, { label: 'Roles', href: listHref }, { label: 'Compare roles' }]} back />
 
 <main>
   <HeaderBand title="Compare roles" />

@@ -46,6 +46,7 @@ describe('settings layout', () => {
 
     expect(screen.getByText('Not in your role')).toBeInTheDocument();
     expect(screen.getByText('Your role cannot change team. Ask an owner or admin of your organization.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Organization' })).toBeInTheDocument();
     expect(screen.queryByText('Settings page content')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back to jobs' })).toHaveAttribute('href', '/');
     await expectNoAxeViolations();

@@ -1,6 +1,7 @@
 import type { LastUpdate, TeamMember } from '@screenhire/api-client';
-import { render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { formatDateTime } from '#lib/dates.js';
 import WithTooltips from '../../test-support/with-tooltips.svelte';
 import LastUpdated from './last-updated.svelte';
 
@@ -49,10 +50,20 @@ describe('last updated', () => {
     expect(screen.getByText('History')).toHaveClass('@max-md:sr-only');
     // The text gives way with an ellipsis, and the button does not shrink.
     expect(screen.getByText(/Updated/).closest('span.truncate')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'History' })).toHaveClass('shrink-0', 'pointer-coarse:min-w-11');
     unmount();
 
     render(WithTooltips, { props: { component: LastUpdated, props: { value, members, currentUserId: 'u1', onhistory: () => {} } } });
     expect(screen.getByText('History')).not.toHaveClass('@max-md:sr-only');
+  });
+
+  it('holds the whole fact and the exact time in a tooltip on a title row, where the words can be cut (F5)', async () => {
+    const value: LastUpdate = { at: twoHoursAgo, by: 'Member', userId: 'u2' };
+    render(WithTooltips, { props: { component: LastUpdated, props: { value, members, currentUserId: 'u1', titleRow: true } } });
+
+    await fireEvent.click(screen.getByText(/Updated/).closest('span.truncate')!);
+
+    await waitFor(() => expect(document.querySelector('[data-slot="tooltip-content"]')).toHaveTextContent(`Updated ${formatDateTime(twoHoursAgo)} by Jordan Ellis`));
   });
 
   it('wraps with its verb outside a title row, so a note sheet keeps the whole line', () => {

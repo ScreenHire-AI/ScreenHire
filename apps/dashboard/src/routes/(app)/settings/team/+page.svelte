@@ -309,7 +309,7 @@
   <title>Team · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Team' }]} />
+<TopBar crumbs={[{ label: 'Organization' }, { label: 'Team' }]} />
 
 <main class={[sidebar.isMobile && 'pb-28']}>
   <HeaderBand

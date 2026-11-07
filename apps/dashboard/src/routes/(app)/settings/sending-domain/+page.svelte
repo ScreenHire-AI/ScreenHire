@@ -124,7 +124,7 @@
   <title>Email domain · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Email domain' }]} />
+<TopBar crumbs={[{ label: 'Hiring setup' }, { label: 'Email domain' }]} />
 
 <main class={['flex flex-col', sidebar.isMobile && domain && 'pb-28']}>
   <HeaderBand title="Email domain" oneRow>

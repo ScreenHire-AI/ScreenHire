@@ -37,7 +37,6 @@
 
 <TopBar
   crumbs={[
-    { label: 'Settings' },
     { label: 'Integrations', href: '/settings/integrations' },
     { label: 'Webhooks', href: '/settings/webhooks' },
     { label: detail?.description ?? detail?.url ?? 'Endpoint', href: endpointHref },

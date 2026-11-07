@@ -104,7 +104,7 @@
   <title>Roles · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Roles' }]} />
+<TopBar crumbs={[{ label: 'Organization' }, { label: 'Roles' }]} />
 
 <main class={[sidebar.isMobile && 'pb-28']}>
   <HeaderBand

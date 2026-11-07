@@ -90,7 +90,7 @@
   <title>Verification · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Verification' }]} />
+<TopBar crumbs={[{ label: 'Hiring setup' }, { label: 'Verification' }]} />
 
 <main class="flex flex-col">
   <HeaderBand title="Verification" oneRow>

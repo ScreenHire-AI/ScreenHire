@@ -320,7 +320,7 @@
   <title>Data requests · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Data requests' }]} />
+<TopBar crumbs={[{ label: 'Organization' }, { label: 'Data requests' }]} />
 
 <main class={[sidebar.isMobile && 'pb-6']}>
   <HeaderBand title="Data requests" count={openCount} oneRow>

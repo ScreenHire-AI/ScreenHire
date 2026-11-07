@@ -38,7 +38,7 @@
   <title>Integrations · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Integrations' }]} />
+<TopBar crumbs={[{ label: 'Integrations' }]} />
 
 <main>
   <HeaderBand title="Integrations" count={all.length} countLabel={all.length === 1 ? 'integration' : 'integrations'} />

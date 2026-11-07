@@ -180,7 +180,7 @@
   <title>Branding · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Branding' }]} />
+<TopBar crumbs={[{ label: 'Hiring setup' }, { label: 'Branding' }]} />
 
 <main class="flex flex-col">
   <HeaderBand title="Branding" oneRow>

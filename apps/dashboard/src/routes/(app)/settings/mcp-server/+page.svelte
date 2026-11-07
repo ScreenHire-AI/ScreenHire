@@ -52,7 +52,7 @@
   <title>MCP server · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Integrations', href: '/settings/integrations' }, { label: 'MCP server' }]} back />
+<TopBar crumbs={[{ label: 'Integrations', href: '/settings/integrations' }, { label: 'MCP server' }]} back />
 
 <main>
   <HeaderBand title="MCP server" />

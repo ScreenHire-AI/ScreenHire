@@ -207,7 +207,7 @@
   <title>Saved candidates · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Candidates', href: '/candidates' }, { label: 'Saved' }]} />
+<TopBar crumbs={[{ label: 'Candidates' }]} />
 
 <main class="flex min-w-0 flex-col">
   <HeaderBand title="Candidates" count={saved.isSuccess ? shown.length : undefined} countLabel={shown.length === 1 ? 'person' : 'people'} status={listSwitch} />
