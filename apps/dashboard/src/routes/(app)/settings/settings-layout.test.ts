@@ -102,8 +102,8 @@ describe('settings layout', () => {
 
   // Slack's page exists only where a Slack app is set up (A3).
   describe('Slack', () => {
-    const renderSlack = (features: { slack?: boolean }, signedIn: CurrentUser = userAs('Owner')) => {
-      state.url = new URL('http://dashboard.test/settings/slack');
+    const renderSlack = (features: { slack?: boolean }, signedIn: CurrentUser = userAs('Owner'), path = '/settings/slack') => {
+      state.url = new URL(`http://dashboard.test${path}`);
       return render(WithQueryClient, { props: { component: WithShell, props: { component: Layout, props: { data: { user: signedIn }, children: content }, features } } });
     };
 
@@ -128,6 +128,22 @@ describe('settings layout', () => {
       expect(navigation.goto).not.toHaveBeenCalled();
       expect(screen.queryByText('Settings page content')).not.toBeInTheDocument();
       expect(screen.queryByText('Not in your role')).not.toBeInTheDocument();
+    });
+
+    it('holds the Integrations directory for someone whose only integration is Slack until the shell has heard, then opens it', () => {
+      const slackOnly: CurrentUser = { ...interviewer, organization: { ...interviewer.organization!, permissions: ['ViewHiring', 'ManageIntegrations'] } };
+
+      const waiting = renderSlack({}, slackOnly, '/settings/integrations');
+      expect(screen.queryByText('Not in your role')).not.toBeInTheDocument();
+      expect(screen.queryByText('Settings page content')).not.toBeInTheDocument();
+      waiting.unmount();
+
+      const on = renderSlack({ slack: true }, slackOnly, '/settings/integrations');
+      expect(screen.getByText('Settings page content')).toBeInTheDocument();
+      on.unmount();
+
+      renderSlack({ slack: false }, slackOnly, '/settings/integrations');
+      expect(screen.getByText('Not in your role')).toBeInTheDocument();
     });
 
     it.each([

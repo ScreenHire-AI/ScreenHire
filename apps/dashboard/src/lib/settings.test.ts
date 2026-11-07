@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { builtInPermissions, interviewer, interviewerRoleId, roleCatalogue, userAs } from '../test-support/fixtures.js';
 import {
   assignableRoles,
+  directoryVisible,
   mayAssign,
   mayGiveJobAccess,
   roleFromKey,
@@ -197,6 +198,15 @@ describe('settings areas', () => {
     expect(labels({ slack: true })).toEqual(['Slack', 'MCP server', 'Webhooks', 'API keys']);
     expect(labels({ slack: false })).toEqual(['MCP server', 'Webhooks', 'API keys']);
     expect(visibleIntegrations(userAs('Recruiter'))).toEqual([]);
+  });
+
+  it('opens the directory to whoever may use one integration, counting Slack only once it is on', () => {
+    const slackOnly: CurrentUser = { ...interviewer, organization: { ...interviewer.organization!, permissions: ['ViewHiring', 'ManageIntegrations'] } };
+
+    expect(directoryVisible(userAs('Owner'))).toBe(true);
+    expect(directoryVisible(userAs('Recruiter'))).toBe(false);
+    expect(directoryVisible(slackOnly)).toBe(false);
+    expect(directoryVisible(slackOnly, { slack: true })).toBe(true);
   });
 });
 

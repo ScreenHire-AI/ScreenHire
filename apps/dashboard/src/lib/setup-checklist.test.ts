@@ -1,4 +1,5 @@
 import type { OrganizationBranding, OrganizationProfile, OrganizationSendingDomain } from '@screenhire/api-client';
+import { DEFAULT_QUESTIONS_PER_PAGE } from '@screenhire/ui/questions/model';
 import { describe, expect, it } from 'vitest';
 import { jobs } from '../test-support/fixtures.js';
 import { setupSteps, showSetup, type SetupInputs } from './setup-checklist.js';
@@ -19,7 +20,7 @@ const newOrganization = {
   careersUrl: 'https://careers.example.com/brightwater',
   createdAt: '2026-11-01T09:00:00Z',
   lastUpdated: { at: '2026-11-01T09:00:00Z', by: null, created: true },
-  questionsPerPage: 3,
+  questionsPerPage: DEFAULT_QUESTIONS_PER_PAGE,
   embedOrigins: [],
 } as unknown as OrganizationProfile;
 const noDomain = { available: true, sandbox: false, domain: null } as OrganizationSendingDomain;
@@ -68,12 +69,16 @@ describe('the setup checklist', () => {
     }
   });
 
-  it('ticks the careers step once the organization was edited or a site may embed it, not for its creation alone', () => {
-    const edited = { ...newOrganization, lastUpdated: { at: '2026-11-02T09:00:00Z', by: 'User', created: false } } as unknown as OrganizationProfile;
-
-    expect(done({ ...fresh, organization: edited }).careers).toBe(true);
+  it('ticks the careers step for its own settings: a site that may embed it, or questions per page away from the default', () => {
+    expect(done({ ...fresh, organization: { ...newOrganization, questionsPerPage: DEFAULT_QUESTIONS_PER_PAGE + 1 } }).careers).toBe(true);
     expect(done({ ...fresh, organization: { ...newOrganization, embedOrigins: ['https://www.example.com'] } }).careers).toBe(true);
     expect(done(fresh).careers).toBe(false);
+  });
+
+  it('leaves the careers step open when only the name changed, which moves the same Last updated', () => {
+    const renamed = { ...newOrganization, name: 'Brightwater', lastUpdated: { at: '2026-11-02T09:00:00Z', by: 'User', created: false } } as unknown as OrganizationProfile;
+
+    expect(done({ ...fresh, organization: renamed }).careers).toBe(false);
   });
 
   it('ticks the email step only for a verified domain, and leaves the step out where this installation cannot send (A3)', () => {

@@ -1,3 +1,4 @@
+import { DEFAULT_QUESTIONS_PER_PAGE } from '@screenhire/ui/questions/model';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { page } from '$app/state';
@@ -255,7 +256,7 @@ describe('jobs page, setup checklist', () => {
           'GET /v1/organization/members': () => Response.json([{ id: 'avery' }]),
           'GET /v1/organization/invitations': () => Response.json([]),
           'GET /v1/organization/branding': () => Response.json({ brandColor: null, secondColor: null, headingFont: null, logo: null, favicon: null, sharingImage: null }),
-          'GET /v1/organization': () => Response.json({ embedOrigins: [], lastUpdated: { at: null, by: null, created: true } }),
+          'GET /v1/organization': () => Response.json({ embedOrigins: [], questionsPerPage: DEFAULT_QUESTIONS_PER_PAGE, lastUpdated: { at: null, by: null, created: true } }),
           'GET /v1/organization/sending-domain': () => Response.json({ available: false, sandbox: false, domain: null }),
         }),
       ),

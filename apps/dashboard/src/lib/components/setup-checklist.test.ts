@@ -1,4 +1,5 @@
 import type { CurrentUser } from '@screenhire/api-client';
+import { DEFAULT_QUESTIONS_PER_PAGE } from '@screenhire/ui/questions/model';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
@@ -19,7 +20,7 @@ const newOrganization = {
   careersUrl: 'https://careers.example.com/brightwater',
   createdAt: '2026-11-01T09:00:00Z',
   lastUpdated: { at: '2026-11-01T09:00:00Z', by: null, created: true },
-  questionsPerPage: 3,
+  questionsPerPage: DEFAULT_QUESTIONS_PER_PAGE,
   embedOrigins: [],
 };
 const noBranding = { brandColor: null, secondColor: null, headingFont: null, logo: null, favicon: null, sharingImage: null, lastUpdated: { at: null, by: 'ScreenHire' } };
