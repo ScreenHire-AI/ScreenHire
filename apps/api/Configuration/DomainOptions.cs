@@ -55,12 +55,21 @@ public sealed class DomainOptions
     /// <summary>An absolute URL on the dashboard origin for a local path such as <c>/sign-in</c>.</summary>
     public Uri AppUrl(string localPath) => new(GetAppOrigin(), localPath);
 
+    /// <summary>The API's origin, e.g. <c>https://api.example.com</c>: the issuer of the OAuth metadata and the MCP server's host.</summary>
+    public Uri GetApiOrigin() => new($"{Scheme}://{ApiHost}");
+
+    /// <summary>An absolute URL on the API's origin for a local path such as <c>/v1/mcp</c>.</summary>
+    public Uri ApiUrl(string localPath) => new(GetApiOrigin(), localPath);
+
     /// <summary>
     /// A tenant's careers board, such as <c>https://acme.careers.example.com</c>, from <see cref="CareersHostPattern"/>.
     /// Feeds, the public job-board API and Google's Indexing API all link here.
     /// </summary>
     public string CareersBoardUrl(string organizationSlug) =>
         Application.Applications.CareersSiteOptions.BoardUrl(Scheme, CareersHostPattern, CareersDomain, organizationSlug);
+
+    /// <summary>The careers address with <c>{tenant}</c> left where an organization's slug goes: <c>https://{tenant}.careers.example.com</c>.</summary>
+    public string CareersUrlPattern() => CareersBoardUrl("{tenant}");
 
     /// <summary>
     /// The page on a tenant's careers board where a candidate asks for a link to their applications. The emails the team

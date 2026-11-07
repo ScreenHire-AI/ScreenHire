@@ -10,8 +10,11 @@ public sealed record SignInMethods(IReadOnlyList<SignInProvider> Providers, bool
 /// <summary>An identity provider button on the sign-in page.</summary>
 public sealed record SignInProvider(string Id, string DisplayName);
 
-/// <summary>Asks for a sign-in link by email.</summary>
-public sealed record MagicLinkRequest(string Email);
+/// <summary>
+/// Asks for a sign-in link by email. <c>returnUrl</c> is a path on the dashboard to open after the link is used, such as an
+/// assistant's request to connect; anything that is not a local path is dropped.
+/// </summary>
+public sealed record MagicLinkRequest(string Email, string? ReturnUrl = null);
 
 /// <summary>Redeems the token from an emailed sign-in link.</summary>
 public sealed record MagicLinkVerification(string Token);
@@ -45,6 +48,12 @@ public sealed record SwitchOrganizationRequest(Guid OrganizationId);
 /// <summary>Accepts the invitation whose token an emailed link carries, signing in as the invited address.</summary>
 public sealed record InvitationAcceptance(string Token);
 
+/// <summary>Asks which organization and role the invitation whose token an emailed link carries offers. It uses nothing up.</summary>
+public sealed record InvitationLookup(string Token);
+
+/// <summary>What an open invitation offers: the organization's name and the role's, such as "Recruiter" or a custom role as typed.</summary>
+public sealed record InvitationDetails(string OrganizationName, string RoleName);
+
 internal sealed class MagicLinkRequestValidator : AbstractValidator<MagicLinkRequest>
 {
     public MagicLinkRequestValidator() =>
@@ -73,6 +82,11 @@ internal sealed class MagicLinkVerificationValidator : AbstractValidator<MagicLi
 internal sealed class InvitationAcceptanceValidator : AbstractValidator<InvitationAcceptance>
 {
     public InvitationAcceptanceValidator() => RuleFor(r => r.Token).NotEmpty().MaximumLength(100);
+}
+
+internal sealed class InvitationLookupValidator : AbstractValidator<InvitationLookup>
+{
+    public InvitationLookupValidator() => RuleFor(r => r.Token).NotEmpty().MaximumLength(100);
 }
 
 internal sealed class OnboardingRequestValidator : AbstractValidator<OnboardingRequest>

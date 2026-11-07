@@ -206,7 +206,7 @@ describe('workflow builder', () => {
     await fireEvent.click(screen.getByRole('menuitem', { name: 'Move down' }));
     expect(within(stages).getAllByRole('group', { name: /^Stage / })[0]).toHaveAccessibleName('Stage 1: Phone screen');
 
-    expect(screen.getByRole('region', { name: 'Whole workflow' })).toHaveTextContent('When an application arrives: notify the team. (off)');
+    expect(screen.getByRole('region', { name: 'Workflow automations' })).toHaveTextContent('When an application arrives: notify the team. (off)');
     await expectNoAxeViolations(container);
   });
 

@@ -199,6 +199,7 @@ public sealed class ReportsTests(AppHostFixture fixture)
         row.GetProperty("title").GetString().Should().Be("Open Role");
         row.GetProperty("applications").GetInt32().Should().Be(3);
         row.GetProperty("inInterview").GetInt32().Should().Be(1);
+        row.GetProperty("openedAt").GetDateTimeOffset().Should().BeCloseTo(open.PublishedAt!.Value, TimeSpan.FromMilliseconds(1), "the column shows the day the job was published");
         row.GetProperty("daysOpen").GetInt32().Should().Be(40);
         row.GetProperty("hires").GetInt32().Should().Be(1);
     }

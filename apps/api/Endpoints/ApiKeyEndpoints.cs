@@ -46,7 +46,9 @@ internal static class ApiKeyEndpoints
 
     private static async Task<Ok<List<ApiKeySummary>>> ListApiKeys(ScreenHireDbContext db, CancellationToken cancellationToken)
     {
-        var keys = await db.ApiKeys.AsNoTracking().OrderByDescending(k => k.CreatedAt).ToListAsync(cancellationToken);
+        // An assistant a person connected through OAuth is a key row too, but it is listed and revoked as a connection
+        // (OAuthConsentEndpoints), on the MCP server page.
+        var keys = await db.ApiKeys.AsNoTracking().Where(k => k.OAuthClientId == null).OrderByDescending(k => k.CreatedAt).ToListAsync(cancellationToken);
         return TypedResults.Ok(keys.Select(k => k.ToSummary()).ToList());
     }
 
@@ -113,7 +115,7 @@ internal static class ApiKeyEndpoints
     private static async Task<Results<Ok<ApiKeySummary>, NotFound>> GetApiKey(
         Guid keyId, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
-        var key = await db.ApiKeys.AsNoTracking().SingleOrDefaultAsync(k => k.Id == keyId, cancellationToken);
+        var key = await db.ApiKeys.AsNoTracking().SingleOrDefaultAsync(k => k.Id == keyId && k.OAuthClientId == null, cancellationToken);
         return key is null ? TypedResults.NotFound() : TypedResults.Ok(key.ToSummary());
     }
 
@@ -121,7 +123,7 @@ internal static class ApiKeyEndpoints
     private static async Task<Results<Ok<ApiKeySummary>, NotFound>> RevokeApiKey(
         Guid keyId, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken)
     {
-        var key = await db.ApiKeys.SingleOrDefaultAsync(k => k.Id == keyId, cancellationToken);
+        var key = await db.ApiKeys.SingleOrDefaultAsync(k => k.Id == keyId && k.OAuthClientId == null, cancellationToken);
         if (key is null)
         {
             return TypedResults.NotFound();

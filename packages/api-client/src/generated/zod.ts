@@ -138,8 +138,9 @@ export const GetMetaResponse = zod.object({
   "name": zod.string(),
   "version": zod.string(),
   "environment": zod.string(),
-  "apiOrigin": zod.string()
-}).describe('What is serving this API: the product name, the build version, the hosting environment, and the API\'s public origin\n(`ScreenHire:Domains:ApiHost`), which the API reference (`/scalar`), the OpenAPI file and `/v1` sit under.')
+  "apiOrigin": zod.string(),
+  "careersUrlPattern": zod.string()
+}).describe('What is serving this API: the product name, the build version, the hosting environment, and the API\'s public origin\n(`ScreenHire:Domains:ApiHost`), which the API reference (`/scalar`), the OpenAPI file and `/v1` sit under.\n`careersUrlPattern` is a tenant\'s careers address with `{tenant}` where its slug goes, such as\n`https://{tenant}.careers.example.com` (`ScreenHire:Domains:CareersHostPattern`), so the dashboard can show the\naddress a name will get.')
 
 
 export const GetSignInMethodsResponse = zod.object({
@@ -190,8 +191,9 @@ export const ChallengeProviderResponse = zod.void()
 
 
 export const RequestMagicLinkBody = zod.object({
-  "email": zod.string()
-}).describe('Asks for a sign-in link by email.')
+  "email": zod.string(),
+  "returnUrl": zod.string().nullish()
+}).describe('Asks for a sign-in link by email. `returnUrl` is a path on the dashboard to open after the link is used, such as an\nassistant\'s request to connect; anything that is not a local path is dropped.')
 
 export const RequestMagicLinkResponse = zod.void()
 
@@ -223,6 +225,16 @@ export const CompleteOnboardingResponse = zod.object({
   "seesAllJobs": zod.boolean()
 }).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
+
+
+export const LookUpInvitationBody = zod.object({
+  "token": zod.string()
+}).describe('Asks which organization and role the invitation whose token an emailed link carries offers. It uses nothing up.')
+
+export const LookUpInvitationResponse = zod.object({
+  "organizationName": zod.string(),
+  "roleName": zod.string()
+}).describe('What an open invitation offers: the organization\'s name and the role\'s, such as "Recruiter" or a custom role as typed.')
 
 
 export const AcceptInvitationBody = zod.object({
@@ -6932,6 +6944,8 @@ export const UpdateOrganizationVerificationSettingsResponse = zod.object({
 }).describe('The organization\'s verification settings. `llmConsistencyCheck` turns on the LLM consistency check, which sends the\nresume, answers and any LinkedIn export to the deployment\'s model provider; it is off until an admin turns it on.\n`monthlyTokenBudget` caps the tokens it may use per calendar month (UTC); null uses the deployment\'s default.\n`tokensUsedThisMonth` is what the check has used so far this month. `lastUpdated` is the settings\' last\nchange ("by ScreenHire" while they are the defaults); their history is `/verification-settings/history`.')
 
 
+export const listTeamMembersResponseLastUpdatedTwoCreatedDefault = false;
+
 export const ListTeamMembersResponseItem = zod.object({
   "id": zod.uuid(),
   "userId": zod.uuid(),
@@ -6943,8 +6957,15 @@ export const ListTeamMembersResponseItem = zod.object({
   "joinedAt": zod.iso.datetime({"offset":true}),
   "jobAccess": zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.'),
   "seesAllJobs": zod.boolean(),
-  "jobCount": zod.int()
-}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.')
+  "jobCount": zod.int(),
+  "lastUpdated": zod.union([zod.null(),zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(listTeamMembersResponseLastUpdatedTwoCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')]).optional()
+}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.\n`lastUpdated` is the newest change to their membership (a role or job access change) and who made it; null when\nnothing has changed since they joined, which `joinedAt` already says, and for a reader who cannot manage the team.')
 export const ListTeamMembersResponse = zod.array(ListTeamMembersResponseItem)
 
 
@@ -7068,6 +7089,8 @@ export const ChangeMemberRoleBody = zod.object({
   "customRoleId": zod.uuid().nullish()
 }).describe('Gives a member another role: a built-in one, or Custom with the custom role\'s id.')
 
+export const changeMemberRoleResponseLastUpdatedTwoCreatedDefault = false;
+
 export const ChangeMemberRoleResponse = zod.object({
   "id": zod.uuid(),
   "userId": zod.uuid(),
@@ -7079,8 +7102,15 @@ export const ChangeMemberRoleResponse = zod.object({
   "joinedAt": zod.iso.datetime({"offset":true}),
   "jobAccess": zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.'),
   "seesAllJobs": zod.boolean(),
-  "jobCount": zod.int()
-}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.')
+  "jobCount": zod.int(),
+  "lastUpdated": zod.union([zod.null(),zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(changeMemberRoleResponseLastUpdatedTwoCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')]).optional()
+}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.\n`lastUpdated` is the newest change to their membership (a role or job access change) and who made it; null when\nnothing has changed since they joined, which `joinedAt` already says, and for a reader who cannot manage the team.')
 
 
 export const ChangeMemberJobAccessParams = zod.object({
@@ -7090,6 +7120,8 @@ export const ChangeMemberJobAccessParams = zod.object({
 export const ChangeMemberJobAccessBody = zod.object({
   "jobAccess": zod.union([zod.null(),zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.')])
 }).describe('Sets which jobs a member sees: all of them, or only the jobs whose hiring team they are on.')
+
+export const changeMemberJobAccessResponseLastUpdatedTwoCreatedDefault = false;
 
 export const ChangeMemberJobAccessResponse = zod.object({
   "id": zod.uuid(),
@@ -7102,8 +7134,15 @@ export const ChangeMemberJobAccessResponse = zod.object({
   "joinedAt": zod.iso.datetime({"offset":true}),
   "jobAccess": zod.enum(['All', 'HiringTeamOnly']).describe('Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation.'),
   "seesAllJobs": zod.boolean(),
-  "jobCount": zod.int()
-}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.')
+  "jobCount": zod.int(),
+  "lastUpdated": zod.union([zod.null(),zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(changeMemberJobAccessResponseLastUpdatedTwoCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.')]).optional()
+}).describe('A member of the signed-in user\'s organization. `id` is the membership\'s id, which the member routes take.\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.\n`lastUpdated` is the newest change to their membership (a role or job access change) and who made it; null when\nnothing has changed since they joined, which `joinedAt` already says, and for a reader who cannot manage the team.')
 
 
 export const RemoveMemberParams = zod.object({
@@ -8146,11 +8185,12 @@ export const GetHiringReportResponse = zod.object({
   "openJobs": zod.array(zod.object({
   "jobId": zod.uuid(),
   "title": zod.string(),
+  "openedAt": zod.iso.datetime({"offset":true}).nullable(),
   "applications": zod.int(),
   "inInterview": zod.int(),
   "daysOpen": zod.int(),
   "hires": zod.int()
-}).describe('An open job: applications in the range, applications in an Interview stage now, days open and hires in the range.'))
+}).describe('An open job: when it opened, applications in the range, applications in an Interview stage now, days open and hires in the range.'))
 }).describe('The Reports page (docs/architecture/reports.md): headline numbers, applications and hires by week, the funnel, time to\nhire, sources and open jobs for the jobs the person can see, between two instants. All of it comes from one snapshot,\nso the numbers agree. Nothing here reads verification (verification) results.')
 
 
@@ -9725,3 +9765,73 @@ export const SearchResponse = zod.object({
   "status": zod.enum(['Draft', 'Open', 'Closed'])
 }).describe('A job whose title matched.'))
 }).describe('What a search found among the candidates and jobs the reader sees: candidates by name or email, one hit per\napplication, and jobs by title. Each list is short and starts with names or titles that begin with the search.')
+
+
+export const GetOAuthAuthorizationRequestQueryParams = zod.object({
+  "clientId": zod.string().optional(),
+  "redirectUri": zod.string().optional(),
+  "responseType": zod.string().optional(),
+  "scope": zod.string().optional(),
+  "resource": zod.string().optional(),
+  "codeChallenge": zod.string().optional(),
+  "codeChallengeMethod": zod.string().optional()
+})
+
+export const GetOAuthAuthorizationRequestResponse = zod.object({
+  "clientName": zod.string(),
+  "redirectHost": zod.string(),
+  "redirectIsLoopback": zod.boolean(),
+  "organizationName": zod.string(),
+  "scopes": zod.array(zod.object({
+  "scope": zod.enum(['Read', 'Write', 'VerificationRead']).describe('What an API key may do on the hiring API.'),
+  "grantable": zod.boolean(),
+  "reason": zod.string().nullable()
+}).describe('One thing the assistant asked to be allowed. `grantable` is false when the signed-in person does not hold it\nthemselves; `reason` says why. Read is always offered and always granted.'))
+}).describe('An assistant\'s request to connect, as the consent page shows it: who is asking, where the person goes afterwards, which\norganization the connection would belong to, and what it may do. `redirectHost` is the address\'s host (and port, for\na local one); `redirectIsLoopback` is true for an address on this person\'s own computer.')
+
+
+export const DecideOAuthAuthorizationBody = zod.object({
+  "clientId": zod.string(),
+  "redirectUri": zod.string(),
+  "responseType": zod.string(),
+  "scope": zod.string().nullable(),
+  "resource": zod.string().nullable(),
+  "codeChallenge": zod.string(),
+  "codeChallengeMethod": zod.string(),
+  "state": zod.string().nullable(),
+  "approve": zod.boolean(),
+  "grantedScopes": zod.array(zod.enum(['Read', 'Write', 'VerificationRead']).describe('What an API key may do on the hiring API.'))
+}).describe('The person\'s decision on an assistant\'s request: the OAuth parameters the assistant sent, copied as they came, plus\n`approve` and the scopes the person chose. `grantedScopes` is cut to what the assistant asked for and the person\nholds, and always includes Read.')
+
+export const DecideOAuthAuthorizationResponse = zod.object({
+  "redirectUrl": zod.string()
+}).describe('Where to send the person next: the assistant\'s redirect address, carrying the code or the refusal.')
+
+
+export const ListOAuthConnectionsResponseItem = zod.object({
+  "id": zod.uuid(),
+  "clientName": zod.string(),
+  "connectedByUserId": zod.uuid().nullable(),
+  "connectedByName": zod.string().nullable(),
+  "scopes": zod.array(zod.enum(['Read', 'Write', 'VerificationRead']).describe('What an API key may do on the hiring API.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "revokedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('An assistant a person connected to this organization. It acts with `scopes` and shows in activity under its name.\n`lastUsedAt` is accurate to about a minute; `revokedAt` is set once a connection is revoked, and the row stays.')
+export const ListOAuthConnectionsResponse = zod.array(ListOAuthConnectionsResponseItem)
+
+
+export const RevokeOAuthConnectionParams = zod.object({
+  "connectionId": zod.uuid()
+})
+
+export const RevokeOAuthConnectionResponse = zod.object({
+  "id": zod.uuid(),
+  "clientName": zod.string(),
+  "connectedByUserId": zod.uuid().nullable(),
+  "connectedByName": zod.string().nullable(),
+  "scopes": zod.array(zod.enum(['Read', 'Write', 'VerificationRead']).describe('What an API key may do on the hiring API.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "revokedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('An assistant a person connected to this organization. It acts with `scopes` and shows in activity under its name.\n`lastUsedAt` is accurate to about a minute; `revokedAt` is set once a connection is revoked, and the row stays.')

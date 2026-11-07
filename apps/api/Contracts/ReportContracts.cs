@@ -68,5 +68,5 @@ public sealed record JobTimeToHire(Guid JobId, string JobTitle, int Hires, doubl
 /// </remarks>
 public sealed record SourceCount(string Key, string Name, int Applications, int Hires);
 
-/// <summary>An open job: applications in the range, applications in an Interview stage now, days open and hires in the range.</summary>
-public sealed record ReportOpenJob(Guid JobId, string Title, int Applications, int InInterview, int DaysOpen, int Hires);
+/// <summary>An open job: when it opened, applications in the range, applications in an Interview stage now, days open and hires in the range.</summary>
+public sealed record ReportOpenJob(Guid JobId, string Title, DateTimeOffset? OpenedAt, int Applications, int InInterview, int DaysOpen, int Hires);

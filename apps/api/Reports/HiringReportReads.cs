@@ -256,7 +256,7 @@ internal static class HiringReportReads
             ],
             [
                 .. openJobs.Select(j => new ReportOpenJob(
-                    j.JobId, j.Title, j.Applications, j.InInterview, DaysOpen(j.PublishedAt, now), j.Hires)),
+                    j.JobId, j.Title, j.PublishedAt, j.Applications, j.InInterview, DaysOpen(j.PublishedAt, now), j.Hires)),
             ]);
     }
 

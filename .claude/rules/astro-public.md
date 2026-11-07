@@ -57,8 +57,12 @@ rank fast pages, so both ship about zero kilobytes of JavaScript. The procedures
   local storage and keep no raw IP addresses, and a check of the ePrivacy position per market (EDPB Guidelines 2/2023
   cover any script that reads from the device, cookie or not).
 - **Careers data comes from the API** through `apps/careers/src/lib/api.ts` (the generated client with the server
-  base URL), and only on the server. An unknown organization returns `new Response(null, { status: 404 })`; an unknown
-  job is a 404 and a closed one a 410 (the API says which), both rendered with `JobUnavailable.astro`.
+  base URL), and only on the server. An unknown organization returns `new Response(null, { status: 404 })`, and Astro
+  renders `src/pages/404.astro` in place of the empty body: a neutral page with no organization name, branding or link,
+  the same for an unknown organization and for any other address with no page, so the page itself says nothing about
+  whether an organization exists. Keep the body empty so Astro does that, and never put the visitor's slug on the page.
+  A `.ts` endpoint keeps its bare 404. An existing organization's pages are public and keep their own: an unknown job is
+  a 404 and a closed one a 410 (the API says which), both rendered with `JobUnavailable.astro`.
 - **Links go through the tenant base.** On a tenant host (`{tenant}.{CareersDomain}`) pages have no `/{organization}`
   prefix; build every link from `basePath(Astro.request, organization)` (`src/lib/host.ts`). An API route (`.ts`
   endpoint) reads its organization with `organizationOf(request, params)`, because its `params` are stale after the

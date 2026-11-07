@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/sve
 import { goto } from '$app/navigation';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { downloadCsv } from '#lib/csv.js';
+import { formatDate } from '#lib/dates.js';
 import { previousInstants, rangeInstants } from '#lib/report-range.js';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
 import { apiStub, jobs, user } from '../../../test-support/fixtures.js';
@@ -50,7 +51,7 @@ const report: HiringReport = {
     { key: 'careers', name: 'Careers page', applications: 6, hires: 1 },
     { key: 'website', name: 'Your website', applications: 2, hires: 0 },
   ],
-  openJobs: [{ jobId: jobs[0]!.id, title: jobs[0]!.title, applications: 6, inInterview: 2, daysOpen: 12, hires: 1 }],
+  openJobs: [{ jobId: jobs[0]!.id, title: jobs[0]!.title, openedAt: '2026-10-19T12:00:00Z', applications: 6, inInterview: 2, daysOpen: 12, hires: 1 }],
 };
 
 const nothing: HiringReport = {
@@ -175,9 +176,9 @@ describe('reports page', () => {
     const open = screen.getByRole('region', { name: 'Open jobs' });
     const table = within(open).getByRole('table');
     expect(within(open).queryByRole('button', { name: 'Chart' })).toBeNull();
-    expect(within(table).getAllByRole('columnheader').map((header) => header.textContent?.trim())).toEqual(['Job', 'Applications', 'In interview', 'Days open', 'Hires']);
+    expect(within(table).getAllByRole('columnheader').map((header) => header.textContent?.trim())).toEqual(['Job', 'Opened', 'Applications', 'In interview', 'Days open', 'Hires']);
     const cells = within(table).getAllByRole('row').slice(1).map((row) => within(row).getAllByRole('cell').map((cell) => cell.textContent?.trim()));
-    expect(cells).toEqual([[jobs[0]!.title, '6', '2', '12', '1']]);
+    expect(cells).toEqual([[jobs[0]!.title, formatDate('2026-10-19T12:00:00Z'), '6', '2', '12', '1']]);
     expect(within(table).getByRole('link', { name: jobs[0]!.title })).toHaveAttribute('href', `/jobs/${jobs[0]!.id}`);
     await expectNoAxeViolations();
   });

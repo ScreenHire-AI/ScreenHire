@@ -179,7 +179,7 @@
     </ReorderList>
   </Panel>
 
-  <Panel title="Whole workflow" count={inLane(null).length}>
+  <Panel title="Workflow automations" count={inLane(null).length}>
     {#snippet actions()}<Button variant="outline" onclick={() => onopen(null)}>Edit automations <span class="sr-only">for the whole workflow</span></Button>{/snippet}
     <div class="flex flex-col gap-2">
       {@render summaries(null)}

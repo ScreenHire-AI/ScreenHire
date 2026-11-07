@@ -20,5 +20,8 @@ public sealed class MetaTests(AppHostFixture fixture)
         meta.GetProperty("version").GetString().Should().NotBeNullOrWhiteSpace();
         meta.GetProperty("environment").GetString().Should().Be("Development", "the AppHost runs the API in Development");
         new Uri(meta.GetProperty("apiOrigin").GetString()!).Authority.Should().Be(client.BaseAddress!.Authority, "the API's public origin is its own host here");
+        var careers = meta.GetProperty("careersUrlPattern").GetString()!;
+        careers.Should().Contain("{tenant}", "the dashboard puts an organization's slug at that placeholder");
+        new Uri(careers.Replace("{tenant}", "acme", StringComparison.Ordinal)).Host.Should().StartWith("acme.", "the development pattern puts the slug first");
     }
 }

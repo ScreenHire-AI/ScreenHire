@@ -91,7 +91,7 @@ public sealed class TemplatesPageTests(E2EFixture fixture) : BrowserTest(fixture
         await Expect(Page.GetByRole(AriaRole.Menuitem, new() { Name = "Reset to original" })).ToHaveCountAsync(0);
         await Page.Keyboard.PressAsync("Escape");
         await row.GetByRole(AriaRole.Link, new() { Name = "Moved to the next step" }).ClickAsync();
-        await Expect(Page.GetByLabel("Subject")).Not.ToHaveValueAsync(new Regex(marker));
+        await Expect(Page.GetByRole(AriaRole.Textbox, new() { Name = "Subject" })).Not.ToContainTextAsync(marker);
         await HeaderBand.GetByRole(AriaRole.Button, new() { Name = "History" }).ClickAsync();
         var history = Page.GetByRole(AriaRole.Dialog, new() { Name = "History" });
         await Expect(history.GetByRole(AriaRole.Listitem).First).ToContainTextAsync("You restored the original wording");

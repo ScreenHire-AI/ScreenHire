@@ -273,6 +273,12 @@ describe('application page', () => {
     expect(within(others).getByRole('link', { name: 'Candidate profile' })).toHaveAttribute('href', `/candidates/${candidateId}`);
     expect(within(band).queryByRole('group', { name: 'Rating' })).toBeNull();
     expect(band).not.toHaveTextContent('Not rated yet');
+    // jsdom has no container queries, so this only checks the two layouts are declared: on a phone the cards are one row that
+    // scrolls sideways (a fixed width each, snapping), from a 36rem band a grid. The widths themselves are the E2E test's.
+    const cards = band.querySelector<HTMLElement>('[data-header-cards]')!;
+    expect(cards).toHaveClass('flex', 'overflow-x-auto', '@xl:grid');
+    expect(cards.querySelectorAll('[role="group"]')).toHaveLength(3);
+    for (const card of cards.querySelectorAll('[role="group"]')) expect(card).toHaveClass('w-64', 'shrink-0', '@xl:w-auto');
     expect(screen.queryByRole('complementary', { name: 'Details' })).toBeNull();
     const files = await screen.findByRole('region', { name: 'Files' });
     expect(within(files).getByRole('button', { name: 'View Casey Morgan CV.pdf' })).toBeInTheDocument();

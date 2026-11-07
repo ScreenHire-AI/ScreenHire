@@ -1,5 +1,6 @@
 import { InputRule, Node, type Extensions } from '@tiptap/core';
 import { ListItem } from '@tiptap/extension-list';
+import { DOMParser as SchemaParser, type Schema, type Slice } from '@tiptap/pm/model';
 import type { EditorState } from '@tiptap/pm/state';
 import StarterKit from '@tiptap/starter-kit';
 
@@ -75,6 +76,30 @@ export function withVariableChips(html: string): string {
   }
 
   return document.body.innerHTML;
+}
+
+/** Plain text as editor content: the text escaped, with each `{{ ... }}` in it as a chip's element. */
+export function textWithChips(text: string): string {
+  const paragraph = document.createElement('p');
+  paragraph.textContent = text;
+  return withVariableChips(paragraph.outerHTML);
+}
+
+/**
+ * Parses a line of plain text with its spaces as written. By default the editor's parser collapses them, and the next
+ * edit anywhere in the line would save the change.
+ */
+export const keepSpaces = { preserveWhitespace: 'full' } as const;
+
+/**
+ * Pasted text as a piece of one line: a line break becomes a space and each `{{ ... }}` a chip. A paste takes the
+ * clipboard's plain text because the HTML of a rich copy holds paragraphs, of which a one-paragraph document keeps the
+ * first, and line breaks, which it drops with no space between the words.
+ */
+export function pastedLine(text: string, schema: Schema): Slice {
+  const line = document.createElement('div');
+  line.innerHTML = textWithChips(text.replace(/\s*[\r\n]+\s*/g, ' '));
+  return SchemaParser.fromSchema(schema).parseSlice(line, keepSpaces);
 }
 
 /** The editor's HTML as it is stored: each chip's element unwrapped to its Liquid text, which the server renders. */
@@ -178,6 +203,45 @@ export const Variable = Node.create<VariableOptions>({
     ];
   },
 });
+
+/** A document of one paragraph that Enter leaves alone: a single line of text, such as an email's subject. */
+const SingleLine = Node.create({
+  name: 'doc',
+  topNode: true,
+  content: 'paragraph',
+  addKeyboardShortcuts() {
+    return { Enter: () => true };
+  },
+});
+
+/** The extensions of a single line of plain text whose `{{ name }}` shows as a chip (`SubjectEditor`). */
+export function singleLineExtensions(variables: () => readonly RichTextVariable[]): Extensions {
+  return [
+    StarterKit.configure({
+      document: false,
+      blockquote: false,
+      bold: false,
+      bulletList: false,
+      code: false,
+      codeBlock: false,
+      dropcursor: false,
+      gapcursor: false,
+      hardBreak: false,
+      heading: false,
+      horizontalRule: false,
+      italic: false,
+      link: false,
+      listItem: false,
+      listKeymap: false,
+      orderedList: false,
+      strike: false,
+      trailingNode: false,
+      underline: false,
+    }),
+    SingleLine,
+    Variable.configure({ variables }),
+  ];
+}
 
 /**
  * The editor's extensions: the toolbar's marks and blocks and nothing else. Headings are h2 and h3 (a careers page's h1
