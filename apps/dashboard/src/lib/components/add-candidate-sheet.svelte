@@ -9,6 +9,7 @@
 
 <script lang="ts">
   import UserPlusIcon from '~icons/lucide/user-plus';
+  import { page } from '$app/state';
   import type { HttpValidationProblemDetails, JobSummary } from '@screenhire/api-client';
   import { DEFAULT_MAX_FILE_BYTES, DropArea } from '@screenhire/ui/questions';
   import { ApiError, createCreateApplication, createCreateResumeUpload, createListJobs } from '@screenhire/api-client/svelte-query';
@@ -16,12 +17,14 @@
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
   import FailureText from '#lib/components/failure-text.svelte';
+  import QueryError from '#lib/components/query-error.svelte';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import * as Sheet from '#lib/components/ui/sheet/index.js';
   import { selectClass } from '#lib/components/workflow/controls.js';
   import { applyValidationProblem } from '#lib/forms.js';
+  import { can } from '#lib/permissions.js';
   import { describeError } from '#lib/query.js';
   import { cn } from '#lib/utils.js';
 
@@ -151,11 +154,19 @@
             <option value="" disabled>{jobs.isPending ? 'Loading jobs…' : offered.length === 0 && !jobs.isError ? 'No job to choose' : 'Choose a job'}</option>
             {#each offered as option (option.id)}<option value={option.id}>{option.title}</option>{/each}
           </select>
-          <!-- With nothing to pick, say why and where to fix it (A3, E3): only drafts and open jobs take a candidate. -->
+          <!-- With nothing to pick, say why and where to fix it (A3, E3): only drafts and open jobs take a candidate, and only
+               someone with Edit jobs can make one, so nobody else gets a link that ends in a refusal. -->
           {#if jobs.isSuccess && offered.length === 0}
             <Field.Description>
-              No draft or open job to add them to. <a href="/jobs/new" class="text-foreground underline underline-offset-2">Create a job</a> first.
+              No draft or open job to add them to.
+              {#if can(page.data.user, 'EditJobs')}
+                <a href="/jobs/new" class="text-foreground underline underline-offset-2">Create a job</a> first.
+              {:else}
+                Someone who can edit jobs needs to create one first.
+              {/if}
             </Field.Description>
+          {:else if jobs.isError}
+            <QueryError message={describeError(jobs.error, 'Could not load the jobs')} onretry={() => jobs.refetch()} inset />
           {/if}
           <Field.Error id="add-candidate-job-error" errors={$errors.jobId?.map((message) => ({ message }))} />
         </Field.Field>

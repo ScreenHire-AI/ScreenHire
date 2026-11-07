@@ -85,9 +85,17 @@ describe('list item', () => {
   it('drops the name below a wide status badge instead of breaking it mid-word (F2, F5)', () => {
     render(LayoutHarness, { props: { example: 'list' } });
 
-    const link = within(screen.getAllByRole('listitem')[0]!).getByRole('link', { name: 'Jordan Ellis' });
+    const link = within(screen.getAllByRole('listitem')[1]!).getByRole('link', { name: 'Priya Natarajan' });
     expect(link.parentElement).toHaveClass('flex-wrap');
     expect(link).toHaveClass('flex-[1_1_10rem]');
+  });
+
+  it('gives the name its own line when the item takes a meta, so an item with an empty meta is as tall as the rest (L1)', () => {
+    render(LayoutHarness, { props: { example: 'list' } });
+
+    const link = within(screen.getAllByRole('listitem')[0]!).getByRole('link', { name: 'Jordan Ellis' });
+    expect(link).toHaveClass('basis-full');
+    expect(link).not.toHaveClass('flex-[1_1_10rem]');
   });
 
   it('keeps the meta out of the wrapping group, so it sits top right in every row', () => {

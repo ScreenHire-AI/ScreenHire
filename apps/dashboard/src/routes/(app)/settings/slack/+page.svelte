@@ -137,8 +137,7 @@
     saved = '';
     try {
       const response = await test.mutateAsync();
-      // The footer's status line, beside Save, where a sighted person looks for what just happened (and it is a live
-      // region too), not only the hidden announcement.
+      // The footer's status line, beside Save, where someone looks for what just happened. It is a live region too.
       if (response.data.posted) saved = 'The test message is in the channel.';
       if (!response.data.posted && response.data.problem) testFailure = slackProblems[response.data.problem];
     } catch (error) {

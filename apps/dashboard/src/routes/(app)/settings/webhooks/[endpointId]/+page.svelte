@@ -189,7 +189,7 @@
   {#if endpoint.isError && !detail}
     <HeaderBand title={notFound ? 'Endpoint not found' : 'Endpoint'} />
     <div class="w-full px-4 py-6 md:px-6">
-      <Panel title={notFound ? 'Endpoint not found' : 'Could not load the endpoint'}>
+      <Panel title={notFound ? 'Endpoint not found' : undefined} label="Endpoint">
         {#if notFound}
           <Empty.Root>
             <Empty.Header>

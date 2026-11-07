@@ -265,8 +265,9 @@
             <tbody>
               {#each rows as row (row.id)}
                 <!-- The whole row is the link (section 9): the title's link covers it, and the cells with their own
-                     controls sit above it. The Status and Actions columns stick while a tablet scrolls the table (section 8). They have
-                     no z-index, so the link's cover and the later cells' raised spans still paint above it. -->
+                     controls sit above it. The Status column sticks while a tablet scrolls the table (section 8). It has no z-index,
+                     so the link's cover and the later cells' raised spans still paint above it. The Actions column sticks too;
+                     it comes last, so it paints above the cover and lets clicks through to it, all but its menu's. -->
                 <tr class="group relative h-12 border-b border-border-subtle last:border-b-0 hover:bg-muted">
                   {#each row.getAllCells() as cell (cell.id)}
                     <td
@@ -282,8 +283,8 @@
                         (cell.column.id === 'type' || cell.column.id === 'published' || cell.column.id === 'updatedAt') && 'text-muted-foreground',
                         (cell.column.id === 'published' || cell.column.id === 'updatedAt') && 'text-right tabular-nums',
                         // The row menu sticks at the right edge as Status does at the left, so a tablet that scrolls the table
-                        // still reaches it (section 8).
-                        cell.column.id === 'actions' && 'sticky right-0 bg-card text-right group-hover:bg-muted',
+                        // still reaches it (section 8). The cell around the menu stays part of the row's link.
+                        cell.column.id === 'actions' && 'pointer-events-none sticky right-0 bg-card text-right group-hover:bg-muted',
                       ]}
                     >
                       <FlexRender {cell} />
@@ -332,7 +333,7 @@
 
 {#snippet actionsCell(job: JobSummary)}
   {#if mayEdit && job.status !== 'Closed'}
-    <span class="relative inline-flex">{@render rowMenu(job)}</span>
+    <span class="pointer-events-auto relative inline-flex">{@render rowMenu(job)}</span>
   {/if}
 {/snippet}
 
