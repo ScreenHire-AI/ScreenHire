@@ -71,8 +71,11 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
             await page.GotoAsync(link.ToString());
             await page.GetByRole(AriaRole.Button, new() { Name = "Accept invitation" }).ClickAsync();
             await Expect(page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
-            // A Recruiter has no Settings in the sidebar.
-            await Expect(page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Settings" })).ToHaveCountAsync(0);
+            // A Recruiter has neither settings area in the sidebar.
+            var theirNavigation = page.GetByRole(AriaRole.Navigation, new() { Name = "Main" });
+            await Expect(theirNavigation.GetByRole(AriaRole.Link, new() { Name = "Jobs" })).ToBeVisibleAsync();
+            await Expect(theirNavigation.GetByRole(AriaRole.Link, new() { Name = "Organization", Exact = true })).ToHaveCountAsync(0);
+            await Expect(theirNavigation.GetByRole(AriaRole.Link, new() { Name = "Hiring setup" })).ToHaveCountAsync(0);
         }
 
         await Page.ReloadAsync();
