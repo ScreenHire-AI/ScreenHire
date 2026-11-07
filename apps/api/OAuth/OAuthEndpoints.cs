@@ -117,8 +117,13 @@ internal static class OAuthEndpoints
             statusCode: StatusCodes.Status201Created);
     }
 
-    private static async Task<IResult> Token(HttpContext context, OAuthServer server, CancellationToken cancellationToken)
+    // The token and revocation endpoints set the tenant from the organization named inside the code or token they are given.
+    // They do it in a scope of their own, as the authentication handler does, so that text from outside never becomes the
+    // tenant of the request itself, which a signed-in browser may also carry a session for.
+    private static async Task<IResult> Token(HttpContext context, IServiceScopeFactory scopes, CancellationToken cancellationToken)
     {
+        await using var scope = scopes.CreateAsyncScope();
+        var server = scope.ServiceProvider.GetRequiredService<OAuthServer>();
         context.Response.Headers.CacheControl = "no-store";
         context.Response.Headers.Pragma = "no-cache";
         if (!context.Request.HasFormContentType)
@@ -135,8 +140,10 @@ internal static class OAuthEndpoints
         };
     }
 
-    private static async Task<IResult> Revoke(HttpContext context, OAuthServer server, CancellationToken cancellationToken)
+    private static async Task<IResult> Revoke(HttpContext context, IServiceScopeFactory scopes, CancellationToken cancellationToken)
     {
+        await using var scope = scopes.CreateAsyncScope();
+        var server = scope.ServiceProvider.GetRequiredService<OAuthServer>();
         context.Response.Headers.CacheControl = "no-store";
         if (!context.Request.HasFormContentType)
         {

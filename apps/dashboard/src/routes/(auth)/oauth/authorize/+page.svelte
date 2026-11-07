@@ -32,7 +32,7 @@
     },
     VerificationRead: {
       title: 'Verification read',
-      opens: () => 'Read verification results. Each read is logged. A level is evidence for a person to review, never a reason to reject on its own.',
+      opens: () => 'Read verification results. Each read is logged. A level is evidence for a person to review. It is never a reason to reject anyone.',
     },
   };
   const order: ApiKeyScope[] = ['Read', 'Write', 'VerificationRead'];

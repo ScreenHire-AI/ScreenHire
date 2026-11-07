@@ -159,9 +159,12 @@ internal sealed class OAuthServer(
             CreatedAt = now,
             ExpiresAt = now + options.Value.CodeLifetime,
         });
+
+        // In the same save as the connection: the purge deletes a registration nobody used, and a connection that still
+        // names it would stop the purge at the foreign key every day.
+        db.OAuthClients.Attach(request.Client);
+        request.Client.LastUsedAt = now;
         await db.SaveChangesAsync(cancellationToken);
-        await db.OAuthClients.Where(c => c.Id == request.Client.Id)
-            .ExecuteUpdateAsync(set => set.SetProperty(c => c.LastUsedAt, now), cancellationToken);
 
         return QueryHelpers.AddQueryString(request.RedirectUri, WithState(request.State, new() { ["code"] = code }));
     }

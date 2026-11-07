@@ -362,6 +362,44 @@ public sealed class ChangeHistoryTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task The_api_keys_page_records_an_assistant_connecting_and_disconnecting_without_any_token_hash_or_prefix()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var app = new OAuthClientApp(fixture);
+        var connection = await owner.ConnectAsync(app, "Hiring Copilot", ["Read", "Write"]);
+        (await app.McpAsync(connection.AccessToken)).Expect(HttpStatusCode.OK);
+
+        (await owner.PostAsync($"/v1/organization/oauth-connections/{connection.ConnectionId}/revoke")).Expect(HttpStatusCode.OK);
+
+        var history = (await owner.GetAsync("/v1/organization/api-keys/history")).Expect(HttpStatusCode.OK);
+        var entries = history.Body.GetProperty("entries").EnumerateArray().ToList();
+        entries.Select(e => e.At("lines.0.text").GetString())
+            .Should().Equal(["revoked the key Hiring Copilot", "created the key Hiring Copilot"], "using a connection records nothing");
+        entries[1].At("lines.0.details.0.label").GetString().Should().Be("Access");
+        entries[1].At("lines.0.details.0.after").GetString().Should().Be("Read and write");
+        entries.Should().OnlyContain(e => e.At("userId").GetGuid() == owner.UserId);
+        (await owner.GetAsync("/v1/organization/api-keys/last-update")).Expect(HttpStatusCode.OK).Text("by").Should().Be("Member");
+
+        var tenant = new TenantContext();
+        tenant.SetOrganization(owner.OrganizationId);
+        await using var db = await fixture.CreateDbContextAsync(tenant, Ct);
+        var key = await db.ApiKeys.SingleAsync(k => k.Id == connection.ConnectionId, Ct);
+        var secrets = new List<string> { connection.AccessToken, connection.RefreshToken, connection.Approval.Code, key.Prefix, key.SecretHash };
+        secrets.AddRange(await db.OAuthTokens.Select(t => t.TokenHash).ToListAsync(Ct));
+        secrets.AddRange(await db.OAuthCodes.Select(c => c.CodeHash).ToListAsync(Ct));
+        secrets.Should().HaveCountGreaterThan(5, "the connection has an access token, a refresh token and a code");
+        var records = await db.ChangeRecords.ToListAsync(Ct);
+        records.Select(r => r.SubjectKind).Should().OnlyContain(k => k == ChangeSubjectKind.ApiKeys || k == ChangeSubjectKind.Team);
+        var stored = JsonSerializer.Serialize(records.Select(r => r.Lines), JsonColumns.SerializerOptions);
+        var served = history.Body.GetRawText();
+        foreach (var value in secrets)
+        {
+            stored.Should().NotContain(value);
+            served.Should().NotContain(value);
+        }
+    }
+
+    [Fact]
     public async Task An_object_nothing_has_changed_since_it_was_created_says_created_until_its_first_change()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
