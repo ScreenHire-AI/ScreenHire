@@ -133,7 +133,7 @@
     { id: 'jobs', header: 'Jobs', accessorFn: (member) => (member.seesAllJobs ? Number.MAX_SAFE_INTEGER : member.jobCount), sortFn: 'basic', sortDescFirst: true },
     { id: 'joined', header: 'Joined', accessorFn: (member) => member.joinedAt, sortFn: 'basic', sortDescFirst: true },
     // The newest role or job access change. A member nobody has changed since they joined has none, so the cell is blank
-    // and Joined says it (L1, W7); those rows sort last.
+    // and Joined says it (L1, W7); those rows sort as the oldest.
     { id: 'updated', header: 'Last updated', accessorFn: (member) => member.lastUpdated?.at ?? '', sortFn: 'basic', sortDescFirst: true },
   ];
   const invitationColumns: ColumnDef<typeof features, PendingInvitation, any>[] = [
@@ -353,6 +353,11 @@
                 </span>
                 <span class="min-w-0 break-all text-muted-foreground">{member.email}</span>
                 <span class="flex flex-wrap gap-1.5"><Badge variant="muted">{member.roleName}</Badge><Badge variant="muted">{jobsText(member)}</Badge></span>
+                <!-- What the table's Last updated column says, so Sort's Last updated sorts by something shown; nothing when nobody has changed it. -->
+                {#if member.lastUpdated?.at}
+                  {@const name = actorName(member.lastUpdated, memberList, myId)}
+                  <span class="text-muted-foreground">Updated <DateText at={member.lastUpdated.at} />{#if name}{' '}by {name}{/if}</span>
+                {/if}
               </div>
               {#if manageable(member)}{@render memberMenu(member)}{/if}
             </li>

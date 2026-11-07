@@ -57,10 +57,11 @@
 
 <!-- As many columns as hold a card of 16rem or more, so a card keeps its two lines: three across in a wide band, two at a
      laptop (F2). In a band narrower than 36rem, a phone's, the cards would stack to about 580px before the tabs, so they sit
-     in one row that scrolls sideways, each snapping into place, and the next card's edge shows that there is more. The
-     padding and the matching negative margin keep the links' focus rings inside the scrolling row. -->
+     in one row that scrolls sideways, each snapping into place, and the next card's edge shows that there is more, so it
+     needs no scrollbar of its own above the tabs' one. The padding and the matching negative margin keep the links' focus
+     rings inside the scrolling row. -->
 <div
-  class="-m-1 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto p-1 @xl:m-0 @xl:grid @xl:snap-none @xl:grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] @xl:overflow-visible @xl:p-0"
+  class="-m-1 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto p-1 [scrollbar-width:none] @xl:m-0 @xl:grid @xl:snap-none @xl:grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] @xl:overflow-visible @xl:p-0"
   data-header-cards
 >
   <MiniCard class={cardClass} title="Contact">

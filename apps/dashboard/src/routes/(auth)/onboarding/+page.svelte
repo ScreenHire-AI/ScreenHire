@@ -125,7 +125,7 @@
               aria-describedby={$errors.slug ? 'slug-hint slug-error' : 'slug-hint'}
             />
             <Field.Description id="slug-hint">
-              {#if careersAddress}Your careers page: <span class="font-mono break-all">{careersAddress}</span>{:else}The name in your careers page address. Lower-case letters, numbers and hyphens.{/if}
+              {#if careersAddress}Your careers page: <span class="break-all">{careersAddress}</span>{:else}The name in your careers page address. Lower-case letters, numbers and hyphens.{/if}
             </Field.Description>
             <Field.Error id="slug-error" errors={$errors.slug?.map((message) => ({ message }))} />
           </Field.Field>

@@ -126,6 +126,11 @@ describe('team page', () => {
     await fireEvent.click(within(table).getByRole('button', { name: 'Last updated' }));
     expect(within(table).getByRole('columnheader', { name: /Last updated/ })).toHaveAttribute('aria-sort', 'descending');
     expect(within(table).getAllByRole('row')[1]).toHaveTextContent('Jordan Lee');
+
+    // A phone's two-line items say the same, so its Sort chip never sorts by something hidden.
+    const items = screen.getAllByRole('listitem');
+    expect(items.find((item) => within(item).queryByText('Jordan Lee'))).toHaveTextContent('Updated Oct 20, 2026 by Blake Rowan');
+    expect(items.find((item) => within(item).queryByText('Casey Morgan'))).not.toHaveTextContent('Updated');
   });
 
   it('gives an Owner actions on everyone but themselves', async () => {
