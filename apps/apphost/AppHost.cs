@@ -54,9 +54,10 @@
 //                               unless configured: Stripe once Stripe:Enabled=true and the stripe-secret-key and
 //                               stripe-webhook-secret parameters have the account's keys; Sandbox:Enabled=true is the local
 //                               fake instead (Development only; the test stacks turn it on). Trial:Days and Trial:Plan set
-//                               the free trial. Plans:<key>:MonthlyPrice, ActiveJobs, Unlimited and StripePriceId override
-//                               the defaults in packages/plans/plans.json, which the marketing pricing page reads too. The
-//                               keys come from those parameters, never from these settings.
+//                               the free trial. Plans:<key>:Name, Order, MonthlyPrice, Currency, ActiveJobs, Unlimited and
+//                               StripePriceId override the defaults in packages/plans/plans.json, which the marketing pricing
+//                               page reads too. ApiBaseUrl and Timeout are for a test that points the Stripe client at a
+//                               stand-in. The keys come from those parameters, never from these settings.
 //   Calendar:*                  member calendars for interview scheduling (ScreenHire.Application CalendarOptions,
 //                               docs/architecture/interview-scheduling.md), forwarded to the API and the worker. A
 //                               provider is on only when both its client id (Google:ClientId, Microsoft:ClientId) and

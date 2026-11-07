@@ -34,9 +34,11 @@ about payment may reach it. A payment problem must not lock a team out of candid
 2. **Payment goes through `IBillingProvider`, with a sandbox and Stripe over plain HTTP.** The interface starts a
    subscription (Checkout), sends the owner to the provider's own page to change or cancel it (the portal) and turns a
    signed webhook into a common event. `SandboxBillingProvider` is the local fake. `StripeBillingProvider` calls Stripe
-   with `HttpClient`, not Stripe.net, and pins the API version to `2024-06-20` in code, so a new Stripe release changes
-   nothing until we move the pin. It uses one long-lived client rather than a factory client, because the standard
-   resilience handler would retry a Checkout call and could create a second session.
+   with `HttpClient`, not Stripe.net, and pins the API version of its calls to `2024-06-20` in code. A webhook is not
+   covered by that header: Stripe renders it at the webhook endpoint's own version, or the account's default, so the
+   endpoint is created at the same version (`docs/operations/deploy.md`) and a new Stripe release changes nothing until
+   we move both. It uses one long-lived client rather than a factory client, because the standard resilience handler
+   would retry a Checkout call and could create a second session.
 3. **With no provider configured, billing is hidden and limits nothing.** The mode is Stripe when both its keys are set,
    Sandbox when the sandbox is enabled, otherwise Off. Off means no account row, no trial, no 402 and a billing route
    that answers `available: false` or 404, as Slack does. The sandbox is refused outside Development when the host
@@ -53,7 +55,7 @@ about payment may reach it. A payment problem must not lock a team out of candid
    paying loses the ability to add work, not the work.
 6. **The refusal is a 402 with a problem type the dashboard recognises.** `urn:screenhire:problem:plan-limit` says the
    plan allows N open jobs and N are open. `urn:screenhire:problem:subscription-ended` says the subscription has
-   ended. Both carry a plain-language `detail`, and the dashboard adds the upgrade link only for an Owner. 402 is the
+   ended, or the free trial when no subscription ever started. Both carry a plain-language `detail`, and the dashboard adds the upgrade link only for an Owner. 402 is the
    status that means "payment needed", it is not a 409 (the job is fine, the plan is not) or a 403 (the person may
    publish, the organization may not), and the publish route's OpenAPI description lists it.
 7. **The open-job count runs in its own organization-wide scope, under a per-organization advisory lock.** A member
@@ -67,8 +69,9 @@ about payment may reach it. A payment problem must not lock a team out of candid
    comparison); only then does it trust the metadata, and it sets the tenant with `SetPublicOrganization`, as every
    anonymous route that acts for one organization does. Each provider event id is stored in `billing_events` under a
    unique index, so a redelivery, even two at once, changes nothing, and the account keeps the provider's timestamp of the
-   newest event applied so a late older event cannot undo a newer one. A signed delivery always gets a 200, even for
-   an event type or organization this app does not know, so Stripe stops retrying it.
+   newest event applied so a late older event cannot undo a newer one. A signed delivery gets a 200, even for an event
+   type or organization this app does not know, so Stripe stops retrying it. The exception is a delivery that loses a race
+   for its account, which gets a 409 so Stripe sends it again.
 9. **Only an Owner manages billing.** A new permission, Manage billing, is Owner-only (ADR-0014), so a custom role cannot
    have it. Every billing route needs it, and an API key gets nothing here (ADR-0011). The page, its settings entry and
    its 402 upgrade link are hidden from everyone else, who read "Ask an owner to upgrade the plan".
