@@ -101,6 +101,9 @@ describe('QuestionField on the apply page (server-rendered)', () => {
 
     expect(html).toContain('<astro-island');
     expect(html).toContain('name="file:resume"');
+    // Before the island runs it is the drop area's plain input in its dashed frame, which posts with the form.
+    expect(html).toContain('data-drop-area');
+    expect(html).toMatch(/<input[^>]*type="file"[^>]*class="file-input"/);
     expect(html).toContain('PDF or DOCX, up to 10 MB.');
   });
 });

@@ -2966,6 +2966,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("provider_event_id");
 
+                    b.Property<DateTimeOffset?>("RemindedForStart")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reminded_for_start");
+
                     b.Property<string>("SyncProblem")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
@@ -3047,10 +3051,22 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("job_id");
 
+                    b.Property<DateTimeOffset>("LookupEnd")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lookup_end");
+
+                    b.Property<DateTimeOffset>("LookupStart")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lookup_start");
+
                     b.Property<string>("MeetingUrl")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
                         .HasColumnName("meeting_url");
+
+                    b.Property<DateTimeOffset?>("NewTimesOfferedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("new_times_offered_at");
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")

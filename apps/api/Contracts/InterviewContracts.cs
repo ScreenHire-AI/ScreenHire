@@ -40,6 +40,9 @@ public sealed record InterviewParticipant(Guid UserId, string DisplayName, bool 
 /// reads as Expired). <c>startsAt</c> and <c>endsAt</c> are set once booked, and stay on a cancelled interview that had
 /// been booked. <c>meetingUrl</c> is the organizer's Meet or Teams link, once their event made it. <c>cancelledByCandidate</c>
 /// is true when the candidate cancelled it. <c>createdByUserId</c> is null when a workflow action offered it.
+/// <c>newTimesOfferedAt</c> is set while the team's offer of new times for a booked interview waits for the candidate: the
+/// booked time (<c>startsAt</c>) stays held, and <c>windowStart</c> and <c>windowEnd</c> are the new window. The end of that
+/// window ends the offer.
 /// </summary>
 public sealed record ApplicationInterview(
     Guid Id,
@@ -56,7 +59,15 @@ public sealed record ApplicationInterview(
     IReadOnlyList<InterviewParticipant> Interviewers,
     DateTimeOffset CreatedAt,
     Guid? CreatedByUserId,
-    bool CancelledByCandidate);
+    bool CancelledByCandidate,
+    DateTimeOffset? NewTimesOfferedAt);
+
+/// <summary>
+/// Offers the candidate new times for a booked interview: they pick from <c>windowStart</c> to <c>windowEnd</c> (at most 90
+/// days), in the interview's own length, working hours and zone. The booked time stays held until they pick, and the
+/// events in every calendar then move. Offering again replaces the window.
+/// </summary>
+public sealed record OfferNewInterviewTimesRequest(DateTimeOffset WindowStart, DateTimeOffset WindowEnd);
 
 /// <summary>Where a candidate's interview stands on the careers page.</summary>
 public enum PublicInterviewState
@@ -80,7 +91,9 @@ public enum PublicInterviewState
 /// them in <c>timeZone</c> (the <c>tz</c> asked for when it is a zone the server knows, otherwise <c>defaultTimeZone</c>,
 /// the zone the team chose). <c>slotsUnavailable</c> is true when the team's calendars could not be read just now, so no
 /// times are offered; trying again later may work. <c>minNoticeHours</c> is how long before the start the candidate can
-/// still move or cancel. Nothing about the interviewers, and nothing from verification.
+/// still move or cancel. <c>newTimesOffered</c> is true while the team's offer of new times waits for the candidate: the
+/// booked time stays until they pick, and they may move or cancel it whatever the notice, until the offered days end.
+/// Nothing about the interviewers, and nothing from verification.
 /// </summary>
 public sealed record PublicInterview(
     PublicOrganization Organization,
@@ -94,7 +107,8 @@ public sealed record PublicInterview(
     IReadOnlyList<DateTimeOffset> Slots,
     bool SlotsUnavailable,
     bool CanChange,
-    int MinNoticeHours);
+    int MinNoticeHours,
+    bool NewTimesOffered);
 
 /// <summary>The start time the candidate picked, one of the offered <c>slots</c>.</summary>
 public sealed record PublicInterviewChoice(DateTimeOffset Start);

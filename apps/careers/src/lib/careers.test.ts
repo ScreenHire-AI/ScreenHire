@@ -110,6 +110,7 @@ describe('brand images', () => {
 describe('files', () => {
   it('describes types and sizes for candidates', () => {
     expect(acceptedLabel(['.pdf', '.docx'])).toBe('PDF or DOCX');
+    expect(acceptedLabel(['.png', '.jpg', '.jpeg'])).toBe('PNG, JPG or JPEG');
     expect(describeSize(10 * 1024 * 1024)).toBe('10 MB');
     expect(describeSize(1536 * 1024)).toBe('1.5 MB');
     expect(describeSize(300)).toBe('1 KB');
@@ -121,6 +122,9 @@ describe('files', () => {
     expect(fileProblem({ name: 'cv.PDF', size: 0 }, ['.pdf'], max)).toBe('This file is empty.');
     expect(fileProblem({ name: 'cv.pdf', size: max + 1 }, ['.pdf'], max)).toBe('This file is larger than 10 MB.');
     expect(fileProblem({ name: 'cv.pdf', size: max }, ['.pdf'], max)).toBeNull();
+    // No types or no limit given (the dashboard's resume, whose types the API names) takes any.
+    expect(fileProblem({ name: 'cv.anything', size: max + 1 }, [])).toBeNull();
+    expect(fileProblem({ name: 'cv.pdf', size: 0 }, [])).toBe('This file is empty.');
   });
 
   it('accepts only well-formed upload references', () => {

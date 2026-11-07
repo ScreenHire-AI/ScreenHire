@@ -11559,6 +11559,88 @@
         ]
       }
     },
+    "/v1/interviews/{interviewId}/new-times": {
+      "post": {
+        "tags": [
+          "Interviews"
+        ],
+        "operationId": "OfferNewInterviewTimes",
+        "parameters": [
+          {
+            "name": "interviewId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferNewInterviewTimesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationInterview"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/email-templates": {
       "get": {
         "tags": [
@@ -13777,6 +13859,7 @@
           "InterviewBooked",
           "InterviewRescheduled",
           "InterviewCancelled",
+          "InterviewNewTimesOffered",
           "EmailReceived"
         ]
       },
@@ -13903,7 +13986,8 @@
           "interviewers",
           "createdAt",
           "createdByUserId",
-          "cancelledByCandidate"
+          "cancelledByCandidate",
+          "newTimesOfferedAt"
         ],
         "type": "object",
         "properties": {
@@ -13974,9 +14058,16 @@
           },
           "cancelledByCandidate": {
             "type": "boolean"
+          },
+          "newTimesOfferedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         },
-        "description": "An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer's Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it."
+        "description": "An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer's Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.\n`newTimesOfferedAt` is set while the team's offer of new times for a booked interview waits for the candidate: the\nbooked time (`startsAt`) stays held, and `windowStart` and `windowEnd` are the new window. The end of that\nwindow ends the offer."
       },
       "ApplicationNoteDetail": {
         "required": [
@@ -19264,6 +19355,24 @@
         },
         "description": "One of the signed-in user's organizations, for the organization switcher, with their role there. `roleName` is\nnull for a custom role in an organization other than the one they work in: row-level security keeps its roles from\nthem until they switch."
       },
+      "OfferNewInterviewTimesRequest": {
+        "required": [
+          "windowStart",
+          "windowEnd"
+        ],
+        "type": "object",
+        "properties": {
+          "windowStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "windowEnd": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "Offers the candidate new times for a booked interview: they pick from `windowStart` to `windowEnd` (at most 90\ndays), in the interview's own length, working hours and zone. The booked time stays held until they pick, and the\nevents in every calendar then move. Offering again replaces the window."
+      },
       "OnboardingRequest": {
         "required": [
           "organizationName",
@@ -20420,7 +20529,8 @@
           "slots",
           "slotsUnavailable",
           "canChange",
-          "minNoticeHours"
+          "minNoticeHours",
+          "newTimesOffered"
         ],
         "type": "object",
         "properties": {
@@ -20473,9 +20583,12 @@
           "minNoticeHours": {
             "type": "integer",
             "format": "int32"
+          },
+          "newTimesOffered": {
+            "type": "boolean"
           }
         },
-        "description": "The interview as the candidate's page shows it. `slots` are the start times offered, as UTC instants in order, each\n`durationMinutes` long: for an Open interview, and for a Booked one the candidate may still change. The page writes\nthem in `timeZone` (the `tz` asked for when it is a zone the server knows, otherwise `defaultTimeZone`,\nthe zone the team chose). `slotsUnavailable` is true when the team's calendars could not be read just now, so no\ntimes are offered; trying again later may work. `minNoticeHours` is how long before the start the candidate can\nstill move or cancel. Nothing about the interviewers, and nothing from verification."
+        "description": "The interview as the candidate's page shows it. `slots` are the start times offered, as UTC instants in order, each\n`durationMinutes` long: for an Open interview, and for a Booked one the candidate may still change. The page writes\nthem in `timeZone` (the `tz` asked for when it is a zone the server knows, otherwise `defaultTimeZone`,\nthe zone the team chose). `slotsUnavailable` is true when the team's calendars could not be read just now, so no\ntimes are offered; trying again later may work. `minNoticeHours` is how long before the start the candidate can\nstill move or cancel. `newTimesOffered` is true while the team's offer of new times waits for the candidate: the\nbooked time stays until they pick, and they may move or cancel it whatever the notice, until the offered days end.\nNothing about the interviewers, and nothing from verification."
       },
       "PublicInterviewChoice": {
         "required": [

@@ -268,8 +268,9 @@ export const readDetails = (form: FormData, state: ApplyState): ApplyState => ({
 });
 
 /**
- * The answers to `questions` over `state`. File questions take the upload reference the island left in its hidden
- * field; a file posted without JavaScript is the server's to upload.
+ * The answers to `questions` over `state`. File questions take the upload reference in their hidden field, which is
+ * there for as long as the field shows the file, so a question posted without one had its file removed; a file posted
+ * without JavaScript is the server's to upload.
  */
 export function readAnswers(form: FormData, questions: readonly PublicQuestion[], state: ApplyState): ApplyState {
   const answers = { ...state.answers };
@@ -279,6 +280,7 @@ export function readAnswers(form: FormData, questions: readonly PublicQuestion[]
     if (question.type === 'File') {
       const upload = parseUploadRef(form.get(fields.upload(question.id)));
       if (upload) files[question.id] = upload;
+      else delete files[question.id];
     } else if (question.type === 'MultiChoice') {
       const chosen = form.getAll(name).filter((value): value is string => typeof value === 'string');
       if (chosen.length > 0) answers[question.id] = chosen;
