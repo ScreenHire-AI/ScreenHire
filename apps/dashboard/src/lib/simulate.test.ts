@@ -159,6 +159,12 @@ describe('what the automations read', () => {
 
     expect(readsOf(flow, listenersOf(flow, { type: 'TimeElapsed', stageId: 'applied' })).timing).toBe(true);
   });
+
+  it('counts a telemetry condition as timing too, as the engine does', () => {
+    const flow = workflowWith([{ ...automation('paste', { type: 'ApplicationSubmitted' }), conditions: { match: 'All', rules: [{ fact: 'telemetry.pasteCount', operator: 'GreaterThan', value: '3' }] } }]);
+
+    expect(readsOf(flow, listenersOf(flow, { type: 'ApplicationSubmitted' })).timing).toBe(true);
+  });
 });
 
 describe('ready-made candidates', () => {
@@ -290,6 +296,7 @@ describe('the answer', () => {
     const flow = workflowWith([]);
     expect(describeRule({ fact: 'answers.right_to_work', operator: 'EqualTo', value: 'yes', negate: true }, flow, 'ApplicationSubmitted')).toBe('Do you have the right to work here? is not Yes');
     expect(describeRule({ fact: 'answers.stack', operator: 'In', values: ['csharp', 'svelte'] }, flow, 'ApplicationSubmitted')).toBe('Which of these have you used? is one of C# and Svelte');
+    expect(describeRule({ fact: 'application.hoursInStage', operator: 'GreaterThan', value: '48', negate: true }, flow, 'ApplicationSubmitted')).toMatch(/ is not more than 48$/);
     expect(describeRule({ fact: 'verification.authenticity', operator: 'EqualTo', value: 'VerificationRecommended' }, flow, 'VerificationAssessed')).toBe('Verification: authenticity is Verification suggested');
   });
 

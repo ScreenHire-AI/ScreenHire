@@ -584,6 +584,30 @@ describe('workflow simulation', () => {
     expect(within(pane()).getByRole('button', { name: /A candidate moved to a stage/ })).toHaveAttribute('aria-current', 'true');
   });
 
+  it('goes back through the second question, one screen at a time, with the stage chosen kept', async () => {
+    stubSimulate();
+    renderViews('editor', 'simulate', [], {
+      ...workflow,
+      automations: [
+        ...workflow.automations,
+        { id: 'tag-applied', name: 'Tag applied', trigger: { type: 'StageEntered', stageId: 'applied' }, conditions: null, actions: [{ type: 'AddTag', tag: 'applied' }] },
+      ],
+    });
+
+    await fireEvent.click(within(pane()).getByRole('button', { name: /A candidate moved to a stage/ }));
+    await waitFor(() => expect(stepHeading()).toHaveTextContent('Which stage?'));
+    await fireEvent.click(within(pane()).getByRole('button', { name: 'Back' }));
+    await waitFor(() => expect(stepHeading()).toHaveTextContent('What happened?'));
+
+    await fireEvent.click(within(pane()).getByRole('button', { name: /A candidate moved to a stage/ }));
+    await waitFor(() => expect(stepHeading()).toHaveTextContent('Which stage?'));
+    await fireEvent.click(within(pane()).getByRole('button', { name: 'Phone screen' }));
+    await waitFor(() => expect(stepHeading()).toHaveTextContent('Who is the candidate?'));
+    await fireEvent.click(within(pane()).getByRole('button', { name: 'Back' }));
+    await waitFor(() => expect(stepHeading()).toHaveTextContent('Which stage?'));
+    expect(within(pane()).getByRole('button', { name: 'Phone screen' })).toHaveAttribute('aria-current', 'true');
+  });
+
   it('keeps the candidate for another moment, and returns to the question to change the candidate', async () => {
     const fetchMock = stubSimulate();
     renderViews('editor', 'simulate', [], guided);
@@ -647,12 +671,20 @@ describe('workflow simulation', () => {
     expect(within(pane()).queryByRole('button', { name: 'Add an automation' })).toBeNull();
   });
 
-  it('says so when every automation is switched off', () => {
+  it('says so when every automation is switched off, and opens Pipeline only where it can be edited', async () => {
     stubSimulate();
-    renderViews('editor', 'simulate', [], { ...workflow, automations: workflow.automations.map((automation) => ({ ...automation, enabled: false })) });
+    const off: HiringWorkflow = { ...workflow, automations: workflow.automations.map((automation) => ({ ...automation, enabled: false })) };
+    const editor = renderViews('editor', 'simulate', [], off);
 
     expect(pane()).toHaveTextContent('Nothing to test yet');
     expect(pane()).toHaveTextContent('Every automation is switched off.');
+    await fireEvent.click(within(pane()).getByRole('button', { name: 'Open Pipeline' }));
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Pipeline' })).toHaveAttribute('aria-selected', 'true'));
+    editor.unmount();
+
+    renderViews('summary', 'simulate', [], off);
+    expect(pane()).toHaveTextContent('Every automation is switched off.');
+    expect(within(pane()).queryByRole('button', { name: 'Open Pipeline' })).toBeNull();
   });
 
   it('names the problems when the workflow cannot be tested, and keeps the way back', async () => {
@@ -856,8 +888,13 @@ describe('workflow graph in the builder', () => {
     await fireEvent.input(screen.getAllByLabelText('Name')[0]!, { target: { value: 'Renamed' } });
 
     await vi.waitFor(() => expect(screen.queryByRole('button', { name: 'Show this path in the graph' })).toBeNull());
-    // The answer on screen stays the one the tested workflow gave, whatever the edit.
+    // The answer on screen stays the one the tested workflow gave, whatever the edit, and says it is from before the edit.
     expect(screen.getByRole('list', { name: 'What would happen, in order' })).toHaveTextContent('Tag screened');
+    expect(screen.getByText('The workflow changed after this test.')).toBeInTheDocument();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Run it again' }));
+    await screen.findByRole('button', { name: 'Show this path in the graph' });
+    expect(screen.queryByText('The workflow changed after this test.')).toBeNull();
   });
 
   it('gives a node that cannot be pressed the focus ring too: it is still a tab stop', () => {
