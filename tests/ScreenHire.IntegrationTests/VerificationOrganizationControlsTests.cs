@@ -413,7 +413,7 @@ public sealed class VerificationOrganizationControlsTests(AppHostFixture fixture
     private async Task<string> EmailOfAsync(Tenant tenant)
     {
         await using var db = await VerificationSupport.TenantDbAsync(fixture, tenant.OrganizationId);
-        return await db.Users.AsNoTracking().Where(u => u.Id == tenant.UserId).Select(u => u.Email).SingleAsync(Ct);
+        return await db.Users.AsNoTracking().Where(u => u.Id == tenant.UserId).Select(u => u.Email).SingleAsync(Ct) ?? throw new InvalidOperationException("The signed-in user has no email address.");
     }
 
     // An own-key request on Anthropic with the fake model; the key is null to keep the saved one.

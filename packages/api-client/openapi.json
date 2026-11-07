@@ -17337,7 +17337,7 @@
           "Notice",
           "Consent"
         ],
-        "description": "On which footing the careers page may compute a device fingerprint (docs/research/legal.md, \"Device / browser\nfingerprint\"; verification-engine.md §3). ePrivacy Art. 5(3) needs consent for fingerprinting unless it is strictly\nnecessary, and data protection authorities differ on whether fraud prevention is, so the basis is configuration per\ncountry rather than code. An organization may also choose one, but only to be more protective than its region\n(<see cref=\"!:Protectiveness\" />)."
+        "description": "On which footing the careers page may compute a device fingerprint (docs/research/legal.md, \"Device / browser\nfingerprint\"; verification-engine.md §3). ePrivacy Art. 5(3) needs consent for fingerprinting unless it is strictly\nnecessary, and data protection authorities differ on whether fraud prevention is, so the basis is configuration per\ncountry rather than code. An organization may also choose one, but only to be more protective than its region\n(DeviceCheckBasis DeviceCheckBases.MoreProtective(DeviceCheckBasis a, DeviceCheckBasis b))."
       },
       "DismissReason": {
         "enum": [
