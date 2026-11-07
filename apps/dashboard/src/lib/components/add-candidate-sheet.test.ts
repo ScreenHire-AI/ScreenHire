@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
 import { apiStub, jobs, user } from '../../test-support/fixtures.js';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
+import { page } from '$app/state';
 import AddCandidateSheet from './add-candidate-sheet.svelte';
 
 vi.mock('$app/state', () => ({ page: { data: { user }, url: new URL('http://dashboard.test/candidates') }, navigating: { to: null } }));
@@ -12,6 +13,7 @@ vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await import
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  page.data.user = user;
 });
 
 const closed: JobSummary = { ...jobs[0]!, id: '01a157d4-0000-7000-8000-000000000003', title: 'Payroll Specialist', status: 'Closed' };
@@ -76,6 +78,21 @@ describe('Add candidate sheet', () => {
     expect(await within(sheet()).findByText(/No draft or open job to add them to\./)).toBeInTheDocument();
     expect(within(sheet()).getByRole('link', { name: 'Create a job' })).toHaveAttribute('href', '/jobs/new');
     expect(within(within(sheet()).getByLabelText('Job')).getAllByRole('option').map((option) => option.textContent)).toEqual(['No job to choose']);
+  });
+
+  it('sends nobody to New job who cannot create one, and says who can', async () => {
+    page.data.user = { ...user, organization: { ...user.organization!, permissions: ['ViewHiring', 'AddCandidates'] } };
+    const { sheet } = renderSheet({ 'GET /v1/jobs': () => Response.json([closed]) });
+
+    expect(await within(sheet()).findByText(/Someone who can edit jobs needs to create one first\./)).toBeInTheDocument();
+    expect(within(sheet()).queryByRole('link', { name: 'Create a job' })).toBeNull();
+  });
+
+  it('says the jobs could not load, with Try again, and does not call the list empty', async () => {
+    const { sheet } = renderSheet({ 'GET /v1/jobs': () => Response.json({ title: 'Server error', status: 500 }, { status: 500 }) });
+
+    expect(await within(sheet()).findByRole('button', { name: 'Try again' })).toBeInTheDocument();
+    expect(within(sheet()).queryByText(/No draft or open job/)).toBeNull();
   });
 
   it('says nothing about missing jobs while there are some to choose from', async () => {
