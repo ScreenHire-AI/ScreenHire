@@ -28,8 +28,9 @@
   import { checkboxClass, kickerClass, labelClass, rowClass, selectClass } from './controls.js';
 
   // "Test this workflow" (workflow-engine.md §4): a sample application through the definition being edited, unsaved
-  // changes included, with the evaluator the worker runs. Nothing is saved or sent.
-  let { workflow }: { workflow: HiringWorkflow } = $props();
+  // changes included, with the evaluator the worker runs. Nothing is saved or sent. With `onshow` a result offers to
+  // light the path it took on the graph.
+  let { workflow, onshow }: { workflow: HiringWorkflow; onshow?: (result: WorkflowSimulationResult) => void } = $props();
 
   // The organization's template names, for "Send the ... email".
   const emailTemplates = createListEmailTemplates();
@@ -273,6 +274,7 @@
     {:else if result.automations.length === 0}
       <p>No automation fires on this trigger.</p>
     {:else}
+      {#if onshow}<div class="mb-3"><Button variant="outline" size="lg" onclick={() => onshow(result!)}>Show this path in the graph</Button></div>{/if}
       <ol class="flex flex-col">
         {#each result.automations as automation (automation.automationId)}
           <li aria-label={`${automation.name}: ${outcomeText[automation.outcome]}`} class={['flex flex-col gap-1.5', rowClass]}>

@@ -112,14 +112,15 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
 
         // The graph is the same workflow.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Graph" }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Edit Route for review" })).ToBeVisibleAsync();
+        var automation = Page.GetByRole(AriaRole.Button, new() { Name = "When Route for review" });
+        await Expect(automation).ToBeVisibleAsync();
         await Expect(Page.Locator(".svelte-flow")).ToContainTextAsync("Add the tag \"needs-review\"");
-        // Framed in the pane, not just present: the view starts at the top left, where this automation's row begins.
+        // Framed in the pane, not just present: the first view fits the workflow, so the automation is inside it.
         var pane = (await Page.Locator(".svelte-flow").BoundingBoxAsync())!;
-        var edit = (await Page.GetByRole(AriaRole.Button, new() { Name = "Edit Route for review" }).BoundingBoxAsync())!;
+        var edit = (await automation.BoundingBoxAsync())!;
         edit.X.Should().BeInRange(pane.X, pane.X + pane.Width - edit.Width);
         edit.Y.Should().BeInRange(pane.Y, pane.Y + pane.Height - edit.Height);
-        // The zoom toolbar floats over the canvas's bottom left; the first column starts right of it, so it covers no node.
+        // The zoom toolbar floats over the canvas's bottom left; the graph starts at the top and right of it, so it covers no node.
         var toolbar = (await Page.Locator("[data-graph-controls]").BoundingBoxAsync())!;
         foreach (var node in await Page.Locator(".svelte-flow__node").AllAsync())
         {
@@ -308,47 +309,54 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await ExpectValidationAsync("No problems found");
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Graph" }).ClickAsync();
         var graph = Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Graph" });
-        ILocator Node(string name) => graph.GetByRole(AriaRole.Group, new() { Name = name, Exact = true });
+        ILocator Node(string name) => graph.GetByRole(AriaRole.Button, new() { Name = name });
 
         // From here on, the keyboard only: Tab into the graph, the arrow keys from node to node.
-        await TabUntilFocusedAsync(Node("Whole workflow"));
+        await TabUntilFocusedAsync(Node("Lane Whole workflow"));
         await Page.Keyboard.PressAsync("ArrowRight");
         await Page.Keyboard.PressAsync("ArrowRight");
-        await Expect(Node("Stage 2: Screening")).ToBeFocusedAsync();
-        await Page.Keyboard.PressAsync("Tab");
-        await Expect(graph.GetByRole(AriaRole.Button, new() { Name = "Add automation to Screening" })).ToBeFocusedAsync();
+        await Expect(Node("Stage Screening")).ToBeFocusedAsync();
+
+        // A workflow with no automations says what to do, with one action.
+        await Expect(graph).ToContainTextAsync("No automations yet");
+        await TabUntilFocusedAsync(graph.GetByRole(AriaRole.Button, new() { Name = "Add an automation", Exact = true }));
         await Page.Keyboard.PressAsync("Enter");
 
-        // The Pipeline view's own form, opened at the new automation's name, its trigger set to entering Screening.
-        var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Automations: Screening" });
+        // The Pipeline view's own form, opened at the new automation's name, its trigger an arriving application.
+        var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Automations: Whole workflow" });
         var name = sheet.GetByRole(AriaRole.Textbox, new() { Name = "Name", Exact = true });
         await Expect(name).ToBeFocusedAsync();
         await Page.Keyboard.PressAsync("Control+A");
         await Page.Keyboard.TypeAsync("Fast-track referrals");
-        await Expect(sheet.GetByRole(AriaRole.Combobox, new() { Name = "Trigger" })).ToHaveValueAsync("StageEntered");
-        await TabUntilFocusedAsync(sheet.GetByRole(AriaRole.Button, new() { Name = "Add condition" }));
+        await Expect(sheet.GetByRole(AriaRole.Combobox, new() { Name = "Trigger" })).ToHaveValueAsync("ApplicationSubmitted");
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(sheet).ToBeHiddenAsync();
+
+        // The focus is on the new automation. A plus on its line adds a condition, and opens the form at it.
+        await Expect(Node("When Fast-track referrals")).ToBeFocusedAsync();
+        await Page.Keyboard.PressAsync("ArrowDown");
+        await Expect(Node("Add a condition to Fast-track referrals")).ToBeFocusedAsync();
         await Page.Keyboard.PressAsync("Enter");
-        await Expect(sheet.GetByLabel("Fact for condition 1")).ToHaveValueAsync("application.tags");
-        await TabUntilFocusedAsync(sheet.GetByRole(AriaRole.Textbox, new() { NameRegex = new Regex("^Value") }), backwards: true);
+        await Expect(sheet.GetByLabel("Fact for condition 1")).ToBeFocusedAsync();
+        await TabUntilFocusedAsync(sheet.GetByRole(AriaRole.Textbox, new() { NameRegex = new Regex("^Value") }));
         await Page.Keyboard.TypeAsync("referral");
         // The action it starts with adds a tag, and the tag is still blank.
         await Page.Keyboard.PressAsync("Escape");
         await Expect(sheet).ToBeHiddenAsync();
 
-        // The focus is back on the new automation, and the problem shows on the node it is about.
-        await Expect(Node("When: Fast-track referrals")).ToBeFocusedAsync();
+        // The focus is back on the automation, and the problem shows on the node it is about.
+        await Expect(Node("When Fast-track referrals")).ToBeFocusedAsync();
         await ExpectProblemAsync(Blank);
-        await Page.Keyboard.PressAsync("ArrowRight");
-        await Expect(Node("If: All of 1 condition, Fast-track referrals")).ToBeFocusedAsync();
-        await Page.Keyboard.PressAsync("ArrowRight");
-        var action = Node("Then, action 1: Add the tag \"\", Fast-track referrals, 1 problem to fix");
+        await Page.Keyboard.PressAsync("ArrowDown");
+        await Expect(Node("If in Fast-track referrals")).ToBeFocusedAsync();
+        await Page.Keyboard.PressAsync("ArrowDown");
+        var action = Node("Then action 1 in Fast-track referrals");
         await Expect(action).ToBeFocusedAsync();
         await Expect(action).ToContainTextAsync(Blank);
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-workflow-graph-problem-1440");
 
-        // Its Edit opens the same form at that action.
-        await Page.Keyboard.PressAsync("Tab");
+        // Pressing it opens the same form at that action.
         await Page.Keyboard.PressAsync("Enter");
         await Expect(sheet.GetByRole(AriaRole.Combobox, new() { Name = "Action 1" })).ToBeFocusedAsync();
         await Page.Keyboard.PressAsync("Tab");
@@ -357,16 +365,16 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await ExpectValidationAsync("No problems found");
         await Page.Keyboard.PressAsync("Escape");
         await Expect(sheet).ToBeHiddenAsync();
-        await Expect(Node("Then, action 1: Add the tag \"fast-track\", Fast-track referrals")).ToBeVisibleAsync();
-        await Expect(graph.GetByRole(AriaRole.Button, new() { Name = "Edit Add the tag \"fast-track\" in Fast-track referrals" })).ToBeFocusedAsync();
+        await Expect(Node("Then action 1 in Fast-track referrals")).ToBeVisibleAsync();
+        await Expect(Node("Then action 1 in Fast-track referrals")).ToBeFocusedAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-workflow-graph-edit-1440");
 
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save draft" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Saved version 1." })).ToBeVisibleAsync();
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Stages" }).GetByRole(AriaRole.Group, new() { Name = "Stage 2: Screening" }))
-            .ToContainTextAsync("When a candidate enters Screening, if 1 condition holds: add the tag \"fast-track\".");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Whole workflow" }))
+            .ToContainTextAsync("When an application arrives, if 1 condition holds: add the tag \"fast-track\".");
 
         // The graph at a laptop's and a tablet's width, and on a phone, where it is for reading. It opens at full size.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Graph" }).ClickAsync();
@@ -374,14 +382,14 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         foreach (var (width, height) in new[] { (1024, 900), (768, 1024) })
         {
             await Page.SetViewportSizeAsync(width, height);
-            await Expect(graph.GetByRole(AriaRole.Button, new() { Name = "Add automation to Screening" })).ToBeVisibleAsync();
+            await Expect(Node("Add an automation to Screening")).ToBeVisibleAsync();
             await ExpectNoSidewaysScrollAsync();
             await SaveScreenshotAsync(Page, $"dashboard-workflow-graph-{width}");
         }
         await Page.SetViewportSizeAsync(390, 844);
         await Expect(graph).ToContainTextAsync("On a phone the graph is for reading. Edit in Pipeline.");
-        await Expect(graph.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^(Edit|Add automation|Remove) ") })).ToHaveCountAsync(0);
-        await Expect(Node("When: Fast-track referrals")).ToBeAttachedAsync();
+        await Expect(graph.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^(Add|Edit|Remove) ") })).ToHaveCountAsync(0);
+        await Expect(graph.GetByRole(AriaRole.Group, new() { Name = "When: Fast-track referrals", Exact = true })).ToBeAttachedAsync();
         await ExpectNoSidewaysScrollAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-workflow-graph-390");
