@@ -72,7 +72,7 @@ reads and change history all work unchanged: the assistant shows in activity und
   keeps only scopes the assistant asked for.
 - **Approving again replaces.** claude.ai registers a new client on every connection, so approving revokes the same person's
   earlier connections in the organization to an assistant with the same name and redirect addresses.
-- **Settings > MCP server lists them** with who connected each, access and last use. An Owner or Admin disconnects one
+- **Integrations > MCP server lists them** with who connected each, access and last use. An Owner or Admin disconnects one
   (`POST /v1/organization/oauth-connections/{id}/revoke`); the row stays, marked revoked. The API keys page lists no
   connection. Removing a member offers to disconnect the assistants they connected.
 

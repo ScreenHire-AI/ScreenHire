@@ -182,10 +182,10 @@
   <title>Branding · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Branding' }]} />
+<TopBar crumbs={[{ label: 'Hiring setup' }, { label: 'Branding' }]} />
 
 <main class="flex flex-col">
-  <HeaderBand title="Branding">
+  <HeaderBand title="Branding" oneRow>
     {#snippet actions()}
       {#if detail}<HistoryFact value={detail.lastUpdated} name="Branding" page={(before) => getGetOrganizationBrandingHistoryQueryOptions({ before })} />{/if}
     {/snippet}

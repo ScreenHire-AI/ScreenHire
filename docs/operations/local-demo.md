@@ -8,6 +8,7 @@ sources:
   - resource: apps/api/Demo/DemoQuestionnaires.cs
   - resource: apps/api/Demo/DevelopmentDemo.cs
   - resource: apps/apphost/DevSso/config.json
+  - resource: apps/dashboard/src/lib/setup-checklist.ts
   - resource: src/ScreenHire.Infrastructure/Persistence/DevelopmentDataSeeder.cs
   - resource: .claude/skills/preview/SKILL.md
   - resource: kangentic.json
@@ -116,7 +117,7 @@ a user. No password anywhere.
 The Email link panel's **Email me a sign-in link** works too: the link arrives in Mailpit, and opening it asks for
 one more click (**Sign in**) so a mail scanner cannot use it up.
 
-Avery manages the team in **Settings > Team**: **Invite** sends the invitation to Mailpit. Its link opens the
+Avery manages the team in **Organization > Team**: **Invite** sends the invitation to Mailpit. Its link opens the
 dashboard's **Join your team** page, and **Accept invitation** signs the invitee in to Brightwater with the invited
 role. Open the link in a private window so Avery stays signed in. Jordan, a Recruiter, and Robin, an Interviewer, have
 no Settings in the sidebar.
@@ -209,7 +210,7 @@ hire and both sources numbers to show (Last 90 days covers all of it; each panel
 Rating column on Frontend Engineer and a candidate's stars, which open to each scorecard; Joel Mensah's Messages (open the changed interview email as it went, or email him from the box at the top: start from a template, change it, and Preview shows it with his first name), his notes (type @ in the note box to mention a teammate; the mention emails are in
 Mailpit and never quote the note; Avery's own note offers Edit and Delete in its menu), a resume opened full window
 from the details rail's View, Support Engineer for a closed job and its candidates' activity with the recruiter's notes,
-Saved candidates (Grace Adeyemi, saved from Support Engineer, with no end date: the page shows Rating and Last contacted (Never until an email goes, so the invitation sets it), Message opens the email composer, Edit note changes the note and shows its History, and Invite to apply sends the invitation to Mailpit with the
+Saved candidates (the **Saved** choice beside the Candidates title; Grace Adeyemi, saved from Support Engineer, with no end date: the page shows Rating and Last contacted (Never until an email goes, so the invitation sets it), Message opens the email composer, Edit note changes the note and shows its History, and Invite to apply sends the invitation to Mailpit with the
 job's link and her link to stop being kept, which opens on the careers site), the Templates page (below) and its builder (questions, automations and the guardrail that refuses a
 verification-driven rejection), the workflow graph and "Simulate", Ctrl K for the command palette, the dark theme, and a
 second browser window on the same job to show live updates.
@@ -246,7 +247,10 @@ and Archived.
 
 Settings, as Avery (any role with a settings permission; Owners and Admins have them all):
 
-Settings is one item at the bottom of the sidebar; its pages share the Settings menu.
+Settings is three items at the bottom of the sidebar: **Organization**, **Hiring setup** and **Integrations**. The first two have a
+menu of their own pages; **Integrations** is a directory with a row per integration (Slack where it is set up, MCP server, Webhooks,
+API keys) and a Connected or Not connected state where one can be told, and a press opens the integration's page. A new
+organization's Owner or Admin also sees **Set up your organization** on Jobs, with a tick for each step the data shows done.
 
 - **Team and Roles.** **Invite** opens a sheet that starts at Viewer and says what each role is for, Interviewer
   included; **Compare roles** opens the table of what each role can do. **Roles** lists the four built-in roles and
@@ -310,7 +314,7 @@ Settings is one item at the bottom of the sidebar; its pages share the Settings 
 | Malware scanning | `NoMalwareScanner`, which records every file as "not scanned" | `IMalwareScanner` |
 | Email provider | Mailpit sends; no SendGrid. Replies come through the sandbox route `/v1/dev/inbound-email`, and a sending domain verifies once `/v1/dev/sending-domains/publish` publishes it | `ScreenHire:Email` |
 | Google and Outlook calendars | The sandbox calendar, on in `pnpm dev`, whose provider buttons are hidden unless the real client ids and secrets are set; busy time lives in Postgres and the meeting link is on `meet.example.org` | `ScreenHire:Calendar` |
-| Slack | Off, so Settings > Slack says it is not set up; the sandbox workspace when turned on, whose messages `/v1/slack/sandbox/messages` lists | `ScreenHire:Slack` |
+| Slack | Off, so Integrations > Slack says it is not set up; the sandbox workspace when turned on, whose messages `/v1/slack/sandbox/messages` lists | `ScreenHire:Slack` |
 
 The [MVP status](../status.md#owner-actions) lists what each of these needs before real use.
 

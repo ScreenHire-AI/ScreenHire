@@ -80,7 +80,7 @@
   <title>Webhooks · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Webhooks' }]} />
+<TopBar crumbs={[{ label: 'Integrations', href: '/settings/integrations' }, { label: 'Webhooks' }]} back />
 
 <main class={[sidebar.isMobile && 'pb-28']}>
   <HeaderBand

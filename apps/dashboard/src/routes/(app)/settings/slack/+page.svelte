@@ -166,7 +166,7 @@
   <title>Slack · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Slack' }]} />
+<TopBar crumbs={[{ label: 'Integrations', href: '/settings/integrations' }, { label: 'Slack' }]} back />
 
 <main class="flex flex-col">
   <HeaderBand title="Slack">

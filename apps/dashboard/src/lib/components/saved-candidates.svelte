@@ -12,6 +12,7 @@
   import { mergeProps } from 'bits-ui';
   import { page } from '$app/state';
   import AddToJobSheet from '#lib/components/add-to-job-sheet.svelte';
+  import CandidatesListSwitch from '#lib/components/candidates-list-switch.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import EditSavedNoteSheet from '#lib/components/edit-saved-note-sheet.svelte';
@@ -207,10 +208,10 @@
   <title>Saved candidates · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Saved candidates' }]} />
+<TopBar crumbs={[{ label: 'Candidates' }]} />
 
 <main class="flex min-w-0 flex-col">
-  <HeaderBand title="Saved candidates" count={saved.isSuccess ? shown.length : undefined} countLabel={shown.length === 1 ? 'person' : 'people'} />
+  <HeaderBand title="Candidates" count={saved.isSuccess ? shown.length : undefined} countLabel={shown.length === 1 ? 'person' : 'people'} status={listSwitch} />
 
   <div class="@container w-full px-4 py-6 md:px-6">
     <p role="status" class="sr-only">{announcement}</p>
@@ -376,6 +377,10 @@
     </Panel>
   </div>
 </main>
+
+{#snippet listSwitch()}
+  <CandidatesListSwitch list="saved" />
+{/snippet}
 
 {#snippet personMenu(person: TalentPoolMember)}
   <MoreMenu label={`Actions for ${person.candidateName}`} size="icon" quiet onclosed={onMenuClosed}>

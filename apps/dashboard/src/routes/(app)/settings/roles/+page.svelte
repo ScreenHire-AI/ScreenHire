@@ -104,7 +104,7 @@
   <title>Roles · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Settings' }, { label: 'Roles' }]} />
+<TopBar crumbs={[{ label: 'Organization' }, { label: 'Roles' }]} />
 
 <main class={[sidebar.isMobile && 'pb-28']}>
   <HeaderBand
@@ -112,6 +112,7 @@
     count={catalogue.isSuccess ? roles.length : undefined}
     countLabel={roles.length === 1 ? 'role' : 'roles'}
     actions={sidebar.isMobile ? compareLink : bandActions}
+    oneRow
   />
 
   <SettingsMenu>

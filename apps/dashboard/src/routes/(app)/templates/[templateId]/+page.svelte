@@ -402,7 +402,7 @@
 
       <div class={workArea}>
         {#if isDraft}
-          <WorkflowEditor bind:workflow={() => draft.workflow!, (value) => (draft.workflow = value)} errors={draft.errors} {tab} />
+          <WorkflowEditor bind:workflow={() => draft.workflow!, (value) => (draft.workflow = value)} errors={draft.errors} bind:tab />
         {:else}
           <WorkflowSummary workflow={draft.workflow} errors={draft.errors} {tab} />
         {/if}

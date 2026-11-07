@@ -28,7 +28,7 @@ nor forge them (ADR-0003). Branding applies inside the frame because the pages a
 
 ## 1. The embed code
 
-Settings > Careers site, Embed on your website panel: "Allowed sites", then, once a site is on the list, the embed
+Hiring setup > Careers site, Embed on your website panel: "Allowed sites", then, once a site is on the list, the embed
 code with Copy:
 
 ```html

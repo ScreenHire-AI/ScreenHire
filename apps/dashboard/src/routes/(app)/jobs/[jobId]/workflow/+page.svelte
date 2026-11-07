@@ -243,7 +243,7 @@
         {#if readonly}
           <WorkflowSummary workflow={draft.workflow} errors={draft.errors} {tab} />
         {:else}
-          <WorkflowEditor bind:workflow={() => draft.workflow!, (value) => (draft.workflow = value)} errors={draft.errors} {tab} />
+          <WorkflowEditor bind:workflow={() => draft.workflow!, (value) => (draft.workflow = value)} errors={draft.errors} bind:tab />
         {/if}
       </div>
     </Tabs.Root>

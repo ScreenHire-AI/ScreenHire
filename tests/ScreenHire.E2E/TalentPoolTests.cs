@@ -54,9 +54,16 @@ public sealed partial class TalentPoolTests(E2EFixture fixture) : BrowserTest(fi
 
         // Saved candidates lists them with the note, the job they were saved from and the day they were saved. Nobody has
         // emailed them yet, so Last contacted says so.
-        await Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Saved candidates" }).ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new Regex("/saved$"));
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(new Regex("^Saved candidates"));
+        // They are the Saved choice on the Candidates page, which has no sidebar item of its own; the choice is the address.
+        var main = Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" });
+        await Expect(main.GetByRole(AriaRole.Link, new() { Name = "Saved candidates" })).ToHaveCountAsync(0);
+        await main.GetByRole(AriaRole.Link, new() { Name = "Candidates", Exact = true }).ClickAsync();
+        var listSwitch = Page.GetByRole(AriaRole.Group, new() { Name = "List" });
+        await Expect(listSwitch.GetByRole(AriaRole.Link, new() { Name = "Current" })).ToHaveAttributeAsync("aria-current", "page");
+        await listSwitch.GetByRole(AriaRole.Link, new() { Name = "Saved" }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(@"/candidates\?list=saved$"));
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Candidates");
+        await Expect(listSwitch.GetByRole(AriaRole.Link, new() { Name = "Saved" })).ToHaveAttributeAsync("aria-current", "page");
         var row = Page.GetByRole(AriaRole.Row).Filter(new() { HasText = "Casey Morgan" });
         await Expect(row).ToContainTextAsync("Strong systems thinking, wrong timing.");
         await Expect(row).ToContainTextAsync(scene.First.Title);
@@ -105,7 +112,9 @@ public sealed partial class TalentPoolTests(E2EFixture fixture) : BrowserTest(fi
         await WithJavaScriptAsync();
         await SignInAsync(scene.Owner);
         await Page.GotoAsync(DashboardUrl("/talent-pool"));
-        await Expect(Page).ToHaveURLAsync(new Regex("/saved$")); // the old address lands on the new page
+        await Expect(Page).ToHaveURLAsync(new Regex(@"/candidates\?list=saved$")); // the old address lands on the Saved list
+        await Page.ReloadAsync();
+        await Expect(Page.GetByRole(AriaRole.Group, new() { Name = "List" }).GetByRole(AriaRole.Link, new() { Name = "Saved" })).ToHaveAttributeAsync("aria-current", "page");
         await Expect(Page.GetByText("Nobody saved yet")).ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Casey Morgan" })).ToHaveCountAsync(0);
 

@@ -1,17 +1,22 @@
-import type { CurrentUser, OrganizationRole } from '@screenhire/api-client';
+import type { CurrentUser, OrganizationRole, Permission } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import { builtInPermissions, interviewer, interviewerRoleId, roleCatalogue, userAs } from '../test-support/fixtures.js';
 import {
   assignableRoles,
+  directoryVisible,
   mayAssign,
   mayGiveJobAccess,
   roleFromKey,
   roleKey,
+  integrationsHref,
   seesAllJobsWith,
+  settingsAreaOf,
   settingsSectionOf,
   featureOn,
   featureWaits,
   slackFeature,
+  visibleIntegrations,
+  visibleSettingsAreas,
   visibleSettingsSections,
 } from './settings.js';
 
@@ -144,6 +149,64 @@ describe('visibleSettingsSections', () => {
     expect(settingsSectionOf('/settings/roles/compare')?.label).toBe('Roles');
     expect(settingsSectionOf('/settings/team')?.label).toBe('Team');
     expect(settingsSectionOf('/settings')).toBeUndefined();
+  });
+});
+
+describe('settings areas', () => {
+  const areas = (user: CurrentUser | null, features = { slack: true }) => visibleSettingsAreas(user, features).map((area) => [area.label, area.href]);
+  const holding = (...permissions: Permission[]): CurrentUser => ({
+    ...interviewer,
+    organization: { ...interviewer.organization!, permissions: ['ViewHiring', ...permissions], seesAllJobs: true },
+  });
+
+  it('gives an Owner three items, each opening the first page of its group, and Integrations its directory', () => {
+    expect(areas(userAs('Owner'))).toEqual([
+      ['Organization', '/settings/organization'],
+      ['Hiring setup', '/settings/careers-site'],
+      ['Integrations', integrationsHref],
+    ]);
+  });
+
+  it('shows an item only for a role with a permission for at least one page in it', () => {
+    expect(areas(holding('ManageWebhooks'))).toEqual([['Integrations', integrationsHref]]);
+    expect(areas(holding('ManageTeam'))).toEqual([['Organization', '/settings/team']]);
+    expect(areas(holding('EditSettings'))).toEqual([
+      ['Organization', '/settings/organization'],
+      ['Hiring setup', '/settings/careers-site'],
+    ]);
+    expect(areas(userAs('Recruiter'))).toEqual([]);
+    expect(areas(null)).toEqual([]);
+  });
+
+  it('leaves Integrations out of a role that sees only its own jobs, whose integrations all reach every job', () => {
+    const own: CurrentUser = { ...userAs('Owner'), organization: { ...userAs('Owner').organization!, seesAllJobs: false } };
+
+    expect(areas(own).map(([label]) => label)).not.toContain('Integrations');
+  });
+
+  it('puts a path in its area, and the directory in Integrations', () => {
+    expect(settingsAreaOf('/settings/roles/compare')).toBe('Organization');
+    expect(settingsAreaOf('/settings/branding')).toBe('Hiring setup');
+    expect(settingsAreaOf('/settings/webhooks/new')).toBe('Integrations');
+    expect(settingsAreaOf(integrationsHref)).toBe('Integrations');
+    expect(settingsAreaOf('/settings')).toBeUndefined();
+  });
+
+  it('lists the integrations a person may open, without Slack where there is no Slack app', () => {
+    const labels = (features = {}) => visibleIntegrations(userAs('Owner'), features).map((integration) => integration.label);
+
+    expect(labels({ slack: true })).toEqual(['Slack', 'MCP server', 'Webhooks', 'API keys']);
+    expect(labels({ slack: false })).toEqual(['MCP server', 'Webhooks', 'API keys']);
+    expect(visibleIntegrations(userAs('Recruiter'))).toEqual([]);
+  });
+
+  it('opens the directory to whoever may use one integration, counting Slack only once it is on', () => {
+    const slackOnly: CurrentUser = { ...interviewer, organization: { ...interviewer.organization!, permissions: ['ViewHiring', 'ManageIntegrations'] } };
+
+    expect(directoryVisible(userAs('Owner'))).toBe(true);
+    expect(directoryVisible(userAs('Recruiter'))).toBe(false);
+    expect(directoryVisible(slackOnly)).toBe(false);
+    expect(directoryVisible(slackOnly, { slack: true })).toBe(true);
   });
 });
 

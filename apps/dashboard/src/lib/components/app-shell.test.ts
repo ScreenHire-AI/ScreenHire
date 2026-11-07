@@ -12,8 +12,8 @@ const viewCounts = { 'needs-review': 2, 'verification-recommended': 1, overdue: 
 const sidebar = () => document.querySelector<HTMLElement>('[data-slot="sidebar"]');
 const tooltip = () => document.querySelector('[data-slot="tooltip-content"]');
 const main = () => screen.getByRole('navigation', { name: 'Main' });
-// The fixture user is an Owner, so the sidebar ends with its one Settings item; the pages are in the Settings menu.
-const settings = ['Settings'];
+// The fixture user is an Owner, so the sidebar ends with the three Settings areas; their pages are in the Settings menu.
+const settings = ['Organization', 'Hiring setup', 'Integrations'];
 
 // jsdom does not navigate; the sheet closing is what these tests watch, not the page change.
 const stopNavigation = (event: MouseEvent) => event.preventDefault();
@@ -36,7 +36,6 @@ describe('app shell', () => {
     expect(links.map((link) => link.textContent?.trim())).toEqual([
       'Jobs',
       'Candidates',
-      'Saved candidates',
       'Templates',
       'My tasks',
       'Reports',
@@ -50,10 +49,14 @@ describe('app shell', () => {
     ]);
     // Navigation pairs an icon with its label (I1); status icons mark the verification and Overdue views only (I2).
     const marks = links.map((link) => link.querySelector('[data-status-icon]')?.getAttribute('data-status-icon') ?? (link.querySelector('svg') ? 'icon' : null));
-    expect(marks).toEqual(['icon', 'icon', 'icon', 'icon', 'icon', 'icon', 'eye', 'id-card', 'clock-alert', 'icon', 'icon', 'icon', ...settings.map(() => 'icon')]);
-    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings/organization');
+    expect(marks).toEqual(['icon', 'icon', 'icon', 'icon', 'icon', 'eye', 'id-card', 'clock-alert', 'icon', 'icon', 'icon', ...settings.map(() => 'icon')]);
+    // Each area opens its first page; Saved candidates is no item, since it is a choice on the Candidates page.
+    expect(screen.getByRole('link', { name: 'Organization' })).toHaveAttribute('href', '/settings/organization');
+    expect(screen.getByRole('link', { name: 'Hiring setup' })).toHaveAttribute('href', '/settings/careers-site');
+    expect(screen.getByRole('link', { name: 'Integrations' })).toHaveAttribute('href', '/settings/integrations');
+    expect(within(main()).queryByRole('link', { name: 'Saved candidates' })).toBeNull();
     expect(within(main()).queryByRole('link', { name: 'Team' })).toBeNull();
-    expect(within(links[6]!).getByText('2')).toHaveAttribute('data-slot', 'badge');
+    expect(within(links[5]!).getByText('2')).toHaveAttribute('data-slot', 'badge');
     expect(screen.getByRole('link', { name: /^To review/ })).toHaveAttribute('aria-current', 'page');
     expect(screen.queryByRole('button', { name: 'Open navigation' })).toBeNull();
     await expectNoAxeViolations();
@@ -187,7 +190,7 @@ describe('app shell', () => {
     render(ShellHarness, { props: { user, viewCounts: {} } });
 
     const links = within(main()).getAllByRole('link');
-    expect(links.map((link) => link.textContent?.trim()).slice(6)).toEqual([
+    expect(links.map((link) => link.textContent?.trim()).slice(5)).toEqual([
       'To review',
       'To verify',
       'Overdue',
@@ -203,9 +206,9 @@ describe('app shell', () => {
     stubViewport(1280);
     render(ShellHarness, { props: { user: userAs(role), viewCounts } });
 
-    expect(within(main()).queryByRole('link', { name: 'Settings' })).toBeNull();
-    // The six sections (Saved candidates, My tasks and Reports included) and the six saved views.
-    expect(within(main()).getAllByRole('link')).toHaveLength(12);
+    for (const name of ['Organization', 'Hiring setup', 'Integrations']) expect(within(main()).queryByRole('link', { name })).toBeNull();
+    // The five sections (My tasks and Reports included) and the six saved views.
+    expect(within(main()).getAllByRole('link')).toHaveLength(11);
   });
 
   it('shows a label cut with an ellipsis in full in a tooltip in the full sidebar (F5)', async () => {
