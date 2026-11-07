@@ -29,6 +29,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/color-field.svelte
   - resource: apps/dashboard/src/lib/components/image-field.svelte
   - resource: packages/ui/src/questions/DropArea.svelte
+  - resource: packages/ui/src/questions.css
   - resource: packages/ui/src/questions/FileField.svelte
   - resource: packages/ui/src/questions/files.ts
   - resource: apps/dashboard/src/lib/components/branding-preview.svelte
