@@ -14,13 +14,13 @@
   let { step, steps, answered, total }: Props = $props();
 </script>
 
-<div class="flex flex-col gap-1.5">
+<div class="flex flex-col gap-2">
   <div aria-hidden="true" class="flex gap-1">
     {#each Array.from({ length: steps }, (_, i) => i) as i (i)}
       <span class={['h-1.5 flex-1 rounded-full', i < step ? 'bg-candidate-cta' : 'bg-candidate-chip']}></span>
     {/each}
   </div>
-  <p class="flex flex-wrap justify-between gap-x-4 gap-y-0.5 text-candidate-hint text-candidate-muted-foreground" data-page-progress>
+  <p class="flex flex-wrap justify-between gap-x-4 gap-y-1 text-candidate-hint text-candidate-muted-foreground" data-page-progress>
     <span class="font-semibold text-candidate-foreground">Step {step} of {steps}</span>
     {#if total > 0}<span>{answered} of {total} answered</span>{/if}
   </p>

@@ -1,0 +1,33 @@
+---
+// A section of a careers page: a surface lifted off the page by the soft shadow, with its title inside a fixed-height
+// header (design-system S3, section 6). Colours are the neutral candidate tokens, and the title takes the employer's
+// heading font like every careers title (section 18); `neutral` keeps it in the body font for the privacy notice, which
+// branding never restyles. With no `title` it draws no header and `label` names the region for screen readers. `id` is
+// the heading's id, which names the region and takes links to it ("On this page"). The `action` slot sits at the right
+// of the header (a Change button).
+type Props = {
+  /** The heading level: 2 for a section of the page, 3 for one inside a section. */
+  level?: 2 | 3;
+  neutral?: boolean;
+  class?: string;
+  bodyClass?: string;
+} & ({ title: string; id: string; label?: undefined } | { label: string; title?: undefined; id?: undefined });
+
+const { title, label, id, level = 2, neutral = false, class: extra, bodyClass } = Astro.props;
+const Heading = `h${level}` as 'h2' | 'h3';
+---
+
+<section aria-labelledby={title ? id : undefined} aria-label={title ? undefined : label} class:list={['overflow-hidden rounded-panel border border-candidate-border bg-candidate-surface shadow-surface', extra]}>
+  {
+    title && (
+      <div class="flex min-h-14 items-center justify-between gap-3 border-b border-candidate-border px-4 py-2">
+        <Heading id={id} class:list={['min-w-0 text-heading', !neutral && 'font-display']}>{title}</Heading>
+        <slot name="action" />
+      </div>
+    )
+  }
+  <div class:list={['px-4 py-4', bodyClass]}>
+    <slot />
+  </div>
+  <slot name="footer" />
+</section>
