@@ -231,6 +231,12 @@ internal static class BillingProblems
             statusCode: StatusCodes.Status402PaymentRequired,
             title: "Subscription ended",
             type: SubscriptionEndedType),
+        PublishDecisionKind.TrialEnded => TypedResults.Problem(
+            "Your free trial has ended, so no new job can be published. Everything else works as before and open jobs stay open. " +
+            "Ask an owner to choose a plan.",
+            statusCode: StatusCodes.Status402PaymentRequired,
+            title: "Free trial ended",
+            type: SubscriptionEndedType),
         _ => throw new ArgumentOutOfRangeException(nameof(decision), decision.Kind, "An allowed decision has no refusal."),
     };
 }

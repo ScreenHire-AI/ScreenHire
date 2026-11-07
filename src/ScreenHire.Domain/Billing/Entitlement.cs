@@ -14,6 +14,9 @@ public enum PublishDecisionKind
     Allowed,
     LimitReached,
     SubscriptionEnded,
+
+    /// <summary>The trial ran out and no subscription ever started, so there is no subscription to say has ended.</summary>
+    TrialEnded,
 }
 
 /// <summary>Whether a draft may open, and when not, the figures the message needs.</summary>
@@ -61,7 +64,8 @@ public static class Entitlement
     {
         if (StateOf(account, now) == BillingState.Ended)
         {
-            return new PublishDecision(PublishDecisionKind.SubscriptionEnded, limit, openJobs);
+            var kind = account.Status == SubscriptionStatus.None ? PublishDecisionKind.TrialEnded : PublishDecisionKind.SubscriptionEnded;
+            return new PublishDecision(kind, limit, openJobs);
         }
 
         return limit is { } cap && openJobs >= cap

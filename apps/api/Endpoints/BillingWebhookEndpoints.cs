@@ -12,8 +12,9 @@ namespace ScreenHire.Api.Endpoints;
 /// <summary>
 /// Stripe's signed webhook (docs/architecture/billing.md, ADR-0029): an anonymous route with its own check, the
 /// <c>Stripe-Signature</c> header, and not in the generated client. A signed event names its organization in the metadata
-/// the Checkout carried; the signature is what makes that name trustworthy. Every delivery that is signed gets a 200, even
-/// one for an event type or an organization this app does not know, so Stripe stops retrying it.
+/// the Checkout carried; the signature is what makes that name trustworthy. A signed delivery gets a 200, even one for an
+/// event type or an organization this app does not know, so Stripe stops retrying it. The one exception is a delivery that
+/// lost a race for its account, which gets a 409 so Stripe sends it again.
 /// </summary>
 internal static class BillingWebhookEndpoints
 {

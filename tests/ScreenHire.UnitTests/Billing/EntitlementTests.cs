@@ -130,7 +130,7 @@ public sealed class EntitlementTests
 
         Entitlement.CanPublishDraft(canceled, Start.AddDays(2), 50, 0).Kind.Should().Be(PublishDecisionKind.SubscriptionEnded);
         Entitlement.CanPublishDraft(canceled, Start.AddDays(2), null, 0).Kind.Should().Be(PublishDecisionKind.SubscriptionEnded);
-        Entitlement.CanPublishDraft(Trial(), Start.AddDays(14), 50, 0).Kind.Should().Be(PublishDecisionKind.SubscriptionEnded, "the trial is over");
+        Entitlement.CanPublishDraft(Trial(), Start.AddDays(14), 50, 0).Kind.Should().Be(PublishDecisionKind.TrialEnded, "no subscription ever started");
     }
 
     [Fact]

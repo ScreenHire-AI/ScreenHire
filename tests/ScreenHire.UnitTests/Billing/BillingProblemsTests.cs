@@ -39,6 +39,17 @@ public sealed class BillingProblemsTests
     }
 
     [Fact]
+    public void A_trial_that_ran_out_says_so_under_the_same_problem_type_and_never_mentions_a_subscription()
+    {
+        var problem = BillingProblems.Refused(new PublishDecision(PublishDecisionKind.TrialEnded, Limit: 50, OpenJobs: 2));
+
+        problem.StatusCode.Should().Be(StatusCodes.Status402PaymentRequired);
+        problem.ProblemDetails.Type.Should().Be("urn:screenhire:problem:subscription-ended");
+        problem.ProblemDetails.Title.Should().Be("Free trial ended");
+        problem.ProblemDetails.Detail.Should().Contain("free trial has ended").And.Contain("open jobs stay open").And.NotContain("subscription");
+    }
+
+    [Fact]
     public void An_allowed_decision_has_no_refusal()
     {
         var act = () => BillingProblems.Refused(new PublishDecision(PublishDecisionKind.Allowed));
