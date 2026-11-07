@@ -98,11 +98,12 @@ describe('branding page', () => {
     expect(screen.getByLabelText<HTMLInputElement>('Second colour').value).toBe('');
     expect(screen.getByRole('radio', { name: 'Fraunces' })).toBeChecked();
     expect(screen.getAllByAltText('The logo')[0]).toHaveAttribute('src', logo.url);
-    // The tile names the file and its size beside Replace and Remove.
+    // The drop area names the file and its size, with Remove; a click or a drop on it replaces the image.
     const tile = document.querySelector<HTMLElement>('[data-image-tile="logo"]')!;
     expect(within(tile).getByText('brightwater-logo.png')).toBeInTheDocument();
-    expect(within(tile).getByText(/^400 by 100 pixels, 25 kB$/)).toBeInTheDocument();
-    expect(within(tile).getByRole('button', { name: 'Replace logo' })).toBeInTheDocument();
+    expect(within(tile).getByText('24 KB')).toBeInTheDocument();
+    expect(within(tile).getByText('400 by 100 pixels')).toBeInTheDocument();
+    expect(within(tile).getByText('Replace logo')).toBeInTheDocument();
     expect(within(tile).getByRole('button', { name: 'Remove logo' })).toBeInTheDocument();
     expect(tile).not.toHaveAttribute('data-empty');
     expect(tile).toHaveAccessibleName('Logo');
@@ -137,11 +138,12 @@ describe('branding page', () => {
 
     expect(await screen.findByRole('radio', { name: /Bricolage Grotesque/ })).toBeChecked();
     expect(screen.getByText('No logo yet')).toBeInTheDocument();
-    // An empty tile is dashed and has Upload, not Replace or Remove.
+    // An empty tile has a dashed drop area with Upload, not Replace or Remove.
     const tile = document.querySelector<HTMLElement>('[data-image-tile="logo"]')!;
     expect(tile).toHaveAttribute('data-empty');
-    expect(tile.className).toContain('border-dashed');
-    expect(within(tile).getByRole('button', { name: 'Upload logo' })).toBeInTheDocument();
+    expect(tile.querySelector('[data-drop-area]')!.className).toContain('border-dashed');
+    expect(within(tile).getByText('Upload logo')).toBeInTheDocument();
+    expect(within(tile).queryByText('Replace logo')).toBeNull();
     expect(within(tile).queryByRole('button', { name: 'Remove logo' })).toBeNull();
     // An empty brand colour is ScreenHire's; an empty second colour is no header band at all.
     expect(screen.getByLabelText('Brand colour')).toHaveAttribute('placeholder', "ScreenHire's");
@@ -227,6 +229,7 @@ describe('branding page', () => {
         Response.json(++scans > 1 ? scanned : { ...scanned, scanStatus: 'Pending', url: null }),
     });
     const input = (await screen.findByLabelText('Favicon', { selector: 'input' })) as HTMLInputElement;
+    expect(input).toHaveAttribute('type', 'file');
 
     await fireEvent.change(input, { target: { files: [new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], 'icon.png', { type: 'image/png' })] } });
 
@@ -240,7 +243,7 @@ describe('branding page', () => {
     await waitFor(() => expect(bodies[0]).toMatchObject({ faviconId: ticket.uploadId }));
   });
 
-  it('takes a file dropped on an empty tile, and ignores one dropped on a tile that has an image', async () => {
+  it('takes a file dropped on the drop area, empty or set, and refuses a wrong type or a file that is too large in words', async () => {
     const ticket = {
       uploadId: '7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f',
       uploadUrl: 'http://storage.test/brand-images/upload?sig=x',
@@ -260,15 +263,25 @@ describe('branding page', () => {
     });
     await screen.findByText('No logo yet');
     const tile = document.querySelector<HTMLElement>('[data-image-tile="logo"]')!;
-    const file = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], 'dropped.png', { type: 'image/png' });
+    const area = () => tile.querySelector<HTMLElement>('[data-drop-area]')!;
+    const picture = (name: string, bytes = 4) => new File([new Uint8Array(bytes)], name, { type: 'image/png' });
 
-    await fireEvent.drop(tile, { dataTransfer: { files: [file] } });
+    await fireEvent.drop(area(), { dataTransfer: { files: [picture('dropped.png')] } });
 
     await waitFor(() => expect(asked).toEqual([{ kind: 'Logo', fileName: 'dropped.png', sizeBytes: 4 }]));
     expect(await screen.findByText('dropped.png')).toBeInTheDocument();
 
-    await fireEvent.drop(tile, { dataTransfer: { files: [file] } });
-    expect(asked).toHaveLength(1);
+    // A set tile takes a drop too: the new file replaces the image.
+    await fireEvent.drop(area(), { dataTransfer: { files: [picture('second.png', 8)] } });
+    await waitFor(() => expect(asked).toHaveLength(2));
+    await waitFor(() => expect(screen.queryByText('Uploading...')).toBeNull());
+
+    // A wrong type and a file over the logo's 1 MB are refused in the field's error, and nothing is sent.
+    await fireEvent.drop(area(), { dataTransfer: { files: [new File(['x'], 'notes.txt', { type: 'text/plain' })] } });
+    expect(await screen.findByText('Upload a PNG, JPG or JPEG file.')).toBeInTheDocument();
+    await fireEvent.drop(area(), { dataTransfer: { files: [picture('huge.png', 1_048_577)] } });
+    expect(await screen.findByText('This file is larger than 1 MB.')).toBeInTheDocument();
+    expect(asked).toHaveLength(2);
   });
 
   it('says when the malware scan blocked an upload', async () => {

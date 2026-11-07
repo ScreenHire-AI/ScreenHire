@@ -93,7 +93,7 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
 
         await FillDetailsAsync("sam.lee@example.com");
         await Page.GetByLabel("Your CV or resume").SetInputFilesAsync(new FilePayload { Name = "Sam CV.pdf", MimeType = "application/pdf", Buffer = Pdf });
-        await Expect(Page.GetByText("Uploaded: Sam CV.pdf")).ToBeVisibleAsync();
+        await Expect(Page.GetByText("Sam CV.pdf")).ToBeVisibleAsync();
         // Leaving a step sends its snapshot; waiting for it to be stored keeps the test from racing the submission.
         await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" }).ClickAsync();
         await StoredSnapshotsAsync(organization.Id, 1);
@@ -155,7 +155,7 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
         // Named .pdf but not a PDF: uploaded, then refused by the API's check of its content.
         await resume.SetInputFilesAsync(new FilePayload { Name = "cv.pdf", MimeType = "application/pdf", Buffer = NotAPdf() });
         await Expect(Page.GetByText("This file is not a PDF or DOCX file.", new() { Exact = false })).ToBeVisibleAsync();
-        await Expect(Page.GetByText("Uploaded:", new() { Exact = false })).ToHaveCountAsync(0);
+        await Expect(Page.GetByText("cv.pdf")).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
     }
 

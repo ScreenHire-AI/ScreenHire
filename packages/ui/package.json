@@ -18,6 +18,11 @@
     },
     "./questions/model": "./src/questions/model.ts",
     "./questions/files": "./src/questions/files.ts",
+    "./questions/DropArea.svelte": {
+      "types": "./src/questions/DropArea.svelte",
+      "svelte": "./src/questions/DropArea.svelte",
+      "default": "./src/questions/DropArea.svelte"
+    },
     "./questions/FileField.svelte": {
       "types": "./src/questions/FileField.svelte",
       "svelte": "./src/questions/FileField.svelte",

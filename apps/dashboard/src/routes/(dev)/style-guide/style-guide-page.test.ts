@@ -112,6 +112,7 @@ const panels: Record<string, string[]> = {
   'Country picker': ['Country picker'],
   'Rich text editor': ['Rich text editor'],
   'Colour field': ['Colour field'],
+  'Drop area': ['Drop area'],
   'Image field': ['Image field'],
   'Branding preview': ['Branding preview'],
 };

@@ -144,6 +144,7 @@
     label:has(input, [role='checkbox'], [role='radio'], [role='switch']),
     input:is([type='checkbox'], [type='radio'], [type='color'], [type='file'], [type='submit'], [type='button']),
     [role='button'],
+    [data-drop-area],
     [role='tab'],
     [role='switch'],
     [role='checkbox'],

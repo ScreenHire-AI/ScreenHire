@@ -35,7 +35,7 @@ internal static class ApplySteps
         await frame.GetByLabel("Your CV or resume").SetInputFilesAsync(new FilePayload { Name = "Casey CV.pdf", MimeType = "application/pdf", Buffer = Pdf });
         if (javaScript)
         {
-            await Expect(frame.GetByText("Uploaded: Casey CV.pdf")).ToBeVisibleAsync();
+            await Expect(frame.GetByText("Casey CV.pdf")).ToBeVisibleAsync();
         }
 
         await frame.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" }).ClickAsync();
