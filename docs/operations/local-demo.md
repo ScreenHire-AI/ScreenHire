@@ -264,7 +264,7 @@ organization's Owner or Admin also sees **Set up your organization** on Jobs, wi
   candidates, saved views and My tasks hold only that job's.
 - **Branding.** Brightwater's teal is saved. Type a pale brand colour such as ffd400: the field says links in it are
   hard to read and offers the nearest shade that passes; **Use** fills it in. Pick a second colour and a heading font,
-  upload a PNG logo, watch it say Scanning for a moment, then press **Save branding**. Reload
+  upload a PNG logo, watch it say Scanning for a moment, then press **Save**. Reload
   http://localhost:4322/brightwater: the header band, the logo, the titles' font and the Apply buttons follow, and an
   email from the Templates page's test send starts with the logo. History lists each change.
 - **API keys.** **Create key** shows the key once, with Copy; afterwards the list shows only its first characters.

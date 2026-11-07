@@ -55,7 +55,30 @@
   }
 
   [data-tone="app"] .drop-area-row {
-    @apply min-h-9 pointer-coarse:min-h-11;
+    @apply min-h-9 gap-2 pointer-coarse:min-h-11;
+  }
+
+  /* Replace and Remove: stacked in a narrow area and in a row in a wide one. The recruiter app's area is a tile in a row of
+     tiles, so there they stay in one row, which keeps a set tile short (the Branding images). */
+  .drop-area-actions {
+    @apply flex w-full flex-col gap-2 @md:w-auto @md:flex-row;
+  }
+
+  [data-tone="app"] .drop-area-actions {
+    @apply w-auto flex-row flex-wrap justify-center;
+  }
+
+  [data-tone="app"] .drop-area-actions .drop-area-button {
+    @apply px-2;
+  }
+
+  /* The picture, its caption and the row of words and buttons. */
+  .drop-area-body {
+    @apply flex flex-col gap-3;
+  }
+
+  [data-tone="app"] .drop-area-body {
+    @apply gap-2;
   }
 
   .drop-area-button {

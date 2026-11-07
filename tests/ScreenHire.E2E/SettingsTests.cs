@@ -249,6 +249,81 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
         await ExpectCareersBrandingAsync(tenantHost!, "");
     }
 
+    [Fact]
+    public async Task The_branding_editor_fits_one_screen_at_1440_by_900_empty_and_with_all_three_images_set()
+    {
+        var (owner, _) = await OwnerAsync();
+        await Page.SetViewportSizeAsync(1440, 900);
+        await SignInAsync(owner);
+        await GoToAsync("dashboard", "/settings/branding");
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Branding");
+        await Expect(Page.Locator("main [data-slot=skeleton]")).ToHaveCountAsync(0);
+
+        // Colours and Heading font share a row, and the three images are one row of tiles.
+        await ExpectBrandingEditorFitsAsync("with the image tiles empty");
+
+        // A set tile is taller than an empty one (a picture, its size, Replace and Remove), and the editor still fits.
+        await Page.Locator("input#logo").SetInputFilesAsync(new FilePayload { Name = "logo.png", MimeType = "image/png", Buffer = TestPng.Solid(400, 100) });
+        await Page.Locator("input#favicon").SetInputFilesAsync(new FilePayload { Name = "icon.png", MimeType = "image/png", Buffer = TestPng.Solid(64, 64) });
+        await Page.Locator("input#sharing-image")
+            .SetInputFilesAsync(new FilePayload { Name = "share.png", MimeType = "image/png", Buffer = TestPng.Solid(1200, 630) });
+        var scanned = new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 };
+        await Expect(Page.GetByText("400 by 100 pixels")).ToBeVisibleAsync(scanned);
+        await Expect(Page.GetByText("64 by 64 pixels")).ToBeVisibleAsync(scanned);
+        await Expect(Page.GetByText("1200 by 630 pixels")).ToBeVisibleAsync(scanned);
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Save branding" })).ToBeEnabledAsync(new LocatorAssertionsToBeEnabledOptions { Timeout = 30_000 });
+        await ExpectBrandingEditorFitsAsync("with a logo, a favicon and a sharing image set");
+        await SaveScreenshotAsync(Page, "dashboard-settings-branding-images-set-1440");
+    }
+
+    [Fact]
+    public async Task A_branding_field_that_takes_focus_under_the_switch_row_is_not_hidden_by_it()
+    {
+        var (owner, _) = await OwnerAsync();
+        await Page.SetViewportSizeAsync(390, 844);
+        await SignInAsync(owner);
+        await GoToAsync("dashboard", "/settings/branding");
+        await Expect(Page.Locator("#brand-color")).ToBeVisibleAsync();
+
+        // The field is on screen but under the row that stays in view, so a browser left to itself would not scroll to it.
+        var tops = await Page.EvaluateAsync<double[]>(
+            """
+            async () => {
+              const field = document.querySelector('#brand-color');
+              window.scrollBy(0, field.getBoundingClientRect().top - 14);
+              await new Promise(requestAnimationFrame);
+              field.focus();
+              await new Promise(requestAnimationFrame);
+              await new Promise(requestAnimationFrame);
+              return [field.getBoundingClientRect().top, document.querySelector('[data-edit-preview-row]').getBoundingClientRect().bottom];
+            }
+            """);
+
+        tops[0].Should().BeGreaterThanOrEqualTo(tops[1], "a focused control stays clear of the row that stays in view (WCAG 2.4.11)");
+    }
+
+    // The editor's rows line up and the page does not scroll: the work area is the window, so nothing is cut off.
+    private async Task ExpectBrandingEditorFitsAsync(string state)
+    {
+        async Task<double> TopAsync(ILocator locator) => (await locator.BoundingBoxAsync())!.Y;
+
+        (await TopAsync(Page.GetByRole(AriaRole.Region, new() { Name = "Colours", Exact = true })))
+            .Should().BeApproximately(await TopAsync(Page.GetByRole(AriaRole.Region, new() { Name = "Heading font", Exact = true })), 1, "Colours and Heading font share a row {0}", state);
+        var tiles = new[] { "Logo", "Favicon", "Sharing image" };
+        var tops = new List<double>();
+        foreach (var tile in tiles)
+        {
+            tops.Add(await TopAsync(Page.GetByRole(AriaRole.Group, new() { Name = tile, Exact = true })));
+        }
+
+        tops.Should().OnlyContain(top => Math.Abs(top - tops[0]) <= 1, "the three image tiles share a top edge {0}", state);
+
+        var size = await Page.EvaluateAsync<int[]>("() => [document.documentElement.scrollHeight, document.documentElement.clientHeight]");
+        var (scroll, client) = (size[0], size[1]);
+        scroll.Should().BeLessThanOrEqualTo(client, "the whole editor fits in 900px without scrolling {0}", state);
+        (await TopAsync(Page.GetByRole(AriaRole.Button, new() { Name = "Save branding" }))).Should().BeInRange(0, client, "Save is in view {0}", state);
+    }
+
     private async Task ExpectCareersBrandingAsync(IResponse response, string basePath)
     {
         var banner = Page.GetByRole(AriaRole.Banner);

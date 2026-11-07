@@ -131,6 +131,9 @@ describe('branding page', () => {
     expect(within(sharingTile).getByAltText('The sharing image').className).toContain('aspect-[1.91/1]');
     expect(within(sharingTile).getByText('Open roles at Brightwater Studio.')).toBeInTheDocument();
     expect(within(sharingTile).getByText('share.jpg')).toBeInTheDocument();
+    // A set tile's Replace and Remove share a row, so their nouns are short.
+    expect(within(faviconTile).getByRole('button', { name: 'Remove icon' })).toBeInTheDocument();
+    expect(within(sharingTile).getByRole('button', { name: 'Remove image' })).toBeInTheDocument();
   });
 
   it("offers ScreenHire's heading font while none is picked", async () => {
@@ -315,6 +318,56 @@ describe('branding page', () => {
     expect(bodies).toEqual([]);
   });
 
+  it('returns to Edit when Save from Preview fails on a field, where its message is', async () => {
+    const { bodies } = renderPage(saved);
+    await fireEvent.input(await brandField(), { target: { value: 'teal' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+
+    await fireEvent.click(await save());
+
+    await waitFor(() => expect(document.querySelector('[data-edit-pane]')).not.toHaveClass('hidden'));
+    expect(document.querySelector('[data-preview-pane]')).toHaveClass('hidden');
+    expect(await screen.findByText('Enter the brand colour as six hex digits, such as 1f4e5a.')).toBeVisible();
+    expect(bodies).toEqual([]);
+  });
+
+  it('returns to Edit when the API refuses a field on a Save from Preview', async () => {
+    renderPage(saved, {
+      'PUT /v1/organization/branding': () =>
+        Response.json({ title: 'One or more validation errors occurred.', errors: { secondColor: ['Text on a header in #888888 is hard to read: 3.5:1, and it needs 4.5:1.'] } }, { status: 400 }),
+    });
+    await fireEvent.input(await screen.findByLabelText('Second colour'), { target: { value: '#888888' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+
+    await fireEvent.click(await save());
+
+    await waitFor(() => expect(document.querySelector('[data-edit-pane]')).not.toHaveClass('hidden'));
+    expect(await screen.findByText(/Text on a header in #888888 is hard to read/)).toBeVisible();
+  });
+
+  it('stays on Preview after a Save from Preview that works, and says so in the row', async () => {
+    const { bodies } = renderPage(saved);
+    await brandField();
+    await fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+
+    await fireEvent.click(await save());
+
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    expect(await within(document.querySelector<HTMLElement>('[data-edit-preview-row]')!).findByText('Saved.')).toBeVisible();
+    expect(document.querySelector('[data-preview-pane]')).not.toHaveClass('hidden');
+  });
+
+  it('keeps a failure that belongs to no field in the row, on Preview', async () => {
+    renderPage(saved, { 'PUT /v1/organization/branding': () => Response.json({ detail: 'Try again later.' }, { status: 500 }) });
+    await brandField();
+    await fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+
+    await fireEvent.click(await save());
+
+    expect(await within(document.querySelector<HTMLElement>('[data-edit-preview-row]')!).findByText(/Try again later/)).toBeVisible();
+    expect(document.querySelector('[data-preview-pane]')).not.toHaveClass('hidden');
+  });
+
   it('opens the preview on Phone, and on Desktop once the pane has room for a tablet frame', async () => {
     // The test setup gives every element a 1024px box, room enough for a tablet frame.
     renderPage(saved);
@@ -346,6 +399,36 @@ describe('branding page', () => {
     expect(within(preview).getAllByText(/Brightwater Studio/).length).toBeGreaterThan(0);
     expect(within(preview).getByText('Apply for this role')).toBeInTheDocument();
     expect(await screen.findByRole('link', { name: /View/ })).toHaveAttribute('href', organization.careersUrl);
+  });
+
+  it('puts Save in the switch row, outside the form it submits, with the three images in the editor', async () => {
+    renderPage(saved);
+
+    const brand = await brandField();
+    const form = brand.closest('form')!;
+    // The layout itself (the editor's width, the rows, the page not scrolling) is checked in a browser, at 1440 by 900,
+    // by SettingsTests; jsdom has no layout. Here: where the controls are.
+    const row = document.querySelector<HTMLElement>('[data-edit-preview-row]')!;
+    const saveButton = within(row).getByRole('button', { name: 'Save branding' });
+    expect(saveButton).toHaveAttribute('form', form.id);
+    expect(form).not.toContainElement(saveButton);
+    expect(form.querySelectorAll('[data-image-tile]')).toHaveLength(3);
+    expect(within(row).getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+  });
+
+  it('keeps what was typed when switching to Preview and back, and the preview follows it as unsaved', async () => {
+    renderPage(saved);
+    await fireEvent.input(await brandField(), { target: { value: '2A6F7B' } });
+    await fireEvent.click(screen.getByRole('radio', { name: 'Inter' }));
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+    const preview = document.querySelector<HTMLElement>('[data-preview-pane]')!;
+    expect(within(preview).getByText('This follows your unsaved changes. Candidates see none of it until you save.')).toBeInTheDocument();
+    expect(preview.querySelector<HTMLElement>('[style*="--candidate-cta"]')!.style.getPropertyValue('--candidate-cta')).toBe('#2a6f7b');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(await brandField()).toHaveValue('2A6F7B');
+    expect(screen.getByRole('radio', { name: 'Inter' })).toBeChecked();
   });
 
   it('says why the branding could not load, with a retry', async () => {

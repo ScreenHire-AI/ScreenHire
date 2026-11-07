@@ -46,3 +46,4 @@ Architecture decision records, oldest first. A changed decision is a new or amen
 | 0013 | Accepted, amended by 0016 and 0017 |
 | 0017 | Accepted, decision 13 amended by 0023 for a candidate's header, decision 16 amended by 0019, decision 17 amended by 0026 |
 | 0023 | Accepted, decision 3 amended by 0025 |
+| 0026 | Accepted, amended 2026-11-07 (Branding's wide edit pane) |

@@ -6,7 +6,7 @@ tags: [adr, design, dashboard]
 ---
 # ADR-0026: Editors switch to their preview
 
-- **Status:** Accepted (2026-11-05)
+- **Status:** Accepted (2026-11-05), amended (2026-11-07)
 - **Deciders:** Owner
 - **Amends:** ADR-0017 decision 17 (an editor and its preview share the screen where both fit)
 - **Detail:** `docs/design/design-system.md` A8
@@ -26,3 +26,6 @@ it opens the preview in a second window for someone who wants both, and that win
 
 An edit no longer shows at once unless the person opens the preview or its window. The layout has one shape, so
 `EditPreviewLayout` needs no container query, and its preview takes the full width.
+
+Amended 2026-11-07: Branding's panels sit in rows, so its edit pane takes the work area's width through the `wide` option
+of `EditPreviewLayout`. It is one layout with one option, and every other editor keeps the 688px form column.

@@ -33,7 +33,7 @@
 </script>
 
 <div
-  class="flex min-w-0 flex-col gap-5"
+  class="@container flex min-w-0 flex-col gap-5"
   style:--candidate-cta={draft.brand?.color}
   style:--candidate-cta-foreground={draft.brand?.text}
   style:--candidate-brand-text={draft.brand?.color}
@@ -77,35 +77,38 @@
     </PreviewFrame>
   </section>
 
-  <section aria-label="Shared link" class="flex flex-col gap-2">
-    <svelte:element this={`h${headingLevel}`} class="text-heading">Shared link</svelte:element>
-    <div class="max-w-form overflow-hidden rounded-lg border border-border bg-card">
-      {#if sharing}
-        <img src={sharing.url} alt="" width={sharing.width} height={sharing.height} class="aspect-[1.91/1] w-full object-cover" />
-      {:else}
-        <p class="bg-secondary px-4 py-6 text-muted-foreground">No sharing image: the link shows the title and description only.</p>
-      {/if}
-      <div class="flex flex-col gap-0.5 px-4 py-3">
-        <p class="font-semibold">Jobs at {draft.organizationName}</p>
-        <p class="text-muted-foreground">Open roles at {draft.organizationName}.</p>
-      </div>
-    </div>
-  </section>
-
-  <section aria-label="Email to a candidate" class="flex flex-col gap-2">
-    <svelte:element this={`h${headingLevel}`} class="text-heading">Email to a candidate</svelte:element>
-    <div class="max-w-form overflow-hidden rounded-lg border border-border bg-card">
-      <div class={['flex items-center px-5 py-4', draft.header ? 'bg-candidate-header text-candidate-header-foreground' : 'border-b border-border']}>
-        {#if logo}
-          <img src={logo.url} alt={draft.organizationName} width={logo.width} height={logo.height} class="h-10 w-auto max-w-60 object-contain object-left" />
+  <!-- The shared link and the email are small, so they sit side by side where the pane has room for both. -->
+  <div class="grid min-w-0 items-start gap-5 @[44rem]:grid-cols-2">
+    <section aria-label="Shared link" class="flex flex-col gap-2">
+      <svelte:element this={`h${headingLevel}`} class="text-heading">Shared link</svelte:element>
+      <div class="max-w-form overflow-hidden rounded-lg border border-border bg-card">
+        {#if sharing}
+          <img src={sharing.url} alt="" width={sharing.width} height={sharing.height} class="aspect-[1.91/1] w-full object-cover" />
         {:else}
-          <span class="text-panel-title font-bold">{draft.organizationName}</span>
+          <p class="bg-secondary px-4 py-6 text-muted-foreground">No sharing image: the link shows the title and description only.</p>
         {/if}
+        <div class="flex flex-col gap-0.5 px-4 py-3">
+          <p class="font-semibold">Jobs at {draft.organizationName}</p>
+          <p class="text-muted-foreground">Open roles at {draft.organizationName}.</p>
+        </div>
       </div>
-      <div class="flex flex-col gap-2 px-5 py-4">
-        <p>Hi Jordan,</p>
-        <p>Thank you for applying for Product designer at {draft.organizationName}.</p>
+    </section>
+
+    <section aria-label="Email to a candidate" class="flex flex-col gap-2">
+      <svelte:element this={`h${headingLevel}`} class="text-heading">Email to a candidate</svelte:element>
+      <div class="max-w-form overflow-hidden rounded-lg border border-border bg-card">
+        <div class={['flex items-center px-5 py-4', draft.header ? 'bg-candidate-header text-candidate-header-foreground' : 'border-b border-border']}>
+          {#if logo}
+            <img src={logo.url} alt={draft.organizationName} width={logo.width} height={logo.height} class="h-10 w-auto max-w-60 object-contain object-left" />
+          {:else}
+            <span class="text-panel-title font-bold">{draft.organizationName}</span>
+          {/if}
+        </div>
+        <div class="flex flex-col gap-2 px-5 py-4">
+          <p>Hi Jordan,</p>
+          <p>Thank you for applying for Product designer at {draft.organizationName}.</p>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
+  </div>
 </div>
