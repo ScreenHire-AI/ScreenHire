@@ -535,7 +535,7 @@ Atlassian's surfaces.
 | Read-only view | A ScreenHire template, anything you cannot edit | As detail; data as labels and values, never disabled inputs; it says why it is read only and what to do (E3); Copy or Edit as the primary action |
 | Form | Creating or editing a record; a settings page such as Organization or Verification (Branding is a wide editor, section 18) | One column, 688px wide, labels above fields, actions at the end |
 | Report | Reports | Header band (title, the report's one action such as Export CSV, then one row of filters on its bottom edge: the date range first, then Job, then Compare; the row wraps by content on a phone rather than cutting a control off), a row of headline numbers, then the report's panels in a grid of two columns from 1024px of content and one below, the main chart across both. Each chart is a Chart panel (section 11). Filters scope every panel, never one panel alone |
-| Builder | The workflow graph; the questionnaire, scorecard and email template editors | Header band, then a full-width work area, with the Edit / Preview switch when someone else sees the result (A8). The graph's nodes edit through the same sheets and forms as the list view beside it, never a second editor, and nothing in it needs dragging: a node's buttons do every edit. A validation message shows on the node it is about, as it does under its form control (W7) |
+| Builder | The workflow graph; the questionnaire, scorecard and email template editors | Header band, then a full-width work area, with the Edit / Preview switch when someone else sees the result (A8). A form in that area keeps the 688px column (S6). The graph's nodes edit through the same sheets and forms as the list view beside it, never a second editor, and nothing in it needs dragging: a node's buttons do every edit. A validation message shows on the node it is about, as it does under its form control (W7) |
 
 Sign-in, onboarding and error pages sit outside the app shell. They have no sidebar: the brand bar takes the top
 bar's place, then the form template. A title that changes in place, such as "Check your email" after a link is sent,
@@ -840,7 +840,8 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   font.
 - The editor is wide (A8, Edit / Preview switch in section 11), so at 1440 by 900 it fits without scrolling: Colours
   and Heading font side by side, the three images in a row, and each stacks where its row would be cramped. Save sits in
-  the switch's row, which stays in view. The preview is the full width of the work area (the careers page, then the
+  the switch's row, which stays in view in Edit and Preview, and a field a Save refuses brings Edit back, where its
+  message is. The preview is the full width of the work area (the careers page, then the
   shared link and the email's top side by side, Branding preview in section 11). Nothing changes for candidates until
   Save, which waits for any image still being scanned and says so.
 
