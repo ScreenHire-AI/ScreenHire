@@ -76,7 +76,7 @@ const sections = [
           <li>
             <a
               href={`#${section.id}`}
-              class="inline-block rounded-full border border-input bg-card px-3 py-1.5 text-sm font-semibold text-foreground no-underline hover:border-primary"
+              class="inline-block rounded-full border border-input bg-card px-3 py-2 text-sm font-semibold text-foreground no-underline hover:border-primary"
             >
               {section.kicker}
             </a>
@@ -98,7 +98,7 @@ const sections = [
         </div>
         <ul class="flex flex-col gap-3">
           {section.points.map((point) => (
-            <li class="rounded-xl border border-border bg-card px-5 py-4 text-secondary-foreground">{point}</li>
+            <li class="rounded-panel border border-border bg-card shadow-surface px-5 py-4 text-secondary-foreground">{point}</li>
           ))}
         </ul>
       </section>
@@ -106,17 +106,17 @@ const sections = [
   }
 
   <section aria-labelledby="next-title" class="mx-auto max-w-6xl px-6 pt-4 pb-16">
-    <div class="flex flex-wrap items-center justify-between gap-5 rounded-2xl border border-border bg-card p-7">
+    <div class="flex flex-wrap items-center justify-between gap-5 rounded-panel border border-border bg-card shadow-surface p-8">
       <h2 id="next-title" class="font-display text-2xl font-bold tracking-tight">See exactly what we check, and what we never do.</h2>
       <div class="flex flex-wrap gap-3">
         <a
           href={pages.detection.path}
-          class="inline-flex h-12 items-center rounded-xl bg-primary px-5 font-bold text-primary-foreground no-underline hover:bg-primary/90"
+          class="button-primary"
           >How detection works</a
         >
         <a
           href={pages.pricing.path}
-          class="inline-flex h-12 items-center rounded-xl border border-input px-5 font-bold text-foreground no-underline hover:border-primary"
+          class="button-secondary"
           >Pricing</a
         >
       </div>

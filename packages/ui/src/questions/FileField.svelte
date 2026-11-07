@@ -103,8 +103,8 @@
   }
 </script>
 
-<div class="flex flex-col gap-1.5">
-  <label for={inputId} class="text-candidate-body font-bold">
+<div class="flex flex-col gap-2">
+  <label for={inputId} class="text-candidate-body font-semibold">
     {label}
     {#if !required}<span class="font-medium text-candidate-muted-foreground"> (optional)</span>{/if}
   </label>
@@ -112,7 +112,7 @@
   {#if error}
     <p id={errorId} class="text-candidate-body font-semibold text-destructive">{error}</p>
   {/if}
-  <div class="rounded-xl border-[1.5px] border-dashed border-candidate-input-border bg-candidate-surface p-3">
+  <div class="rounded-lg border-2 border-dashed border-candidate-input-border bg-candidate-surface p-3">
     <input
       bind:this={input}
       type="file"

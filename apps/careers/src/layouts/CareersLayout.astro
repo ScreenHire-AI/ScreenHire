@@ -63,8 +63,8 @@ const home = withEmbed(base || '/', embed);
     <!-- The header band takes the second colour; everything in it uses the header's own text colour, focus rings
          included, which is white or ink at 4.5:1 on the band (ADR-0018). -->
     <header class="candidate-header border-b border-candidate-border bg-candidate-header text-candidate-header-foreground">
-      <div class="mx-auto flex h-15 max-w-3xl items-center justify-between gap-4 px-5">
-        <a href={home} class="flex min-w-0 items-center gap-2.5 font-bold text-candidate-header-foreground no-underline">
+      <div class="mx-auto flex h-16 max-w-3xl items-center justify-between gap-4 px-5">
+        <a href={home} class="flex min-w-0 items-center gap-3 font-bold text-candidate-header-foreground no-underline">
           {
             logo ? (
               <img src={logo.src} alt={organizationName} width={logo.width} height={logo.height} class="h-10 w-auto max-w-60 object-contain object-left" />

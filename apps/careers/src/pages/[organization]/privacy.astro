@@ -2,6 +2,7 @@
 // "What we collect and why": the full notice behind "How we review applications" (CLAUDE.md non-negotiable 4,
 // docs/research/legal.md). It describes what this build collects, and nothing it does not. When its substance changes,
 // change NOTICE_VERSION in lib/apply.ts too: every application records the version its candidate was shown.
+import Panel from '../../components/Panel.astro';
 import CareersLayout from '../../layouts/CareersLayout.astro';
 import { getPublicOrganization } from '../../lib/api';
 import { NOTICE_VERSION } from '../../lib/apply';
@@ -39,36 +40,35 @@ const sections = [
   organizationSlug={employer.slug}
   branding={employer.branding}
 >
-  <article class="flex flex-col gap-6 text-candidate-body leading-relaxed [&_section_h2]:font-display [&_section_h2]:text-xl [&_section_h2]:font-bold [&_section_li]:mt-1 [&_section_ul]:list-disc [&_section_ul]:pl-5">
+  <article class="flex flex-col gap-6 text-candidate-body leading-relaxed">
     <header>
-      <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">What we collect and why</h1>
+      <h1 class="font-display text-candidate-title">What we collect and why</h1>
       <p class="mt-2 text-candidate-muted-foreground">
         {employer.name} uses ScreenHire to receive applications. {employer.name} decides how applications are used;
         ScreenHire handles them on its behalf.
       </p>
     </header>
 
-    <nav aria-labelledby="contents-heading" class="rounded-2xl border border-candidate-border bg-candidate-surface px-4 py-3.5">
-      <h2 id="contents-heading" class="text-base font-bold">On this page</h2>
-      <ul class="mt-1.5 grid gap-x-6 sm:grid-cols-2">
-        {sections.map((each) => (
-          <li><a href={`#${each.id}`} class="inline-flex min-h-11 items-center text-link">{each.title}</a></li>
-        ))}
-      </ul>
-    </nav>
+    <Panel id="contents-heading" title="On this page">
+      <nav aria-label="Sections of this page">
+        <ul class="grid gap-x-6 sm:grid-cols-2">
+          {sections.map((each) => (
+            <li><a href={`#${each.id}`} class="inline-flex min-h-11 items-center text-link">{each.title}</a></li>
+          ))}
+        </ul>
+      </nav>
+    </Panel>
 
-    <section aria-labelledby="browsing">
-      <h2 id="browsing">While you look at jobs</h2>
-      <p class="mt-2">
+    <Panel id="browsing" title="While you look at jobs" bodyClass="flex flex-col gap-3 [&_li]:mt-1 [&_ul]:list-disc [&_ul]:pl-5">
+      <p>
         Only our server logs: your network (IP) address, your browser's name, the page and the time. We use them to keep
         the site running and secure, and delete them within 30 days. There are no tracking cookies, no analytics and no
         device fingerprinting on these pages.
       </p>
-    </section>
+    </Panel>
 
-    <section aria-labelledby="applying">
-      <h2 id="applying">When you apply</h2>
-      <p class="mt-2">
+    <Panel id="applying" title="When you apply" bodyClass="flex flex-col gap-3 [&_li]:mt-1 [&_ul]:list-disc [&_ul]:pl-5">
+      <p>
         Nothing is collected until you start on the form, below the notice that says what we check. A file goes to storage
         as soon as you choose it, and one that is never sent with an application is deleted after a day. With an
         application we keep:
@@ -91,35 +91,32 @@ const sections = [
         </li>
         <li>which version of this notice you were shown.</li>
       </ul>
-      <p class="mt-2">
+      <p>
         We delete the network address, browser, information about how the form was used and the device code within 30 days,
         and that information from a form you never send within a day. What we keep from them is coarse: the network's operator and country,
         never your address or a location more precise than a country.
       </p>
-    </section>
+    </Panel>
 
-    <section aria-labelledby="saving">
-      <h2 id="saving">If you save to finish later</h2>
-      <p class="mt-2">
+    <Panel id="saving" title="If you save to finish later" bodyClass="flex flex-col gap-3 [&_li]:mt-1 [&_ul]:list-disc [&_ul]:pl-5">
+      <p>
         You can save the form and come back to it. We keep your name, email, phone number and answers, whether you switched
         on the assistive technology option and your answer about AI tools under your email address, and email you a link that only works for you. We never keep your files or information about how the form was used: attach your files again when you come back. Nobody at {employer.name} sees what you saved until you
         send it. We delete it when you send your application, or 30 days after you first saved it.
       </p>
-    </section>
+    </Panel>
 
-    <section aria-labelledby="after">
-      <h2 id="after">After you apply</h2>
-      <p class="mt-2">
+    <Panel id="after" title="After you apply" bodyClass="flex flex-col gap-3 [&_li]:mt-1 [&_ul]:list-disc [&_ul]:pl-5">
+      <p>
         {employer.name} may email you a link to a few more questions. The link works for 14 days and only for you. That
         page keeps your answers and nothing else: no information about how the form was used, no device code and no checks.
         You can save your answers there to finish later through the same link; we delete them when you send them, or 30
         days after you first saved them.
       </p>
-    </section>
+    </Panel>
 
-    <section aria-labelledby="your-page">
-      <h2 id="your-page">Your page</h2>
-      <p class="mt-2">
+    <Panel id="your-page" title="Your page" bodyClass="flex flex-col gap-3 [&_li]:mt-1 [&_ul]:list-disc [&_ul]:pl-5">
+      <p>
         {employer.name} may email you a link to your own page, and every email about an application ends with one. You can
         also ask for the link on <a href={`${base}/my-applications`} class="text-link">the page for your applications</a>,
         with the address you applied with. The page shows your applications to {employer.name}, a saved application you can
@@ -130,78 +127,73 @@ const sections = [
         find your applications and to send the link. The page where you enter your address may ask your browser to complete the
         same bot challenge from Cloudflare.
       </p>
-    </section>
+    </Panel>
 
-    <section aria-labelledby="future-roles">
-      <h2 id="future-roles">Future roles</h2>
-      <p class="mt-2">
+    <Panel id="future-roles" title="Future roles" bodyClass="flex flex-col gap-3 [&_li]:mt-1 [&_ul]:list-disc [&_ul]:pl-5">
+      <p>
         At the end of the form you can tick "Keep my details for future roles". It is up to you, and it is never ticked for
         you. If you tick it, {employer.name} keeps your application until you ask, or until {employer.name} removes it,
         and may email you an invitation to apply for another role. Every invitation has a link that stops this at once.
         When you stop it, or the team removes you, {employer.name} no longer keeps your details for future roles or
         invites you.
       </p>
-    </section>
+    </Panel>
 
-    <section aria-labelledby="checks">
-      <h2 id="checks">What we check, and what we never do</h2>
-      <p class="mt-2">
+    <Panel id="checks" title="What we check, and what we never do" bodyClass="flex flex-col gap-3 [&_li]:mt-1 [&_ul]:list-disc [&_ul]:pl-5">
+      <p>
         We check every application for signs of bots and impersonation, because they crowd out real candidates. The checks
         use the information listed under <a href="#applying">When you apply</a>: how the application arrived, whether its
         details hold up, and whether they repeat on other applications to {employer.name}. Each check is one piece of
         evidence. None of them is a judgement on its own.
       </p>
-      <p class="mt-2">
+      <p>
         The site may ask your browser to complete a bot challenge from Cloudflare, which then sees your network address and
         browser. The device code is made differently for every employer, so it never matches across them.
       </p>
-      <p class="mt-2">
+      <p>
         If {employer.name} has turned it on, an AI model from our provider compares the facts across what you send and shows
         a person where they differ. It is never asked whether you used AI to write them. Our provider is not allowed to use
         your information to train its models. A person decides what any difference means, and there is often an ordinary
         explanation.
       </p>
-      <ul class="mt-2">
+      <ul>
         <li>Our checks for bots and impersonation never reject you. A person at {employer.name} looks at anything they flag.</li>
         <li>We never give you a score or a percentage, and never guess at your feelings, honesty or personality.</li>
         <li>We never record which keys you press, and never use your camera or microphone.</li>
         <li>We never look up your social media profiles. We only use what you give us.</li>
       </ul>
-    </section>
+    </Panel>
 
-    <section aria-labelledby="assistive">
-      <h2 id="assistive">Assistive technology</h2>
-      <p class="mt-2">
+    <Panel id="assistive" title="Assistive technology" bodyClass="flex flex-col gap-3 [&_li]:mt-1 [&_ul]:list-disc [&_ul]:pl-5">
+      <p>
         If you use dictation, a screen reader, switch access or autofill, switch on the assistive technology option at the
         start of the form. We then turn off the checks on how the form is used. Using the option is never held against you.
       </p>
-    </section>
+    </Panel>
 
-    <section aria-labelledby="ai">
-      <h2 id="ai">AI tools</h2>
-      <p class="mt-2">
+    <Panel id="ai" title="AI tools" bodyClass="flex flex-col gap-3 [&_li]:mt-1 [&_ul]:list-disc [&_ul]:pl-5">
+      <p>
         Each job says whether {employer.name} welcomes AI help with your application. We ask you about it at the end of
         the form, and a person reads your answer alongside your application.
       </p>
-    </section>
+    </Panel>
 
-    <section aria-labelledby="rights">
-      <h2 id="rights">Your choices</h2>
-      <p class="mt-2">
+    <Panel id="rights" title="Your choices" bodyClass="flex flex-col gap-3 [&_li]:mt-1 [&_ul]:list-disc [&_ul]:pl-5">
+      <p>
         You can ask {employer.name} to see, correct or delete your information, and to have a person review anything we
         flagged about your application.
       </p>
-      <p class="mt-2">
+      <p>
         To ask for a copy of your information, or to ask for it to be erased, use <a href={`${base}/data-request`} class="text-link">the page for data requests</a>.
         We email a link to the address you applied with, and the link opens the page where you make the request. The page where
         you enter your address may ask your browser to complete the same bot challenge from Cloudflare. The team at
         {employer.name} decides what to do with each request.
       </p>
-      <p class="mt-2">
+      <p>
         To correct something, to ask for a review, or if you cannot use that page, write to {employer.name} through the email
         address they use to write to you.
       </p>
-    </section>
+    </Panel>
 
     <p class="text-candidate-hint text-candidate-muted-foreground">Notice version <span class="font-mono">{NOTICE_VERSION}</span></p>
   </article>
