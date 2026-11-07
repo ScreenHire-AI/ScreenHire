@@ -46,10 +46,11 @@
     <EditPreviewSwitch bind:mode {onpopout} class="shrink-0" />
     {#if actions}<div class="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-x-3 gap-y-1">{@render actions()}</div>{/if}
   </div>
-  <div class={['min-w-0 flex-col gap-5', !wide && 'max-w-form', mode === 'edit' ? 'flex' : 'hidden']} data-edit-pane>
+  <!-- A row that stays in view must not cover what takes focus under it (WCAG 2.4.11): the margin keeps focus clear of the row. -->
+  <div class={['min-w-0 flex-col gap-5', !wide && 'max-w-form', actions && '**:scroll-mt-16', mode === 'edit' ? 'flex' : 'hidden']} data-edit-pane>
     {@render editor()}
   </div>
-  <div class={['min-w-0 flex-col gap-5', mode === 'preview' ? 'flex' : 'hidden']} data-preview-pane>
+  <div class={['min-w-0 flex-col gap-5', actions && '**:scroll-mt-16', mode === 'preview' ? 'flex' : 'hidden']} data-preview-pane>
     {@render preview()}
   </div>
 </div>
