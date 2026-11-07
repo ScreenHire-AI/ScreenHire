@@ -158,15 +158,16 @@ public sealed class TeammateChangesRealtimeTests(AppHostFixture fixture)
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         using var admin = await fixture.InviteAndJoinAsync(owner, "Admin");
+        using var secondAdmin = await fixture.InviteAndJoinAsync(owner, "Admin");
         using var theirs = await fixture.SignedInWithOrganizationAsync();
         await using var ownerClient = await EventsConnection.ConnectAsync(owner.Session, Ct);
         await using var theirClient = await EventsConnection.ConnectAsync(theirs.Session, Ct);
 
         // The owner rewords a built-in email template, the admin rewords it after them, then again: the second edit has
         // the owner as the member who changed it last, the third has only the admin, who made it too. The owner then saves
-        // the wording as it stands, which is no edit and raises nothing, and rewords it, with the admin as the last editor.
+        // the wording as it stands, which is no edit and raises nothing, and a second admin rewords it after that.
         var subjects = new[] { "Next steps for {{ jobTitle }}", "Your next steps for {{ jobTitle }}", "Your next steps, {{ candidateName }}", "Next, {{ candidateName }}" };
-        foreach (var (tenant, subject) in new[] { (owner, subjects[0]), (admin, subjects[1]), (admin, subjects[2]), (owner, subjects[2]), (owner, subjects[3]) })
+        foreach (var (tenant, subject) in new[] { (owner, subjects[0]), (admin, subjects[1]), (admin, subjects[2]), (owner, subjects[2]), (secondAdmin, subjects[3]) })
         {
             (await tenant.PutAsync($"/v1/email-templates/{EmailTemplateIds.StageChange}", new JsonObject
             {
@@ -178,7 +179,7 @@ public sealed class TeammateChangesRealtimeTests(AppHostFixture fixture)
         var edits = EditsOf(ownerClient, EmailTemplateIds.StageChange);
         // Events are delivered in parallel, so only the set of them is known, not their order.
         edits.Select(e => (Actor: ActorOf(e), Previous: PreviousEditorOf(e))).Should().BeEquivalentTo(
-            [(Actor: (Guid?)owner.UserId, Previous: (Guid?)null), (admin.UserId, owner.UserId), (admin.UserId, null), (owner.UserId, admin.UserId)]);
+            [(Actor: (Guid?)owner.UserId, Previous: (Guid?)null), (admin.UserId, owner.UserId), (admin.UserId, null), (secondAdmin.UserId, admin.UserId)]);
 
         // A library scorecard works the same way.
         var scorecard = await ScorecardSupport.CreateScorecardAsync(owner, "Platform interview", ScorecardSupport.Rating5("depth"));
