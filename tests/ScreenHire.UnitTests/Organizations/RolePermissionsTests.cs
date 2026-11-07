@@ -79,6 +79,8 @@ public sealed partial class RolePermissionsTests
         ["CreateBrandImageUpload"] = Permission.EditSettings,
         ["VerifyBrandImageUpload"] = Permission.EditSettings,
         ["UpdateOrganizationVerificationSettings"] = Permission.EditSettings,
+        ["ListVerificationModels"] = Permission.EditSettings,
+        ["TestVerificationModel"] = Permission.EditSettings,
         ["SetOrganizationSendingDomain"] = Permission.EditSettings,
         ["CheckOrganizationSendingDomain"] = Permission.EditSettings,
         ["DeleteOrganizationSendingDomain"] = Permission.EditSettings,
