@@ -52,7 +52,7 @@ const heading = {
 >
   <meta slot="head" name="referrer" content="no-referrer" />
 
-  <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{heading}</h1>
+  <h1 class="font-display text-candidate-title">{heading}</h1>
 
   {
     status === 'expired' && (
@@ -86,11 +86,11 @@ const heading = {
           {problem && <p role="alert" class="text-candidate-body font-semibold text-destructive">{problem}</p>}
 
           <fieldset class="flex flex-col gap-2">
-            <legend class="mb-1.5 text-candidate-body font-bold">What do you want to ask for?</legend>
+            <legend class="mb-2 text-candidate-body font-semibold">What do you want to ask for?</legend>
             <label class="choice">
               <input type="radio" name="kind" value="Copy" required aria-describedby="copy-hint" />
               <span class="flex flex-col">
-                <span class="text-sm font-semibold">A copy of my data</span>
+                <span class="text-candidate-body font-semibold">A copy of my data</span>
                 <span id="copy-hint" class="text-candidate-hint text-candidate-muted-foreground">
                   The team prepares a file with the information from your applications. When it is ready, we email a link to it.
                 </span>
@@ -99,7 +99,7 @@ const heading = {
             <label class="choice">
               <input type="radio" name="kind" value="Erasure" required aria-describedby="erasure-hint" />
               <span class="flex flex-col">
-                <span class="text-sm font-semibold">Erase my data</span>
+                <span class="text-candidate-body font-semibold">Erase my data</span>
                 <span id="erasure-hint" class="text-candidate-hint text-candidate-muted-foreground">
                   Asks the team to erase the information from your applications. Erasure cannot be undone, and we cannot email you
                   afterwards because your address is erased too.
@@ -116,7 +116,7 @@ const heading = {
     )
   }
 
-  <p class="mt-6 text-sm">
+  <p class="mt-6 text-candidate-body">
     <a href={`${base}/privacy`} class="text-link">What we collect and why</a>
   </p>
 </CareersLayout>

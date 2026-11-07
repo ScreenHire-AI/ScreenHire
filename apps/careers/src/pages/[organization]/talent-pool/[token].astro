@@ -46,7 +46,7 @@ const heading = {
 >
   <meta slot="head" name="referrer" content="no-referrer" />
 
-  <h1 class="font-display text-3xl leading-tight font-bold tracking-tight">{heading}</h1>
+  <h1 class="font-display text-candidate-title">{heading}</h1>
 
   {status === 'not-found' && (
     <p class="mt-3 text-candidate-body text-candidate-muted-foreground">
@@ -75,7 +75,7 @@ const heading = {
     </form>
   )}
 
-  <p class="mt-6 text-sm">
+  <p class="mt-6 text-candidate-body">
     <a href={`${base}/privacy`} class="text-link">What we collect and why</a>
   </p>
 </CareersLayout>

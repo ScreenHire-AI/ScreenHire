@@ -42,9 +42,13 @@ sources:
   - resource: apps/dashboard/src/lib/components/candidate/header-cards.svelte
   - resource: apps/dashboard/src/lib/components/application-menu.svelte
   - resource: apps/dashboard/src/lib/components/workflow/workflow-tabs.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/stage-flow.svelte
   - resource: apps/dashboard/src/lib/components/workflow/pipeline-view.svelte
   - resource: apps/careers/src/components/JobFacts.astro
   - resource: apps/careers/src/components/Notice.astro
+  - resource: apps/careers/src/components/Panel.astro
+  - resource: apps/careers/src/styles/global.css
+  - resource: apps/marketing/src/components/StatusBadge.astro
   - resource: apps/careers/src/lib/public-style.test.ts
   - resource: apps/marketing/src/styles/global.css
 ---
@@ -54,16 +58,19 @@ sources:
 > [ADR-0010](../adr/0010-design-system-v0-2.md), [ADR-0013](../adr/0013-design-system-v0-3.md) and
 > [ADR-0016](../adr/0016-design-system-v0-3-review-amendments.md). Visual reference: the
 > owner's "ScreenHire design v0.3 review" canvas; where it and this file differ, this file wins. The dashboard is
-> built to v0.3: every screen, and every component in section 11 with its example in the style guide. Section 21
-> records what v0.3 changed on each screen.
+> built to v0.3: every screen, and every component in section 11 with its example in the style guide. The careers and
+> marketing pages are built to it too, as sections 4.3 and 4.4 describe. Section 21 records what v0.3 changed on each
+> screen.
 
 This file is the one source of truth for how ScreenHire looks, reads and behaves on screen. CLAUDE.md, the rules in
 `.claude/rules/`, the page skills and the `design-review` agent point here and do not restate it. To change the
 design, change this file (and its ADR when a decision changes); everything else follows.
 
 **Scope.** Everything here applies to the recruiter dashboard. Candidate and marketing pages follow the principles
-(section 1), the review checklist where it applies, colour (section 3.4), words (section 12) and employer branding
-(section 18), and keep their own type scale (section 4.3) and the public-page rule (`.claude/rules/astro-public.md`).
+(section 1), the review checklist where it applies, colour (section 3.4), the radii and spacing of section 5, layers
+(section 6), words (section 12) and employer branding (section 18), and keep their own type scale (section 4.3), their
+own page widths (S6 is the dashboard's: a careers page is one centred reading column) and the public-page rule
+(`.claude/rules/astro-public.md`).
 
 ## 1. Principles
 
@@ -417,6 +424,15 @@ Titles take the employer's heading font where one is set (section 18), otherwise
 answered" in the hint size, the step semibold; each page's heading is its section's name. Marketing display goes up to 64px (the home page's title is 60px, `text-6xl`). The dashboard's
 questionnaire preview shows the candidate base with `text-candidate-body`.
 
+A careers page's `h1` is `font-display text-candidate-title` (30 / 36, weight 700, -0.02em), so every title takes the
+employer's heading font. A `Panel` title is `font-display text-heading` (16 / 24), and only the privacy notice keeps its
+title in the body font (section 18). A card's or step's title is `font-display text-panel-title` (20 / 28), and a reading
+line is `text-candidate-body`. Careers markup uses no Tailwind size
+(`text-sm`, `text-lg`, `text-xl`, `text-3xl`). Marketing titles use Tailwind's scale in this order: the `h1` at
+`text-4xl` (`text-5xl` on the home page) and `sm:text-6xl`, a section's `h2` at `text-3xl` (`text-4xl` on the home page), a
+band's `h2` at `text-2xl`, a card's `h3` at `text-xl`, a home page step at `text-lg`, a lead at `text-xl`, body at
+`text-base`, small text at `text-sm` and captions at `text-xs`.
+
 ### 4.4 Rules for public pages
 
 The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with these additions. `public-style.test.ts`
@@ -440,6 +456,28 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
 - A long page of prose (the privacy page) starts with an "On this page" list of links to its headings.
 - Header, breadcrumb and footer links are 44px tall on a coarse pointer and at least 24px with a mouse (WCAG 2.5.8):
   `pointer-coarse:min-h-11` on marketing pages. Careers pages use a plain `min-h-11`, so they are 44px on any pointer.
+- Shape and space come from section 5. Radius is a token: 8px for buttons and inputs (`rounded-lg`), 12px for panels
+  (`rounded-panel`), full for chips and badges, and never `rounded-[...]`. Margins, padding and gaps sit on the 4px grid
+  (4, 8, 12, 16, 20, 24, 32, 40, 48, which is `1`, `2`, `3`, `4`, `5`, `6`, `8`, `10` and `12`): no half steps, no `7`,
+  `9` or `11`. A button is 44px high (`min-h-11` on careers pages, `h-11` on marketing pages), and a careers input or
+  choice is 48px (`min-h-12`).
+- A section is a panel (S3, section 6): the card colour, a 1px edge, `rounded-panel` and `shadow-surface`, with its
+  title inside a 56px header. Careers pages draw one with `Panel.astro` (`title` and `id`, or only a screen-reader
+  `label`, an `action` slot for a Change button, a `footer` slot) in the neutral candidate tokens, so employer colours
+  never restyle it. Its title takes the employer's heading font, except in the privacy notice (`neutral`). A job card on the board, `Notice` and the error summary take the same surface and shadow. Marketing
+  cards are `rounded-panel border border-border bg-card shadow-surface`. A list of reasons inside a panel is an inset
+  (`bg-secondary`, no edge). The shared question controls stay unpanelled in their form. `public-style.test.ts` fails on
+  a panel without the shadow.
+- Employer colours sit on the page background and on the white panel, and the contrast check covers both
+  (`BrandPalette`): the brand colour used as text and for borders and focus rings is checked on `#fbf6ee` and on `#ffffff`
+  before it saves.
+- A status on a marketing page is `StatusBadge.astro` (T1): the 24px badge with its icon in the mark colour and the
+  label in 12px semibold, or `quiet` for a calm state in a list (T3), the same as the dashboard's. A page never builds
+  its own chip from `bg-status-*`. Careers pages show no status badge: each page names its state in its title and in
+  `Notice`, and the verification result is never shown to a candidate.
+- A marketing button is `.button-primary` (filled) or `.button-secondary` (outline), 44px high with an 8px radius. A
+  careers button is `.button-primary` or `.button-secondary` in the careers stylesheet, the same size, filled with the
+  employer's brand colour.
 - A careers form with steps has one row of buttons: the primary button first in the document and at the right on a wide
   screen, Back beside it, and Save and finish later at the left. A page with one action leaves it at the left, under its
   content.
@@ -569,7 +607,8 @@ in a development build, shows every component in each state, and its test fails 
 | Count | `Badge` count variant | The grey count badge (min 28px) after its label on a control (T4); plain text in a table |
 | Toggle | shadcn `Toggle`, in a labelled `role="group"`, or the rich text editor's `role="toolbar"` | Filters with a few choices and peer views (Table, Board; the apply form and each follow-up questionnaire in the workflow builder), and the formatting toggles of the rich text editor. The pressed one takes `accent`; its count follows the label in the count badge, white on the pressed one (T4). One line that scrolls inside its panel, never wraps (F5). In a narrow container a few short toggles whose every choice matters at a glance (a job's authenticity levels) stack one per line instead |
 | More menu | `MoreMenu` on shadcn `DropdownMenu` | An icon button with its label in a tooltip (A4). Holds extra actions, folded ones on phones and destructive items (A2, section 10) |
-| Step marker | `StepMarkers` (across), `StepLine` (down) | 28px square, radius 7, white with an edge, joined by a line: across for progress, down for a workflow's stages |
+| Step marker | `StepMarkers` (across), `StepLine` (down) | 28px square, radius 7, white with an edge, joined by a line: across for progress, down for steps to do in order (a domain's setup). A workflow's stages are the Stage flow, below |
+| Stage flow | `StageFlow` (`workflow/stage-flow.svelte`), in the Stages panel of `WorkflowSummary`, on a template's page and a job's workflow page wherever the workflow reads only (E3) | A workflow's stages in order, as a row of columns where every stage fits and the vertical list where they do not, so 5 stages and 20 read alike and the page never scrolls sideways (S9, F1). A stage is its step marker and name, then what is attached as short facts in one order: the scorecard's name (the word Scorecard for screen readers only, W9), the time limit ("3-day limit") and the automations that fire on it ("2 automations"), which leaves out any that are off; each is an icon and a muted line that wraps, in one style. A stage with nothing attached shows only its name, and its kind is not repeated (W6). Columns are 12rem at least. The choice is made in CSS from the container's width and the number of stages, so the first paint is right and nothing is measured by script (S8, F2); the vertical list draws the line down between markers, the row a hairline between columns. Keyboard and screen reader order is the stages' order in both, with no reordering. The stages that end a candidacy stay in the panel's footer. The panel has a row of its own, so the columns have the page's width; the builder's Pipeline view keeps its editable rows |
 | Pipeline tracker | `PipelineTracker`, from `trackerFor` (`#lib/pipeline-tracker.ts`) | A candidate's place in the job's workflow, under the first line of their header: a bordered bar with one block per stage, left to right, so nobody scans for where they stand (ADR-0025). Rejected and Withdrawn are ways out, not steps, so they are not drawn. The current stage is the solid `primary` block, in semibold, with "Here 3 days" and the Overdue badge once its time limit passed. Passed stages are tinted `accent`, with a check and the date they reached them ("Oct 20"). Later stages are plain. Once the candidate left, the stage they left from is the solid `foreground` block with how and when ("Saved Oct 31", "Rejected Oct 31", "Hired Nov 1"). It replaces the stage pill. Screen readers hear "Screening, step 2 of 6". In a narrow container only that stage shows, with "2 of 6". When no stage can be marked, a line under the bar says where they stand |
 | Mini card | `MiniCard`; a candidate's header has Contact, Application and a third card in `candidate/header-cards.svelte` | A small bordered card: a caption title and two lines, a `role="group"` named by its title. It is not a panel (S3), is never a link as a whole (A5), and sits in a record's header. Contact: the email and the phone, each a link with a Copy button (`CopyButton`, an `IconButton` that shows a check and says "Copied"), and the email-issue badge on the email. For a saved candidate the second line is "Last contacted 3 days ago" in place of the phone, which stays on their profile. Application: the job as a link, then "Applied 6 days ago via the careers page". The third is Also applied to, from the one-candidate profile, or Rating once someone scored them; it never says "Not rated yet", and either way its second line links to the candidate's profile. A fourth, Interview, is there only while an interview is booked: the time in the reader's own zone, then its length and the number of interviewers. The cards take as many columns as hold 16rem each: three across in a wide container, two at a laptop, one on a phone (F2) |
 | Summary list | `<dl>` | Labels and values for read-only data; one Edit per section when you can edit |
@@ -840,7 +879,7 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   workflow page's header is "<job title> workflow" with the job's status first and the check on the workflow second
   (S2, T2), and what saving did sits in the band's line under the title, as on the job page, so it never pushes the
   actions to a second row (S8). Its stages keep one row menu for Edit automations, Choose scorecard and Remove stage; a stage with no time limit shows "No limit"; a stage's scorecard is its name beside
-  an icon, the word "Scorecard" for screen readers only (W9). Simulate picks a multi-choice answer from the options'
+  an icon, the word "Scorecard" for screen readers only (W9). Where the workflow reads only (a closed job's), its Pipeline tab is the Stage flow, not these rows. Simulate picks a multi-choice answer from the options'
   names, never typed ids (W8), and says nothing is saved or sent.
 - **Candidates:** every candidate table (Candidates and a job's) has Last activity after Applied: the date anything
   last happened to the application, from the candidate (applied, answered a questionnaire) or the team (moved, noted,
@@ -900,7 +939,7 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   scorecard reads only, says why and offers Copy (E3), with no History. Built-in emails stay editable in place. A
   publish or save says how far it reaches in the notice beside it ("Published version 2. Jobs created from now on
   start from it."). In the hiring template's Pipeline tab each stage's Edit automations, Choose scorecard and Remove
-  stage are its row's More menu (L2). An empty Emails tab offers New template as a
+  stage are its row's More menu (L2); a hiring template that reads only (built in, archived, a published version, or one you may not edit) has the Stage flow there instead. An empty Emails tab offers New template as a
   link to the new-email page. A pop-out preview window with no editor behind it (a reload, an editor that closed) says
   so in one line instead of loading for ever.
 - **Settings:** one sidebar item with its own menu (section 11). Careers branding becomes Branding, and email
