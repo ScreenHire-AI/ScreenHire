@@ -13,6 +13,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The plan catalogue the marketing pricing page reads too (docs/architecture/billing.md): defaults for ScreenHire:Billing:Plans. -->
+    <EmbeddedResource Include="..\..\packages\plans\plans.json" LogicalName="plans.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\ScreenHire.Domain\ScreenHire.Domain.csproj" />
     <ProjectReference Include="..\ScreenHire.Infrastructure\ScreenHire.Infrastructure.csproj" />
   </ItemGroup>

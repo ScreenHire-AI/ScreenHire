@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Automations;
+using ScreenHire.Domain.Billing;
 using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Distribution;
 using ScreenHire.Domain.Hiring;
@@ -170,6 +171,12 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
     public DbSet<WebhookEndpointSecret> WebhookEndpointSecrets => Set<WebhookEndpointSecret>();
 
     public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
+
+    /// <summary>An organization's trial and subscription, one each while billing is on (docs/architecture/billing.md).</summary>
+    public DbSet<BillingAccount> BillingAccounts => Set<BillingAccount>();
+
+    /// <summary>The payment provider events already applied, so a redelivery changes nothing.</summary>
+    public DbSet<BillingEventRecord> BillingEvents => Set<BillingEventRecord>();
 
     /// <summary>An organization's Slack workspace, one at most (docs/architecture/slack.md).</summary>
     public DbSet<SlackInstallation> SlackInstallations => Set<SlackInstallation>();

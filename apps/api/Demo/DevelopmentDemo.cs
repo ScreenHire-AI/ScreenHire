@@ -9,6 +9,7 @@ using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Endpoints;
 using ScreenHire.Application.Applications;
+using ScreenHire.Application.Billing;
 using ScreenHire.Application.Branding;
 using ScreenHire.Application.TalentPool;
 using ScreenHire.Application.Distribution;
@@ -16,6 +17,7 @@ using ScreenHire.Application.Verification;
 using ScreenHire.Application.Jobs;
 using ScreenHire.Application.Templates;
 using ScreenHire.Domain.Applications;
+using ScreenHire.Domain.Billing;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.TalentPool;
@@ -150,6 +152,9 @@ internal sealed partial class DevelopmentDemo(
 
     private async Task SeedAsync(CancellationToken stoppingToken)
     {
+        // Brightwater pays on the Unlimited plan, so the demo is never held to a limit (and has nothing to upgrade).
+        await TryAsync(() => SeedBillingAsync(stoppingToken), stoppingToken);
+
         // Without Brightwater every step finds nothing to add to.
         var templateVersion = await TryAsync(() => SeedTemplateAsync(stoppingToken), stoppingToken);
         foreach (var (slug, _) in OpenJobs)
@@ -710,6 +715,28 @@ internal sealed partial class DevelopmentDemo(
     // Made once, as Avery would on the Roles page: the role, then Robin moved to it from Viewer. Both land in the
     // membership log; the role's change history comes from the tracked save. A Robin someone has given another role
     // keeps it.
+    // With billing on, Brightwater has an active subscription on the Unlimited plan (the sandbox's), so the demo shows a
+    // paying organization. Billing off: nothing to add.
+    private async Task SeedBillingAsync(CancellationToken cancellationToken)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        if (await BeginAsync(scope, cancellationToken) is not { } step
+            || scope.ServiceProvider.GetRequiredService<BillingService>().NewTrial(step.OrganizationId) is not { } account)
+        {
+            return;
+        }
+
+        var db = step.Outbox.DbContext;
+        if (await db.BillingAccounts.AnyAsync(cancellationToken))
+        {
+            return;
+        }
+
+        account.Apply(step.Now, "cus_sandbox_demo", "sub_sandbox_demo", "unlimited", SubscriptionStatus.Active, step.Now.AddMonths(1), false, step.Now);
+        db.BillingAccounts.Add(account);
+        await step.Outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+    }
+
     private async Task SeedInterviewerAsync(CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
@@ -891,6 +918,7 @@ internal sealed partial class DevelopmentDemo(
             services.GetRequiredService<JobPublishValidator>(),
             services.GetRequiredService<DistributionPlanner>(),
             services.GetRequiredService<BoardRegistry>(),
+            services.GetRequiredService<BillingService>(),
             services.GetRequiredService<IOptions<DomainOptions>>().Value,
             job, boards, step.Now, cancellationToken);
         if (refused is not null)

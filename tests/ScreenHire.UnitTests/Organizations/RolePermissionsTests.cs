@@ -107,6 +107,9 @@ public sealed partial class RolePermissionsTests
         ["UpdateSlackChannel"] = Permission.ManageIntegrations,
         ["SendSlackTestMessage"] = Permission.ManageIntegrations,
         ["DisconnectSlack"] = Permission.ManageIntegrations,
+        ["StartBillingCheckout"] = Permission.ManageBilling,
+        ["OpenBillingPortal"] = Permission.ManageBilling,
+        ["GetBilling"] = Permission.ManageBilling,
         ["EraseCandidate"] = Permission.EraseCandidates,
         ["ListDataRequests"] = Permission.EraseCandidates,
         ["SendDataRequestCopy"] = Permission.EraseCandidates,
@@ -157,7 +160,7 @@ public sealed partial class RolePermissionsTests
             .. recruiter, Permission.DeleteAnyNote, Permission.EditEmailTemplates, Permission.EditSettings, Permission.ManageApiKeys, Permission.ManageWebhooks,
             Permission.ManageIntegrations, Permission.ManageTeam, Permission.EraseCandidates, Permission.EditAnyView,
         ];
-        Permission[] owner = [.. admin, Permission.ManageOwners, Permission.GrantVerificationAccess];
+        Permission[] owner = [.. admin, Permission.ManageOwners, Permission.GrantVerificationAccess, Permission.ManageBilling];
 
         RolePermissions.Of(OrganizationRole.Owner).Should().BeEquivalentTo(owner);
         RolePermissions.Of(OrganizationRole.Admin).Should().BeEquivalentTo(admin);
@@ -198,10 +201,10 @@ public sealed partial class RolePermissionsTests
     public void Managing_owners_and_giving_a_key_verification_access_are_owner_only_and_a_custom_role_never_holds_them()
     {
         RolePermissions.Permissions.Where(p => p.OwnerOnly).Select(p => p.Permission)
-            .Should().Equal(Permission.ManageOwners, Permission.GrantVerificationAccess);
-        RolePermissions.ForCustom(Enum.GetValues<Permission>()).Should().NotContain([Permission.ManageOwners, Permission.GrantVerificationAccess])
+            .Should().Equal(Permission.ManageOwners, Permission.GrantVerificationAccess, Permission.ManageBilling);
+        RolePermissions.ForCustom(Enum.GetValues<Permission>()).Should().NotContain([Permission.ManageOwners, Permission.GrantVerificationAccess, Permission.ManageBilling])
             .And.BeEquivalentTo(RolePermissions.Of(OrganizationRole.Admin), "a custom role can hold anything but Owner-only permissions");
-        RolePermissions.Assignable.Should().NotContain([Permission.ManageOwners, Permission.GrantVerificationAccess]);
+        RolePermissions.Assignable.Should().NotContain([Permission.ManageOwners, Permission.GrantVerificationAccess, Permission.ManageBilling]);
         RolePermissions.Of(OrganizationRole.Admin).Should().NotContain(Permission.GrantVerificationAccess, "only an Owner gives a key the scope (ADR-0021)");
         RolePermissions.Of(OrganizationRole.Owner).Should().Contain(Permission.GrantVerificationAccess);
     }

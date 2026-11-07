@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Options;
 using Npgsql;
+using ScreenHire.Application.Billing;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
@@ -372,7 +373,7 @@ internal static class AuthEndpoints
 
     private static async Task<Results<Ok<CurrentUser>, ValidationProblem, Conflict<ProblemDetails>, UnauthorizedHttpResult>> CompleteOnboarding(
         OnboardingRequest request, IValidator<OnboardingRequest> validator, HttpContext context, UserManager<ApplicationUser> users,
-        TenantContext tenant, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken)
+        TenantContext tenant, ScreenHireDbContext db, BillingService billing, TimeProvider time, CancellationToken cancellationToken)
     {
         if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
         {
@@ -404,12 +405,12 @@ internal static class AuthEndpoints
                 return AlreadyOnboarded();
             }
 
-            return await CreateOrganizationAsync(request, user, tenant, db, time, transaction, cancellationToken);
+            return await CreateOrganizationAsync(request, user, tenant, db, billing, time, transaction, cancellationToken);
         });
     }
 
     private static async Task<Results<Ok<CurrentUser>, ValidationProblem, Conflict<ProblemDetails>, UnauthorizedHttpResult>> CreateOrganizationAsync(
-        OnboardingRequest request, ApplicationUser user, TenantContext tenant, ScreenHireDbContext db, TimeProvider time,
+        OnboardingRequest request, ApplicationUser user, TenantContext tenant, ScreenHireDbContext db, BillingService billing, TimeProvider time,
         IDbContextTransaction transaction, CancellationToken cancellationToken)
     {
         if (await db.Organizations.AnyAsync(o => o.Slug == request.Slug, cancellationToken))
@@ -428,6 +429,11 @@ internal static class AuthEndpoints
         tenant.SetOrganization(organization.Id);
         db.Organizations.Add(organization);
         db.OrganizationMembers.Add(OrganizationMember.Create(organization.Id, user.Id, OrganizationRole.Owner, time.GetUtcNow()));
+        // The free trial starts at sign-up (ADR-0029); null while billing is off.
+        if (billing.NewTrial(organization.Id) is { } trial)
+        {
+            db.BillingAccounts.Add(trial);
+        }
 
         try
         {

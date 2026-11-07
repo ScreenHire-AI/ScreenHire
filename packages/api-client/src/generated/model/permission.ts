@@ -36,4 +36,5 @@ export const Permission = {
   EraseCandidates: 'EraseCandidates',
   EditAnyView: 'EditAnyView',
   GrantVerificationAccess: 'GrantVerificationAccess',
+  ManageBilling: 'ManageBilling',
 } as const;

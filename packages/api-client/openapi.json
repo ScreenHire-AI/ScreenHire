@@ -2692,6 +2692,16 @@
               }
             }
           },
+          "402": {
+            "description": "Payment Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "409": {
             "description": "Conflict",
             "content": {
@@ -11349,6 +11359,186 @@
         ]
       }
     },
+    "/v1/organization/billing": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "GetBilling",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingOverview"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/billing/checkout": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "StartBillingCheckout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartBillingCheckoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingRedirect"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/billing/portal": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "OpenBillingPortal",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingRedirect"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/calendar": {
       "get": {
         "tags": [
@@ -15588,6 +15778,161 @@
             ]
           }
         }
+      },
+      "BillingOverview": {
+        "required": [
+          "available",
+          "sandbox",
+          "state",
+          "currentPlan",
+          "trialEndsAt",
+          "nextPaymentAt",
+          "nextPaymentAmount",
+          "cancelsAtPeriodEnd",
+          "openJobs",
+          "activeJobLimit",
+          "canManage",
+          "plans"
+        ],
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "sandbox": {
+            "type": "boolean"
+          },
+          "state": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BillingState"
+              }
+            ]
+          },
+          "currentPlan": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BillingPlan"
+              }
+            ]
+          },
+          "trialEndsAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "nextPaymentAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "nextPaymentAmount": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "cancelsAtPeriodEnd": {
+            "type": "boolean"
+          },
+          "openJobs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "activeJobLimit": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "plans": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillingPlan"
+            }
+          }
+        },
+        "description": "An organization's billing for its Owner (docs/architecture/billing.md). `available` is false when this ScreenHire\nhas no payment provider, and then nothing else is set and nothing is limited. `state` is where the organization\nstands: on its free trial, paying, paying late, or ended (everything stays readable and open jobs stay open; only\npublishing a new job stops). `trialEndsAt` is set during the trial. `nextPaymentAt` and\n`nextPaymentAmount` are set while a subscription renews, and `cancelsAtPeriodEnd` says it will not.\n`openJobs` counts the jobs open now and `activeJobLimit` is the plan's limit, null when it has none.\n`canManage`: the provider has a customer, so the payment portal can open. `sandbox`: the local fake, not Stripe."
+      },
+      "BillingPlan": {
+        "required": [
+          "key",
+          "name",
+          "monthlyPrice",
+          "currency",
+          "activeJobs",
+          "unlimited",
+          "canSubscribe"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "monthlyPrice": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "activeJobs": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "unlimited": {
+            "type": "boolean"
+          },
+          "canSubscribe": {
+            "type": "boolean"
+          }
+        },
+        "description": "A plan. `monthlyPrice` is null until the owner sets it. `activeJobs` is the most jobs open at once, null with\nno limit set; `unlimited` says there is none by design. `canSubscribe`: Checkout can start it here."
+      },
+      "BillingRedirect": {
+        "required": [
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        },
+        "description": "Where to send the browser next: the payment provider's page, or the sandbox's."
+      },
+      "BillingState": {
+        "enum": [
+          "Trialing",
+          "Active",
+          "PastDue",
+          "Ended",
+          null
+        ]
       },
       "BoardMode": {
         "enum": [
@@ -20329,7 +20674,8 @@
           "ManageIntegrations",
           "EraseCandidates",
           "EditAnyView",
-          "GrantVerificationAccess"
+          "GrantVerificationAccess",
+          "ManageBilling"
         ],
         "description": "Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions."
       },
@@ -23773,6 +24119,18 @@
           "Custom"
         ]
       },
+      "StartBillingCheckoutRequest": {
+        "required": [
+          "plan"
+        ],
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string"
+          }
+        },
+        "description": "The plan to subscribe to, by its key from the plan list."
+      },
       "StartCalendarConnectRequest": {
         "required": [
           "provider",
@@ -25848,6 +26206,9 @@
     },
     {
       "name": "Slack"
+    },
+    {
+      "name": "Billing"
     },
     {
       "name": "Calendar"
