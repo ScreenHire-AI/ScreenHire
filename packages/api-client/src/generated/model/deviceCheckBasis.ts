@@ -10,7 +10,7 @@
  * fingerprint"; verification-engine.md §3). ePrivacy Art. 5(3) needs consent for fingerprinting unless it is strictly
  * necessary, and data protection authorities differ on whether fraud prevention is, so the basis is configuration per
  * country rather than code. An organization may also choose one, but only to be more protective than its region
- * (<see cref="!:Protectiveness" />).
+ * (DeviceCheckBasis DeviceCheckBases.MoreProtective(DeviceCheckBasis a, DeviceCheckBasis b)).
  */
 export type DeviceCheckBasis = typeof DeviceCheckBasis[keyof typeof DeviceCheckBasis];
 
