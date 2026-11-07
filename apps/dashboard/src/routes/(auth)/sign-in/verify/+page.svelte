@@ -5,6 +5,7 @@
   import { tick } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
+  import { returnUrlParameter, safeReturnUrl } from '#lib/auth.js';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -12,7 +13,10 @@
 
   // The emailed link carries the token in the fragment, which the browser never sends to a server. The person
   // confirms with a click, so a mail scanner that opens the link cannot use it up.
-  const token = $derived(new URLSearchParams(page.url.hash.slice(1)).get('token'));
+  const fragment = $derived(new URLSearchParams(page.url.hash.slice(1)));
+  const token = $derived(fragment.get('token'));
+  // Where the person was going when they asked for the link, beside the token. Cut down to a local path here as well.
+  const returnUrl = $derived(safeReturnUrl(fragment.get(returnUrlParameter)));
 
   let failed = $state(false);
   let submitting = $state(false);
@@ -30,7 +34,7 @@
     const response = await verifyMagicLink({ token });
     submitting = false;
     if (response.status === 204) {
-      await goto('/', { invalidateAll: true, replaceState: true });
+      await goto(returnUrl, { invalidateAll: true, replaceState: true });
     } else {
       failed = true;
       await tick();

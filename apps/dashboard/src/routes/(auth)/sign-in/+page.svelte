@@ -33,7 +33,9 @@
         return;
       }
 
-      const response = await requestMagicLink(form.data);
+      // The link opens where this visit was going (an assistant's request to connect, say). The load already cut it
+      // down to a local path; the API checks it again.
+      const response = await requestMagicLink({ ...form.data, returnUrl: data.returnUrl });
       if (response.status === 202) {
         sentTo = form.data.email;
         await tick();

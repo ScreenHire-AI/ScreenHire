@@ -190,8 +190,9 @@ export const ChallengeProviderResponse = zod.void()
 
 
 export const RequestMagicLinkBody = zod.object({
-  "email": zod.string()
-}).describe('Asks for a sign-in link by email.')
+  "email": zod.string(),
+  "returnUrl": zod.string().nullish()
+}).describe('Asks for a sign-in link by email. `returnUrl` is a path on the dashboard to open after the link is used, such as an\nassistant\'s request to connect; anything that is not a local path is dropped.')
 
 export const RequestMagicLinkResponse = zod.void()
 
@@ -9725,3 +9726,73 @@ export const SearchResponse = zod.object({
   "status": zod.enum(['Draft', 'Open', 'Closed'])
 }).describe('A job whose title matched.'))
 }).describe('What a search found among the candidates and jobs the reader sees: candidates by name or email, one hit per\napplication, and jobs by title. Each list is short and starts with names or titles that begin with the search.')
+
+
+export const GetOAuthAuthorizationRequestQueryParams = zod.object({
+  "clientId": zod.string().optional(),
+  "redirectUri": zod.string().optional(),
+  "responseType": zod.string().optional(),
+  "scope": zod.string().optional(),
+  "resource": zod.string().optional(),
+  "codeChallenge": zod.string().optional(),
+  "codeChallengeMethod": zod.string().optional()
+})
+
+export const GetOAuthAuthorizationRequestResponse = zod.object({
+  "clientName": zod.string(),
+  "redirectHost": zod.string(),
+  "redirectIsLoopback": zod.boolean(),
+  "organizationName": zod.string(),
+  "scopes": zod.array(zod.object({
+  "scope": zod.enum(['Read', 'Write', 'VerificationRead']).describe('What an API key may do on the hiring API.'),
+  "grantable": zod.boolean(),
+  "reason": zod.string().nullable()
+}).describe('One thing the assistant asked to be allowed. `grantable` is false when the signed-in person does not hold it\nthemselves; `reason` says why. Read is always offered and always granted.'))
+}).describe('An assistant\'s request to connect, as the consent page shows it: who is asking, where the person goes afterwards, which\norganization the connection would belong to, and what it may do. `redirectHost` is the address\'s host (and port, for\na local one); `redirectIsLoopback` is true for an address on this person\'s own computer.')
+
+
+export const DecideOAuthAuthorizationBody = zod.object({
+  "clientId": zod.string(),
+  "redirectUri": zod.string(),
+  "responseType": zod.string(),
+  "scope": zod.string().nullable(),
+  "resource": zod.string().nullable(),
+  "codeChallenge": zod.string(),
+  "codeChallengeMethod": zod.string(),
+  "state": zod.string().nullable(),
+  "approve": zod.boolean(),
+  "grantedScopes": zod.array(zod.enum(['Read', 'Write', 'VerificationRead']).describe('What an API key may do on the hiring API.'))
+}).describe('The person\'s decision on an assistant\'s request: the OAuth parameters the assistant sent, copied as they came, plus\n`approve` and the scopes the person chose. `grantedScopes` is cut to what the assistant asked for and the person\nholds, and always includes Read.')
+
+export const DecideOAuthAuthorizationResponse = zod.object({
+  "redirectUrl": zod.string()
+}).describe('Where to send the person next: the assistant\'s redirect address, carrying the code or the refusal.')
+
+
+export const ListOAuthConnectionsResponseItem = zod.object({
+  "id": zod.uuid(),
+  "clientName": zod.string(),
+  "connectedByUserId": zod.uuid().nullable(),
+  "connectedByName": zod.string().nullable(),
+  "scopes": zod.array(zod.enum(['Read', 'Write', 'VerificationRead']).describe('What an API key may do on the hiring API.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "revokedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('An assistant a person connected to this organization. It acts with `scopes` and shows in activity under its name.\n`lastUsedAt` is accurate to about a minute; `revokedAt` is set once a connection is revoked, and the row stays.')
+export const ListOAuthConnectionsResponse = zod.array(ListOAuthConnectionsResponseItem)
+
+
+export const RevokeOAuthConnectionParams = zod.object({
+  "connectionId": zod.uuid()
+})
+
+export const RevokeOAuthConnectionResponse = zod.object({
+  "id": zod.uuid(),
+  "clientName": zod.string(),
+  "connectedByUserId": zod.uuid().nullable(),
+  "connectedByName": zod.string().nullable(),
+  "scopes": zod.array(zod.enum(['Read', 'Write', 'VerificationRead']).describe('What an API key may do on the hiring API.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "revokedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('An assistant a person connected to this organization. It acts with `scopes` and shows in activity under its name.\n`lastUsedAt` is accurate to about a minute; `revokedAt` is set once a connection is revoked, and the row stays.')

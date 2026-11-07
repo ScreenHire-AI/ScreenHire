@@ -155,7 +155,8 @@ public sealed partial class Mailpit(Uri baseAddress)
     [GeneratedRegex(@"#token=(?<token>[A-Za-z0-9_-]+)")]
     private static partial Regex SignInToken();
 
-    [GeneratedRegex(@"https?://\S+#token=[A-Za-z0-9_-]+")]
+    // The optional tail is the page the link opens after sign-in (`&returnUrl=`), so a test can read the whole fragment.
+    [GeneratedRegex(@"https?://\S+#token=[A-Za-z0-9_-]+(?:&returnUrl=\S*)?")]
     private static partial Regex SignInLink();
 
     [GeneratedRegex(@"https?://\S+#invitation=(?<token>[A-Za-z0-9_-]+)")]

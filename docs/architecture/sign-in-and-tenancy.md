@@ -89,7 +89,7 @@ organization API key in place of the session ("API keys" below).
 | `GET /v1/auth/challenge/{provider}?returnUrl=` | Redirects to the provider (authorization code + PKCE). |
 | `GET /v1/auth/signin-{provider}` | The handler's redirect URI. The provider returns here with a code. |
 | `GET /v1/auth/callback?returnUrl=` | Links or creates the user, signs them in, redirects to the dashboard. |
-| `POST /v1/auth/magic-link` | Emails a sign-in link. Always 202, known address or not. |
+| `POST /v1/auth/magic-link` | Emails a sign-in link. Always 202, known address or not. An optional `returnUrl` (a local path, sanitized as above) rides in the link's fragment beside the token, so the verify page opens it after sign-in; the OAuth consent page relies on it. |
 | `POST /v1/auth/magic-link/verify` | Redeems a link's token and signs in. |
 | `POST /v1/auth/onboarding` | Creates the user's organization (name and slug) with them as Owner. |
 | `POST /v1/auth/invitations/accept` | Redeems an emailed invitation: signs in as the invited address and joins its organization. |
@@ -182,9 +182,11 @@ API keys (Owners and Admins) manages keys in a session, on the dashboard's Setti
   application's verification review log, saved before the answer goes out: the key, the time and no person. Dismissing,
   explaining and noting stay the session's. The MCP server's verification tools use the same reads
   ([MCP server](mcp-server.md)).
-- **The MCP server** at `/v1/mcp` lets a team's AI assistant use the hiring API with a key, and only a key: its own
-  `mcp` policy authenticates the `ApiKey` scheme alone, so a session cookie gets 401 there
-  ([MCP server](mcp-server.md)). Its write tools check the same scope rule as the routes
+- **The MCP server** at `/v1/mcp` lets a team's AI assistant use the hiring API with a key, or with an OAuth connection a
+  person approved, and nothing else: its own `mcp` policy authenticates the `McpCredentials` scheme (the `ApiKey` handler,
+  or the OAuth handler for an `sho_` access token), so a session cookie gets 401 there ([MCP server](mcp-server.md),
+  [OAuth sign-in](oauth-server.md)). A connection is a key row with an OAuth client, so it has a key's scopes, rate limit,
+  actor and tenant; an `sho_` token is refused everywhere but `/v1/mcp`, and the API keys page lists no connection. Its write tools check the same scope rule as the routes
   (`HiringAuthorization.KeyRefusal`), its verification tools need the `VerificationRead` scope, and its report and
   saved-candidate tools need only `Read`. The report tool reads what the reports routes read, and the saved-candidate
   tool calls the read service of session-only routes.
@@ -471,7 +473,7 @@ Who the tenant is:
 | Request | Tenant |
 |---|---|
 | Signed in | `TenantResolutionMiddleware`: the user's active organization (or first membership) and their job access there, read on every request |
-| API key | `TenantResolutionMiddleware`: the key's organization, with no user ("API keys" above), and the key's id, which change history records as the actor. Every job. |
+| API key, or an OAuth connection on `/v1/mcp` | `TenantResolutionMiddleware`: the key's organization, with no user ("API keys" above), and the key's id, which change history records as the actor. Every job. An OAuth code or token names its organization, as a key does, and the token endpoint and the OAuth handler set it before the lookup. |
 | Public careers endpoint | The organization whose slug is in the route, for reads and for the apply flow's anonymous writes, which only add an application (or an upload for one) to that organization. Every job, whoever is signed in (`SetPublicOrganization`). |
 | Onboarding | The new organization, from just before it is saved |
 | Accepting an invitation | The organization the token names, for the lookup by hash and the join that follows |
