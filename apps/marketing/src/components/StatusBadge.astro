@@ -1,0 +1,27 @@
+---
+// A status: its icon, colour and label, always together (design system T1, section 3.2), the same badge as the
+// dashboard's: 24px high, the 14px icon in its mark colour, the label in 12px semibold. `quiet` is for a calm state in a
+// list: the icon and muted text, no fill (T3). Only the statuses the marketing pages show are here.
+import StatusIcon from './StatusIcon.astro';
+
+interface Props {
+  status: 'done' | 'review' | 'verification' | 'open';
+  label: string;
+  quiet?: boolean;
+  class?: string;
+}
+
+const { status, label, quiet = false, class: className } = Astro.props;
+// Whole class names, so Tailwind finds them.
+const tones = {
+  done: { fill: 'bg-status-clear-soft text-status-clear', mark: 'text-status-clear-mark' },
+  open: { fill: 'bg-status-clear-soft text-status-clear', mark: 'text-status-clear-mark' },
+  review: { fill: 'bg-status-review-soft text-status-review', mark: 'text-status-review-mark' },
+  verification: { fill: 'bg-status-verify-soft text-status-verify', mark: 'text-status-verify-mark' },
+};
+const tone = tones[status];
+---
+
+<span class:list={['inline-flex h-6 items-center gap-2 rounded-full text-xs font-semibold', quiet ? 'text-muted-foreground' : `${tone.fill} pr-3 pl-2`, className]}>
+  <StatusIcon status={status} class={tone.mark} />{label}
+</span>

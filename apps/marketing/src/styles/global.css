@@ -35,6 +35,17 @@
   }
 }
 
+/* Buttons: 44px high with an 8px radius, a filled primary and an outlined secondary (design system sections 5 and 10). */
+@layer components {
+  .button-primary {
+    @apply inline-flex h-11 items-center justify-center rounded-lg bg-primary px-5 font-semibold text-primary-foreground no-underline hover:bg-primary/90;
+  }
+
+  .button-secondary {
+    @apply inline-flex h-11 items-center justify-center rounded-lg border border-input bg-card px-5 font-semibold text-foreground no-underline hover:border-primary;
+  }
+}
+
 /* Long-form Markdown (law tracker entries, blog posts). Tokens only. */
 @layer components {
   .prose {

@@ -35,8 +35,8 @@
   const described = $derived(describedBy(id, hint, error));
 </script>
 
-<div class="flex flex-col gap-1.5">
-  <label for={id} class="text-candidate-body font-bold">
+<div class="flex flex-col gap-2">
+  <label for={id} class="text-candidate-body font-semibold">
     {label}
     {#if !required}<span class="font-medium text-candidate-muted-foreground"> (optional)</span>{/if}
   </label>

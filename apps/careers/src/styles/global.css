@@ -30,11 +30,11 @@
      class here sets a cursor. .field-input, .file-input and .choice come with the shared question components (@screenhire/ui/questions.css). */
 
   .button-primary {
-    @apply inline-flex min-h-13 items-center justify-center rounded-[14px] border-0 bg-candidate-cta px-8 text-base font-bold text-candidate-cta-foreground no-underline;
+    @apply inline-flex min-h-11 items-center justify-center rounded-lg border-0 bg-candidate-cta px-6 text-candidate-body font-semibold text-candidate-cta-foreground no-underline;
   }
 
   .button-secondary {
-    @apply inline-flex min-h-13 items-center justify-center rounded-[14px] border border-candidate-input-border bg-candidate-surface px-6 text-base font-bold text-candidate-foreground no-underline;
+    @apply inline-flex min-h-11 items-center justify-center rounded-lg border border-candidate-input-border bg-candidate-surface px-5 text-candidate-body font-semibold text-candidate-foreground no-underline;
   }
 
   .text-link {

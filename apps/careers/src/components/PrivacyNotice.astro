@@ -1,5 +1,6 @@
 ---
 import { embedOf, withEmbed } from '../lib/embed';
+import Panel from './Panel.astro';
 // "How we review applications": that applications are checked and what is collected, shown above the form's first field,
 // before the telemetry module records anything (CLAUDE.md non-negotiable 4). It says what is collected and why, never how
 // a check works or what it looks for, which would only help someone get past it. Change it with NOTICE_VERSION and the
@@ -16,39 +17,38 @@ const { base, withSwitch = false, switchChecked = false } = Astro.props;
 const embed = embedOf(Astro.locals);
 ---
 
-<section aria-labelledby="review-heading" class="overflow-hidden rounded-2xl border border-candidate-border bg-candidate-surface">
-  <div class="flex flex-col gap-2.5 px-4 py-3.5">
-    <h2 id="review-heading" class="text-base font-bold">How we review applications</h2>
-    <p class="text-sm text-candidate-muted-foreground">
-      Every application goes through thorough checks for bots and impersonation before the team reviews it. A person looks
-      at anything they flag, and the checks never reject anyone on their own.
-    </p>
-    <p class="text-candidate-hint text-candidate-muted-foreground">
-      For these checks we use what you send, how this form is used, and your network address, browser and device code,
-      kept for 30 days. We never record which keys you press, use your camera or microphone, or set tracking cookies.
-    </p>
-    <a href={withEmbed(`${base}/privacy`, embed)} class="inline-flex min-h-11 w-fit items-center text-candidate-body font-semibold text-candidate-foreground underline underline-offset-2">What we collect and why</a>
-  </div>
-  {
-    withSwitch && (
-      <div class="border-t border-candidate-border bg-candidate-background px-4 py-3">
-        <label class="flex min-h-11 items-center justify-between gap-3">
-          <span class="flex flex-col">
-            <span class="text-sm font-semibold">I use dictation, a screen reader or other assistive technology</span>
-            <span id="assistive-hint" class="text-candidate-hint text-candidate-muted-foreground">
-              We switch off the checks on how this form is used. This is never held against you.
+<Panel id="review-heading" title="How we review applications" bodyClass="flex flex-col gap-3">
+  <p class="text-candidate-body text-candidate-muted-foreground">
+    Every application goes through thorough checks for bots and impersonation before the team reviews it. A person looks
+    at anything they flag, and the checks never reject anyone on their own.
+  </p>
+  <p class="text-candidate-hint text-candidate-muted-foreground">
+    For these checks we use what you send, how this form is used, and your network address, browser and device code,
+    kept for 30 days. We never record which keys you press, use your camera or microphone, or set tracking cookies.
+  </p>
+  <a href={withEmbed(`${base}/privacy`, embed)} class="inline-flex min-h-11 w-fit items-center text-candidate-body font-semibold text-candidate-foreground underline underline-offset-2">What we collect and why</a>
+  <Fragment slot="footer">
+    {
+      withSwitch && (
+        <div class="border-t border-candidate-border bg-candidate-background px-4 py-3">
+          <label class="flex min-h-11 items-center justify-between gap-4">
+            <span class="flex flex-col">
+              <span class="text-candidate-body font-semibold">I use dictation, a screen reader or other assistive technology</span>
+              <span id="assistive-hint" class="text-candidate-hint text-candidate-muted-foreground">
+                We switch off the checks on how this form is used. This is never held against you.
+              </span>
             </span>
-          </span>
-          <input
-            type="checkbox"
-            role="switch"
-            name="accommodationRequested"
-            checked={switchChecked}
-            aria-describedby="assistive-hint"
-            class="h-6 w-11 flex-none accent-candidate-foreground"
-          />
-        </label>
-      </div>
-    )
-  }
-</section>
+            <input
+              type="checkbox"
+              role="switch"
+              name="accommodationRequested"
+              checked={switchChecked}
+              aria-describedby="assistive-hint"
+              class="h-6 w-11 flex-none accent-candidate-foreground"
+            />
+          </label>
+        </div>
+      )
+    }
+  </Fragment>
+</Panel>

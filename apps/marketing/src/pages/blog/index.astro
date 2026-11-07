@@ -33,7 +33,7 @@ const blog = {
     <ul class="flex flex-col gap-4">
       {
         posts.map((post) => (
-          <li class="flex flex-col gap-2 rounded-xl border border-border bg-card p-6">
+          <li class="flex flex-col gap-2 rounded-panel border border-border bg-card shadow-surface p-6">
             <time datetime={post.data.published} class="text-sm text-muted-foreground">
               {formatDate(post.data.published)}
             </time>
