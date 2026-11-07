@@ -125,6 +125,24 @@ describe('email template form', () => {
     expect(subject.querySelectorAll('p')).toHaveLength(1);
   });
 
+  it('turns a pasted line break into a space, so the subject stays one line', async () => {
+    const { onsave } = renderForm();
+    const subject = screen.getByRole('textbox', { name: 'Subject' });
+    const editor = editorOf(subject);
+    editor.commands.setContent('');
+    editor.commands.focus();
+
+    // jsdom has no ClipboardEvent, which ProseMirror builds for a paste.
+    vi.stubGlobal('ClipboardEvent', class extends Event { clipboardData = null; });
+    // ProseMirror's own paste path, which runs transformPastedText.
+    (editor.view as unknown as { pasteText: (text: string) => boolean }).pasteText(['News on', '  {{ jobTitle }}', 'for you'].join(String.fromCharCode(13, 10)));
+
+    await waitFor(() => expect(editor.getText()).toBe('News on {{ jobTitle }} for you'));
+    expect(subject.querySelectorAll('p')).toHaveLength(1);
+    await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onsave).toHaveBeenCalledWith(expect.objectContaining({ subject: 'News on {{ jobTitle }} for you' })));
+  });
+
   it('saves the subject as the plain text with its Liquid, chips and all', async () => {
     const { onsave } = renderForm();
     editSubject(screen.getByRole('textbox', { name: 'Subject' }), 'News on {{ jobTitle }} for {{ candidateName }}');

@@ -52,6 +52,28 @@ public sealed class TeamTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task The_member_list_says_who_last_changed_a_membership_to_readers_who_manage_the_team_only()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var recruiter = await fixture.InviteAndJoinAsync(owner, "Recruiter");
+        using var viewer = await fixture.InviteAndJoinAsync(owner, "Viewer");
+        var viewerMemberId = await owner.MemberIdAsync(viewer.UserId);
+        (await owner.PutAsync($"/v1/organization/members/{viewerMemberId}/role", new JsonObject { ["role"] = "Recruiter" })).Expect(HttpStatusCode.OK);
+
+        JsonElement Row(ApiResult members, Guid userId) =>
+            members.Body.EnumerateArray().Single(m => m.GetProperty("userId").GetGuid() == userId);
+
+        var asOwner = (await owner.GetAsync("/v1/organization/members")).Expect(HttpStatusCode.OK);
+        var changed = Row(asOwner, viewer.UserId).GetProperty("lastUpdated");
+        changed.GetProperty("userId").GetGuid().Should().Be(owner.UserId, "the owner made the change");
+        changed.GetProperty("created").GetBoolean().Should().BeFalse();
+        Row(asOwner, recruiter.UserId).GetProperty("lastUpdated").ValueKind.Should().Be(JsonValueKind.Null, "nothing has changed since they joined");
+
+        var asRecruiter = (await recruiter.GetAsync("/v1/organization/members")).Expect(HttpStatusCode.OK);
+        Row(asRecruiter, viewer.UserId).GetProperty("lastUpdated").ValueKind.Should().Be(JsonValueKind.Null, "a reader who cannot manage the team is not told who changed it");
+    }
+
+    [Fact]
     public async Task An_invitation_lookup_names_the_organization_and_role_and_uses_nothing_up()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();

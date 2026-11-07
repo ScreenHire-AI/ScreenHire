@@ -85,7 +85,14 @@ internal static class TeamEndpoints
             .ToListAsync(cancellationToken);
         var names = await RoleAccess.CustomNamesAsync(db, cancellationToken);
         var jobCounts = await JobCountsAsync(db, cancellationToken);
-        var changes = await LastChangesAsync(db, null, cancellationToken);
+        // Who changed a role is what the membership log and History show, to readers who manage the team; the list names
+        // the same people, so it gives them the same readers.
+        var reader = tenant.OrganizationId is { } organizationId && tenant.UserId is { } userId
+            ? await RoleAccess.ForMemberAsync(db, organizationId, userId, cancellationToken)
+            : null;
+        var changes = reader is not null && reader.Permissions.Contains(Permission.ManageTeam)
+            ? await LastChangesAsync(db, null, cancellationToken)
+            : [];
         return TypedResults.Ok(members
             .Select(m => new TeamMember(
                 m.Id, m.UserId, m.Email ?? "", m.DisplayName ?? m.Email ?? "", m.Role, m.CustomRoleId,
