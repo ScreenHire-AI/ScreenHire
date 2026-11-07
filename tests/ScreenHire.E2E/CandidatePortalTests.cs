@@ -83,6 +83,7 @@ public sealed partial class CandidatePortalTests(E2EFixture fixture) : BrowserTe
         await Page.GetByRole(AriaRole.Link, new() { Name = "Read and answer your messages" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Platform Engineer");
         await Expect(Page.GetByText("Hello, can we talk on Friday?")).ToBeVisibleAsync();
+        (await Page.Locator("script:not([type='application/ld+json'])").CountAsync()).Should().Be(0, "the page ships no JavaScript, so no telemetry or device code");
         await ExpectNoAccessibilityViolationsAsync();
 
         // The candidate answers from the page; a refresh after the redirect posts nothing again.

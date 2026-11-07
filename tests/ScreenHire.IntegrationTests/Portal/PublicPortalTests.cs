@@ -274,6 +274,21 @@ public sealed partial class PublicPortalTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task An_emailed_reply_that_quotes_the_footer_is_stored_without_the_candidates_link()
+    {
+        using var world = await fixture.NewWorldAsync();
+        var sent = await fixture.SendAsync(world.Owner, world.JobId, world.ApplicationId, world.Person.Email, "Next steps");
+        var token = Signer().Issue(world.OrganizationId, world.CandidateId);
+
+        (await fixture.DevReplyAsync(sent.ReplyAddress, world.Person.Email, $"Friday works.\n\n> https://example.com/my-applications/{token}"))
+            .Should().Be("Stored");
+
+        var received = (await world.Owner.MessagesAsync(world.CandidateId)).Received();
+        received.Should().ContainSingle();
+        received[0].GetRawText().Should().NotContain(token, "the link opens the candidate's page, and the team reads what is stored");
+    }
+
+    [Fact]
     public async Task A_reply_from_the_page_cannot_clear_a_flagged_address_but_one_by_email_does()
     {
         using var world = await fixture.NewWorldAsync();

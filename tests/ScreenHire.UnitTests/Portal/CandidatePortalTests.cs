@@ -166,6 +166,17 @@ public sealed class CandidatePortalTests
     }
 
     [Fact]
+    public void The_footer_goes_inside_the_body_of_a_rendered_email()
+    {
+        var rendered = new EmailMessage("sam@example.com", "Hello", "Hi Sam.", "<!doctype html>\n<html lang=\"en\">\n<body>\n<p>Hi Sam.</p>\n</body>\n</html>\n");
+
+        var html = new MailRoute(PortalLink: "https://acme.careers.example.com/my-applications/tok").Apply(rendered).HtmlBody!;
+
+        html.IndexOf(CandidatePortalFooter.Sentence, StringComparison.Ordinal).Should().BeGreaterThan(html.IndexOf("<p>Hi Sam.</p>", StringComparison.Ordinal))
+            .And.BeLessThan(html.IndexOf("</body>", StringComparison.Ordinal), "a line after the end of the document is one a mail client may drop");
+    }
+
+    [Fact]
     public void A_route_without_a_link_changes_nothing_in_the_body_and_the_original_message_is_never_touched()
     {
         var message = new EmailMessage("sam@example.com", "Hello", "Hi Sam.", "<p>Hi Sam.</p>");
@@ -180,6 +191,36 @@ public sealed class CandidatePortalTests
     public void The_footer_wording_has_no_dashes_and_makes_no_claim_about_decisions()
     {
         (CandidatePortalFooter.Sentence + CandidatePortalFooter.LinkText).Should().NotMatchRegex("[\u2013\u2014]");
+    }
+
+    // What a reply keeps ------------------------------------------------------------------------------------------------
+
+    [Fact]
+    public void A_quoted_footer_gives_up_the_candidates_own_link_and_keeps_the_page_that_asks_for_one()
+    {
+        var links = Links();
+        var token = links.Issue(Guid.NewGuid(), Guid.NewGuid());
+
+        var kept = PortalMessageText.WithoutPortalToken($"Friday works.\n\n> {CandidatePortalFooter.Sentence} {links.Url("acme", token)}\n");
+
+        kept.Should().NotContain(token).And.Contain("https://acme.careers.example.com/my-applications\n").And.StartWith("Friday works.");
+    }
+
+    [Fact]
+    public void Text_about_the_page_with_no_token_in_it_is_left_alone()
+    {
+        const string text = "See /my-applications/sent or https://acme.careers.example.com/my-applications for more.";
+
+        PortalMessageText.WithoutPortalToken(text).Should().Be(text);
+    }
+
+    [Fact]
+    public void The_same_form_id_on_two_applications_is_two_replies()
+    {
+        const string key = "0123456789abcdef0123456789abcdef";
+
+        PortalMessageText.MessageIdFor(Guid.NewGuid(), key).Should().NotBe(PortalMessageText.MessageIdFor(Guid.NewGuid(), key))
+            .And.StartWith(PortalMessageText.MessageIdPrefix);
     }
 
     // The sign-in email ----------------------------------------------------------------------------------------------
@@ -251,10 +292,11 @@ public sealed class CandidatePortalTests
     [Fact]
     public void A_reply_from_the_page_is_stored_under_a_message_id_the_same_form_always_makes()
     {
+        var application = Guid.NewGuid();
         var key = new string('a', 32);
 
-        PortalMessageText.MessageIdFor(key).Should().Be(PortalMessageText.MessageIdFor(key)).And.StartWith(PortalMessageText.MessageIdPrefix);
-        PortalMessageText.MessageIdFor(key).Should().NotBe(PortalMessageText.MessageIdFor(new string('b', 32)));
+        PortalMessageText.MessageIdFor(application, key).Should().Be(PortalMessageText.MessageIdFor(application, key)).And.StartWith(PortalMessageText.MessageIdPrefix);
+        PortalMessageText.MessageIdFor(application, key).Should().NotBe(PortalMessageText.MessageIdFor(application, new string('b', 32)));
     }
 
     // The reply validator --------------------------------------------------------------------------------------------
