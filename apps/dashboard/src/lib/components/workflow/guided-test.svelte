@@ -10,7 +10,7 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
-import { Skeleton } from '#lib/components/ui/skeleton/index.js';
+  import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { describeError } from '#lib/query.js';
   import {
     blankCandidate,
@@ -42,6 +42,7 @@ import { Skeleton } from '#lib/components/ui/skeleton/index.js';
     templateNames = emailTemplateNames(undefined),
     onshow,
     onadd,
+    onpipeline,
   }: {
     workflow: HiringWorkflow;
     run: (request: SimulateWorkflowRequest) => Promise<WorkflowSimulationResult>;
@@ -51,6 +52,8 @@ import { Skeleton } from '#lib/components/ui/skeleton/index.js';
     onshow?: (result: WorkflowSimulationResult) => void;
     /** With it, a workflow with no automations offers to add one. A read-only version has none to offer. */
     onadd?: () => void;
+    /** With it, a workflow whose automations are all off offers to open Pipeline, where they are switched on. */
+    onpipeline?: () => void;
   } = $props();
 
   type Screen = 'moment' | 'question' | 'candidate' | 'customize' | 'result';
@@ -98,6 +101,8 @@ import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   const timeline = $derived(ran ? timelineOf(ran.workflow, ran.trigger, ran.result, templateNames) : []);
   const happening = $derived(timeline.filter((step) => step.ran));
   const notHappening = $derived(timeline.filter((step) => !step.ran));
+  // The tabs stay mounted, so a person can edit in another tab and come back to an answer from before the edit.
+  const outdated = $derived(ran !== null && ran.stamp !== definitionStamp(workflow));
 
   // Each question takes the focus when it appears, so a keyboard or screen reader user lands on it.
   let headingElement = $state<HTMLElement>();
@@ -149,7 +154,9 @@ import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   }
 
   function back() {
-    screen = shown === 'customize' ? 'candidate' : needsAnswer(followUp) ? 'question' : 'moment';
+    if (shown === 'customize') screen = 'candidate';
+    else if (shown === 'candidate' && needsAnswer(followUp)) screen = 'question';
+    else screen = 'moment';
   }
 
   async function test() {
@@ -200,8 +207,9 @@ import { Skeleton } from '#lib/components/ui/skeleton/index.js';
     <Empty.Header>
       <Empty.Media variant="icon"><FlaskConicalIcon /></Empty.Media>
       <Empty.Title>Nothing to test yet</Empty.Title>
-      <Empty.Description>Every automation is switched off. Switch one on in Pipeline.</Empty.Description>
+      <Empty.Description>Every automation is switched off.</Empty.Description>
     </Empty.Header>
+    {#if onpipeline}<Empty.Content><Button variant="outline" size="lg" onclick={onpipeline}>Open Pipeline</Button></Empty.Content>{/if}
   </Empty.Root>
 {:else}
   <div class="@container flex flex-col gap-5">
@@ -396,13 +404,16 @@ import { Skeleton } from '#lib/components/ui/skeleton/index.js';
               </ul>
             </div>
           {/if}
+          {#if outdated}<p class="text-muted-foreground">The workflow changed after this test.</p>{/if}
         {/if}
       </div>
       {#if !pending}
         <div class="flex flex-wrap gap-2">
           <Button variant="outline" size="lg" onclick={() => (screen = 'candidate')}>Change the candidate</Button>
           <Button variant="outline" size="lg" onclick={() => (screen = 'moment')}>Try another moment</Button>
-          {#if onshow && ran && ran.stamp === definitionStamp(workflow)}
+          {#if outdated}
+            <Button variant="outline" size="lg" onclick={() => void test()}>Run it again</Button>
+          {:else if onshow && ran}
             <Button variant="outline" size="lg" onclick={() => onshow(ran!.result)}>Show this path in the graph</Button>
           {/if}
         </div>

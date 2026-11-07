@@ -198,7 +198,7 @@ export interface Reads {
   authenticity: boolean;
   aiAssistance: boolean;
   recommendation: boolean;
-  /** Whether the engine's accommodation rule could change the result: a timing condition, or a time-passed trigger. */
+  /** Whether the engine's accommodation rule could change the result: a timing or telemetry condition, or a time-passed trigger. */
   timing: boolean;
 }
 
@@ -214,7 +214,7 @@ export function readsOf(workflow: HiringWorkflow, listeners: readonly Automation
     authenticity: facts.has('verification.authenticity'),
     aiAssistance: facts.has('verification.aiAssistance'),
     recommendation: facts.has('reviewer.recommendation'),
-    timing: facts.has('application.hoursInStage') || listeners.some((automation) => automation.trigger.type === 'TimeElapsed'),
+    timing: [...facts].some((fact) => fact === 'application.hoursInStage' || fact.startsWith('telemetry.')) || listeners.some((automation) => automation.trigger.type === 'TimeElapsed'),
   };
 }
 
@@ -271,7 +271,7 @@ export function presetsFor(workflow: HiringWorkflow, trigger: AutomationTrigger,
   });
 
   const meets = base();
-  const requirements = knockouts.length > 0 ? 'Passes every knockout question' : 'Nothing this workflow checks counts against them';
+  const requirements = knockouts.length > 0 ? 'Passes every knockout question' : 'This moment has no knockout question';
   const presets: Preset[] = [{ id: 'meets', name: 'Meets every requirement', description: requirements, candidate: meets }];
 
   for (const knockout of knockouts.slice(0, 2)) {
@@ -356,10 +356,14 @@ export interface Step {
   why?: string;
 }
 
-const negated: Partial<Record<ConditionOperator, string>> = {
+const negated: Record<ConditionOperator, string> = {
   EqualTo: 'is not',
   In: 'is not one of',
   Contains: 'does not contain',
+  GreaterThan: 'is not more than',
+  GreaterThanOrEqual: 'is not at least',
+  LessThan: 'is not less than',
+  LessThanOrEqual: 'is not at most',
   Exists: 'is not given',
 };
 
@@ -368,7 +372,7 @@ export function describeRule(rule: AutomationCondition, workflow: HiringWorkflow
   const fact: FactOption | undefined = factsFor(workflow, trigger).find((option) => option.fact === rule.fact);
   const question = rule.fact.startsWith('answers.') ? allQuestions(workflow).find((candidate) => candidate.id === rule.fact.slice('answers.'.length)) : undefined;
   const subject = question ? question.label || question.id : (fact?.label ?? rule.fact);
-  const operator = rule.negate ? (negated[rule.operator] ?? `not ${operatorLabels[rule.operator]}`) : operatorLabels[rule.operator];
+  const operator = rule.negate ? negated[rule.operator] : operatorLabels[rule.operator];
   const word = (value: string) => fact?.values?.find((option) => option.value === value)?.label ?? value;
   const operand = rule.operator === 'Exists' ? '' : rule.operator === 'In' ? ` ${joinWords((rule.values ?? []).map(word))}` : ` ${word(rule.value ?? '')}`;
   return `${subject} ${operator}${operand}`.trim();
