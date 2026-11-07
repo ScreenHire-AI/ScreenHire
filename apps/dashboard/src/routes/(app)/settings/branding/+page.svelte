@@ -66,6 +66,7 @@
   const favicon = new BrandImageSlot('Favicon', 'favicon');
   const sharingImage = new BrandImageSlot('SharingImage', 'sharing image');
   let saved = $state('');
+  let mode = $state<'edit' | 'preview'>('edit');
 
   const colourOrNull = (text: string) => (brandColorPattern.test(text.trim()) ? normalizeBrandColor(text) : null);
 
@@ -98,6 +99,11 @@
           submitted.errors._errors = [describeError(error, 'Could not save the branding')];
         }
       }
+    },
+    // Save can be pressed in Preview, where a field's message is hidden, so a refused field brings the editor back. A
+    // failure that belongs to no field shows in the switch's row and stays where it is.
+    onUpdated({ form: submitted }) {
+      if (Object.entries(submitted.errors).some(([name, messages]) => name !== '_errors' && messages)) mode = 'edit';
     },
   });
 
@@ -149,7 +155,6 @@
     };
   });
 
-  let mode = $state<'edit' | 'preview'>('edit');
   const source = createPreviewSource(() => draft);
 
   const images = $derived([
@@ -224,7 +229,7 @@
           <p role="status" class="text-muted-foreground empty:hidden">
             {$errors._errors ? '' : scanning ? 'Save waits for the malware scan.' : saved}
           </p>
-          <Button type="submit" form="branding-form" size="lg" disabled={$submitting || scanning}><SaveIcon aria-hidden="true" />Save branding</Button>
+          <Button type="submit" form="branding-form" size="lg" aria-label="Save branding" disabled={$submitting || scanning}><SaveIcon aria-hidden="true" />Save</Button>
         {/snippet}
 
         {#snippet editor()}
