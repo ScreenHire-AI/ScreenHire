@@ -12,6 +12,7 @@ sources:
   - resource: apps/api/OAuth/OAuthTokens.cs
   - resource: apps/api/OAuth/OAuthScopes.cs
   - resource: apps/api/OAuth/OAuthRedirects.cs
+  - resource: apps/dashboard/static/_headers
   - resource: apps/api/OAuth/OAuthSetup.cs
   - resource: apps/api/Configuration/OAuthOptions.cs
   - resource: apps/api/Contracts/OAuthContracts.cs
@@ -102,8 +103,9 @@ nothing is gained by signing, and revocation takes effect on the next request.
   their assistants. Revoking on a role change would be the alternative; it is not built.
 - **Audience.** `McpCredentials` is a policy scheme: a `Bearer sho_` token goes to `OAuthAuthenticationHandler`, anything else
   to the API key handler. Only the three `mcp*` policies use it, and the hiring API's key handler refuses an `sho_` token,
-  so an OAuth token works on the MCP endpoint and nowhere else. The handler counts failures against the address in the key
-  handler's `FailedAttempts` and answers 429 when it runs out.
+  so an OAuth token works on the MCP endpoint and nowhere else. The handler counts a token nobody issued against the
+  address in the key handler's `FailedAttempts` and answers 429 when it runs out. An expired or revoked token gets 401
+  without counting: every client holds an expired one once an hour, and a hosted assistant's address is shared.
 - **Why not OpenIddict.** It finds a reference token by its hash alone, so its tables would sit outside row-level security
   (ADR-0027).
 
@@ -111,7 +113,12 @@ nothing is gained by signing, and revocation takes effect on the next request.
 
 `ScreenHire:OAuth:*` (`OAuthOptions`): `AccessTokenLifetime`, `RefreshTokenLifetime`, `CodeLifetime`, `RegistrationsPerHour`
 (per address, 20), `TokenRequestsPerMinute` (per address, 60) and `MaxUnapprovedClients` (2000; past it registration answers
-429). Counts are per API instance. Only the API reads them.
+429). Counts are per API instance. Only the API reads them. The cap is global, so someone registering from many addresses can
+hold new connections back until the daily purge; lower the purge age or the limit per address if that happens.
+
+A registration body is limited to 16 KB by the server's request size limit, and `client_name` keeps no control or invisible
+formatting characters, because it appears on the consent page. The dashboard's `_headers` stops another site framing any
+dashboard page, the consent page included (`X-Frame-Options` and `frame-ancestors`).
 
 Discovery, registration, token and revocation allow any origin without credentials (`oauth-protocol` CORS policy), so a
 browser-based client can sign in. The consent and management routes are same-origin and session-only.
@@ -132,5 +139,6 @@ jobs (a connection reads every job, as a key does).
 
 | Test | Proves |
 |---|---|
-| `OAuthServerTests` (integration) | both discovery documents; the 401 challenge; registration rules; the whole flow to a working MCP client with Read, Write and Verification read grants (and the review log under the connection); a person cannot grant more than they hold; a recruiter cannot connect; code reuse, wrong verifier, redirect, client and resource fail; refresh rotates and reuse revokes; an OAuth token is refused on the hiring API and on session routes; another organization's data is unreachable; the timeline names the assistant; revoking a connection stops its tokens; connecting twice leaves one; deny returns `access_denied`; CORS preflight |
-| `OAuthTokensTests`, `PkceTests`, `OAuthRedirectsTests`, `OAuthScopesTests`, `OAuthMetadataTests` (unit) | token format and kinds, PKCE (RFC 7636 example), redirect rules, scope parsing, the metadata and the challenge |
+| `OAuthServerTests` (integration) | both discovery documents; the 401 challenge; an expired token does not lock out the address; a token moved to another organization is refused; registration rules and a chunked body over the limit; the whole flow to a working MCP client with Read, Write and Verification read grants (and the review log under the connection); a person cannot grant more than they hold; a recruiter cannot connect; code reuse, wrong verifier, redirect, client and resource fail; refresh rotates and reuse revokes; an OAuth token is refused on the hiring API and on session routes; another organization's data is unreachable; the timeline names the assistant; revoking a connection stops its tokens; connecting twice leaves one; deny returns `access_denied`; CORS preflight |
+| `OAuthTokensTests`, `PkceTests`, `OAuthRedirectsTests`, `OAuthClientNameTests`, `OAuthScopesTests`, `OAuthMetadataTests` (unit) | token format and kinds, PKCE (RFC 7636 example), redirect rules, what a client name keeps, scope parsing, the metadata and the challenge |
+| `RolePermissionsTests` (unit) | the four session routes need `ManageApiKeys`, in the route table with every other guarded route |
