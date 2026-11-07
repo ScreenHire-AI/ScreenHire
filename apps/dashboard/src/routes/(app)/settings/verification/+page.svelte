@@ -76,6 +76,12 @@
     FormUse: 'formUse',
   };
   const aiUses = Object.keys(aiUseLabels) as (keyof typeof aiUseLabels)[];
+  // The label is "Name: explanation". The name fits a phone-width select; the explanation of the chosen policy goes in the hint.
+  const aiUseName = (policy: (typeof aiUses)[number]) => aiUseLabels[policy].split(': ')[0];
+  const aiUseHint = (policy: (typeof aiUses)[number]) => {
+    const explanation = aiUseLabels[policy].split(': ')[1] ?? '';
+    return `${explanation.charAt(0).toUpperCase()}${explanation.slice(1)}.`;
+  };
   const deviceChoices = Object.keys(deviceCheckLabels) as DeviceCheckChoice[];
 
   const trimSlashes = (url: string) => url.trim().replace(/\/+$/, '');
@@ -370,7 +376,7 @@
                 <p id="model-source-label" class="text-body font-medium">Which model checks consistency</p>
                 <div role="radiogroup" aria-labelledby="model-source-label" class="grid gap-2 sm:grid-cols-2">
                   <ChoiceCard name="modelSource" value="Included" bind:group={$form.modelSource} onchange={endpointChanged} title="ScreenHire's included model" description="Within a monthly token budget." />
-                  <ChoiceCard name="modelSource" value="OwnKey" bind:group={$form.modelSource} onchange={endpointChanged} title="Your own key" description="Anthropic or an OpenAI-compatible endpoint." />
+                  <ChoiceCard name="modelSource" value="OwnKey" bind:group={$form.modelSource} onchange={endpointChanged} title="Your own key" description="Anthropic or OpenAI-compatible." />
                 </div>
               </div>
 
@@ -386,7 +392,7 @@
 
               {#if own}
                 <p class="text-muted-foreground">
-                  Your provider handles this data under your own terms with them, and ScreenHire's token budget does not apply.
+                  Your provider handles this data under your own terms, and ScreenHire's token budget does not apply.
                 </p>
 
                 <Field.Field>
@@ -520,10 +526,10 @@
               <Field.Field>
                 <Field.Label for="default-ai-use">Default AI use for new jobs</Field.Label>
                 <select id="default-ai-use" name="defaultAiUse" class={selectClass} bind:value={$form.defaultAiUse} aria-describedby="default-ai-use-hint">
-                  {#each aiUses as policy (policy)}<option value={policy}>{aiUseLabels[policy].split(': ')[0]}</option>{/each}
+                  {#each aiUses as policy (policy)}<option value={policy}>{aiUseName(policy)}</option>{/each}
                 </select>
                 <Field.Description id="default-ai-use-hint">
-                  {aiUseLabels[$form.defaultAiUse].split(': ')[1]}. A job from a template keeps the template's policy.
+                  {aiUseHint($form.defaultAiUse)} A job from a template keeps the template's policy.
                 </Field.Description>
               </Field.Field>
 
