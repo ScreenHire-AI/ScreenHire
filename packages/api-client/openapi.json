@@ -1999,6 +1999,272 @@
         }
       }
     },
+    "/v1/public/organizations/{organizationSlug}/portal": {
+      "get": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "GetPublicPortalForm",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPortalForm"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/portal/links": {
+      "post": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "RequestPublicPortalLink",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicPortalLinkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/portal/{token}": {
+      "get": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "GetPublicPortal",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPortal"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/portal/{token}/applications/{applicationId}/messages": {
+      "get": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "GetPublicPortalMessages",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPortalMessages"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "SendPublicPortalReply",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicPortalReplyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
     "/v1/jobs": {
       "get": {
         "tags": [
@@ -17005,6 +17271,15 @@
         },
         "description": "A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads."
       },
+      "FunnelEnd": {
+        "enum": [
+          "None",
+          "Hired",
+          "NotMovingForward",
+          "Withdrawn"
+        ],
+        "description": "How an application ended, in the words a candidate sees. The employer's own stage names never reach the page."
+      },
       "FunnelStage": {
         "required": [
           "kind",
@@ -20635,6 +20910,304 @@
           }
         },
         "description": "The careers-page colours from the brand colour (docs/design/design-system.md section 18): `brand` fills,\n`onBrand` is text on it, `brandText` is links on the page and `brandUi` is borders and focus rings.\nA colour saved since the contrast check passes as it is, so all three are the colour itself; an older one is darkened\nuntil it passes. All `#rrggbb`."
+      },
+      "PublicPortal": {
+        "required": [
+          "organizationName",
+          "firstName",
+          "applications",
+          "drafts"
+        ],
+        "type": "object",
+        "properties": {
+          "organizationName": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "applications": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicPortalApplication"
+            }
+          },
+          "drafts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicPortalDraft"
+            }
+          }
+        },
+        "description": "Everything a candidate's page shows on its first screen."
+      },
+      "PublicPortalApplication": {
+        "required": [
+          "id",
+          "jobTitle",
+          "appliedAt",
+          "funnel",
+          "waiting",
+          "hasMessages",
+          "canReply"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "appliedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "funnel": {
+            "$ref": "#/components/schemas/PublicPortalFunnel"
+          },
+          "waiting": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicPortalWaiting"
+            }
+          },
+          "hasMessages": {
+            "type": "boolean"
+          },
+          "canReply": {
+            "type": "boolean"
+          }
+        },
+        "description": "One of the candidate's applications to this organization."
+      },
+      "PublicPortalAttachment": {
+        "required": [
+          "fileName",
+          "contentBase64"
+        ],
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string"
+          },
+          "contentBase64": {
+            "type": "string"
+          }
+        },
+        "description": "A file sent with a reply, as base64 text."
+      },
+      "PublicPortalDraft": {
+        "required": [
+          "jobTitle",
+          "jobSlug",
+          "token",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "jobTitle": {
+            "type": "string"
+          },
+          "jobSlug": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "An application the candidate started and saved to finish later; `token` opens the job's apply page with it."
+      },
+      "PublicPortalForm": {
+        "required": [
+          "organizationName",
+          "enabled",
+          "turnstileSiteKey"
+        ],
+        "type": "object",
+        "properties": {
+          "organizationName": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "turnstileSiteKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "What the careers portal page needs before it asks for an address. `enabled` is false where the deployment sends no\nemail or has no careers host to link to: the page then says the portal is not available here.\n`turnstileSiteKey` is null unless the bot challenge is configured."
+      },
+      "PublicPortalFunnel": {
+        "required": [
+          "steps",
+          "current",
+          "ended"
+        ],
+        "type": "object",
+        "properties": {
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "current": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "ended": {
+            "$ref": "#/components/schemas/FunnelEnd"
+          }
+        },
+        "description": "Where an application stands on the four fixed steps every job shares. `current` is an index into `steps`, or\nnull once the application ended, and then `ended` says how. Nothing about the employer's own stages is in it."
+      },
+      "PublicPortalLinkRequest": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "botCheckToken": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "The address a candidate types to be sent the link to their page. The answer to it is the same whether or not the\naddress has applied, so it tells nobody who has."
+      },
+      "PublicPortalMessage": {
+        "required": [
+          "direction",
+          "subject",
+          "body",
+          "at",
+          "attachmentCount"
+        ],
+        "type": "object",
+        "properties": {
+          "direction": {
+            "$ref": "#/components/schemas/PublicPortalMessageDirection"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "attachmentCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "One message in an application's thread: the email as the candidate got it, or their reply. Plain text only."
+      },
+      "PublicPortalMessageDirection": {
+        "enum": [
+          "FromTeam",
+          "FromYou"
+        ],
+        "description": "Who wrote a message on the page: the team (an email ScreenHire sent for them) or the candidate."
+      },
+      "PublicPortalMessages": {
+        "required": [
+          "jobTitle",
+          "messages",
+          "canReply",
+          "bodyMax",
+          "maxAttachments"
+        ],
+        "type": "object",
+        "properties": {
+          "jobTitle": {
+            "type": "string"
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicPortalMessage"
+            }
+          },
+          "canReply": {
+            "type": "boolean"
+          },
+          "bodyMax": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxAttachments": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "An application's thread, oldest first. `canReply` is false until the team has written once."
+      },
+      "PublicPortalReplyRequest": {
+        "required": [
+          "body",
+          "key"
+        ],
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "attachments": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/PublicPortalAttachment"
+            }
+          }
+        },
+        "description": "A reply written on the page. `key` is the form's own random id (32 hex digits), so sending the same form twice stores one\nreply."
+      },
+      "PublicPortalWaiting": {
+        "required": [
+          "kind",
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/PublicPortalWaitingKind"
+          },
+          "token": {
+            "type": "string"
+          }
+        },
+        "description": "Something the candidate can act on, with the token of the existing careers page for it\n(`/questionnaires/{token}` or `/interviews/{token}`). The name of a questionnaire is the team's wording for it\nand is not sent."
+      },
+      "PublicPortalWaitingKind": {
+        "enum": [
+          "Questionnaire",
+          "Interview"
+        ],
+        "description": "What something is waiting on the candidate for."
       },
       "PublicQuestion": {
         "required": [

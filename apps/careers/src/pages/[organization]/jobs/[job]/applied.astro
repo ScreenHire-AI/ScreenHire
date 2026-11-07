@@ -37,6 +37,9 @@ const jobTitle = jobResponse.status === 200 ? jobResponse.data.title : null;
     <ul class="flex list-disc flex-col gap-2 pl-5 text-candidate-body">
       <li>A person at {employer.name} reads your application. No software makes a decision about you.</li>
       <li>{employer.name} contacts you by email about next steps.</li>
+      <li>
+        See where your application stands and read your messages on <a href={withEmbed(`${base}/my-applications`, embed)} class="text-link">your page</a>.
+      </li>
       <li>You can ask {employer.name} to show, correct or delete your information, or to have a person review your application. Use the address they write to you from.</li>
     </ul>
   </Panel>

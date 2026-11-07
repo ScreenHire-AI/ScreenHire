@@ -52,7 +52,7 @@ never calls the API.
 |---|---|
 | `/jobs/{job}` | The job, the "How we review applications" notice and an Apply link. 410 once the job closes, 404 if unknown. |
 | `/jobs/{job}/apply` | The form: **details** (notice, assistive-technology switch, first name, last name (optional), email, phone, resume), one **page** per section of the job's questionnaire (none when it has no questions beyond the resume; §7), **review** (summary, AI-use declaration, the optional "Keep my details for future roles" box, send). `?draft={token}` fills it from a saved draft. |
-| `/jobs/{job}/applied` | The confirmation, after a POST-redirect-GET. The same page whether the application is new or the email had already applied, so the form never reveals who applied. |
+| `/jobs/{job}/applied` | The confirmation, after a POST-redirect-GET. The same page whether the application is new or the email had already applied, so the form never reveals who applied. It links to `/my-applications`, where the candidate asks for the link to their own page ([candidate portal](candidate-portal.md)). |
 | `/privacy` | "What we collect and why", the full notice. Its version (`NOTICE_VERSION` in `src/lib/apply.ts`) is recorded on every application. |
 | `/brand/{hash}.css` | The employer's brand stylesheet (section 5). |
 | `/uploads` | JSON endpoint for the upload island (section 3). |
@@ -125,7 +125,7 @@ organization and never stores it as sent, and keeps it only on the job's device-
 fingerprint is kept only when it is ticked. The observation and the telemetry are deleted after 30 days. The notice and
 the privacy page say all of this, and that the employer may email a follow-up questionnaire whose page keeps the
 answers only, that a saved draft keeps the details and answers only, for 30 days, and that an application through
-the form on the employer's own website notes which website. `NOTICE_VERSION` is `2026-11-05.2`, bumped when the notice on the job and apply pages and the privacy page were cut to say that applications are checked and what is collected, not how a check works. The owner wants them only as descriptive as the law requires, so a check's rules stay out of anything a candidate reads.
+the form on the employer's own website notes which website. `NOTICE_VERSION` is `2026-11-07.1`, bumped when the privacy page gained "Your page" ([candidate portal](candidate-portal.md#notice)). Before that it was `2026-11-05.2`, bumped when the notice on the job and apply pages and the privacy page were cut to say that applications are checked and what is collected, not how a check works. The owner wants them only as descriptive as the law requires, so a check's rules stay out of anything a candidate reads.
 
 The review step also asks, optionally and unticked, "Keep my details for future roles", with one line saying the
 employer keeps their details until they ask, or the employer removes them, and may invite them to apply for other
@@ -282,8 +282,8 @@ busy moment never mails a second link. The API (`PublicApplicationDraftEndpoints
   email, and the email says to ignore it if you did not start the application. The sixth save's 429 tells the caller
   that address has saved several drafts in that organization today, which says nothing about whether it applied.
 - The token is Data Protection under its own purpose (`ScreenHire.ApplicationDraft.Link.v1`), naming the organization
-  and the draft, like follow-up links. A draft is found by its token, never by its email, so nobody who knows an
-  address can replace the answers saved under it. The careers page keeps the token in its state, so saving again
+  and the draft, like follow-up links. A draft is opened and saved by its token, never by its email, so nobody who knows an
+  address can replace the answers saved under it. The one place a draft is found by an address is the candidate's own page, which lists the drafts under the address of the candidate its signed link names and hands back each draft's token ([candidate portal](candidate-portal.md)): holding that link proves the person received mail there. The careers page keeps the token in its state, so saving again
   updates the same draft (`PUT .../application-drafts/{token}`, no second email) while the email is the one its link
   went to; a different address makes a new draft.
 - A draft keeps the details, the answers to non-file questions, the assistive-technology switch (so a resumed form never

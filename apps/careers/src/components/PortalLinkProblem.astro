@@ -1,0 +1,28 @@
+---
+// What a candidate's page says when it cannot open (docs/architecture/candidate-portal.md): the link is not valid, or the
+// network has made too many attempts. The heading says what happened; this says what to do and who to contact
+// (design-system section 4.4). `status` picks the case. The address of the page that asks for a new link is `base`.
+import Notice from './Notice.astro';
+
+interface Props {
+  status: 'expired' | 'busy';
+  employerName: string;
+  base: string;
+}
+
+const { status, employerName, base } = Astro.props;
+const contact = `Or reply to the last email ${employerName} sent you.`;
+---
+
+{
+  status === 'expired' ? (
+    <>
+      <p class="mt-3 text-candidate-body text-candidate-muted-foreground">You can ask for a new link. {contact}</p>
+      <a href={`${base}/my-applications`} class="button-primary mt-4">Ask for a new link</a>
+    </>
+  ) : (
+    <div class="mt-4">
+      <Notice kind="problem" message="Too many attempts from your network." detail={`Wait a minute, then open the link in your email again. ${contact}`} />
+    </div>
+  )
+}

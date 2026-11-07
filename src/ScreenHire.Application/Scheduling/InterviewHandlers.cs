@@ -81,6 +81,7 @@ public static partial class SendInterviewInvitationHandler
         EmailTemplateStore store,
         InterviewLinks links,
         Branding.EmailHeaders headers,
+        Applications.CandidateMailRouting routing,
         TimeProvider time,
         ILogger<SendInterviewInvitation> logger,
         CancellationToken cancellationToken)
@@ -119,7 +120,9 @@ public static partial class SendInterviewInvitationHandler
             InterviewLength = InterviewText.Length(interview.DurationMinutes),
         };
         var header = await headers.ForAsync(db, organization, cancellationToken);
-        await email.SendAsync(EmailTemplateIds.InterviewInvitation, template.Content, candidate.Email, model, header, cancellationToken);
+        // Routed like every email about an application: a reply address, so the candidate's answer lands in Messages.
+        var route = await routing.ForAsync(db, application.OrganizationId, message.SendId, cancellationToken, candidate.Id);
+        await email.SendAsync(EmailTemplateIds.InterviewInvitation, template.Content, candidate.Email, model, header, cancellationToken, route);
 
         // The team's copy says where the candidate's own link was: it lets whoever holds it book as the candidate.
         var kept = renderer.Render(
@@ -170,6 +173,7 @@ internal static partial class InterviewCalendarSync
         EmailTemplateStore store,
         InterviewLinks links,
         Branding.EmailHeaders headers,
+        Applications.CandidateMailRouting routing,
         IOptions<DashboardLinkOptions> dashboard,
         TimeProvider time,
         ILogger logger,
@@ -244,7 +248,7 @@ internal static partial class InterviewCalendarSync
                 InterviewTime = InterviewText.Time(start, end, interview.TimeZone),
                 InterviewLength = InterviewText.Length(interview.DurationMinutes),
             };
-            await SendAsync(db, email, renderer, headers, organization, application, candidate, template, EmailTemplateIds.InterviewConfirmation, model, sendId, now, cancellationToken);
+            await SendAsync(db, email, renderer, headers, routing, organization, application, candidate, template, EmailTemplateIds.InterviewConfirmation, model, sendId, now, cancellationToken);
             outgoing.Add(new ApplicationEmailed(application.OrganizationId, application.Id, application.JobId, sendId, now));
         }
 
@@ -275,6 +279,7 @@ internal static partial class InterviewCalendarSync
         EmailTemplates renderer,
         EmailTemplateStore store,
         Branding.EmailHeaders headers,
+        Applications.CandidateMailRouting routing,
         TimeProvider time,
         ILogger logger,
         CancellationToken cancellationToken)
@@ -331,7 +336,7 @@ internal static partial class InterviewCalendarSync
             {
                 InterviewTime = interview.StartsAt is { } start ? InterviewText.Time(start, start + interview.Duration, interview.TimeZone) : null,
             };
-            await SendAsync(db, email, renderer, headers, organization, application, candidate, template, EmailTemplateIds.InterviewCancelled, model, sendId, now, cancellationToken);
+            await SendAsync(db, email, renderer, headers, routing, organization, application, candidate, template, EmailTemplateIds.InterviewCancelled, model, sendId, now, cancellationToken);
             outgoing.Add(new ApplicationEmailed(application.OrganizationId, application.Id, application.JobId, sendId, now));
         }
 
@@ -358,6 +363,7 @@ internal static partial class InterviewCalendarSync
         TransactionalEmail email,
         EmailTemplates renderer,
         Branding.EmailHeaders headers,
+        Applications.CandidateMailRouting routing,
         Organization organization,
         JobApplication application,
         Candidate candidate,
@@ -369,7 +375,8 @@ internal static partial class InterviewCalendarSync
         CancellationToken cancellationToken)
     {
         var header = await headers.ForAsync(db, organization, cancellationToken);
-        await email.SendAsync(templateId, template.Content, candidate.Email, model, header, cancellationToken);
+        var route = await routing.ForAsync(db, application.OrganizationId, sendId, cancellationToken, candidate.Id);
+        await email.SendAsync(templateId, template.Content, candidate.Email, model, header, cancellationToken, route);
 
         // The copy the team reads hides the candidate's own link: it lets whoever holds it change or cancel the interview.
         var kept = renderer.Render(
@@ -401,12 +408,13 @@ public static class CreateInterviewEventsHandler
         EmailTemplateStore store,
         InterviewLinks links,
         Branding.EmailHeaders headers,
+        Applications.CandidateMailRouting routing,
         IOptions<DashboardLinkOptions> dashboard,
         TimeProvider time,
         ILogger<CreateInterviewEvents> logger,
         CancellationToken cancellationToken) =>
         InterviewCalendarSync.WriteAsync(
-            message.OrganizationId, message.InterviewId, message.Revision, move: false, db, calendar, email, renderer, store, links, headers, dashboard, time, logger, cancellationToken);
+            message.OrganizationId, message.InterviewId, message.Revision, move: false, db, calendar, email, renderer, store, links, headers, routing, dashboard, time, logger, cancellationToken);
 }
 
 /// <summary>Moves each interviewer's event to the new time and confirms it to the candidate (<see cref="InterviewCalendarSync"/>).</summary>
@@ -422,12 +430,13 @@ public static class UpdateInterviewEventsHandler
         EmailTemplateStore store,
         InterviewLinks links,
         Branding.EmailHeaders headers,
+        Applications.CandidateMailRouting routing,
         IOptions<DashboardLinkOptions> dashboard,
         TimeProvider time,
         ILogger<UpdateInterviewEvents> logger,
         CancellationToken cancellationToken) =>
         InterviewCalendarSync.WriteAsync(
-            message.OrganizationId, message.InterviewId, message.Revision, move: true, db, calendar, email, renderer, store, links, headers, dashboard, time, logger, cancellationToken);
+            message.OrganizationId, message.InterviewId, message.Revision, move: true, db, calendar, email, renderer, store, links, headers, routing, dashboard, time, logger, cancellationToken);
 }
 
 /// <summary>Removes each interviewer's event and tells the candidate the interview is cancelled (<see cref="InterviewCalendarSync"/>).</summary>
@@ -442,9 +451,10 @@ public static class CancelInterviewEventsHandler
         EmailTemplates renderer,
         EmailTemplateStore store,
         Branding.EmailHeaders headers,
+        Applications.CandidateMailRouting routing,
         TimeProvider time,
         ILogger<CancelInterviewEvents> logger,
         CancellationToken cancellationToken) =>
         InterviewCalendarSync.CancelAsync(
-            message.OrganizationId, message.InterviewId, message.Revision, message.TellCandidate, db, calendar, email, renderer, store, headers, time, logger, cancellationToken);
+            message.OrganizationId, message.InterviewId, message.Revision, message.TellCandidate, db, calendar, email, renderer, store, headers, routing, time, logger, cancellationToken);
 }

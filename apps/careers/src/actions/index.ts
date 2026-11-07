@@ -2,6 +2,7 @@ import { defineAction } from 'astro:actions';
 import { applyStep } from '../lib/apply-server';
 import { makeRequest, requestLink } from '../lib/data-request';
 import { changeInterview } from '../lib/interview';
+import { requestLink as requestPortalLink, sendReply } from '../lib/portal';
 import { answerQuestionnaire } from '../lib/questionnaire';
 import { stopKeeping } from '../lib/talent-pool';
 
@@ -77,6 +78,21 @@ export const server = {
   requestDataLink: defineAction({
     accept: 'form',
     handler: async (form: FormData, context) => requestLink(form, addressOf(context)),
+  }),
+
+  /**
+   * Asks for the emailed link to a candidate's own page (docs/architecture/candidate-portal.md), posted as an HTML form with the
+   * bot check's token. The answer never says whether the address applied. Never throws for the candidate.
+   */
+  requestPortalLink: defineAction({
+    accept: 'form',
+    handler: async (form: FormData, context) => requestPortalLink(form, addressOf(context)),
+  }),
+
+  /** A reply written on the page, with the files attached to it. The token travels in a hidden field. Never throws for the candidate. */
+  sendPortalReply: defineAction({
+    accept: 'form',
+    handler: async (form: FormData, context) => sendReply(form, addressOf(context)),
   }),
 
   /** A copy or erasure, chosen on the page the emailed link opens. The token travels in a hidden field. Never throws for the candidate. */

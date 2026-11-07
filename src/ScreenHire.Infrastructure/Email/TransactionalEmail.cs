@@ -15,7 +15,9 @@ public sealed class TransactionalEmail(IServiceProvider services, EmailTemplates
 
     /// <summary>
     /// Renders <paramref name="content"/> as template <paramref name="templateId"/> for <paramref name="to"/> under
-    /// <paramref name="header"/>, sends it (addressed by <paramref name="route"/> when given), and returns what was sent.
+    /// <paramref name="header"/>, sends it (addressed by <paramref name="route"/> when given), and returns the email as
+    /// rendered: the one the team keeps. The route's addressing and the candidate's portal link go to the candidate only,
+    /// so they are not in what comes back.
     /// </summary>
     public async Task<EmailMessage> SendAsync(
         string templateId,
@@ -26,9 +28,9 @@ public sealed class TransactionalEmail(IServiceProvider services, EmailTemplates
         CancellationToken cancellationToken,
         MailRoute? route = null)
     {
-        var message = (route ?? MailRoute.None).Apply(templates.Render(content, to, model, templateId, header));
-        await (sender ?? throw new InvalidOperationException("No email sender is configured.")).SendAsync(message, cancellationToken);
-        return message;
+        var rendered = templates.Render(content, to, model, templateId, header);
+        await (sender ?? throw new InvalidOperationException("No email sender is configured.")).SendAsync((route ?? MailRoute.None).Apply(rendered), cancellationToken);
+        return rendered;
     }
 
     /// <summary>Sends <paramref name="message"/> as it is: ScreenHire's own wording to a teammate, not a template.</summary>

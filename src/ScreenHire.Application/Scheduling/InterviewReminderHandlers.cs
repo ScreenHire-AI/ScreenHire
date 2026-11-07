@@ -34,6 +34,7 @@ public static partial class SendInterviewNewTimesHandler
         EmailTemplateStore store,
         InterviewLinks links,
         Branding.EmailHeaders headers,
+        Applications.CandidateMailRouting routing,
         TimeProvider time,
         ILogger<SendInterviewNewTimes> logger,
         CancellationToken cancellationToken)
@@ -73,7 +74,9 @@ public static partial class SendInterviewNewTimesHandler
             InterviewTime = interview.StartsAt is { } start ? InterviewText.Time(start, start + interview.Duration, interview.TimeZone) : null,
         };
         var header = await headers.ForAsync(db, organization, cancellationToken);
-        await email.SendAsync(EmailTemplateIds.InterviewNewTimes, template.Content, candidate.Email, model, header, cancellationToken);
+        // Routed like every email about an application: a reply address and the link to the candidate's own page.
+        var route = await routing.ForAsync(db, application.OrganizationId, message.SendId, cancellationToken, candidate.Id);
+        await email.SendAsync(EmailTemplateIds.InterviewNewTimes, template.Content, candidate.Email, model, header, cancellationToken, route);
 
         // The team's copy says where the candidate's own link was: it lets whoever holds it move or cancel the interview.
         var kept = renderer.Render(
@@ -141,6 +144,7 @@ public static partial class SendInterviewReminderHandler
         EmailTemplateStore store,
         InterviewLinks links,
         Branding.EmailHeaders headers,
+        Applications.CandidateMailRouting routing,
         IOptions<DashboardLinkOptions> dashboard,
         TimeProvider time,
         ILogger<SendInterviewReminder> logger,
@@ -179,7 +183,7 @@ public static partial class SendInterviewReminderHandler
                 InterviewLength = InterviewText.Length(interview.DurationMinutes),
             };
             await InterviewCalendarSync.SendAsync(
-                db, email, renderer, headers, organization, application, candidate, template, EmailTemplateIds.InterviewReminder, model, sendId, now, cancellationToken);
+                db, email, renderer, headers, routing, organization, application, candidate, template, EmailTemplateIds.InterviewReminder, model, sendId, now, cancellationToken);
             outgoing.Add(new ApplicationEmailed(application.OrganizationId, application.Id, application.JobId, sendId, now));
         }
 

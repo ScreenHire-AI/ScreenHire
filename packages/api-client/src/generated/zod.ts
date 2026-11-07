@@ -1010,6 +1010,101 @@ export const GetPublicDataDownloadResponse = zod.object({
 }).describe('A short-lived address that downloads the candidate\'s copy.')
 
 
+export const GetPublicPortalFormParams = zod.object({
+  "organizationSlug": zod.string()
+})
+
+export const GetPublicPortalFormResponse = zod.object({
+  "organizationName": zod.string(),
+  "enabled": zod.boolean(),
+  "turnstileSiteKey": zod.string().nullable()
+}).describe('What the careers portal page needs before it asks for an address. `enabled` is false where the deployment sends no\nemail or has no careers host to link to: the page then says the portal is not available here.\n`turnstileSiteKey` is null unless the bot challenge is configured.')
+
+
+export const RequestPublicPortalLinkParams = zod.object({
+  "organizationSlug": zod.string()
+})
+
+export const RequestPublicPortalLinkBody = zod.object({
+  "email": zod.string(),
+  "botCheckToken": zod.string().nullish()
+}).describe('The address a candidate types to be sent the link to their page. The answer to it is the same whether or not the\naddress has applied, so it tells nobody who has.')
+
+export const RequestPublicPortalLinkResponse = zod.void()
+
+
+export const GetPublicPortalParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string()
+})
+
+export const GetPublicPortalResponse = zod.object({
+  "organizationName": zod.string(),
+  "firstName": zod.string(),
+  "applications": zod.array(zod.object({
+  "id": zod.uuid(),
+  "jobTitle": zod.string(),
+  "appliedAt": zod.iso.datetime({"offset":true}),
+  "funnel": zod.object({
+  "steps": zod.array(zod.string()),
+  "current": zod.int().nullable(),
+  "ended": zod.enum(['None', 'Hired', 'NotMovingForward', 'Withdrawn']).describe('How an application ended, in the words a candidate sees. The employer\'s own stage names never reach the page.')
+}).describe('Where an application stands on the four fixed steps every job shares. `current` is an index into `steps`, or\nnull once the application ended, and then `ended` says how. Nothing about the employer\'s own stages is in it.'),
+  "waiting": zod.array(zod.object({
+  "kind": zod.enum(['Questionnaire', 'Interview']).describe('What something is waiting on the candidate for.'),
+  "token": zod.string()
+}).describe('Something the candidate can act on, with the token of the existing careers page for it\n(`/questionnaires/{token}` or `/interviews/{token}`). The name of a questionnaire is the team\'s wording for it\nand is not sent.')),
+  "hasMessages": zod.boolean(),
+  "canReply": zod.boolean()
+}).describe('One of the candidate\'s applications to this organization.')),
+  "drafts": zod.array(zod.object({
+  "jobTitle": zod.string(),
+  "jobSlug": zod.string(),
+  "token": zod.string(),
+  "expiresAt": zod.iso.datetime({"offset":true})
+}).describe('An application the candidate started and saved to finish later; `token` opens the job\'s apply page with it.'))
+}).describe('Everything a candidate\'s page shows on its first screen.')
+
+
+export const GetPublicPortalMessagesParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string(),
+  "applicationId": zod.uuid()
+})
+
+export const GetPublicPortalMessagesResponse = zod.object({
+  "jobTitle": zod.string(),
+  "messages": zod.array(zod.object({
+  "direction": zod.enum(['FromTeam', 'FromYou']).describe('Who wrote a message on the page: the team (an email ScreenHire sent for them) or the candidate.'),
+  "subject": zod.string(),
+  "body": zod.string(),
+  "at": zod.iso.datetime({"offset":true}),
+  "attachmentCount": zod.int()
+}).describe('One message in an application\'s thread: the email as the candidate got it, or their reply. Plain text only.')),
+  "canReply": zod.boolean(),
+  "bodyMax": zod.int(),
+  "maxAttachments": zod.int()
+}).describe('An application\'s thread, oldest first. `canReply` is false until the team has written once.')
+
+
+export const SendPublicPortalReplyParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string(),
+  "applicationId": zod.uuid()
+})
+
+export const SendPublicPortalReplyBody = zod.object({
+  "body": zod.string(),
+  "key": zod.string(),
+  "attachments": zod.array(zod.object({
+  "fileName": zod.string(),
+  "contentBase64": zod.string()
+}).describe('A file sent with a reply, as base64 text.')).nullish()
+}).describe('A reply written on the page. `key` is the form\'s own random id (32 hex digits), so sending the same form twice stores one\nreply.')
+
+export const SendPublicPortalReplyResponse = zod.void()
+
+
 export const listJobsResponseLastUpdatedCreatedDefault = false;
 
 export const ListJobsResponseItem = zod.object({

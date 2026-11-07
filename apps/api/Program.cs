@@ -95,6 +95,8 @@ builder.Services.AddOptions<WebhookOptions>().BindConfiguration(WebhookOptions.S
 // Data requests, record retention and the erasure they and the erase route share (docs/architecture/data-requests.md).
 builder.Services.AddScreenHirePrivacy();
 builder.Services.AddScreenHireDataRequests();
+// The candidate's own page: a signed link by email, each application's status, and the messages (docs/architecture/candidate-portal.md).
+builder.Services.AddScreenHirePortal();
 // The sites an organization lets embed its careers pages (docs/architecture/careers-widget.md).
 builder.Services.AddOptions<CareersEmbeddingOptions>().BindConfiguration(CareersEmbeddingOptions.Section);
 // Slack (docs/architecture/slack.md): connecting a workspace and linking accounts happen here; the worker posts.
@@ -140,6 +142,7 @@ app.MapPublicQuestionnaireEndpoints();
 app.MapPublicInterviewEndpoints();
 app.MapPublicTalentPoolEndpoints();
 app.MapPublicDataRequestEndpoints();
+app.MapPublicPortalEndpoints();
 app.MapPublicTelemetryEndpoints();
 app.MapJobEndpoints();
 app.MapTemplateEndpoints();
