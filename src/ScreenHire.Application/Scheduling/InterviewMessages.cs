@@ -93,7 +93,11 @@ public sealed record RemoveInterviewerFromInterviews(Guid OrganizationId, Guid U
     public string IdempotencyKey => $"interview-interviewer-left:{CauseId}";
 }
 
-/// <summary>One event to delete from an interviewer's calendar: where it is, and what to look for if its id was never saved.</summary>
+/// <summary>
+/// One event to delete from an interviewer's calendar: where it is, and what to look for if its id was never saved.
+/// <see cref="WindowStart"/> and <see cref="WindowEnd"/> hold the interview's lookup span (every window it has had, as
+/// <c>InterviewRequest.LookupStart</c> and <c>LookupEnd</c>); the names stay because they are serialized message members.
+/// </summary>
 public sealed record InterviewEventToRemove(Guid InterviewId, Guid UserId, string? ProviderEventId, DateTimeOffset WindowStart, DateTimeOffset WindowEnd);
 
 /// <summary>

@@ -209,7 +209,7 @@ internal static partial class InterviewCalendarSync
                     CreateMeetingLink: attendee.IsOrganizer);
 
                 // A create that rolled back after the provider answered left an event with no saved id, at the old time.
-                // Creating again would only find that event there, so a move looks for it first, across the whole window.
+                // Creating again would only find that event there, so a move looks for it first, across the lookup span (every window the interview has had).
                 var eventId = attendee.ProviderEventId;
                 if (move)
                 {
@@ -290,7 +290,7 @@ internal static partial class InterviewCalendarSync
         var (interview, application, job, candidate, organization) = context;
         var attendees = await LoadAttendeesAsync(db, interviewId, cancellationToken);
         // An event may exist with no saved id only when the interview was booked. It can sit at any time the interview had,
-        // so the look-up covers the whole window.
+        // so the look-up covers the lookup span (every window the interview has had).
         var wasBooked = interview.StartsAt is not null;
         foreach (var attendee in attendees.Where(a => a.SyncStatus != InterviewSyncStatus.Synced && (a.ProviderEventId is not null || wasBooked)))
         {

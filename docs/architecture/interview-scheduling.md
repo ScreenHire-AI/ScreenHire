@@ -315,7 +315,8 @@ change, so a crash between the two cannot leave one without the other.
   notifying guests on Google; Microsoft Graph has no switch for that, and a meeting deleted by its organizer tells its
   attendees. An event whose id was never saved (a create whose transaction rolled back after the provider answered) is
   found by the id its create used: Google's event id is derived from it, and Graph is searched by `transactionId` across the
-  interview's whole window, because such an event sits at a time the interview may have moved from. A cancellation and a
+  interview's lookup span (`LookupStart` to `LookupEnd`, every window it has had), because such an event sits at a time the
+  interview may have moved from. A cancellation and a
   move use the same lookup, so a rolled-back create cannot leave an event behind or at the old time. The sandbox deletes
   the row for good.
 

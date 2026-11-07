@@ -16,6 +16,7 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
             ALTER TABLE interview_requests NO FORCE ROW LEVEL SECURITY;
             UPDATE interview_requests SET lookup_start = window_start, lookup_end = window_end;
             ALTER TABLE interview_requests FORCE ROW LEVEL SECURITY;
+            ALTER TABLE interview_requests ALTER COLUMN lookup_start DROP DEFAULT, ALTER COLUMN lookup_end DROP DEFAULT;
             """;
 
         /// <inheritdoc />
